@@ -1,0 +1,67 @@
+<HTML>
+<HEAD>
+<TITLE>EdgeFlip</TITLE>
+</HEAD>
+<BODY BGCOLOR='#FFFFFF'>
+
+<FORM>
+	Facebook ID: <input type="text" name="fb_id" id="fb-id" value="500876410"/><br />
+	Name: <input type="text" name="name" id="name" value="rayid"/><br />
+	Facebook Token: <input type="text" name="fb_token" id="fb-token" size=120 value="AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD"/><br /><br />
+	<input type="button" id="flip-my-edge" value="Flip my Edge"/>
+</FORM>
+<BR>
+<BR>
+
+<div id="your-friends-here" style="display: none; background-color: yellow; padding: 10px; border: 1px solid black; font-weight: bold;"> </div>
+
+</div>
+
+<script src="js/underscore-min.js"></script>
+<script src="js/jquery.js"></script>
+<script src="js/bootstrap-transition.js"></script>
+<script src="js/bootstrap-alert.js"></script>
+<script src="js/bootstrap-dropdown.js"></script>
+<script src="js/bootstrap-tab.js"></script>
+<script src="js/bootstrap-modal.js"></script>
+<script src="js/bootstrap-tooltip.js"></script>
+<script src="js/bootstrap-popover.js"></script>
+
+<SCRIPT>
+
+var friends_div = $('#your-friends-here');
+var flip_btn = $('#flip-my-edge');
+
+$(function() {
+    flip_btn.click(function(e) {
+      flip_btn.attr('disabled', true);
+      var params = JSON.stringify({
+        fb_id:    	 $('#fb-id').val(),
+        name:        $('#name').val(),
+        fb_token:    $('#fb-token').val()
+      });
+      friends_div.text("Initializing...");
+      friends_div.show();
+      $.ajax({
+         type: "POST",
+         url: '/edgeflip',
+         dataType: 'json',
+         contentType: "application/json",
+         data: params,
+         error: function (jqXHR, textStatus, errorThrown) {
+           friends_div.text('Error: ' + textStatus);
+           flip_btn.attr('disabled', false);
+         },
+         success: function (data) {
+           friends_div.html(data.resp);
+         }
+       });
+    });
+});
+
+</SCRIPT>
+
+</BODY>
+</HTML>
+
+
