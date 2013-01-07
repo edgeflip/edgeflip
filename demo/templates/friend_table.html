@@ -1,0 +1,19 @@
+
+	<table>
+		<tr>
+			<td>fbid</td>
+			<td>name</td>
+			<td>desc</td>
+			<td>score</td>
+		</tr>
+
+		{% for friend in friends %}
+			<tr>
+				<td>{{friend.id}}</td>
+				<td>{{friend.name}}</td>
+				<td>{{friend.desc}}</td>
+				<td>{{friend.score}}</td>
+			</tr>
+		{% endfor %}
+
+	</table>
