@@ -11,102 +11,108 @@
 			document.getElementById('fbid').value = elts[0];
 			document.getElementById('token').value = elts[1];
 		}
+		
+		function getButtonName() {
+			var flips = new Array("flip", "rip", "drip", "skip", "hip", "lip", "clip", "strip", "chip", "dip", "slip", "nip", "grip", "whip", "quip");
+			var edges = new Array("edge", "dredge", "fledge", "hedge", "ledge", "pledge", "sedge", "sledge", "wedge");	
+			var randFlip = flips[Math.floor(Math.random() * flips.length)];
+			var randEdge = edges[Math.floor(Math.random() * edges.length)];
+			return randFlip + " my " + randEdge;
+		}
+
+		function doOnLoad() {
+			document.getElementById("flip-my-edge").value = getButtonName();		
+		}		
+		
+
 	</script>
+	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='demo.css') }}">
 </head>
 
-<body>
-	<form>	
-		<table border=0>
-			<tr>
-				<td>fbid&nbsp;</td>
-				<td><input type="text" name="fbid" id="fbid" size=10 value="500876410"/></td>
-				<td align='right'>
-					<select id='selUser' onChange='preloadUser()'>	
-						<option value="0">--- select ---</option>			
-						{% for user in users %}
-							<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
-						{% endfor %}
-					</select>	
-				</td>
-			</tr>			
-			<tr>
-				<td>token&nbsp;</td>
-				<td colspan=2><input type="text" name="token" id="token" size=110 value="AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD"/></td>
-			</tr>
-			<tr>
-				<td colspan=2>
-					<br>
-					<input type="button" id="flip-my-edge" value="Flip my Edge"/>
-				</td>
-			</tr>
-		</table>
-	</form>
+<body onload='doOnLoad()'>
+	<div id='content'>
+
+		<div id='logo'>
+			edgeflip
+		</div>
+
+		<form id='user_form'>	
+			<table border=0>
+
+				<tr valign='top'>				
+					<td align='left' style='padding-left: 0px'>
+							&nbsp;fbid<br>
+							<input type="text" name="fbid" id="fbid" size=20 value="500876410"/>
+
+					<td rowspan=2 style='padding-left: 20px'>
+							&nbsp;token<br>
+							<textarea rows=4 cols=30 name="token" id="token">AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD</textarea>					
+					</td>
+				</tr>			
+
+				<tr>
+					<td align='center' valign='bottom'>
+						&nbsp;<br>
+						<select id='selUser' onChange='preloadUser()'>	
+							<option value="0">--- select ---</option>			
+							{% for user in users %}
+								<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
+							{% endfor %}
+						</select>	
+					</td>
+				</tr>
+
+				<tr>
+					<td colspan=2 align='center'>
+						<br>
+						<input type="button" id="flip-my-edge" value="submit" style='width: 200px; height: 45px; font-size: 1.5em'/>
+					</td>		
+				</tr>
+				
+			</table>
+		</form>
+		
+		<div id="your-friends-here">&nbsp;</div>
 	
-<div id="your-friends-here" style="display: none; background-color: yellow; padding: 10px; border: 1px solid black; font-weight: bold;"> </div>
+		</div>
 
-</div>
+	</div><!-- content -->	
 
-
-<script type="text/javascript">
-
-	var friends_div = $('#your-friends-here');
-	var flip_btn = $('#flip-my-edge');
-
-	$(function() {
-		flip_btn.click(function(e) {
-			flip_btn.attr('disabled', true);
-			friends_div.text("Initializing...");	
-			friends_div.show();
-						
-			var params = JSON.stringify({
-				fbid: $('#fbid').val(),
-				token: $('#token').val()
-			});
-
-			$.ajax({
-				type: "POST",
-				url: '/edgeflip',
-				contentType: "application/json",
-				dataType: 'html',
-				data: params,
-				error: function(jqXHR, textStatus, errorThrown) {
-							friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
-							flip_btn.attr('disabled', false);
-				},
-				success: function(data) {
-							alert("hello:" + data);
-							friends_div.html(data);
-							alert("hello again");
-
-				}
-			});
-		});
-	});	
-
-</script>
-
-<!--
-
-
-			$.ajax({
-				type: "POST",
-				url: '/edgeflip',
-				dataType: 'json',
-				contentType: "application/json",
-				data: params,
-				error: function(jqXHR, textStatus, errorThrown) {
-						friends_div.text('Error: ' + textStatus);
-						flip_btn.attr('disabled', false);
-				},
-				success:
-					function(data) {
-						friends_div.html(data.resp);
+	<script type="text/javascript">
+	
+		var friends_div = $('#your-friends-here');
+		var flip_btn = $('#flip-my-edge');
+	
+		$(function() {
+			flip_btn.click(function(e) {
+				flip_btn.attr('disabled', true);
+				friends_div.text("Initializing...");	
+				friends_div.show();
+							
+				var params = JSON.stringify({
+					fbid: $('#fbid').val(),
+					token: $('#token').val()
+				});
+	
+				$.ajax({
+					type: "POST",
+					url: '/edgeflip',
+					contentType: "application/json",
+					dataType: 'html',
+					data: params,
+					error: function(jqXHR, textStatus, errorThrown) {
+								friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
+								flip_btn.attr('disabled', false);
+					},
+					success: function(data) {
+								friends_div.html(data);	
 					}
+				});
 			});
-
--->
-
-
+		});	
+	
+	</script>
+	
 
 </body>
 </html>
