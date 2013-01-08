@@ -181,7 +181,8 @@ class Edge(object):
 		return (px3 + px4 + px5) / norm
 
 
-def getFriendRanking(user, tok, maxFriends=sys.maxint):
+def getFriendRanking(userP, tok, maxFriends=sys.maxint):
+	user = int(userP)	
 	logging.info('reading stream for user %s, %s', user, tok)
 	sc = readStreamParallel(user, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 	logging.debug('got %s', str(sc))
