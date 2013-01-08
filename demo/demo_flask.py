@@ -19,9 +19,16 @@ def flip_it():
 	#sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
+	num = int(flask.request.json['num'])
 
-	friendTups = ReadStream.getFriendRanking(user, tok) # id, name, desc, score
-	friendDicts = [ { 'id':t[0], 'name':t[1], 'desc':t[2], 'score':t[3] } for t in friendTups ]
+	friendTups = ReadStream.getFriendRanking(user, tok, num) # id, name, desc, score
+	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
+	friendDicts = []
+	for i, t in enumerate(friendTups):
+		fd = { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] }
+		for c, count in enumerate(t[2].split()):
+			fd['count' + str(c)] = count
+		friendDicts.append(fd)
 
 	for fd in friendDicts:
 		sys.stderr.write(str(fd) + "\n")
@@ -29,8 +36,7 @@ def flip_it():
 	ret = render_template('friend_table.html', friends=friendDicts)
 	#sys.stderr.write("rendered: " + str(ret) + "\n")
 	return ret
-	
-	
+		
 	#return flask.jsonify(resp=friendTups)
 
 	#try:
