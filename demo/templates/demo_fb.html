@@ -58,8 +58,7 @@
 
 				userInfo	 =   document.getElementById('user-info');
 
-				//if (response.authResponse) { //user is already logged in and connected
-				if (false) { //user is already logged in and connected
+				if (response.authResponse) { //user is already logged in and connected
 
 					FB.api('/me', function(info) {
 						login(response, info);
@@ -262,7 +261,7 @@
 			</table>
 		</form>
 
-		<div id='progress' style='text-align: center; display: none'>
+		<div id='loader' style='text-align: center; display: none'>
 			<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
 		</div>
 		
@@ -274,12 +273,12 @@
 	
 		var friends_div = $('#your-friends-here');
 		var flip_btn = $('#flip-my-edge');
-		var progress = $('#progress');
+		//var progress = $('#progress');
 	
 		$(function() {
 			flip_btn.click(function(e) {
 				flip_btn.attr('disabled', true);
-				progress.show();
+				//progress.show();
 
 				friends_div.text("Reading stream...");	
 							
@@ -298,13 +297,13 @@
 					error: function(jqXHR, textStatus, errorThrown) {
 								friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
 								flip_btn.attr('disabled', false);
-								progress.css('display', 'none');
+								//progress.css('display', 'none');
 					},
 					success: function(data) {
 								friends_div.html(data);	
 								friends_div.show();
 								flip_btn.attr('disabled', false);
-								progress.css('display', 'none');
+								//progress.css('display', 'none');
 					}
 				});
 			});
@@ -316,9 +315,7 @@
 
 		<h3>New JavaScript SDK & OAuth 2.0 based FBConnect Tutorial | Thinkdiff.net</h3>
 		<button id="fb-auth">Login</button>
-		<div id="loader" style="display:none">
-			<img src="ajax-loader.gif" alt="loading" />
-		</div>
+
 		<br />
 		<div id="user-info"></div>
 		<br />
