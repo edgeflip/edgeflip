@@ -14,7 +14,7 @@ def hello():
 	return render_template('demo.html', users=guineaPigs)
 
 
-@app.route("/fb", methods=['POST', 'GET'])
+@app.route("/fb/", methods=['POST', 'GET'])
 def fb():
 	return render_template('demo_fb.html')
 
