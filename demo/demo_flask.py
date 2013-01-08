@@ -8,7 +8,7 @@ import sys
 
 app = Flask(__name__)
 
-@app.route("/")
+@app.route("/", methods=['POST', 'GET'])
 def hello():
 	guineaPigs = [ { 'id':t[0], 'name':t[1], 'token':t[2] } for t in ReadStream.USER_TUPS ]
 	return render_template('demo.html', users=guineaPigs)
