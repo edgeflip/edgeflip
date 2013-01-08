@@ -53,10 +53,14 @@
 				oauth: true});
 		   showLoader(true);
 		   function updateButton(response) {
-				button	   =   document.getElementById('fb-auth');
+				//button	   =   document.getElementById('fb-auth');
+				button = document.getElementById('flip-my-edge');
+
 				userInfo	 =   document.getElementById('user-info');
 
-				if (response.authResponse) { //user is already logged in and connected
+				//if (response.authResponse) { //user is already logged in and connected
+				if (false) { //user is already logged in and connected
+
 					FB.api('/me', function(info) {
 						login(response, info);
 					});
@@ -248,23 +252,6 @@
 			<div style='float: left;  width: 50px'>&nbsp;</div>
 
 			<table border=0>
-
-				<tr>
-					<td align='center' valign='bottom'>
-						&nbsp;<br>
-
-
-						<!--
-						<select id='selUser' onChange='preloadUser()'>	
-							<option value="0">--- select ---</option>
-							{% for user in users %}
-								<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
-							{% endfor %}
-						</select>	
-						-->
-					</td>
-				</tr>
-
 				<tr>
 					<td colspan=2 align='center'>
 						<br>
