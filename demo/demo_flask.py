@@ -18,7 +18,7 @@ def hello():
 def fb():
 	return render_template('demo_fb.html')
 
-
+		
 @app.route('/edgeflip', methods=['POST', 'GET'])
 def flip_it():
 	#sys.stderr.write("flask.request: %s\n" % (str(flask.request)))
