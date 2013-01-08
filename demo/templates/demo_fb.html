@@ -249,32 +249,6 @@
 
 			<table border=0>
 
-				<tr valign='top'>				
-					<td align='left' style='padding-left: 0px'>
-						&nbsp;fbid<br>
-						<!--
-						<input type="text" name="fbid" id="fbid" size=20 value="500876410"/>
-						-->
-
-						<!--
-						http://bit.wisestamp.com/uncategorized/htmljquery-editable-combo-2/
-						-->
-						<select id="selUser" style="width: 180px; height: 24px; border: solid 1px #666666" onchange="$('input#fbid').val($(this).val());preloadUser()">
-							<option value="" disabled selected></option>			
-							{% for user in users %}
-								<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
-							{% endfor %}
-						</select>
-						<input id="fbid" style="margin-left: -184px; width: 160px; height: 20px; border: solid 1px #666666;" />
-
-					</td>
-
-					<td rowspan=2 style='padding-left: 20px'>
-							&nbsp;token<br>
-							<textarea rows=4 cols=30 name="token" style="border: solid 1px #666666" id="token">AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD</textarea>					
-					</td>
-				</tr>			
-
 				<tr>
 					<td align='center' valign='bottom'>
 						&nbsp;<br>
