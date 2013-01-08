@@ -18,12 +18,13 @@
 	padding: 10px;
 	margin-left: auto;
 	margin-right: auto;	
+	border: 5px solid #939393;
 }
 
 #logo {
 	width: 100%;
 	text-align: center;
-	font-size: 48px;
+	font-size: 96px;
 	color: blue;
 	//background: green;
 	margin-bottom: 20px;
@@ -34,6 +35,12 @@
 	display: none;
 	background-color: #FFFF55;
 	padding: 10px;
-	//border: 1px solid black;
+	border: 5px solid #939393;
 	//font-weight: bold;
 }
+
+#friend-table td {
+	padding-right: 10px;
+	
+}
+

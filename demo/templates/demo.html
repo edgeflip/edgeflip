@@ -26,6 +26,8 @@
 		
 
 	</script>
+
+
 	<link rel=stylesheet type=text/css href="{{ url_for('static', filename='demo.css') }}">
 </head>
 
@@ -37,28 +39,51 @@
 		</div>
 
 		<form id='user_form'>	
+	
+			<div style='float: right; width: 50px; text-align: center'>max<br><input id='num' type='text' size=4 value='1000'></div>
+			<div style='float: left;  width: 50px'>&nbsp;</div>
+
 			<table border=0>
 
 				<tr valign='top'>				
 					<td align='left' style='padding-left: 0px'>
-							&nbsp;fbid<br>
-							<input type="text" name="fbid" id="fbid" size=20 value="500876410"/>
+						&nbsp;fbid<br>
+						<!--
+						<input type="text" name="fbid" id="fbid" size=20 value="500876410"/>
+						-->
+
+						<!--
+						http://bit.wisestamp.com/uncategorized/htmljquery-editable-combo-2/
+						-->
+						<select id="selUser" style="width: 180px; height: 24px; border: solid 1px #666666" onchange="$('input#fbid').val($(this).val());preloadUser()">
+							<option value="" disabled selected></option>			
+							{% for user in users %}
+								<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
+							{% endfor %}
+						</select>
+						<input id="fbid" style="margin-left: -184px; width: 160px; height: 20px; border: solid 1px #666666;" />
+
+					</td>
 
 					<td rowspan=2 style='padding-left: 20px'>
 							&nbsp;token<br>
-							<textarea rows=4 cols=30 name="token" id="token">AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD</textarea>					
+							<textarea rows=4 cols=30 name="token" style="border: solid 1px #666666" id="token">AAABlUSrYhfIBAH7jkzeLZAos8m8aET3rfZBmycGvHLrUEroS3XghNzATCuOwsbQ8JK5lgjDRMHAvasMxgIWWYbOSh5G2awxbep3PMONgZDZD</textarea>					
 					</td>
 				</tr>			
 
 				<tr>
 					<td align='center' valign='bottom'>
 						&nbsp;<br>
+
+
+						<!--
 						<select id='selUser' onChange='preloadUser()'>	
-							<option value="0">--- select ---</option>			
+							<option value="0">--- select ---</option>
 							{% for user in users %}
 								<option value="{{user.id}}::{{user.token}}">{{user.id}} ({{user.name}})</option>			
 							{% endfor %}
 						</select>	
+						-->
 					</td>
 				</tr>
 
@@ -71,10 +96,12 @@
 				
 			</table>
 		</form>
-		
-		<div id="your-friends-here">&nbsp;</div>
-	
+
+		<div id='progress' style='text-align: center; display: none'>
+			<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
 		</div>
+		
+		<div id="your-friends-here"></div>
 
 	</div><!-- content -->	
 
@@ -82,16 +109,19 @@
 	
 		var friends_div = $('#your-friends-here');
 		var flip_btn = $('#flip-my-edge');
+		var progress = $('#progress');
 	
 		$(function() {
 			flip_btn.click(function(e) {
 				flip_btn.attr('disabled', true);
-				friends_div.text("Initializing...");	
-				friends_div.show();
+				progress.show();
+
+				friends_div.text("Reading stream...");	
 							
 				var params = JSON.stringify({
 					fbid: $('#fbid').val(),
-					token: $('#token').val()
+					token: $('#token').val(),
+					num: $('#num').val()
 				});
 	
 				$.ajax({
@@ -103,9 +133,13 @@
 					error: function(jqXHR, textStatus, errorThrown) {
 								friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
 								flip_btn.attr('disabled', false);
+								progress.css('display', 'none');
 					},
 					success: function(data) {
 								friends_div.html(data);	
+								friends_div.show();
+								flip_btn.attr('disabled', false);
+								progress.css('display', 'none');
 					}
 				});
 			});
