@@ -207,14 +207,14 @@ def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 		friendId_edge[friendId] = e
 	logging.info("have %d edges", len(friendId_edge))
 	
-	ipl = max(sc.friendId_postLikeCount.values())
-	ipc = max(sc.friendId_postCommCount.values())
-	isl = max(sc.friendId_statLikeCount.values())
-	isc = max(sc.friendId_statCommCount.values())
-	opl = max([ e.inPostLikes for e in friendId_edge.values() ])
-	opc = max([ e.inPostComms for e in friendId_edge.values() ])
-	osl = max([ e.inStatLikes for e in friendId_edge.values() ])
-	opc = max([ e.inStatComms for e in friendId_edge.values() ])		
+	ipl = max(sc.friendId_postLikeCount.values() + [0])
+	ipc = max(sc.friendId_postCommCount.values() + [0])
+	isl = max(sc.friendId_statLikeCount.values() + [0])
+	isc = max(sc.friendId_statCommCount.values() + [0])
+	opl = max([ e.inPostLikes for e in friendId_edge.values() ] + [0])
+	opc = max([ e.inPostComms for e in friendId_edge.values() ] + [0])
+	osl = max([ e.inStatLikes for e in friendId_edge.values() ] + [0])
+	opc = max([ e.inStatComms for e in friendId_edge.values() ] + [0])		
 	friendId_score = dict([ [e.id2, e.prox(ipl, ipc, isl, isc, opl, opc, osl, opc)] for e in friendId_edge.values() ])
 
 	friendTups = []
