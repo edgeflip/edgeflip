@@ -35,6 +35,8 @@
 	<div id="fb-root"></div>
 	<script type="text/javascript">
 		var APP_ID = '471727162864364';	
+		var fbid;
+		var token;
 		var button;
 		var userInfo;
 
@@ -107,6 +109,9 @@
 				var accessToken = response.authResponse.accessToken;
 
 				alert(accessToken);
+
+				fbid = info.id;
+				token = response.authResponse.accessToken;
 
 				userInfo.innerHTML = '<img src="https://graph.facebook.com/' + info.id + '/picture">' + info.name + "<br /> Your Access Token: " + accessToken;
 				//button.innerHTML = 'Logout';
@@ -290,8 +295,10 @@
 				friends_div.text("Reading stream...");	
 							
 				var params = JSON.stringify({
-					fbid: $('#fbid').val(),
-					token: $('#token').val(),
+					//fbid: $('#fbid').val(),
+					//token: $('#token').val(),
+					fbid: fbid,
+					token: token,
 					num: $('#num').val()
 				});
 	
