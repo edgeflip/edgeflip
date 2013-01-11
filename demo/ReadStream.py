@@ -161,28 +161,32 @@ class Edge(object):
 		
 	def prox(self, inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax,
 			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, mutsMax):
-
-		px3 = 0.0
-		px3 += float(self.mutuals) / mutsMax * 1.0
-		#zzz need photo tags
 		
-		px4 = 0.0
-		px4 += float(self.inPostLikes) / inPostLikesMax * 1.0
-		px4 += float(self.inPostComms) / inPostCommsMax * 1.0
-		px4 += float(self.inStatLikes) / inStatLikesMax * 2.0
-		px4 += float(self.inStatComms) / inStatCommsMax * 1.0
-		#zzz need other tags					
+		countMaxWeightTups = [
+			# px3
+			(self.mutuals, mutsMax, 1.0),
 
-		px5 = 0.0
-		px5 += float(self.outPostLikes) / outPostLikesMax * 2.0
-		px5 += float(self.outPostComms) / outPostCommsMax * 3.0
-		px5 += float(self.outStatLikes) / outStatLikesMax * 2.0
-		px5 += float(self.outStatComms) / outStatCommsMax * 16.0
-		#zzz need other tags					
+			# px4
+			(self.inPostLikes, inPostLikesMax, 1.0),
+			(self.inPostComms, inPostCommsMax, 1.0),
+			(self.inStatLikes, inStatLikesMax, 2.0),
+			(self.inStatComms, inStatCommsMax, 1.0),
+			#zzz need other tags					
 
-		norm = 1.0 + 5.0 + 23.0 # must match weights above
-		return (px3 + px4 + px5) / norm
-
+			# px5
+			(self.outPostLikes, outPostLikesMax, 2.0),
+			(self.outPostComms, outPostCommsMax, 3.0),
+			(self.outStatLikes, outStatLikesMax, 2.0),
+			(self.outStatComms, outStatCommsMax, 16.0)
+			#zzz need other tags								
+		]
+		pxTotal = 0.0
+		weightTotal = 0.0
+		for count, countMax, weight in countMaxWeightTups:
+			if (countMax):
+				pxTotal += float(count)/countMax*weight
+				weightTotal += weight
+		return pxTotal / weightTotal				
 
 def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 	user = int(userP)	
@@ -203,7 +207,7 @@ def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 
 	friendId_edge = {}
 	for i, friendId in enumerate(friendIds[:maxFriends]):
-		logging.info("reading friend stream %d/%d (%s)", i, len(friendId_streamrank), friendId)
+		logging.info("reading friend stream %d/%d (%s)", i, len(friendId_info), friendId)
 		try:
 			scFriend = readStreamParallel(friendId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 		except Exception:
