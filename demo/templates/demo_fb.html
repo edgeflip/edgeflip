@@ -35,8 +35,8 @@
 	<div id="fb-root"></div>
 	<script type="text/javascript">
 		var APP_ID = '471727162864364';	
-		var fbid;
-		var token;
+		var currentUserId;
+		var currentUserToken;
 		var button;
 		var userInfo;
 
@@ -106,14 +106,10 @@
 
 		function login(response, info){
 			if (response.authResponse) {
-				var accessToken = response.authResponse.accessToken;
-
-				alert(accessToken);
-
-				fbid = info.id;
-				token = response.authResponse.accessToken;
-
-				userInfo.innerHTML = '<img src="https://graph.facebook.com/' + info.id + '/picture">' + info.name + "<br /> Your Access Token: " + accessToken;
+				currentUserToken = response.authResponse.accessToken;
+				currentUserId = info.id;
+				alert("logged in user: " + currentUserId + ", token: " + currentUserToken);
+				userInfo.innerHTML = '<img src="https://graph.facebook.com/' + info.id + '/picture">' + info.name + "<br /> Your Access Token: " + currentUserToken;
 				//button.innerHTML = 'Logout';
 				//showLoader(false);
 				document.getElementById('other').style.display = "block";
@@ -287,7 +283,7 @@
 		$(function() {
 			flip_btn.click(function(e) {
 				
-				alert('clicked!');
+				//alert('clicked!');
 				
 				flip_btn.attr('disabled', true);
 				//progress.show();
@@ -295,10 +291,10 @@
 				friends_div.text("Reading stream...");	
 							
 				var params = JSON.stringify({
-					//fbid: $('#fbid').val(),
+					//currentUserId: $('#fbid').val(),
 					//token: $('#token').val(),
-					fbid: fbid,
-					token: token,
+					fbid: currentUserId,
+					token: currentUserToken,
 					num: $('#num').val()
 				});
 	
