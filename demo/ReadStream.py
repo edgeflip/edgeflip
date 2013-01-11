@@ -42,14 +42,16 @@ FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM
 
 
 def getFriends(user, token):
-	fql = """SELECT name, uid FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (user)
+	fql = """SELECT name, uid, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (user)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
 	responseFile = urllib2.urlopen(url, timeout=60)
 	responseJson = json.load(responseFile)
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
-	friendTups = [ (rec['uid'], rec['name']) for rec in responseJson['data'] ]
+	friendTups = [ (rec['uid'], rec['name'], rec['mutual_friend_count']) for rec in responseJson['data'] ]
 	return friendTups
+
+
 
 
 class StreamCounts(object):
@@ -139,7 +141,7 @@ class StreamCounts(object):
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 
 class Edge(object):
-	def __init__(self, sc1, sc2):
+	def __init__(self, sc1, sc2, muts):
 		self.id1 = sc1.id
 		self.id2 = sc2.id
 		self.inPostLikes = sc1.getPostLikes(sc2.id)
@@ -150,18 +152,19 @@ class Edge(object):
 		self.outPostComms = sc2.getPostComms(sc1.id)
 		self.outStatLikes = sc2.getStatLikes(sc1.id)
 		self.outStatComms = sc2.getStatComms(sc1.id)
+		self.mutuals = muts
 	def __str__(self):
 		ret = ""
-		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms]:
+		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
 			ret += "%2s " % str(c)
 		return ret
 		
-	def prox(self,
-			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax,
-			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax):
+	def prox(self, inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax,
+			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, mutsMax):
 
-		px3 = 1.0 * 1.0
-		#zzz need photo tags, mutual friends
+		px3 = 0.0
+		px3 += float(self.mutuals) / mutsMax * 1.0
+		#zzz need photo tags
 		
 		px4 = 0.0
 		px4 += float(self.inPostLikes) / inPostLikesMax * 1.0
@@ -187,25 +190,34 @@ def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 	sc = readStreamParallel(user, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 	logging.debug('got %s', str(sc))
 
-	friendId_name = dict(getFriends(user, tok))
-	logging.debug("got %d friends total", len(friendId_name))
+	friendId_info = {}
+	for friendId, friendName, friendMuts in getFriends(user, tok):
+		friendId_info[friendId] = (friendName, friendMuts)
+	logging.debug("got %d friends total", len(friendId_info))
 
-	friendIdsRanked = sc.getFriendRanking()[:maxFriends]
-	logging.debug("got %d friends ranked", len(friendIdsRanked))
+	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
+	logging.debug("got %d friends ranked", len(friendId_streamrank))
+
+	# sort all the friends by their stream rank (if any) and mutual friend count
+	friendIds = sorted(friendId_info.keys(), key=lambda x: (friendId_streamrank.get(x, sys.maxint), -1*friendId_info[x][1]))
 
 	friendId_edge = {}
-	for i, friendId in enumerate(friendIdsRanked):
-		logging.info("reading friend stream %d/%d (%s)", i, len(friendIdsRanked), friendId)
+	for i, friendId in enumerate(friendIds[:maxFriends]):
+		logging.info("reading friend stream %d/%d (%s)", i, len(friendId_streamrank), friendId)
 		try:
 			scFriend = readStreamParallel(friendId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 		except Exception:
 			logging.warning("error reading stream for %d", friendId)
 			continue
 		logging.debug('got %s', str(scFriend))
-		e = Edge(sc, scFriend)
+
+		mutuals = friendId_info[friendId][1]
+		e = Edge(sc, scFriend, mutuals)
 		logging.debug('edge %s', str(e))
 		friendId_edge[friendId] = e
 	logging.info("have %d edges", len(friendId_edge))
+
+	#zzz todo: replace all the friendId_thing hashes with a Friend object of some sort
 	
 	ipl = max(sc.friendId_postLikeCount.values() + [0])
 	ipc = max(sc.friendId_postCommCount.values() + [0])
@@ -215,12 +227,13 @@ def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 	opc = max([ e.inPostComms for e in friendId_edge.values() ] + [0])
 	osl = max([ e.inStatLikes for e in friendId_edge.values() ] + [0])
 	opc = max([ e.inStatComms for e in friendId_edge.values() ] + [0])		
-	friendId_score = dict([ [e.id2, e.prox(ipl, ipc, isl, isc, opl, opc, osl, opc)] for e in friendId_edge.values() ])
+	mut = max([ e.mutuals for e in friendId_edge.values() ] + [0])
+	friendId_score = dict([ [e.id2, e.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut)] for e in friendId_edge.values() ])
 
 	friendTups = []
 	for friendId, score in sorted(friendId_score.items(), key=lambda x: x[1], reverse=True):
 		edge = friendId_edge[friendId]
-		name = friendId_name.get(friendId, "???")
+		name, muts = friendId_info.get(friendId, ["???", 0])
 		friendTups.append((friendId, name, str(edge), score))
 	return friendTups
 
