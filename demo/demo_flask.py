@@ -63,5 +63,10 @@ def flip_it():
 	#f = open('js/%s' % filename)
 	#return f.read()
 
+@app.route('/button')
+@app.route('/all_the_dude_ever_wanted')
+def button_man():
+	return render_template('frame.html')
+
 if __name__ == "__main__":
 	app.run(debug=True)
