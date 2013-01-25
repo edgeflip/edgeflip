@@ -1,0 +1,142 @@
+<HTML>
+<HEAD>
+	<TITLE>Test Share Button</TITLE>
+	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+  	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+	<SCRIPT type="text/javascript">
+		function button_change(div_id, img_name) {
+			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
+		}
+		function button_out() {
+			document.getElementById('share_button').style.backgroundImage="url('{{ url_for('static', filename='button.jpg') }}')";
+		}
+		function show_friends() {
+			// document.getElementById('share_content').height='30%';
+			//for (var i=1; i<10001; i++) {
+			//	document.getElementById('share_content').height=(85-0.005*i)+'%';
+			//}
+			hn = window.innerHeight*0.35;
+//			$("#share_content").animate({height:"35%"}, 500);
+			$("#share_content").animate({height:hn}, 500);
+//			var resizer = setInterval(frame_size(),1000);
+//			while (1) {
+//				var h = document.getElementById('share_content').height;
+//				h = h.replace("%", "");
+//				hh = parseInt(h);
+//				//alert(h+" --> "+hh);
+//				if (hh <= 35) {
+//					clearInterval(resizer);
+//					break;
+//				}
+//			}
+			setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='block';}, 400);
+			// document.getElementById('share_button').style.display='none';
+			// document.getElementById('friends_div').style.display='block';
+		}
+//		function frame_size() {
+//			var h = document.getElementById('share_content').height;
+//			h = h.replace("%", "");
+//			hh = parseInt(h);
+//			alert(h+" => "+hh);
+//			if (hh <= 35) {
+//				return;
+//			} else {
+//				document.getElementById('share_content').height = (hh-5)+"%";
+//			}
+//		}
+		function do_share() {
+			alert("Post shares to Facebook...");
+		}
+	</SCRIPT>
+</HEAD>
+<BODY bgcolor="#ffffff">
+<!-- http://swampland.time.com/2012/11/07/inside-the-secret-world-of-quants-and-data-crunchers-who-helped-obama-win/ -->
+<iframe src="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/" id="share_content" width="100%" height="85%" border=0></iframe>
+<BR><BR>
+<CENTER>
+
+<!-- SHARE BUTTON -->
+<div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
+
+<div id="friends_div" style="display:none;">
+	<div style="width:500px; text-align:left; font-size:15px; font-family:'arial',sans-serif">Here's what your friends will get:</div>
+<!--
+	<div id="share_sample" style="width:500px; background-color:#EEE; border:1px solid #888; font-size:15px; font-family:'arial',sans-serif">
+		<TABLE width="100%" cellpadding="5px" border=0>
+			<TR>
+				<TD><img src="{{ url_for('static', filename='messina.jpg') }}" width="150px" /></TD>
+				<TD align="left" valign="center" style="font-size:15px; font-family:'arial',sans-serif">
+					<B>Targeted Sharing is Cool!</B>
+					<BR><BR>
+					Jim messing called it one of the most important things that Obama's re-election campaign did. And now you can do it, too -- all for the low, low price of just $100 Million dollars!
+				</TD>
+			</TR>
+		</TABLE>
+	</div>
+-->
+	<div id="share_sample" style="width:500px; background-color:#EEE; border:1px solid #888; font-size:15px; font-family:'arial',sans-serif">
+		<TABLE width="100%" cellpadding="5px" border=0>
+			<TR>
+				<TD><img src="{{ url_for('static', filename='doc_brown.jpg') }}" width="100px" /></TD>
+				<TD align="left" valign="center" style="font-size:12px; font-family:'arial',sans-serif">
+					<span style="font-weight:bold; font-size:15px;">Great Scott! Targeted Sharing is Cool!</span>
+					<BR><BR>
+					I don't understand -- why is everything so cold in the 1980's? Of course! It must be because of the nuclear winter. I don't know about that, but I do know Jim Messina called Targeted Sharing one of the most important things that Obama's re-election campaign did. And now you can do it, too -- all for the low, low price of just $100 Million dollars!
+				</TD>
+			</TR>
+		</TABLE>
+	</div>
+	<BR><BR>
+	<div id="faces">
+		<table align=center border=0 cellpadding=0 style="border:5px solid #e4e6e0; background-color:#e4e6e0;">
+		<tr>
+
+			<td style="border: 6px solid #e4e6e0; background-color:#07304e;">
+				<table border=0>
+					<tr>	
+						<td style="padding: 6px; vertical-align: middle">
+							<a href="http://www.foulballtracker.com/" style="color: white; text-decoration: none"><img src="http://graph.facebook.com/6963/picture" border=0/></a>
+						</td>
+						<td style="padding: 6px;">
+							<a href="http://www.foulballtracker.com/" style="text-decoration: none"><font color="white">Larry</font></a>
+						</td>
+					</tr>
+				</table>
+			</td>
+
+			<td style="border: 6px solid #e4e6e0; background-color:#07304e;">
+				<table border=0>
+					<tr>	
+						<td style="padding: 6px; vertical-align: middle">
+							<a href="http://www.foulballtracker.com/" style="color: white; text-decoration: none"><img src="http://graph.facebook.com/100003222687678/picture" border=0/></a>
+						</td>
+						<td style="padding: 6px;">
+							<a href="http://www.foulballtracker.com/" style="text-decoration: none"><font color="white">Darryl</font></a>
+						</td>
+					</tr>
+				</table>
+			</td>
+
+			<td style="border: 6px solid #e4e6e0; background-color:#07304e;">
+				<table border=0>
+					<tr>	
+						<td style="padding: 6px; vertical-align: middle">
+							<a href="http://www.foulballtracker.com/" style="color: white; text-decoration: none"><img src="http://graph.facebook.com/500876410/picture" border=0/></a>
+						</td>
+						<td style="padding: 6px;">
+							<a href="http://www.foulballtracker.com/" style="text-decoration: none"><font color="white">Darryl</font></a>
+						</td>
+					</tr>
+				</table>
+			</td>
+
+		</tr>
+	</table>
+	</div>
+	<BR>
+	<div id="do_share_button" style="background-image:url('{{ url_for('static', filename='share.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="do_share();"></div>
+</div>
+
+</CENTER>
+</BODY>
+</HTML>
