@@ -10,7 +10,7 @@ import logging
 logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s',
 					filename='demo.log',
 					level=logging.DEBUG)
-
+import ReadStreamDb
 
 
 
@@ -50,9 +50,6 @@ def getFriends(user, token):
 	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
 	friendTups = [ (rec['uid'], rec['name'], rec['mutual_friend_count']) for rec in responseJson['data'] ]
 	return friendTups
-
-
-
 
 class StreamCounts(object):
 	def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[]):
@@ -140,6 +137,32 @@ class StreamCounts(object):
 			friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 
+class StreamCountsDb(StreamCounts):
+	def __init__(self, conn, userId):
+		self.id = userId
+		self.friendId_postLikeCount = defaultdict(int)
+		self.friendId_postCommCount = defaultdict(int)
+		self.friendId_statLikeCount = defaultdict(int)
+		self.friendId_statCommCount = defaultdict(int)
+		self.friendId_muts = defaultdict(int)
+		self.stream = []
+
+		if (conn is None):
+			conn = ReadStreamDb.getConn()
+		curs = conn.cursor()
+		sql = """
+			SELECT prim_id, sec_id, post_likes, post_comms, stat_likes, stat_comms, mut_friends 
+			FROM streamcounts
+			WHERE prim_id = %s
+		""" % (userId)
+		curs.execute(sql)
+		for prim_id, sec_id, post_likes, post_comms, stat_likes, stat_comms, mut_friends in curs: 
+			self.friendId_postLikeCount[sec_id] += post_likes
+			self.friendId_postCommCount[sec_id] += post_comms
+			self.friendId_statLikeCount[sec_id] += stat_likes
+			self.friendId_statCommCount[sec_id] += stat_comms
+			self.friendId_muts[sec_id] += mut_friends
+
 class Edge(object):
 	def __init__(self, sc1, sc2, muts):
 		self.id1 = sc1.id
@@ -187,6 +210,15 @@ class Edge(object):
 				pxTotal += float(count)/countMax*weight
 				weightTotal += weight
 		return pxTotal / weightTotal				
+
+
+
+
+
+
+
+
+
 
 def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 	user = int(userP)	
@@ -240,6 +272,11 @@ def getFriendRanking(userP, tok, maxFriends=sys.maxint):
 		name, muts = friendId_info.get(friendId, ["???", 0])
 		friendTups.append((friendId, name, str(edge), score))
 	return friendTups
+
+
+
+
+
 
 def readStreamParallel(userId, token, numDays=100, chunkSizeDays=20, jobs=4, timeout=60):
 	intervals = [] # (ts1, ts2)
