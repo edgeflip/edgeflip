@@ -26,7 +26,7 @@ def flip_fb():
 @app.route('/edgeflip', methods=['POST', 'GET'])
 def flip_it():
 	#sys.stderr.write("flask.request: %s\n" % (str(flask.request)))
-	#sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
+	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
