@@ -133,7 +133,7 @@
 -->
 
 	<BR>
-	<div id="do_share_button" style="background-image:url('{{ url_for('static', filename='share.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="do_share();"></div>
+	<div id="do_share_button" style="background-image:url('{{ url_for('static', filename='share.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer; display: none;" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="do_share();"></div>
 </div>
 
 </CENTER>
@@ -193,6 +193,7 @@
 							friends_div.html(data);	
 							friends_div.show();
 							progress.css('display', 'none');
+							$('#do_share_button').show()
 				}
 			});
 
