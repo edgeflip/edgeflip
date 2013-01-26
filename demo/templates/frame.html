@@ -1,54 +1,42 @@
 <HTML>
+
 <HEAD>
-	<TITLE>Test Share Button</TITLE>
+	<TITLE>EdgeFlip Share Button</TITLE>
+
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
   	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+
 	<SCRIPT type="text/javascript">
+		
 		function button_change(div_id, img_name) {
 			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
 		}
-		function button_out() {
-			document.getElementById('share_button').style.backgroundImage="url('{{ url_for('static', filename='button.jpg') }}')";
-		}
+
 		function show_friends() {
-			// document.getElementById('share_content').height='30%';
-			//for (var i=1; i<10001; i++) {
-			//	document.getElementById('share_content').height=(85-0.005*i)+'%';
-			//}
 			hn = window.innerHeight*0.35;
-//			$("#share_content").animate({height:"35%"}, 500);
 			$("#share_content").animate({height:hn}, 500);
-//			var resizer = setInterval(frame_size(),1000);
-//			while (1) {
-//				var h = document.getElementById('share_content').height;
-//				h = h.replace("%", "");
-//				hh = parseInt(h);
-//				//alert(h+" --> "+hh);
-//				if (hh <= 35) {
-//					clearInterval(resizer);
-//					break;
-//				}
-//			}
+
 			setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='block';}, 400);
-			// document.getElementById('share_button').style.display='none';
-			// document.getElementById('friends_div').style.display='block';
+
+			// FB login stuff??
+			FB.login(function(response) {
+				if (response.authResponse) {
+					FB.api('/me', function(info) {
+						login(response, info);
+					});	   
+				}
+			}, {scope:'email,user_birthday,status_update,publish_stream,user_about_me'});
+
 		}
-//		function frame_size() {
-//			var h = document.getElementById('share_content').height;
-//			h = h.replace("%", "");
-//			hh = parseInt(h);
-//			alert(h+" => "+hh);
-//			if (hh <= 35) {
-//				return;
-//			} else {
-//				document.getElementById('share_content').height = (hh-5)+"%";
-//			}
-//		}
+
 		function do_share() {
 			alert("Post shares to Facebook...");
 		}
+
 	</SCRIPT>
+
 </HEAD>
+
 <BODY bgcolor="#ffffff">
 <!-- http://swampland.time.com/2012/11/07/inside-the-secret-world-of-quants-and-data-crunchers-who-helped-obama-win/ -->
 <iframe src="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/" id="share_content" width="100%" height="85%" border=0></iframe>
@@ -87,6 +75,14 @@
 		</TABLE>
 	</div>
 	<BR><BR>
+
+	<div id='progress' style='text-align: center; display: none'>
+		<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
+	</div>
+	
+	<div id="your-friends-here"></div>
+
+<!--
 	<div id="faces">
 		<table align=center border=0 cellpadding=0 style="border:5px solid #e4e6e0; background-color:#e4e6e0;">
 		<tr>
@@ -133,10 +129,76 @@
 		</tr>
 	</table>
 	</div>
+-->
+
 	<BR>
 	<div id="do_share_button" style="background-image:url('{{ url_for('static', filename='share.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="do_share();"></div>
 </div>
 
 </CENTER>
+
+
+<div id="fb-root"></div>
+<script type="text/javascript">
+	
+	window.fbAsyncInit = function() {
+
+
+		FB.init({ appId: '471727162864364', //change the appId to your appId
+			status: true, 
+			cookie: true,
+			xfbml: true,
+			oauth: true});
+
+	}; // fbAsyncInit
+
+	(function() {
+		var e = document.createElement('script'); e.async = true;
+		e.src = document.location.protocol 
+			+ '//connect.facebook.net/en_US/all.js';
+		document.getElementById('fb-root').appendChild(e);
+	}());
+	
+	
+	function login(response, info){
+		if (response.authResponse) {
+			var accessToken	= response.authResponse.accessToken;
+			var fbid = info.id;
+			var num = 1000;
+
+			var friends_div = $('#your-friends-here');
+			var progress = $('#progress');
+			
+
+			progress.show();	
+						
+			var params = JSON.stringify({
+				fbid: fbid,
+				token: accessToken,
+				num: num
+			});
+
+			$.ajax({
+				type: "POST",
+				url: '/edgeflip_faces',
+				contentType: "application/json",
+				dataType: 'html',
+				data: params,
+				error: function(jqXHR, textStatus, errorThrown) {
+							friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
+							progress.css('display', 'none');
+				},
+				success: function(data) {
+							friends_div.html(data);	
+							friends_div.show();
+							progress.css('display', 'none');
+				}
+			});
+
+		}
+	}
+	
+</script>
+
 </BODY>
 </HTML>
