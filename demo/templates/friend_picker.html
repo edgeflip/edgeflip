@@ -55,7 +55,7 @@
   		msg_friends = "";
   		for (i=0; i < fbids.length; i++) {
   			id = fbids[i];
-  			if ($('#friend-'+id).is(':checked')) {msg_friends += ("@"+id+" ");}
+  			if ($('#friend-'+id).is(':checked')) {msg_friends += ("@["+id+"] ");}
   		}
   		msg_friends = msg_friends.trim();
   		updateMsg();
