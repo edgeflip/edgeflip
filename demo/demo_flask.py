@@ -89,6 +89,10 @@ def face_it():
 def button_man():
 	return render_template('frame.html')
 
+@app.route('/mention')
+def mention_test():
+	return render_template('friend_picker.html')
+
 if __name__ == "__main__":
 #	app.run(debug=True)
 	app.run('0.0.0.0', port=5000, debug=False)

@@ -1,0 +1,145 @@
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US"
+      xmlns:fb="https://www.facebook.com/2008/fbml"> 
+<head prefix="og: http://ogp.me/ns# edgeflip: 
+                  http://ogp.me/ns/apps/edgeflip#">
+  <title>Chicago Public Radio</title>
+  <meta property="fb:app_id" content="471727162864364" /> 
+  <meta property="og:type" content="edgeflip:contribution" /> 
+  <meta property="og:title" content="Chicago Public Radio" /> 
+  <meta property="og:image" content="http://archives.wrkf.org/piclib/1218.jpg" /> 
+  <meta property="og:description" content="Your New Answering Service." /> 
+  <meta property="og:url" content="http://rayid.bigmarker.com:5000/mention">
+
+  <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+
+  <script type="text/javascript">
+  function postContrib()
+  {
+
+  	var msg_type = $('input:radio[name=msg]:checked').val();
+  	var msg = "";
+
+	if (msg_type === "hi-there") {
+		msg = 'Hi there '+msg_friends+' -- I just donated to Chicago Public Radio and you should, too!';
+	} else if (msg_type === "kasell") {
+		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!';
+	} else if (msg_type === "other") {
+		msg = $('#other_msg').text();
+	} else {
+		alert("Ruh-Roh!!");
+	}
+
+
+      FB.api(
+        '/me/edgeflip:donate',
+        'post',
+        { 
+        	contribution: 'http://rayid.bigmarker.com:5000/mention',
+        	message: msg
+        },
+        function(response) {
+           if (!response || response.error) {
+              alert('Error occured');
+           } else {
+              alert('Post was successful! Action ID: ' + response.id);
+           }
+        });
+  }
+  </script>
+
+  <script>
+  	var fbids = [6963, 100003222687678, 500876410];
+  	var msg_friends = "";
+  	function updateFriends() {
+
+  		msg_friends = "";
+  		for (i=0; i < fbids.length; i++) {
+  			id = fbids[i];
+  			if ($('#friend-'+id).is(':checked')) {msg_friends += ("@"+id+" ");}
+  		}
+  		msg_friends = msg_friends.trim();
+  		updateMsg();
+
+  	}
+
+  	function updateMsg() {
+
+  		var msg_type = $('input:radio[name=msg]:checked').val();
+
+  		if (msg_type === "hi-there") {
+  			$('#other_msg').hide();
+  			$('#msg_preview').text('Hi there '+msg_friends+' -- I just donated to Chicago Public Radio and you should, too!').show();
+  		} else if (msg_type === "kasell") {
+  			$('#other_msg').hide();
+  			$('#msg_preview').text('Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!').show();
+  		} else if (msg_type === "other") {
+  			$('#msg_preview').text('').hide();
+  			$('#other_msg').text(msg_friends).show();
+  		} else {
+  			// No message has been set...
+  		}
+
+  	}
+
+  </script>
+
+</head>
+<body>
+  <div id="fb-root"></div>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '471727162864364', // App ID
+        status     : true, // check login status
+        cookie     : true, // enable cookies to allow the server to access the session
+        xfbml      : true  // parse XFBML
+      });
+    };
+
+    // Load the SDK Asynchronously
+    (function(d){
+      var js, id = 'facebook-jssdk'; if (d.getElementById(id)) {return;}
+      js = d.createElement('script'); js.id = id; js.async = true;
+      js.src = "//connect.facebook.net/en_US/all.js";
+      d.getElementsByTagName('head')[0].appendChild(js);
+    }(document));
+
+
+  </script>
+
+  <h3>Chicago Public Radio</h3>
+  <p>
+    <img title="Carl Kasell" 
+         src="http://archives.wrkf.org/piclib/1218.jpg" />
+  </p>
+
+  <br>
+  <form>
+  	<h3>Choose Some Friends:</h3>
+  	<input type="checkbox" name="recip" value="6963" id="friend-6963" onChange="updateFriends();" /> <img src="http://graph.facebook.com/6963/picture" border=0/> Michelangelo <BR />
+  	<BR />
+  	<input type="checkbox" name="recip" value="100003222687678" id="friend-100003222687678" onChange="updateFriends();" /> <img src="http://graph.facebook.com/100003222687678/picture" border=0/> Matthew <BR />
+  	<BR />
+  	<input type="checkbox" name="recip" value="500876410" id="friend-500876410" onChange="updateFriends();" /> <img src="http://graph.facebook.com/500876410/picture" border=0/> Rayid <BR />
+  	<BR />
+  	<BR />
+  	<h3>Choose A Message:</h3>
+  	<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> Hi there [[friend_names]] -- I just donated to Chicago Public Radio and you should, too!<BR />
+  	<BR />
+  	<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> Carl Kasell has a message for you. Go donate to Chicago Public Radio, [[friend_names]]! <BR />
+  	<BR />
+  	<input type="radio" name="msg" value="other" onChange="updateMsg();" /> Write your own message (type around your friends' ids):<BR />
+  	<textarea id="other_msg" style="display: none;" rows="5" cols="50"></textarea>
+  	<BR />
+  	<BR />
+  	Preview: <BR />
+  	<div id="msg_preview"></div>
+  	<BR /><BR />
+    <input type="button" value="Share" onclick="postContrib()" />
+  </form>
+
+  <fb:activity actions="edgeflip:donate"></fb:activity>
+
+</body>
+</html>
+
