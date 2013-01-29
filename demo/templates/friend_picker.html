@@ -39,7 +39,7 @@
         },
         function(response) {
            if (!response || response.error) {
-              alert('Error occured');
+              alert('Error occured ' + response);
            } else {
               alert('Post was successful! Action ID: ' + response.id);
            }
