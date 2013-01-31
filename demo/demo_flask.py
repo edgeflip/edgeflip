@@ -23,6 +23,18 @@ def fb():
 def flip_fb():
 	return flip_it()
 
+@app.route('/crawl', methods=['POST'])
+def read_stream():
+	userId = flask.request.json['fbid']
+	tok = flask.request.json['token']
+	includeOutgoing = flask.request.json['outgoing']
+
+
+
+	return flip_it()
+
+
+
 @app.route('/edgeflip', methods=['POST', 'GET'])
 def flip_it():
 	#sys.stderr.write("flask.request: %s\n" % (str(flask.request)))
