@@ -1,0 +1,30 @@
+<table align=center border=0 cellpadding=0 style="border:5px solid #e4e6e0; background-color:#e4e6e0;">
+	<tr>
+	{% for face_friend in face_friends %}
+
+		<td style="border: 6px solid #e4e6e0; background-color:#07304e;">
+			<table border=0>
+				<tr>	
+					<td style="padding: 6px; vertical-align: middle">
+						<a href="{{url}}" style="color: white; text-decoration: none"><img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/></a>
+					</td>
+					<td style="padding: 6px;">
+						<a href="{{url}}" style="text-decoration: none"><font color="white">{{face_friend.name}}</font></a>
+					</td>
+				</tr>
+			</table>
+		</td>
+
+		{% if (loop.index0 == 2) and (numFriends > 3) %}
+				</tr><tr>
+
+				{% if (numFriends == 4) %}
+					<td></td>
+				{% endif %}
+
+		{% endif %}
+
+	{% endfor %}
+
+	</tr>
+</table>
