@@ -42,7 +42,7 @@
 <div id="friends_table" style="display:none;">
 <TABLE BORDER=1>
 	<TR>
-		<TD>
+		<TD WIDTH="50%">
 
 			<div id='progress-px4' style='text-align: center; display: none'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
@@ -50,7 +50,7 @@
 
 			<div id="your-friends-here-px4"></div>
 
-		</TD><TD>
+		</TD><TD WIDTH="50%">
 
 			<div id='progress-px5' style='text-align: center; display: none'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
@@ -98,6 +98,8 @@
 			$('#progress-px4').show();
 			$('#progress-px5').show();
 
+			getPX4(fbid, accessToken, num);
+			getPX5(fbid, accessToken, num);
 
 		}
 	}
