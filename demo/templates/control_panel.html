@@ -1,0 +1,156 @@
+<!doctype html>
+
+{% set states = ['Illinois', 'California', 'Ohio', 'Iowa', 'New Hampshire'] %}
+ 
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>edgeflip targeting center</title>
+  <link rel="stylesheet" href="http://code.jquery.com/ui/1.9.2/themes/base/jquery-ui.css" />
+  <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+  <script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+
+  <script>
+  $(function() {
+    $( "#slider-range" ).slider({
+      range: true,
+      min: 0,
+      max: 120,
+      values: [ {% if config.min_age %}{{config.min_age}}{% else %}18{% endif %}, 
+      			{% if config.max_age %}{{config.max_age}}{% else %}64{% endif %} ],
+      slide: function( event, ui ) {
+        $( "#amount" ).val( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+        $( "#min_age" ).val( ui.values[ 0 ] );
+        $( "#max_age" ).val( ui.values[ 1 ] );
+      }
+    });
+    $( "#amount" ).val( $( "#slider-range" ).slider( "values", 0 ) +
+      " - " + $( "#slider-range" ).slider( "values", 1 ) );
+    $( "#min_age" ).val( $( "#slider-range" ).slider( "values", 0 ) );
+    $( "#max_age" ).val( $( "#slider-range" ).slider( "values", 1 ) );
+  });
+  </script>
+</head>
+<body bgcolor="#FFFFFF">
+
+<CENTER>
+<span style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900;">edgeflip</span><BR>
+<span style="font-family:arial,sans-serif; font-size:37px; font-weight:900">targeting</span><span style="font-family:arial,sans-serif; font-size:37px; font-weight:100">control</span>
+</CENTER>
+
+<form action="/set_targets" method="POST">
+
+<CENTER>
+<TABLE width="90%" border=0 cellspacing="15px" cellpadding="5px">
+<TR valign="top" height="300px">
+<TD width="30%" bgcolor="#CCE0FF">
+	<span style="font-size:25px; font-weight:900; color:#001F4C">Demographics</span>
+	<BR />
+	<hr style="border:0; color:#fff; background-color:#fff; heigh:1px">
+	<BR />
+
+	<B>Gender: </B>
+	<input type="radio" name="gender" value="both" {% if (config.gender is not defined) or (config.gender == "both") %} checked {% endif %} />Both 
+	<input type="radio" name="gender" value="male" {% if config.gender == "male" %} checked {% endif %} />Male 
+	<input type="radio" name="gender" value="female" {% if config.gender == "female" %} checked {% endif %} />Female
+
+	<p>
+	  <label for="amount" style="font-weight: bold;">Age range:</label>
+	  <input type="text" id="amount" style="border: 0; color: #CC3300; font-weight: bold; background-color: transparent" />
+	</p>
+
+	<div id="slider-range" style="width: 90%"></div>
+
+	<input type="hidden" id="min_age" name="min_age" />
+	<input type="hidden" id="max_age" name="max_age" />
+
+	<BR />
+	<B><font color="#666666">Ethnicity: </font></B>
+	<select name="ethnicity" disabled="disabled">
+
+		<option value="any" {% if (config.ethnicity is not defined) or (config.ethnicity == "any") %} selected="selected" {% endif %}>Any</option>
+
+		<option value="afam" {% if config.ethnicity == "afam" %} selected="selected" {% endif %}>African American</option>
+
+		<option value="hispanic" {% if config.ethnicity == "hispanic" %} selected="selected" {% endif %}>Hispanic</option>
+
+		<option value="aapi" {% if config.ethnicity == "aapi" %} selected="selected" {% endif %}>Asian</option>
+
+		<option value="white" {% if config.ethnicity == "white" %} selected="selected" {% endif %}>White</option>
+
+	</select>
+
+	<BR />
+	<BR />
+	<B>Location: </B>
+	<select name="location">
+
+		<option value="any" {% if (config.location is not defined) or (config.location == "any") %} selected="selected" {% endif %}>Any</option>
+
+		{% for state in states %}
+
+			<option value="{{state}}" {% if config.location == state %} selected="selected" {% endif %}>{{state}}</option>
+
+		{% endfor %}
+
+	</select>
+
+</TD> <TD width="30%" bgcolor="#CCE0FF">
+
+	<span style="font-size:25px; font-weight:900; color:#001F4C">Interests &amp; Modeling</span>
+	<BR />
+	<hr style="border:0; color:#fff; background-color:#fff; heigh:1px">
+	<BR />
+
+	<B><font color="#666666">Interest Filters: </font></B><BR>
+	<TEXTAREA name="interests" rows="4" cols="35" disabled="disabled">
+Coming soon!
+	</TEXTAREA>
+
+	<BR />
+	<BR />
+	<B><font color="#666666">Modeled Propensity: </font></B>
+	<select name="model" disabled="disabled">
+
+		<option value="None" {% if (config.model is not defined) or (config.model == "None") %} selected="selected" {% endif %}>None</option>
+
+		<option value="Donate" {% if config.model == "Donate" %} selected="selected" {% endif %}>Donate</option>
+
+		<option value="Volunteer" {% if config.model == "Volunteer" %} selected="selected" {% endif %}>Volunteer</option>
+
+		<option value="Share" {% if config.model == "Share" %} selected="selected" {% endif %}>Share</option>
+
+	</select>
+
+</TD> <TD width="30%" bgcolor="#CCE0FF">
+
+	<span style="font-size:25px; font-weight:900; color:#001F4C">Friend Proximity</span>
+	<BR />
+	<hr style="border:0; color:#fff; background-color:#fff; heigh:1px">
+	<BR />
+
+	<B>Importance: </B>
+	<select name="prox_import">
+
+		<option value="high" {% if (config.prox_import is not defined) or (config.prox_import == "high") %} selected="selected" {% endif %}>High</option>
+
+		<option value="medium" {% if config.prox_import == "medium" %} selected="selected" {% endif %}>Medium</option>
+
+		<option value="low" {% if config.prox_import == "low" %} selected="selected" {% endif %}>Low</option>
+
+	</select>
+
+</TD>
+</TR> <TR>
+<TD COLSPAN=3 ALIGN="RIGHT">
+
+	<input type="submit" value="Update Targeting" />
+
+</TD> </TR> </TABLE>
+</CENTER>
+
+</form>
+
+</body>
+</html>
+

@@ -89,6 +89,15 @@ def face_it():
 def button_man():
 	return render_template('frame.html')
 
+@app.route('/rank_demo')
+def rank_demo():
+	return render_template('rank_demo.html')
+
+@app.route('/edgeflip_rankPeople')
+def rank_people():
+	import time
+	return time.strftime('%d-%m-%Y %H:%M:%S')
+
 @app.route('/mention')
 def mention_test():
 	return render_template('friend_picker.html')
