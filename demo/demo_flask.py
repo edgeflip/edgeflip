@@ -93,7 +93,7 @@ def button_man():
 def rank_demo():
 	return render_template('rank_demo.html')
 
-@app.route('/edgeflip_rankPeople')
+@app.route('/edgeflip_rankPeople', methods=['POST'])
 def rank_people():
 	import time
 	return time.strftime('%d-%m-%Y %H:%M:%S')
