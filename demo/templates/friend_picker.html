@@ -24,7 +24,7 @@
 	} else if (msg_type === "kasell") {
 		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!';
 	} else if (msg_type === "other") {
-		msg = $('#other_msg').text();
+		msg = $('#other_msg').val();
 	} else {
 		alert("Ruh-Roh!!");
 	}
@@ -39,7 +39,7 @@
         },
         function(response) {
            if (!response || response.error) {
-              alert('Error occured ' + response);
+              alert('Error occured ' + response.error.message);
            } else {
               alert('Post was successful! Action ID: ' + response.id);
            }
@@ -74,7 +74,7 @@
   			$('#msg_preview').text('Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!').show();
   		} else if (msg_type === "other") {
   			$('#msg_preview').text('').hide();
-  			$('#other_msg').text(msg_friends).show();
+  			$('#other_msg').val(msg_friends).show();
   		} else {
   			// No message has been set...
   		}
