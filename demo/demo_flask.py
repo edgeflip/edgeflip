@@ -96,6 +96,7 @@ def rank_demo():
 @app.route('/edgeflip_rankPeople', methods=['POST'])
 def rank_people():
 	import time
+	print "Hello there!"
 	return time.strftime('%d-%m-%Y %H:%M:%S')
 
 @app.route('/mention')

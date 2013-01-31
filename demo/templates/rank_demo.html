@@ -161,7 +161,7 @@
 						friends_div.html(data);	
 						friends_div.show();
 						progress.hide();
-						setTimeout(getPX5(fbid, accessToken, num), 15000);
+						setTimeout(function() {getPX5(fbid, accessToken, num);}, 15000);
 			}
 		});
 
