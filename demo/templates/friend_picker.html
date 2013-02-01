@@ -141,7 +141,35 @@
 
   		var msg_type = $('input:radio[name=msg]:checked').val();
       if (msg_type === "other") { 
-        $('#other_msg').show(); 
+        $('#other_msg').show().focus();
+
+        var reptxt = $('#other_msg').text().indexOf('Replace this text with your message for ');
+
+        if ( reptxt > -1 ) {
+
+          var txtnode = document.getElementById('other_msg');
+
+          if (document.createRange) {
+
+            var selection = window.getSelection();
+            var range = document.createRange();
+
+            range.setStart(txtnode.firstChild, reptxt);
+            range.setEnd(txtnode.firstChild, reptxt+40);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+          } else {
+
+            var range = document.body.createTextRange();
+            range.moveToElementText($('#other_msg'));
+            range.moveStart("character", reptxt);
+            range.collapse(true);
+            range.moveEnd("character", reptxt+40);
+            range.select();
+
+          }
+        }
       } else {
         $('#other_msg').hide();
       }
