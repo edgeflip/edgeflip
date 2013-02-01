@@ -12,72 +12,154 @@
 
   <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
 
+  <style>
+
+    .friend_name {
+      color: DodgerBlue;
+      border-bottom: thin dashed DodgerBlue;
+    }
+
+  </style>
+
   <script type="text/javascript">
   function postContrib()
   {
 
+    if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
+
+
+    msg_recips = "";
+
+    for (i=0; i < (recips.length-1); i++) {
+      msg_recips += "@[" + recips[i] + "], ";
+    }
+
+    if (recips.length > 2) {
+      msg_recips += 'and ' + "@[" + recips[recips.length-1] + "]";
+    } else if (recips.length == 2) {
+      msg_recips = "@[" + recips[0] + "] and @[" + recips[1] + "]";
+    } else {
+      msg_recips = "@[" + recips[0] + "]";
+    }
+
+
   	var msg_type = $('input:radio[name=msg]:checked').val();
   	var msg = "";
 
-	if (msg_type === "hi-there") {
-		msg = 'Hi there '+msg_friends+' -- I just donated to Chicago Public Radio and you should, too!';
-	} else if (msg_type === "kasell") {
-		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!';
-	} else if (msg_type === "other") {
-		msg = $('#other_msg').val();
-	} else {
-		alert("Ruh-Roh!!");
-	}
+    if (!msg_type || msg_type === "") { alert('Please choose a message to send or write your own'); return;}
 
+  	if (msg_type === "hi-there") {
+  		msg = 'Hi there '+msg_recips+' -- I just donated to Chicago Public Radio and you should, too!';
+  	} else if (msg_type === "kasell") {
+  		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_recips+'!';
+  	} else if (msg_type === "other") {
+//  		msg = $('#other_msg').val();
+      for (i=0; i < recips.length; i++) {
+        $('#txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
+      }
+      msg = $('#other_msg').html();
+  	} else {
+  		alert("Ruh-Roh!!");
+  	}
 
-      FB.api(
-        '/me/edgeflip:donate',
-        'post',
-        { 
-        	contribution: 'http://rayid.bigmarker.com:5000/mention',
-        	message: msg
-        },
-        function(response) {
-           if (!response || response.error) {
-              alert('Error occured ' + response.error.message);
-           } else {
-              alert('Post was successful! Action ID: ' + response.id);
-           }
-        });
+//    alert(msg);
+
+    FB.api(
+      '/me/edgeflip:donate',
+      'post',
+      { 
+      	contribution: 'http://rayid.bigmarker.com:5000/mention',
+      	message: msg
+      },
+      function(response) {
+         if (!response || response.error) {
+            alert('Error occured ' + response.error.message);
+         } else {
+            alert('Post was successful! Action ID: ' + response.id);
+         }
+      });
   }
   </script>
 
   <script>
   	var fbids = [6963, 100003222687678, 500876410];
-  	var msg_friends = "";
-  	function updateFriends() {
+    var fbnames = {
+                    6963: 'Michelangelo',
+                    100003222687678: 'Matthew',
+                    500876410: 'Rayid'
+                  }
+//  	var msg_friends = "";
+    var recips = [];
 
-  		msg_friends = "";
-  		for (i=0; i < fbids.length; i++) {
-  			id = fbids[i];
-  			if ($('#friend-'+id).is(':checked')) {msg_friends += ("@["+id+"] ");}
-  		}
-  		msg_friends = msg_friends.trim();
-  		updateMsg();
+    function friendNames() {
+      recip_str = "";
 
-  	}
+      if (recips.length == 0) { return ""; }
+
+      for (i=0; i < (recips.length-1); i++) {
+        recip_str += "<span class='friend_name'>" + fbnames[recips[i]] + "</span>, ";
+      }
+
+      if (recips.length > 2) {
+        recip_str += 'and ' + "<span class='friend_name'>" + fbnames[recips[recips.length-1]] + "</span>";
+      } else if (recips.length == 2) {
+        recip_str = "<span class='friend_name'>" + fbnames[recips[0]] + "</span> and <span class='friend_name'>" + fbnames[recips[1]] + "</span>";
+      } else {
+        recip_str = "<span class='friend_name'>" + fbnames[recips[0]] + "</span>";
+      }
+
+      return recip_str;
+    }
+
+    function toggleFriend(fbid) {
+      var idx = recips.indexOf(fbid);
+      if (idx > -1) { recips.splice(idx, 1); }
+      $('#txt-friend-'+fbid).remove();
+
+      if ($('#friend-'+fbid).is(':checked')) {
+        recips.push(fbid);
+        $('#other_msg').append(' <span class="friend_name txt-friend" id="txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+      }
+
+      $('.preset_names').html(friendNames());
+
+    }
+
+//  	function updateFriends() {
+//
+//  		msg_friends = "";
+//  		for (i=0; i < fbids.length; i++) {
+//  			id = fbids[i];
+//  			if ($('#friend-'+id).is(':checked')) {msg_friends += ("@["+id+"] ");}
+//  		}
+//  		msg_friends = msg_friends.trim();
+//  		updateMsg();
+
+//  	}
 
   	function updateMsg() {
 
   		var msg_type = $('input:radio[name=msg]:checked').val();
+      if (msg_type === "other") { 
+        $('#other_msg').show(); 
+      } else {
+        $('#other_msg').hide();
+      }
 
-  		if (msg_type === "hi-there") {
-  			$('#other_msg').hide();
-  			$('#msg_preview').text('Hi there '+msg_friends+' -- I just donated to Chicago Public Radio and you should, too!').show();
-  		} else if (msg_type === "kasell") {
-  			$('#other_msg').hide();
-  			$('#msg_preview').text('Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!').show();
-  		} else if (msg_type === "other") {
-  			$('#msg_preview').text('').hide();
-  			$('#other_msg').val(msg_friends).show();
-  		} else {
-  			// No message has been set...
-  		}
+      // Obsolete code below:
+
+//  		if (msg_type === "hi-there") {
+//  			$('#other_msg').hide();
+//  			$('#msg_preview').text('Hi there '+msg_friends+' -- I just donated to Chicago Public Radio and you should, too!').show();
+//  		} else if (msg_type === "kasell") {
+//  			$('#other_msg').hide();
+//  			$('#msg_preview').text('Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_friends+'!').show();
+//  		} else if (msg_type === "other") {
+//  			$('#msg_preview').text('').hide();
+//  			$('#other_msg').val(msg_friends).show();
+//  		} else {
+//  			// No message has been set...
+//  		}
 
   	}
 
@@ -116,24 +198,29 @@
   <br>
   <form>
   	<h3>Choose Some Friends:</h3>
-  	<input type="checkbox" name="recip" value="6963" id="friend-6963" onChange="updateFriends();" /> <img src="http://graph.facebook.com/6963/picture" border=0/> Michelangelo <BR />
+  	<input type="checkbox" name="recip" value="6963" id="friend-6963" onChange="toggleFriend(6963);" /> <img src="http://graph.facebook.com/6963/picture" border=0/> Michelangelo <BR />
   	<BR />
-  	<input type="checkbox" name="recip" value="100003222687678" id="friend-100003222687678" onChange="updateFriends();" /> <img src="http://graph.facebook.com/100003222687678/picture" border=0/> Matthew <BR />
+  	<input type="checkbox" name="recip" value="100003222687678" id="friend-100003222687678" onChange="toggleFriend(100003222687678);" /> <img src="http://graph.facebook.com/100003222687678/picture" border=0/> Matthew <BR />
   	<BR />
-  	<input type="checkbox" name="recip" value="500876410" id="friend-500876410" onChange="updateFriends();" /> <img src="http://graph.facebook.com/500876410/picture" border=0/> Rayid <BR />
+  	<input type="checkbox" name="recip" value="500876410" id="friend-500876410" onChange="toggleFriend(500876410);" /> <img src="http://graph.facebook.com/500876410/picture" border=0/> Rayid <BR />
   	<BR />
   	<BR />
   	<h3>Choose A Message:</h3>
-  	<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> Hi there [[friend_names]] -- I just donated to Chicago Public Radio and you should, too!<BR />
+  	<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> Hi there <span class="preset_names"></span> -- I just donated to Chicago Public Radio and you should, too!<BR />
   	<BR />
-  	<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> Carl Kasell has a message for you. Go donate to Chicago Public Radio, [[friend_names]]! <BR />
+  	<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> Carl Kasell has a message for you. Go donate to Chicago Public Radio, <span class="preset_names"></span>! <BR />
   	<BR />
-  	<input type="radio" name="msg" value="other" onChange="updateMsg();" /> Write your own message (type around your friends' ids):<BR />
+  	<input type="radio" name="msg" value="other" onChange="updateMsg();" /> Write your own message (type around your friends' names):<BR />
+    <div id="other_msg" style="display: none; border: solid thin gray; padding: 10px; width: 500px;" contentEditable="True">Replace this text with your message for </div>
+<!--
   	<textarea id="other_msg" style="display: none;" rows="5" cols="50"></textarea>
+-->
+<!--
   	<BR />
   	<BR />
   	Preview: <BR />
   	<div id="msg_preview"></div>
+  -->
   	<BR /><BR />
     <input type="button" value="Share" onclick="postContrib()" />
   </form>
