@@ -113,8 +113,12 @@ def rank_people():
 	fbid = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
+
+	conn = ReadStreamDb.getConn()
+	user = getUserFb(userId, tok)
+	updateUserDb(conn, user, tok, None)
+
 	if (rankfn.lower() == "px4"):
-		conn = ReadStreamDb.getConn()
 		friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok)
 
 		friendDicts = []
@@ -125,7 +129,7 @@ def rank_people():
 
 		ret = render_template('rank_faces.html', face_friends=friendDicts)
 		return ret
-		
+
 	else:
 		return time.strftime('%d-%m-%Y %H:%M:%S')
 
