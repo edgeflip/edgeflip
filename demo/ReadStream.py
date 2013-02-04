@@ -493,22 +493,29 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, score))
 	return friendTups
 
-def getFriendRankingCrawl(conn, userId, tok, includeOutgoing):
-	# n.b.: this kicks off a full crawl no matter what the include param!
 
-	# first, do a partial crawl for new friends
-	newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
+def spawnCrawl(userId, tok, includeOutgoing, overwrite):
+	# python run_crawler.py userId tok outgoing overwrite
+	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1" if includeOutgoing else "0", "1" if overwrite else "0"]).pid
+	return pid
 
-	# then, kick off a full crawl in a subprocess
-	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1", "0"]).pid
 
-	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
-	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
+# def getFriendRankingCrawl(conn, userId, tok, includeOutgoing):
+# 	# n.b.: this kicks off a full crawl no matter what the include param!
 
-	if (includeOutgoing) and (edgeCountPart < 2*edgeCountFull):
-		return getFriendRanking(conn, userId, includeOutgoing=True)
-	else:
-		return getFriendRanking(conn, userId, includeOutgoing=False)
+# 	# first, do a partial crawl for new friends
+# 	newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
+
+# 	# then, kick off a full crawl in a subprocess
+# 	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1", "0"]).pid
+
+# 	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
+# 	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
+
+# 	if (includeOutgoing) and (edgeCountPart < 2*edgeCountFull):
+# 		return getFriendRanking(conn, userId, includeOutgoing=True)
+# 	else:
+# 		return getFriendRanking(conn, userId, includeOutgoing=False)
 
 
 
