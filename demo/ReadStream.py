@@ -493,7 +493,7 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, score))
 	return friendTups
 
-def getFriendRankingCrawl(conn, userId, tok, includeOutgoing=True):
+def getFriendRankingCrawl(conn, userId, tok, includeOutgoing):
 	# n.b.: this kicks off a full crawl no matter what the include param!
 
 	# first, do a partial crawl for new friends
