@@ -1,0 +1,173 @@
+<HTML>
+
+<HEAD>
+	<TITLE>EdgeFlip Friend Rankings Demo</TITLE>
+
+	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+  	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+
+	<SCRIPT type="text/javascript">
+		
+		function button_change(div_id, img_name) {
+			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
+		}
+
+		function show_friends() {
+
+			$('#share_button').hide();
+			$('#friends_table').show();
+
+			// FB login stuff??
+			FB.login(function(response) {
+				if (response.authResponse) {
+					FB.api('/me', function(info) {
+						login(response, info);
+					});	   
+				}
+			}, {scope:'email,user_birthday,status_update,publish_stream,user_about_me'});
+
+		}
+
+	</SCRIPT>
+
+</HEAD>
+
+<BODY bgcolor="#ffffff">
+
+<CENTER>
+
+<!-- SHARE BUTTON -->
+<div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
+
+<div id="friends_table" style="display:none;">
+<TABLE BORDER=1>
+	<TR>
+		<TD WIDTH="50%">
+
+			<div id='progress-px4' style='text-align: center; display: none'>
+				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
+			</div>
+
+			<div id="your-friends-here-px4"></div>
+
+		</TD><TD WIDTH="50%">
+
+			<div id='progress-px5' style='text-align: center; display: none'>
+				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
+			</div>
+
+			<div id="your-friends-here-px5"></div>
+
+		</TD>
+	</TR>
+
+</TABLE>
+</div>
+
+</CENTER>
+
+
+<div id="fb-root"></div>
+<script type="text/javascript">
+	
+	window.fbAsyncInit = function() {
+
+
+		FB.init({ appId: '471727162864364', //change the appId to your appId
+			status: true, 
+			cookie: true,
+			xfbml: true,
+			oauth: true});
+
+	}; // fbAsyncInit
+
+	(function() {
+		var e = document.createElement('script'); e.async = true;
+		e.src = document.location.protocol 
+			+ '//connect.facebook.net/en_US/all.js';
+		document.getElementById('fb-root').appendChild(e);
+	}());
+	
+	
+	function login(response, info){
+		if (response.authResponse) {
+			var accessToken	= response.authResponse.accessToken;
+			var fbid = info.id;
+			var num = 1000;
+
+			$('#progress-px4').show();
+			$('#progress-px5').show();
+
+			getPX4(fbid, accessToken, num);
+			getPX5(fbid, accessToken, num);
+
+		}
+	}
+
+	function getPX4(fbid, accessToken, num) {
+
+		var friends_div = $('#your-friends-here-px4');
+		var progress = $('#progress-px4');
+
+		var params = JSON.stringify({
+			fbid: fbid,
+			token: accessToken,
+			num: num,
+			rankfn: 'px4'
+		});
+
+		$.ajax({
+			type: "POST",
+			url: '/edgeflip_rankPeople',
+			contentType: "application/json",
+			dataType: 'html',
+			data: params,
+			error: function(jqXHR, textStatus, errorThrown) {
+						friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
+						progress.hide();
+			},
+			success: function(data) {
+						friends_div.html(data);	
+						friends_div.show();
+						progress.hide();
+			}
+		});
+
+	}
+
+	function getPX5(fbid, accessToken, num) {
+
+		var friends_div = $('#your-friends-here-px5');
+		var progress = $('#progress-px5');
+
+		var params = JSON.stringify({
+			fbid: fbid,
+			token: accessToken,
+			num: num,
+			rankfn: 'px5'
+		});
+
+		$.ajax({
+			type: "POST",
+			url: '/edgeflip_rankPeople',
+			contentType: "application/json",
+			dataType: 'html',
+			data: params,
+			error: function(jqXHR, textStatus, errorThrown) {
+						friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
+						progress.hide();
+			},
+			success: function(data) {
+						friends_div.html(data);	
+						friends_div.show();
+						progress.hide();
+						setTimeout(function() {getPX5(fbid, accessToken, num);}, 15000);
+			}
+		});
+
+	}
+	
+</script>
+
+</BODY>
+</HTML>
