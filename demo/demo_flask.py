@@ -120,15 +120,15 @@ def rank_people():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
 
 	if (rankfn.lower() == "px4"):
 
 		# now, spawn a full crawl in the background
-		pid = ReadStream.spawnCrawl(userId, tok, includeOutgoing=True, overwrite=False)
+		pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
 
 		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
- 		friendTups = ReadStream.getFriendRanking(conn, userId, includeOutgoing=False)
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
 		friendDicts = []
 		for i, t in enumerate(friendTups):
 			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
@@ -138,7 +138,7 @@ def rank_people():
 		return ret
 
 	else:
- 		friendTups = ReadStream.getFriendRanking(conn, userId, includeOutgoing=True)
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
 		friendDicts = []
 		for i, t in enumerate(friendTups):
 			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
