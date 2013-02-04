@@ -120,7 +120,7 @@ def rank_people():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
 	if (rankfn.lower() == "px4"):
-		friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok)
+		friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, False)
 
 		friendDicts = []
 		for i, t in enumerate(friendTups):
