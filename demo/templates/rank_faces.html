@@ -1,7 +1,7 @@
 
 {% for face_friend in face_friends %}
 
-	<h3>{{loop.index1}}. <img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/> {{face_friend.name}}</h3><BR />
+	<h3>{{loop.index}}. <img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/> {{face_friend.name}}</h3><BR />
 
 {% endfor %}
 

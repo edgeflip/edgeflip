@@ -2,6 +2,7 @@
 import flask
 from flask import Flask, render_template
 import ReadStream
+import ReadStreamDb
 import sys
 
 
@@ -115,8 +116,8 @@ def rank_people():
 	rankfn = flask.request.json['rankfn']
 
 	conn = ReadStreamDb.getConn()
-	user = getUserFb(userId, tok)
-	updateUserDb(conn, user, tok, None)
+	user = ReadStream.getUserFb(fbid, tok)
+	ReadStream.updateUserDb(conn, user, tok, None)
 
 	if (rankfn.lower() == "px4"):
 		friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok)
@@ -124,7 +125,7 @@ def rank_people():
 		friendDicts = []
 		for i, t in enumerate(friendTups):
 			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
-			fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'score':"%.4f"%t[3] }
+			fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'score':"%.4f"%float(t[5]) }
 			friendDicts.append(fd)
 
 		ret = render_template('rank_faces.html', face_friends=friendDicts)

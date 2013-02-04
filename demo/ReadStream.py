@@ -500,7 +500,7 @@ def getFriendRankingCrawl(conn, userId, tok, includeOutgoing=True):
 	newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
 
 	# then, kick off a full crawl in a subprocess
-	pid = subprocess.Popen(["python", "run_crawler.py", userId, tok, 1, 0]).pid
+	#zzz pid = subprocess.Popen(["python", "run_crawler.py", userId, tok, 1, 0]).pid
 
 	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
 	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
