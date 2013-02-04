@@ -493,7 +493,8 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, score))
 	return friendTups
 
-def getFriendRankingCrawl(conn, userId, tok):
+def getFriendRankingCrawl(conn, userId, tok, includeOutgoing=True):
+	# n.b.: this kicks off a full crawl no matter what the include param!
 
 	# first, do a partial crawl for new friends
 	newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
@@ -504,10 +505,10 @@ def getFriendRankingCrawl(conn, userId, tok):
 	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
 	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
 
-	if (edgeCountPart > 2*edgeCountFull):
-		return getFriendRanking(conn, userId, includeOutgoing=False)
-	else:
+	if (includeOutgoing) and (edgeCountPart < 2*edgeCountFull):
 		return getFriendRanking(conn, userId, includeOutgoing=True)
+	else:
+		return getFriendRanking(conn, userId, includeOutgoing=False)
 
 
 

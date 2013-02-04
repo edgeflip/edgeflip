@@ -104,8 +104,34 @@ def rank_demo():
 @app.route('/edgeflip_rankPeople', methods=['POST'])
 def rank_people():
 	import time
-	print "Hello there!"
-	return time.strftime('%d-%m-%Y %H:%M:%S')
+	#print "Hello there!"
+	
+	# fbid: fbid,
+	# token: accessToken,
+	# num: num,
+	# rankfn: 'px4'
+	fbid = flask.request.json['fbid']
+	tok = flask.request.json['token']
+	rankfn = flask.request.json['rankfn']
+	if (rankfn.lower() == "px4"):
+		conn = ReadStreamDb.getConn()
+		friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok)
+
+		friendDicts = []
+		for i, t in enumerate(friendTups):
+			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
+			fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'score':"%.4f"%t[3] }
+			friendDicts.append(fd)
+
+		ret = render_template('rank_faces.html', face_friends=friendDicts)
+		return ret
+		
+	else:
+		return time.strftime('%d-%m-%Y %H:%M:%S')
+
+
+
+
 
 @app.route('/mention')
 def mention_test():
