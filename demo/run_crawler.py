@@ -12,7 +12,7 @@ outgoing = bool(sys.argv[3])
 overwrite = bool(sys.argv[4])
 
 pid = os.getpid()
-lockName = "crawl_%d_%d.lock" % (pid, userId)
+lockName = "crawl_%s_%d.lock" % (pid, userId)
 lock = open(lockName, 'w')
 lock.write(time.strftime("%Y%m%d %H:%M:%S"), "\n")
 lock.close()
