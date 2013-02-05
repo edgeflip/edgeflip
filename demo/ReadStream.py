@@ -16,7 +16,7 @@ import ReadStreamDb
 
 
 
-NUM_JOBS = 5
+NUM_JOBS = 12
 STREAM_NUM_DAYS = 120
 STREAM_CHUNK_DAYS = 10
 
@@ -487,7 +487,7 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 	for edge in sorted(edgesDb, key=lambda x: x.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut), reverse=True):
 		score = edge.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut)
 		friend = edge.secondary
-		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, score))
+		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, str(edge), score))
 	return friendTups
 
 

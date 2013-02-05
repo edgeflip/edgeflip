@@ -123,30 +123,20 @@ def rank_people():
 	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
 
 	if (rankfn.lower() == "px4"):
-
 		# now, spawn a full crawl in the background
 		pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
-
 		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
-		friendDicts = []
-		for i, t in enumerate(friendTups):
-			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
-			fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'score':"%.4f"%float(t[5]) }
-			friendDicts.append(fd)
-		ret = render_template('rank_faces.html', face_friends=friendDicts)
-		return ret
-
 	else:
-
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
-		friendDicts = []
-		for i, t in enumerate(friendTups):
-			# friend.id, friend.fname, friend.lname, friend.gender, friend.age, score
-			fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'score':"%.4f"%float(t[5]) }
-			friendDicts.append(fd)
-		ret = render_template('rank_faces.html', face_friends=friendDicts)
-		return ret
+
+	friendDicts = []
+	for i, t in enumerate(friendTups):
+		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
+		friendDicts.append(fd)
+	ret = render_template('rank_faces.html', face_friends=friendDicts)
+	return ret
 
 
 
