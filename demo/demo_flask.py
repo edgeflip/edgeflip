@@ -39,8 +39,9 @@ def flip_it():
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
+	conn = ReadStreamDb.getConn()	
 
-	friendTups = ReadStream.getFriendRanking(user, tok, num) # id, name, desc, score
+	friendTups = ReadStream.getFriendRanking(conn, user, tok, num) # id, name, desc, score
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
@@ -56,16 +57,6 @@ def flip_it():
 	#sys.stderr.write("rendered: " + str(ret) + "\n")
 	return ret
 		
-	#return flask.jsonify(resp=friendTups)
-
-	#try:
-		#friendTups = ReadStream.getFriendRanking(user, tok) # id, name, desc, score
-		#friendHtml = "<table>"
-		#for i, (fid, name, desc, score) in enumerate(friendTups):
-			#friendHtml += "<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (i, fid, name, desc, score)
-		#friendHtml += "</table>"	
-	#except:
-		#friendHtml = 'Doh'
 
 @app.route('/edgeflip_faces', methods=['POST'])
 def face_it():
@@ -73,8 +64,9 @@ def face_it():
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
+	conn = ReadStreamDb.getConn()	
 
-	friendTups = ReadStream.getFriendRanking(user, tok, num) # id, name, desc, score
+	friendTups = ReadStream.getFriendRanking(conn, user, tok, num) # id, name, desc, score
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
