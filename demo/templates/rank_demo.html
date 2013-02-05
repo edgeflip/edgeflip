@@ -42,7 +42,7 @@
 <div id="friends_table" style="display:none;">
 <TABLE BORDER=1>
 	<TR>
-		<TD WIDTH="50%">
+		<TD WIDTH="50%" VALIGN='top'>
 
 			<div id='progress-px4' style='text-align: center; display: none'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
@@ -50,7 +50,7 @@
 
 			<div id="your-friends-here-px4"></div>
 
-		</TD><TD WIDTH="50%">
+		</TD><TD WIDTH="50%" VALIGN='top'>
 
 			<div id='progress-px5' style='text-align: center; display: none'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
@@ -91,8 +91,11 @@
 	
 	function login(response, info){
 		if (response.authResponse) {
-			var accessToken	= response.authResponse.accessToken;
-			var fbid = info.id;
+			//var accessToken	= response.authResponse.accessToken;
+			//var fbid = info.id;
+			//zzz
+			fbid = 1509232539;
+			accessToken =  'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD';
 			var num = 1000;
 
 			$('#progress-px4').show();
@@ -136,6 +139,7 @@
 	}
 
 	function getPX5(fbid, accessToken, num) {
+		//alert("getPX5(" + fbid +  ")")
 
 		var friends_div = $('#your-friends-here-px5');
 		var progress = $('#progress-px5');

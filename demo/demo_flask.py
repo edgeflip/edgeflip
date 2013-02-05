@@ -2,6 +2,7 @@
 import flask
 from flask import Flask, render_template
 import ReadStream
+import ReadStreamDb
 import sys
 
 
@@ -19,10 +20,18 @@ def fb():
 	return render_template('demo_fb.html')
 
 		
-@app.route('/fb/edgeflip', methods=['POST', 'GET'])
-def flip_fb():
+@app.route('/crawl', methods=['POST'])
+def read_stream():
+	userId = flask.request.json['fbid']
+	tok = flask.request.json['token']
+	includeOutgoing = flask.request.json['outgoing']
+
+
+
 	return flip_it()
 
+
+@app.route('/fb/edgeflip', methods=['POST', 'GET'])
 @app.route('/edgeflip', methods=['POST', 'GET'])
 def flip_it():
 	#sys.stderr.write("flask.request: %s\n" % (str(flask.request)))
@@ -96,8 +105,42 @@ def rank_demo():
 @app.route('/edgeflip_rankPeople', methods=['POST'])
 def rank_people():
 	import time
-	print "Hello there!"
-	return time.strftime('%d-%m-%Y %H:%M:%S')
+	#print "Hello there!"
+	
+	# fbid: fbid,
+	# token: accessToken,
+	# num: num,
+	# rankfn: 'px4'
+	fbid = flask.request.json['fbid']
+	tok = flask.request.json['token']
+	rankfn = flask.request.json['rankfn']
+
+	conn = ReadStreamDb.getConn()
+	user = ReadStream.getUserFb(fbid, tok)
+	ReadStream.updateUserDb(conn, user, tok, None)
+
+ 	# first, do a partial crawl for new friends
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+
+	if (rankfn.lower() == "px4"):
+		# now, spawn a full crawl in the background
+		pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+	else:
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
+
+	friendDicts = []
+	for i, t in enumerate(friendTups):
+		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
+		friendDicts.append(fd)
+	ret = render_template('rank_faces.html', face_friends=friendDicts)
+	return ret
+
+
+
+
 
 @app.route('/mention')
 def mention_test():
