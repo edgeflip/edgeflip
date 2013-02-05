@@ -1,11 +1,19 @@
 import sys
 import sqlite3
 import datetime
+import json
+
+try:
+	ef_config = open('edgeflip.config', 'r')
+	ef_dict = json.loads(ef_config.read())
+	if (not ef_dict['outdir']):
+		ef_dict['outdir'] = ''
+except:
+	ef_dict = {'outdir' : ''}
 
 
 
-
-DB_PATH = 'demo.sqlite'
+DB_PATH = ef_dict['outdir']+'demo.sqlite'
 
 
 
