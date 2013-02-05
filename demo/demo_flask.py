@@ -138,6 +138,7 @@ def rank_people():
 		return ret
 
 	else:
+
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
 		friendDicts = []
 		for i, t in enumerate(friendTups):
