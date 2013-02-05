@@ -39,9 +39,19 @@ def flip_it():
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
-	conn = ReadStreamDb.getConn()	
 
-	friendTups = ReadStream.getFriendRanking(conn, user, tok, num) # id, name, desc, score
+	conn = ReadStreamDb.getConn()
+	user = ReadStream.getUserFb(fbid, tok)
+	ReadStream.updateUserDb(conn, user, tok, None)
+
+ 	# first, do a partial crawl for new friends
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+
+	# now, spawn a full crawl in the background
+##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+	#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
+	friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
@@ -64,9 +74,19 @@ def face_it():
 	user = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
-	conn = ReadStreamDb.getConn()	
 
-	friendTups = ReadStream.getFriendRanking(conn, user, tok, num) # id, name, desc, score
+	conn = ReadStreamDb.getConn()
+	user = ReadStream.getUserFb(fbid, tok)
+	ReadStream.updateUserDb(conn, user, tok, None)
+
+ 	# first, do a partial crawl for new friends
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+
+	# now, spawn a full crawl in the background
+##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+	#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
+	friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
