@@ -55,7 +55,7 @@ def flip_it():
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
 		for c, count in enumerate(t[2].split()):
 			fd['count' + str(c)] = count
 		friendDicts.append(fd)
@@ -90,7 +90,7 @@ def face_it():
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
 		for c, count in enumerate(t[2].split()):
 			fd['count' + str(c)] = count
 		friendDicts.append(fd)
