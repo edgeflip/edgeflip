@@ -18,7 +18,7 @@ def hello():
 def cp():
 	config_dict = {}
 	try:
-		cf = open('target_config.json', 'r')
+		cf = open('edgeflip/target_config.json', 'r')
 		config_dict = json.loads(cf.read())
 	except:
 		pass
@@ -29,7 +29,7 @@ def cp():
 def targets():
 	try:
 		config_dict = flask.request.form
-		cf = open('target_config.json', 'w')
+		cf = open('edgeflip/target_config.json', 'w')
 		cf.write(json.dumps(config_dict))
 		return "Thank you. Your targeting parameters have been applied."
 	except:
