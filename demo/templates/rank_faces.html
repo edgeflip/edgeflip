@@ -1,7 +1,9 @@
-
+friend count: {{length(face_friends)}}
+<br>
+<br>
 {% for face_friend in face_friends %}
-
-	<h3>{{loop.index}}. <img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/> {{face_friend.name}} {{face_friend.score}}</h3><BR />
-
+	{{loop.index}}. <img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/> 
+	{{face_friend.name}} {{face_friend.score}}<br> 
+	{{face_friend.desc}}<br>
 {% endfor %}
 
