@@ -337,15 +337,12 @@ def dateFromIso(dateStr):
 
 def getUserDb(conn, userId):
 	sql = """SELECT fbid, fname, lname, gender, birthday, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
-	logging.debug(sql)
+	#logging.debug(sql)
 	curs = conn.cursor()
 	curs.execute(sql)
-
 	rec = curs.fetchone()
-	logging.debug(str(rec))
-
+	#logging.debug(str(rec))
 	fbid, fname, lname, gender, birthday, token, friend_token, updated = rec
-
 	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday))
 
 
@@ -536,12 +533,12 @@ def readStreamParallel(userId, token, numDays=100, chunkSizeDays=20, jobs=4, tim
 	logging.debug("%d chunk results for user %s", len(scChunks), userId)
 	sc = StreamCounts(userId)
 	for i, scChunk in enumerate(scChunks):
-		logging.debug("chunk %d %s" % (i, str(scChunk)))
+		#logging.debug("chunk %d %s" % (i, str(scChunk)))
 		sc += scChunk
 	return sc
 	
 def readStreamChunk(userId, token, ts1, ts2, timeout=60):
-	logging.debug("readStreamChunk(%s, %s, %d, %d)" % (userId, token[:10] + "...", ts1, ts2))
+	#logging.debug("readStreamChunk(%s, %s, %d, %d)" % (userId, token[:10] + "...", ts1, ts2))
 
 	queryJsons = []
 	streamLabel = "stream"
