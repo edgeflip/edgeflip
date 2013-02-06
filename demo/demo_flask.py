@@ -6,13 +6,14 @@ import ReadStreamDb
 import sys
 import json
 
-try:
-	ef_config = open('edgeflip.config', 'r')
-	ef_dict = json.loads(ef_config.read())
-	if (not ef_dict['outdir']):
-		ef_dict['outdir'] = ''
-except:
-	ef_dict = {'outdir' : ''}
+from Config import config
+# try:
+# 	ef_config = open('edgeflip.config', 'r')
+# 	ef_dict = json.loads(ef_config.read())
+# 	if (not ef_dict['outdir']):
+# 		ef_dict['outdir'] = ''
+# except:
+# 	ef_dict = {'outdir' : ''}
 
 
 app = Flask(__name__)
@@ -180,7 +181,7 @@ def mention_test():
 def cp():
 	config_dict = {}
 	try:
-		cf = open(ef_dict['outdir']+'target_config.json', 'r')
+		cf = open(config['outdir']+'target_config.json', 'r')
 		config_dict = json.loads(cf.read())
 	except:
 		pass
@@ -191,7 +192,7 @@ def cp():
 def targets():
 	try:
 		config_dict = flask.request.form
-		cf = open(ef_dict['outdir']+'target_config.json', 'w')
+		cf = open(config['outdir']+'target_config.json', 'w')
 		cf.write(json.dumps(config_dict))
 		return "Thank you. Your targeting parameters have been applied."
 	except:
@@ -202,7 +203,7 @@ def targets():
 def filter_friends(friends):
 	# friends should be a list of dicts.
 	try:
-		cf = open(ef_dict['outdir']+'target_config.json', 'r')
+		cf = open(config['outdir']+'target_config.json', 'r')
 		config_dict = json.loads(cf.read())
 	except:
 		return friends

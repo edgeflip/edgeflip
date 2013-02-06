@@ -193,10 +193,13 @@ class ThreadStreamReader(threading.Thread):
 
 			try:
 				responseFile = urllib2.urlopen(url, timeout=60)
+				responseJson = json.load(responseFile)
 			except Exception as e:
 				logging.warning("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
-				return StreamCounts(self.userId)
-			responseJson = json.load(responseFile)
+				self.queue.task_done()
+				self.queue.put((ts1, ts2))
+				continue
+
 			#sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
 
 			lab_recs = {}
