@@ -320,7 +320,7 @@ def spawnCrawl(userId, tok, includeOutgoing, overwrite):
 def getFriendRankingBestAvail(conn, userId, threshold=0.5):
 	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
 	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
-	if (includeOutgoing) and (edgeCountPart*threshold < edgeCountFull):
+	if (edgeCountPart*threshold < edgeCountFull):
 		return getFriendRanking(conn, userId, includeOutgoing=True)
 	else:
 		return getFriendRanking(conn, userId, includeOutgoing=False)
