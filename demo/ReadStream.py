@@ -4,155 +4,49 @@ import urllib
 import urllib2
 import json
 import time
+import datetime
+import subprocess
 from joblib import Parallel, delayed
 from collections import defaultdict
 import logging
+import json
+
+try:
+	ef_config = open('edgeflip.config', 'r')
+	ef_dict = json.loads(ef_config.read())
+	if (not ef_dict['outdir']):
+		ef_dict['outdir'] = ''
+except:
+	ef_dict = {'outdir' : ''}
+
 logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s',
-					filename='demo.log',
+					filename=ef_dict['outdir']+'demo.log',
 					level=logging.DEBUG)
+import ReadStreamDb
+import StreamReader
 
 
-
-
-NUM_JOBS = 10
+NUM_JOBS = 12
 STREAM_NUM_DAYS = 120
 STREAM_CHUNK_DAYS = 10
 
-class STREAMTYPE:
-	GROUP_CREATED = 11
-	EVENT_CREATED = 12
-	STATUS_UPDATE = 46
-	WALL_POST = 56
-	NOTE_CREATED = 66
-	LINK = 80
-	VIDEO = 128
-	PHOTO = 247
-	APP_STORY = 237
-	COMMENT_CREATED = 257
-	APP_STORY2 = 272
-	CHECKIN = 285
-	GROUP_POST = 308
-
-FQL_STREAM_CHUNK = " ".join("""SELECT created_time, post_id, source_id, target_id, type FROM stream
-								WHERE source_id=%s AND %d <= created_time AND created_time < %d LIMIT 5000""".split())
-FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-
-
-def getFriends(user, token):
-	fql = """SELECT name, uid, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (user)
-	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
-	responseFile = urllib2.urlopen(url, timeout=60)
-	responseJson = json.load(responseFile)
-	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
-	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
-	friendTups = [ (rec['uid'], rec['name'], rec['mutual_friend_count']) for rec in responseJson['data'] ]
-	return friendTups
-
-
-
-
-class StreamCounts(object):
-	def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[]):
-		self.id = userId
-		self.stream = []
-		self.friendId_postLikeCount = defaultdict(int)
-		self.friendId_postCommCount = defaultdict(int)
-		self.friendId_statLikeCount = defaultdict(int)
-		self.friendId_statCommCount = defaultdict(int)
-		#sys.stderr.write("got post likers: %s\n" % (str(postLikers)))
-		#sys.stderr.write("got post commers: %s\n" % (str(postCommers)))
-		#sys.stderr.write("got stat likers: %s\n" % (str(statLikers)))
-		#sys.stderr.write("got stat commers: %s\n" % (str(statCommers)))
-		self.stream.extend(stream)
-		self.addPostLikers(postLikers)
-		self.addPostCommers(postCommers)
-		self.addStatLikers(statLikers)
-		self.addStatCommers(statCommers)
-	def __iadd__(self, other):
-		self.stream.extend(other.stream)
-		for fId, cnt in other.friendId_postLikeCount.items():
-			self.friendId_postLikeCount[fId] += cnt
-		for fId, cnt in other.friendId_postCommCount.items():
-			self.friendId_postCommCount[fId] += cnt
-		for fId, cnt in other.friendId_statLikeCount.items():
-			self.friendId_statLikeCount[fId] += cnt
-		for fId, cnt in other.friendId_statCommCount.items():
-			self.friendId_statCommCount[fId] += cnt
-		return self		
-	def __add__(self, other):
-		if (self.id != other.id):
-			raise Exception("cannot add stream counts for different users (%d, %d)" % (self.id, other.id))
-		sc = StreamCounts(self.id)
-		sc += self
-		sc += other
-		return sc
-	def __str__(self):		
-		ret = "%d entries" % (len(self.stream))
-		ret += ", %d post likes" % (sum(self.friendId_postLikeCount.values()))
-		ret += ", %d post comments" % (sum(self.friendId_postCommCount.values()))
-		ret += ", %d stat likes" % (sum(self.friendId_statLikeCount.values()))
-		ret += ", %d stat comments" % (sum(self.friendId_statCommCount.values()))
-		#ret += "\n"
-		#ret += "stream %s\n" % (id(self.stream))
-		#for i in range(min(5, len(self.stream))):
-			#ret += "\t" + str(self.stream[i]) + "\n"
-		return ret			
-			
-	def addPostLikers(self, friendIds):
-		for friendId in friendIds:
-			self.friendId_postLikeCount[friendId] += 1
-	def addPostCommers(self, friendIds):
-		for friendId in friendIds:
-			self.friendId_postCommCount[friendId] += 1
-	def addStatLikers(self, friendIds):
-		for friendId in friendIds:
-			self.friendId_statLikeCount[friendId] += 1
-	def addStatCommers(self, friendIds):
-		for friendId in friendIds:
-			self.friendId_statCommCount[friendId] += 1
-
-	def getPostLikes(self, friendId):
-		return self.friendId_postLikeCount.get(friendId, 0)
-	def getPostComms(self, friendId):
-		return self.friendId_postCommCount.get(friendId, 0)
-	def getStatLikes(self, friendId):
-		return self.friendId_statLikeCount.get(friendId, 0)
-	def getStatComms(self, friendId):
-		return self.friendId_statCommCount.get(friendId, 0)
-
-	def getFriendIds(self):
-		fIds = set()
-		fIds.update(self.friendId_postLikeCount.keys())
-		fIds.update(self.friendId_postCommCount.keys())
-		fIds.update(self.friendId_statLikeCount.keys())
-		fIds.update(self.friendId_statCommCount.keys())
-		return fIds		
-	def getFriendRanking(self):
-		fIds = self.getFriendIds()
-		friendId_total = defaultdict(int)
-		for fId in fIds:
-			friendId_total[fId] += self.friendId_postLikeCount.get(fId, 0)*2
-			friendId_total[fId] += self.friendId_postCommCount.get(fId, 0)*4
-			friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0)*2
-			friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
-		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 
 class Edge(object):
-	def __init__(self, sc1, sc2, muts):
-		self.id1 = sc1.id
-		self.id2 = sc2.id
-		self.inPostLikes = sc1.getPostLikes(sc2.id)
-		self.inPostComms = sc1.getPostComms(sc2.id)
-		self.inStatLikes = sc1.getStatLikes(sc2.id)
-		self.inStatComms = sc1.getStatComms(sc2.id)
-		self.outPostLikes = sc2.getPostLikes(sc1.id)
-		self.outPostComms = sc2.getPostComms(sc1.id)
-		self.outStatLikes = sc2.getStatLikes(sc1.id)
-		self.outStatComms = sc2.getStatComms(sc1.id)
-		self.mutuals = muts
+	def __init__(self, primInfo, secInfo,
+					inPostLikes, inPostComms, inStatLikes, inStatComms, 
+					outPostLikes, outPostComms, outStatLikes, outStatComms, 
+					mutuals):
+		self.primary = primInfo
+		self.secondary = secInfo
+		self.inPostLikes = inPostLikes
+		self.inPostComms = inPostComms
+		self.inStatLikes = inStatLikes
+		self.inStatComms = inStatComms
+		self.outPostLikes = outPostLikes
+		self.outPostComms = outPostComms
+		self.outStatLikes = outStatLikes
+		self.outStatComms = outStatComms
+		self.mutuals = mutuals
 	def __str__(self):
 		ret = ""
 		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
@@ -188,113 +82,251 @@ class Edge(object):
 				weightTotal += weight
 		return pxTotal / weightTotal				
 
-def getFriendRanking(userP, tok, maxFriends=sys.maxint):
-	user = int(userP)	
-	logging.info('reading stream for user %s, %s', user, tok)
-	sc = readStreamParallel(user, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	def toDb(self, conn=None):
+		if (conn is None):
+			conn = ReadStreamDb.getConn()
+		curs = conn.cursor()
+		sql = """
+			INSERT OR REPLACE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		"""
+		params = (self.primary.id, self.secondary.id, 
+				self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms,
+				self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms,
+				self.mutuals, time.time())
+		curs.execute(sql, params)
+		conn.commit()
+
+
+class EdgeSC1(Edge):
+	def __init__(self, userInfo, friendInfo, userStreamCount):
+		self.primary = userInfo
+		self.secondary = friendInfo
+		self.inPostLikes = userStreamCount.getPostLikes(friendInfo.id)
+		self.inPostComms = userStreamCount.getPostComms(friendInfo.id)
+		self.inStatLikes = userStreamCount.getStatLikes(friendInfo.id)
+		self.inStatComms = userStreamCount.getStatComms(friendInfo.id)
+		self.outPostLikes = None
+		self.outPostComms = None
+		self.outStatLikes = None
+		self.outStatComms = None
+		self.mutuals = friendInfo.mutuals
+
+class EdgeSC2(Edge):
+	def __init__(self, userInfo, friendInfo, userStreamCount, friendStreamCount):
+		self.primary = userInfo
+		self.secondary = friendInfo
+		self.inPostLikes = userStreamCount.getPostLikes(friendInfo.id)
+		self.inPostComms = userStreamCount.getPostComms(friendInfo.id)
+		self.inStatLikes = userStreamCount.getStatLikes(friendInfo.id)
+		self.inStatComms = userStreamCount.getStatComms(friendInfo.id)
+		self.outPostLikes = friendStreamCount.getPostLikes(userInfo.id)
+		self.outPostComms = friendStreamCount.getPostComms(userInfo.id)
+		self.outStatLikes = friendStreamCount.getStatLikes(userInfo.id)
+		self.outStatComms = friendStreamCount.getStatComms(userInfo.id)
+		self.mutuals = friendInfo.mutuals
+
+
+class UserInfo(object):
+	def __init__(self, uid, first_name, last_name, sex, birthday):
+		self.id = uid
+		self.fname = first_name
+		self.lname = last_name
+		self.gender = sex
+
+		self.birthday = birthday
+		self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
+
+class FriendInfo(UserInfo):
+	def __init__(self, uid, first_name, last_name, sex, birthday, mutual_friend_count):
+		UserInfo.__init__(self, uid, first_name, last_name, sex, birthday)
+		self.mutuals = mutual_friend_count
+
+
+def getFriendsFb(userId, token):
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
+	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
+	responseFile = urllib2.urlopen(url, timeout=60)
+	responseJson = json.load(responseFile)
+	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
+	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
+	#friendTups = [ (rec['uid'], rec['name'], rec['mutual_friend_count']) for rec in responseJson['data'] ]
+	#return friendTups
+	friends = []
+	for rec in responseJson['data']:
+		f = FriendInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), rec['mutual_friend_count'])
+		friends.append(f)
+	return friends
+
+
+def getUserFb(userId, token):
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date FROM user WHERE uid=%s""" % (userId)
+	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
+	responseFile = urllib2.urlopen(url, timeout=60)
+	responseJson = json.load(responseFile)
+	rec = responseJson['data'][0]
+	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']))
+	return user
+
+
+def dateFromFb(dateStr):
+	if (dateStr):
+		dateElts = dateStr.split('/')
+		if (len(dateElts) == 3): 
+			m, d, y = dateElts
+			return datetime.date(int(y), int(m), int(d))
+	return None
+
+def dateFromIso(dateStr):
+	if (dateStr):
+		dateElts = dateStr.split('-')
+		if (len(dateElts) == 3): 
+			y, m, d = dateElts
+			return datetime.date(int(y), int(m), int(d))
+	return None		
+
+
+def getUserDb(conn, userId):
+	sql = """SELECT fbid, fname, lname, gender, birthday, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
+	#logging.debug(sql)
+	curs = conn.cursor()
+	curs.execute(sql)
+	rec = curs.fetchone()
+	#logging.debug(str(rec))
+	fbid, fname, lname, gender, birthday, token, friend_token, updated = rec
+	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday))
+
+def getFriendEdgesDb(conn, primId, includeOutgoing=False):
+	if (conn is None):
+		conn = ReadStreamDb.getConn()
+	curs = conn.cursor()
+	sql = """
+			SELECT prim_id, sec_id,
+					in_post_likes, in_post_comms, in_stat_likes, in_stat_comms,
+					out_post_likes, out_post_comms, out_stat_likes, out_stat_comms, 
+					mut_friends, updated
+			FROM edges
+			WHERE prim_id=?
+	""" 
+	if (includeOutgoing):
+		sql += """
+			AND out_post_likes IS NOT NULL 
+			AND out_post_comms IS NOT NULL 
+			AND out_stat_likes IS NOT NULL
+			AND out_stat_comms IS NOT NULL
+		"""
+	curs.execute(sql, (primId,))
+	eds = []
+	primary = getUserDb(conn, primId)
+	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
+		secondary = getUserDb(conn, sId)
+		eds.append(Edge(primary, secondary, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts))
+	return eds
+
+def updateUserDb(conn, user, tok, tokFriend):
+	# can leave tok or tokFriend blank, in that case it will not overwrite
+
+	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, token, friend_token, updated) "
+	if (tok is None):
+		sql += "VALUES (?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.id, tokFriend, time.time())
+	elif (tokFriend is None):
+		sql += "VALUES (?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), tok, user.id, time.time())
+	else:
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), tok, tokFriend, time.time())
+	curs = conn.cursor()
+	curs.execute(sql, params)
+	conn.commit()	
+
+def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True):
+	friends = getFriendsFb(userId, tok)
+	logging.debug("got %d friends total", len(friends))
+
+	# if we're not overwriting, see what we have saved
+	if (overwrite):
+		#friendQueue = friendId_friend.keys()
+		friendQueue = friends
+	else:
+		edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing=readFriendStream)
+		friendIdsPrev = set([ e.secondary.id for e in edgesDb ])
+		friendQueue = [ f for f in friends if f.id not in friendIdsPrev ]
+
+	logging.info('reading stream for user %s, %s', userId, tok)
+	#sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	sc = StreamReader.ReadStreamCounts(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+
 	logging.debug('got %s', str(sc))
 
-	friendId_info = {}
-	for friendId, friendName, friendMuts in getFriends(user, tok):
-		friendId_info[friendId] = (friendName, friendMuts)
-	logging.debug("got %d friends total", len(friendId_info))
-
+	# sort all the friends by their stream rank (if any) and mutual friend count
 	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
 	logging.debug("got %d friends ranked", len(friendId_streamrank))
+	#friendQueue.sort(key=lambda x: (friendId_streamrank.get(x, sys.maxint), -1*friendId_friend[x].mutuals))
+	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
-	# sort all the friends by their stream rank (if any) and mutual friend count
-	friendIds = sorted(friendId_info.keys(), key=lambda x: (friendId_streamrank.get(x, sys.maxint), -1*friendId_info[x][1]))
+	user = getUserDb(conn, userId)
+	insertCount = 0
+	for i, friend in enumerate(friendQueue):
+		if (readFriendStream):
+			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+			try:
+				#scFriend = StreamReader.readStream(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+				scFriend = StreamReader.ReadStreamCounts(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 
-	friendId_edge = {}
-	for i, friendId in enumerate(friendIds[:maxFriends]):
-		logging.info("reading friend stream %d/%d (%s)", i, len(friendId_info), friendId)
-		try:
-			scFriend = readStreamParallel(friendId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
-		except Exception:
-			logging.warning("error reading stream for %d", friendId)
-			continue
-		logging.debug('got %s', str(scFriend))
-
-		mutuals = friendId_info[friendId][1]
-		e = Edge(sc, scFriend, mutuals)
+			except Exception:
+				logging.warning("error reading stream for %d", friend.id)
+				continue
+			logging.debug('got %s', str(scFriend))
+			e = EdgeSC2(user, friend, sc, scFriend)
+		else:
+			e = EdgeSC1(user, friend, sc)
 		logging.debug('edge %s', str(e))
-		friendId_edge[friendId] = e
-	logging.info("have %d edges", len(friendId_edge))
+		e.toDb(conn)
+		insertCount += 1		
 
-	#zzz todo: replace all the friendId_thing hashes with a Friend object of some sort
+		updateUserDb(conn, friend, None, tok)
+
+	updateUserDb(conn, user, tok, None)
+	conn.commit()
+	return insertCount
+
+def getFriendRanking(conn, userId, includeOutgoing=True):
+	edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing)
+	logging.info("have %d edges", len(edgesDb))
+
+	ipl = max([ e.inPostLikes for e in edgesDb ] + [None])
+	ipc = max([ e.inPostComms for e in edgesDb ] + [None])
+	isl = max([ e.inStatLikes for e in edgesDb ] + [None])
+	isc = max([ e.inStatComms for e in edgesDb ] + [None])		
+	opl = max([ e.outPostLikes for e in edgesDb ] + [None]) if (includeOutgoing) else None
+	opc = max([ e.outPostComms for e in edgesDb ] + [None]) if (includeOutgoing) else None
+	osl = max([ e.outStatLikes for e in edgesDb ] + [None]) if (includeOutgoing) else None
+	opc = max([ e.outStatComms for e in edgesDb ] + [None]) if (includeOutgoing) else None
+	mut = max([ e.mutuals for e in edgesDb ] + [None])
 	
-	ipl = max(sc.friendId_postLikeCount.values() + [0])
-	ipc = max(sc.friendId_postCommCount.values() + [0])
-	isl = max(sc.friendId_statLikeCount.values() + [0])
-	isc = max(sc.friendId_statCommCount.values() + [0])
-	opl = max([ e.inPostLikes for e in friendId_edge.values() ] + [0])
-	opc = max([ e.inPostComms for e in friendId_edge.values() ] + [0])
-	osl = max([ e.inStatLikes for e in friendId_edge.values() ] + [0])
-	opc = max([ e.inStatComms for e in friendId_edge.values() ] + [0])		
-	mut = max([ e.mutuals for e in friendId_edge.values() ] + [0])
-	friendId_score = dict([ [e.id2, e.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut)] for e in friendId_edge.values() ])
-
 	friendTups = []
-	for friendId, score in sorted(friendId_score.items(), key=lambda x: x[1], reverse=True):
-		edge = friendId_edge[friendId]
-		name, muts = friendId_info.get(friendId, ["???", 0])
-		friendTups.append((friendId, name, str(edge), score))
+	for edge in sorted(edgesDb, key=lambda x: x.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut), reverse=True):
+		score = edge.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut)
+		friend = edge.secondary
+		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, str(edge), score))
 	return friendTups
 
-def readStreamParallel(userId, token, numDays=100, chunkSizeDays=20, jobs=4, timeout=60):
-	intervals = [] # (ts1, ts2)
-	chunkSizeSecs = chunkSizeDays*24*60*60
-	tsNow = int(time.time())
-	tsStart = tsNow-numDays*24*60*60
-	for ts1 in range(tsStart, tsNow, chunkSizeSecs):
-		ts2 = min(ts1 + chunkSizeSecs, tsNow)
-		intervals.append((ts1, ts2))
-	scChunks = Parallel(n_jobs=jobs)(delayed(readStreamChunk)(userId, token, ts1, ts2) for ts1, ts2 in intervals)
-			
-	logging.debug("%d chunk results for user %s", len(scChunks), userId)
-	sc = StreamCounts(userId)
-	for scChunk in scChunks:
-		logging.debug("chunk " + str(scChunk))
-		sc += scChunk
-	return sc
-	
-def readStreamChunk(userId, token, ts1, ts2, timeout=60):
-	queryJsons = []
-	streamLabel = "stream"
-	queryJsons.append('"%s":"%s"' % (streamLabel, urllib.quote_plus(FQL_STREAM_CHUNK % (userId, ts1, ts2))))
-	streamRef = "#" + streamLabel
-	queryJsons.append('"postLikes":"%s"' % (urllib.quote_plus(FQL_POST_LIKES % (streamRef))))
-	queryJsons.append('"postComms":"%s"' % (urllib.quote_plus(FQL_POST_COMMS % (streamRef))))
-	queryJsons.append('"statLikes":"%s"' % (urllib.quote_plus(FQL_STAT_LIKES % (streamRef))))
-	queryJsons.append('"statComms":"%s"' % (urllib.quote_plus(FQL_STAT_COMMS % (streamRef))))
-	queryJson = '{' + ','.join(queryJsons) + '}'
-	#sys.stderr.write(queryJson + "\n\n")
+def spawnCrawl(userId, tok, includeOutgoing, overwrite):
+	# python run_crawler.py userId tok outgoing overwrite
+	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1" if includeOutgoing else "0", "1" if overwrite else "0"]).pid
+	logging.debug("spawned process %d to crawl user %d" % (pid, userId))
+	return pid
 
-	url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token	
-	#sys.stderr.write(url + "\n\n")
+def getFriendRankingBestAvail(conn, userId, threshold=0.5):
+	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
+	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
+	if (edgeCountPart*threshold < edgeCountFull):
+		return getFriendRanking(conn, userId, includeOutgoing=True)
+	else:
+		return getFriendRanking(conn, userId, includeOutgoing=False)
 
-	try:
-		responseFile = urllib2.urlopen(url, timeout=60)
-	except Exception as e:
-		logging.warning("error reading stream chunk for user %s (%s - %s): %s\n" % (userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
-		return StreamCounts(userId)
-	responseJson = json.load(responseFile)
-	#sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
 
-	lab_recs = {}
-	for entry in responseJson['data']:
-		label = entry['name']
-		records = entry['fql_result_set']
-		#sys.stderr.write(label + ": " + str(records) + "\n\n")
-		lab_recs[label] = records
-	#return lab_recs
-	pLikeIds = [ r['user_id'] for r in lab_recs['postLikes'] ]
-	pCommIds = [ r['fromid'] for r in lab_recs['postComms'] ]
-	sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]
-	sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
-	sc = StreamCounts(userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
-	return sc
-	
+
 
 
 
@@ -343,10 +375,30 @@ if (__name__ == '__main__'):
 		users = [ t[0] for t in USER_TUPS ]
 
 	user_info = dict([ (t[0], (t[1], t[2])) for t in USER_TUPS ])
-	for i, user in enumerate(users):
-		nam, tok = user_info[user]
 
-		friendTups = getFriendRanking(user, tok) # id, name, desc, score
-		for friendId, name, desc, score in friendTups:
-			sys.stderr.write("friend %20s %30s %s %.4f\n" % (friendId, name, desc, score))
 
+	ReadStreamDb.dbSetup()
+
+	conn = ReadStreamDb.getConn()
+
+	for i, userId in enumerate(users):
+		nam, tok = user_info[userId]
+
+		includeOutgoing = True
+
+		user = getUserFb(userId, tok)
+		updateUserDb(conn, user, tok, None)
+
+		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwrite=True)
+		logging.debug("inserted %d new edges\n" % newCount)
+
+		friendTups = getFriendRanking(conn, userId, includeOutgoing) # id, fname, lname, gender, age, desc, score
+		for fbid, fname, lname, gender, age, desc, score in friendTups:
+			name = fname + " " + lname
+			sys.stderr.write("friend %20s %32s %s %.4f\n" % (fbid, name, "", score))
+
+
+
+
+
+ 
