@@ -4,7 +4,15 @@ from flask import Flask, render_template
 import ReadStream
 import ReadStreamDb
 import sys
+import json
 
+try:
+	ef_config = open('edgeflip.config', 'r')
+	ef_dict = json.loads(ef_config.read())
+	if (not ef_dict['outdir']):
+		ef_dict['outdir'] = ''
+except:
+	ef_dict = {'outdir' : ''}
 
 
 app = Flask(__name__)
@@ -147,10 +155,9 @@ def rank_people():
 		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
 		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
 		friendDicts.append(fd)
-	ret = render_template('rank_faces.html', face_friends=friendDicts)
+	filteredDicts = filter_friends(friendDicts)
+	ret = render_template('rank_faces.html', face_friends=filteredDicts)
 	return ret
-
-
 
 
 
@@ -158,6 +165,65 @@ def rank_people():
 def mention_test():
 	return render_template('friend_picker.html')
 
+
+
+############################ CONTROL PANEL #############################
+@app.route("/cp", methods=['POST', 'GET'])
+@app.route("/control_panel", methods=['POST', 'GET'])
+def cp():
+	config_dict = {}
+	try:
+		cf = open(ef_dict['outdir']+'target_config.json', 'r')
+		config_dict = json.loads(cf.read())
+	except:
+		pass
+	return render_template('control_panel.html', config=config_dict)
+
+
+@app.route("/set_targets", methods=['POST'])
+def targets():
+	try:
+		config_dict = flask.request.form
+		cf = open(ef_dict['outdir']+'target_config.json', 'w')
+		cf.write(json.dumps(config_dict))
+		return "Thank you. Your targeting parameters have been applied."
+	except:
+		raise
+		return "Ruh-roh! Something went wrong..."
+
+
+def filter_friends(friends):
+	# friends should be a list of dicts.
+	try:
+		cf = open(ef_dict['outdir']+'target_config.json', 'r')
+		config_dict = json.loads(cf.read())
+	except:
+		return friends
+
+	def age_match(friend):
+		if (not (config_dict['min_age'] and config_dict['max_age'])):
+			return True
+		elif (not friend['age']):
+			return False
+		else:
+			return ( friend['age'] >= int(config_dict['min_age']) and friend['age'] <= int(config_dict['max_age']) )
+
+	def gender_match(friend):
+		if ((not config_dict['gender']) or config_dict['gender'] == 'female'):
+			return True
+		elif (not friend['gender']):
+			return False
+		else:
+			return ( config_dict['gender'] == friend['gender'] )
+
+	filtered_friends = [f if ( age_match(f) and gender_match(f) ) for f in friends]
+	return filtered_friends
+
+
+
+###########################################################################
+
 if __name__ == "__main__":
 #	app.run(debug=True)
 	app.run('0.0.0.0', port=5000, debug=False)
+
