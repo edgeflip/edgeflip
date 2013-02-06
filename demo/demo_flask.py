@@ -203,13 +203,16 @@ def filter_friends(friends):
 	def age_match(friend):
 		if (not (config_dict['min_age'] and config_dict['max_age'])):
 			return True
+		elif (config_dict['min_age'] == '0' and config_dict['max_age'] == '120'):
+			# If age range is [0,120] then ignore filtering (include people with unknown age)
+			return True
 		elif (not friend['age']):
 			return False
 		else:
 			return ( friend['age'] >= int(config_dict['min_age']) and friend['age'] <= int(config_dict['max_age']) )
 
 	def gender_match(friend):
-		if ((not config_dict['gender']) or config_dict['gender'] == 'female'):
+		if ((not config_dict['gender']) or config_dict['gender'] == 'both'):
 			return True
 		elif (not friend['gender']):
 			return False
