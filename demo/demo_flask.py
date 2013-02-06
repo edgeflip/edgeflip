@@ -216,7 +216,7 @@ def filter_friends(friends):
 		else:
 			return ( config_dict['gender'] == friend['gender'] )
 
-	filtered_friends = [f if ( age_match(f) and gender_match(f) ) for f in friends]
+	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) )]
 	return filtered_friends
 
 
