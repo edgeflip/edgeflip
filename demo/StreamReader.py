@@ -125,8 +125,8 @@ class StreamCounts(object):
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 	
 class ReadStreamCounts(StreamCounts):
-	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threads=4, timeout=60):
-		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threads))
+	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60):
+		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount))
 		self.id = userId
 		self.stream = []
 		self.friendId_postLikeCount = defaultdict(int)
@@ -138,10 +138,12 @@ class ReadStreamCounts(StreamCounts):
 		scChunks = [] # list of sc obects holding results
 
 		# create the thread pool
-		for i in range(threads):
+		threads = []
+		for i in range(threadCount):
 			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
 			t.setDaemon(True)
 			t.name = "%s-%d" % (userId, i)
+			threads.append(t)
 			t.start()
 
 		# load the queue
@@ -154,7 +156,16 @@ class ReadStreamCounts(StreamCounts):
 			tsQueue.put((ts1, ts2))
 
 		# wait for them to finish
-		tsQueue.join()
+		#tsQueue.join()
+		while len(threads) > 0:
+			try:
+				# Join all threads using a timeout so it doesn't block
+				# Filter out threads which have been joined or are None
+				threads = [ t.join(1) for t in threads if t is not None and t.isAlive() ]
+			except KeyboardInterrupt:
+				logging.info("Ctrl-c, kill 'em all.")
+				for t in threads:
+					t.kill_received = True
 
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
