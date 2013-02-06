@@ -26,7 +26,7 @@ import ReadStreamDb
 import StreamReader
 
 
-NUM_JOBS = 5
+NUM_JOBS = 12
 STREAM_NUM_DAYS = 120
 STREAM_CHUNK_DAYS = 10
 
