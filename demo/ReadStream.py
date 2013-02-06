@@ -13,10 +13,10 @@ logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s',
 					filename='demo.log',
 					level=logging.DEBUG)
 import ReadStreamDb
+import StreamReader
 
 
-
-NUM_JOBS = 12
+NUM_JOBS = 5
 STREAM_NUM_DAYS = 120
 STREAM_CHUNK_DAYS = 10
 
@@ -419,7 +419,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True
 		#		friendQueue.append(fId)
 
 	logging.info('reading stream for user %s, %s', userId, tok)
-	sc = readStreamParallel(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 	logging.debug('got %s', str(sc))
 
 	# sort all the friends by their stream rank (if any) and mutual friend count
@@ -437,7 +437,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True
 		if (readFriendStream):
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
-				scFriend = readStreamParallel(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+				scFriend = StreamReader.readStream(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 			except Exception:
 				logging.warning("error reading stream for %d", friend.id)
 				continue
@@ -625,24 +625,39 @@ if (__name__ == '__main__'):
 
 	user_info = dict([ (t[0], (t[1], t[2])) for t in USER_TUPS ])
 
+
+	ReadStreamDb.dbSetup()
+
 	conn = ReadStreamDb.getConn()
 
 	for i, userId in enumerate(users):
 		nam, tok = user_info[userId]
 
-		includeOutgoing = True
+		includeOutgoing = False
 
 		user = getUserFb(userId, tok)
 		updateUserDb(conn, user, tok, None)
 
-		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwrite=False)
+
+		scOld = readStreamParallel(userId, tok, numDays=100, chunkSizeDays=20, jobs=4)
+		scNew = StreamReader.readStream(userId, tok, numDays=100, chunkSizeDays=20, threads=4)
+		scObj = StreamReader.ReadStreamCounts(userId, tok, numDays=100, chunkSizeDays=20, threads=4)
+
+		logging.debug("old stream: " + str(scOld))
+		logging.debug("new stream: " + str(scNew))
+		logging.debug("obj stream: " + str(scObj))
+
+		sys.exit()
+
+
+		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwrite=True)
 		logging.debug("inserted %d new edges\n" % newCount)
 
 		friendTups = getFriendRanking(conn, userId, includeOutgoing) # id, fname, lname, gender, age, score
 
 		#friendId_friendName = getNamesDb(conn, [ t[0] for t in friendTups ])
 
-		for fbid, fname, lname, gender, age, score in friendTups:
+		for fbid, fname, lname, gender, age, desc, score in friendTups:
 			name = fname + " " + lname
 			sys.stderr.write("friend %20s %32s %s %.4f\n" % (fbid, name, "", score))
 
