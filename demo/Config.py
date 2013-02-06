@@ -4,16 +4,17 @@ import logging
 
 # read the config file and create the config dict
 defaults = {}
-defaults['outdir'] = ''
+defaults['outdir'] = '.'
+defaults['codedir'] = '.'
 
 try: 
 	config = json.load(open('edgeflip.config', 'r'))
-except AttributeError:
+except IOError:
 	config = {}
 
 # set up logging
 logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(process)d\t%(threadName)s\t%(message)s',
-					filename=config.get('outdir', defaults['outdir']) + 'demo.log',
+					filename=config.get('outdir', defaults['outdir']).rstrip('/') + '/demo.log',
 					level=logging.DEBUG)
 
 
