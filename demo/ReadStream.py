@@ -313,23 +313,14 @@ def spawnCrawl(userId, tok, includeOutgoing, overwrite):
 	logging.debug("spawned process %d to crawl user %d" % (pid, userId))
 	return pid
 
+def getFriendRankingBestAvail(conn, userId, threshold=0.5):
+	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
+	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
+	if (includeOutgoing) and (edgeCountPart*threshold < edgeCountFull):
+		return getFriendRanking(conn, userId, includeOutgoing=True)
+	else:
+		return getFriendRanking(conn, userId, includeOutgoing=False)
 
-# def getFriendRankingCrawl(conn, userId, tok, includeOutgoing):
-# 	# n.b.: this kicks off a full crawl no matter what the include param!
-
-# 	# first, do a partial crawl for new friends
-# 	newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=False, overwrite=False)
-
-# 	# then, kick off a full crawl in a subprocess
-# 	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1", "0"]).pid
-
-# 	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
-# 	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
-
-# 	if (includeOutgoing) and (edgeCountPart < 2*edgeCountFull):
-# 		return getFriendRanking(conn, userId, includeOutgoing=True)
-# 	else:
-# 		return getFriendRanking(conn, userId, includeOutgoing=False)
 
 
 

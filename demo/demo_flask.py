@@ -93,7 +93,8 @@ def face_it():
 	# now, spawn a full crawl in the background
 ##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
 	#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
-	friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+	#friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+	friendTups = ReadStream.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
 
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
