@@ -313,7 +313,7 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 
 def spawnCrawl(userId, tok, includeOutgoing, overwrite):
 	# python run_crawler.py userId tok outgoing overwrite
-	pid = subprocess.Popen(["python", "run_crawler.py", str(userId), tok, "1" if includeOutgoing else "0", "1" if overwrite else "0"]).pid
+	pid = subprocess.Popen(["python", config['codedir'].rstrip('/') + "/run_crawler.py", str(userId), tok, "1" if includeOutgoing else "0", "1" if overwrite else "0"]).pid
 	logging.debug("spawned process %d to crawl user %d" % (pid, userId))
 	return pid
 
