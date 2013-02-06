@@ -9,8 +9,18 @@ import subprocess
 from joblib import Parallel, delayed
 from collections import defaultdict
 import logging
+import json
+
+try:
+	ef_config = open('edgeflip.config', 'r')
+	ef_dict = json.loads(ef_config.read())
+	if (not ef_dict['outdir']):
+		ef_dict['outdir'] = ''
+except:
+	ef_dict = {'outdir' : ''}
+
 logging.basicConfig(format='%(asctime)s\t%(levelname)s\t%(message)s',
-					filename='demo.log',
+					filename=ef_dict['outdir']+'demo.log',
 					level=logging.DEBUG)
 import ReadStreamDb
 import StreamReader
