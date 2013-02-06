@@ -21,6 +21,7 @@ app = Flask(__name__)
 @app.route("/reset")
 def reset():
 	ReadStreamDb.dbSetup()
+	return "database has been reset"
 
 @app.route("/", methods=['POST', 'GET'])
 def hello():
