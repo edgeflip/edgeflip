@@ -123,6 +123,45 @@ class StreamCounts(object):
 			friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0)*2
 			friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
+	
+class ReadStreamCounts(StreamCounts):
+	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threads=4, timeout=60):
+		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threads))
+		self.id = userId
+		self.stream = []
+		self.friendId_postLikeCount = defaultdict(int)
+		self.friendId_postCommCount = defaultdict(int)
+		self.friendId_statLikeCount = defaultdict(int)
+		self.friendId_statCommCount = defaultdict(int)
+
+		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
+		scChunks = [] # list of sc obects holding results
+
+		# create the thread pool
+		for i in range(threads):
+			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
+			t.setDaemon(True)
+			t.name = "%s-%d" % (userId, i)
+			t.start()
+
+		# load the queue
+		intervals = [] # (ts1, ts2)
+		chunkSizeSecs = chunkSizeDays*24*60*60
+		tsNow = int(time.time())
+		tsStart = tsNow-numDays*24*60*60
+		for ts1 in range(tsStart, tsNow, chunkSizeSecs):
+			ts2 = min(ts1 + chunkSizeSecs, tsNow)
+			tsQueue.put((ts1, ts2))
+
+		# wait for them to finish
+		tsQueue.join()
+
+		logging.debug("%d chunk results for user %s", len(scChunks), userId)
+
+		sc = StreamCounts(userId)
+		for i, scChunk in enumerate(scChunks):
+			#logging.debug("chunk %d %s" % (i, str(scChunk)))
+			self.__iadd__(scChunk)
 
 
 class ThreadStreamReader(threading.Thread):
@@ -175,78 +214,6 @@ class ThreadStreamReader(threading.Thread):
 			
 			self.results.append(sc)
 			self.queue.task_done()
-
-
-def readStream(userId, token, numDays=100, chunkSizeDays=20, threads=4, timeout=60):
-	logging.debug("readStream(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threads))
-
-	tsQueue = Queue.Queue() # fill with (t1, t2) pairs
-	scChunks = [] # list of sc obects holding results
-
-	# create the thread pool
-	for i in range(threads):
-		t = ThreadStreamReader(userId, token, tsQueue, scChunks)
-		t.setDaemon(True)
-		t.start()
-
-	# load the queue
-	intervals = [] # (ts1, ts2)
-	chunkSizeSecs = chunkSizeDays*24*60*60
-	tsNow = int(time.time())
-	tsStart = tsNow-numDays*24*60*60
-	for ts1 in range(tsStart, tsNow, chunkSizeSecs):
-		ts2 = min(ts1 + chunkSizeSecs, tsNow)
-		tsQueue.put((ts1, ts2))
-
-	# wait for them to finish
-	tsQueue.join()
-
-	logging.debug("%d chunk results for user %s", len(scChunks), userId)
-	sc = StreamCounts(userId)
-	for i, scChunk in enumerate(scChunks):
-		#logging.debug("chunk %d %s" % (i, str(scChunk)))
-		sc += scChunk
-	return sc
-	
-class ReadStreamCounts(StreamCounts):
-	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threads=4, timeout=60):
-		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threads))
-		self.id = userId
-		self.stream = []
-		self.friendId_postLikeCount = defaultdict(int)
-		self.friendId_postCommCount = defaultdict(int)
-		self.friendId_statLikeCount = defaultdict(int)
-		self.friendId_statCommCount = defaultdict(int)
-
-		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
-		scChunks = [] # list of sc obects holding results
-
-		# create the thread pool
-		for i in range(threads):
-			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
-			t.setDaemon(True)
-			t.name = "%s-%d" % (userId, i)
-			t.start()
-
-		# load the queue
-		intervals = [] # (ts1, ts2)
-		chunkSizeSecs = chunkSizeDays*24*60*60
-		tsNow = int(time.time())
-		tsStart = tsNow-numDays*24*60*60
-		for ts1 in range(tsStart, tsNow, chunkSizeSecs):
-			ts2 = min(ts1 + chunkSizeSecs, tsNow)
-			tsQueue.put((ts1, ts2))
-
-		# wait for them to finish
-		tsQueue.join()
-
-		logging.debug("%d chunk results for user %s", len(scChunks), userId)
-
-		sc = StreamCounts(userId)
-		for i, scChunk in enumerate(scChunks):
-			#logging.debug("chunk %d %s" % (i, str(scChunk)))
-			self.__iadd__(scChunk)
-
 
 
 
