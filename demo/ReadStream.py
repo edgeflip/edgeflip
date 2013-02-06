@@ -253,7 +253,9 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True
 		friendQueue = [ f for f in friends if f.id not in friendIdsPrev ]
 
 	logging.info('reading stream for user %s, %s', userId, tok)
-	sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	#sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	sc = StreamReader.ReadStreamCounts(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+
 	logging.debug('got %s', str(sc))
 
 	# sort all the friends by their stream rank (if any) and mutual friend count
@@ -268,7 +270,9 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True
 		if (readFriendStream):
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
-				scFriend = StreamReader.readStream(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+				#scFriend = StreamReader.readStream(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+				scFriend = StreamReader.ReadStreamCounts(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+
 			except Exception:
 				logging.warning("error reading stream for %d", friend.id)
 				continue
