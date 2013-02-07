@@ -3,7 +3,7 @@
 <br>
 <TABLE BORDER=0>
 {% for face_friend in face_friends %}
-	<TR style="border-bottom: thin dash darkblue;">
+	<TR>
 	    <TD VALIGN="CENTER" ALIGN="RIGHT">{{loop.index}}.</TD>
 	    <TD VALIGN="TOP"><img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/></TD>
 		<TD VALIGN="TOP"><span style="font-weight: bold;">{{face_friend.name}}</span><BR>
@@ -12,7 +12,7 @@
 	    </TD>
 	</TR>
 	<TR>
-		<TD COLSPAN=3 style="font-size: smaller;">&nbsp;</TD>
+		<TD COLSPAN=3><span style="font-size: 5px; border-bottom: thin solid darkblue;">&nbsp;</span></TD>
 	</TR>
 {% endfor %}
 </TABLE>
