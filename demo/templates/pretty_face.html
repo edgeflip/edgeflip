@@ -18,6 +18,7 @@
 			-moz-border-radius: 10px;
 			background-color: #07304e;
 			width: 172px;
+			position: relative;
 		}
 
 		.friend_pic {
@@ -55,6 +56,25 @@
 			color: white;
 		}
 
+		.xout {
+			background-color: #CC0000; 
+			color: white; 
+			width: 12px; 
+			height: 12px; 
+			border: thin solid maroon; 
+			border-radius: 6px; 
+			font-size: 10px; 
+			font-weight: bold; 
+			text-align: center; 
+			vertical-align: middle; 
+			font-family: arial,sans-serif; 
+			cursor: pointer;
+			position: absolute;
+			top: -3px;
+			left: -3px;
+			z-index: 10;
+		}
+
 	</STYLE>
 
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
@@ -62,6 +82,66 @@
 	<script>
 		dojo.require("dojox.html.ellipsis");
 	</script>
+
+	<SCRIPT>
+
+	$(document).on( 'mouseenter', '.xout', function(e) { $(this).css('background-color', 'red'); });
+	$(document).on( 'mouseleave', '.xout', function(e) { $(this).css('background-color', '#CC0000'); });
+
+	var nextidx = 6;
+	var friends = [
+		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 6963, 'fname': 'MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis', 'lname': 'D\'Agostino'},
+		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 500876410, 'fname': 'Rayid', 'lname': 'Ghani'},
+		{'id': 100003222687678, 'fname': 'Matthew', 'lname': 'Rattigan'},
+		{'id': 737543313, 'fname': 'Marilyce', 'lname': 'Hale'},
+		{'id': 509180028, 'fname': 'Claster', 'lname': 'Pants'}
+	]
+
+	function doReplace(div_id) {
+		if (nextidx < friends.length) {
+			var friend = friends[nextidx];
+			var id = friend['id'];
+			var fname = friend['fname'];
+			var lname = friend['lname'];
+			$(div_id).replaceWith(friendHTML(id, fname, lname));
+			nextidx++;
+		} else {
+			$(div_id).hide();
+		}
+	}
+
+	function friendHTML(id, fname, lname) {
+
+		// Probably easiest to just drop this into an Ajax call that does some templating in Flask?
+		var new_html = "<div class=\"friend_box\" id=\"friend-"+id+"\">";
+		new_html += "<div class=\"xout\" onClick=\"doReplace('#friend-"+id+"');\">";
+		new_html +=	"x";
+		new_html += "</div>";
+		new_html += "<div class=\"friend_pic\">";
+		new_html +=	"<img src=\"http://graph.facebook.com/"+id+"/picture\" border=0 />";
+		new_html += "</div>";
+		new_html += "<div class=\"friend_txt\">";
+		new_html += "<div class=\"friend_name dojoxEllipsis\">";
+		new_html +=	fname;
+		new_html += "</div>";
+		new_html += "<div class=\"friend_name dojoxEllipsis\">";
+		new_html +=	lname;
+		new_html += "</div>";
+		new_html += "<div class=\"friend_checkbox\">";
+		new_html += "<input type=\"checkbox\" id=\"box-"+id+"\" checked=\"checked\">";
+		new_html +=	"</div>";
+		new_html += "</div>";
+		new_html += "</div>";
+
+		return new_html;
+	}
+
+	</SCRIPT>
 
 </HEAD>
 
@@ -71,7 +151,10 @@
 	<tr>
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963a">
+				<div class="xout" onClick="doReplace('#friend-6963a');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -90,7 +173,10 @@
 		</td>
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963b">
+				<div class="xout" onClick="doReplace('#friend-6963b');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -109,7 +195,10 @@
 		</td>
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963c">
+				<div class="xout" onClick="doReplace('#friend-6963c');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -131,7 +220,10 @@
 
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963d">
+				<div class="xout" onClick="doReplace('#friend-6963d');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -150,7 +242,10 @@
 		</td>
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963e">
+				<div class="xout" onClick="doReplace('#friend-6963e');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -169,7 +264,10 @@
 		</td>
 
 		<td>
-			<div class="friend_box">
+			<div class="friend_box" id="friend-6963f">
+				<div class="xout" onClick="doReplace('#friend-6963f');">
+					x
+				</div>
 				<div class="friend_pic">
 					<img src="http://graph.facebook.com/6963/picture" border=0 />
 				</div>
@@ -210,6 +308,7 @@
 		Rounded Rectangle Radius: <input type="text" onChange="$('.friend_box').css({'border-radius': $(this).val(), '-moz-border-radius': $(this).val()});" id='border-rad' value="10px" />
 	</div>
 </div>
+
 
 </BODY>
 </HTML>
