@@ -173,6 +173,9 @@ def rank_people():
 def mention_test():
 	return render_template('friend_picker.html')
 
+@app.route('/pretty_faces')
+def pretty_face():
+	return render_template('pretty_face.html')
 
 
 ############################ CONTROL PANEL #############################

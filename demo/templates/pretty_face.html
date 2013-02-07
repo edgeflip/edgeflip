@@ -1,0 +1,213 @@
+<HTML>
+<HEAD>
+	<TITLE>Face Test</TITLE>
+
+	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
+
+	<STYLE>
+
+		.friends_table {
+			border: 5px solid #e4e6e0;
+			background-color: #e4e6e0;
+		}
+
+		.friend_box {
+			padding: 6px;
+			border: thin solid gray;
+			border-radius: 10px;
+			-moz-border-radius: 10px;
+			background-color: #07304e;
+			width: 172px;
+		}
+
+		.friend_pic {
+			width: 60px;
+			text-align: center;
+			vertical-align: middle;
+			display: inline-block;
+		}
+
+		.friend_txt {
+			width: 100px;
+			text-align: left;
+			vertical-align: top;
+			display: inline-block;
+		}
+
+		.friend_name {
+			color: white;
+			text-decoration: none;
+			width: 100%; 
+			overflow: hidden; 
+			white-space: nowrap; 
+			text-overflow: ellipsis;
+			-o-text-overflow: ellipsis;
+			-webkit-text-overflow: ellipsis;
+		}
+
+		.friend_checkbox {
+			width: 100%;
+			text-align: right;
+		}
+
+	</STYLE>
+
+	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
+	<script>
+		dojo.require("dojox.html.ellipsis");
+	</script>
+
+</HEAD>
+
+<BODY>
+
+<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
+	<tr>
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						Michelangelo
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						Michelangelo
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+		</tr><tr>
+
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						Michelangelo
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						Michelangelo
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+		<td>
+			<div class="friend_box">
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/6963/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						Michelangelo
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						D'Agostino
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-6963" checked="checked">
+					</div>
+				</div>
+			</div>
+		</td>
+
+	</tr>
+</table>
+
+<BR />
+<div style="width: 100%;">
+	<div style="text-align: left; margin: 0px auto; display: table;">
+		Color:
+		<select onChange="$('.friend_box').css('background-color', $(this).val()); $('#color-text').val($(this).val());" id='color-select'>
+			<option value="#07304e">OFA Dark Blue</option>
+			<option value="indigo">Indigo</option>
+			<option value="#370037">Dark Purple</option>
+			<option value="brown">Brown</option>
+			<option value="#613517">Dark Brown</option>
+			<option value="maroon">Maroon</option>
+			<option value="darkorange">Dark Orange</option>
+			<option value="#CC5500">Burnt Orange</option>
+			<option value="darkolivegreen">Dark Olive Green</option>
+		</select>
+		Or provide your own: <input type="text" onChange="$('.friend_box').css('background-color', $(this).val());" id='color-text' value="#07304e" />
+		<BR />
+		Rounded Rectangle Radius: <input type="text" onChange="$('.friend_box').css({'border-radius': $(this).val(), '-moz-border-radius': $(this).val()});" id='border-rad' value="10px" />
+	</div>
+</div>
+
+</BODY>
+</HTML>
+
+
+
