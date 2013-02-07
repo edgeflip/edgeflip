@@ -1,4 +1,4 @@
-friend count: {{face_friends|length}}
+<div style="text-align: right;">Number of friends crawled: <span style="font-weight: bold;">{{face_friends|length}}</span></div>
 <br>
 <br>
 <TABLE BORDER=0>
@@ -10,6 +10,9 @@ friend count: {{face_friends|length}}
 		<span style="font-size: small;">Score: {{face_friend.score}}</span><br> 
 		<span style="font-size: small;">Counts: {{face_friend.desc | safe}}</span><br>
 	    </TD>
+	</TR>
+	<TR>
+		<TD COLSPAN=3>&nbsp;</TD>
 	</TR>
 {% endfor %}
 </TABLE>
