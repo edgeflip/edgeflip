@@ -40,23 +40,27 @@
 <div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
 
 <div id="friends_table" style="display:none;">
-<TABLE BORDER=1>
+<TABLE BORDER=0 CELLSPACING="15">
+	<TR>
+		<TD>Incoming FB Actions Only</TD>
+		<TD>Incoming &amp; Outgoing FB Actions</TD>
+	</TR>
 	<TR>
 		<TD WIDTH="50%" VALIGN='top'>
 
-			<div id='progress-px4' style='text-align: center; display: none'>
+			<div id='progress-px4' style='text-align: center; display: none;'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
 			</div>
 
-			<div id="your-friends-here-px4"></div>
+			<div id="your-friends-here-px4" style="background-color: #CCE0FF;"></div>
 
 		</TD><TD WIDTH="50%" VALIGN='top'>
 
-			<div id='progress-px5' style='text-align: center; display: none'>
+			<div id='progress-px5' style='text-align: center; display: none;'>
 				<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
 			</div>
 
-			<div id="your-friends-here-px5"></div>
+			<div id="your-friends-here-px5" style="background-color: #CCE0FF;"></div>
 
 		</TD>
 	</TR>

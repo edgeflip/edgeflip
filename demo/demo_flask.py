@@ -161,7 +161,7 @@ def rank_people():
 	friendDicts = []
 	for i, t in enumerate(friendTups):
 		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[6]) }
 		friendDicts.append(fd)
 	filteredDicts = filter_friends(friendDicts)
 	ret = render_template('rank_faces.html', face_friends=filteredDicts)
