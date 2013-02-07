@@ -1,17 +1,16 @@
 friend count: {{face_friends|length}}
 <br>
 <br>
+<TABLE BORDER=0>
 {% for face_friend in face_friends %}
-	<div style="bottom-border: thin dash darkblue;">
-	<TABLE BORDER=0>
-	  <TR>
-	    <TD VALIGN="CENTER" ALIGN="LEFT">{{loop.index}}.</TD>
+	<TR style="border-bottom: thin dash darkblue;">
+	    <TD VALIGN="CENTER" ALIGN="RIGHT">{{loop.index}}.</TD>
 	    <TD VALIGN="TOP"><img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/></TD>
-		<TD VALIGN="TOP">{{face_friend.name}}<BR>
-		Score: {{face_friend.score}}<br> 
-		<span style="text-size: small;">Counts: {{face_friend.desc}}</span><br>
-	</TD></TR>
-	</TABLE>
-	</div>
+		<TD VALIGN="TOP"><span style="font-weight: bold;">{{face_friend.name}}</span><BR>
+		<span style="font-size: small;">Score: {{face_friend.score}}</span><br> 
+		<span style="font-size: small;">Counts: {{face_friend.desc | safe}}</span><br>
+	    </TD>
+	</TR>
 {% endfor %}
+</TABLE>
 
