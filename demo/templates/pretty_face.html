@@ -1,6 +1,14 @@
-<HTML>
-<HEAD>
-	<TITLE>Face Test</TITLE>
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US"
+      xmlns:fb="https://www.facebook.com/2008/fbml"> 
+	<head prefix="og: http://ogp.me/ns# edgeflip: 
+                  http://ogp.me/ns/apps/edgeflip#">
+	<title>Chicago Public Radio</title>
+	<meta property="fb:app_id" content="471727162864364" /> 
+	<meta property="og:type" content="edgeflip:contribution" /> 
+	<meta property="og:title" content="Chicago Public Radio" /> 
+	<meta property="og:image" content="http://archives.wrkf.org/piclib/1218.jpg" /> 
+	<meta property="og:description" content="Your New Answering Service." /> 
+	<meta property="og:url" content="http://rayid.bigmarker.com:5000/mention">
 
 	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
 
@@ -47,7 +55,7 @@
 		}
 
 		.friend_checkbox {
-			width: 100%;
+			width: 100px;
 			text-align: right;
 		}
 
@@ -75,6 +83,49 @@
 			z-index: 10;
 		}
 
+	    .msg_friend_name {
+	      color: DodgerBlue;
+	      border-bottom: thin dashed DodgerBlue;
+	    }
+
+	    .msg_picker,
+	    .msg_title {
+	    	width: 600px;
+	    	margin: 0px auto; 
+	    	display: table;
+	    }
+
+	    .msg_title {
+	    	font-size: 22px;
+	    	text-align: left;
+	    	color: #07304e;
+	    	padding-left: 15px;
+	    }
+
+	    .msg_picker {
+	    	border: 1px solid #07304e;
+	    	border-radius: 20px;
+	    	background-color: #EBF3FF;
+	    	padding: 10px;
+	    }
+
+	    #other_msg {
+	    	display: none;
+	    	border: solid thin gray;
+	    	background-color: white;
+	    	padding: 10px;
+	    	width: 500px;
+	    }
+
+	    #do_share_button {
+	    	background-image: url('{{ url_for('static', filename='share.jpg') }}'); 
+	    	width:255px; 
+	    	height:40px; 
+	    	color:white; 
+	    	cursor:pointer; 
+	    	display: none;
+	    }
+
 	</STYLE>
 
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
@@ -91,35 +142,55 @@
 	var nextidx = 6;
 	var friends = [
 		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
-		{'id': 6963, 'fname': 'MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis', 'lname': 'D\'Agostino'},
-		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
-		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
-		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
-		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
+		{'id': 889290332, 'fname': 'MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis', 'lname': 'Shallwani'},
+		{'id': 511853926, 'fname': 'Tim', 'lname': 'D\'Trautman'},
+		{'id': 1196205988, 'fname': 'Warren', 'lname': 'Flood'},
+		{'id': 122601112, 'fname': 'Marf', 'lname': 'Tanner'},
+		{'id': 100005022126470, 'fname': 'Trevo', 'lname': 'Noisulli'},
 		{'id': 500876410, 'fname': 'Rayid', 'lname': 'Ghani'},
 		{'id': 100003222687678, 'fname': 'Matthew', 'lname': 'Rattigan'},
 		{'id': 737543313, 'fname': 'Marilyce', 'lname': 'Hale'},
 		{'id': 509180028, 'fname': 'Claster', 'lname': 'Pants'}
 	]
 
-	function doReplace(div_id) {
+	function doReplace(old_fbid) {
+
+		var div_id = '#friend-'+old_fbid;
+
+		// Remove the friend from the messages
+		var idx = recips.indexOf(old_fbid);
+		if (idx > -1) { recips.splice(idx, 1); }
+		$('#msg-txt-friend-'+old_fbid).remove();
+
 		if (nextidx < friends.length) {
+			// Figure out the new friend
 			var friend = friends[nextidx];
 			var id = friend['id'];
 			var fname = friend['fname'];
 			var lname = friend['lname'];
+
+			// Add the new friend to the list of message tags (since they'll start off pre-checked)
+			recips.push(id);
+			$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+id+'" contentEditable="False">'+fbnames[id]+'</span> ');
+
+			// Update the friends shown
 			$(div_id).replaceWith(friendHTML(id, fname, lname));
+
 			nextidx++;
 		} else {
-			$(div_id).hide();
+			// No new friends to add, so just hide this one
+			$(div_id).remove();
 		}
+
+		// Update the message text with the new names
+		$('.preset_names').html(friendNames());
 	}
 
 	function friendHTML(id, fname, lname) {
 
 		// Probably easiest to just drop this into an Ajax call that does some templating in Flask?
 		var new_html = "<div class=\"friend_box\" id=\"friend-"+id+"\">";
-		new_html += "<div class=\"xout\" onClick=\"doReplace('#friend-"+id+"');\">";
+		new_html += "<div class=\"xout\" onClick=\"doReplace("+id+");\">";
 		new_html +=	"x";
 		new_html += "</div>";
 		new_html += "<div class=\"friend_pic\">";
@@ -133,7 +204,7 @@
 		new_html +=	lname;
 		new_html += "</div>";
 		new_html += "<div class=\"friend_checkbox\">";
-		new_html += "<input type=\"checkbox\" id=\"box-"+id+"\" checked=\"checked\">";
+		new_html += "<input type=\"checkbox\" id=\"box-"+id+"\" checked=\"checked\" onChange=\"toggleFriend("+id+");\">";
 		new_html +=	"</div>";
 		new_html += "</div>";
 		new_html += "</div>";
@@ -143,16 +214,210 @@
 
 	</SCRIPT>
 
+
+  <script type="text/javascript">
+
+	function button_change(div_id, img_name) {
+		document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
+	}
+
+  function postContrib()
+  {
+
+    if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
+
+
+    msg_recips = "";
+
+    for (i=0; i < (recips.length-1); i++) {
+      msg_recips += "@[" + recips[i] + "], ";
+    }
+
+    if (recips.length > 2) {
+      msg_recips += 'and ' + "@[" + recips[recips.length-1] + "]";
+    } else if (recips.length == 2) {
+      msg_recips = "@[" + recips[0] + "] and @[" + recips[1] + "]";
+    } else {
+      msg_recips = "@[" + recips[0] + "]";
+    }
+
+
+  	var msg_type = $('input:radio[name=msg]:checked').val();
+  	var msg = "";
+
+    if (!msg_type || msg_type === "") { alert('Please choose a message to send or write your own'); return;}
+
+  	if (msg_type === "hi-there") {
+  		msg = 'Hi there '+msg_recips+' -- I just donated to Chicago Public Radio and you should, too!';
+  	} else if (msg_type === "kasell") {
+  		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_recips+'!';
+  	} else if (msg_type === "other") {
+
+      for (i=0; i < recips.length; i++) {
+        $('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
+      }
+      msg = $('#other_msg').html();
+  	} else {
+  		alert("Ruh-Roh!!");
+  	}
+
+
+    FB.api(
+      '/me/edgeflip:donate',
+      'post',
+      { 
+      	contribution: 'http://rayid.bigmarker.com:5000/mention',
+      	message: msg
+      },
+      function(response) {
+         if (!response || response.error) {
+            alert('Error occured ' + response.error.message);
+         } else {
+            alert('Post was successful! Action ID: ' + response.id);
+         }
+      });
+  }
+  </script>
+
+  <script>
+  	// This needs to the dictionary of all names, not just those initially shown...
+    var fbnames = {
+                    6963: 'Michelangelo D\'Agostino',
+                    889290332: 'Aziz Shallwani',
+                    511853926: 'Tim Trautman',
+                    1196205988: 'Warren Flood',
+                    122601112: 'Marf Tanner',
+                    100005022126470: 'Trevo Noisulli',
+                    100003222687678: 'Matthew Rattigan',
+                    500876410: 'Rayid Ghani',
+                    737543313: 'Marilyce Hale',
+                    509180028: 'Claster Pants'
+                  }
+
+    var recips = [];
+
+    function friendNames() {
+      recip_str = "";
+
+      if (recips.length == 0) { return ""; }
+
+      for (i=0; i < (recips.length-1); i++) {
+        recip_str += "<span class='msg_friend_name'>" + fbnames[recips[i]] + "</span>, ";
+      }
+
+      if (recips.length > 2) {
+        recip_str += 'and ' + "<span class='msg_friend_name'>" + fbnames[recips[recips.length-1]] + "</span>";
+      } else if (recips.length == 2) {
+        recip_str = "<span class='msg_friend_name'>" + fbnames[recips[0]] + "</span> and <span class='msg_friend_name'>" + fbnames[recips[1]] + "</span>";
+      } else {
+        recip_str = "<span class='msg_friend_name'>" + fbnames[recips[0]] + "</span>";
+      }
+
+      return recip_str;
+    }
+
+    function toggleFriend(fbid) {
+      var idx = recips.indexOf(fbid);
+      if (idx > -1) { recips.splice(idx, 1); }
+      $('#msg-txt-friend-'+fbid).remove();
+
+      if ($('#box-'+fbid).is(':checked')) {
+        recips.push(fbid);
+        $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+      }
+
+      $('.preset_names').html(friendNames());
+
+    }
+
+  	function updateMsg() {
+
+  	  var msg_type = $('input:radio[name=msg]:checked').val();
+      if (msg_type === "other") { 
+        $('#other_msg').show().focus();
+
+        var reptxt = $('#other_msg').text().indexOf('Replace this text with your message for ');
+
+        if ( reptxt > -1 ) {
+
+          var txtnode = document.getElementById('other_msg');
+
+          if (document.createRange) {
+
+            var selection = window.getSelection();
+            var range = document.createRange();
+
+            range.setStart(txtnode.firstChild, reptxt);
+            range.setEnd(txtnode.firstChild, reptxt+40);
+            selection.removeAllRanges();
+            selection.addRange(range);
+
+          } else {
+
+            var range = document.body.createTextRange();
+            range.moveToElementText($('#other_msg'));
+            range.moveStart("character", reptxt);
+            range.collapse(true);
+            range.moveEnd("character", reptxt+40);
+            range.select();
+
+          }
+        }
+      } else {
+        $('#other_msg').hide();
+      }
+
+  	}
+
+  </script>
+
+
 </HEAD>
 
 <BODY>
 
+  <div id="fb-root"></div>
+  <script>
+    window.fbAsyncInit = function() {
+      FB.init({
+        appId      : '471727162864364', // App ID
+        status     : true, // check login status
+        cookie     : true, // enable cookies to allow the server to access the session
+        xfbml      : true  // parse XFBML
+      });
+    };
+
+    // Load the SDK Asynchronously
+    (function(d){
+      var js, id = 'facebook-jssdk'; if (d.getElementById(id)) {return;}
+      js = d.createElement('script'); js.id = id; js.async = true;
+      js.src = "//connect.facebook.net/en_US/all.js";
+      d.getElementsByTagName('head')[0].appendChild(js);
+    }(document));
+
+
+  </script>
+
+  <table align="center" cellspacing="5px">
+  	<tr><td>
+    	<img title="Carl Kasell" src="http://archives.wrkf.org/piclib/1218.jpg" />
+  </td><td valign="top">
+  	<h3>Wait Wait... Don't Leave Yet!</h3>
+  	Help us spread the word by telling your friends<br>
+  	you just made a donation to NPR.
+  </td></tr>
+  </table>
+
+  <br>
+
+
+<form>
 <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
 	<tr>
 
 		<td>
-			<div class="friend_box" id="friend-6963a">
-				<div class="xout" onClick="doReplace('#friend-6963a');">
+			<div class="friend_box" id="friend-6963">
+				<div class="xout" onClick="doReplace(6963);">
 					x
 				</div>
 				<div class="friend_pic">
@@ -166,51 +431,51 @@
 						D'Agostino
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-6963" checked="checked" onChange="toggleFriend(6963);">
 					</div>
 				</div>
 			</div>
 		</td>
 
 		<td>
-			<div class="friend_box" id="friend-6963b">
-				<div class="xout" onClick="doReplace('#friend-6963b');">
+			<div class="friend_box" id="friend-889290332">
+				<div class="xout" onClick="doReplace(889290332);">
 					x
 				</div>
 				<div class="friend_pic">
-					<img src="http://graph.facebook.com/6963/picture" border=0 />
+					<img src="http://graph.facebook.com/889290332/picture" border=0 />
 				</div>
 				<div class="friend_txt">
 					<div class="friend_name dojoxEllipsis">
 						MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis
 					</div>
 					<div class="friend_name dojoxEllipsis">
-						D'Agostino
+						Shallwani
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-889290332" checked="checked" onChange="toggleFriend(889290332);">
 					</div>
 				</div>
 			</div>
 		</td>
 
 		<td>
-			<div class="friend_box" id="friend-6963c">
-				<div class="xout" onClick="doReplace('#friend-6963c');">
+			<div class="friend_box" id="friend-511853926">
+				<div class="xout" onClick="doReplace(511853926);">
 					x
 				</div>
 				<div class="friend_pic">
-					<img src="http://graph.facebook.com/6963/picture" border=0 />
+					<img src="http://graph.facebook.com/511853926/picture" border=0 />
 				</div>
 				<div class="friend_txt">
 					<div class="friend_name dojoxEllipsis">
-						Michelangelo
+						Tim
 					</div>
 					<div class="friend_name dojoxEllipsis">
-						D'Agostino
+						Trautman
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-511853926" checked="checked" onChange="toggleFriend(511853926);">
 					</div>
 				</div>
 			</div>
@@ -220,66 +485,66 @@
 
 
 		<td>
-			<div class="friend_box" id="friend-6963d">
-				<div class="xout" onClick="doReplace('#friend-6963d');">
+			<div class="friend_box" id="friend-1196205988">
+				<div class="xout" onClick="doReplace(1196205988);">
 					x
 				</div>
 				<div class="friend_pic">
-					<img src="http://graph.facebook.com/6963/picture" border=0 />
+					<img src="http://graph.facebook.com/1196205988/picture" border=0 />
 				</div>
 				<div class="friend_txt">
 					<div class="friend_name dojoxEllipsis">
-						Michelangelo
+						Warren
 					</div>
 					<div class="friend_name dojoxEllipsis">
-						D'Agostino
+						Flood
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-1196205988" checked="checked" onChange="toggleFriend(1196205988);">
 					</div>
 				</div>
 			</div>
 		</td>
 
 		<td>
-			<div class="friend_box" id="friend-6963e">
-				<div class="xout" onClick="doReplace('#friend-6963e');">
+			<div class="friend_box" id="friend-122601112">
+				<div class="xout" onClick="doReplace(122601112);">
 					x
 				</div>
 				<div class="friend_pic">
-					<img src="http://graph.facebook.com/6963/picture" border=0 />
+					<img src="http://graph.facebook.com/122601112/picture" border=0 />
 				</div>
 				<div class="friend_txt">
 					<div class="friend_name dojoxEllipsis">
-						Michelangelo
+						Marf
 					</div>
 					<div class="friend_name dojoxEllipsis">
-						D'Agostino
+						Tanner
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-122601112" checked="checked" onChange="toggleFriend(122601112);">
 					</div>
 				</div>
 			</div>
 		</td>
 
 		<td>
-			<div class="friend_box" id="friend-6963f">
-				<div class="xout" onClick="doReplace('#friend-6963f');">
+			<div class="friend_box" id="friend-100005022126470">
+				<div class="xout" onClick="doReplace(100005022126470);">
 					x
 				</div>
 				<div class="friend_pic">
-					<img src="http://graph.facebook.com/6963/picture" border=0 />
+					<img src="http://graph.facebook.com/100005022126470/picture" border=0 />
 				</div>
 				<div class="friend_txt">
 					<div class="friend_name dojoxEllipsis">
-						Michelangelo
+						Trevo
 					</div>
 					<div class="friend_name dojoxEllipsis">
-						D'Agostino
+						Noisulli
 					</div>
 					<div class="friend_checkbox">
-						<input type="checkbox" id="box-6963" checked="checked">
+						<input type="checkbox" id="box-100005022126470" checked="checked" onChange="toggleFriend(100005022126470);">
 					</div>
 				</div>
 			</div>
@@ -309,6 +574,69 @@
 	</div>
 </div>
 
+<BR />
+<BR />
+<div class="msg_title">Choose A Message:</div>
+<div class="msg_picker">
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px;">
+			Hi there <span class="preset_names"></span> -- I just donated to Chicago Public Radio and you should, too!
+		</div>
+	</div>
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px;">
+			Carl Kasell has a message for you. Go donate to Chicago Public Radio, <span class="preset_names"></span>!
+		</div>
+	</div>
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px;">
+			Write your own message (type around your friends' names):<BR />
+			<div id="other_msg" style="display: none; border: solid thin gray; padding: 10px; width: 500px;" contentEditable="True">Replace this text with your message for </div>
+		</div>
+	</div>	
+
+</div>
+
+<BR>
+<CENTER>
+<div id="do_share_button" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="postContrib();"></div>
+</CENTER>
+
+</form>
+
+<script>
+
+	// Quick code to pre-load messages for testing...
+	
+	recips.push(6963);
+	recips.push(889290332);
+	recips.push(511853926);
+	recips.push(1196205988);
+	recips.push(122601112);
+	recips.push(100005022126470);
+
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+6963+'" contentEditable="False">'+fbnames[6963]+'</span> ');
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+889290332+'" contentEditable="False">'+fbnames[889290332]+'</span> ');
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+511853926+'" contentEditable="False">'+fbnames[511853926]+'</span> ');
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+1196205988+'" contentEditable="False">'+fbnames[1196205988]+'</span> ');
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+122601112+'" contentEditable="False">'+fbnames[122601112]+'</span> ');
+	$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+100005022126470+'" contentEditable="False">'+fbnames[100005022126470]+'</span> ');
+
+	$('.preset_names').html(friendNames());
+
+</script>
 
 </BODY>
 </HTML>
