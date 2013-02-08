@@ -1,18 +1,49 @@
-<table align=center border=0 cellpadding=0 style="border:5px solid #e4e6e0; background-color:#e4e6e0;">
+
+<SCRIPT>
+
+	var nextidx = {{ face_friends | length }};
+	var friends = [
+		{% for friend in all_friends %}
+			{'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },
+		{% endfor %}
+		];
+
+  	// This needs to the dictionary of all names, not just those initially shown...
+    var fbnames = {
+
+    	{% for friend in all_friends %}
+    		{{friend.id}}: '{{friend.name}}',
+    	{% endfor %}
+
+                  };
+
+</SCRIPT>
+
+<form>
+<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
 	<tr>
 	{% for face_friend in face_friends %}
 
-		<td style="border: 6px solid #e4e6e0; background-color:#07304e;">
-			<table border=0>
-				<tr>	
-					<td style="padding: 6px; vertical-align: middle">
-						<a href="{{url}}" style="color: white; text-decoration: none"><img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0/></a>
-					</td>
-					<td style="padding: 6px;">
-						<a href="{{url}}" style="text-decoration: none"><font color="white">{{face_friend.name}}</font></a>
-					</td>
-				</tr>
-			</table>
+		<td>
+			<div class="friend_box" id="friend-{{face_friend.id}}">
+				<div class="xout" onClick="doReplace({{face_friend.id}});">
+					x
+				</div>
+				<div class="friend_pic">
+					<img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0 />
+				</div>
+				<div class="friend_txt">
+					<div class="friend_name dojoxEllipsis">
+						{{face_friend.fname}}
+					</div>
+					<div class="friend_name dojoxEllipsis">
+						{{face_friend.lname}}
+					</div>
+					<div class="friend_checkbox">
+						<input type="checkbox" id="box-{{face_friend.id}}" checked="checked" onChange="toggleFriend({{face_friend.id}});">
+					</div>
+				</div>
+			</div>
 		</td>
 
 		{% if (loop.index0 == 2) and (numFriends > 3) %}
@@ -28,3 +59,62 @@
 
 	</tr>
 </table>
+
+<BR />
+<BR />
+<div class="msg_title">Choose A Message:</div>
+<div class="msg_picker">
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px; text-align: left;">
+			Hi there <span class="preset_names"></span> -- I just read a great article about Targeted Sharing and you should, too!
+		</div>
+	</div>
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px; text-align: left;">
+			Targeted Sharing is the way of the future. Go read about it now, <span class="preset_names"></span>!
+		</div>
+	</div>
+
+	<div style="padding-bottom: 15px;">
+		<div style="display: inline-block; padding-right: 5px; vertical-align: top;">
+			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
+		</div>
+		<div style="display: inline-block; width: 550px; text-align: left;">
+			Write your own message (type around your friends' names):<BR />
+			<div id="other_msg" style="display: none; border: solid thin gray; padding: 10px; width: 500px;" contentEditable="True">Replace this text with your message for </div>
+		</div>
+	</div>	
+
+</div>
+
+<BR>
+<CENTER>
+<div id="do_share_button" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="doShare();"></div>
+</CENTER>
+
+</form>
+
+<script>
+
+	// Quick code to pre-load messages for testing...
+	
+    {% for face_friend in face_friends %}
+    	recips.push({{face_friend.id}});
+    {% endfor %}
+
+    {% for face_friend in face_friends %}
+		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
+    {% endfor %}
+
+	$('.preset_names').html(friendNames());
+
+</script>
+

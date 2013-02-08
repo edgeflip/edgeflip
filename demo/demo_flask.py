@@ -106,7 +106,7 @@ def face_it():
 	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
 	friendDicts = []
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]), 'fname':t[1], 'lname':t[2] }
 		for c, count in enumerate(t[2].split()):
 			fd['count' + str(c)] = count
 		friendDicts.append(fd)
@@ -116,8 +116,9 @@ def face_it():
 
 	faceFriends = friendDicts[:6]
 	numFace = len(faceFriends)
-	shareurl = 'http://www.foulballtracker.com/'
-	ret = render_template('faces_table.html', face_friends=faceFriends, numFriends=numFace, url = shareurl)
+#	shareurl = 'http://www.foulballtracker.com/'
+	allFriends = friendDicts[:25]
+	ret = render_template('faces_table.html', face_friends=faceFriends, all_friends=allFriends, numFriends=numFace)
 
 	return ret
 
@@ -176,6 +177,24 @@ def mention_test():
 @app.route('/pretty_faces')
 def pretty_face():
 	return render_template('pretty_face.html')
+
+@app.route('/suppress', methods=['POST'])
+def suppress():
+	userid = flask.request.json['userid']
+	appid = flask.request.json['appid']
+	content = flask.request.json['content']
+	oldid = flask.request.json['oldid']
+
+	newid = flask.request.json['newid']
+	fname = flask.request.json['fname']
+	lname = flask.request.json['lname']
+
+	# SEND TO DB: userid suppressed oldid for appid+content
+
+	if (newid != ''):
+		return render_template('new_face.html', id=newid, fname=fname, lname=lname)
+	else:
+		return ''
 
 
 ############################ CONTROL PANEL #############################
