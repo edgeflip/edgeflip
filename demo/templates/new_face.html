@@ -1,0 +1,21 @@
+
+<div class="friend_box" id="friend-{{id}}">
+	<div class="xout" onClick="doReplace({{id}});">
+		x
+	</div>
+	<div class="friend_pic">
+		<img src="http://graph.facebook.com/{{id}}/picture" border=0 />
+	</div>
+	<div class="friend_txt">
+		<div class="friend_name dojoxEllipsis">
+			{{fname}}
+		</div>
+		<div class="friend_name dojoxEllipsis">
+			{{lname}}
+		</div>
+		<div class="friend_checkbox">
+			<input type="checkbox" id="box-{{id}}" checked="checked" onChange="toggleFriend({{id}});">
+		</div>
+	</div>
+</div>
+

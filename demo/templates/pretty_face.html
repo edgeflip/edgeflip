@@ -8,7 +8,7 @@
 	<meta property="og:title" content="Chicago Public Radio" /> 
 	<meta property="og:image" content="http://archives.wrkf.org/piclib/1218.jpg" /> 
 	<meta property="og:description" content="Your New Answering Service." /> 
-	<meta property="og:url" content="http://rayid.bigmarker.com:5000/mention">
+	<meta property="og:url" content="http://rayid.bigmarker.com:5000/pretty_faces">
 
 	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
 
@@ -174,7 +174,8 @@
 			$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+id+'" contentEditable="False">'+fbnames[id]+'</span> ');
 
 			// Update the friends shown
-			$(div_id).replaceWith(friendHTML(id, fname, lname));
+			// $(div_id).replaceWith(friendHTML(old_fbid, id, fname, lname, div_id));
+			friendHTML(old_fbid, id, fname, lname, div_id);
 
 			nextidx++;
 		} else {
@@ -186,30 +187,61 @@
 		$('.preset_names').html(friendNames());
 	}
 
-	function friendHTML(id, fname, lname) {
+	function friendHTML(oldid, id, fname, lname, div_id) {
 
 		// Probably easiest to just drop this into an Ajax call that does some templating in Flask?
-		var new_html = "<div class=\"friend_box\" id=\"friend-"+id+"\">";
-		new_html += "<div class=\"xout\" onClick=\"doReplace("+id+");\">";
-		new_html +=	"x";
-		new_html += "</div>";
-		new_html += "<div class=\"friend_pic\">";
-		new_html +=	"<img src=\"http://graph.facebook.com/"+id+"/picture\" border=0 />";
-		new_html += "</div>";
-		new_html += "<div class=\"friend_txt\">";
-		new_html += "<div class=\"friend_name dojoxEllipsis\">";
-		new_html +=	fname;
-		new_html += "</div>";
-		new_html += "<div class=\"friend_name dojoxEllipsis\">";
-		new_html +=	lname;
-		new_html += "</div>";
-		new_html += "<div class=\"friend_checkbox\">";
-		new_html += "<input type=\"checkbox\" id=\"box-"+id+"\" checked=\"checked\" onChange=\"toggleFriend("+id+");\">";
-		new_html +=	"</div>";
-		new_html += "</div>";
-		new_html += "</div>";
+//		var new_html = "<div class=\"friend_box\" id=\"friend-"+id+"\">";
+//		new_html += "<div class=\"xout\" onClick=\"doReplace("+id+");\">";
+//		new_html +=	"x";
+//		new_html += "</div>";
+//		new_html += "<div class=\"friend_pic\">";
+//		new_html +=	"<img src=\"http://graph.facebook.com/"+id+"/picture\" border=0 />";
+//		new_html += "</div>";
+//		new_html += "<div class=\"friend_txt\">";
+//		new_html += "<div class=\"friend_name dojoxEllipsis\">";
+//		new_html +=	fname;
+//		new_html += "</div>";
+//		new_html += "<div class=\"friend_name dojoxEllipsis\">";
+//		new_html +=	lname;
+//		new_html += "</div>";
+//		new_html += "<div class=\"friend_checkbox\">";
+//		new_html += "<input type=\"checkbox\" id=\"box-"+id+"\" checked=\"checked\" onChange=\"toggleFriend("+id+");\">";
+//		new_html +=	"</div>";
+//		new_html += "</div>";
+//		new_html += "</div>";
 
-		return new_html;
+
+		var new_html;
+		var userid = 31415926535; // Assume we'll actually grab this from auth/login
+		var appid = 471727162864364;
+		var content = 'edgeflip:contribution http://rayid.bigmarker.com:5000/pretty_faces';
+
+		var params = JSON.stringify({
+			userid: userid,
+			appid: appid,
+			content: content,
+			oldid: oldid,
+			newid: id,
+			fname: fname,
+			lname: lname
+		});
+
+		$.ajax({
+			type: "POST",
+			url: '/suppress',
+			contentType: "application/json",
+			dataType: 'html',
+			data: params,
+			error: function(jqXHR, textStatus, errorThrown) {
+						new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+						$(div_id).replaceWith(new_html);
+			},
+			success: function(data) {
+						new_html = data;
+						$(div_id).replaceWith(new_html);
+			}
+		});
+
 	}
 
 	</SCRIPT>
@@ -266,7 +298,7 @@
       '/me/edgeflip:donate',
       'post',
       { 
-      	contribution: 'http://rayid.bigmarker.com:5000/mention',
+      	contribution: 'http://rayid.bigmarker.com:5000/pretty_faces',
       	message: msg
       },
       function(response) {

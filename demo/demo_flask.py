@@ -177,6 +177,24 @@ def mention_test():
 def pretty_face():
 	return render_template('pretty_face.html')
 
+@app.route('/suppress', methods=['POST'])
+def suppress():
+	userid = flask.request.json['userid']
+	appid = flask.request.json['appid']
+	content = flask.request.json['content']
+	oldid = flask.request.json['oldid']
+
+	newid = flask.request.json['newid']
+	fname = flask.request.json['fname']
+	lname = flask.request.json['lname']
+
+	# SEND TO DB: userid suppressed oldid for appid+content
+
+	if (newid != ''):
+		return render_template('new_face.html', id=newid, fname=fname, lname=lname)
+	else:
+		return ''
+
 
 ############################ CONTROL PANEL #############################
 @app.route("/cp", methods=['POST', 'GET'])
