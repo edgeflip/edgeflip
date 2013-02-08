@@ -163,9 +163,13 @@ class ReadStreamCounts(StreamCounts):
 				# Filter out threads which have been joined or are None
 				threads = [ t.join(1) for t in threads if t is not None and t.isAlive() ]
 			except KeyboardInterrupt:
-				logging.info("Ctrl-c, kill 'em all.")
+				logging.info("ctrl-c, kill 'em all")
 				for t in threads:
 					t.kill_received = True
+				tc = [ t for t in threads if t is not None and t.isAlive() ]
+				logging.debug("now have %d threads" % (tc))
+				
+
 
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
