@@ -70,7 +70,7 @@
 			<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> 
 		</div>
 		<div style="display: inline-block; width: 550px;">
-			Hi there <span class="preset_names"></span> -- I just donated to Chicago Public Radio and you should, too!
+			Hi there <span class="preset_names"></span> -- I just read a great article about Targeted Sharing and you should, too!
 		</div>
 	</div>
 
@@ -79,7 +79,7 @@
 			<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> 
 		</div>
 		<div style="display: inline-block; width: 550px;">
-			Carl Kasell has a message for you. Go donate to Chicago Public Radio, <span class="preset_names"></span>!
+			Targeted Sharing is the way of the future. Go read about it now, <span class="preset_names"></span>!
 		</div>
 	</div>
 
@@ -97,7 +97,7 @@
 
 <BR>
 <CENTER>
-<div id="do_share_button" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="postContrib();"></div>
+<div id="do_share_button" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="doShare();"></div>
 </CENTER>
 
 </form>
