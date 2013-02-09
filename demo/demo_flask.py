@@ -178,6 +178,10 @@ def mention_test():
 def pretty_face():
 	return render_template('pretty_face.html')
 
+@app.route('/wide_faces')
+def wide_face():
+	return render_template('wide_face.html')	
+
 @app.route('/suppress', methods=['POST'])
 def suppress():
 	userid = flask.request.json['userid']
