@@ -40,9 +40,8 @@
 </CENTER>
 
 <CENTER>
-
 <!-- SHARE BUTTON -->
-<div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
+<div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer; padding-top:10px;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
 
 <div id="friends_table" style="display:none;">
 <TABLE BORDER=0 CELLSPACING="15">
