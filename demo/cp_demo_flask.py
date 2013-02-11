@@ -15,6 +15,10 @@ except:
 
 app = Flask(__name__)
 
+if (not app.debug):
+	from Config import config
+	import logging
+
 @app.route("/", methods=['POST', 'GET'])
 def hello():
 	return "Hello World!"

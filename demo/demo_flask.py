@@ -78,7 +78,10 @@ def flip_it():
 	for fd in friendDicts:
 		sys.stderr.write(str(fd) + "\n")
 
-	ret = render_template('friend_table.html', friends=friendDicts)
+	# Apply control panel targeting filters
+	filteredDicts = filter_friends(friendDicts)
+
+	ret = render_template('friend_table.html', friends=filteredDicts)
 	#sys.stderr.write("rendered: " + str(ret) + "\n")
 	return ret
 		
@@ -114,10 +117,13 @@ def face_it():
 	for fd in friendDicts:
 		sys.stderr.write(str(fd) + "\n")
 
-	faceFriends = friendDicts[:6]
+	# Apply control panel targeting filters
+	filteredDicts = filter_friends(friendDicts)
+
+	faceFriends = filteredDicts[:6]
 	numFace = len(faceFriends)
 #	shareurl = 'http://www.foulballtracker.com/'
-	allFriends = friendDicts[:25]
+	allFriends = filteredDicts[:25]
 	ret = render_template('faces_table.html', face_friends=faceFriends, all_friends=allFriends, numFriends=numFace)
 
 	return ret
@@ -164,7 +170,10 @@ def rank_people():
 		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
 		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[6]) }
 		friendDicts.append(fd)
+
+	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
+
 	ret = render_template('rank_faces.html', face_friends=filteredDicts)
 	return ret
 
