@@ -139,6 +139,14 @@
 	<SCRIPT type="text/javascript">
 
 		var myfbid; // The FB ID of the current user to be filled in upon auth.
+
+		function preload(arrayOfImages) {
+    		$(arrayOfImages).each(function () {
+        		$('<img />').attr('src',this);
+        		// .load(function() {alert('Preloaded: '+this)} );
+        		// .appendTo('body').css('display','none');
+    		});
+		}
 		
 		function button_change(div_id, img_name) {
 			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
@@ -161,6 +169,14 @@
 
 		}
 
+	</SCRIPT>
+
+	<SCRIPT>
+		imgsToLoad = [	"{{ url_for('static', filename='button_mouse.jpg') }}", 
+						"{{ url_for('static', filename='share.jpg') }}",
+						"{{ url_for('static', filename='share_mouse.jpg') }}"
+					];
+		preload(imgsToLoad);
 	</SCRIPT>
 
 	<SCRIPT>
