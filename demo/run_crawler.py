@@ -5,6 +5,10 @@ import time
 import ReadStream
 import ReadStreamDb
 
+import logging
+import Config
+logging.debug('hello world!')
+
 conn = ReadStreamDb.getConn()
 userId = int(sys.argv[1])
 tok = sys.argv[2]
