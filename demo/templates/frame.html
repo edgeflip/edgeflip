@@ -126,12 +126,59 @@
 	    	display: block;
 	    }
 
+		#manual_add,
+	    .ui-autocomplete,
+	    .ui-menu, .ui-menu-item {
+	    	font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
+			font-size: 62.5%;
+	    }
+
+	    #manual_add {
+	    	padding-top: 5px;
+	    }
+
+	    .ui-autocomplete {
+		    max-height: 100px;
+		    overflow-y: auto;
+		    /* prevent horizontal scrollbar */
+		    overflow-x: hidden;
+		}
+		/* IE 6 doesn't support max-height
+		 * we use height instead, but this forces the menu to always be this tall
+		 */
+		* html .ui-autocomplete {
+			height: 100px;
+		}
+
+		.added_friend {
+			font-size: smaller;
+		    color: white;
+		    border: thin solid gray;
+		    border-radius: 5px;
+		    padding: 2px;
+		    margin: 2px;
+		    background-color: dodgerblue;
+		    display: inline-block;
+		}
+
+		.added_x {
+		    border-left: thin solid white;
+		    margin-left: 3px;
+		    padding-left: 2px;
+		    padding-right: 1px;
+		    display:inline-block;
+		    cursor: pointer;
+		    font-weight: bold;
+		}
+
 	</STYLE>
 
 
+  	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
+
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-  	<script src="http://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
-  	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
 	<script>
 		dojo.require("dojox.html.ellipsis");
 	</script>
@@ -174,7 +221,8 @@
 	<SCRIPT>
 		imgsToLoad = [	"{{ url_for('static', filename='button_mouse.jpg') }}", 
 						"{{ url_for('static', filename='share.jpg') }}",
-						"{{ url_for('static', filename='share_mouse.jpg') }}"
+						"{{ url_for('static', filename='share_mouse.jpg') }}",
+						"{{url_for('static', filename='aniprogress.gif')}}"
 					];
 		preload(imgsToLoad);
 	</SCRIPT>

@@ -39,7 +39,10 @@
 	</SCRIPT>
 
 	<SCRIPT>
-		imgsToLoad = ["{{ url_for('static', filename='button_mouse.jpg') }}"];
+		imgsToLoad = [	
+						"{{ url_for('static', filename='button_mouse.jpg') }}",
+						"{{url_for('static', filename='aniprogress.gif')}}"
+					 ];
 		preload(imgsToLoad);
 	</SCRIPT>
 

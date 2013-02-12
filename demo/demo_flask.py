@@ -124,7 +124,7 @@ def face_it():
 	numFace = len(faceFriends)
 #	shareurl = 'http://www.foulballtracker.com/'
 	allFriends = filteredDicts[:25]
-	ret = render_template('faces_table.html', face_friends=faceFriends, all_friends=allFriends, numFriends=numFace)
+	ret = render_template('faces_table.html', face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	return ret
 
