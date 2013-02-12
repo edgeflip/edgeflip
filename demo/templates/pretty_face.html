@@ -129,9 +129,57 @@
 	    	display: block;
 	    }
 
+	    #manual_add,
+	    .ui-autocomplete,
+	    .ui-menu, .ui-menu-item {
+	    	font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
+			font-size: 62.5%;
+	    }
+
+	    #manual_add {
+	    	padding-top: 5px;
+	    }
+
+	    .ui-autocomplete {
+		    max-height: 100px;
+		    overflow-y: auto;
+		    /* prevent horizontal scrollbar */
+		    overflow-x: hidden;
+		}
+		/* IE 6 doesn't support max-height
+		 * we use height instead, but this forces the menu to always be this tall
+		 */
+		* html .ui-autocomplete {
+			height: 100px;
+		}
+
+		.added_friend {
+			font-size: smaller;
+		    color: white;
+		    border: thin solid gray;
+		    border-radius: 5px;
+		    padding: 2px;
+		    margin: 2px;
+		    background-color: dodgerblue;
+		    display: inline-block;
+		}
+
+		.added_x {
+		    border-left: thin solid white;
+		    margin-left: 3px;
+		    padding-left: 2px;
+		    padding-right: 1px;
+		    display:inline-block;
+		    cursor: pointer;
+		    font-weight: bold;
+		}
+
 	</STYLE>
 
+  	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
+
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+	<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
 	<script>
 		dojo.require("dojox.html.ellipsis");
@@ -143,6 +191,9 @@
 	$(document).on( 'mouseleave', '.xout', function(e) { $(this).css('background-color', '#CC0000'); });
 
 	var nextidx = 6;
+
+	// Just the top 25 (or whatever) that match our targeting criteria.
+	// These are the friends that can be shown upon supressing & replacing faces.
 	var friends = [
 		{'id': 6963, 'fname': 'Michelangelo', 'lname': 'D\'Agostino'},
 		{'id': 889290332, 'fname': 'MyNameIsMuchTooLongForThisDivSoYouShouldGetSomeEllipsis', 'lname': 'Shallwani'},
@@ -171,6 +222,12 @@
 			var id = friend['id'];
 			var fname = friend['fname'];
 			var lname = friend['lname'];
+
+			// If the new friend has been manually added, removed them from that list
+			// to avoid possibly double-adding
+			if ( $("#added-"+id).length > 0 ) {
+				removeFriend(id);
+			}
 
 			// Add the new friend to the list of message tags (since they'll start off pre-checked)
 			recips.push(id);
@@ -315,7 +372,8 @@
   </script>
 
   <script>
-  	// This needs to the dictionary of all names, not just those initially shown...
+  	// Needs to be ALL of the user's friends since they could type in anyone,
+  	// regardless of whether they meet our targeting criteria.
     var fbnames = {
                     6963: 'Michelangelo D\'Agostino',
                     889290332: 'Aziz Shallwani',
@@ -588,6 +646,18 @@
 	</tr>
 </table>
 
+<div id="manual_add" style="width: 590; text-align: left; margin: 0px auto; display: table; position: relative;">
+	<div style="vertical-align: top; display: inline-block;" id="manual_inbox_container">
+		<div>Manually add up to three other friends:</div>
+		<div><input id="manual_input" style="width: 100%;" /></div>
+	</div>
+	<div id="picked_friends_container" style="display: inline-block; vertical-align: bottom; padding-left: 10px;"></div>
+</div>
+
+<script>
+	$("#picked_friends_container").width($("#manual_add").width() - $("#manual_inbox_container").width() - 10);
+</script>
+
 <BR />
 <div style="width: 100%;">
 	<div style="text-align: left; margin: 0px auto; display: table;">
@@ -672,6 +742,117 @@
 	$('.preset_names').html(friendNames());
 
 </script>
+
+  <script>
+
+  $(document).on( 'mouseenter', '.added_x', function(e) { $(this).css('color', 'darkblue'); });
+  $(document).on( 'mouseleave', '.added_x', function(e) { $(this).css('color', 'white'); });
+
+  $(function() {
+
+  	// Needs to be ALL of the user's friends since they could type in anyone,
+  	// regardless of whether they meet our targeting criteria.
+    var pick_friends = [
+      {
+        value: 6963,
+        label: "Michelangelo D'Agostino"
+      },
+      {
+        value: 889290332,
+        label: "Aziz Shallwani"
+      },
+      {
+        value: 511853926,
+        label: "Tim Trautman"
+      },
+      {
+        value: 100005022126470,
+        label: "Trevo Noisulli"
+      },
+      {
+        value: 100003222687678,
+        label: "Matthew Rattigan"
+      },
+      {
+        value: 500876410,
+        label: "Rayid Ghani"
+      },
+      {
+      	value: 737543313,
+      	label: "Marilyce Hale"
+      },
+      {
+      	value: 509180028,
+      	label: "Claster Pants"
+      },
+
+      {
+      	value: 509180029,
+      	label: "Claster Shirt"
+      },
+      {
+      	value: 509180030,
+      	label: "Claster Coat"
+      },
+      {
+      	value: 509180031,
+      	label: "Claster Hat"
+      },
+      {
+      	value: 509180032,
+      	label: "Claster Tie"
+      },
+
+    ];
+ 
+    $( "#manual_input" ).autocomplete({
+      minLength: 0,
+      source: pick_friends,
+      focus: function( event, ui ) {
+        $( "#manual_input" ).val( ui.item.label );
+        return false;
+      },
+      select: function( event, ui ) {
+
+      	// Only add a friend if they haven't already been added (and aren't already provided)
+        if (!( $("#added-"+ui.item.value).length > 0 || $("#friend-"+ui.item.value).length > 0 ) ) {
+
+          if ($(".added_friend").length >= 3) {
+
+            alert("Sorry -- already added too many friends!");
+          
+          } else {
+
+            $("#picked_friends_container").append("<div class='added_friend' id='added-"+ui.item.value+"'>"+ui.item.label+"<div class='added_x' onClick='removeFriend("+ui.item.value+");'>x</div></div>");
+
+            var idx = recips.indexOf(ui.item.value);
+			if (idx > -1) { recips.splice(idx, 1); }
+			$('#msg-txt-friend-'+ui.item.value).remove();
+
+			recips.push(ui.item.value);
+			$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+ui.item.value+'" contentEditable="False">'+ui.item.label+'</span> ');
+
+			$('.preset_names').html(friendNames());
+
+          }
+        }
+        $("#manual_input").val('');
+        return false;
+      }
+    })
+
+  });
+
+  function removeFriend(fbid) {
+    $("#added-"+fbid).remove();
+
+    var idx = recips.indexOf(fbid);
+	if (idx > -1) { recips.splice(idx, 1); }
+	$('#msg-txt-friend-'+fbid).remove();
+
+	$('.preset_names').html(friendNames());
+  }
+  </script>
 
 </BODY>
 </HTML>
