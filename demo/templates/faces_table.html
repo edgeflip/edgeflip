@@ -20,6 +20,7 @@
 </SCRIPT>
 
 <form>
+<div style="display: table; margin: 0px auto; background-color: #e4e6e0; border: 3px solid #e4e6e0;">
 <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
 	<tr>
 	{% for face_friend in face_friends %}
@@ -63,9 +64,11 @@
 <div id="manual_add" style="width: 590; text-align: left; margin: 0px auto; display: table; position: relative;">
 	<div style="vertical-align: top; display: inline-block;" id="manual_inbox_container">
 		<div>Manually add up to three other friends:</div>
-		<div><input id="manual_input" style="width: 100%;" /></div>
+		<div><input id="manual_input" style="width: 100%; max-width: 180px;" /></div>
 	</div>
 	<div id="picked_friends_container" style="display: inline-block; vertical-align: bottom; padding-left: 10px;"></div>
+</div>
+
 </div>
 
 <script>
