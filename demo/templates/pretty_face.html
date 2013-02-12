@@ -840,6 +840,11 @@
         return false;
       }
     })
+	.data( "uiAutocomplete" )._renderItem = function( ul, item ) {
+      return $( "<li>" )
+        .append( "<a>" + "<img src='http://graph.facebook.com/" +item.value+"/picture' height=25 /> " + item.label + "</a>" )
+        .appendTo( ul );
+    };
 
   });
 
