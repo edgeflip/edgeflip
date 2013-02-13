@@ -124,14 +124,14 @@ def face_it():
 	numFace = len(faceFriends)
 #	shareurl = 'http://www.foulballtracker.com/'
 	allFriends = filteredDicts[:25]
-	ret = render_template('faces_table.html', face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
+	ret = render_template('faces_table_wide.html', face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	return ret
 
 @app.route('/button')
 @app.route('/all_the_dude_ever_wanted')
 def button_man():
-	return render_template('frame.html')
+	return render_template('frame_wide.html')
 
 @app.route('/rank_demo')
 def rank_demo():
