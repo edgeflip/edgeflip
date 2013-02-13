@@ -50,10 +50,12 @@
 	<hr style="border:0; color:#fff; background-color:#fff; heigh:1px">
 	<BR />
 
+	<span style="overflow: visible; white-space: nowrap;"
 	<B>Gender: </B>
 	<input type="radio" name="gender" value="both" {% if (config.gender is not defined) or (config.gender == "both") %} checked {% endif %} />Both 
 	<input type="radio" name="gender" value="male" {% if config.gender == "male" %} checked {% endif %} />Male 
 	<input type="radio" name="gender" value="female" {% if config.gender == "female" %} checked {% endif %} />Female
+</span>
 
 	<p>
 	  <label for="amount" style="font-weight: bold;">Age range:</label>
