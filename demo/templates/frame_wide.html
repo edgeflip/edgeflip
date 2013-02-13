@@ -14,6 +14,11 @@
 
 	<STYLE>
 
+		body {
+			margin-left: 15px;
+			margin-right: 15px;
+		}
+
 		.friends_table {
 			border: 5px solid #e4e6e0;
 			background-color: #e4e6e0;
@@ -198,7 +203,7 @@
 		}
 
 		function show_friends() {
-			hn = window.innerHeight*0.25;
+			hn = window.innerHeight*0.30;
 			$("#share_content").animate({height:hn}, 500);
 
 			setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='block';}, 400);
