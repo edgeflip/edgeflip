@@ -16,170 +16,12 @@
 
 	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
 
-	<STYLE>
-
-		body {
-			margin-left: 15px;
-			margin-right: 15px;
-		}
-
-		.friends_table {
-			border: 5px solid #e4e6e0;
-			background-color: #e4e6e0;
-		}
-
-		.friend_box {
-			padding: 6px;
-			border: thin solid gray;
-			border-radius: 10px;
-			-moz-border-radius: 10px;
-			background-color: #07304e;
-			width: 172px;
-			position: relative;
-		}
-
-		.friend_pic {
-			width: 60px;
-			text-align: center;
-			vertical-align: middle;
-			display: inline-block;
-		}
-
-		.friend_txt {
-			width: 100px;
-			text-align: left;
-			vertical-align: top;
-			display: inline-block;
-		}
-
-		.friend_name {
-			color: white;
-			text-decoration: none;
-			width: 100%; 
-			overflow: hidden; 
-			white-space: nowrap; 
-			text-overflow: ellipsis;
-			-o-text-overflow: ellipsis;
-			-webkit-text-overflow: ellipsis;
-		}
-
-		.friend_checkbox {
-			width: 100px;
-			text-align: right;
-		}
-
-		.dojoxEllipsis,
-		.dojoxEllipsisShown {
-			color: white;
-		}
-
-		.xout {
-			background-color: #CC0000; 
-			color: white; 
-			width: 12px; 
-			height: 12px; 
-			border: thin solid maroon; 
-			border-radius: 6px; 
-			font-size: 10px; 
-			font-weight: bold; 
-			text-align: center; 
-			vertical-align: middle; 
-			font-family: arial,sans-serif; 
-			cursor: pointer;
-			position: absolute;
-			top: -3px;
-			left: -3px;
-			z-index: 10;
-		}
-
-	    .msg_friend_name {
-	      color: #0A5195;
-	      border-bottom: thin dashed #0A5195;
-	    }
-
-	    .msg_picker,
-	    .msg_title {
-	    	display: block;
-	    }
-
-	    .msg_title {
-	    	font-size: 22px;
-	    	text-align: left;
-	    	color: #07304e;
-	    	padding-left: 15px;
-	    }
-
-	    .msg_picker {
-	    	border: 1px solid #07304e;
-	    	border-radius: 20px;
-	    	background-color: #E6F2FF;
-	    	padding: 10px;
-	    	text-align: left;
-	    }
-
-	    #other_msg {
-	    	display: none;
-	    	border: solid thin gray;
-	    	background-color: white;
-	    	padding: 10px;
-	    }
-
-	    #do_share_button {
-	    	background-image: url('{{ url_for('static', filename='share.jpg') }}'); 
-	    	width: 255px; 
-	    	height: 40px; 
-	    	color: white; 
-	    	cursor: pointer; 
-	    	display: block;
-	    }
-
-		#manual_add,
-	    .ui-autocomplete,
-	    .ui-menu, .ui-menu-item {
-	    	font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
-			font-size: 62.5%;
-	    }
-
-	    #manual_add {
-	    	padding-top: 5px;
-	    }
-
-	    .ui-autocomplete {
-		    max-height: 100px;
-		    overflow-y: auto;
-		    /* prevent horizontal scrollbar */
-		    overflow-x: hidden;
-		}
-		/* IE 6 doesn't support max-height
-		 * we use height instead, but this forces the menu to always be this tall
-		 */
-		* html .ui-autocomplete {
-			height: 100px;
-		}
-
-		.added_friend {
-			font-size: smaller;
-		    color: white;
-		    border: thin solid white;
-		    border-radius: 5px;
-		    padding: 2px;
-		    margin: 2px;
-		    background-color: #003F77;
-		    display: inline-block;
-		}
-
-		.added_x {
-		    border-left: thin solid white;
-		    margin-left: 3px;
-		    padding-left: 2px;
-		    padding-right: 1px;
-		    display:inline-block;
-		    cursor: pointer;
-		    font-weight: bold;
-		}
-
-	</STYLE>
-
+	<!-- edgeflip stylesheets -->
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button_man.css') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
+	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
+	<!-- edgeflip stylesheets -->
 
   	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
 
@@ -202,9 +44,9 @@
     		});
 		}
 		
-		function button_change(div_id, img_name) {
-			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
-		}
+//		function button_change(div_id, img_name) {
+//			document.getElementById(div_id).style.backgroundImage="url('"+img_name+"')";
+//		}
 
 		function show_friends() {
 			hn = window.innerHeight*0.30;
@@ -229,15 +71,15 @@
 		imgsToLoad = [	"{{ url_for('static', filename='button_mouse.jpg') }}", 
 						"{{ url_for('static', filename='share.jpg') }}",
 						"{{ url_for('static', filename='share_mouse.jpg') }}",
-						"{{url_for('static', filename='aniprogress.gif')}}"
+						"{{ url_for('static', filename='aniprogress.gif') }}"
 					];
 		preload(imgsToLoad);
 	</SCRIPT>
 
 	<SCRIPT>
 
-	$(document).on( 'mouseenter', '.xout', function(e) { $(this).css('background-color', 'red'); });
-	$(document).on( 'mouseleave', '.xout', function(e) { $(this).css('background-color', '#CC0000'); });
+//	$(document).on( 'mouseenter', '.xout', function(e) { $(this).css('background-color', 'red'); });
+//	$(document).on( 'mouseleave', '.xout', function(e) { $(this).css('background-color', '#CC0000'); });
 
 	function doReplace(old_fbid) {
 
@@ -461,21 +303,28 @@
 
 <!-- http://swampland.time.com/2012/11/07/inside-the-secret-world-of-quants-and-data-crunchers-who-helped-obama-win/ -->
 <!-- http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/ -->
-<iframe src="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/print/" id="share_content" style="width: 100%; height: 70%; border: thin solid black;"></iframe>
+<iframe src="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/print/" id="share_content"></iframe>
 <SCRIPT>
+
+	// Readjust iframe to relative height.
+	// Note that this can't be done with CSS height: 70% because 70% refers to the height of the
+	// content, not the height of the window, so the frame appears too small.
+
 	iheight = window.innerHeight*0.70;
 	$("#share_content").height(iheight);
+
 </SCRIPT>
 <BR><BR>
 <CENTER>
 
 <!-- SHARE BUTTON -->
-<div id="share_button" style="background-image:url('{{ url_for('static', filename='button.jpg') }}'); width:255px; height:40px; color:white; cursor:pointer;" onmouseover="button_change('share_button', '{{ url_for('static', filename='button_mouse.jpg') }}');" onmouseout="button_change('share_button', '{{ url_for('static', filename='button.jpg') }}');" onclick="show_friends();"></div>
+<div id="share_button" onclick="show_friends();"></div>
 
 <div id="friends_div" style="display:none;">
 
 	<div id='progress' style='text-align: center; display: none'>
-		<img src="{{url_for('static', filename='aniprogress.gif')}}"><p>
+		<img src="{{url_for('static', filename='aniprogress.gif')}}">
+		<p></p>
 	</div>
 	
 	<div id="your-friends-here"></div>

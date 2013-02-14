@@ -21,9 +21,9 @@
 
 <form>
 
-<div style="float: left; width: 405px; padding-right: 15px;">
+<div class="left_container">
 <div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
-<div style="width: 405px; background-color: #e4e6e0; border: 3px solid #e4e6e0;">
+<div class="faces_container">
 <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
 	<tr>
 	{% for face_friend in face_friends %}
@@ -61,59 +61,60 @@
 	</tr>
 </table>
 
-<div id="manual_add" style="width: 405px; text-align: left; margin: 0px auto; display: table; position: relative;">
-	<div style="vertical-align: top; display: inline-block;" id="manual_inbox_container">
+<div id="manual_add">
+	<div id="manual_input_container">
 		<div>Manually add up to three other friends:</div>
-		<div><input id="manual_input" style="width: 100%; max-width: 180px;" /></div>
+		<div><input id="manual_input" /></div>
 	</div>
-	<div id="picked_friends_container" style="display: inline-block; vertical-align: bottom; padding-left: 10px;"></div>
-</div>
+	<div id="picked_friends_container"></div>
+</div> <!-- manual_add -->
 
 <script>
-	$("#picked_friends_container").width($("#manual_add").width() - $("#manual_inbox_container").width() - 20);
+	$("#picked_friends_container").width($("#manual_add").width() - $("#manual_input_container").width() - 20);
 </script>
 
-</div>
-</div>
+</div> <!-- faces_container -->
+</div> <!-- left_container -->
 
-<div style="overflow-x: hidden; vertical-align: top; margin-left: 15px; white-space: normal; min-width: 300px;">
+<div class="right_container">
 <div class="msg_title">Choose A Message:</div>
-<div class="msg_picker" style="margin-bottom: 5px; margin-right: 10px;">
+<div class="msg_picker">
 
-	<div style="padding-bottom: 15px;">
-		<div style="float: left; padding-right: 5px; vertical-align: top;">
+	<div class="msg_block">
+		<div class="msg_radio">
 			<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> 
 		</div>
-		<div style="overflow-x: auto; overflow-y: visible; padding-bottom: 3px;">
+		<div class="msg_txt">
 			Hi there <span class="preset_names"></span> -- I just read a great article about Targeted Sharing and you should, too!
 		</div>
 	</div>
 
-	<div style="padding-bottom: 15px;">
-		<div style="float: left; padding-right: 5px; vertical-align: top;">
+	<div class="msg_block">
+		<div class="msg_radio">
 			<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> 
 		</div>
-		<div style="overflow-x: auto; overflow-y: visible; padding-bottom: 3px;">
+		<div class="msg_txt">
 			Targeted Sharing is the way of the future. Go read about it now, <span class="preset_names"></span>!
 		</div>
 	</div>
 
-	<div style="padding-bottom: 15px;">
-		<div style="float: left; padding-right: 5px; vertical-align: top;">
+	<div class="msg_block">
+		<div class="msg_radio">
 			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
 		</div>
-		<div style="overflow-x: auto; overflow-y: visible; padding-bottom: 3px;">
+		<div class="msg_txt">
 			Write your own message (type around your friends' names):<BR />
-			<div id="other_msg" style="display: none; border: solid thin gray; padding: 10px; width: 90%; margin-left: 3px;" contentEditable="True">Replace this text with your message for </div>
+			<div id="other_msg" contentEditable="True">Replace this text with your message for </div>
 		</div>
 	</div>	
 
+</div> <!-- msg_picker -->
+
+<div id="do_share_container">
+	<div id="do_share_button" onclick="doShare();"></div>
 </div>
 
-<div style="position: relative; height: 45px;">
-<div id="do_share_button" style="position: absolute; right: 10px;" onmouseover="button_change('do_share_button', '{{ url_for('static', filename='share_mouse.jpg') }}');" onmouseout="button_change('do_share_button', '{{ url_for('static', filename='share.jpg') }}');" onclick="doShare();"></div>
-</div>
-</div>
+</div> <!-- right_container -->
 
 </form>
 
@@ -135,8 +136,8 @@
 
 <script>
 
-  $(document).on( 'mouseenter', '.added_x', function(e) { $(this).css('color', '#00A3DD'); });
-  $(document).on( 'mouseleave', '.added_x', function(e) { $(this).css('color', 'white'); });
+//  $(document).on( 'mouseenter', '.added_x', function(e) { $(this).css('color', '#00A3DD'); });
+//  $(document).on( 'mouseleave', '.added_x', function(e) { $(this).css('color', 'white'); });
 
   $(function() {
 

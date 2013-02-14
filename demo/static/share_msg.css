@@ -1,0 +1,82 @@
+/* CSS FOR THE MESSAGE TO BE SHARED */
+
+.right_container {
+	overflow-x: hidden;
+	vertical-align: top;
+	margin-left: 15px;
+	white-space: normal;
+	min-width: 300px;
+}
+
+.msg_friend_name {
+  color: #0A5195;
+  border-bottom: thin dashed #0A5195;
+}
+
+.msg_picker,
+.msg_title {
+	display: block;
+}
+
+.msg_title {
+	font-size: 22px;
+	text-align: left;
+	color: #07304e;
+	padding-left: 15px;
+}
+
+.msg_picker {
+	border: 1px solid #07304e;
+	border-radius: 20px;
+	background-color: #E6F2FF;
+	text-align: left;
+	padding: 10px;
+	margin-bottom: 5px;
+	margin-right: 10px;
+}
+
+.msg_block {
+	padding-bottom: 15px;
+}
+
+.msg_radio {
+	float: left;
+	padding-right: 5px;
+	vertical-align: top;
+}
+
+.msg_txt {
+	overflow-x: auto;
+	overflow-y: visible;
+	padding-bottom: 3px;
+}
+
+#other_msg {
+	display: none;
+	border: solid thin gray;
+	background-color: white;
+	padding: 10px;
+	width: 90%;
+	margin-left: 3px;
+}
+
+#do_share_container {
+	position: relative;
+	height: 45px;
+}
+
+#do_share_button {
+	background-image: url('{{ url_for('static', filename='share.jpg') }}'); 
+	width: 255px; 
+	height: 40px;
+	display: block;
+	position: absolute;
+	right: 10px;
+	color: white; 
+	cursor: pointer; 
+}
+
+#do_share_button:hover {
+	background-image: url('{{ url_for('static', filename='share_mouse.jpg') }}');
+}
+

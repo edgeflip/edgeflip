@@ -1,0 +1,90 @@
+/* CSS FOR THE FACES */
+
+.left_container,
+.faces_container,
+#manual_add {
+	width: 405px;
+}
+
+.left_container {
+	float: left;
+	padding-right: 15px;
+}
+
+.faces_container {
+	background-color: #e4e6e0;
+	border: 3px solid #e4e6e0;
+}
+
+.friends_table {
+	border: 5px solid #e4e6e0;
+	background-color: #e4e6e0;
+}
+
+.friend_box {
+	padding: 6px;
+	border: thin solid gray;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	background-color: #07304e;
+	width: 172px;
+	position: relative;
+}
+
+.friend_pic {
+	width: 60px;
+	text-align: center;
+	vertical-align: middle;
+	display: inline-block;
+}
+
+.friend_txt {
+	width: 100px;
+	text-align: left;
+	vertical-align: top;
+	display: inline-block;
+}
+
+.friend_name {
+	color: white;
+	text-decoration: none;
+	width: 100%; 
+	overflow: hidden; 
+	white-space: nowrap; 
+	text-overflow: ellipsis;
+	-o-text-overflow: ellipsis;
+	-webkit-text-overflow: ellipsis;
+}
+
+.friend_checkbox {
+	width: 100px;
+	text-align: right;
+}
+
+.dojoxEllipsis,
+.dojoxEllipsisShown {
+	color: white;
+}
+
+.xout {
+	background-color: #CC0000; 
+	color: white; 
+	width: 12px; 
+	height: 12px; 
+	border: thin solid maroon; 
+	border-radius: 6px; 
+	font-size: 10px; 
+	font-weight: bold; 
+	text-align: center; 
+	vertical-align: middle; 
+	font-family: arial,sans-serif; 
+	cursor: pointer;
+	position: absolute;
+	top: -3px;
+	left: -3px;
+	z-index: 10;
+}
+
+.xout:hover {
+	background-color: red;
+}
