@@ -1,18 +1,21 @@
 <!DOCTYPE html>
 
-<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US"
-      xmlns:fb="https://www.facebook.com/2008/fbml"> 
-	<head prefix="og: http://ogp.me/ns# edgeflip: 
-                  http://ogp.me/ns/apps/edgeflip#">
-	<title>TIME Targeted Sharing Article</title>
-	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-	<meta property="fb:app_id" content="471727162864364" /> 
-	<meta property="og:type" content="edgeflip:article" /> 
-	<meta property="og:title" content="TIME Targeted Sharing Article" /> 
-	<meta property="og:image" content="{{ url_for('static', filename='doc_brown.jpg') }}" /> 
-	<meta property="og:description" content="According to TIME Magazine, Targeted Sharing is cool! Jim Messina called it one of the best things Obama's re-election campaign did and now you can use it to, for the low price of $100 Million." /> 
-	<meta property="og:url" content="http://rayid.bigmarker.com/button">
+{# note: parameters here aren't yet worked into javascript for share itself... #}
+
+{% set page_title = 'TIME Targeted Sharing Article' %}
+
+{% set fb_app_name = 'edgeflip' %}
+{% set fb_app_id = '471727162864364' %}
+
+{% set fb_action_type = 'read' %}
+{% set fb_object_type = 'article' %}
+{% set fb_object_title = 'TIME Targeted Sharing Article' %}
+{% set fb_object_image = url_for('static', filename='doc_brown.jpg') %}
+{% set fb_object_desc = "According to TIME Magazine, Targeted Sharing is cool! Jim Messina called it one of the best things Obama's re-election campaign did and now you can use it to, for the low price of $100 Million." %}
+{% set fb_object_url = "http://rayid.bigmarker.com/button" %}
+
+
+{% include 'fb_object_header.html' %}
 
 	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
 

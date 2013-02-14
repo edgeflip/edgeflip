@@ -1,4 +1,6 @@
 
+{% from 'new_face.html' import face %}
+
 <SCRIPT>
 
 	var nextidx = {{ face_friends | length }};
@@ -44,30 +46,11 @@
 	{% for face_friend in face_friends %}
 
 		<td>
-			<div class="friend_box" id="friend-{{face_friend.id}}">
-				<div class="xout" onClick="doReplace({{face_friend.id}});">
-					x
-				</div>
-				<div class="friend_pic">
-					<img src="http://graph.facebook.com/{{face_friend.id}}/picture" border=0 />
-				</div>
-				<div class="friend_txt">
-					<div class="friend_name dojoxEllipsis">
-						{{face_friend.fname}}
-					</div>
-					<div class="friend_name dojoxEllipsis">
-						{{face_friend.lname}}
-					</div>
-					<div class="friend_checkbox">
-						<input type="checkbox" id="box-{{face_friend.id}}" checked="checked" onChange="toggleFriend({{face_friend.id}});">
-					</div>
-				</div>
-			</div>
+			{{ face(face_friend.id, face_friend.fname, face_friend.lname) }}
 		</td>
 
 		{% if ( (loop.index0 == 1) and (numFriends > 2) ) or ( (loop.index0 == 3) and (numFriends > 4) ) %}
 				</tr><tr>
-
 
 		{% endif %}
 
