@@ -66,17 +66,9 @@
 }
 
 #do_share_button {
-	background-image: url('{{ url_for('static', filename='share.jpg') }}'); 
-	width: 255px; 
-	height: 40px;
 	display: block;
 	position: absolute;
 	right: 10px;
 	color: white; 
 	cursor: pointer; 
 }
-
-#do_share_button:hover {
-	background-image: url('{{ url_for('static', filename='share_mouse.jpg') }}');
-}
-

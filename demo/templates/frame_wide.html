@@ -21,6 +21,31 @@
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
 	<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
+	<STYLE>
+
+		/* Funny thing about static CSS style sheets... can't template them out! */
+
+		#share_button {
+			background-image: url('{{ url_for('static', filename='button.jpg') }}');
+			width: 255px; 
+			height: 40px; 
+		}
+
+		#share_button:hover {
+			background-image: url('{{ url_for('static', filename='button_mouse.jpg') }}');
+		}
+
+		#do_share_button {
+			background-image: url('{{ url_for('static', filename='share.jpg') }}'); 
+			width: 255px; 
+			height: 40px;
+		}
+
+		#do_share_button:hover {
+			background-image: url('{{ url_for('static', filename='share_mouse.jpg') }}');
+		}
+
+	</STYLE>
 	<!-- edgeflip stylesheets -->
 
   	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />

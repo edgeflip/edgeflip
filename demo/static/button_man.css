@@ -10,13 +10,6 @@ body {
 }
 
 #share_button {
-	background-image: url('{{ url_for('static', filename='button.jpg') }}');
-	width: 255px; 
-	height: 40px; 
 	color: white; 
 	cursor: pointer;
-}
-
-#share_button:hover {
-	background-image: url('{{ url_for('static', filename='button_mouse.jpg') }}');
 }
