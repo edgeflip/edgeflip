@@ -12,9 +12,12 @@ import argparse
 import Queue
 from collections import defaultdict
 import ReadStream
+import ReadStreamDb
+from Config import config
 
 
-
+logPika = logging.getLogger('pika')
+logPika.setLevel(logging.CRITICAL)
 
 class STREAMTYPE:
 	GROUP_CREATED = 11
@@ -240,21 +243,37 @@ class ThreadStreamReader(threading.Thread):
 			self.queue.task_done()
 
 
-
-# globals for the callback
-includeOutgoing = False
-overwriteThresh = sys.maxint # never overwrite
-
 def readStreamCallback(ch, method, properties, body):
-	userId, token, extra = json.loads(body)
-	user = getUserFb(userId, tok)
-	updateUserDb(conn, user, tok, None)
-	newCount = ReadStream.updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwriteThresh=overwriteThresh)
+	logging.debug("got raw message %d '%s' from queue" % (readStreamCallback.messCount, body))
+	readStreamCallback.messCount += 1
+	elts = json.loads(body)
+	#logging.debug("got message elts %s from queue" % str(elts))
+	userId, tok, extra = elts
+	logging.debug("received %d, %s from queue" % (userId, tok))
+
+	try:
+		user = ReadStream.getUserFb(userId, tok)
+	except:
+		ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
+		return
+	
+	conn = ReadStreamDb.getConn()
+	ReadStream.updateUserDb(conn, user, tok, None)
+	newCount = ReadStream.updateFriendEdgesDb(conn, userId, tok, 
+						readFriendStream=readStreamCallback.includeOutgoing, 
+						overwriteThresh=readStreamCallback.overwriteThresh)
 	logging.info("updated %d edges for user %d" % (newCount, userId))
+
 	ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
+# globals for the callback
+readStreamCallback.includeOutgoing = False
+readStreamCallback.overwriteThresh = sys.maxint # never overwrite
+readStreamCallback.messCount = 0
+
+
 def debugCallback(ch, method, properties, body):
-	sys.stderr.write("recieved %s from queue\n" % (str(body)))
+	sys.stderr.write("received %s from queue\n" % (str(body)))
 	ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
 
@@ -280,7 +299,8 @@ if (__name__ == '__main__'):
 	overwriteThresh = args.overwrite
 
 	#zzz
-	callbackFunc = debugCallback
+	#callbackFunc = debugCallback
+	callbackFunc = readStreamCallback
 
 	pid = os.getpid()
 	logging.info("starting worker %d for queue %s" % (pid, args.queueName))

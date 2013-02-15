@@ -26,14 +26,15 @@ def resetQueue(queueName):
 	channel.queue_declare(queue=queueName, durable=True)
 	connection.close()
 
-def loadQueue(queueName, entries):
+def loadQueue(queueName, entries, transFunc=lambda x: x):
 	connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 	channel = connection.channel()
 	channel.queue_declare(queue=queueName, durable=True)
 	props = pika.BasicProperties(delivery_mode=2) # make message persistent
 	publishCount = 0
 	for entry in entries:
-		entryJson = json.dumps(entry)
+		entryTrans = transFunc(entry)
+		entryJson = json.dumps(entryTrans)
 		channel.basic_publish(exchange='', routing_key=queueName, body=entryJson, properties=props)		
 		publishCount += 1
 	connection.close()
@@ -68,7 +69,7 @@ if (__name__ == '__main__'):
 		resetQueue(args.queueName)
 	if (args.load):
 		with open(args.load, 'r') as infile:
-			loadQueue(args.queueName, infile)
+			loadQueue(args.queueName, infile, lambda line: json.loads(line.rstrip("\n")))
 
 	sys.stderr.write("queue has %d elements\n" % getQueueSize(args.queueName))
 
