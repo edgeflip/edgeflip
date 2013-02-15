@@ -36,25 +36,6 @@
 
 </SCRIPT>
 
-<script>
-	function adjust_manual_width() {
-		alert('now here!');
-		$("#picked_friends_container").width(
-			$("#manual_add").width() 
-			- $("#manual_input_container").width() 
-			- 20
-		);
-		alert('manual input loaded!');
-	}
-	$(document).on('load', '#manual_input', function(e) { alert('now here!');
-						$("#picked_friends_container").width(
-								$("#manual_add").width() 
-				 			  - $("#manual_input_container").width() 
-				 			  - 20);
-							alert('manual input loaded!');
-				});
-</script>
-
 <div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 <div class="faces_container">
 <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
@@ -102,6 +83,13 @@
 </script>
 
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
+
+<script>
+	alert('now here!');
+	var pfwidth = $("#manual_add").width() - $("#manual_input_container").width() - 20;
+	$("#picked_friends_container").width(pfwidth);
+	alert('manual input loaded! set to: '+pfwidth);
+</script>
 
 
 
