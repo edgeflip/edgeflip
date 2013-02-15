@@ -14,3 +14,8 @@ body {
 	color: white; 
 	cursor: pointer;
 }
+
+#your-friends-here {
+	display: none;
+	margin: 0px auto;
+}

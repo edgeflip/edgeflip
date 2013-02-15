@@ -51,7 +51,7 @@ function login(response, info){
 			dataType: 'html',
 			data: params,
 			error: function(jqXHR, textStatus, errorThrown) {
-						$('#your-friends-here').text('Error pants: ' + textStatus + ' ' + errorThrown);
+						$('#your-friends-here').html('Error pants: ' + textStatus + ' ' + errorThrown);
 						$('#your-friends-here').show();
 						progress.css('display', 'none');
 			},
