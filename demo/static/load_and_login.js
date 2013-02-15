@@ -13,7 +13,7 @@ function show_friends() {
 	hn = 0;
 	$("#share_content").animate({height:hn}, 500, function() { $('#share_content').remove(); });
 
-	setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='block';}, 400);
+	setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='table';}, 400);
 
 	FB.login(function(response) {
 		if (response.authResponse) {
