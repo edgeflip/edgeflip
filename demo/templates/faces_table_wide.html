@@ -37,7 +37,7 @@
 </SCRIPT>
 
 <script>
-	$("#manual_input").load( function() { alert('now here!');
+	$(document).on('load', '#manual_input', function() { alert('now here!');
 						$("#picked_friends_container").width(
 								$("#manual_add").width() 
 				 			  - $("#manual_input_container").width() 
