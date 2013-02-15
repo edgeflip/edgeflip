@@ -215,7 +215,7 @@ def getUserDb(conn, userId):
 	fbid, fname, lname, gender, birthday, token, friend_token, updated = rec
 	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday))
 
-def getFriendEdgesDb(conn, primId, includeOutgoing=False):
+def getFriendEdgesDb(conn, primId, includeOutgoing=False, newerThan=0):
 	if (conn is None):
 		conn = ReadStreamDb.getConn()
 	curs = conn.cursor()
@@ -225,7 +225,7 @@ def getFriendEdgesDb(conn, primId, includeOutgoing=False):
 					out_post_likes, out_post_comms, out_stat_likes, out_stat_comms, 
 					mut_friends, updated
 			FROM edges
-			WHERE prim_id=?
+			WHERE prim_id=? AND updated>?
 	""" 
 	if (includeOutgoing):
 		sql += """
@@ -234,7 +234,7 @@ def getFriendEdgesDb(conn, primId, includeOutgoing=False):
 			AND out_stat_likes IS NOT NULL
 			AND out_stat_comms IS NOT NULL
 		"""
-	curs.execute(sql, (primId,))
+	curs.execute(sql, (primId, newerThan))
 	eds = []
 	primary = getUserDb(conn, primId)
 	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
@@ -259,19 +259,22 @@ def updateUserDb(conn, user, tok, tokFriend):
 	curs.execute(sql, params)
 	conn.commit()	
 
-def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True):
+def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThresh=sys.maxint):
 	try:
 		friends = getFriendsFb(userId, tok)
 	except:
 		return -1
+
 	logging.debug("got %d friends total", len(friends))
 
 	# if we're not overwriting, see what we have saved
-	if (overwrite):
+	if (overwriteThresh == 0):
 		#friendQueue = friendId_friend.keys()
 		friendQueue = friends
 	else:
-		edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing=readFriendStream)
+		# want the edges that were updated less than overwriteThresh secs ago, we'll exclude these
+		updateThresh = time.time() - overwriteThresh
+		edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing=readFriendStream, newerThan=updateThresh)
 		friendIdsPrev = set([ e.secondary.id for e in edgesDb ])
 		friendQueue = [ f for f in friends if f.id not in friendIdsPrev ]
 

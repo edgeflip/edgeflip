@@ -60,7 +60,7 @@ def flip_it():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	# now, spawn a full crawl in the background
 ##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
@@ -148,11 +148,14 @@ def rank_people():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	if (rankfn.lower() == "px4"):
 		# now, spawn a full crawl in the background
-		pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+
+		#pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
+
 		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
 	else:
