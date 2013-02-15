@@ -287,10 +287,17 @@ if (__name__ == '__main__'):
 
 	connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 	channel = connection.channel()
+
+	logging.debug("check 1")
 	channel.queue_declare(queue=args.queueName, durable=True)
+
+	logging.debug("check 2")
 	channel.basic_consume(callbackFunc, args.queueName)
+
+	logging.debug("check 3")
 	channel.start_consuming()
 
+	logging.debug("check 4")
 
 
 
