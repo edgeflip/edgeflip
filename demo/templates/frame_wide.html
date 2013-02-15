@@ -167,14 +167,13 @@
 <SCRIPT>
 
 	function set_right_width() {
-		var rcwidth = window.innerWidth - $('#the_left_container').outerWidth() - 2*$('body').css('margin-left') - 20;
+		var rcwidth = window.innerWidth - $('#the_left_container').outerWidth() - 2*parseInt($('body').css('margin-left')) - 20;
 		if (rcwidth < $('.right_container').css('min-width')) {
 			rcwidth = $('.right_container').css('min-width');
 		} else if (rcwidth > $('.right_container').css('max-width')) {
 			rcwidth = $('.right_container').css('max-width');
 		}
 		$('.right_container').width(rcwidth);
-		alert('should have set right width to: '+rcwidth);
 	}
 
 	// Initial call and set up a listener on window resizing
