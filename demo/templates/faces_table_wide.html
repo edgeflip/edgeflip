@@ -65,7 +65,11 @@
 </div> <!-- manual_add -->
 
 <script>
-	$("#picked_friends_container").width($("#manual_add").width() - $("#manual_input_container").width() - 20);
+	$("#manual_input").load( function() { $("#picked_friends_container").width(
+								$("#manual_add").width() 
+				 			  - $("#manual_input_container").width() 
+				 			  - 20);
+				});
 </script>
 
 </div> <!-- faces_container -->

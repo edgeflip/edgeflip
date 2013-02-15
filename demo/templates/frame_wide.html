@@ -164,6 +164,23 @@
 
 </div> <!-- friends_div -->
 
+<SCRIPT>
+
+	function set_right_width() {
+		var rcwidth = window.innerWidth - $('#the_left_container').outerWidth() - 2*$('body').css('margin-left') - 20;
+		if (rcwidth < $('.right_container').css('min-width')) {
+			rcwidth = $('.right_container').css('min-width');
+		} else if (rcwidth > $('.right_container').css('max-width')) {
+			rcwidth = $('.right_container').css('max-width');
+		}
+		$('.right_container').width(rcwidth);
+	}
+
+	// Initial call and set up a listener on window resizing
+	$(document).ready( set_right_width() );
+	$(window).resize( set_right_width() );
+
+</SCRIPT>
 
 <div id="fb-root"></div>
 <script type="text/javascript">
