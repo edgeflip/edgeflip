@@ -33,9 +33,8 @@ function login(response, info){
 		var num = 1000;
 		myfbid = fbid;
 
-		var friends_div = $('#left_container');
+		var friends_div = $('#the_left_container');
 		var progress = $('#progress');
-
 
 		progress.show();	
 					
@@ -52,11 +51,13 @@ function login(response, info){
 			dataType: 'html',
 			data: params,
 			error: function(jqXHR, textStatus, errorThrown) {
-						friends_div.text('Error pants: ' + textStatus + ' ' + errorThrown);
+						$('#your-friends-here').text('Error pants: ' + textStatus + ' ' + errorThrown);
+						$('#your-friends-here').show();
 						progress.css('display', 'none');
 			},
 			success: function(data) {
-						friends_div.html(data);	
+						friends_div.html(data);
+						$('#your-friends-here').show();	
 						friends_div.show();
 						progress.css('display', 'none');
 						$('#do_share_button').show()
