@@ -20,9 +20,11 @@ body {
 #your-friends-here {
 	display: none;
 	margin: 0px auto;
+	white-space: nowrap;
 }
 
 #friends_div {
 	display: none;
 	margin: 0px auto;
+	white-space: nowrap;
 }
