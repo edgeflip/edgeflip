@@ -85,10 +85,9 @@
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
 
 <script>
-	alert('now here!');
-	var pfwidth = $("#manual_add").width() - $("#manual_input_container").width() - 20;
-	$("#picked_friends_container").width(pfwidth);
-	alert('manual input loaded! manual_add: '+$("#manual_add").width()+' manual_input_container: '+$("#manual_input_container").width());
+	// Commenting this out because it seems to hit too early. Weird...
+	//var pfwidth = $("#manual_add").width() - $("#manual_input_container").width() - 20;
+	//$("#picked_friends_container").width(pfwidth);
 </script>
 
 

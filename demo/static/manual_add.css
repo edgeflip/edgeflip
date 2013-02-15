@@ -29,6 +29,7 @@
 	display: inline-block;
 	vertical-align: bottom;
 	padding-left: 10px;
+    width: 205px;
 }
 
 .ui-autocomplete {
