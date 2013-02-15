@@ -141,12 +141,27 @@ class FriendInfo(UserInfo):
 		UserInfo.__init__(self, uid, first_name, last_name, sex, birthday)
 		self.mutuals = mutual_friend_count
 
+def getFb(url):
+	try:
+		responseFile = urllib2.urlopen(url, timeout=60)
+	except (urllib2.URLError, urllib2.HTTPError) as e: 
+		logging.info("error opening url %s: %s" % (url, e.reason))
+		raise
+        responseJson = json.load(responseFile)
+	return responseJson
+
 
 def getFriendsFb(userId, token):
 	fql = """SELECT uid, first_name, last_name, sex, birthday_date, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
-	responseFile = urllib2.urlopen(url, timeout=60)
-	responseJson = json.load(responseFile)
+	#try:
+	#	responseFile = urllib2.urlopen(url, timeout=60)
+	#except urllib2.URLError, urllib2.HTTPError as e:
+	#	logging.info("error opening friends url for user %s: %s" % (userId, e.reason))
+	#	return None
+	#responseJson = json.load(responseFile)
+	responseJson = getFb(url)
+
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
 	#friendTups = [ (rec['uid'], rec['name'], rec['mutual_friend_count']) for rec in responseJson['data'] ]
@@ -161,8 +176,13 @@ def getFriendsFb(userId, token):
 def getUserFb(userId, token):
 	fql = """SELECT uid, first_name, last_name, sex, birthday_date FROM user WHERE uid=%s""" % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
-	responseFile = urllib2.urlopen(url, timeout=60)
-	responseJson = json.load(responseFile)
+	#try:
+	#	responseFile = urllib2.urlopen(url, timeout=60)
+	#except urllib2.URLError, urllib2.HTTPError as e:
+        #        logging.info("error opening user url for user %s: %s" % (userId, e.reason))
+        #        return None
+	#responseJson = json.load(responseFile)
+	responseJson = getFb(url)
 	rec = responseJson['data'][0]
 	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']))
 	return user
@@ -240,7 +260,10 @@ def updateUserDb(conn, user, tok, tokFriend):
 	conn.commit()	
 
 def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwrite=True):
-	friends = getFriendsFb(userId, tok)
+	try:
+		friends = getFriendsFb(userId, tok)
+	except:
+		return -1
 	logging.debug("got %d friends total", len(friends))
 
 	# if we're not overwriting, see what we have saved
@@ -386,7 +409,11 @@ if (__name__ == '__main__'):
 
 		includeOutgoing = True
 
-		user = getUserFb(userId, tok)
+		try:
+			user = getUserFb(userId, tok)
+		except:	
+			logging.info("error processing user %d" % userId)
+			continue
 		updateUserDb(conn, user, tok, None)
 
 		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwrite=True)
