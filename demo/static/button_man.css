@@ -13,6 +13,8 @@ body {
 #share_button {
 	color: white; 
 	cursor: pointer;
+	display: table;
+	margin: 0px auto;
 }
 
 #your-friends-here {

@@ -7,6 +7,7 @@
 	white-space: normal;
 	min-width: 300px;
 	max-width: 650px;
+	float: left;
 }
 
 .msg_friend_name {
