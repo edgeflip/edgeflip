@@ -47,7 +47,7 @@ function updateMsg() {
 		$('#other_msg').show().focus();
 
 		// Is the default text still in there? If so, highlight it for easy replacement
-		var reptxt = $('#other_msg').text().indexOf('Replace this text with your message for ');
+		var reptxt = $('#other_msg').text().indexOf("{{ msg_other_init }}");
 
 		if ( reptxt > -1 ) {
 
@@ -123,8 +123,8 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
-	var appid = 471727162864364;
-	var content = 'edgeflip:article http://rayid.bigmarker.com/button';
+	var appid = {{ fb_app_id }};
+	var content = '{{ fb_app_name }}:{{ fb_object_type }} {{ fb_object_url }}';
 
 	var params = JSON.stringify({
 		userid: userid,
@@ -182,10 +182,10 @@ function doShare() {
 	}
 
 
-	if (msg_type === "hi-there") {
-		msg = 'Hi there '+msg_recips+' -- I just donated to Chicago Public Radio and you should, too!';
-	} else if (msg_type === "kasell") {
-		msg = 'Carl Kasell has a message for you. Go donate to Chicago Public Radio, '+msg_recips+'!';
+	if (msg_type === "msg1") {
+		msg = "{{ msg1_pre }}"+msg_recips+"{{ msg1_post }}";
+	} else if (msg_type === "msg2") {
+		msg = "{{ msg2_pre }}"+msg_recips+"{{ msg2_post }}";
 	} else if (msg_type === "other") {
 		for (i=0; i < recips.length; i++) {
 			$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
@@ -199,10 +199,10 @@ function doShare() {
 	// The actual call to do the sharing
 	// In the future, we'll probably want to parametarize this for different types of actions
 	FB.api(
-		'/me/edgeflip:read',
+		'/me/{{ fb_app_name }}:{{ fb_action_type }}',
 		'post',
 		{ 
-		  article: 'http://rayid.bigmarker.com/button',
+		  {{ fb_object_type }}: '{{ fb_object_url }}',
 		  message: msg
 		},
 		function(response) {

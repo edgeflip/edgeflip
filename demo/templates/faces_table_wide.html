@@ -36,9 +36,6 @@
 
 </SCRIPT>
 
-<form>
-
-<div class="left_container">
 <div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 <div class="faces_container">
 <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
@@ -72,49 +69,6 @@
 </script>
 
 </div> <!-- faces_container -->
-</div> <!-- left_container -->
-
-<div class="right_container">
-<div class="msg_title">Choose A Message:</div>
-<div class="msg_picker">
-
-	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="hi-there" onChange="updateMsg();" /> 
-		</div>
-		<div class="msg_txt">
-			Hi there <span class="preset_names"></span> -- I just read a great article about Targeted Sharing and you should, too!
-		</div>
-	</div>
-
-	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="kasell" onChange="updateMsg();" /> 
-		</div>
-		<div class="msg_txt">
-			Targeted Sharing is the way of the future. Go read about it now, <span class="preset_names"></span>!
-		</div>
-	</div>
-
-	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
-		</div>
-		<div class="msg_txt">
-			Write your own message (type around your friends' names):<BR />
-			<div id="other_msg" contentEditable="True">Replace this text with your message for </div>
-		</div>
-	</div>	
-
-</div> <!-- msg_picker -->
-
-<div id="do_share_container">
-	<div id="do_share_button" onclick="doShare();"></div>
-</div>
-
-</div> <!-- right_container -->
-
-</form>
 
 <script>
 

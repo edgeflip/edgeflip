@@ -1,21 +1,29 @@
 <!DOCTYPE html>
 
-{# note: parameters here aren't yet worked into javascript for share itself... #}
+{#- eventually all of these parameters should be specified by python, allowing customizable content -#}
 
-{% set page_title = 'TIME Targeted Sharing Article' %}
+{%- set page_title = 'TIME Targeted Sharing Article' -%}
 
-{% set fb_app_name = 'edgeflip' %}
-{% set fb_app_id = '471727162864364' %}
+{%- set fb_app_name = 'edgeflip' -%}
+{%- set fb_app_id = '471727162864364' -%}
 
-{% set fb_action_type = 'read' %}
-{% set fb_object_type = 'article' %}
-{% set fb_object_title = 'TIME Targeted Sharing Article' %}
-{% set fb_object_image = url_for('static', filename='doc_brown.jpg') %}
-{% set fb_object_desc = "According to TIME Magazine, Targeted Sharing is cool! Jim Messina called it one of the best things Obama's re-election campaign did and now you can use it to, for the low price of $100 Million." %}
-{% set fb_object_url = "http://rayid.bigmarker.com/button" %}
+{%- set fb_action_type = 'read' -%}
+{%- set fb_object_type = 'article' -%}
+{%- set fb_object_title = 'TIME Targeted Sharing Article' -%}
+{%- set fb_object_image = url_for('static', filename='doc_brown.jpg') -%}
+{%- set fb_object_desc = "According to TIME Magazine, Targeted Sharing is cool! Jim Messina called it one of the best things Obama's re-election campaign did and now you can use it to, for the low price of $100 Million." -%}
+{%- set fb_object_url = "http://rayid.bigmarker.com/button" -%}
+
+{#- In the future, maybe pass as an array and set message code with a loop? -#}
+{%- set msg1_pre = "Hi there " -%}
+{%- set msg1_post = " -- I just read a great article about Targeted Sharing and you should, too!" -%}
+{%- set msg2_pre = "Targeted Sharing is the way of the future. Go read about it now, " -%}
+{%- set msg2_post = "!" -%}
+{%- set msg_other_prompt = "Write your own message (type around your friends' names):" -%}
+{%- set msg_other_init = "Replace this text with your message for " -%}
 
 
-{% include 'fb_object_header.html' %}
+{%- include 'fb_object_header.html' -%}
 
 	<link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
 
@@ -70,7 +78,9 @@
 					];
 		preload(imgsToLoad);
 	</SCRIPT>
-	<script src="{{ url_for('static', filename='faces_and_msg.js') }}"></script>
+	<SCRIPT>
+		{% include 'faces_and_msg.js' %}
+	</SCRIPT>
 	<!-- edgeflip javascript -->
 
 </HEAD>
@@ -107,7 +117,51 @@
 		<p></p>
 	</div>
 	
-	<div id="your-friends-here"></div>
+	<div id="your-friends-here">
+
+		<div class="left_container"></div> <!-- left_container -->
+
+		<div class="right_container">
+		<div class="msg_title">Choose A Message:</div>
+		<div class="msg_picker">
+
+			<div class="msg_block">
+				<div class="msg_radio">
+					<input type="radio" name="msg" value="msg1" onChange="updateMsg();" /> 
+				</div>
+				<div class="msg_txt">
+					{{ msg1_pre }}<span class="preset_names"></span>{{ msg1_post }}
+				</div>
+			</div>
+
+			<div class="msg_block">
+				<div class="msg_radio">
+					<input type="radio" name="msg" value="msg2" onChange="updateMsg();" /> 
+				</div>
+				<div class="msg_txt">
+					{{ msg2_pre }}<span class="preset_names"></span>{{ msg2_post }}
+				</div>
+			</div>
+
+			<div class="msg_block">
+				<div class="msg_radio">
+					<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
+				</div>
+				<div class="msg_txt">
+					{{ msg_other_prompt }}<BR />
+					<div id="other_msg" contentEditable="True">{{ msg_other_init }}</div>
+				</div>
+			</div>	
+
+		</div> <!-- msg_picker -->
+
+		<div id="do_share_container">
+			<div id="do_share_button" onclick="doShare();"></div>
+		</div>
+
+		</div> <!-- right_container -->
+
+	</div>
 
 </div>
 
@@ -120,7 +174,7 @@
 	window.fbAsyncInit = function() {
 
 
-		FB.init({ appId: '471727162864364', //change the appId to your appId
+		FB.init({ appId: '{{ fb_app_id }}', //change the appId to your appId
 			status: true, 
 			cookie: true,
 			xfbml: true,
