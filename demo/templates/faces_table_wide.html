@@ -37,6 +37,15 @@
 </SCRIPT>
 
 <script>
+	function adjust_manual_width() {
+		alert('now here!');
+		$("#picked_friends_container").width(
+			$("#manual_add").width() 
+			- $("#manual_input_container").width() 
+			- 20
+		);
+		alert('manual input loaded!');
+	}
 	$(document).on('load', '#manual_input', function(e) { alert('now here!');
 						$("#picked_friends_container").width(
 								$("#manual_add").width() 
@@ -69,7 +78,7 @@
 <div id="manual_add">
 	<div id="manual_input_container">
 		<div>Manually add up to three other friends:</div>
-		<div><input id="manual_input" /></div>
+		<div><input id="manual_input" onLoad="adjust_manual_width();" /></div>
 	</div>
 	<div id="picked_friends_container"></div>
 </div> <!-- manual_add -->
