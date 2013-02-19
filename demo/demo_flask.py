@@ -241,8 +241,8 @@ def filter_friends(friends):
 
 @app.route('/queue')
 def queueStatus(msg=''):
-	if (request.args.get('queueName')):
-		qName = request.args.get('queueName')
+	if (flask.request.args.get('queueName')):
+		qName = flask.request.args.get('queueName')
 	else:
 		qName = config['queuename']
 	qSize = StreamReaderQueue.getQueueSize(qName)
@@ -252,13 +252,13 @@ def queueStatus(msg=''):
 
 @app.route('/queue_reset')
 def queueReset():
-	qName = request.args.get('queueName')
+	qName = flask.request.args.get('queueName')
 	StreamReaderQueue.resetQueue(qName)
 	return queueStatus("Queue '%s' has been reset." % (qName))
 
 @app.route('/queue_load')
 def queueLoad():
-	count = StreamReaderQueue.loadQueueFile(request.args.get('queueName'), request.args.get('loadPath'))
+	count = StreamReaderQueue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
 	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
 
 
