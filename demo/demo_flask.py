@@ -258,6 +258,7 @@ def queueReset():
 
 @app.route('/queue_load')
 def queueLoad():
+	qName = flask.request.args.get('queueName')
 	count = StreamReaderQueue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
 	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
 

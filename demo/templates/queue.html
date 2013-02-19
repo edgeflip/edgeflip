@@ -11,11 +11,14 @@
 
 	<div style='margin: 0px auto; width: 800px; padding: 20px; background-color: #CFCFCF; font-family: arial, sans; font-weight: bold'>
 
-		<span style='font-size: 2.0em'>edgeflip queue control<br><br></span>
+		<span style='font-size: 2.0em'>edgeflip queue control</span>
 		<p>
 
-		{{msg}}
-		<p>
+		<div style='color: red'>
+		{{msg}}&nbsp;
+		</div>
+		<br>
+		<br>
 
 		<input type='text' name='queueName' id='txtQueueName' size=22 value='{{queueName}}'>&nbsp has {{queueSize}}&nbsp;entries ({{updateTs}})
 		<p>
