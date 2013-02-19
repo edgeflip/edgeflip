@@ -244,8 +244,8 @@ def queueStatus():
 	qName = config['queuename']
 	qSize = StreamReaderQueue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
-	loadName = './test_queue.txt'
-	return render_template('queue.html', queueName=qName, queueSize=qSize, updateTs=uTs, loadName=)
+	lName = './test_queue.txt'
+	return render_template('queue.html', queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
 
 
 
