@@ -3,8 +3,10 @@ import flask
 from flask import Flask, render_template
 import ReadStream
 import ReadStreamDb
+import StreamReaderQueue
 import sys
 import json
+import time
 
 from Config import config
 # try:
@@ -60,7 +62,7 @@ def flip_it():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	# now, spawn a full crawl in the background
 ##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
@@ -155,11 +157,14 @@ def rank_people():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	if (rankfn.lower() == "px4"):
 		# now, spawn a full crawl in the background
-		pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+
+		#pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
+		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
+
 		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
 	else:
@@ -264,6 +269,36 @@ def filter_friends(friends):
 
 	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) )]
 	return filtered_friends
+
+
+
+############################ QUEUE #############################
+
+@app.route('/queue')
+def queueStatus(msg=''):
+	if (flask.request.args.get('queueName')):
+		qName = flask.request.args.get('queueName')
+	else:
+		qName = config['queuename']
+	qSize = StreamReaderQueue.getQueueSize(qName)
+	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
+	lName = './test_queue.txt'
+	return render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+
+@app.route('/queue_reset')
+def queueReset():
+	qName = flask.request.args.get('queueName')
+	StreamReaderQueue.resetQueue(qName)
+	return queueStatus("Queue '%s' has been reset." % (qName))
+
+@app.route('/queue_load')
+def queueLoad():
+	qName = flask.request.args.get('queueName')
+	count = StreamReaderQueue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
+	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
+
+
+
 
 
 
