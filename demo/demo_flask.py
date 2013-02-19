@@ -240,12 +240,28 @@ def filter_friends(friends):
 ############################ QUEUE #############################
 
 @app.route('/queue')
-def queueStatus():
-	qName = config['queuename']
+def queueStatus(msg=''):
+	if (request.args.get('queueName')):
+		qName = request.args.get('queueName')
+	else:
+		qName = config['queuename']
 	qSize = StreamReaderQueue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
 	lName = './test_queue.txt'
-	return render_template('queue.html', queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+	return render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+
+@app.route('/queue_reset')
+def queueReset():
+	qName = request.args.get('queueName')
+	StreamReaderQueue.resetQueue(qName)
+	return queueStatus("Queue '%s' has been reset." % (qName))
+
+@app.route('/queue_load')
+def queueLoad():
+	count = StreamReaderQueue.loadQueueFile(request.args.get('queueName'), request.args.get('loadPath'))
+	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
+
+
 
 
 

@@ -14,14 +14,23 @@
 		<span style='font-size: 2.0em'>edgeflip queue control<br><br></span>
 		<p>
 
-		queue&nbsp;<input type='text' name='txtQueueName' id='txtQueueName' size=22 value='{{queueName}}'>&nbsp has {{queueSize}}&nbsp;entries ({{updateTs}})&nbsp;
-		<input type='button' value='update' style='width: 100px'>
+		{{msg}}
 		<p>
 
-		<input type='button' value='reset queue' style='width: 100px'>
+		<input type='text' name='queueName' id='txtQueueName' size=22 value='{{queueName}}'>&nbsp has {{queueSize}}&nbsp;entries ({{updateTs}})
 		<p>
 
-		<input type='button' value='load queue' style='width: 100px'>&nbsp;<input type='text' name='txtLoadPath' id='txtLoadPath' size=50 value='{{loadName}}'>
+		<input type='button' value='update' style='width: 100px' onClick='window.location="/queue?queueName="+document.getElementById("txtQueueName").value'>
+		<p>
+
+		<br>
+		<br>
+		<input type='button' value='reset queue' style='width: 100px' onClick='window.location="/queue_reset?queueName="+document.getElementById("txtQueueName").value'>
+		<p>
+
+		<input type='button' value='load queue' style='width: 100px' onClick='window.location="/queue_load?queueName="+document.getElementById("txtQueueName").value+"&loadPath="+document.getElementById("txtLoadPath").value'>
+		&nbsp;
+		<input type='text' name='loadPath' id='txtLoadPath' size=40 value='{{loadName}}'>
 		<p>
 
 

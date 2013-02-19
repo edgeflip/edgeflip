@@ -40,6 +40,10 @@ def loadQueue(queueName, entries, transFunc=lambda x: x):
 	connection.close()
 	return publishCount
 
+def loadQueueFile(queueName, loadName)	
+	with open(loadName, 'r') as infile:
+		return loadQueue(queueName, infile, lambda line: json.loads(line.rstrip("\n")))
+
 def getQueueSize(queueName):
 	connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 	channel = connection.channel()
@@ -68,8 +72,9 @@ if (__name__ == '__main__'):
 	if (args.reset):
 		resetQueue(args.queueName)
 	if (args.load):
-		with open(args.load, 'r') as infile:
-			loadQueue(args.queueName, infile, lambda line: json.loads(line.rstrip("\n")))
+		loadQueueFile(args.queueName, args.load)	
+		#with open(args.load, 'r') as infile:
+		#	loadQueue(args.queueName, infile, lambda line: json.loads(line.rstrip("\n")))
 
 	sys.stderr.write("queue has %d elements\n" % getQueueSize(args.queueName))
 
