@@ -3,8 +3,10 @@ import flask
 from flask import Flask, render_template
 import ReadStream
 import ReadStreamDb
+import StreamReaderQueue
 import sys
 import json
+import time
 
 from Config import config
 # try:
@@ -232,6 +234,19 @@ def filter_friends(friends):
 
 	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) )]
 	return filtered_friends
+
+
+
+############################ QUEUE #############################
+
+@app.route('/queue')
+def queueStatus():
+	qName = config['queuename']
+	qSize = StreamReaderQueue.getQueueSize(qName)
+	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
+	loadName = './test_queue.txt'
+	return render_template('queue.html', queueName=qName, queueSize=qSize, updateTs=uTs, loadName=)
+
 
 
 
