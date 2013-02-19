@@ -40,7 +40,7 @@ def loadQueue(queueName, entries, transFunc=lambda x: x):
 	connection.close()
 	return publishCount
 
-def loadQueueFile(queueName, loadName)	
+def loadQueueFile(queueName, loadName):
 	with open(loadName, 'r') as infile:
 		return loadQueue(queueName, infile, lambda line: json.loads(line.rstrip("\n")))
 
