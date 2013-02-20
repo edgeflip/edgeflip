@@ -216,7 +216,7 @@ def getUserDb(conn, userId):
 	fbid, fname, lname, gender, birthday, token, friend_token, updated = rec
 	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday))
 
-def getFriendEdgesDb(conn, primId, includeOutgoing=False, newerThan=0):
+def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 	if (conn is None):
 		conn = ReadStreamDb.getConn()
 	curs = conn.cursor()
@@ -228,7 +228,7 @@ def getFriendEdgesDb(conn, primId, includeOutgoing=False, newerThan=0):
 			FROM edges
 			WHERE prim_id=? AND updated>?
 	""" 
-	if (includeOutgoing):
+	if (requireOutgoing):
 		sql += """
 			AND out_post_likes IS NOT NULL 
 			AND out_post_comms IS NOT NULL 
@@ -275,7 +275,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 	else:
 		# want the edges that were updated less than overwriteThresh secs ago, we'll exclude these
 		updateThresh = time.time() - overwriteThresh
-		edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing=readFriendStream, newerThan=updateThresh)
+		edgesDb = getFriendEdgesDb(conn, userId, requireOutgoing=readFriendStream, newerThan=updateThresh)
 		friendIdsPrev = set([ e.secondary.id for e in edgesDb ])
 		friendQueue = [ f for f in friends if f.id not in friendIdsPrev ]
 
@@ -317,18 +317,18 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 	conn.commit()
 	return insertCount
 
-def getFriendRanking(conn, userId, includeOutgoing=True):
-	edgesDb = getFriendEdgesDb(conn, userId, includeOutgoing)
+def getFriendRanking(conn, userId, requireOutgoing=True):
+	edgesDb = getFriendEdgesDb(conn, userId, requireOutgoing)
 	logging.info("have %d edges", len(edgesDb))
 
 	ipl = max([ e.inPostLikes for e in edgesDb ] + [None])
 	ipc = max([ e.inPostComms for e in edgesDb ] + [None])
 	isl = max([ e.inStatLikes for e in edgesDb ] + [None])
 	isc = max([ e.inStatComms for e in edgesDb ] + [None])		
-	opl = max([ e.outPostLikes for e in edgesDb ] + [None]) if (includeOutgoing) else None
-	opc = max([ e.outPostComms for e in edgesDb ] + [None]) if (includeOutgoing) else None
-	osl = max([ e.outStatLikes for e in edgesDb ] + [None]) if (includeOutgoing) else None
-	opc = max([ e.outStatComms for e in edgesDb ] + [None]) if (includeOutgoing) else None
+	opl = max([ e.outPostLikes for e in edgesDb ] + [None]) if (requireOutgoing) else None
+	opc = max([ e.outPostComms for e in edgesDb ] + [None]) if (requireOutgoing) else None
+	osl = max([ e.outStatLikes for e in edgesDb ] + [None]) if (requireOutgoing) else None
+	opc = max([ e.outStatComms for e in edgesDb ] + [None]) if (requireOutgoing) else None
 	mut = max([ e.mutuals for e in edgesDb ] + [None])
 	
 	friendTups = []
@@ -338,19 +338,19 @@ def getFriendRanking(conn, userId, includeOutgoing=True):
 		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, str(edge), score))
 	return friendTups
 
-def spawnCrawl(userId, tok, includeOutgoing, overwrite):
+def spawnCrawl(userId, tok, requireOutgoing, overwrite):
 	# python run_crawler.py userId tok outgoing overwrite
-	pid = subprocess.Popen(["python", config['codedir'].rstrip('/') + "/run_crawler.py", str(userId), tok, "1" if includeOutgoing else "0", "1" if overwrite else "0"]).pid
+	pid = subprocess.Popen(["python", config['codedir'].rstrip('/') + "/run_crawler.py", str(userId), tok, "1" if requireOutgoing else "0", "1" if overwrite else "0"]).pid
 	logging.debug("spawned process %d to crawl user %d" % (pid, userId))
 	return pid
 
 def getFriendRankingBestAvail(conn, userId, threshold=0.5):
-	edgeCountPart = len(getFriendEdgesDb(conn, userId, includeOutgoing=False))
-	edgeCountFull = len(getFriendEdgesDb(conn, userId, includeOutgoing=True))
+	edgeCountPart = len(getFriendEdgesDb(conn, userId, requireOutgoing=False))
+	edgeCountFull = len(getFriendEdgesDb(conn, userId, requireOutgoing=True))
 	if (edgeCountPart*threshold < edgeCountFull):
-		return getFriendRanking(conn, userId, includeOutgoing=True)
+		return getFriendRanking(conn, userId, requireOutgoing=True)
 	else:
-		return getFriendRanking(conn, userId, includeOutgoing=False)
+		return getFriendRanking(conn, userId, requireOutgoing=False)
 
 
 
@@ -411,7 +411,7 @@ if (__name__ == '__main__'):
 	for i, userId in enumerate(users):
 		nam, tok = user_info[userId]
 
-		includeOutgoing = True
+		requireOutgoing = True
 
 		try:
 			user = getUserFb(userId, tok)
@@ -420,10 +420,10 @@ if (__name__ == '__main__'):
 			continue
 		updateUserDb(conn, user, tok, None)
 
-		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=includeOutgoing, overwrite=True)
+		newCount = updateFriendEdgesDb(conn, userId, tok, readFriendStream=requireOutgoing, overwrite=True)
 		logging.debug("inserted %d new edges\n" % newCount)
 
-		friendTups = getFriendRanking(conn, userId, includeOutgoing) # id, fname, lname, gender, age, desc, score
+		friendTups = getFriendRanking(conn, userId, requireOutgoing) # id, fname, lname, gender, age, desc, score
 		for fbid, fname, lname, gender, age, desc, score in friendTups:
 			name = fname + " " + lname
 			sys.stderr.write("friend %20s %32s %s %.4f\n" % (fbid, name, "", score))
