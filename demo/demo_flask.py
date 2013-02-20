@@ -100,7 +100,7 @@ def face_it():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwrite=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	# now, spawn a full crawl in the background
 ##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)

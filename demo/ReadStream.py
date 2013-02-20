@@ -259,7 +259,7 @@ def updateUserDb(conn, user, tok, tokFriend):
 	curs.execute(sql, params)
 	conn.commit()	
 
-def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThresh=sys.maxint):
+def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThresh=sys.maxint): # default behavior is never overwrite
 	try:
 		friends = getFriendsFb(userId, tok)
 	except:
