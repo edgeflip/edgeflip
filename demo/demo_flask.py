@@ -279,7 +279,7 @@ def queueStatus(msg=''):
 	if (flask.request.args.get('queueName')):
 		qName = flask.request.args.get('queueName')
 	else:
-		qName = config['queuename']
+		qName = config['queue']
 	qSize = StreamReaderQueue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
 	lName = './test_queue.txt'

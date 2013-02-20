@@ -6,7 +6,7 @@ import logging
 defaults = {}
 defaults['outdir'] = '.'
 defaults['codedir'] = '.'
-defaults['queuename'] = 'edgeflip_demo'
+defaults['queue'] = 'edgeflip_demo'
 
 try: 
 	config = json.load(open('edgeflip.config', 'r'))
