@@ -137,8 +137,9 @@ class UserInfo(object):
 		self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
 
 class FriendInfo(UserInfo):
-	def __init__(self, uid, first_name, last_name, sex, birthday, mutual_friend_count):
-		UserInfo.__init__(self, uid, first_name, last_name, sex, birthday)
+	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, mutual_friend_count):
+		UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday)
+		self.idPrimary = primId
 		self.mutuals = mutual_friend_count
 
 def getFb(url):
@@ -168,7 +169,7 @@ def getFriendsFb(userId, token):
 	#return friendTups
 	friends = []
 	for rec in responseJson['data']:
-		f = FriendInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), rec['mutual_friend_count'])
+		f = FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), rec['mutual_friend_count'])
 		friends.append(f)
 	return friends
 
