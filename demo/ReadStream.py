@@ -142,13 +142,13 @@ class FriendInfo(UserInfo):
 		self.idPrimary = primId
 		self.mutuals = mutual_friend_count
 
-def getFb(url):
+def getUrlFb(url):
 	try:
 		responseFile = urllib2.urlopen(url, timeout=60)
 	except (urllib2.URLError, urllib2.HTTPError) as e: 
 		logging.info("error opening url %s: %s" % (url, e.reason))
 		raise
-        responseJson = json.load(responseFile)
+	responseJson = json.load(responseFile)
 	return responseJson
 
 
@@ -161,7 +161,7 @@ def getFriendsFb(userId, token):
 	#	logging.info("error opening friends url for user %s: %s" % (userId, e.reason))
 	#	return None
 	#responseJson = json.load(responseFile)
-	responseJson = getFb(url)
+	responseJson = getUrlFb(url)
 
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 	#friendIds = [ rec['uid2'] for rec in responseJson['data'] ]
@@ -183,7 +183,7 @@ def getUserFb(userId, token):
         #        logging.info("error opening user url for user %s: %s" % (userId, e.reason))
         #        return None
 	#responseJson = json.load(responseFile)
-	responseJson = getFb(url)
+	responseJson = getUrlFb(url)
 	rec = responseJson['data'][0]
 	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']))
 	return user
