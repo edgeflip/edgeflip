@@ -21,7 +21,7 @@ function show_friends() {
 				login(response, info);
 			});	   
 		}
-	}, {scope:'email,user_birthday,status_update,publish_stream,user_about_me'});
+	}, {scope:'email,user_birthday,friends_birthday,publish_stream,user_about_me,user_location,friends_location'});
 
 }
 
