@@ -46,7 +46,7 @@ def face_it():
 	friendDicts = []
 
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]), 'fname':t[1], 'lname':t[2] }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6], 'desc':t[7], 'score':"%.4f"%float(t[8]), 'fname':t[1], 'lname':t[2] }
 		for c, count in enumerate(t[2].split()):
 			fd['count' + str(c)] = count
 		friendDicts.append(fd)
@@ -95,7 +95,7 @@ def rank_faces():
 
 	friendDicts = []
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[6]) }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6],  'desc':t[7].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[8]) }
 		friendDicts.append(fd)
 
 	# Apply control panel targeting filters
@@ -177,7 +177,16 @@ def filter_friends(friends):
 		else:
 			return ( config_dict['gender'] == friend['gender'] )
 
-	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) )]
+	def location_match(friend):
+		# NOTE: Right now, control panel just has state-level location filtering!!
+		if ( (not config_dict['location']) or config_dict['location'] == 'any'):
+			return True
+		elif (not friend['state']):
+			return False
+		else:
+			return ( config_dict['location'] == friend['state'] )
+
+	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) and location_match(f) )]
 	return filtered_friends
 
 
