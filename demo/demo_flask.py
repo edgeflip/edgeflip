@@ -88,10 +88,10 @@ def rank_faces():
 
 		# now, spawn a full crawl in the background
 		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=False)
 
 	else:
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
+ 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=True)
 
 	friendDicts = []
 	for i, t in enumerate(friendTups):
