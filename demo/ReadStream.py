@@ -172,8 +172,8 @@ def getFriendsFb(userId, token):
 	#return friendTups
 	friends = []
 	for rec in responseJson['data']:
-		city = rec['current_location'].get('city') if 'current_location' in rec else None
-		state = rec['current_location'].get('state') if 'current_location' in rec else None
+		city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
+		state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
 		f = FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, rec['mutual_friend_count'])
 		friends.append(f)
 	return friends
@@ -190,8 +190,8 @@ def getUserFb(userId, token):
 	#responseJson = json.load(responseFile)
 	responseJson = getUrlFb(url)
 	rec = responseJson['data'][0]
-	city = rec['current_location'].get('city') if 'current_location' in rec else None
-	state = rec['current_location'].get('state') if 'current_location' in rec else None
+	city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
+	state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
 	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
