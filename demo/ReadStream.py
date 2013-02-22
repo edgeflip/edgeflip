@@ -127,7 +127,7 @@ class EdgeSC2(Edge):
 
 
 class UserInfo(object):
-	def __init__(self, uid, first_name, last_name, sex, birthday):
+	def __init__(self, uid, first_name, last_name, sex, birthday, city, state):
 		self.id = uid
 		self.fname = first_name
 		self.lname = last_name
@@ -136,9 +136,12 @@ class UserInfo(object):
 		self.birthday = birthday
 		self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
 
+		self.city = city
+		self.state = state
+
 class FriendInfo(UserInfo):
-	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, mutual_friend_count):
-		UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday)
+	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, mutual_friend_count):
+		UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
 		self.idPrimary = primId
 		self.mutuals = mutual_friend_count
 
@@ -153,7 +156,7 @@ def getUrlFb(url):
 
 
 def getFriendsFb(userId, token):
-	fql = """SELECT uid, first_name, last_name, sex, birthday_date, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
 	#try:
 	#	responseFile = urllib2.urlopen(url, timeout=60)
@@ -169,13 +172,13 @@ def getFriendsFb(userId, token):
 	#return friendTups
 	friends = []
 	for rec in responseJson['data']:
-		f = FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), rec['mutual_friend_count'])
+		f = FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), rec['current_location']['city'], rec['current_location']['state'], rec['mutual_friend_count'])
 		friends.append(f)
 	return friends
 
 
 def getUserFb(userId, token):
-	fql = """SELECT uid, first_name, last_name, sex, birthday_date FROM user WHERE uid=%s""" % (userId)
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s""" % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
 	#try:
 	#	responseFile = urllib2.urlopen(url, timeout=60)
@@ -185,7 +188,9 @@ def getUserFb(userId, token):
 	#responseJson = json.load(responseFile)
 	responseJson = getUrlFb(url)
 	rec = responseJson['data'][0]
-	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']))
+	city = rec['current_location']['city']
+	state = rec['current_location']['state']
+	user = UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
 
@@ -207,14 +212,14 @@ def dateFromIso(dateStr):
 
 
 def getUserDb(conn, userId):
-	sql = """SELECT fbid, fname, lname, gender, birthday, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
+	sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
 	#logging.debug(sql)
 	curs = conn.cursor()
 	curs.execute(sql)
 	rec = curs.fetchone()
 	#logging.debug(str(rec))
-	fbid, fname, lname, gender, birthday, token, friend_token, updated = rec
-	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday))
+	fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
+	return UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
 
 def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 	if (conn is None):
@@ -246,16 +251,16 @@ def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 def updateUserDb(conn, user, tok, tokFriend):
 	# can leave tok or tokFriend blank, in that case it will not overwrite
 
-	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, token, friend_token, updated) "
+	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated) "
 	if (tok is None):
-		sql += "VALUES (?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.id, tokFriend, time.time())
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, user.id, tokFriend, time.time())
 	elif (tokFriend is None):
-		sql += "VALUES (?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), tok, user.id, time.time())
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, user.id, time.time())
 	else:
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), tok, tokFriend, time.time())
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
 	curs = conn.cursor()
 	curs.execute(sql, params)
 	conn.commit()	
@@ -335,7 +340,7 @@ def getFriendRanking(conn, userId, requireOutgoing=True):
 	for edge in sorted(edgesDb, key=lambda x: x.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut), reverse=True):
 		score = edge.prox(ipl, ipc, isl, isc, opl, opc, osl, opc, mut)
 		friend = edge.secondary
-		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, str(edge), score))
+		friendTups.append((friend.id, friend.fname, friend.lname, friend.gender, friend.age, friend.city, friend.state, str(edge), score))
 	return friendTups
 
 def spawnCrawl(userId, tok, requireOutgoing, overwrite):

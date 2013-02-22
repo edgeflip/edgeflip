@@ -9,88 +9,25 @@ import json
 import time
 
 from Config import config
-# try:
-# 	ef_config = open('edgeflip.config', 'r')
-# 	ef_dict = json.loads(ef_config.read())
-# 	if (not ef_dict['outdir']):
-# 		ef_dict['outdir'] = ''
-# except:
-# 	ef_dict = {'outdir' : ''}
 
 
 app = Flask(__name__)
 
 
-@app.route("/reset")
-def reset():
-	ReadStreamDb.dbSetup()
-	return "database has been reset"
-
 @app.route("/", methods=['POST', 'GET'])
-def hello():
-	guineaPigs = [ { 'id':t[0], 'name':t[1], 'token':t[2] } for t in ReadStream.USER_TUPS ]
-	return render_template('demo.html', users=guineaPigs)
+def home():
+	return render_template('index.html')
 
+@app.route('/demo')
+@app.route('/button')
+@app.route('/all_the_dude_ever_wanted')
+def button_man():
+	return render_template('frame_wide.html')
 
-@app.route("/fb/", methods=['POST', 'GET'])
-def fb():
-	return render_template('demo_fb.html')
-
-		
-@app.route('/crawl', methods=['POST'])
-def read_stream():
-	userId = flask.request.json['fbid']
-	tok = flask.request.json['token']
-	includeOutgoing = flask.request.json['outgoing']
-
-
-
-	return flip_it()
-
-
-@app.route('/fb/edgeflip', methods=['POST', 'GET'])
-@app.route('/edgeflip', methods=['POST', 'GET'])
-def flip_it():
-	#sys.stderr.write("flask.request: %s\n" % (str(flask.request)))
-	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
-	fbid = flask.request.json['fbid']
-	tok = flask.request.json['token']
-	num = int(flask.request.json['num'])
-
-	conn = ReadStreamDb.getConn()
-	user = ReadStream.getUserFb(fbid, tok)
-	ReadStream.updateUserDb(conn, user, tok, None)
-
- 	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
-
-	# now, spawn a full crawl in the background
-##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
-	#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
-	friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
-
-	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
-	friendDicts = []
-	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]) }
-		for c, count in enumerate(t[2].split()):
-			fd['count' + str(c)] = count
-		friendDicts.append(fd)
-
-	for fd in friendDicts:
-		sys.stderr.write(str(fd) + "\n")
-
-	# Apply control panel targeting filters
-	filteredDicts = filter_friends(friendDicts)
-
-	ret = render_template('friend_table.html', friends=filteredDicts)
-	#sys.stderr.write("rendered: " + str(ret) + "\n")
-	return ret
-		
-
-@app.route('/edgeflip_faces', methods=['POST'])
+@app.route('/demo_faces', methods=['POST'])
 def face_it():
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
+
 	fbid = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
@@ -103,15 +40,13 @@ def face_it():
 	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	# now, spawn a full crawl in the background
-##	pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
-	#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
-	#friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
-	friendTups = ReadStream.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
+	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	#friendDicts = [ { 'rank':i, 'id':t[0], 'name':t[1], 'desc':t[2], 'score':"%.4f"%t[3] } for i, t in enumerate(friendTups) ]
+	friendTups = ReadStream.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
 	friendDicts = []
+
 	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5], 'score':"%.4f"%float(t[6]), 'fname':t[1], 'lname':t[2] }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6], 'desc':t[7], 'score':"%.4f"%float(t[8]), 'fname':t[1], 'lname':t[2] }
 		for c, count in enumerate(t[2].split()):
 			fd['count' + str(c)] = count
 		friendDicts.append(fd)
@@ -124,30 +59,20 @@ def face_it():
 
 	faceFriends = filteredDicts[:6]
 	numFace = len(faceFriends)
-#	shareurl = 'http://www.foulballtracker.com/'
 	allFriends = filteredDicts[:25]
 	ret = render_template('faces_table_wide.html', face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	return ret
 
-@app.route('/button')
-@app.route('/all_the_dude_ever_wanted')
-def button_man():
-	return render_template('frame_wide.html')
 
-@app.route('/rank_demo')
+@app.route('/rank')
 def rank_demo():
 	return render_template('rank_demo.html')
 
-@app.route('/edgeflip_rankPeople', methods=['POST'])
-def rank_people():
+@app.route('/rank_faces', methods=['POST'])
+def rank_faces():
 	import time
-	#print "Hello there!"
 	
-	# fbid: fbid,
-	# token: accessToken,
-	# num: num,
-	# rankfn: 'px4'
 	fbid = flask.request.json['fbid']
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
@@ -160,20 +85,17 @@ def rank_people():
 	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	if (rankfn.lower() == "px4"):
+
 		# now, spawn a full crawl in the background
-
-		#pid = ReadStream.spawnCrawl(fbid, tok, includeOutgoing=True, overwrite=False)
 		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
-
-		#friendTups = ReadStream.getFriendRankingCrawl(conn, fbid, tok, includeOutgoing=False)
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=False)
+
 	else:
  		friendTups = ReadStream.getFriendRanking(conn, fbid, includeOutgoing=True)
 
 	friendDicts = []
 	for i, t in enumerate(friendTups):
-		# friend.id, friend.fname, friend.lname, friend.gender, friend.age, desc, score
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4],  'desc':t[5].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[6]) }
+		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6],  'desc':t[7].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[8]) }
 		friendDicts.append(fd)
 
 	# Apply control panel targeting filters
@@ -181,20 +103,7 @@ def rank_people():
 
 	ret = render_template('rank_faces.html', face_friends=filteredDicts)
 	return ret
-
-
-
-@app.route('/mention')
-def mention_test():
-	return render_template('friend_picker.html')
-
-@app.route('/pretty_faces')
-def pretty_face():
-	return render_template('pretty_face.html')
-
-@app.route('/wide_faces')
-def wide_face():
-	return render_template('wide_face.html')	
+	
 
 @app.route('/suppress', methods=['POST'])
 def suppress():
@@ -216,6 +125,7 @@ def suppress():
 
 
 ############################ CONTROL PANEL #############################
+
 @app.route("/cp", methods=['POST', 'GET'])
 @app.route("/control_panel", methods=['POST', 'GET'])
 def cp():
@@ -267,12 +177,25 @@ def filter_friends(friends):
 		else:
 			return ( config_dict['gender'] == friend['gender'] )
 
-	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) )]
+	def location_match(friend):
+		# NOTE: Right now, control panel just has state-level location filtering!!
+		if ( (not config_dict['location']) or config_dict['location'] == 'any'):
+			return True
+		elif (not friend['state']):
+			return False
+		else:
+			return ( config_dict['location'] == friend['state'] )
+
+	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) and location_match(f) )]
 	return filtered_friends
 
 
 
-############################ QUEUE #############################
+############################ UTILS #############################
+
+@app.route('/utils')
+def utils():
+	return "Combine queue and DB utils (and log reader?)"
 
 @app.route('/queue')
 def queueStatus(msg=''):
@@ -297,7 +220,10 @@ def queueLoad():
 	count = StreamReaderQueue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
 	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
 
-
+@app.route("/db_reset")
+def reset():
+	ReadStreamDb.dbSetup()
+	return "database has been reset"
 
 
 

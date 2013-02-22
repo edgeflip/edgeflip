@@ -46,7 +46,7 @@ function login(response, info){
 
 		$.ajax({
 			type: "POST",
-			url: '/edgeflip_faces',
+			url: '/demo_faces',
 			contentType: "application/json",
 			dataType: 'html',
 			data: params,

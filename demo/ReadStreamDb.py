@@ -47,6 +47,8 @@ def dbSetup(conn=None):
 											lname TEXT,
 											gender TEXT,
 											birthday INTEGER,
+											city TEXT,
+											state TEXT,
 											token TEXT,
 											friend_token TEXT,
 											updated REAL)""")
