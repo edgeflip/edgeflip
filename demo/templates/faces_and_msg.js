@@ -199,9 +199,7 @@ function doShare() {
 	// The actual call to do the sharing
 	// In the future, we'll probably want to parametarize this for different types of actions
 	FB.api(
-// FIXME: GET BACK TO TEMPLATE HERE!!!!!!!!
-//		'/me/{{ fb_app_name }}:{{ fb_action_type }}',
-		'/me/read',
+		'/me/{{ fb_app_name }}:{{ fb_action_type }}',
 		'post',
 		{ 
 		  {{ fb_object_type }}: '{{ fb_object_url }}',
