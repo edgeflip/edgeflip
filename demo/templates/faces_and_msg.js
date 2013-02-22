@@ -201,7 +201,7 @@ function doShare() {
 	FB.api(
 // FIXME: GET BACK TO TEMPLATE HERE!!!!!!!!
 //		'/me/{{ fb_app_name }}:{{ fb_action_type }}',
-		'/me/read'
+		'/me/read',
 		'post',
 		{ 
 		  {{ fb_object_type }}: '{{ fb_object_url }}',
