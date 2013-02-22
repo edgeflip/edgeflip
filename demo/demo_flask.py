@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 @app.route("/", methods=['POST', 'GET'])
 def home():
-	return "One day, I'll write a page with links... for now, you get this."
+	return render_template('index.html')
 
 @app.route('/demo')
 @app.route('/button')
