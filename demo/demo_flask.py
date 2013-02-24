@@ -82,7 +82,7 @@ def rank_faces():
 	ReadStream.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
+	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwriteThresh=0)
 
 	if (rankfn.lower() == "px4"):
 

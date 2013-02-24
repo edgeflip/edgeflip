@@ -139,6 +139,7 @@ class StreamCounts(object):
 class ReadStreamCounts(StreamCounts):
 	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60):
 		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount))
+		tim = ReadStream.Timer()
 		self.id = userId
 		self.stream = []
 		self.friendId_postLikeCount = defaultdict(int)
@@ -186,6 +187,10 @@ class ReadStreamCounts(StreamCounts):
 		for i, scChunk in enumerate(scChunks):
 			#logging.debug("chunk %d %s" % (i, str(scChunk)))
 			self.__iadd__(scChunk)
+		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr()))
+
+
+
 
 
 class ThreadStreamReader(threading.Thread):

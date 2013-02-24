@@ -23,7 +23,7 @@ import json
 # 					level=logging.DEBUG)
 from Config import config
 import ReadStreamDb
-import StreamReader
+import StreamReaderWorker
 
 
 NUM_JOBS = 12
@@ -156,6 +156,8 @@ def getUrlFb(url):
 
 
 def getFriendsFb(userId, token):
+	tim = Timer()
+	logging.debug("getting friends for %d" % userId)
 	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
 	#try:
@@ -176,6 +178,7 @@ def getFriendsFb(userId, token):
 		state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
 		f = FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, rec['mutual_friend_count'])
 		friends.append(f)
+	logging.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
 	return friends
 
 
@@ -268,6 +271,8 @@ def updateUserDb(conn, user, tok, tokFriend):
 	conn.commit()	
 
 def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThresh=sys.maxint): # default behavior is never overwrite
+	logging.debug("updating friend edges for %d" % userId)
+	tim = Timer()
 	try:
 		friends = getFriendsFb(userId, tok)
 	except:
@@ -288,7 +293,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 
 	logging.info('reading stream for user %s, %s', userId, tok)
 	#sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
-	sc = StreamReader.ReadStreamCounts(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+	sc = StreamReaderWorker.ReadStreamCounts(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 
 	logging.debug('got %s', str(sc))
 
@@ -305,7 +310,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
 				#scFriend = StreamReader.readStream(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
-				scFriend = StreamReader.ReadStreamCounts(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
+				scFriend = StreamReaderWorker.ReadStreamCounts(friend.id, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
 
 			except Exception:
 				logging.warning("error reading stream for %d", friend.id)
@@ -322,6 +327,8 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 
 	updateUserDb(conn, user, tok, None)
 	conn.commit()
+
+	logging.debug("updated %d friend edges for %d (%s)" % (insertCount, userId, tim.elapsedPr()))
 	return insertCount
 
 def getFriendRanking(conn, userId, requireOutgoing=True):
@@ -358,6 +365,33 @@ def getFriendRankingBestAvail(conn, userId, threshold=0.5):
 		return getFriendRanking(conn, userId, requireOutgoing=True)
 	else:
 		return getFriendRanking(conn, userId, requireOutgoing=False)
+
+
+
+
+def formatSecs(secs):
+	secs = int(secs)
+	if (secs < 3600):
+		return time.strftime("%M:%S", time.gmtime(secs))
+	elif (secs < 86400):
+		return time.strftime("%H:%M:%S", time.gmtime(secs))
+	else:
+		return str(secs/86400) + ":" + time.strftime("%H:%M:%S", time.gmtime(secs%86400))
+class Timer:
+	def __init__(self):
+		self.start = time.time()
+	def reset(self):
+		self.start = time.time()
+	def elapsed(self):
+		return time.time() - self.start
+	def elapsedPr(self):
+		return formatSecs(time.time() - self.start)
+	def stderr(self, txt=""):
+		sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
+tim = Timer()
+def elapsedPr():
+	return tim.elapsedPr()
+
 
 
 
