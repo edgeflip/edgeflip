@@ -219,7 +219,7 @@ class ThreadStreamReader(threading.Thread):
 			#sys.stderr.write(queryJson + "\n\n")
 
 			url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token	
-			#sys.stderr.write(url + "\n\n")
+			#sys.stderr.write(url + "\n\n") 
 
 			try:
 				responseFile = urllib2.urlopen(url, timeout=60)
@@ -245,7 +245,7 @@ class ThreadStreamReader(threading.Thread):
 			sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
 			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
 
-			logging.debug("stream counts for %s: %s" % (self.name, self.userId, str(sc)))
+			logging.debug("stream counts for %s: %s" % (self.userId, str(sc)))
 			
 			self.results.append(sc)
 			self.queue.task_done()
