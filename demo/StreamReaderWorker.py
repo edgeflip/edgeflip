@@ -204,6 +204,8 @@ class ThreadStreamReader(threading.Thread):
 
 	def run(self):
 		while True:
+			tim = ReadStream.Timer()
+
 			ts1, ts2 = self.queue.get()
 			logging.debug("reading stream for %s, interval (%s - %s)" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
 
@@ -225,7 +227,7 @@ class ThreadStreamReader(threading.Thread):
 				responseFile = urllib2.urlopen(url, timeout=60)
 				responseJson = json.load(responseFile)
 			except Exception as e:
-				logging.warning("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
 				self.queue.task_done()
 				self.queue.put((ts1, ts2))
 				continue
@@ -246,7 +248,8 @@ class ThreadStreamReader(threading.Thread):
 			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
 
 			logging.debug("stream counts for %s: %s" % (self.userId, str(sc)))
-			
+			logging.debug("chunk took %s" % (tim.elapsedPr()))
+
 			self.results.append(sc)
 			self.queue.task_done()
 
