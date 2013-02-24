@@ -183,9 +183,10 @@ class ReadStreamCounts(StreamCounts):
 				logging.debug("now have %d threads" % (tc))
 				
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
+
 		sc = StreamCounts(userId)
 		for i, scChunk in enumerate(scChunks):
-			#logging.debug("chunk %d %s" % (i, str(scChunk)))
+			logging.debug("chunk %d %s" % (i, str(scChunk)))
 			self.__iadd__(scChunk)
 		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr()))
 
@@ -243,6 +244,8 @@ class ThreadStreamReader(threading.Thread):
 			sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]
 			sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
 			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
+
+			logging.debug("thread %s stream counts for user %s: %s" % (self.name, self.userId, str(sc)))
 			
 			self.results.append(sc)
 			self.queue.task_done()
