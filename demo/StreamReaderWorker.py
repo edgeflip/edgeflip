@@ -205,7 +205,7 @@ class ThreadStreamReader(threading.Thread):
 	def run(self):
 		while True:
 			ts1, ts2 = self.queue.get()
-			logging.debug("thread %s reading stream for user %s, interval (%s - %s)" % (self.name, self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
+			logging.debug("reading stream for %s, interval (%s - %s)" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
 
 			queryJsons = []
 			streamLabel = "stream"
@@ -245,7 +245,7 @@ class ThreadStreamReader(threading.Thread):
 			sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
 			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
 
-			logging.debug("thread %s stream counts for user %s: %s" % (self.name, self.userId, str(sc)))
+			logging.debug("stream counts for %s: %s" % (self.name, self.userId, str(sc)))
 			
 			self.results.append(sc)
 			self.queue.task_done()
