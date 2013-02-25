@@ -81,6 +81,49 @@ def getUserFb(userId, token):
 	user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
+def getFriendEdgesFb(userId, token, requireOutgoing=False):
+
+	logging.debug("getting friend edges from FB for %d" % userId)
+	tim = datastructs.Timer()
+	try:
+		friends = getFriendsFb(userId, tok)
+	except:
+		return None
+	logging.debug("got %d friends total", len(friends))
+	
+	friendQueue = friends
+	# Need to deal with possibility we're going to want to skip some based on freshness in DB?!?!
+
+	logging.info('reading stream for user %s, %s', userId, tok)
+	sc = ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+	logging.debug('got %s', str(sc))
+
+	# sort all the friends by their stream rank (if any) and mutual friend count
+	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
+	logging.debug("got %d friends ranked", len(friendId_streamrank))
+	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
+
+	edges = []
+	user = getUserFb(userId, token)
+	for i, friend in enumerate(friendQueue):
+		if (requireOutgoing):
+			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+			try:
+				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+			except Exception:
+				logging.warning("error reading stream for %d", friend.id)
+				continue
+			logging.debug('got %s', str(scFriend))
+			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+		else:
+			e = datastructs.EdgeSC1(user, friend, sc)
+		edges.append(e)
+		logging.debug('edge %s', str(e))
+
+	logging.debug("got %d friend edges for %d (%s)" % (len(edges), userId, tim.elapsedPr()))
+
+	return edges
+
 
 class StreamCounts(object):
 	def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[]):

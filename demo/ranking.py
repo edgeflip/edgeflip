@@ -55,11 +55,12 @@ def getFriendRanking(userId, edges, requireOutgoing=True):
 							e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms, e.mutuals, 
 							iplM, ipcM, islM, iscM, oplM, opcM, oslM, opcM, mutM)
 
-	friendsRanked = []
-	for edge in sorted(edges, key=lambda x: edge_score[x], reverse=True):
-		friend = edge.secondary
-		friendsRanked.append(friend)
-	return friendsRanked
+#	friendsRanked = []
+#	for edge in sorted(edges, key=lambda x: edge_score[x], reverse=True):
+#		friend = edge.secondary
+#		friendsRanked.append(friend)
+#	return friendsRanked
+	return sorted(edges, key=lambda x: edge_score[x], reverse=True)
 
 def getFriendRankingDb(conn, userId, requireOutgoing=True):
 	edgesDb = database.getFriendEdgesDb(conn, userId, requireOutgoing)
