@@ -28,7 +28,7 @@ import StreamReaderWorker
 
 NUM_JOBS = 24
 STREAM_NUM_DAYS = 120
-STREAM_CHUNK_DAYS = 2 
+STREAM_CHUNK_DAYS = 5 
 
 
 class Edge(object):

@@ -216,7 +216,7 @@ class ThreadStreamReader(threading.Thread):
 
 			try:
 				ts1, ts2 = self.queue.get_nowait()
-			except Queue.empty as e:
+			except Queue.Empty as e:
 				logging.debug("empty Mr. Cumber")				
 				break
 		
