@@ -45,7 +45,8 @@ THREAD_COUNT = 12
 STREAM_NUM_DAYS = 120
 STREAM_CHUNK_DAYS = 10
 
-
+STREAM_READ_TIMEOUT = 10 # seconds
+STREAM_READ_SLEEP = 0.1 # seconds
 
 
 class StreamCounts(object):
@@ -150,15 +151,6 @@ class ReadStreamCounts(StreamCounts):
 		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
 		scChunks = [] # list of sc obects holding results
 
-		# create the thread pool
-		threads = []
-		for i in range(threadCount):
-			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
-			t.setDaemon(True)
-			t.name = "%s-%d" % (userId, i)
-			threads.append(t)
-			t.start()
-
 		# load the queue
 		intervals = [] # (ts1, ts2)
 		chunkSizeSecs = chunkSizeDays*24*60*60
@@ -168,25 +160,37 @@ class ReadStreamCounts(StreamCounts):
 			ts2 = min(ts1 + chunkSizeSecs, tsNow)
 			tsQueue.put((ts1, ts2))
 
-		# wait for them to finish
-		#tsQueue.join()
-		while len(threads) > 0:
+		# create the thread pool
+		threads = []
+		for i in range(threadCount):
+			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
+			t.setDaemon(True)
+			t.name = "%s-%d" % (userId, i)
+			threads.append(t)
+			t.start()
 
-			logging.debug("threads: " + str(threads))
-
-			try:
-				# Join all threads using a timeout so it doesn't block
-				# Filter out threads which have been joined or are None
-
-				threads = [ t.join(1) for t in threads if t is not None and t.isAlive() ]
-
-			except KeyboardInterrupt:
-				logging.info("ctrl-c, kill 'em all")
+		timeStop = time.time() + STREAM_READ_TIMEOUT
+		try:
+			while (time.time() < timeStop):
+				threadsAlive = []
 				for t in threads:
-					t.kill_received = True
-				tc = [ t for t in threads if t is not None and t.isAlive() ]
-				logging.debug("now have %d threads" % (tc))
-				
+					if t.isAlive():
+						threadsAlive.append(t)
+				threads = threadsAlive
+				if (threadsAlive):
+					time.sleep(STREAM_READ_SLEEP)
+				else:
+					break
+
+		except KeyboardInterrupt:
+			logging.info("ctrl-c, kill 'em all")
+			for t in threads:
+				t.kill_received = True
+			tc = len([ t for t in threads if t.isAlive() ])
+			logging.debug("now have %d threads" % (tc))
+
+		logging.debug("%d threads still alive after loop" % (len(threads)))
+			
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
 		sc = StreamCounts(userId)
@@ -209,9 +213,15 @@ class ThreadStreamReader(threading.Thread):
 
 	def run(self):
 		while True:
+
+			try:
+				ts1, ts2 = self.queue.get_nowait()
+			except Queue.empty as e:
+				logging.debug("empty Mr. Cumber")				
+				break
+		
 			tim = ReadStream.Timer()
 
-			ts1, ts2 = self.queue.get()
 			logging.debug("reading stream for %s, interval (%s - %s)" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
 
 			queryJsons = []
