@@ -69,6 +69,7 @@ class Edge(object):
 		self.outStatLikes = outStatLikes
 		self.outStatComms = outStatComms
 		self.mutuals = mutuals
+		self.score = None
 	def __str__(self):
 		ret = ""
 		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
@@ -88,6 +89,7 @@ class EdgeSC1(Edge):
 		self.outStatLikes = None
 		self.outStatComms = None
 		self.mutuals = friendInfo.mutuals
+		self.score = None
 
 class EdgeSC2(Edge):
 	def __init__(self, userInfo, friendInfo, userStreamCount, friendStreamCount):
@@ -102,3 +104,4 @@ class EdgeSC2(Edge):
 		self.outStatLikes = friendStreamCount.getStatLikes(userInfo.id)
 		self.outStatComms = friendStreamCount.getStatComms(userInfo.id)
 		self.mutuals = friendInfo.mutuals
+		self.score = None

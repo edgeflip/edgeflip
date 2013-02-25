@@ -4,6 +4,8 @@ import os
 import argparse
 import logging
 import facebook
+import database
+import time
 from Config import config
 
 
@@ -25,15 +27,23 @@ def readStreamCallback(ch, method, properties, body):
 	
 	conn = database.getConn()
 	database.updateUserDb(conn, user, tok, None)
-	newCount = database.updateFriendEdgesDb(conn, userId, tok, 
-						readFriendStream=readStreamCallback.includeOutgoing, 
-						overwriteThresh=readStreamCallback.overwriteThresh)
+
+	skipFriends = set()
+	if (readStreamCallback.overwriteThresh != 0):
+		# want the edges that were updated less than overwriteThresh secs ago, we'll exclude these
+		updateThresh = time.time() - readStreamCallback.overwriteThresh
+		edgesDb = database.getFriendEdgesDb(conn, userId, readStreamCallback.requireOutgoing, newerThan=updateThresh)
+		skipFriends.update([ e.secondary.id for e in edgesDb ])
+
+	edges = getFriendEdgesFb(userId, tok, readStreamCallback.requireOutgoing, skipFriends)
+	newCount = database.updateFriendEdgesDb(user, tok, edges)
+
 	logging.info("updated %d edges for user %d" % (newCount, userId))
 
 	ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
 # globals for the callback
-readStreamCallback.includeOutgoing = False
+readStreamCallback.requireOutgoing = False
 readStreamCallback.overwriteThresh = sys.maxint # never overwrite
 readStreamCallback.messCount = 0
 
@@ -57,9 +67,9 @@ if (__name__ == '__main__'):
 	args = parser.parse_args()
 
 	if (args.crawlType.lower()[0] == 'p'):
-		includeOutgoing = False
+		requireOutgoing = False
 	elif (args.crawlType.lower()[0] == 'f'):
-		includeOutgoing = True
+		requireOutgoing = True
 	else:
 		raise Exception("crawl type must be 'p' (partial) or 'f' (full)")
 

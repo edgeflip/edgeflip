@@ -81,7 +81,7 @@ def getUserFb(userId, token):
 	user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
-def getFriendEdgesFb(userId, token, requireOutgoing=False):
+def getFriendEdgesFb(userId, token, requireOutgoing=False, skipFriends=set()):
 
 	logging.debug("getting friend edges from FB for %d" % userId)
 	tim = datastructs.Timer()
@@ -91,8 +91,7 @@ def getFriendEdgesFb(userId, token, requireOutgoing=False):
 		return None
 	logging.debug("got %d friends total", len(friends))
 	
-	friendQueue = friends
-	# Need to deal with possibility we're going to want to skip some based on freshness in DB?!?!
+	friendQueue = [f for f in friends if f.id not in skipFriends]
 
 	logging.info('reading stream for user %s, %s', userId, tok)
 	sc = ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])

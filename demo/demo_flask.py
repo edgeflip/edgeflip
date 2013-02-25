@@ -65,7 +65,9 @@ def face_it():
 				'city': e.secondary.city, 
 				'state': e.secondary.state, 
 				'fname': e.secondary.fname, 
-				'lname': e.secondary.lname
+				'lname': e.secondary.lname,
+				'desc': str(e),
+				'score': e.score
 			}
 		friendDicts.append(fd)
 
@@ -121,7 +123,7 @@ def rank_faces():
 				'city': e.secondary.city, 
 				'state': e.secondary.state, 
 				'desc': str(e).replace('None', '&Oslash;'), 
-				'score': '3.1415' # FIXME!!!!!
+				'score': e.score
 			}
 		friendDicts.append(fd)
 
