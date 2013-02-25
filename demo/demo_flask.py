@@ -9,6 +9,7 @@ import StreamReaderQueue
 import sys
 import json
 import time
+import threading
 
 from Config import config
 
@@ -35,26 +36,38 @@ def face_it():
 	num = int(flask.request.json['num'])
 
 	conn = database.getConn()
-	user = facebook.getUserFb(fbid, tok)
-	database.updateUserDb(conn, user, tok, None)
+	user = database.getUserDb(conn, fbid, 1) # Do we have user info in last day? (change to config later)
 
- 	# first, do a partial crawl for new friends
-	newCount = database.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
+	edgesRanked = []
+	if (user is not None):
+		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
+	else:
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		# spawn off a separate thread to do the database writing
+		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
+		t = threading.Thread(target=database.updateFriendEdgesDb, args=(user, tok, edgesRanked))
+		t.daemon = False
+		t.start()
 
 	# now, spawn a full crawl in the background
 	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendTups = ranking.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
 	friendDicts = []
 
-	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6], 'desc':t[7], 'score':"%.4f"%float(t[8]), 'fname':t[1], 'lname':t[2] }
-		for c, count in enumerate(t[2].split()):
-			fd['count' + str(c)] = count
+	for i, e in enumerate(edgesRanked):
+		fd = {
+				'rank': i, 
+				'id': e.secondary.id, 
+				'name': e.secondary.fname+" "+e.secondary.lname, 
+				'gender': e.secondary.gender, 
+				'age': e.secondary.age, 
+				'city': e.secondary.city, 
+				'state': e.secondary.state, 
+				'fname': e.secondary.fname, 
+				'lname': e.secondary.lname
+			}
 		friendDicts.append(fd)
-
-	for fd in friendDicts:
-		sys.stderr.write(str(fd) + "\n")
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
@@ -79,25 +92,37 @@ def rank_faces():
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
 
-	conn = database.getConn()
-	user = facebook.getUserFb(fbid, tok)
-	database.updateUserDb(conn, user, tok, None)
-
- 	# first, do a partial crawl for new friends
-	newCount = database.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwriteThresh=0)
-
 	if (rankfn.lower() == "px4"):
 
 		# now, spawn a full crawl in the background
 		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
- 		friendTups = ranking.getFriendRanking(conn, fbid, requireOutgoing=False)
+
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+
+		# spawn off a separate thread to do the database writing
+		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
+		t = threading.Thread(target=database.updateFriendEdgesDb, args=(user, tok, edgesRanked))
+		t.daemon = False
+		t.start()
 
 	else:
- 		friendTups = ranking.getFriendRanking(conn, fbid, requireOutgoing=True)
+ 		friendTups = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
 	friendDicts = []
-	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6],  'desc':t[7].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[8]) }
+
+	for i, e in enumerate(edgesRanked):
+		fd = {
+				'rank': i, 
+				'id': e.secondary.id, 
+				'name': e.secondary.fname+" "+e.secondary.lname, 
+				'gender': e.secondary.gender, 
+				'age': e.secondary.age, 
+				'city': e.secondary.city, 
+				'state': e.secondary.state, 
+				'desc': str(e).replace('None', '&Oslash;'), 
+				'score': '3.1415' # FIXME!!!!!
+			}
 		friendDicts.append(fd)
 
 	# Apply control panel targeting filters
