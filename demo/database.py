@@ -1,13 +1,16 @@
 #!/usr/bin/python
 import sys
 import time
+import logging
+import datetime
 import datastructs
 import database_sqlite as db # modify this to swtch db implementations
 import facebook
 from Config import config
 
 
-
+def getConn():
+	return db.getConn()
 
 def dateFromIso(dateStr):
 	if (dateStr):
@@ -27,7 +30,7 @@ def getUserDb(conn, userId):
 	rec = curs.fetchone()
 	#logging.debug(str(rec))
 	fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
-	return DataStructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+	return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
 
 def updateUserDb(conn, user, tok, tokFriend):
 	# can leave tok or tokFriend blank, in that case it will not overwrite
@@ -71,7 +74,7 @@ def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 	primary = getUserDb(conn, primId)
 	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
 		secondary = getUserDb(conn, sId)
-		eds.append(DataStructs.Edge(primary, secondary, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts))
+		eds.append(datastructs.Edge(primary, secondary, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts))
 	return eds
 
  # overwriteThresh=sys.maxint  never overwrite (default)
@@ -100,7 +103,7 @@ def updateFriendEdgesDb(conn, userId, tok, requireOutgoing=True, overwriteThresh
 
 	logging.info('reading stream for user %s, %s', userId, tok)
 	#sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
-	sc = StreamReaderWorker.ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+	sc = facebook.ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
 	logging.debug('got %s', str(sc))
 
 	# sort all the friends by their stream rank (if any) and mutual friend count
@@ -115,7 +118,7 @@ def updateFriendEdgesDb(conn, userId, tok, requireOutgoing=True, overwriteThresh
 		if (requireOutgoing):
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
-				scFriend = StreamReaderWorker.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
 			except Exception:
 				logging.warning("error reading stream for %d", friend.id)
 				continue

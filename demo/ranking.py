@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 import database
+import logging
 from Config import config
 
 
@@ -46,7 +47,7 @@ def getFriendRanking(userId, edges, requireOutgoing=True):
 	opcM = max([ e.outPostComms for e in edges ] + [None]) if (requireOutgoing) else None
 	oslM = max([ e.outStatLikes for e in edges ] + [None]) if (requireOutgoing) else None
 	opcM = max([ e.outStatComms for e in edges ] + [None]) if (requireOutgoing) else None
-	mutM = max([ e.mutuals for e in edgesDb ] + [None])
+	mutM = max([ e.mutuals for e in edges ] + [None])
 
 	edge_score = {}
 	for e in edges:
@@ -61,12 +62,12 @@ def getFriendRanking(userId, edges, requireOutgoing=True):
 	return friendsRanked
 
 def getFriendRankingDb(conn, userId, requireOutgoing=True):
-	edgesDb = Database.getFriendEdgesDb(conn, userId, requireOutgoing)
+	edgesDb = database.getFriendEdgesDb(conn, userId, requireOutgoing)
 	return getFriendRanking(userId, edgesDb, requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
-	edgeCountPart = len(edgesPart))
-	edgeCountFull = len(edgesFull))
+	edgeCountPart = len(edgesPart)
+	edgeCountFull = len(edgesFull)
 	if (edgeCountPart*threshold > edgeCountFull):
 		return getFriendRanking(userId, edgesPart, requireOutgoing=False)
 	else:
@@ -83,6 +84,7 @@ def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
 #####################################################
 
 if (__name__ == '__main__'):
+	import facebook
 
 	USER_TUPS = [
 		(500876410, 'rayid', 'AAABlUSrYhfIBAFkDiI9l4ZBj7hKyTywQ1WkZCkw5uiWfZAUFKh73glIsEcgS390CQas9Ya8vZAMNMUnqdZCR3EhgX3ImLRF0Xy64zspM0DQZDZD'),
@@ -115,28 +117,20 @@ if (__name__ == '__main__'):
 		(1556426182, '---', 'AAABlUSrYhfIBAGZCAztEoD04VgnYZAhSdBvlsuU0NObIVoV8vwlipV5XmZAcp92ZCbevNo9ZArSyRaPWBv0ZCSSWoCZCqAgMXXZC02c99Iln6AZDZD')
 	]
 
-	if (len(sys.argv) > 1):
-		users = [ int(u) for u in sys.argv[1:] ]
-	else:	
-		users = [ t[0] for t in USER_TUPS ]
-	user_info = dict([ (t[0], (t[1], t[2])) for t in USER_TUPS ])
+	REQUIRE_OUTGOING = False
+	UPDATE_DB = True
 
-	REQUIRE_OUTGOING = True
-	UPDATE_DB = False
+	userId = int(sys.argv[1])
+	user_info = dict([ (t[0], (t[1], t[2])) for t in USER_TUPS ])
+	nam, tok = user_info[userId]
 
 	if (UPDATE_DB):
-		try:
-			user = getUserFb(userId, tok)
-		except:	
-			logging.info("error processing user %d" % userId)
-			continue
-		Database.updateUserDb(None, user, tok, None)
-		newCount = Database.updateFriendEdgesDb(None, userId, tok, readFriendStream=REQUIRE_OUTGOING, overwriteThresh=0)
+		user = facebook.getUserFb(userId, tok)
+		database.updateUserDb(None, user, tok, None)
+		newCount = database.updateFriendEdgesDb(None, userId, tok, requireOutgoing=REQUIRE_OUTGOING, overwriteThresh=0)
 		logging.debug("inserted %d new edges\n" % newCount)
 
-	for i, userId in enumerate(users):
-		friendsRanked = 
-		for friend in getFriendRankingDb(conn, userId, REQUIRE_OUTGOING):
-			name = "%s %s" % (friend.fname, friend.lname)
-			sys.stderr.write("friend %20s %32s\n" % (friend.id, name))
+	for friend in getFriendRankingDb(None, userId, REQUIRE_OUTGOING):
+		name = "%s %s" % (friend.fname, friend.lname)
+		sys.stderr.write("friend %20s %32s\n" % (friend.id, name))
 

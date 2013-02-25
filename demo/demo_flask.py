@@ -1,8 +1,10 @@
 #!/usr/bin/python
 import flask
 from flask import Flask, render_template
-import ReadStream
-import ReadStreamDb
+#import ReadStream
+import database
+import facebook
+import ranking
 import StreamReaderQueue
 import sys
 import json
@@ -32,17 +34,17 @@ def face_it():
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
 
-	conn = ReadStreamDb.getConn()
-	user = ReadStream.getUserFb(fbid, tok)
-	ReadStream.updateUserDb(conn, user, tok, None)
+	conn = database.getConn()
+	user = facebook.getUserFb(fbid, tok)
+	database.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
+	newCount = database.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
 
 	# now, spawn a full crawl in the background
 	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendTups = ReadStream.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
+	friendTups = ranking.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
 	friendDicts = []
 
 	for i, t in enumerate(friendTups):
@@ -77,21 +79,21 @@ def rank_faces():
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
 
-	conn = ReadStreamDb.getConn()
-	user = ReadStream.getUserFb(fbid, tok)
-	ReadStream.updateUserDb(conn, user, tok, None)
+	conn = database.getConn()
+	user = facebook.getUserFb(fbid, tok)
+	database.updateUserDb(conn, user, tok, None)
 
  	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwriteThresh=0)
+	newCount = database.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwriteThresh=0)
 
 	if (rankfn.lower() == "px4"):
 
 		# now, spawn a full crawl in the background
 		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=False)
+ 		friendTups = ranking.getFriendRanking(conn, fbid, requireOutgoing=False)
 
 	else:
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=True)
+ 		friendTups = ranking.getFriendRanking(conn, fbid, requireOutgoing=True)
 
 	friendDicts = []
 	for i, t in enumerate(friendTups):
