@@ -171,10 +171,15 @@ class ReadStreamCounts(StreamCounts):
 		# wait for them to finish
 		#tsQueue.join()
 		while len(threads) > 0:
+
+			logging.debug("threads: " + str(threads))
+
 			try:
 				# Join all threads using a timeout so it doesn't block
 				# Filter out threads which have been joined or are None
+
 				threads = [ t.join(1) for t in threads if t is not None and t.isAlive() ]
+
 			except KeyboardInterrupt:
 				logging.info("ctrl-c, kill 'em all")
 				for t in threads:
