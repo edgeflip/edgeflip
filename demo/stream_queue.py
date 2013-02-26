@@ -4,7 +4,9 @@ import pika
 import argparse
 import json
 
-
+import logging
+from config import config
+logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 
 def createQueue(queueName):
