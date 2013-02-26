@@ -1,17 +1,22 @@
 #!/usr/bin/python
 import flask
 from flask import Flask, render_template
-import ReadStream
-import ReadStreamDb
+#import ReadStream
+import database
+import facebook
+import ranking
 import StreamReaderQueue
 import sys
 import json
 import time
+from config import config
 
-from Config import config
+
 
 
 app = Flask(__name__)
+
+
 
 
 @app.route("/", methods=['POST', 'GET'])
@@ -28,31 +33,43 @@ def button_man():
 def face_it():
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 
-	fbid = flask.request.json['fbid']
+	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
 
-	conn = ReadStreamDb.getConn()
-	user = ReadStream.getUserFb(fbid, tok)
-	ReadStream.updateUserDb(conn, user, tok, None)
+	conn = database.getConn()
+	user = database.getUserDb(conn, fbid, config['freshness'])
 
- 	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False)
+	edgesRanked = []
+	if (user is not None):
+		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
+	else:
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		# spawn off a separate thread to do the database writing
+		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
+		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
 
 	# now, spawn a full crawl in the background
 	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendTups = ReadStream.getFriendRankingBestAvail(conn, fbid, threshold=0.5)
 	friendDicts = []
 
-	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6], 'desc':t[7], 'score':"%.4f"%float(t[8]), 'fname':t[1], 'lname':t[2] }
-		for c, count in enumerate(t[2].split()):
-			fd['count' + str(c)] = count
+	for i, e in enumerate(edgesRanked):
+		fd = {
+				'rank': i, 
+				'id': e.secondary.id, 
+				'name': e.secondary.fname+" "+e.secondary.lname, 
+				'gender': e.secondary.gender, 
+				'age': e.secondary.age, 
+				'city': e.secondary.city, 
+				'state': e.secondary.state, 
+				'fname': e.secondary.fname, 
+				'lname': e.secondary.lname,
+				'desc': str(e),
+				'score': e.score
+			}
 		friendDicts.append(fd)
-
-	for fd in friendDicts:
-		sys.stderr.write(str(fd) + "\n")
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
@@ -77,25 +94,35 @@ def rank_faces():
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
 
-	conn = ReadStreamDb.getConn()
-	user = ReadStream.getUserFb(fbid, tok)
-	ReadStream.updateUserDb(conn, user, tok, None)
-
- 	# first, do a partial crawl for new friends
-	newCount = ReadStream.updateFriendEdgesDb(conn, fbid, tok, readFriendStream=False, overwriteThresh=0)
-
 	if (rankfn.lower() == "px4"):
 
 		# now, spawn a full crawl in the background
 		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=False)
+
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+
+		# spawn off a separate thread to do the database writing
+		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
+		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
 
 	else:
- 		friendTups = ReadStream.getFriendRanking(conn, fbid, requireOutgoing=True)
+ 		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
 	friendDicts = []
-	for i, t in enumerate(friendTups):
-		fd = { 'rank':i, 'id':t[0], 'name':" ".join(t[1:3]), 'gender':t[3], 'age':t[4], 'city':t[5], 'state':t[6],  'desc':t[7].replace('None', '&Oslash;'), 'score':"%.4f"%float(t[8]) }
+
+	for i, e in enumerate(edgesRanked):
+		fd = {
+				'rank': i, 
+				'id': e.secondary.id, 
+				'name': e.secondary.fname+" "+e.secondary.lname, 
+				'gender': e.secondary.gender, 
+				'age': e.secondary.age, 
+				'city': e.secondary.city, 
+				'state': e.secondary.state, 
+				'desc': str(e).replace('None', '&Oslash;'), 
+				'score': e.score
+			}
 		friendDicts.append(fd)
 
 	# Apply control panel targeting filters
@@ -222,7 +249,7 @@ def queueLoad():
 
 @app.route("/db_reset")
 def reset():
-	ReadStreamDb.dbSetup()
+	database.db.dbSetup()
 	return "database has been reset"
 
 

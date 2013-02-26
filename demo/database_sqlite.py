@@ -1,25 +1,13 @@
+#!/usr/bin/python
 import sys
 import sqlite3
-import datetime
-import json
-
-try:
-	ef_config = open('edgeflip.config', 'r')
-	ef_dict = json.loads(ef_config.read())
-	if (not ef_dict['outdir']):
-		ef_dict['outdir'] = ''
-except:
-	ef_dict = {'outdir' : ''}
-
-
-
-DB_PATH = ef_dict['outdir']+'demo.sqlite'
+from config import config
 
 
 
 
 def getConn():
-	return sqlite3.connect(DB_PATH)
+	return sqlite3.connect(config['dbpath'])
 
 def dbSetup(conn=None):
 	if (conn is None):

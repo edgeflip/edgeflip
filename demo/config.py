@@ -12,8 +12,18 @@ defaults = {}
 defaults['outdir'] = '.'
 defaults['codedir'] = '.'
 defaults['queue'] = 'edgeflip_demo'
-defaults['logpath'] = './demo.log'
+defaults['logpath'] = './logs/demo.log'
+defaults['dbpath'] = './demo.sqlite'
+defaults['stream_days'] = 120
+defaults['stream_days_chunk'] = 2
+defaults['stream_threadcount'] = 60
+defaults['stream_read_timeout'] = 10 # seconds
+defaults['stream_read_sleep'] = 0.1 # seconds
+defaults['freshness'] = 1
 
+
+
+# the config dict will be imported from other modules
 try: 
 	config = json.load(open(CONFIG_PATH, 'r'))
 except IOError:

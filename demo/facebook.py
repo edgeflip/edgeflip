@@ -1,13 +1,16 @@
 #!/usr/bin/python
 import sys
-import threading
-import logging
-import time
+import datetime
 import urllib
 import urllib2
 import json
+import logging
+import threading
+import time
 import Queue
 from collections import defaultdict
+import datastructs
+from config import config
 
 
 
@@ -33,7 +36,92 @@ FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FR
 FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
+#zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
 
+def dateFromFb(dateStr):
+	if (dateStr):
+		dateElts = dateStr.split('/')
+		if (len(dateElts) == 3): 
+			m, d, y = dateElts
+			return datetime.date(int(y), int(m), int(d))
+	return None
+
+def getUrlFb(url):
+	try:
+		responseFile = urllib2.urlopen(url, timeout=60)
+	except (urllib2.URLError, urllib2.HTTPError) as e: 
+		logging.info("error opening url %s: %s" % (url, e.reason))
+		raise
+	responseJson = json.load(responseFile)
+	return responseJson
+
+def getFriendsFb(userId, token):
+	tim = datastructs.Timer()
+	logging.debug("getting friends for %d" % userId)
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
+	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
+	responseJson = getUrlFb(url)
+	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
+
+	friends = []
+	for rec in responseJson['data']:
+		city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
+		state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
+		f = datastructs.FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, rec['mutual_friend_count'])
+		friends.append(f)
+	logging.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
+	return friends
+
+def getUserFb(userId, token):
+	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s""" % (userId)
+	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
+	responseJson = getUrlFb(url)
+	rec = responseJson['data'][0]
+	city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
+	state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
+	user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
+	return user
+
+def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
+
+	logging.debug("getting friend edges from FB for %d" % userId)
+	tim = datastructs.Timer()
+
+	friends = getFriendsFb(userId, tok)
+	
+	logging.debug("got %d friends total", len(friends))
+	
+	friendQueue = [f for f in friends if f.id not in skipFriends]
+
+	logging.info('reading stream for user %s, %s', userId, tok)
+	sc = ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+	logging.debug('got %s', str(sc))
+
+	# sort all the friends by their stream rank (if any) and mutual friend count
+	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
+	logging.debug("got %d friends ranked", len(friendId_streamrank))
+	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
+
+	edges = []
+	user = getUserFb(userId, tok)
+	for i, friend in enumerate(friendQueue):
+		if (requireOutgoing):
+			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+			try:
+				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+			except Exception as ex:
+				logging.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
+				continue
+			logging.debug('got %s', str(scFriend))
+			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+		else:
+			e = datastructs.EdgeSC1(user, friend, sc)
+		edges.append(e)
+		logging.debug('edge %s', str(e))
+
+	logging.debug("got %d friend edges for %d (%s)" % (len(edges), userId, tim.elapsedPr()))
+
+	return edges
 
 
 class StreamCounts(object):
@@ -127,6 +215,7 @@ class StreamCounts(object):
 class ReadStreamCounts(StreamCounts):
 	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60):
 		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount))
+		tim = datastructs.Timer()
 		self.id = userId
 		self.stream = []
 		self.friendId_postLikeCount = defaultdict(int)
@@ -137,15 +226,6 @@ class ReadStreamCounts(StreamCounts):
 		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
 		scChunks = [] # list of sc obects holding results
 
-		# create the thread pool
-		threads = []
-		for i in range(threadCount):
-			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
-			t.setDaemon(True)
-			t.name = "%s-%d" % (userId, i)
-			threads.append(t)
-			t.start()
-
 		# load the queue
 		intervals = [] # (ts1, ts2)
 		chunkSizeSecs = chunkSizeDays*24*60*60
@@ -155,29 +235,44 @@ class ReadStreamCounts(StreamCounts):
 			ts2 = min(ts1 + chunkSizeSecs, tsNow)
 			tsQueue.put((ts1, ts2))
 
-		# wait for them to finish
-		#tsQueue.join()
-		while len(threads) > 0:
-			try:
-				# Join all threads using a timeout so it doesn't block
-				# Filter out threads which have been joined or are None
-				threads = [ t.join(1) for t in threads if t is not None and t.isAlive() ]
-			except KeyboardInterrupt:
-				logging.info("ctrl-c, kill 'em all")
+		# create the thread pool
+		threads = []
+		for i in range(threadCount):
+			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
+			t.setDaemon(True)
+			t.name = "%s-%d" % (userId, i)
+			threads.append(t)
+			t.start()
+
+		timeStop = time.time() + config['stream_read_timeout']
+		try:
+			while (time.time() < timeStop):
+				threadsAlive = []
 				for t in threads:
-					t.kill_received = True
-				tc = [ t for t in threads if t is not None and t.isAlive() ]
-				logging.debug("now have %d threads" % (tc))
-				
+					if t.isAlive():
+						threadsAlive.append(t)
+				threads = threadsAlive
+				if (threadsAlive):
+					time.sleep(config['stream_read_sleep'])
+				else:
+					break
 
+		except KeyboardInterrupt:
+			logging.info("ctrl-c, kill 'em all")
+			for t in threads:
+				t.kill_received = True
+			tc = len([ t for t in threads if t.isAlive() ])
+			logging.debug("now have %d threads" % (tc))
 
+		logging.debug("%d threads still alive after loop" % (len(threads)))
+			
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
 		sc = StreamCounts(userId)
 		for i, scChunk in enumerate(scChunks):
-			#logging.debug("chunk %d %s" % (i, str(scChunk)))
+			logging.debug("chunk %d %s" % (i, str(scChunk)))
 			self.__iadd__(scChunk)
-
+		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr()))
 
 class ThreadStreamReader(threading.Thread):
 	def __init__(self, userId, token, queue, results):
@@ -189,8 +284,15 @@ class ThreadStreamReader(threading.Thread):
 
 	def run(self):
 		while True:
-			ts1, ts2 = self.queue.get()
-			logging.debug("thread %s reading stream for user %s, interval (%s - %s)" % (self.name, self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
+
+			try:
+				ts1, ts2 = self.queue.get_nowait()
+			except Queue.Empty as e:
+				break
+		
+			tim = datastructs.Timer()
+
+			logging.debug("reading stream for %s, interval (%s - %s)" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
 
 			queryJsons = []
 			streamLabel = "stream"
@@ -204,13 +306,13 @@ class ThreadStreamReader(threading.Thread):
 			#sys.stderr.write(queryJson + "\n\n")
 
 			url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token	
-			#sys.stderr.write(url + "\n\n")
+			#sys.stderr.write(url + "\n\n") 
 
 			try:
 				responseFile = urllib2.urlopen(url, timeout=60)
 				responseJson = json.load(responseFile)
 			except Exception as e:
-				logging.warning("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
 				self.queue.task_done()
 				self.queue.put((ts1, ts2))
 				continue
@@ -229,13 +331,11 @@ class ThreadStreamReader(threading.Thread):
 			sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]
 			sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
 			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
-			
+
+			logging.debug("stream counts for %s: %s" % (self.userId, str(sc)))
+			logging.debug("chunk took %s" % (tim.elapsedPr()))
+
 			self.results.append(sc)
 			self.queue.task_done()
-
-
-
-
-
 
 
