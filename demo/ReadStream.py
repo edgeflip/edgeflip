@@ -325,6 +325,7 @@ def updateFriendEdgesDb(conn, userId, tok, readFriendStream=True, overwriteThres
 
 		updateUserDb(conn, friend, None, tok)
 
+
 	updateUserDb(conn, user, tok, None)
 	conn.commit()
 
@@ -369,28 +370,6 @@ def getFriendRankingBestAvail(conn, userId, threshold=0.5):
 
 
 
-def formatSecs(secs):
-	secs = int(secs)
-	if (secs < 3600):
-		return time.strftime("%M:%S", time.gmtime(secs))
-	elif (secs < 86400):
-		return time.strftime("%H:%M:%S", time.gmtime(secs))
-	else:
-		return str(secs/86400) + ":" + time.strftime("%H:%M:%S", time.gmtime(secs%86400))
-class Timer:
-	def __init__(self):
-		self.start = time.time()
-	def reset(self):
-		self.start = time.time()
-	def elapsed(self):
-		return time.time() - self.start
-	def elapsedPr(self):
-		return formatSecs(time.time() - self.start)
-	def stderr(self, txt=""):
-		sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
-tim = Timer()
-def elapsedPr():
-	return tim.elapsedPr()
 
 
 
