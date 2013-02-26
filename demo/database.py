@@ -172,7 +172,5 @@ def updateUserDb(curs, user, tok, tokFriend):
 	else:
 		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
 		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
-	if (conn is None):
-		conn = db.getConn()
 	curs.execute(sql, params)
 
