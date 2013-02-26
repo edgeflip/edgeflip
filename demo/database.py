@@ -130,6 +130,7 @@ def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 
 # helper function that may get run in a background thread
 def _updateFriendEdgesDb(user, token, edges):
+	tim = datastructs.Timer()
 	conn = db.getConn()
 	curs = conn.cursor()
 	updateUserDb(curs, user, token, None)
@@ -139,7 +140,7 @@ def _updateFriendEdgesDb(user, token, edges):
 		updateFriendEdgeDb(curs, e)
 		insertCount += 1	
 	conn.commit()
-	logging.debug("updateFriendEdgesDb() thread %d updated %d friends for user %d" % (threading.current_thread().ident, insertCount, user.id))
+	logging.debug("updateFriendEdgesDb() thread %d updated %d friends for user %d (took %s)" % (threading.current_thread().ident, insertCount, user.id, tim.elapsedPr()))
 	return insertCount
 
 def updateFriendEdgesDb(user, token, edges, background=False):
