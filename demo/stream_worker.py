@@ -21,6 +21,7 @@ def readStreamCallback(ch, method, properties, body):
 	elts = json.loads(body)
 	#logging.debug("got message elts %s from queue" % str(elts))
 	userId, tok, extra = elts
+	userId = int(userId)
 	logging.debug("[worker] received %d, %s from queue" % (userId, tok))
 
 	try:
