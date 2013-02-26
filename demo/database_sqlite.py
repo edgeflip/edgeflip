@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 import sqlite3
-from Config import config
+from config import config
 
 
 
