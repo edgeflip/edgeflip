@@ -10,7 +10,7 @@ def getConn():
 	return sqlite3.connect(config['dbpath'])
 
 def dbSetup(connP=None):
-	conn = connP if (connP is not None) else db.getConn()
+	conn = connP if (connP is not None) else getConn()
 	curs = conn.cursor()
 
 	curs.execute("""DROP TABLE IF EXISTS edges""") 
