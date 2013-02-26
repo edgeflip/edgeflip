@@ -21,9 +21,9 @@ def dateFromIso(dateStr):
 			return datetime.date(int(y), int(m), int(d))
 	return None		
 
-def getUserDb(conn, userId, freshness=36525, freshnessIncludeEdge=False): # 100 years!
-	if (conn is None):
-		conn = db.getConn()
+def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100 years!
+	conn = connP if (connP is not None) else db.getConn()
+
 	freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
 	sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
 	#logging.debug(sql)
@@ -31,12 +31,12 @@ def getUserDb(conn, userId, freshness=36525, freshnessIncludeEdge=False): # 100 
 	curs.execute(sql)
 	rec = curs.fetchone()
 	if (rec is None):
-		return None
+		ret = None
 	else:
 		#logging.debug(str(rec))
 		fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
 		if (datetime.date.fromtimestamp(updated) < freshness_date):
-			return None
+			ret = None
 		else:
 			if (freshnessIncludeEdge):
 				curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
@@ -44,12 +44,14 @@ def getUserDb(conn, userId, freshness=36525, freshnessIncludeEdge=False): # 100 
 				#logging.debug("got rec: %s" % str(rec))
 				updatedEdge = rec[0]
 				if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
-					return None
-			return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
-	
-def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
-	if (conn is None):
-		conn = db.getConn()
+					ret = None
+			ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+	if (connP is None):
+		conn.close()
+	return ret
+
+def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
+	conn = connP if (connP is not None) else db.getConn()
 	curs = conn.cursor()
 	sql = """
 			SELECT prim_id, sec_id,
@@ -72,6 +74,8 @@ def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
 		secondary = getUserDb(conn, sId)
 		eds.append(datastructs.Edge(primary, secondary, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts))
+	if (connP is None):
+		conn.close()
 	return eds
 
  # overwriteThresh=sys.maxint  never overwrite (default)
@@ -148,6 +152,7 @@ def _updateFriendEdgesDb(user, token, edges):
 		insertCount += 1	
 	conn.commit()
 	logging.debug("updateFriendEdgesDb() thread %d updated %d friends for user %d (took %s)" % (threading.current_thread().ident, insertCount, user.id, tim.elapsedPr()))
+	conn.close()
 	return insertCount
 
 def updateFriendEdgesDb(user, token, edges, background=False):

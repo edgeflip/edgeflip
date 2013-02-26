@@ -127,6 +127,7 @@ if (__name__ == '__main__'):
 		edges = facebook.getFriendEdgesFb(userId, tok, requireOutgoing=REQUIRE_OUTGOING)
 		newCount = database.updateFriendEdgesDb(userId, tok, edges)
 		logging.debug("inserted %d new edges\n" % newCount)
+		conn.close()
 
 	for friend in getFriendRankingDb(None, userId, REQUIRE_OUTGOING):
 		name = "%s %s" % (friend.fname, friend.lname)

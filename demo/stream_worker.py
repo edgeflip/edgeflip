@@ -82,6 +82,7 @@ def readStreamCallback(ch, method, properties, body):
 		newCount += 1
 		logging.debug('[worker] edge %s', str(e))
 		sys.stderr.write("\twrote edge %d/%d %d--%d %s\n" % (i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e)))
+	conn.close()
 
 	logging.debug("[worker] updated %d friend edges for %d (took: %s)" % (newCount, userId, tim.elapsedPr()))
 	sys.stderr.write("updated %d friend edges for %d (took: %s)\n" % (newCount, userId, tim.elapsedPr()))

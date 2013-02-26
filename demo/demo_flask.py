@@ -49,6 +49,7 @@ def face_it():
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
 		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
+	conn.close()
 
 	# now, spawn a full crawl in the background
 	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])

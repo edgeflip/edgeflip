@@ -9,9 +9,8 @@ from config import config
 def getConn():
 	return sqlite3.connect(config['dbpath'])
 
-def dbSetup(conn=None):
-	if (conn is None):
-		conn = getConn()
+def dbSetup(connP=None):
+	conn = connP if (connP is not None) else db.getConn()
 	curs = conn.cursor()
 
 	curs.execute("""DROP TABLE IF EXISTS edges""") 
@@ -43,4 +42,6 @@ def dbSetup(conn=None):
 
 
 	conn.commit()
+	if (connP is None):
+		conn.close()
 
