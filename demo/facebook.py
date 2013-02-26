@@ -316,6 +316,7 @@ class ThreadStreamReader(threading.Thread):
 				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
 				self.queue.task_done()
 				self.queue.put((ts1, ts2))
+				responseFile.close()
 				continue
 
 			#sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
