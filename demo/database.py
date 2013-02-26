@@ -139,6 +139,7 @@ def _updateFriendEdgesDb(user, token, edges):
 		updateFriendEdgeDb(curs, e)
 		insertCount += 1	
 	conn.commit()
+	logging.debug("updateFriendEdgesDb() thread %d updated %d friends for user %d" % (threading.current_thread().ident, insertCount, user.id))
 	return insertCount
 
 def updateFriendEdgesDb(user, token, edges, background=False):
@@ -146,8 +147,10 @@ def updateFriendEdgesDb(user, token, edges, background=False):
 		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, token, edges))
 		t.daemon = False
 		t.start()
+		logging.debug("updateFriendEdgesDb() spawning background thread %d for user %d" % (t.ident, user.id))
 		return 0
 	else:
+		logging.debug("updateFriendEdgesDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
 		return _updateFriendEdgesDb(user, token, edges)
 
 def updateFriendEdgeDb(curs, edge): # n.b.: doesn't commit
