@@ -75,11 +75,11 @@ def readStreamCallback(ch, method, properties, body):
 
 		database.updateUserDb(curs, e.secondary, None, tok) # Update the secondary user in DB
 		database.updateFriendEdgeDb(curs, e) # Update the edge in DB
-		newCount += 1
+		conn.commit()
 
+		newCount += 1
 		logging.debug('[worker] edge %s', str(e))
 
-	conn.commit()
 	logging.debug("[worker] updated %d friend edges for %d (took: %s)" % (newCount, userId, tim.elapsedPr()))
 
 	ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
