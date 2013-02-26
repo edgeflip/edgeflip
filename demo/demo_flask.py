@@ -5,7 +5,7 @@ from flask import Flask, render_template
 import database
 import facebook
 import ranking
-import StreamReaderQueue
+import stream_queue
 import sys
 import json
 import time
@@ -51,7 +51,7 @@ def face_it():
 		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
 
 	# now, spawn a full crawl in the background
-	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
+	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
 	friendDicts = []
 
@@ -97,7 +97,7 @@ def rank_faces():
 	if (rankfn.lower() == "px4"):
 
 		# now, spawn a full crawl in the background
-		StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
+		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
 		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
@@ -230,7 +230,7 @@ def queueStatus(msg=''):
 		qName = flask.request.args.get('queueName')
 	else:
 		qName = config['queue']
-	qSize = StreamReaderQueue.getQueueSize(qName)
+	qSize = stream_queue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
 	lName = './test_queue.txt'
 	return render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
@@ -238,13 +238,13 @@ def queueStatus(msg=''):
 @app.route('/queue_reset')
 def queueReset():
 	qName = flask.request.args.get('queueName')
-	StreamReaderQueue.resetQueue(qName)
+	stream_queue.resetQueue(qName)
 	return queueStatus("Queue '%s' has been reset." % (qName))
 
 @app.route('/queue_load')
 def queueLoad():
 	qName = flask.request.args.get('queueName')
-	count = StreamReaderQueue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
+	count = stream_queue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
 	return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
 
 @app.route("/db_reset")
