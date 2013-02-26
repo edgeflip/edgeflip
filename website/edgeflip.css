@@ -1,0 +1,457 @@
+	body {
+		margin: 0;
+		padding: 0;
+		/* background-color: #D0EBF7; */
+		background-color: #BFB4A8;
+	}
+
+	.menu {
+		width: 1800px;
+		white-space: nowrap;
+		position: fixed;
+		left: 0px;
+		top: 0px;
+		z-index: 15;
+		box-shadow: 0px 2px 10px 5px black;
+		padding: 0;
+		margin: 0;
+	}
+
+	.menu, 
+	.menu a:link, 
+	.menu a:visited {
+		background-color: #0270A0;
+	}
+
+	.menu,
+	.menu_social {
+		height: 40px;
+	}
+
+	.menu_social {
+		position: fixed;
+		right: 0px;
+		top: 0px;
+		color: white;
+		z-index: 16;
+		font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+		padding-right: 5px;
+		padding-top: 2px;
+/*		padding: 4px;
+		vertical-align: middle;
+		font-weight: bold;
+		word-spacing: 10px;
+*/
+	}
+
+	.menu_social img {
+		padding-right: 10px;
+		border: 0;
+	}
+
+	.menu_social a:link,
+	.menu_social a:visited {
+		height: 41px;
+		margin-top: -3px;
+		z-index: 100;
+		float: right;
+	}
+
+	.menu_social a:hover,
+	.menu_social a:active {
+		background-color: #094163;
+		border-radius: 7px;
+	}
+
+	.menu ul {
+		list-style-type:none;
+		margin:0;
+		padding:0;
+		overflow:hidden;
+		white-space: nowrap;
+	}
+	.menu li {
+		float:left;
+		vertical-align: middle;
+/*		margin-top: -10px; */
+		line-height: 32px;
+		font-size: 22px;
+		letter-spacing: 1.5px;
+	}
+	.menu a:link,
+	.menu a:visited {
+		display:block;
+		min-width:150px;
+		height: 32px;
+		font-weight:200;
+		color:#FFFFFF;
+		text-align:center;
+		padding:4px;
+		text-decoration:none;
+		text-transform:lowercase;
+		font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+	}
+	.menu a:hover,
+	.menu a:active {
+		background-color: #094163;
+		border-radius: 7px;
+	}
+
+/*
+	.menu_social a:link,
+	.menu_social a:visited {
+		font-size: 1.2em;
+		text-decoration: none;
+		color: white;
+	}
+
+	.menu_social a:hover,
+	.menu_social a:active {
+		text-decoration: none;
+		color: dodgerblue;
+		background-color: #094163;
+	}
+*/
+
+	#content_container {
+		display: table;
+		margin: 0px auto;
+		border: thin solid black;
+		box-shadow: 2px 0px 5px 3px gray, -2px 0px 5px 3px gray;
+		overflow: hidden;
+	}
+
+	#content_container,
+	#product_container,
+	.product,
+	#who_container,
+	.who {
+		/* Have to set explicitly for any div with sliders, otherwise animation gets goofy */
+		width: 900px;
+	}
+
+	#product_container,
+	#who_container,
+	#contact_container,
+	#share_container {
+		border-top: thin solid black;
+	}
+
+	#home {
+		width: 100%;
+		height: 700px;
+		background-color: #D0EBF7;
+		margin-top:30px;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif; 
+	}
+
+	h1 {
+		font-size: 87px; 
+		color:#0270A0; 
+		font-weight:900;
+		margin: 0px;
+		text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif; 
+	}
+	h2 { 
+		font-size:45px;
+		margin: 0px;
+		color: #094163;
+		/* color: dodgerblue; */
+		text-shadow: 1px 1px white, -1px -1px #BFB4A8;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif; 
+	}
+
+	h3 {
+		font-size: 50px; 
+		font-weight:900; 
+		color: #094163;
+		border-top: 1px dashed #094163; 
+		border-bottom: 1px dashed #094163; 
+		text-shadow: 2px 2px 3px #C0DBE7;
+		display: inline;
+	}
+
+	.inset_box {
+		margin-top: 25px;
+		border: 1px solid #094163;
+		border-radius: 10px;
+		width: 550px;
+		padding: 15px;
+		font-size: 20px;
+		font-weight: 600;
+		margin-left: 50px;
+		margin-bottom: 5px;
+		overflow-y: auto;
+		white-space: normal;
+		text-align: justify;
+		box-shadow: 1px 1px 2px #C0DBE7, -1px -1px 2px #C0DBE7;
+		background-color: #DDF2FB;
+	}
+
+	.inset_box a:link,
+	.inset_box a:visited {
+		text-decoration: none;
+		color: #094163;
+	}
+
+	.inset_box a:hover,
+	.inset_box a:active {
+		text-decoration: none;
+		color: #0270A0;
+	}
+
+	.inset_box li {
+		padding-bottom: 10px;
+	}
+
+	#product_container,
+	#product_slider,
+	.product {
+		height: 900px;
+	}
+
+	#product_container,
+	#who_container {
+		white-space: nowrap;
+		position: relative;
+		overflow: hidden; /***/
+	}
+
+	#who_slider {
+		width: 3600px;
+	}
+
+	#product_slider {
+		width: 4500px;
+	}
+
+/*
+	#product_slider {
+		width: 4500px;
+
+		-webkit-transition:all 1.0s ease-in-out;
+		-moz-transition:all 1.0s ease-in-out;
+		-o-transition:all 1.0s ease-in-out;
+		transition:all 1.0s ease-in-out;
+	}
+*/
+
+	.product, .who {
+		display: inline-block;
+		float: left;
+		overflow: hidden;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif;
+		color: #094163;
+	}
+
+	#prod1 {
+		background-image: url('potus.jpg');
+		background-repeat: no-repeat;
+		background-attachment: scroll;
+		background-position: right bottom;
+		background-size: cover;
+	}
+
+	#prod2 {
+		background-color: #4E9BBD;
+		display: none;
+	}
+
+	#prod3 {
+		background-color: #CC5500;
+		display: none;
+	}
+
+	#prod4 {
+		background-color: #D0EBF7;
+		display: none;
+	}
+
+	#prod5 {
+		background-color: maroon;
+		display: none;
+	}
+
+	.prod_box {
+		position: relative; 
+		top: 100px; 
+		left: 30px; 
+		border-radius: 10px; 
+		width: 600px;
+		height: 185px;
+		font-size: 18px; 
+		color: #094163; 
+		font-family: Verdana, Geneva, sans-serif;
+		text-align: center; 
+		padding: 10px 10px 0px 0px;
+		overflow: hidden; 
+		white-space: normal; 
+	}
+
+	.transparent {
+		filter: alpha(opacity=50);
+		opacity: 0.5; 
+		border: 2px solid gray; 
+		background-color: white; 
+	}
+
+	.opaque {
+		margin-bottom: -185px;
+		z-index: 10;
+	}
+
+	.big_quote {
+		width: 600px;
+		padding-left: 10px;
+		padding-right: 10px;
+		font-size: 30px; 
+		font-weight: bold;
+		color: #C0DBE7; /*#E5F4FB; #094163;*/
+		text-shadow: 2px 2px 0 #094163, -1px 0 #094163, 0 1px #094163, 1px 0 #094163, 0 -1px #094163;
+/*		filter: DropShadow(Color=#094163, OffX=2, OffY=2); */
+		text-align: center;
+		font-family: Georgia, serif;
+		text-indent: -15px; /* hack to deal with before & after elements screwing with centering*/
+		margin-bottom: 0;
+		letter-spacing: 1px;
+		word-spacing: 6px;
+	}
+
+	.big_quote:before {
+		float: left;
+		margin: -20px 0px 0 0;
+		font-size: 65px;
+		content: "\201C";
+		color: #094163;
+		text-shadow: 0 1px 1px white;
+		padding-left: 10px;
+	}
+
+	.big_quote:after {
+		float: right;
+		margin: -55px 0px 0 0;
+		font-size: 65px;
+		content: "\201D";
+		color: #094163;
+		text-shadow: 0 1px 1px white;
+	}
+
+	.learn_more {
+		float: right; 
+		clear: left; 
+		margin-top: 5px; 
+		padding: 4px;
+		font-weight: 500; 
+		display: block;"
+	}
+
+	.learn_more:hover {
+		background-color: #0270A0;
+		border-radius: 5px;
+		color: white;
+		cursor: pointer;
+	}
+
+	#who_container,
+	.who {
+		height: 600px;
+	}
+
+	.who_short {
+		vertica-align: top;
+		font-size: 20px;
+		margin-left: 45px;
+		margin-bottom: 25px;
+		width: 720px;
+		white-space: normal;
+	}
+
+	#who1 {
+		background-color: #EBD1BF;
+	}
+
+	#who2 {
+		background-color: #4E9BBD;
+		display: none;
+	}
+
+	#who3 {
+		background-color: #4E9BBD;
+		display: none;
+	}
+
+	#who4 {
+		background-color: #4E9BBD;
+		display: none;
+	}
+
+	#contact_container {
+		height: 300px;
+		width: 100%;
+		background-color: #CC5500;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif;
+		color: #094163;
+	}
+
+	#contact_container a:link,
+	#contact_container a:visited {
+		text-decoration: none;
+		color: #094163;
+	}
+
+	#contact_container a:hover,
+	#contact_container a:active {
+		text-decoration: none;
+		color: dodgerblue;
+	}
+
+	#where_to {
+		font-size: 30px; 
+		font-weight:900; 
+		color: #094163;
+		text-shadow: 2px 2px 3px #EBD1BF;
+	}
+
+	#share_container {
+		height: 900px;
+		width: 100%;
+		background-color: #D0EBF7;
+		font-family: "Helvetica", "Trebuchet MS", Helvetica, sans-serif;
+		color: #094163;
+	}
+
+	#bottom_padding {
+		height: 250px;
+	}
+
+	.arrow {
+		display: block;
+		position: absolute;
+		top: 40%;
+		opacity: 0.6;
+		filter: alpha(opacity=60);
+		font-size: 40px;
+		background-color: white; /*#0270A0;*/
+		color: gray;
+		cursor: pointer;
+		padding: 1px 3px 8px 3px;
+		vertical-align: middle;
+		border-radius: 3px;
+	}
+
+	.arrow:hover {
+		/*color: blue;*/
+		background-color: #094163;
+		color: white;
+		opacity: 0.8;
+		filter: alpha(opacity=80);
+	}
+
+	.right_arrow {
+		right: 15px;
+	}
+
+	.left_arrow {
+		left: 15px;
+	}
