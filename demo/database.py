@@ -41,6 +41,7 @@ def getUserDb(conn, userId, freshness=36525, freshnessIncludeEdge=False): # 100 
 			if (freshnessIncludeEdge):
 				curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
 				rec = curs.fetchone()
+				logging.debug("got rec: %s" % str(rec))
 				if (rec is None) or (datetime.date.fromtimestamp(rec[0]) < freshness_date):
 					return None
 			return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
