@@ -143,7 +143,7 @@ def _updateFriendEdgesDb(user, token, edges):
 
 def updateFriendEdgesDb(user, token, edges, background=False):
 	if (background):
-		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, tok, edges))
+		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, token, edges))
 		t.daemon = False
 		t.start()
 		return 0
