@@ -21,7 +21,7 @@ def dateFromIso(dateStr):
 			return datetime.date(int(y), int(m), int(d))
 	return None		
 
-def getUserDb(conn, userId, freshness=36525): # 100 years!
+def getUserDb(conn, userId, freshness=36525, freshnessIncludeEdge=False): # 100 years!
 	if (conn is None):
 		conn = db.getConn()
 	freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
@@ -38,6 +38,11 @@ def getUserDb(conn, userId, freshness=36525): # 100 years!
 		if (datetime.date.fromtimestamp(updated) < freshness_date):
 			return None
 		else:
+			if (freshnessIncludeEdge):
+				curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
+				rec = curs.fetchone()
+				if (rec is None) or (datetime.date.fromtimestamp(rec[0]) < freshness_date):
+					return None
 			return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
 	
 def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):

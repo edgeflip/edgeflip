@@ -38,10 +38,10 @@ def face_it():
 	num = int(flask.request.json['num'])
 
 	conn = database.getConn()
-	user = database.getUserDb(conn, fbid, config['freshness'])
+	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
 	edgesRanked = []
-	if (user is not None):
+	if (user is not None): # it's fresh
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
