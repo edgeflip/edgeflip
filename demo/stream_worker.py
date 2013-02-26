@@ -1,5 +1,4 @@
 #!/usr/bin/python
-import pika
 import os
 import sys
 import argparse
@@ -9,8 +8,9 @@ import database
 import datastructs
 import time
 import json
-from Config import config
+import pika
 
+from config import config
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 

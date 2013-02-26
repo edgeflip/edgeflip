@@ -10,11 +10,14 @@ import sys
 import json
 import time
 import threading
+from config import config
 
-from Config import config
+
 
 
 app = Flask(__name__)
+
+
 
 
 @app.route("/", methods=['POST', 'GET'])
@@ -37,7 +40,7 @@ def face_it():
 
 	conn = database.getConn()
 	user = database.getUserDb(conn, fbid, config['freshness'])
-	
+
 	edgesRanked = []
 	if (user is not None):
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)

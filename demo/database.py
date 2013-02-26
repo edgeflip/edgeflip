@@ -6,7 +6,7 @@ import datetime
 import datastructs
 import database_sqlite as db # modify this to swtch db implementations
 import facebook
-from Config import config
+from config import config
 
 
 def getConn():

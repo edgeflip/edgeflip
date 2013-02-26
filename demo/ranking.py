@@ -2,7 +2,7 @@
 import sys
 import database
 import logging
-from Config import config
+from config import config
 
 
 

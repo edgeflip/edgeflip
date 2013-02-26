@@ -10,7 +10,7 @@ import time
 import Queue
 from collections import defaultdict
 import datastructs
-from Config import config
+from config import config
 
 
 
