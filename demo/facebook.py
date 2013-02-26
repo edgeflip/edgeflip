@@ -49,7 +49,7 @@ def dateFromFb(dateStr):
 
 def getUrlFb(url):
 	try:
-		with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+		with closing(urllib.urlopen(url, timeout=60)) as responseFile:
 			responseJson = json.load(responseFile)
 	except (urllib2.URLError, urllib2.HTTPError) as e: 
 		logging.info("error opening url %s: %s" % (url, e.reason))
@@ -311,7 +311,7 @@ class ThreadStreamReader(threading.Thread):
 			#sys.stderr.write(url + "\n\n") 
 
 			try:
-				with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+				with closing(urllib.urlopen(url, timeout=60)) as responseFile:
 					responseJson = json.load(responseFile)
 			except Exception as e:
 				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
