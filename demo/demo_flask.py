@@ -9,7 +9,6 @@ import StreamReaderQueue
 import sys
 import json
 import time
-import threading
 from config import config
 
 
