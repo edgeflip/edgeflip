@@ -45,7 +45,11 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 				updatedEdge = rec[0]
 				if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
 					ret = None
-			ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+				else:
+					ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+			else:
+				ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+			#zzz todo: clean this up
 	if (connP is None):
 		conn.close()
 	return ret
