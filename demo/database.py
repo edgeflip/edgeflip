@@ -38,25 +38,7 @@ def getUserDb(conn, userId, freshness=36525): # 100 years!
 			return None
 		else:
 			return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
-
-def updateUserDb(conn, user, tok, tokFriend):
-	# can leave tok or tokFriend blank, in that case it will not overwrite
-	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated) "
-	if (tok is None):
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, user.id, tokFriend, time.time())
-	elif (tokFriend is None):
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, user.id, time.time())
-	else:
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
-	if (conn is None):
-		conn = db.getConn()
-	curs = conn.cursor()
-	curs.execute(sql, params)
-	conn.commit()	
-
+	
 def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 	if (conn is None):
 		conn = db.getConn()
@@ -145,20 +127,27 @@ def getFriendEdgesDb(conn, primId, requireOutgoing=False, newerThan=0):
 # 	return insertCount
 
 
-def updateFriendEdgesDb(user, token, edges):
+# helper function that may get run in a background thread
+def _updateFriendEdgesDb(user, token, edges):
 	conn = db.getConn()
 	curs = conn.cursor()
-
-	updateUserDb(conn, user, token, None)
-
+	updateUserDb(curs, user, token, None)
 	insertCount = 0
 	for i, e in enumerate(edges):
-		updateUserDb(conn, e.secondary, None, token)
+		updateUserDb(curs, e.secondary, None, token)
 		updateFriendEdgeDb(curs, e)
-		insertCount += 1
+		insertCount += 1	
 	conn.commit()
-
 	return insertCount
+
+def updateFriendEdgesDb(user, token, edges, background=False):
+	if (background):
+		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, tok, edges))
+		t.daemon = False
+		t.start()
+		return 0
+	else:
+		return _updateFriendEdgesDb(user, token, edges)
 
 def updateFriendEdgeDb(curs, edge): # n.b.: doesn't commit
 	sql = """
@@ -168,5 +157,21 @@ def updateFriendEdgeDb(curs, edge): # n.b.: doesn't commit
 			edge.inPostLikes, edge.inPostComms, edge.inStatLikes, edge.inStatComms,
 			edge.outPostLikes, edge.outPostComms, edge.outStatLikes, edge.outStatComms,
 			edge.mutuals, time.time())
+	curs.execute(sql, params)
+
+def updateUserDb(curs, user, tok, tokFriend):
+	# can leave tok or tokFriend blank, in that case it will not overwrite
+	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated) "
+	if (tok is None):
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, user.id, tokFriend, time.time())
+	elif (tokFriend is None):
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, user.id, time.time())
+	else:
+		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
+	if (conn is None):
+		conn = db.getConn()
 	curs.execute(sql, params)
 

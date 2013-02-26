@@ -36,8 +36,8 @@ def face_it():
 	num = int(flask.request.json['num'])
 
 	conn = database.getConn()
-	user = database.getUserDb(conn, fbid, 1) # Do we have user info in last day? (change to config later)
-
+	user = database.getUserDb(conn, fbid, config['freshness'])
+	
 	edgesRanked = []
 	if (user is not None):
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
@@ -46,9 +46,7 @@ def face_it():
 		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		t = threading.Thread(target=database.updateFriendEdgesDb, args=(user, tok, edgesRanked))
-		t.daemon = False
-		t.start()
+		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
 
 	# now, spawn a full crawl in the background
 	StreamReaderQueue.loadQueue(config['queue'], [(fbid, tok, "")])
@@ -104,9 +102,7 @@ def rank_faces():
 
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		t = threading.Thread(target=database.updateFriendEdgesDb, args=(user, tok, edgesRanked))
-		t.daemon = False
-		t.start()
+		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
 
 	else:
  		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)

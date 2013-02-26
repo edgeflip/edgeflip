@@ -35,7 +35,9 @@ def readStreamCallback(ch, method, properties, body):
 	tim = datastructs.Timer()
 	
 	conn = database.getConn()
-	database.updateUserDb(conn, user, tok, None) # Update the primary user in DB
+	curs = conn.cursor()
+
+	database.updateUserDb(curs, user, tok, None) # Update the primary user in DB
 
 	skipFriends = set()
 	if (readStreamCallback.overwriteThresh != 0):
@@ -58,7 +60,6 @@ def readStreamCallback(ch, method, properties, body):
 	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
 	newCount = 0
-	curs = conn.cursor()
 	for i, friend in enumerate(friendQueue):
 		if (readStreamCallback.requireOutgoing):
 			logging.info("[worker] reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
@@ -72,7 +73,7 @@ def readStreamCallback(ch, method, properties, body):
 		else:
 			e = datastructs.EdgeSC1(user, friend, sc)
 
-		database.updateUserDb(conn, e.secondary, None, tok) # Update the secondary user in DB
+		database.updateUserDb(curs, e.secondary, None, tok) # Update the secondary user in DB
 		database.updateFriendEdgeDb(curs, e) # Update the edge in DB
 		newCount += 1
 

@@ -19,7 +19,7 @@ defaults['stream_days_chunk'] = 2
 defaults['stream_threadcount'] = 60
 defaults['stream_read_timeout'] = 10 # seconds
 defaults['stream_read_sleep'] = 0.1 # seconds
-
+defaults['freshness'] = 1
 
 
 
