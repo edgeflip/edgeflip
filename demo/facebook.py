@@ -51,6 +51,7 @@ def getUrlFb(url):
 		responseFile = urllib2.urlopen(url, timeout=60)
 	except (urllib2.URLError, urllib2.HTTPError) as e: 
 		logging.info("error opening url %s: %s" % (url, e.reason))
+		responseFile.close()
 		raise
 	responseJson = json.load(responseFile)
 	return responseJson
