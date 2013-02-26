@@ -23,6 +23,7 @@ def readStreamCallback(ch, method, properties, body):
 	userId, tok, extra = elts
 	userId = int(userId)
 	logging.debug("[worker] received %d, %s from queue" % (userId, tok))
+	sys.stderr.write("received %d, %s from queue\n" % (userId, tok))
 
 	try:
 		user = facebook.getUserFb(userId, tok)
@@ -63,6 +64,7 @@ def readStreamCallback(ch, method, properties, body):
 	for i, friend in enumerate(friendQueue):
 		if (readStreamCallback.requireOutgoing):
 			logging.info("[worker] reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+
 			try:
 				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
 			except Exception as ex:
