@@ -20,7 +20,7 @@ def dateFromIso(dateStr):
 			return datetime.date(int(y), int(m), int(d))
 	return None		
 
-def getUserDb(conn, userId, freshness=sys.maxint):
+def getUserDb(conn, userId, freshness=36525): # 100 years!
 	if (conn is None):
 		conn = db.getConn()
 	freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
@@ -34,7 +34,7 @@ def getUserDb(conn, userId, freshness=sys.maxint):
 	else:
 		#logging.debug(str(rec))
 		fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
-		if (dateFromIso(updated) < freshness_date)
+		if (datetime.date.fromtimestamp(updated) < freshness_date):
 			return None
 		else:
 			return datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)

@@ -31,7 +31,7 @@ def button_man():
 def face_it():
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 
-	fbid = flask.request.json['fbid']
+	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
 
@@ -109,7 +109,7 @@ def rank_faces():
 		t.start()
 
 	else:
- 		friendTups = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+ 		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
 	friendDicts = []
 
@@ -251,7 +251,7 @@ def queueLoad():
 
 @app.route("/db_reset")
 def reset():
-	ReadStreamDb.dbSetup()
+	database.db.dbSetup()
 	return "database has been reset"
 
 

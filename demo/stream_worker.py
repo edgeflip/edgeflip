@@ -1,13 +1,16 @@
 #!/usr/bin/python
 import pika
 import os
+import sys
 import argparse
 import logging
 import facebook
 import database
 import time
+import json
 from Config import config
 
+logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 
 
@@ -35,7 +38,7 @@ def readStreamCallback(ch, method, properties, body):
 		edgesDb = database.getFriendEdgesDb(conn, userId, readStreamCallback.requireOutgoing, newerThan=updateThresh)
 		skipFriends.update([ e.secondary.id for e in edgesDb ])
 
-	edges = getFriendEdgesFb(userId, tok, readStreamCallback.requireOutgoing, skipFriends)
+	edges = facebook.getFriendEdgesFb(userId, tok, readStreamCallback.requireOutgoing, skipFriends)
 	newCount = database.updateFriendEdgesDb(user, tok, edges)
 
 	logging.info("updated %d edges for user %d" % (newCount, userId))
@@ -67,9 +70,9 @@ if (__name__ == '__main__'):
 	args = parser.parse_args()
 
 	if (args.crawlType.lower()[0] == 'p'):
-		requireOutgoing = False
+		readStreamCallback.requireOutgoing = False
 	elif (args.crawlType.lower()[0] == 'f'):
-		requireOutgoing = True
+		readStreamCallback.requireOutgoing = True
 	else:
 		raise Exception("crawl type must be 'p' (partial) or 'f' (full)")
 

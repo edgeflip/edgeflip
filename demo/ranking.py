@@ -69,8 +69,8 @@ def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
 		return getFriendRanking(userId, edgesFull, requireOutgoing=True)
 
 def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
-	edgePart = Database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
-	edgeFull = Database.getFriendEdgesDb(conn, userId, requireOutgoing=True)
+	edgesPart = database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
+	edgesFull = database.getFriendEdgesDb(conn, userId, requireOutgoing=True)
 	return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)
 
 

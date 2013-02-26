@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import sys
 import datetime
 import urllib
 import urllib2
@@ -81,14 +82,13 @@ def getUserFb(userId, token):
 	user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
-def getFriendEdgesFb(userId, token, requireOutgoing=False, skipFriends=set()):
+def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 
 	logging.debug("getting friend edges from FB for %d" % userId)
 	tim = datastructs.Timer()
-	try:
-		friends = getFriendsFb(userId, tok)
-	except:
-		return None
+
+	friends = getFriendsFb(userId, tok)
+	
 	logging.debug("got %d friends total", len(friends))
 	
 	friendQueue = [f for f in friends if f.id not in skipFriends]
@@ -103,14 +103,14 @@ def getFriendEdgesFb(userId, token, requireOutgoing=False, skipFriends=set()):
 	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
 	edges = []
-	user = getUserFb(userId, token)
+	user = getUserFb(userId, tok)
 	for i, friend in enumerate(friendQueue):
 		if (requireOutgoing):
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
-				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
-			except Exception:
-				logging.warning("error reading stream for %d", friend.id)
+				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+			except Exception as ex:
+				logging.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
 				continue
 			logging.debug('got %s', str(scFriend))
 			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
