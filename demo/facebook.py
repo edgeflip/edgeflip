@@ -310,14 +310,32 @@ class ThreadStreamReader(threading.Thread):
 			url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token	
 			#sys.stderr.write(url + "\n\n") 
 
+
+			#try:
+			#	req = urllib2.Request(url)
+			#	with closing(urllib2.urlopen(req, timeout=60)) as responseFile:
+			#		responseJson = json.load(responseFile)
+			#except Exception as e:
+			#	logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+			#	self.queue.task_done()
+			#	self.queue.put((ts1, ts2))
+			#	continue
+
+			req = urllib2.Request(url)
 			try:
-				with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
-					responseJson = json.load(responseFile)
+				responseFile = urllib2.urlopen(req, timeout=60)
 			except Exception as e:
 				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+				try:
+					responseFile.fp._sock.recv = None
+				except: # in case it's not applicable, ignore this.
+					pass
+
 				self.queue.task_done()
-				self.queue.put((ts1, ts2))
+                                self.queue.put((ts1, ts2))
 				continue
+
+			responseJson = json.load(responseFile)
 
 			#sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
 
