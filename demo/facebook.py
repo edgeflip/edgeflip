@@ -229,13 +229,12 @@ class ReadStreamCounts(StreamCounts):
 		scChunks = [] # list of sc obects holding results
 
 		# load the queue
-		intervals = [] # (ts1, ts2)
 		chunkSizeSecs = chunkSizeDays*24*60*60
 		tsNow = int(time.time())
 		tsStart = tsNow-numDays*24*60*60
 		for ts1 in range(tsStart, tsNow, chunkSizeSecs):
 			ts2 = min(ts1 + chunkSizeSecs, tsNow)
-			tsQueue.put((ts1, ts2))
+			tsQueue.put((ts1, ts2, 0))
 
 		# create the thread pool
 		threads = []
@@ -294,18 +293,13 @@ class ThreadStreamReader(threading.Thread):
 
 	def run(self):
 		timeStop = time.time() + self.lifespan
-		
-		#zzz
-		#responseFile = None
-
 		logging.debug("thread %s starting" % self.name)
 		timThread = datastructs.Timer()
+		goodCount = 0
+		errCount = 0
 		while (time.time() < timeStop):
-
-			#gc.collect()
-
 			try:
-				ts1, ts2 = self.queue.get_nowait()
+				ts1, ts2, qcount = self.queue.get_nowait()
 			except Queue.Empty as e:
 				break
 		
@@ -347,9 +341,11 @@ class ThreadStreamReader(threading.Thread):
 				#	responseFile.fp._sock.recv = None
 				#except: # in case it's not applicable, ignore this.
 				#	pass
-
+				errCount += 1
 				self.queue.task_done()
-                                self.queue.put((ts1, ts2))
+				qcount += 1
+				if (qcount < config['stream_read_trycount']):
+					self.queue.put((ts1, ts2, qcount))
 				continue
 
 			responseJson = json.load(responseFile)
@@ -373,10 +369,12 @@ class ThreadStreamReader(threading.Thread):
 			logging.debug("stream counts for %s: %s" % (self.userId, str(sc)))
 			logging.debug("chunk took %s" % (tim.elapsedPr()))
 
+			goodCount += 1
+
 			self.results.append(sc)
 			self.queue.task_done()
 		
 		else: # we've reached the stop limit
 			logging.debug("thread %s reached lifespan, exiting" % (self.name))
 
-		logging.debug("thread %s finishing (took %s)" % (self.name, timThread.elapsedPr()))
+		logging.debug("thread %s finishing with %d/%d good (took %s)" % (self.name, goodCount, (goodCount + errCount), timThread.elapsedPr()))
