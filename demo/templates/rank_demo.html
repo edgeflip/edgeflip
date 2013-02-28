@@ -115,7 +115,7 @@
 		var secDiffStr = secDiff + "";
 		var posDot = secDiffStr.indexOf('.')
 		var fracStr = secDiffStr.substring(posDot)
-		return secDiffStr.substring(0, posDot) + "." + fracStr.substring(0, 2) + " seconds"
+		return secDiffStr.substring(0, posDot) + fracStr.substring(0, 3) + " seconds"
 	}
 
 	window.fbAsyncInit = function() {
