@@ -103,9 +103,9 @@
 
 	function elapsedPr(dt1, dt2) {
 		var dateDiff = new Date(dt2.getTime() - dt2.getTime());
-		var hh = date.getHours();
-		var mm = date.getMinutes();
-		var ss = date.getSeconds();
+		var hh = dateDiff.getHours();
+		var mm = dateDiff.getMinutes();
+		var ss = dateDiff.getSeconds();
 		if (hh < 10) {hh = "0"+hh;}
 		if (mm < 10) {mm = "0"+mm;}
 		if (ss < 10) {ss = "0"+ss;}
@@ -172,7 +172,7 @@
 						friends_div.html(data);	
 						friends_div.show();
 						progress.hide();
-						document.getElementById("elapsed_px4").innerHtml = 	elapsedPr(timeStart, new Date());
+						document.getElementById("elapsed_px4").innerHtml = elapsedPr(timeStart, new Date());
 			}
 		});
 	}
@@ -204,7 +204,7 @@
 						friends_div.html(data);	
 						friends_div.show();
 						progress.hide();
-						document.getElementById("elapsed_px5").innerHtml = 	elapsedPr(timeStart, new Date());
+						document.getElementById("elapsed_px5").innerHtml = elapsedPr(timeStart, new Date());
 						setTimeout(function() {getPX5(fbid, accessToken, num);}, 15000);
 			}
 		});
