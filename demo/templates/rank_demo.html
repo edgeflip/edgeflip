@@ -58,8 +58,6 @@
 <CENTER>
 <span style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900;">edgeflip</span><BR>
 <span style="font-family:arial,sans-serif; font-size:37px; font-weight:100">friend ranking demo</span>
-[<span id="elapsed_px4_test">&nbsp;</span>]
-[<span id="elapsed_px5_test">&nbsp;</span>]
 </CENTER>
 
 <CENTER>
@@ -174,7 +172,8 @@
 						friends_div.html(data);	
 						friends_div.show();
 						progress.hide();
-						document.getElementById("elapsed_px4_test").innerHtml = elapsedPr(timeStart, new Date());
+						//document.getElementById("elapsed_px4_test").innerHtml = elapsedPr(timeStart, new Date());
+						alert("px4 took " + elapsedPr(timeStart, new Date()));
 			}
 		});
 	}
@@ -206,7 +205,8 @@
 						friends_div.html(data);	
 						friends_div.show();
 						progress.hide();
-						document.getElementById("elapsed_px5_test").innerHtml = elapsedPr(timeStart, new Date());
+						//document.getElementById("elapsed_px5_test").innerHtml = elapsedPr(timeStart, new Date());
+						alert("px5 took " + elapsedPr(timeStart, new Date()));
 						setTimeout(function() {getPX5(fbid, accessToken, num);}, 15000);
 			}
 		});
