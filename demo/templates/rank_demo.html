@@ -102,14 +102,20 @@
 	var timeStart = new Date();
 
 	function elapsedPr(dt1, dt2) {
-		var dateDiff = new Date(dt2.getTime() - dt1.getTime());
-		var hh = dateDiff.getHours();
-		var mm = dateDiff.getMinutes();
-		var ss = dateDiff.getSeconds();
-		if (hh < 10) {hh = "0"+hh;}
-		if (mm < 10) {mm = "0"+mm;}
-		if (ss < 10) {ss = "0"+ss;}
-		return hh+":"+mm+":"+ss;
+		//var dateDiff = new Date(dt2.getTime() - dt1.getTime());
+		//var hh = dateDiff.getHours();
+		//var mm = dateDiff.getMinutes();
+		//var ss = dateDiff.getSeconds();
+		//if (hh < 10) {hh = "0"+hh;}
+		//if (mm < 10) {mm = "0"+mm;}
+		//if (ss < 10) {ss = "0"+ss;}
+		//return hh+":"+mm+":"+ss;
+		var millDiff = dt2.getTime() - dt1.getTime();
+		var secDiff = millDiff/1000.0;
+		var secDiffStr = secDiff + "";
+		var posDot = secDiffStr.indexOf('.')
+		var fracStr = secDiffStr.substring(posDot)
+		return secDiffStr.substring(0, posDot) + "." + fracStr.substring(0, 2) + " seconds"
 	}
 
 	window.fbAsyncInit = function() {
