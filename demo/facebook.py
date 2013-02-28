@@ -240,7 +240,7 @@ class ReadStreamCounts(StreamCounts):
 		# create the thread pool
 		threads = []
 		for i in range(threadCount):
-			t = ThreadStreamReader(userId, token, tsQueue, scChunks)
+			t = ThreadStreamReader(userId, token, tsQueue, scChunks, config['stream_read_timeout'])
 			t.setDaemon(True)
 			t.name = "%s-%d" % (userId, i)
 			threads.append(t)
@@ -267,7 +267,11 @@ class ReadStreamCounts(StreamCounts):
 			logging.debug("now have %d threads" % (tc))
 
 		logging.debug("%d threads still alive after loop" % (len(threads)))
-			
+		#for t in threads:
+		#	t.kill_received = True		
+		#tc = len([ t for t in threads if t.isAlive() ])
+		#logging.debug("now have %d threads" % (tc))
+	
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
 		sc = StreamCounts(userId)
@@ -276,16 +280,29 @@ class ReadStreamCounts(StreamCounts):
 			self.__iadd__(scChunk)
 		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr()))
 
+#zzz
+#import gc
+
 class ThreadStreamReader(threading.Thread):
-	def __init__(self, userId, token, queue, results):
+	def __init__(self, userId, token, queue, results, lifespan):
 		threading.Thread.__init__(self)
 		self.userId = userId
 		self.token = token
 		self.queue = queue
 		self.results = results
+		self.lifespan = lifespan
 
 	def run(self):
-		while True:
+		timeStop = time.time() + self.lifespan
+		
+		#zzz
+		#responseFile = None
+
+		logging.debug("thread %s starting" % self.name)
+		timThread = datastructs.Timer()
+		while (time.time() < timeStop):
+
+			#gc.collect()
 
 			try:
 				ts1, ts2 = self.queue.get_nowait()
@@ -325,17 +342,18 @@ class ThreadStreamReader(threading.Thread):
 			try:
 				responseFile = urllib2.urlopen(req, timeout=60)
 			except Exception as e:
-				logging.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
-				try:
-					responseFile.fp._sock.recv = None
-				except: # in case it's not applicable, ignore this.
-					pass
+				logging.error("error reading stream chunk for user %s (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+				#try:
+				#	responseFile.fp._sock.recv = None
+				#except: # in case it's not applicable, ignore this.
+				#	pass
 
 				self.queue.task_done()
                                 self.queue.put((ts1, ts2))
 				continue
 
 			responseJson = json.load(responseFile)
+			responseFile.close()
 
 			#sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
 
@@ -357,5 +375,8 @@ class ThreadStreamReader(threading.Thread):
 
 			self.results.append(sc)
 			self.queue.task_done()
+		
+		else: # we've reached the stop limit
+			logging.debug("thread %s reached lifespan, exiting" % (self.name))
 
-
+		logging.debug("thread %s finishing (took %s)" % (self.name, timThread.elapsedPr()))
