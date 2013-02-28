@@ -21,6 +21,8 @@ defaults['stream_read_timeout'] = 10 # seconds
 defaults['stream_read_sleep'] = 0.1 # seconds
 defaults['stream_read_trycount'] = 3 # ...strikes and you're out
 defaults['freshness'] = 1
+defaults['app_id'] = 471727162864364
+defaults['app_secret'] = '120fe5e6d5bffa6a9aa3bf075bd3076a'
 
 
 

@@ -37,6 +37,14 @@ def face_it():
 	tok = flask.request.json['token']
 	num = int(flask.request.json['num'])
 
+	# Try extending the token. If we hit an error, proceed with what we got from the page.
+	# zzz Will want to do this with the rank demo when we switch away from Shari!
+	try:
+		newToken = facebook.extendTokenFb(tok)
+		tok = newToken
+	except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError):
+		pass # Something went wrong, but the facebook script already logged it, so just go with the original token
+
 	conn = database.getConn()
 	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
