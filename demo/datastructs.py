@@ -22,7 +22,7 @@ class Timer:
 		secs = (delt.seconds - hours*3600 - mins*60)
 		if (precision):
 			secsFloat = secs + delt.microseconds/1000000.0 # e.g., 2.345678
-			secsStr = ("%." + str(precision) + "f") % (secsFloat)
+			secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
 		else:
 			secsStr = "%02d" % (secs)
 		if (hours == 0):
