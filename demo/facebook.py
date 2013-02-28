@@ -341,6 +341,7 @@ class ThreadStreamReader(threading.Thread):
 			url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token	
 			#sys.stderr.write(url + "\n\n") 
 
+			logging.debug("url from %s, interval (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)) 
 
 			#try:
 			#	req = urllib2.Request(url)
