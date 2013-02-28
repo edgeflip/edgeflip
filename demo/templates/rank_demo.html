@@ -102,7 +102,7 @@
 	var timeStart = new Date();
 
 	function elapsedPr(dt1, dt2) {
-		var dateDiff = new Date(dt2.getTime() - dt2.getTime());
+		var dateDiff = new Date(dt2.getTime() - dt1.getTime());
 		var hh = dateDiff.getHours();
 		var mm = dateDiff.getMinutes();
 		var ss = dateDiff.getSeconds();
