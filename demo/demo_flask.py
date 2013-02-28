@@ -129,7 +129,7 @@ def rank_faces():
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
 
-	ret = render_template('rank_faces.html', face_friends=filteredDicts)
+	ret = render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
 	return ret
 	
 
