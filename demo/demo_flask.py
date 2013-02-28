@@ -10,6 +10,7 @@ import sys
 import json
 import time
 from config import config
+import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 
 
 
