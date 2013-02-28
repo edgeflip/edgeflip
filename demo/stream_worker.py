@@ -72,6 +72,10 @@ def readStreamCallback(ch, method, properties, body):
 				continue
 			logging.debug('[worker] got %s', str(scFriend))
 			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+			# zzz
+			logging.debug("nap time...")
+			time.sleep(15)
+			# zzz
 		else:
 			e = datastructs.EdgeSC1(user, friend, sc)
 
