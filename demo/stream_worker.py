@@ -52,7 +52,7 @@ def readStreamCallback(ch, method, properties, body):
 	logging.debug("[worker] got %d friends total; updating %d of them" % ( len(friends), len(friendQueue) ))
 
 	logging.info('[worker] reading stream for user %s, %s', userId, tok)
-	sc = facebook.ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+	sc = facebook.ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
 	logging.debug('[worker] got %s', str(sc))
 
 	# sort all the friends by their stream rank (if any) and mutual friend count
@@ -60,22 +60,25 @@ def readStreamCallback(ch, method, properties, body):
 	logging.debug("[worker] got %d friends ranked", len(friendId_streamrank))
 	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
+	# Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
+	# relative to the number of calls we're making (the number of chunks) to 1 call / sec.
+	friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
+
 	newCount = 0
 	for i, friend in enumerate(friendQueue):
 		if (readStreamCallback.requireOutgoing):
+			timFriend = datastructs.Timer()
+
 			logging.info("[worker] reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 
 			try:
-				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
 			except Exception as ex:
 				logging.warning("[worker] error reading stream for %d: %s" % (friend.id, str(ex)))
 				continue
 			logging.debug('[worker] got %s', str(scFriend))
 			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
-			# zzz
-			logging.debug("nap time...")
-			time.sleep(15)
-			# zzz
+
 		else:
 			e = datastructs.EdgeSC1(user, friend, sc)
 
@@ -86,6 +89,17 @@ def readStreamCallback(ch, method, properties, body):
 		newCount += 1
 		logging.debug('[worker] edge %s', str(e))
 		sys.stderr.write("\twrote edge %d/%d %d--%d %s\n" % (i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e)))
+
+		# Throttling for Facebook limits
+		# If this friend took fewer seconds to crawl than the number of chunks, wait that
+		# additional time before proceeding to next friend to avoid getting shut out by FB.
+		# __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
+		if (readStreamCallback.requireOutgoing):
+			secsLeft = friendSecs - timFriend.elapsedSecs()
+			if (secsLeft > 0):
+				logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
+				time.sleep(secsLeft)
+
 	conn.close()
 
 	logging.debug("[worker] updated %d friend edges for %d (took: %s)" % (newCount, userId, tim.elapsedPr()))

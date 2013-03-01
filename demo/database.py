@@ -82,67 +82,6 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 		conn.close()
 	return eds
 
- # overwriteThresh=sys.maxint  never overwrite (default)
- # overwriteThresh=0 always overwrite
-# def updateFriendEdgesDb(conn, userId, tok, requireOutgoing=True, overwriteThresh=sys.maxint):
-# 	if (conn is None):
-# 		conn = db.getConn()
-
-# 	logging.debug("updating friend edges for %d" % userId)
-# 	tim = datastructs.Timer()
-# 	try:
-# 		friends = facebook.getFriendsFb(userId, tok)
-# 	except:
-# 		return -1
-# 	logging.debug("got %d friends total", len(friends))
-	
-# 	# if we're not overwriting, see what we have saved
-# 	if (overwriteThresh == 0):
-# 		friendQueue = friends
-# 	else:
-# 		# want the edges that were updated less than overwriteThresh secs ago, we'll exclude these
-# 		updateThresh = time.time() - overwriteThresh
-# 		edgesDb = getFriendEdgesDb(conn, userId, requireOutgoing, newerThan=updateThresh)
-# 		friendIdsDb = set([ e.secondary.id for e in edgesDb ])
-# 		friendQueue = [ f for f in friends if f.id not in friendIdsDb ]
-
-# 	logging.info('reading stream for user %s, %s', userId, tok)
-# 	#sc = StreamReader.readStream(userId, tok, STREAM_NUM_DAYS, STREAM_CHUNK_DAYS, NUM_JOBS)
-# 	sc = facebook.ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
-# 	logging.debug('got %s', str(sc))
-
-# 	# sort all the friends by their stream rank (if any) and mutual friend count
-# 	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
-# 	logging.debug("got %d friends ranked", len(friendId_streamrank))
-# 	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
-
-# 	user = getUserDb(conn, userId)
-# 	insertCount = 0
-# 	curs = conn.cursor()
-# 	for i, friend in enumerate(friendQueue):
-# 		if (requireOutgoing):
-# 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
-# 			try:
-# 				scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
-# 			except Exception:
-# 				logging.warning("error reading stream for %d", friend.id)
-# 				continue
-# 			logging.debug('got %s', str(scFriend))
-# 			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
-# 		else:
-# 			e = datastructs.EdgeSC1(user, friend, sc)
-# 		logging.debug('edge %s', str(e))
-
-# 		updateUserDb(conn, friend, None, tok)
-# 		updateFriendEdgeDb(curs, e)
-# 		insertCount += 1		
-# 	conn.commit()
-# 	logging.debug("updated %d friend edges for %d (%s)" % (insertCount, userId, tim.elapsedPr()))
-
-# 	updateUserDb(conn, user, tok, None)
-# 	return insertCount
-
-
 # helper function that may get run in a background thread
 def _updateFriendEdgesDb(user, token, edges):
 	tim = datastructs.Timer()

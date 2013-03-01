@@ -9,18 +9,33 @@ CONFIG_PATH = './edgeflip.config'
 
 # read the config file and create the config dict
 defaults = {}
+
+# locations of logs, code, and other important files
 defaults['outdir'] = '.'
 defaults['codedir'] = '.'
 defaults['queue'] = 'edgeflip_demo'
 defaults['logpath'] = './logs/demo.log'
 defaults['dbpath'] = './demo.sqlite'
-defaults['stream_days'] = 120
-defaults['stream_days_chunk'] = 2
-defaults['stream_threadcount'] = 60
-defaults['stream_read_timeout'] = 10 # seconds
-defaults['stream_read_sleep'] = 0.1 # seconds
+
+# parameters for initial incoming stream reading ("px4")
+defaults['stream_days_in'] = 120
+defaults['stream_days_chunk_in'] = 2
+defaults['stream_threadcount_in'] = 60
+defaults['stream_read_timeout_in'] = 10 # seconds
+defaults['stream_read_sleep_in'] = 0.1 # seconds
+
+# parameters for outgoing stream reading ("px5")
+defaults['stream_days_out'] = 120
+defaults['stream_days_chunk_out'] = 10
+defaults['stream_threadcount_out'] = 12
+defaults['stream_read_timeout_out'] = 20 # seconds
+defaults['stream_read_sleep_out'] = 0.2 # seconds
+
+# general parameters for crawling and results
 defaults['stream_read_trycount'] = 3 # ...strikes and you're out
 defaults['freshness'] = 1
+
+# FB app parameters
 defaults['app_id'] = 471727162864364
 defaults['app_secret'] = '120fe5e6d5bffa6a9aa3bf075bd3076a'
 

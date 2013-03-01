@@ -54,6 +54,11 @@ def getUrlFb(url):
 			responseJson = json.load(responseFile)
 	except (urllib2.URLError, urllib2.HTTPError) as e: 
 		logging.info("error opening url %s: %s" % (url, e.reason))
+		try:
+			# If we actually got an error back from a server, should be able to read the message here
+			logging.error("returned error was: %s" % e.read())
+		except:
+			pass
 		raise
 
 	return responseJson
@@ -73,6 +78,11 @@ def extendTokenFb(token):
 			logging.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
 	except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
 		logging.info("error extending token %s: %s" % (token, str(e)))
+		try:
+			# If we actually got an error back from a server, should be able to read the message here
+			logging.error("returned error was: %s" % e.read())
+		except:
+			pass
 		raise
 
 	return newToken
@@ -116,7 +126,7 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 	friendQueue = [f for f in friends if f.id not in skipFriends]
 
 	logging.info('reading stream for user %s, %s', userId, tok)
-	sc = ReadStreamCounts(userId, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+	sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
 	logging.debug('got %s', str(sc))
 
 	# sort all the friends by their stream rank (if any) and mutual friend count
@@ -124,13 +134,17 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 	logging.debug("got %d friends ranked", len(friendId_streamrank))
 	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
+	# Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
+	# relative to the number of calls we're making (the number of chunks) to 1 call / sec.
+	friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
+
 	edges = []
 	user = getUserFb(userId, tok)
 	for i, friend in enumerate(friendQueue):
 		if (requireOutgoing):
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
-				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days'], config['stream_days_chunk'], config['stream_threadcount'])
+				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
 			except Exception as ex:
 				logging.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
 				continue
@@ -140,6 +154,17 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 			e = datastructs.EdgeSC1(user, friend, sc)
 		edges.append(e)
 		logging.debug('edge %s', str(e))
+
+		# Throttling for Facebook limits
+		# If this friend took fewer seconds to crawl than the number of chunks, wait that
+		# additional time before proceeding to next friend to avoid getting shut out by FB.
+		# __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
+		if (readStreamCallback.requireOutgoing):
+			secsLeft = friendSecs - timFriend.elapsedSecs()
+			if (secsLeft > 0):
+				logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
+				time.sleep(secsLeft)
+
 
 	logging.debug("got %d friend edges for %d (%s)" % (len(edges), userId, tim.elapsedPr()))
 
@@ -235,7 +260,7 @@ class StreamCounts(object):
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 	
 class ReadStreamCounts(StreamCounts):
-	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60):
+	def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60, loopTimeout=10, loopSleep=0.1):
 		logging.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount))
 		tim = datastructs.Timer()
 		self.id = userId
@@ -259,13 +284,13 @@ class ReadStreamCounts(StreamCounts):
 		# create the thread pool
 		threads = []
 		for i in range(threadCount):
-			t = ThreadStreamReader(userId, token, tsQueue, scChunks, config['stream_read_timeout'])
+			t = ThreadStreamReader(userId, token, tsQueue, scChunks, loopTimeout)
 			t.setDaemon(True)
 			t.name = "%s-%d" % (userId, i)
 			threads.append(t)
 			t.start()
 
-		timeStop = time.time() + config['stream_read_timeout']
+		timeStop = time.time() + loopTimeout
 		try:
 			while (time.time() < timeStop):
 				threadsAlive = []
@@ -274,7 +299,7 @@ class ReadStreamCounts(StreamCounts):
 						threadsAlive.append(t)
 				threads = threadsAlive
 				if (threadsAlive):
-					time.sleep(config['stream_read_sleep'])
+					time.sleep(loopSleep)
 				else:
 					break
 
@@ -341,7 +366,8 @@ class ThreadStreamReader(threading.Thread):
 			url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token	
 			#sys.stderr.write(url + "\n\n") 
 
-			logging.debug("url from %s, interval (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)) 
+			# Can be useful, but sure prints out a lot!
+			# logging.debug("url from %s, interval (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)) 
 
 			#try:
 			#	req = urllib2.Request(url)
@@ -362,6 +388,11 @@ class ThreadStreamReader(threading.Thread):
 				#	responseFile.fp._sock.recv = None
 				#except: # in case it's not applicable, ignore this.
 				#	pass
+				try:
+					# If we actually got an error back from a server, should be able to read the message here
+					logging.error("returned error was: %s" % e.read())
+				except:
+					pass
 				errCount += 1
 				self.queue.task_done()
 				qcount += 1
