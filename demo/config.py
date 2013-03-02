@@ -33,6 +33,7 @@ defaults['stream_read_sleep_out'] = 0.2 # seconds
 
 # general parameters for crawling and results
 defaults['stream_read_trycount'] = 3 # ...strikes and you're out
+defaults['bad_chunk_thresh'] = 0.25 # abort crawl if too many chunks fail 
 defaults['freshness'] = 1
 
 # FB app parameters

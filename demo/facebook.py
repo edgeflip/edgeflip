@@ -273,6 +273,8 @@ class ReadStreamCounts(StreamCounts):
 		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
 		scChunks = [] # list of sc obects holding results
 
+		numChunks = numDays / chunkSizeDays # How many chunks should we get back?
+
 		# load the queue
 		chunkSizeSecs = chunkSizeDays*24*60*60
 		tsNow = int(time.time())
@@ -318,7 +320,11 @@ class ReadStreamCounts(StreamCounts):
 	
 		logging.debug("%d chunk results for user %s", len(scChunks), userId)
 
-		sc = StreamCounts(userId)
+		badChunkRate = 1.0*(numChunks - len(scChunks)) / numChunks
+		if (badChunkRate >= config['bad_chunk_thresh']):
+			raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %d" % (userId, config['bad_chunk_thresh']))
+
+		sc = StreamCounts(userId) # is this left over from something? I don't think it's used... --Kit
 		for i, scChunk in enumerate(scChunks):
 			logging.debug("chunk %d %s" % (i, str(scChunk)))
 			self.__iadd__(scChunk)
@@ -430,3 +436,9 @@ class ThreadStreamReader(threading.Thread):
 			logging.debug("thread %s reached lifespan, exiting" % (self.name))
 
 		logging.debug("thread %s finishing with %d/%d good (took %s)" % (self.name, goodCount, (goodCount + errCount), timThread.elapsedPr()))
+
+class BadChunksError(Exception):
+	def __init__(self, msg):
+		self.msg = msg
+	def __str__(self):
+		return msg
