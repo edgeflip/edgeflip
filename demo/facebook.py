@@ -322,7 +322,7 @@ class ReadStreamCounts(StreamCounts):
 
 		badChunkRate = 1.0*(numChunks - len(scChunks)) / numChunks
 		if (badChunkRate >= config['bad_chunk_thresh']):
-			raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %d" % (userId, config['bad_chunk_thresh']))
+			raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %0.2f" % (userId, config['bad_chunk_thresh']))
 
 		sc = StreamCounts(userId) # is this left over from something? I don't think it's used... --Kit
 		for i, scChunk in enumerate(scChunks):
