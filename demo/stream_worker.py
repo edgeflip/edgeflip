@@ -98,7 +98,7 @@ def readStreamCallback(ch, method, properties, body):
 			secsLeft = friendSecs - timFriend.elapsedSecs()
 			if (secsLeft > 0):
 				logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
-				time.sleep(secsLeft)
+##zzz				time.sleep(secsLeft)
 
 	conn.close()
 
