@@ -67,8 +67,8 @@
 <div id="friends_table" style="display:none;">
 <TABLE BORDER=0 CELLSPACING="15">
 	<TR style="font-size:20px; font-weight:900; color:#001F4C; text-align: center;">
-		<TD>Incoming FB Actions Only</TD>
-		<TD>Incoming &amp; Outgoing FB Actions</TD>
+		<TD id="px4_header">Incoming FB Actions Only</TD>
+		<TD id="px5_header">Incoming &amp; Outgoing FB Actions</TD>
 	</TR>
 	<TR>
 		<TD WIDTH="50%" VALIGN='top' ALIGN="CENTER">
@@ -189,7 +189,10 @@
 						friends_div.show();
 						progress.hide();
 						//document.getElementById("elapsed_px4_test").innerHtml = elapsedPr(timeStart, new Date());
-						alert("px4 took " + elapsedPr(timeStart, new Date()));
+						// alert("px4 took " + elapsedPr(timeStart, new Date()));
+						$('#px4_header').html('Incoming FB Actions Only<BR\>' +
+											  '<span style="font-size: 14px;">elapsed: ' +
+											  elapsedPr(timeStart, new Date()) );
 			}
 		});
 	}
@@ -222,7 +225,10 @@
 						friends_div.show();
 						progress.hide();
 						//document.getElementById("elapsed_px5_test").innerHtml = elapsedPr(timeStart, new Date());
-						alert("px5 took " + elapsedPr(timeStart, new Date()));
+						//alert("px5 took " + elapsedPr(timeStart, new Date()));
+						$('#px5_header').html('Incoming &amp; Outgoing FB Actions<BR\>' +
+											  '<span style="font-size: 14px;">elapsed: ' +
+											  elapsedPr(timeStart, new Date()) );
 						setTimeout(function() {getPX5(fbid, accessToken, num);}, 15000);
 			}
 		});

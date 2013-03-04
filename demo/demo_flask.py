@@ -110,7 +110,7 @@ def rank_demo():
 def rank_faces():
 	import time
 	
-	fbid = flask.request.json['fbid']
+	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
 	rankfn = flask.request.json['rankfn']
 
