@@ -21,9 +21,13 @@ function show_friends() {
 				login(response, info);
 			});	   
 		}
-	}, {scope:'email,user_birthday,friends_birthday,publish_stream,user_about_me,user_location,friends_location'});
+	}, {scope:'read_stream,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes'});
 
 }
+
+
+// Old scope: {scope:'email,user_birthday,friends_birthday,publish_stream,user_about_me,user_location,friends_location'}
+// OFA scope (?): read-stream, publish-actions, user-birthday, user-likes, user-location, friends-birthday, friends-likes, friends-location, email
 
 
 function login(response, info){
