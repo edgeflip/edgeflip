@@ -142,6 +142,7 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 	user = getUserFb(userId, tok)
 	for i, friend in enumerate(friendQueue):
 		if (requireOutgoing):
+			timFriend = datastructs.Timer()
 			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 			try:
 				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
@@ -159,7 +160,7 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 		# If this friend took fewer seconds to crawl than the number of chunks, wait that
 		# additional time before proceeding to next friend to avoid getting shut out by FB.
 		# __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
-		if (readStreamCallback.requireOutgoing):
+		if (requireOutgoing):
 			secsLeft = friendSecs - timFriend.elapsedSecs()
 			if (secsLeft > 0):
 				logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
