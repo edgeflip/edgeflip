@@ -139,8 +139,18 @@
 			//var accessToken	= response.authResponse.accessToken;
 			//var fbid = info.id;
 			//zzz
-			fbid = 1509232539;
-			accessToken =  'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD';
+			//fbid = 1509232539;
+			//accessToken =  'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD';
+
+			{% if (fbid) %}
+				var fbid = {{fbid}};
+				var accessToken = '{{tok}}';
+			{% else %}
+				var fbid = info.id;
+				var accessToken	= response.authResponse.accessToken;
+			{% endif %}
+
+			// Can we finally get rid of this?
 			var num = 1000;
 
 			$('#progress-px4').show();

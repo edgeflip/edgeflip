@@ -94,7 +94,17 @@ def face_it():
 
 @app.route('/rank')
 def rank_demo():
-	return render_template('rank_demo.html')
+	default_users = {
+						'shari': { 'fbid': 1509232539, 'tok': 'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD'},
+						'rayid': { 'fbid': 500876410, 'tok': 'AAAGtCIn5MuwBAFTg2aYju1aolbzZChQhKzSqZASwZC4nWngWAC4jtDd9ASjqOGnrXrGudFivOcyLWNYIidgoJpZCfQicZByB09aMJoWIppgZDZD'},
+						'matt': { 'fbid': 100003222687678, 'tok': 'AAAGtCIn5MuwBAMQ9d0HMAYuHgzSadSNiZAQbGxellczZC1OygQzZBx3vPeStoOhM9j05RmCJhOfcc7OMG4I2pCl2RvdlZCCzAbRNbXic9wZDZD'},
+						'6963': { 'fbid': 6963, 'tok': 'AAAGtCIn5MuwBACC6710Xe3HiUK89U9C9eN58uQPGmfVb83HaQ4ihVvCLAmECtJ0Nttyf3ck59paUirvtZBVZC9kZBMrZCT0ZD'}
+					}
+
+	rank_user = flask.request.args.get('user', '').lower()
+	fbid = default_users.get(rank_user, {}).get('fbid', None)
+	tok = default_users.get(rank_user, {}).get('tok', None)
+	return render_template('rank_demo.html', fbid=fbid, tok=tok)
 
 @app.route('/rank_faces', methods=['POST'])
 def rank_faces():
