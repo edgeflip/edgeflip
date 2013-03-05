@@ -80,7 +80,14 @@ class Edge(object):
 		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
 			ret += "%2s " % str(c)
 		return ret
-		
+	def toDict(self):
+		u = self.secondary
+		d = { 'id': u.id, 'fname': u.fname, 'lname': u.lname, 'name': u.fname + " " + u.lname, 
+				'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score
+				'desc': self.__str__().replace('None', '&Oslash;'
+		}
+		return d
+
 class EdgeSC1(Edge):
 	def __init__(self, userInfo, friendInfo, userStreamCount):
 		self.primary = userInfo

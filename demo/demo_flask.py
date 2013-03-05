@@ -63,23 +63,7 @@ def face_it():
 	# now, spawn a full crawl in the background
 	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendDicts = []
-
-	for i, e in enumerate(edgesRanked):
-		fd = {
-				'rank': i, 
-				'id': e.secondary.id, 
-				'name': e.secondary.fname+" "+e.secondary.lname, 
-				'gender': e.secondary.gender, 
-				'age': e.secondary.age, 
-				'city': e.secondary.city, 
-				'state': e.secondary.state, 
-				'fname': e.secondary.fname, 
-				'lname': e.secondary.lname,
-				'desc': str(e),
-				'score': e.score
-			}
-		friendDicts.append(fd)
+	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
@@ -130,21 +114,7 @@ def rank_faces():
 	else:
  		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
-	friendDicts = []
-
-	for i, e in enumerate(edgesRanked):
-		fd = {
-				'rank': i, 
-				'id': e.secondary.id, 
-				'name': e.secondary.fname+" "+e.secondary.lname, 
-				'gender': e.secondary.gender, 
-				'age': e.secondary.age, 
-				'city': e.secondary.city, 
-				'state': e.secondary.state, 
-				'desc': str(e).replace('None', '&Oslash;'), 
-				'score': e.score
-			}
-		friendDicts.append(fd)
+	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
