@@ -57,7 +57,7 @@ def face_it():
 		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
+		database.updateDb(user, tok, edgesRanked, background=True)
 	conn.close()
 
 	# now, spawn a full crawl in the background
@@ -116,15 +116,16 @@ def rank_faces():
 
 	if (rankfn.lower() == "px4"):
 
-		# now, spawn a full crawl in the background
+		# first, spawn a full crawl in the background
 		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
+		# now do a partial crawl real-time
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
 		# spawn off a separate thread to do the database writing
-		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
+		database.updateDb(user, tok, edgesRanked, background=True)
 
 	else:
  		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)

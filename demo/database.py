@@ -83,11 +83,11 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 	return eds
 
 # helper function that may get run in a background thread
-def _updateFriendEdgesDb(user, token, edges):
+def _updateDb(user, token, edges):
 	tim = datastructs.Timer()
 	conn = db.getConn()
 	curs = conn.cursor()
-	updateUserDb(curs, user, token, None)
+	updateUserDb(curs, user, token, None) 
 	insertCount = 0
 	for i, e in enumerate(edges):
 		updateUserDb(curs, e.secondary, None, token)
@@ -98,7 +98,7 @@ def _updateFriendEdgesDb(user, token, edges):
 	conn.close()
 	return insertCount
 
-def updateFriendEdgesDb(user, token, edges, background=False):
+def updateDb(user, token, edges, background=False):
 	if (background):
 		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, token, edges))
 		t.daemon = False
@@ -109,14 +109,21 @@ def updateFriendEdgesDb(user, token, edges, background=False):
 		logging.debug("updateFriendEdgesDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
 		return _updateFriendEdgesDb(user, token, edges)
 
-def updateFriendEdgeDb(curs, edge): # n.b.: doesn't commit
-	sql = """
-		INSERT OR REPLACE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	"""
-	params = (edge.primary.id, edge.secondary.id, 
+# will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so
+# n.b.: doesn't commit
+def updateFriendEdgeDb(curs, edge, overwriteOutgoing=False): 
+	if (edge.isBidir() or overwriteOutgoing):	
+		sql = "INSERT OR REPLACE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+		params = (edge.primary.id, edge.secondary.id, 
 			edge.inPostLikes, edge.inPostComms, edge.inStatLikes, edge.inStatComms,
 			edge.outPostLikes, edge.outPostComms, edge.outStatLikes, edge.outStatComms,
 			edge.mutuals, time.time())
+	else:
+		sql = """INSERT OR REPLACE INTO edges (prim_id, sec_id, in_post_likes, in_post_comms, in_stat_likes, in_stat_comms, mut_friends, updated) 
+					VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
+		params = (edge.primary.id, edge.secondary.id, 
+			edge.inPostLikes, edge.inPostComms, edge.inStatLikes, edge.inStatComms,
+			edge.mutuals, time.time())		
 	curs.execute(sql, params)
 
 def updateUserDb(curs, user, tok, tokFriend):
@@ -133,3 +140,4 @@ def updateUserDb(curs, user, tok, tokFriend):
 		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
 	curs.execute(sql, params)
 
+b

@@ -70,6 +70,11 @@ class Edge(object):
 		self.outStatComms = outStatComms
 		self.mutuals = mutuals
 		self.score = None
+	def isBidir(self): # if any of the bidir fields is filled in, return True
+		if (self.outPostLikes is not None) or (self.outPostComms is not None) or (self.outStatLikes is not None) or (self.outStatComms is not None):
+			return True
+		else:
+			return False
 	def __str__(self):
 		ret = ""
 		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
@@ -90,6 +95,8 @@ class EdgeSC1(Edge):
 		self.outStatComms = None
 		self.mutuals = friendInfo.mutuals
 		self.score = None
+	def isBidir(self):
+		return False
 
 class EdgeSC2(Edge):
 	def __init__(self, userInfo, friendInfo, userStreamCount, friendStreamCount):
@@ -105,3 +112,6 @@ class EdgeSC2(Edge):
 		self.outStatComms = friendStreamCount.getStatComms(userInfo.id)
 		self.mutuals = friendInfo.mutuals
 		self.score = None
+	def isBidir(self):
+		return True
+
