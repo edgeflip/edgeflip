@@ -139,10 +139,12 @@ def getFriendsFb(userId, token):
 	otherPhotoCounts = defaultdict(int)
 
 	for rec in lab_recs['primPhotoTags']:
-		primPhotoCounts[rec['subject']] += 1
+		if (rec['subject']):
+			primPhotoCounts[int(rec['subject'])] += 1
 
 	for rec in lab_recs['otherPhotoTags']:
-		otherPhotoCounts[rec['subject']] += 1
+		if (rec['subject']):
+			otherPhotoCounts[int(rec['subject'])] += 1
 
 	logging.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
 	logging.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
