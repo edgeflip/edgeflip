@@ -84,7 +84,7 @@ class Edge(object):
 		ret = ""
 		for c in [self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.inWallPosts, self.inWallComms, self.inTags, 
 				  self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.outWallPosts, self.outWallComms, self.outTags,
-				  self.ownPhotoTags, self.otherPhotoTags, self.mutuals]:
+				  self.primPhotoTags, self.otherPhotoTags, self.mutuals]:
 			ret += "%2s " % str(c)
 		return ret
 		
