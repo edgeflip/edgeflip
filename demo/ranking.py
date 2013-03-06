@@ -33,7 +33,7 @@ def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWall
 		(outPostLikes, outPostLikesMax, 2.0),
 		(outPostComms, outPostCommsMax, 3.0),
 		(outStatLikes, outStatLikesMax, 2.0),
-		(outStatComms, outStatCommsMax, 16.0)
+		(outStatComms, outStatCommsMax, 16.0),
 		(outWallPosts, outWallPostsMax, 0.0),			# WEIGHT???
 		(outWallComms, outWallCommsMax, 0.0),			# WEIGHT???
 		(outTags, outTagsMax, 0.0),						# WEIGHT???
