@@ -154,6 +154,10 @@ def getFriendsFb(userId, token):
 		state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
 		primPhotoTags = primPhotoCounts[friendId]
 		otherPhotoTags = otherPhotoCounts[friendId]
+
+		if (primPhotoTags + otherPhotoTags > 0):
+			logging.debug("Friend %d has %d primary photo tags and %d other photo tags" % (friendId, primPhotoTags, otherPhotoTags))
+
 		f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
 		friends.append(f)
 	logging.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
