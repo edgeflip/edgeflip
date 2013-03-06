@@ -355,6 +355,9 @@ class ReadStreamCounts(StreamCounts):
 		self.friendId_postCommCount = defaultdict(int)
 		self.friendId_statLikeCount = defaultdict(int)
 		self.friendId_statCommCount = defaultdict(int)
+		self.friendId_wallPostCount = defaultdict(int)
+		self.friendId_wallCommCount = defaultdict(int)
+		self.friendId_tagCount		= defaultdict(int)
 
 		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
 		scChunks = [] # list of sc obects holding results
