@@ -144,8 +144,8 @@ def getFriendsFb(userId, token):
 	for rec in lab_recs['otherPhotoTags']:
 		otherPhotoCounts[rec['subject']] += 1
 
-	logging.debug("Primary photo counts for %d: " % (userId, str(primPhotoCounts)))
-	logging.debug("Other photo counts for %d: " % (userId, str(otherPhotoCounts)))
+	logging.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
+	logging.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
 
 	friends = []
 	for rec in lab_recs['friendInfo']:
