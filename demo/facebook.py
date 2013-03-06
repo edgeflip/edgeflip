@@ -32,13 +32,26 @@ class STREAMTYPE:
 	CHECKIN = 285
 	GROUP_POST = 308
 
-FQL_STREAM_CHUNK = " ".join("""SELECT created_time, post_id, source_id, target_id, type FROM stream
+FQL_STREAM_CHUNK = " ".join("""SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids FROM stream
 								WHERE source_id=%s AND %d <= created_time AND created_time < %d LIMIT 5000""".split())
 FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
+FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != "+str(STREAMTYPE.STATUS_UPDATE)+" AND actor_id != %s"
+FQL_WALL_COMMS = "SELECT actor_id FROM %s WHERE post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM %s) AND fromid = %s)"
+FQL_TAGS       = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != "+str(STREAMTYPE.PHOTO)
 #zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
+
+FQL_TAG_PHOTOS   = "SELECT object_id FROM photo_tag WHERE subject = %s"
+FQL_PRIM_PHOTOS  = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
+FQL_PRIM_TAGS    = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner != %s"
+FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+# Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
+
+FQL_USER_INFO   = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s"""
+FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 def dateFromFb(dateStr):
 	if (dateStr):
@@ -90,22 +103,70 @@ def extendTokenFb(token):
 def getFriendsFb(userId, token):
 	tim = datastructs.Timer()
 	logging.debug("getting friends for %d" % userId)
-	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)""" % (userId)
-	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
+
+	# Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
+
+	queryJsons = []
+
+	tagPhotosLabel   = "tag_photos"
+	primPhotosLabel  = "prim_photos"
+	otherPhotosLabel = "other_photos"
+	tagPhotosRef 	 = "#" + tagPhotosLabel
+	primPhotosRef 	 = "#" + primPhotosLabel
+	otherPhotosRef 	 = "#" + otherPhotosLabel
+
+	queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (userId))))
+	queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (userId))))
+	queryJsons.append('"%s":"%s"' % (primPhotosLabel, urllib.quote_plus(FQL_PRIM_PHOTOS % (tagPhotosRef, userId))))
+	queryJsons.append('"primPhotoTags":"%s"' % (urllib.quote_plus(FQL_PRIM_TAGS % (primPhotosRef, userId))))
+	queryJsons.append('"%s":"%s"' % (otherPhotosLabel, urllib.quote_plus(FQL_OTHER_PHOTOS % (tagPhotosRef, userId))))
+	queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
+
+	queryJson = '{' + ','.join(queryJsons) + '}'
+	url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token	
+	logging.debug("url for friends query for %d: %s" % (userId, url))
 	responseJson = getUrlFb(url)
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 
+	lab_recs = {}
+	for entry in responseJson['data']:
+		label = entry['name']
+		records = entry['fql_result_set']
+		#sys.stderr.write(label + ": " + str(records) + "\n\n")
+		lab_recs[label] = records
+
+	primPhotoCounts = defaultdict(int)
+	otherPhotoCounts = defaultdict(int)
+
+	for rec in lab_recs['primPhotoTags']:
+		if (rec['subject']):
+			primPhotoCounts[int(rec['subject'])] += 1
+
+	for rec in lab_recs['otherPhotoTags']:
+		if (rec['subject']):
+			otherPhotoCounts[int(rec['subject'])] += 1
+
+	logging.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
+	logging.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
+
 	friends = []
-	for rec in responseJson['data']:
+	for rec in lab_recs['friendInfo']:
+		friendId = rec['uid']
 		city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
 		state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
-		f = datastructs.FriendInfo(userId, rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, rec['mutual_friend_count'])
+		primPhotoTags = primPhotoCounts[friendId]
+		otherPhotoTags = otherPhotoCounts[friendId]
+
+		if (primPhotoTags + otherPhotoTags > 0):
+			logging.debug("Friend %d has %d primary photo tags and %d other photo tags" % (friendId, primPhotoTags, otherPhotoTags))
+
+		f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
 		friends.append(f)
 	logging.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
 	return friends
 
 def getUserFb(userId, token):
-	fql = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s""" % (userId)
+	fql = FQL_USER_INFO % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	
 	responseJson = getUrlFb(url)
 	rec = responseJson['data'][0]
@@ -173,13 +234,16 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 
 
 class StreamCounts(object):
-	def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[]):
+	def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[], wallPosters=[], wallCommeds=[], taggeds=[]):
 		self.id = userId
 		self.stream = []
 		self.friendId_postLikeCount = defaultdict(int)
 		self.friendId_postCommCount = defaultdict(int)
 		self.friendId_statLikeCount = defaultdict(int)
 		self.friendId_statCommCount = defaultdict(int)
+		self.friendId_wallPostCount = defaultdict(int)
+		self.friendId_wallCommCount = defaultdict(int)
+		self.friendId_tagCount		= defaultdict(int)
 		#sys.stderr.write("got post likers: %s\n" % (str(postLikers)))
 		#sys.stderr.write("got post commers: %s\n" % (str(postCommers)))
 		#sys.stderr.write("got stat likers: %s\n" % (str(statLikers)))
@@ -189,6 +253,9 @@ class StreamCounts(object):
 		self.addPostCommers(postCommers)
 		self.addStatLikers(statLikers)
 		self.addStatCommers(statCommers)
+		self.addWallPosters(wallPosters)
+		self.addWallCommeds(wallCommeds)
+		self.addTaggeds(taggeds)
 	def __iadd__(self, other):
 		self.stream.extend(other.stream)
 		for fId, cnt in other.friendId_postLikeCount.items():
@@ -199,6 +266,12 @@ class StreamCounts(object):
 			self.friendId_statLikeCount[fId] += cnt
 		for fId, cnt in other.friendId_statCommCount.items():
 			self.friendId_statCommCount[fId] += cnt
+		for fId, cnt in other.friendId_wallPostCount.items():
+			self.friendId_wallPostCount[fId] += cnt
+		for fId, cnt in other.friendId_wallCommCount.items():
+			self.friendId_wallCommCount[fId] += cnt
+		for fId, cnt in other.friendId_tagCount.items():
+			self.friendId_tagCount[fId] += cnt
 		return self		
 	def __add__(self, other):
 		if (self.id != other.id):
@@ -213,6 +286,9 @@ class StreamCounts(object):
 		ret += ", %d post comments" % (sum(self.friendId_postCommCount.values()))
 		ret += ", %d stat likes" % (sum(self.friendId_statLikeCount.values()))
 		ret += ", %d stat comments" % (sum(self.friendId_statCommCount.values()))
+		ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
+		ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
+		ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
 		#ret += "\n"
 		#ret += "stream %s\n" % (id(self.stream))
 		#for i in range(min(5, len(self.stream))):
@@ -231,6 +307,15 @@ class StreamCounts(object):
 	def addStatCommers(self, friendIds):
 		for friendId in friendIds:
 			self.friendId_statCommCount[friendId] += 1
+	def addWallPosters(self, friendIds):
+		for friendId in friendIds:
+			self.friendId_wallPostCount[friendId] += 1
+	def addWallCommeds(self, friendIds):
+		for friendId in friendIds:
+			self.friendId_wallCommCount[friendId] += 1
+	def addTaggeds(self, friendIds):
+		for friendId in friendIds:
+			self.friendId_tagCount[friendId] += 1
 
 	def getPostLikes(self, friendId):
 		return self.friendId_postLikeCount.get(friendId, 0)
@@ -240,8 +325,12 @@ class StreamCounts(object):
 		return self.friendId_statLikeCount.get(friendId, 0)
 	def getStatComms(self, friendId):
 		return self.friendId_statCommCount.get(friendId, 0)
-	def getStatComms(self, friendId):
-		return self.friendId_statCommCount.get(friendId, 0)
+	def getWallPosts(self, friendId):
+		return self.friendId_wallPostCount.get(friendId, 0)
+	def getWallComms(self, friendId):
+		return self.friendId_wallCommCount.get(friendId, 0)
+	def getTags(self, friendId):
+		return self.friendId_tagCount.get(friendId, 0)
 
 	def getFriendIds(self):
 		fIds = set()
@@ -249,6 +338,9 @@ class StreamCounts(object):
 		fIds.update(self.friendId_postCommCount.keys())
 		fIds.update(self.friendId_statLikeCount.keys())
 		fIds.update(self.friendId_statCommCount.keys())
+		fIds.update(self.friendId_wallPostCount.keys())
+		fIds.update(self.friendId_wallCommCount.keys())
+		fIds.update(self.friendId_tagCount.keys())
 		return fIds		
 	def getFriendRanking(self):
 		fIds = self.getFriendIds()
@@ -258,6 +350,9 @@ class StreamCounts(object):
 			friendId_total[fId] += self.friendId_postCommCount.get(fId, 0)*4
 			friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0)*2
 			friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
+			friendId_total[fId] += self.friendId_wallPostCount.get(fId, 0)*0 # WEIGHT???
+			friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0)*0 # WEIGHT???
+			friendId_total[fId] += self.friendId_tagCount.get(fId, 0)*0		 # WEIGHT???
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 	
 class ReadStreamCounts(StreamCounts):
@@ -270,6 +365,9 @@ class ReadStreamCounts(StreamCounts):
 		self.friendId_postCommCount = defaultdict(int)
 		self.friendId_statLikeCount = defaultdict(int)
 		self.friendId_statCommCount = defaultdict(int)
+		self.friendId_wallPostCount = defaultdict(int)
+		self.friendId_wallCommCount = defaultdict(int)
+		self.friendId_tagCount		= defaultdict(int)
 
 		tsQueue = Queue.Queue() # fill with (t1, t2) pairs
 		scChunks = [] # list of sc obects holding results
@@ -361,12 +459,17 @@ class ThreadStreamReader(threading.Thread):
 
 			queryJsons = []
 			streamLabel = "stream"
+			wallPostsLabel = "wallPosts"
 			queryJsons.append('"%s":"%s"' % (streamLabel, urllib.quote_plus(FQL_STREAM_CHUNK % (self.userId, ts1, ts2))))
 			streamRef = "#" + streamLabel
+			wallPostsRef = "#" + wallPostsLabel
 			queryJsons.append('"postLikes":"%s"' % (urllib.quote_plus(FQL_POST_LIKES % (streamRef))))
 			queryJsons.append('"postComms":"%s"' % (urllib.quote_plus(FQL_POST_COMMS % (streamRef))))
 			queryJsons.append('"statLikes":"%s"' % (urllib.quote_plus(FQL_STAT_LIKES % (streamRef))))
 			queryJsons.append('"statComms":"%s"' % (urllib.quote_plus(FQL_STAT_COMMS % (streamRef))))
+			queryJsons.append('"%s":"%s"' % (wallPostsLabel, urllib.quote_plus(FQL_WALL_POSTS % (streamRef, self.userId))))
+			queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(FQL_WALL_COMMS % (wallPostsRef, wallPostsRef, self.userId))))
+			queryJsons.append('"tags":"%s"' % (urllib.quote_plus(FQL_TAGS % (streamRef, self.userId))))
 			queryJson = '{' + ','.join(queryJsons) + '}'
 			#sys.stderr.write(queryJson + "\n\n")
 
@@ -423,7 +526,10 @@ class ThreadStreamReader(threading.Thread):
 			pCommIds = [ r['fromid'] for r in lab_recs['postComms'] ]
 			sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]
 			sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
-			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds)
+			wPostIds = [ r['actor_id'] for r in lab_recs['wallPosts'] ]
+			wCommIds = [ r['actor_id'] for r in lab_recs['wallComms'] ]
+			tagIds   = [ i for r in lab_recs['tags'] for i in r['tagged_ids'] ]
+			sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
 
 			logging.debug("stream counts for %s: %s" % (self.userId, str(sc)))
 			logging.debug("chunk took %s" % (tim.elapsedPr()))

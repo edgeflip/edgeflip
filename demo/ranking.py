@@ -7,26 +7,36 @@ from config import config
 
 
 
-def prox(inPostLikes, inPostComms, inStatLikes, inStatComms,
-			outPostLikes, outPostComms, outStatLikes, outStatComms, muts,
-			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax,
-			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, mutsMax):	
+def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
+			outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
+			primPhotoTags, otherPhotoTags, muts,
+			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax, inWallPostsMax, inWallCommsMax, inTagsMax,
+			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, outWallPostsMax, outWallCommsMax, outTagsMax,
+			primPhotoTagsMax, otherPhotoTagsMax, mutsMax):	
 	countMaxWeightTups = [
 		# px3
 		(muts, mutsMax, 1.0),
+		(primPhotoTags, primPhotoTagsMax, 0.0),			# WEIGHT???
+		(otherPhotoTags, otherPhotoTagsMax, 0.0),		# WEIGHT???
 
 		# px4
 		(inPostLikes, inPostLikesMax, 1.0),
 		(inPostComms, inPostCommsMax, 1.0),
 		(inStatLikes, inStatLikesMax, 2.0),
 		(inStatComms, inStatCommsMax, 1.0),
+		(inWallPosts, inWallPostsMax, 0.0),				# WEIGHT???
+		(inWallComms, inWallCommsMax, 0.0),				# WEIGHT???
+		(inTags, inTagsMax, 0.0),						# WEIGHT???
 		#zzz need other tags					
 
 		# px5
 		(outPostLikes, outPostLikesMax, 2.0),
 		(outPostComms, outPostCommsMax, 3.0),
 		(outStatLikes, outStatLikesMax, 2.0),
-		(outStatComms, outStatCommsMax, 16.0)
+		(outStatComms, outStatCommsMax, 16.0),
+		(outWallPosts, outWallPostsMax, 0.0),			# WEIGHT???
+		(outWallComms, outWallCommsMax, 0.0),			# WEIGHT???
+		(outTags, outTagsMax, 0.0),						# WEIGHT???
 		#zzz need other tags								
 	]
 	pxTotal = 0.0
@@ -42,17 +52,30 @@ def getFriendRanking(userId, edges, requireOutgoing=True):
 	iplM = max([ e.inPostLikes for e in edges ] + [None])
 	ipcM = max([ e.inPostComms for e in edges ] + [None])
 	islM = max([ e.inStatLikes for e in edges ] + [None])
-	iscM = max([ e.inStatComms for e in edges ] + [None])		
+	iscM = max([ e.inStatComms for e in edges ] + [None])
+	iwpM = max([ e.inWallPosts for e in edges ] + [None])
+	iwcM = max([ e.inWallComms for e in edges ] + [None])
+	itM  = max([ e.inTags for e in edges ] 		+ [None])
+
 	oplM = max([ e.outPostLikes for e in edges ] + [None]) if (requireOutgoing) else None
 	opcM = max([ e.outPostComms for e in edges ] + [None]) if (requireOutgoing) else None
 	oslM = max([ e.outStatLikes for e in edges ] + [None]) if (requireOutgoing) else None
 	opcM = max([ e.outStatComms for e in edges ] + [None]) if (requireOutgoing) else None
-	mutM = max([ e.mutuals for e in edges ] + [None])
+	owpM = max([ e.outWallPosts for e in edges ] + [None]) if (requireOutgoing) else None
+	owcM = max([ e.outWallComms for e in edges ] + [None]) if (requireOutgoing) else None
+	otM  = max([ e.outTags for e in edges ] 	 + [None]) if (requireOutgoing) else None
+
+	pptM = max([ e.primPhotoTags for e in edges ]  + [None])
+	optM = max([ e.otherPhotoTags for e in edges ] + [None])
+	mutM = max([ e.mutuals for e in edges ] 	   + [None])
 
 	for e in edges:
-		e.score = prox(e.inPostLikes, e.inPostComms, e.inStatLikes, e.inStatComms,
-							e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms, e.mutuals, 
-							iplM, ipcM, islM, iscM, oplM, opcM, oslM, opcM, mutM)
+		e.score = prox(e.inPostLikes, e.inPostComms, e.inStatLikes, e.inStatComms, e.inWallPosts, e.inWallComms, e.inTags,
+							e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms, e.outWallPosts, e.outWallComms, e.outTags,
+							e.primPhotoTags, e.otherPhotoTags, e.mutuals, 
+							iplM, ipcM, islM, iscM, iwpM, iwcM, itM, 
+							oplM, opcM, oslM, opcM, owpM, owcM, otM,
+							pptM, optM, mutM)
 
 	return sorted(edges, key=lambda x: x.score, reverse=True)
 
