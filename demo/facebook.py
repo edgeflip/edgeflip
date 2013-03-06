@@ -124,6 +124,7 @@ def getFriendsFb(userId, token):
 
 	queryJson = '{' + ','.join(queryJsons) + '}'
 	url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token	
+	logging.debug("url for friends query for %d: %s" % (userId, url))
 	responseJson = getUrlFb(url)
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 
