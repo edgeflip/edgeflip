@@ -141,4 +141,3 @@ def updateUserDb(curs, user, tok, tokFriend):
 		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
 	curs.execute(sql, params)
 
-b
