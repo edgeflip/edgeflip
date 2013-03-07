@@ -47,27 +47,37 @@ class UserInfo(object):
 		self.state = state
 
 class FriendInfo(UserInfo):
-	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, mutual_friend_count):
+	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
 		UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
 		self.idPrimary = primId
+		self.primPhotoTags = primPhotoTags
+		self.otherPhotoTags = otherPhotoTags
 		self.mutuals = mutual_friend_count
 
 
 class Edge(object):
 	def __init__(self, primInfo, secInfo,
-					inPostLikes, inPostComms, inStatLikes, inStatComms, 
-					outPostLikes, outPostComms, outStatLikes, outStatComms, 
-					mutuals):
+					inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
+					outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
+					primPhotoTags, otherPhotoTags, mutuals):
 		self.primary = primInfo
 		self.secondary = secInfo
 		self.inPostLikes = inPostLikes
 		self.inPostComms = inPostComms
 		self.inStatLikes = inStatLikes
 		self.inStatComms = inStatComms
+		self.inWallPosts = inWallPosts		# Posts by secondary or primary's wall
+		self.inWallComms = inWallComms		# Comments by primary on those posts. These might be considered "outgoing" but are found in the primary's stream
+		self.inTags 	 = inTags			# Tags of the secondary in a primary's post on the primary's wall. Again, might be considered "outgoing" but appear in the priamry's stream...
 		self.outPostLikes = outPostLikes
 		self.outPostComms = outPostComms
 		self.outStatLikes = outStatLikes
 		self.outStatComms = outStatComms
+		self.outWallPosts = outWallPosts	# Posts by primary on secondary's wall
+		self.outWallComms = outWallComms	# Comments by secondary on those posts
+		self.outTags	  = outTags			# Tags of primary in a secondary's post on their wall
+		self.primPhotoTags = primPhotoTags	# Count of photos owned by primary in which primary & secondary are both tagged
+		self.otherPhotoTags = otherPhotoTags  # Count of photos not owned by primary in which primary & secondary are both tagged
 		self.mutuals = mutuals
 		self.score = None
 	def isBidir(self): # if any of the bidir fields is filled in, return True
@@ -77,7 +87,9 @@ class Edge(object):
 			return False
 	def __str__(self):
 		ret = ""
-		for c in[self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.mutuals]:
+		for c in [self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.inWallPosts, self.inWallComms, self.inTags, 
+				  self.outPostLikes, self.outPostComms, self.outStatLikes, self.outStatComms, self.outWallPosts, self.outWallComms, self.outTags,
+				  self.primPhotoTags, self.otherPhotoTags, self.mutuals]:
 			ret += "%2s " % str(c)
 		return ret
 	def toDict(self):
@@ -96,10 +108,18 @@ class EdgeSC1(Edge):
 		self.inPostComms = userStreamCount.getPostComms(friendInfo.id)
 		self.inStatLikes = userStreamCount.getStatLikes(friendInfo.id)
 		self.inStatComms = userStreamCount.getStatComms(friendInfo.id)
+		self.inWallPosts = userStreamCount.getWallPosts(friendInfo.id)
+		self.inWallComms = userStreamCount.getWallComms(friendInfo.id)
+		self.inTags 	 = userStreamCount.getTags(friendInfo.id)
 		self.outPostLikes = None
 		self.outPostComms = None
 		self.outStatLikes = None
 		self.outStatComms = None
+		self.outWallPosts = None
+		self.outWallComms = None
+		self.outTags	  = None
+		self.primPhotoTags = friendInfo.primPhotoTags
+		self.otherPhotoTags = friendInfo.otherPhotoTags
 		self.mutuals = friendInfo.mutuals
 		self.score = None
 	def isBidir(self):
@@ -113,10 +133,18 @@ class EdgeSC2(Edge):
 		self.inPostComms = userStreamCount.getPostComms(friendInfo.id)
 		self.inStatLikes = userStreamCount.getStatLikes(friendInfo.id)
 		self.inStatComms = userStreamCount.getStatComms(friendInfo.id)
+		self.inWallPosts = userStreamCount.getWallPosts(friendInfo.id)
+		self.inWallComms = userStreamCount.getWallComms(friendInfo.id)
+		self.inTags 	 = userStreamCount.getTags(friendInfo.id)
 		self.outPostLikes = friendStreamCount.getPostLikes(userInfo.id)
 		self.outPostComms = friendStreamCount.getPostComms(userInfo.id)
 		self.outStatLikes = friendStreamCount.getStatLikes(userInfo.id)
 		self.outStatComms = friendStreamCount.getStatComms(userInfo.id)
+		self.outWallPosts = friendStreamCount.getWallPosts(userInfo.id)
+		self.outWallComms = friendStreamCount.getWallComms(userInfo.id)
+		self.outTags 	 = friendStreamCount.getTags(userInfo.id)
+		self.primPhotoTags = friendInfo.primPhotoTags
+		self.otherPhotoTags = friendInfo.otherPhotoTags
 		self.mutuals = friendInfo.mutuals
 		self.score = None
 	def isBidir(self):
