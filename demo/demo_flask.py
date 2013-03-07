@@ -57,29 +57,13 @@ def face_it():
 		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
+		database.updateDb(user, tok, edgesRanked, background=True)
 	conn.close()
 
 	# now, spawn a full crawl in the background
 	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendDicts = []
-
-	for i, e in enumerate(edgesRanked):
-		fd = {
-				'rank': i, 
-				'id': e.secondary.id, 
-				'name': e.secondary.fname+" "+e.secondary.lname, 
-				'gender': e.secondary.gender, 
-				'age': e.secondary.age, 
-				'city': e.secondary.city, 
-				'state': e.secondary.state, 
-				'fname': e.secondary.fname, 
-				'lname': e.secondary.lname,
-				'desc': str(e),
-				'score': e.score
-			}
-		friendDicts.append(fd)
+	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
@@ -116,34 +100,21 @@ def rank_faces():
 
 	if (rankfn.lower() == "px4"):
 
-		# now, spawn a full crawl in the background
+		# first, spawn a full crawl in the background
 		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
+		# now do a partial crawl real-time
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
 		# spawn off a separate thread to do the database writing
-		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateFriendEdgesDb(user, tok, edgesRanked, background=True)
+		database.updateDb(user, tok, edgesRanked, background=True)
 
 	else:
  		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
-	friendDicts = []
-
-	for i, e in enumerate(edgesRanked):
-		fd = {
-				'rank': i, 
-				'id': e.secondary.id, 
-				'name': e.secondary.fname+" "+e.secondary.lname, 
-				'gender': e.secondary.gender, 
-				'age': e.secondary.age, 
-				'city': e.secondary.city, 
-				'state': e.secondary.state, 
-				'desc': str(e).replace('None', '&Oslash;'), 
-				'score': e.score
-			}
-		friendDicts.append(fd)
+	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)

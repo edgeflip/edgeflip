@@ -165,6 +165,11 @@ def getFriendsFb(userId, token):
 	logging.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
 	return friends
 
+
+
+
+
+
 def getUserFb(userId, token):
 	fql = FQL_USER_INFO % (userId)
 	url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token	

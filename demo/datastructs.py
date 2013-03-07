@@ -80,6 +80,11 @@ class Edge(object):
 		self.otherPhotoTags = otherPhotoTags  # Count of photos not owned by primary in which primary & secondary are both tagged
 		self.mutuals = mutuals
 		self.score = None
+	def isBidir(self): # if any of the bidir fields is filled in, return True
+		if (self.outPostLikes is not None) or (self.outPostComms is not None) or (self.outStatLikes is not None) or (self.outStatComms is not None):
+			return True
+		else:
+			return False
 	def __str__(self):
 		ret = ""
 		for c in [self.inPostLikes, self.inPostComms, self.inStatLikes, self.inStatComms, self.inWallPosts, self.inWallComms, self.inTags, 
@@ -87,7 +92,14 @@ class Edge(object):
 				  self.primPhotoTags, self.otherPhotoTags, self.mutuals]:
 			ret += "%2s " % str(c)
 		return ret
-		
+	def toDict(self):
+		u = self.secondary
+		d = { 'id': u.id, 'fname': u.fname, 'lname': u.lname, 'name': u.fname + " " + u.lname, 
+				'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score,
+				'desc': self.__str__().replace('None', '&Oslash;')
+		}
+		return d
+
 class EdgeSC1(Edge):
 	def __init__(self, userInfo, friendInfo, userStreamCount):
 		self.primary = userInfo
@@ -110,6 +122,8 @@ class EdgeSC1(Edge):
 		self.otherPhotoTags = friendInfo.otherPhotoTags
 		self.mutuals = friendInfo.mutuals
 		self.score = None
+	def isBidir(self):
+		return False
 
 class EdgeSC2(Edge):
 	def __init__(self, userInfo, friendInfo, userStreamCount, friendStreamCount):
@@ -133,3 +147,6 @@ class EdgeSC2(Edge):
 		self.otherPhotoTags = friendInfo.otherPhotoTags
 		self.mutuals = friendInfo.mutuals
 		self.score = None
+	def isBidir(self):
+		return True
+
