@@ -124,7 +124,7 @@ def getFriendsFb(userId, token):
 
 	queryJson = '{' + ','.join(queryJsons) + '}'
 	url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token	
-	logging.debug("url for friends query for %d: %s" % (userId, url))
+	#logging.debug("url for friends query for %d: %s" % (userId, url))
 	responseJson = getUrlFb(url)
 	#sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 
@@ -146,8 +146,8 @@ def getFriendsFb(userId, token):
 		if (rec['subject']):
 			otherPhotoCounts[int(rec['subject'])] += 1
 
-	logging.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
-	logging.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
+	#logging.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
+	#logging.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
 
 	friends = []
 	for rec in lab_recs['friendInfo']:
