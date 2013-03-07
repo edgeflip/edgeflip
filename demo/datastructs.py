@@ -95,7 +95,7 @@ class Edge(object):
 	def toDict(self):
 		u = self.secondary
 		d = { 'id': u.id, 'fname': u.fname, 'lname': u.lname, 'name': u.fname + " " + u.lname, 
-				'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score
+				'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score,
 				'desc': self.__str__().replace('None', '&Oslash;')
 		}
 		return d
