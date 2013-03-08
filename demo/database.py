@@ -109,7 +109,7 @@ def updateDb(user, token, edges, background=False):
 
 # will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so
 # n.b.: doesn't commit
-def updateFriendEdgesDb(curs, edge, overwriteOutgoing=False): 
+def updateFriendEdgesDb(curs, edges, overwriteOutgoing=False): 
 	tmpTable = 'tmp_edges_insert'
 
 	incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
