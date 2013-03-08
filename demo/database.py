@@ -6,7 +6,7 @@ import datetime
 import threading
 import datastructs
 import facebook
-import database_sqlite as db # modify this to swtch db implementations
+import database_rds as db # modify this to swtch db implementations
 from config import config
 
 
@@ -63,8 +63,8 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 					out_post_likes, out_post_comms, out_stat_likes, out_stat_comms, 
 					mut_friends, updated
 			FROM edges
-			WHERE prim_id=? AND updated>?
-	""" 
+			WHERE prim_id=%s AND updated>%s
+	""" % (primId, newerThan)
 	if (requireOutgoing):
 		sql += """
 			AND out_post_likes IS NOT NULL 
@@ -72,7 +72,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 			AND out_stat_likes IS NOT NULL
 			AND out_stat_comms IS NOT NULL
 		"""
-	curs.execute(sql, (primId, newerThan))
+	curs.execute(sql)
 	eds = []
 	primary = getUserDb(conn, primId)
 	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
@@ -88,56 +88,62 @@ def _updateDb(user, token, edges):
 	tim = datastructs.Timer()
 	conn = db.getConn()
 	curs = conn.cursor()
-	updateUserDb(curs, user, token, None) 
-	insertCount = 0
-	for i, e in enumerate(edges):
-		updateUserDb(curs, e.secondary, None, token)
-		updateFriendEdgeDb(curs, e)
-		insertCount += 1	
+	updateUsersDb(curs, [user], token, None) 
+	fCount = updateUsersDb(curs, [e.secondary for e in edges], None, token)
+	eCount = updateFriendEdgesDb(curs, edges)
 	conn.commit()
-	logging.debug("updateFriendEdgesDb() thread %d updated %d friends for user %d (took %s)" % (threading.current_thread().ident, insertCount, user.id, tim.elapsedPr()))
+	logging.debug("updateFriendEdgesDb() thread %d updated %d friends and %d edges for user %d (took %s)" % (threading.current_thread().ident, fCount, eCount, user.id, tim.elapsedPr()))
 	conn.close()
-	return insertCount
+	return eCount
 
 def updateDb(user, token, edges, background=False):
 	if (background):
-		t = threading.Thread(target=_updateFriendEdgesDb, args=(user, token, edges))
+		t = threading.Thread(target=_updateDb, args=(user, token, edges))
 		t.daemon = False
 		t.start()
-		logging.debug("updateFriendEdgesDb() spawning background thread %d for user %d" % (t.ident, user.id))
+		logging.debug("updateDb() spawning background thread %d for user %d" % (t.ident, user.id))
 		return 0
 	else:
-		logging.debug("updateFriendEdgesDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
-		return _updateFriendEdgesDb(user, token, edges)
+		logging.debug("updateDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
+		return _updateDb(user, token, edges)
 
 # will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so
 # n.b.: doesn't commit
-def updateFriendEdgeDb(curs, edge, overwriteOutgoing=False): 
-	if (edge.isBidir() or overwriteOutgoing):	
-		sql = "INSERT OR REPLACE INTO edges VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		params = (edge.primary.id, edge.secondary.id, 
-			edge.inPostLikes, edge.inPostComms, edge.inStatLikes, edge.inStatComms,
-			edge.outPostLikes, edge.outPostComms, edge.outStatLikes, edge.outStatComms,
-			edge.mutuals, time.time())
-	else:
-		sql = """INSERT OR REPLACE INTO edges (prim_id, sec_id, in_post_likes, in_post_comms, in_stat_likes, in_stat_comms, mut_friends, updated) 
-					VALUES (?, ?, ?, ?, ?, ?, ?, ?)"""
-		params = (edge.primary.id, edge.secondary.id, 
-			edge.inPostLikes, edge.inPostComms, edge.inStatLikes, edge.inStatComms,
-			edge.mutuals, time.time())		
-	curs.execute(sql, params)
+def updateFriendEdgesDb(curs, edge, overwriteOutgoing=False): 
+	tmpTable = 'tmp_edges_insert'
 
-def updateUserDb(curs, user, tok, tokFriend):
-	# can leave tok or tokFriend blank, in that case it will not overwrite
-	sql = "INSERT OR REPLACE INTO users (fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated) "
-	if (tok is None):
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, (SELECT token FROM users WHERE fbid=?), ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, user.id, tokFriend, time.time())
-	elif (tokFriend is None):
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, (SELECT friend_token FROM users WHERE fbid=?), ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, user.id, time.time())
+	incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
+	outgoing = ['out_post_likes', 'out_post_comms', 'out_stat_likes', 'out_stat_comms']
+
+	coalesceCols = []
+	overwriteCols = incoming + ['mut_friends', 'updated']
+	if (overwriteOutgoing):
+		overwriteCols.extend(outgoing)
 	else:
-		sql += "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
-		params = (user.id, user.fname, user.lname, user.gender, str(user.birthday), user.city, user.state, tok, tokFriend, time.time())
-	curs.execute(sql, params)
+		coalesceCols.extend(outgoing)
+
+	joinCols = ['prim_id', 'sec_id']
+
+	vals = [ ( 	e.primary.id, e.secondary.id, 
+				e.inPostLikes, e.inPostComms, e.inStatLikes, e.inStatComms,
+				e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms,
+				e.mutuals, time.time() 
+			 ) for e in edges ]
+
+	return db.insert_update(curs, 'edges', tmpTable, coalesceCols, overwriteCols, joinCols, vals)
+
+
+def updateUsersDb(curs, users, tok, tokFriend):
+	tmpTable = 'tmp_users_insert'
+
+	coalesceCols = ['token', 'friend_token']
+	overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
+	joinCols = ['fbid']
+
+	vals = [ ( user.id, user.fname, user.lname, user.gender, str(user.birthday), 
+			   user.city, user.state, tok, tokFriend, time.time()
+			 ) for u in users ]
+
+	return db.insert_update(curs, 'users', tmpTable, coalesceCols, overwriteCols, joinCols, vals)
+
 

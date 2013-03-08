@@ -15,7 +15,12 @@ defaults['outdir'] = '.'
 defaults['codedir'] = '.'
 defaults['queue'] = 'edgeflip_demo'
 defaults['logpath'] = './logs/demo.log'
-defaults['dbpath'] = './demo.sqlite'
+# defaults['dbpath'] = './demo.sqlite'
+defaults['dbhost'] = 'edgeflipdev.cwvoczji8mgi.us-east-1.rds.amazonaws.com'
+defaults['dbuser'] = 'edgeflip'
+defaults['dbpass'] = 'B0redsickdog'
+defaults['dbname'] = 'edgeflipdev'
+# defaults['dburi'] = 'mysql://edgeflip:B0redsickdog@edgeflipdev.cwvoczji8mgi.us-east-1.rds.amazonaws.com:3306/edgeflipdev'
 
 # parameters for initial incoming stream reading ("px4")
 defaults['stream_days_in'] = 120
