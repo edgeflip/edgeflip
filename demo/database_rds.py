@@ -63,7 +63,7 @@ def insert_update(curs, updateTable, tmpTable, coalesceCols, overwriteCols, join
 	insertCount = 0
 	tmpInsertSQL = "INSERT INTO "+tmpTable+" VALUES ("+( ', '.join(["%s"]*len(vals[0])) )+")"
 	for v in vals:
-		logging.debug('Executing: %s' (tmpInsertSQL % v) )
+		logging.debug('Executing: %s' % (tmpInsertSQL % v) )
 		curs.execute(tmpInsertSQL, v)
 		insertCount += 1
 
