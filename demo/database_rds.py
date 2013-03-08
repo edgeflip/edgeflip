@@ -6,19 +6,19 @@ import logging
 
 
 TABLE_COLS = {
-				'users' : """	fbid INTEGER PRIMARY KEY,
+				'users' : """	fbid BIGINT PRIMARY KEY,
 								fname VARCHAR(128),
 								lname VARCHAR(128),
 								gender VARCHAR(8),
-								birthday INTEGER,
+								birthday DATE,
 								city VARCHAR(32),
 								state VARCHAR(32),
 								token VARCHAR(512),
 								friend_token VARCHAR(512),
 								updated FLOAT """,
 
-				'edges' : """	prim_id INTEGER,
-								sec_id INTEGER,
+				'edges' : """	prim_id BIGINT,
+								sec_id BIGINT,
 								in_post_likes INTEGER,
 								in_post_comms INTEGER,
 								in_stat_likes INTEGER,
