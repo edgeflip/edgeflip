@@ -83,7 +83,7 @@ def readStreamCallback(ch, method, properties, body):
 			e = datastructs.EdgeSC1(user, friend, sc)
 
 		database.updateUsersDb(curs, [e.secondary], None, tok) # Update the secondary user in DB
-		database.updateFriendEdgeDb(curs, [e]) # Update the edge in DB
+		database.updateFriendEdgesDb(curs, [e]) # Update the edge in DB
 		conn.commit()
 
 		newCount += 1
