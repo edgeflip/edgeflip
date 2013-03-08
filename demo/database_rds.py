@@ -66,10 +66,10 @@ def insert_update(curs, updateTable, tmpTable, coalesceCols, overwriteCols, join
 		insertCount += 1
 
 	coalesceSQL  = [ 'u.%s = COALESCE(t.%s, u.%s)' % (c, c, c) for c in coalesceCols ]
-	overwriteSQL = [ 'u.%s = t.%s' % (c,c) for c in overwriteCols ]
+	overwriteSQL = [ 'u.%s = t.%s' % (c, c) for c in overwriteCols ]
 	upCols = overwriteSQL + coalesceSQL
 	upColsSQL = ', '.join(upCols)
-	joinSQL = ' AND '.join(['u.%s = t.%s' % (c.c) for c in joinCols])
+	joinSQL = ' AND '.join(['u.%s = t.%s' % (c, c) for c in joinCols])
 
 	updateSQL = """UPDATE %s AS u, %s AS t
 						SET %s
