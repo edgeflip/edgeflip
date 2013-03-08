@@ -140,8 +140,8 @@ def updateUsersDb(curs, users, tok, tokFriend):
 	overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
 	joinCols = ['fbid']
 
-	vals = [ ( user.id, user.fname, user.lname, user.gender, str(user.birthday), 
-			   user.city, user.state, tok, tokFriend, time.time()
+	vals = [ ( u.id, u.fname, u.lname, u.gender, str(u.birthday), 
+			   u.city, u.state, tok, tokFriend, time.time()
 			 ) for u in users ]
 
 	return db.insert_update(curs, 'users', tmpTable, coalesceCols, overwriteCols, joinCols, vals)
