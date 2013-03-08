@@ -10,7 +10,7 @@ TABLE_COLS = {
 								fname VARCHAR(128),
 								lname VARCHAR(128),
 								gender VARCHAR(8),
-								birthday DATE,
+								birthday VARCHAR(16),
 								city VARCHAR(32),
 								state VARCHAR(32),
 								token VARCHAR(512),
