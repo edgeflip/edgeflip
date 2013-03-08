@@ -1,6 +1,8 @@
 .gitignore
 demo/target_config.json
-demo/demo.log*
 *.pyc
 demo/old
 *.sqlite
+demo/demo.log
+demo/logs/demo.log*
+demo/edgeflip.config
