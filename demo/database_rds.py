@@ -15,7 +15,7 @@ TABLE_COLS = {
 								state VARCHAR(32),
 								token VARCHAR(512),
 								friend_token VARCHAR(512),
-								updated FLOAT """,
+								updated BIGINT """,
 
 				'edges' : """	prim_id BIGINT,
 								sec_id BIGINT,
@@ -28,7 +28,7 @@ TABLE_COLS = {
 								out_stat_likes INTEGER,
 								out_stat_comms INTEGER,
 								mut_friends INTEGER,
-								updated FLOAT,
+								updated BIGINT,
 								PRIMARY KEY (prim_id, sec_id) """
 			 }
 
