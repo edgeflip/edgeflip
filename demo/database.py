@@ -108,9 +108,7 @@ def updateDb(user, token, edges, background=False):
 		return _updateDb(user, token, edges)
 
 # will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so
-# n.b.: doesn't commit
 def updateFriendEdgesDb(curs, edges, overwriteOutgoing=False): 
-	tmpTable = 'tmp_edges_insert'
 
 	incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
 	outgoing = ['out_post_likes', 'out_post_comms', 'out_stat_likes', 'out_stat_comms']
@@ -124,26 +122,30 @@ def updateFriendEdgesDb(curs, edges, overwriteOutgoing=False):
 
 	joinCols = ['prim_id', 'sec_id']
 
-	vals = [ ( 	e.primary.id, e.secondary.id, 
-				e.inPostLikes, e.inPostComms, e.inStatLikes, e.inStatComms,
-				e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms,
-				e.mutuals, time.time() 
-			 ) for e in edges ]
+	vals = [ {
+				'prim_id' : e.primary.id, 'sec_id' : e.secondary.id, 
+				'in_post_likes' : e.inPostLikes, 'in_post_comms' : e.inPostComms,
+				'in_stat_likes' : e.inStatLikes, 'in_stat_comms' : e.inStatComms,
+				'out_post_likes' : e.outPostLikes, 'out_post_comms' : e.outPostComms,
+				'out_stat_likes' : e.outStatLikes, 'out_stat_comms' : e.outStatComms,
+				'mut_friends' : e.mutuals, 'updated' : time.time() 
+			 } for e in edges ]
 
-	return db.insert_update(curs, 'edges', tmpTable, coalesceCols, overwriteCols, joinCols, vals)
+	return db.insert_update(curs, 'edges', coalesceCols, overwriteCols, joinCols, vals)
 
 
 def updateUsersDb(curs, users, tok, tokFriend):
-	tmpTable = 'tmp_users_insert'
 
 	coalesceCols = ['token', 'friend_token']
 	overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
 	joinCols = ['fbid']
 
-	vals = [ ( u.id, u.fname, u.lname, u.gender, str(u.birthday), 
-			   u.city, u.state, tok, tokFriend, time.time()
-			 ) for u in users ]
+	vals = [ { 
+				'fbid' : u.id, 'fname' : u.fname, 'lname' : u.lname, 'gender' : u.gender, 
+				'birthday' : str(u.birthday), 'city' : u.city, 'state' : u.state, 
+			   	'token' : tok, 'friend_token' : tokFriend, 'updated' : time.time()
+			 } for u in users ]
 
-	return db.insert_update(curs, 'users', tmpTable, coalesceCols, overwriteCols, joinCols, vals)
+	return db.insert_update(curs, 'users', coalesceCols, overwriteCols, joinCols, vals)
 
 

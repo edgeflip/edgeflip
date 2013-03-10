@@ -54,38 +54,31 @@ def dbSetup(connP=None):
 
 
 # Helper class to update records in a table. 
-# NOTE: Doesn't commit.
-def insert_update(curs, updateTable, tmpTable, coalesceCols, overwriteCols, joinCols, vals):
+def insert_update(curs, updateTable, coalesceCols, overwriteCols, keyCols, vals):
 
-	curs.execute("DROP TABLE IF EXISTS %s" % tmpTable)
-	curs.execute("CREATE TEMPORARY TABLE %s ( %s )" % (tmpTable, TABLE_COLS[updateTable]))
+	allCols = keyCols + overwriteCols + coalesceCols
+	keySQL = ' AND '.join([ c + ' = %('+c+')s' for c in keyCols ])
+
+	selectSQL = "SELECT %s FROM %s WHERE %s" % ( ', '.join(keyCols), updateTable, keySQL )
+
+	coalesceSQL  = [ '%s = COALESCE(%s, %s)' % (c, '%('+c+')s', c) for c in coalesceCols ]
+	overwriteSQL = [ '%s = %s' % (c, '%('+c+')s') for c in overwriteCols ]
+	upColsSQL = ', '.join(overwriteSQL + coalesceSQL)
+	updateSQL = "UPDATE %s SET %s WHERE %s" % (updateTable, upColsSQL, keySQL)
+
+	insertSQL = "INSERT INTO %s (%s) VALUES (%s)" % (
+					updateTable, ', '.join(allCols), ', '.join(['%('+c+')s' for c in allCols]) )
 
 	insertCount = 0
-	tmpInsertSQL = "INSERT INTO "+tmpTable+" VALUES ("+( ', '.join(["%s"]*len(vals[0])) )+")"
-	for v in vals:
-		# logging.debug('Executing: %s' % (tmpInsertSQL % v) )
-		curs.execute(tmpInsertSQL, v)
+	for row in vals:
+
+		curs.execute(selectSQL, row)
+
+		sql = updateSQL if ( curs.fetchone() ) else insertSQL
+		curs.execute(sql, row)
+
+		curs.execute("COMMIT")
 		insertCount += 1
-
-	coalesceSQL  = [ 'u.%s = COALESCE(t.%s, u.%s)' % (c, c, c) for c in coalesceCols ]
-	overwriteSQL = [ 'u.%s = t.%s' % (c, c) for c in overwriteCols ]
-	upCols = overwriteSQL + coalesceSQL
-	upColsSQL = ', '.join(upCols)
-	joinSQL = ' AND '.join(['u.%s = t.%s' % (c, c) for c in joinCols])
-
-	updateSQL = """UPDATE %s AS u, %s AS t
-						SET %s
-						WHERE %s
-				 """ % (updateTable, tmpTable, upColsSQL, joinSQL)
-	curs.execute(updateSQL)
-
-	insertSQL = """INSERT INTO %s (
-					SELECT t.* FROM %s AS t LEFT JOIN %s AS u ON %s
-					WHERE u.%s IS NULL )
-				 """ % (updateTable, tmpTable, updateTable, joinSQL, joinCols[0])
-	curs.execute(insertSQL)
-
-	curs.execute("DROP TABLE IF EXISTS %s" % tmpTable)
 
 	return insertCount
 
