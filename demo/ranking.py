@@ -6,6 +6,31 @@ from config import config
 
 
 
+ px3 =  (own_photo_tag   / own_photo_tag.max()   * 3.0 +
+            other_photo_tag / other_photo_tag.max() * 2.0 +
+            mutual_friends  / mutual_friends.max()  * 1.0) / 6.0
+
+    _px4 = (ib_status_like    / ib_status_like.max()    * 2.0 +
+            ib_post_like      / ib_post_like.max()      * 1.0 +
+            ib_status_comment / ib_status_comment.max() * 1.0 +
+            ib_post_comment   / ib_post_comment.max()   * 1.0 +
+            ib_other_tag      / ib_other_tag.max()      * 1.0) / 6.0
+
+    px4 = ( px3 * 6.0 +
+           _px4 * 6.0) / 12.0
+
+    _px5 = (ob_status_like    / ob_status_like.max()    * 2.0 +
+            ob_post_like      / ob_post_like.max()      * 2.0 +
+            ob_status_comment / ob_status_comment.max() * 16.0 +
+            ob_post_comment   / ob_post_comment.max()   * 3.0 +
+            ob_other_tag      / ob_other_tag.max()      * 1.0) / 24.0
+
+    px5 = ( px3 * 6.0 +
+           _px4 * 6.0 +
+           _px5 * 24.0) / 36.0
+
+
+
 
 def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
 			outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
@@ -16,28 +41,26 @@ def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWall
 	countMaxWeightTups = [
 		# px3
 		(muts, mutsMax, 1.0),
-		(primPhotoTags, primPhotoTagsMax, 0.0),			# WEIGHT???
-		(otherPhotoTags, otherPhotoTagsMax, 0.0),		# WEIGHT???
+		(primPhotoTags, primPhotoTagsMax, 3.0),
+		(otherPhotoTags, otherPhotoTagsMax, 2.0),
 
 		# px4
 		(inPostLikes, inPostLikesMax, 1.0),
 		(inPostComms, inPostCommsMax, 1.0),
 		(inStatLikes, inStatLikesMax, 2.0),
 		(inStatComms, inStatCommsMax, 1.0),
-		(inWallPosts, inWallPostsMax, 0.0),				# WEIGHT???
-		(inWallComms, inWallCommsMax, 0.0),				# WEIGHT???
-		(inTags, inTagsMax, 0.0),						# WEIGHT???
-		#zzz need other tags					
+		(inWallPosts, inWallPostsMax, 1.0),		# guessed weight
+		(inWallComms, inWallCommsMax, 1.0),		# guessed weight
+		(inTags, inTagsMax, 1.0),			
 
 		# px5
 		(outPostLikes, outPostLikesMax, 2.0),
 		(outPostComms, outPostCommsMax, 3.0),
 		(outStatLikes, outStatLikesMax, 2.0),
 		(outStatComms, outStatCommsMax, 16.0),
-		(outWallPosts, outWallPostsMax, 0.0),			# WEIGHT???
-		(outWallComms, outWallCommsMax, 0.0),			# WEIGHT???
-		(outTags, outTagsMax, 0.0),						# WEIGHT???
-		#zzz need other tags								
+		(outWallPosts, outWallPostsMax, 2.0),	# guessed weight
+		(outWallComms, outWallCommsMax, 3.0),	# guessed weight
+		(outTags, outTagsMax, 1.0),
 	]
 	pxTotal = 0.0
 	weightTotal = 0.0

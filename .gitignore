@@ -1,7 +1,8 @@
+.gitignore
 demo/target_config.json
-demo/ReadStream.pyc
-demo/ReadStreamDb.pyc
+*.pyc
+demo/old
+*.sqlite
 demo/demo.log
 demo/logs/demo.log*
 demo/edgeflip.config
-demo/*.pyc
