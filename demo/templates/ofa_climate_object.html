@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+
+{%- include 'fb_object_header_dict.html' -%}
+
+</HEAD>
+<BODY>
+<h2>This is the OFA landing page...</h2>
+<p>It needs to conain the Facebook object headers and should also probably contain some javascript to send us click-tracking data if we're not using a redirector (hopefully FB will just drop the share's object ID in the URL and we can use that?). At any rate, it will probably contain content such as:</p>
+
+<h3>{{ targetDict.state_name }} Residents: Tell Senator {{ targetDict.name }} It's Time for Climate Legislation!</h3>
+<p><span style="font-weight:bold;">Senator {{ targetDict.name }}</span><BR>
+Email: <a href="mailto:{{ targetDict.email }}">{{ targetDict.email }}</a><BR>
+Phone: {{ targetDict.phone }}
+</p>
+<p style="font-size:10px; margin-top: 15px;">Not in {{}}? Click here to tell your friends.</p>
+</BODY>
+</HTML>

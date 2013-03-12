@@ -24,6 +24,39 @@ app = Flask(__name__)
 def home():
 	return render_template('index.html')
 
+
+@app.route("/ofa_climate/<state>")
+def ofa_climate(state):
+
+	# this should probably end up in a DB...
+	state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
+
+	state = state.strip().upper()
+	targetDict = state_target.get(state)
+
+	if (not targetDict):
+		return "Whoopsie! No targets in that state." # you know, or some 404 page...
+
+	fbParams = {
+					'page_title' : "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
+
+					'fb_app_name' : 'edgeflip',
+					'fb_app_id' : '471727162864364',
+
+					'fb_action_type' : 'support',
+					'fb_object_type' : 'cause',
+					'fb_object_title' : 'Climate Legislation',
+
+					'fb_object_image' : 'http://demo.edgeflip.com/' + url_for('static', filename='doc_brown.jpg'),
+					'fb_object_desc' : "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
+					'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+				}
+
+	return render_template('ofa_climate_object.html', fbParams=fbParams, senInfo=targetDict)
+
+
+
+
 @app.route('/demo')
 @app.route('/button')
 @app.route('/all_the_dude_ever_wanted')
