@@ -47,7 +47,7 @@ def ofa_climate(state):
 					'fb_object_type' : 'cause',
 					'fb_object_title' : 'Climate Legislation',
 
-					'fb_object_image' : 'http://demo.edgeflip.com/' + url_for('static', filename='doc_brown.jpg'),
+					'fb_object_image' : 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
 					'fb_object_desc' : "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
 					'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
 				}
