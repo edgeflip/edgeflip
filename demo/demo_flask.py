@@ -64,7 +64,7 @@ def ofa_auth():
 	return render_template('ofa_share_page.html', fbParams=fbParams)
 
 
-@app.route("/ofa_faces")
+@app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
 
 	# Do the FB stuff
