@@ -132,6 +132,10 @@ editable.on('input', function() {
   	}
   }
 
+  if (recips_removed) { 
+  	$('.suggested_msg .preset_names').html(friendNames(false));
+  }
+
   // in the event of an "undo" could actually add back a friend!
   recips_added = false;
   divs = $(".msg-txt-friend");
@@ -144,8 +148,9 @@ editable.on('input', function() {
   	}
   }
 
-  if (recips_removed || recips_added) { 
+  if (recips_added) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
+  	$('#other_msg .preset_names').html(friendNames(true));
   }
 
   return filter_newlines(editable);
