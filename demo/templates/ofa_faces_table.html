@@ -144,10 +144,8 @@ editable.on('input', function() {
   	}
   }
 
-
   if (recips_removed || recips_added) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
-  	$('#other_msg .preset_names').html(friendNames(true));
   }
 
   return filter_newlines(editable);
