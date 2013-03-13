@@ -355,9 +355,9 @@ class StreamCounts(object):
 			friendId_total[fId] += self.friendId_postCommCount.get(fId, 0)*4
 			friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0)*2
 			friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
-			friendId_total[fId] += self.friendId_wallPostCount.get(fId, 0)*0 # WEIGHT???
-			friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0)*0 # WEIGHT???
-			friendId_total[fId] += self.friendId_tagCount.get(fId, 0)*0		 # WEIGHT???
+			friendId_total[fId] += self.friendId_wallPostCount.get(fId, 0)*2 # guessed weight
+			friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0)*4 # guessed weight
+			friendId_total[fId] += self.friendId_tagCount.get(fId, 0)*1		 # guessed weight
 		return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 	
 class ReadStreamCounts(StreamCounts):
