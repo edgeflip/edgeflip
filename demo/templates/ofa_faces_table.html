@@ -115,6 +115,9 @@ editable.on('input', function() {
   return filter_newlines(editable);
 });
 
+editable.on('paste', function(event) {
+    event.preventDefault();
+});
 
 function filter_newlines(div) {
     var node, prev, _i, _len, _ref, _results;
