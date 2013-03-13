@@ -71,20 +71,23 @@
 <BODY>
 
 <div style="display: table; position: relative; margin: 0px auto;">
-<div style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900; display: inline-block;">Organizing for Action</div> 
+	<div style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900; display: inline-block;">Organizing for Action</div> 
+</div>
 
-<div id="share_content" style="height: 50px; border: none;">
+<div id="share_content" style="height: 50px; border: none; margin: 0px auto;">
 <h2>Support Climate Legislation and tell your friends in key states to contact their Senators!</h2>
 </div>
 <BR><BR>
 
 <!-- SHARE BUTTON -->
-<div id="share_button" onclick="show_friends();">Tell Your Friends</div>
+<div style="display: table; position: relative; margin: 0px auto;">
 
-<div id='progress' style='text-align: center; display: none'>
-	<img src="{{url_for('static', filename='aniprogress.gif')}}">
-	<p></p>
-</div>
+	<div id="share_button" onclick="show_friends();">Tell Your Friends</div>
+
+	<div id='progress' style='text-align: center; display: none'>
+		<img src="{{url_for('static', filename='aniprogress.gif')}}">
+		<p></p>
+	</div>
 
 </div>
 
