@@ -80,7 +80,7 @@
 	<div class="msg_block">
 		<div class="msg_txt">
 			<div style="margin-bottom: 3px;">{{ msgParams.msg_other_prompt }}</div>
-			<div id="other_msg" contentEditable="True" style="height: 75px; display: block;"></div>
+			<div id="other_msg" contentEditable="True" style="min-height: 75px; display: block;"></div>
 		</div>
 	</div>	
 
@@ -109,7 +109,7 @@
 // Thank you stackoverflow...
 // http://jsfiddle.net/tG9Qa/
 
-var editable = $('#oter_msg')
+var editable = $('#other_msg')
 
 editable.on('input', function() {
   return filter_newlines(editable);
