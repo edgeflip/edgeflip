@@ -73,8 +73,8 @@ def ofa_faces():
 	state = 'EC'
 	faceFriends = {}
 	allFriends = {}
-	pickFriends = {}
-	numFriends = 0
+	friendDicts = {}
+	numFace = 0
 
 	targetDict = state_target.get(state)
 
