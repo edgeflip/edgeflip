@@ -101,6 +101,8 @@ function toggleFriend(fbid) {
 // Toggle state of the user-entered message text field based on which radio button is selected
 function updateMsg() {
 
+	// Pretty sure this is no longer called at all, but holding off on deleting for the moment...
+
 	var msg_type = $('input:radio[name=msg]:checked').val();
 	if (msg_type === "other") {
 		$('#other_msg').show().focus();
@@ -221,10 +223,10 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 function doShare() {
 
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
-	var msg_type = $('input:radio[name=msg]:checked').val();
+//	var msg_type = $('input:radio[name=msg]:checked').val();
 	var msg = "";
 
-	if (!msg_type || msg_type === "") { alert('Please choose a message to send or write your own'); return;}
+//	if (!msg_type || msg_type === "") { alert('Please choose a message to send or write your own'); return;}
 	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
 
 
@@ -244,19 +246,30 @@ function doShare() {
 	}
 
 
-	if (msg_type === "msg1") {
-		msg = "{{ msgParams.msg1_pre }}"+msg_recips+"{{ msgParams.msg1_post }}";
-	} else if (msg_type === "msg2") {
-		msg = "{{ msgParams.msg2_pre }}"+msg_recips+"{{ msgParams.msg2_post }}";
-	} else if (msg_type === "other") {
-		for (i=0; i < recips.length; i++) {
-			$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
-		}
-		msg = $('#other_msg').html();
-	} else {
-		alert("Ruh-Roh!!"); // I don't know how we go here, but here we are...
-	}
+//	if (msg_type === "msg1") {
+//		msg = "{{ msgParams.msg1_pre }}"+msg_recips+"{{ msgParams.msg1_post }}";
+//	} else if (msg_type === "msg2") {
+//		msg = "{{ msgParams.msg2_pre }}"+msg_recips+"{{ msgParams.msg2_post }}";
+//	} else if (msg_type === "other") {
+//		for (i=0; i < recips.length; i++) {
+//			$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
+//		}
+//		msg = $('#other_msg').html();
+//	} else {
+//		alert("Ruh-Roh!!"); // I don't know how we go here, but here we are...
+//	}
 
+	// Now, we always take the message text from the other_msg div
+	for (i=0; i < recips.length; i++) {
+		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
+	}
+	if ($('#other_msg .preset_names').length > 0) {
+		$('#other_msg .preset_names').replaceWith($('#other_msg .preset_names').text());
+	}
+	$('#other_msg div').remove();
+	msg = $('#other_msg').text();
+
+	alert(msg);
 
 	// The actual call to do the sharing
 	// In the future, we'll probably want to parametarize this for different types of actions
