@@ -134,7 +134,7 @@ editable.on('input', function() {
 
   // in the event of an "undo" could actually add back a friend!
   recips_added = false;
-  divs = $("div[id*='msg-txt-friend-']");
+  divs = $(".msg-txt-friend");
   for (i = 0; i < divs.length; i++) {
   	fbid = parseInt(divs[i].id.split('-')[3]);
   	if (recips.indexOf(fbid) === -1) {
