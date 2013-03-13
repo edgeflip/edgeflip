@@ -79,22 +79,22 @@
 
 	<div class="msg_block">
 		<div class="msg_txt">
-			{{ msgParams.msg_other_prompt }}<BR />
+			<span style="margin-bottom: 3px;">{{ msgParams.msg_other_prompt }}</span><BR />
 			<div id="other_msg" contentEditable="True" style="height: 50px; display: block;"></div>
 		</div>
 	</div>	
 
-	<div>Suggested Messages:</div>
-	<div class="msg_block">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 2px; float: left; padding-left: 1px; padding-right: 1px; font-size: 12px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer;" onClick="updateMsg();">use</div>
-		<div class="msg_txt">
+	<div style="font-size: 14px; font-weight: bold; padding-bottom: 3px;">Suggested Messages:</div>
+	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="updateMsg();">use</div>
+		<div class="msg_txt" style="font-size: 14px; padding-bottom: 0px; margin-bottom: 0px;">
 			{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}
 		</div>
 	</div>
 
-	<div class="msg_block">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 2px; float: left; padding-left: 1px; padding-right: 1px; font-size: 12px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer;" onClick="updateMsg();">use</div>
-		<div class="msg_txt">
+	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="updateMsg();">use</div>
+		<div class="msg_txt" style="font-size: 14px; padding-bottom: 0px; margin-bottom: 0px;">
 			{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}
 		</div>
 	</div>
