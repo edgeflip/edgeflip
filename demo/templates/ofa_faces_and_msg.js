@@ -45,7 +45,7 @@ function friendNames(forMsg) {
 }
 
 function useSuggested(msgID) {
-	$('#other_msg').html($('#msg1_txt').html());
+	$('#other_msg').html($(msgID).html());
 
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
@@ -60,6 +60,22 @@ function useSuggested(msgID) {
 	$('#other_msg .preset_names').html(friendNames(true));
 }
 
+function checkAll() {
+
+	divs = $("input[id*='box-']");
+	divs.prop('checked', true);
+  	for (i=0; i < divs.length; i++) {
+  		recips.push( parseInt(divs[i].id.split('-')[1]) );
+	    if ($('#other_msg .preset_names').length === 0) {
+	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
+		    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+		}
+	}
+
+	$('.suggested_msg .preset_names').html(friendNames(false));
+	$('#other_msg .preset_names').html(friendNames(true));
+
+}
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {

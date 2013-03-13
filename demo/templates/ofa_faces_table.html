@@ -41,7 +41,7 @@
 </SCRIPT>
 
 <div style="height: 50px; border: none;">
-<h2>Ask your friends in {{ senInfo.state_name }} to let Senator {{ senInfo.name }} we're putting climate denial on trial!</h2>
+<h2>Ask your Facebook friends in {{ senInfo.state_name }} to let Senator {{ senInfo.name }} we're putting climate denial on trial!</h2>
 </div>
 <BR>
 
@@ -49,7 +49,8 @@
 
 	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 	<div class="faces_container">
-	<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
+	<div id="check_em_all" onClick="checkAll();" style="float: right;">Check All</div>
+	<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: all;">
 		<tr>
 		{% for face_friend in face_friends %}
 
