@@ -20,6 +20,16 @@ app = Flask(__name__)
 
 
 
+fbParams = {
+				'fb_app_name' : 'edgeflip',
+				'fb_app_id' : '471727162864364'
+			}
+
+# this should probably end up in a DB...
+state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
+
+
+
 @app.route("/", methods=['POST', 'GET'])
 def home():
 	return render_template('index.html')
@@ -28,20 +38,11 @@ def home():
 @app.route("/ofa_climate/<state>")
 def ofa_climate(state):
 
-	# this should probably end up in a DB...
-	state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
-
 	state = state.strip().upper()
 	targetDict = state_target.get(state)
 
-	if (not targetDict):
-		return "Whoopsie! No targets in that state." # you know, or some 404 page...
-
-	fbParams = {
+	objParams = {
 					'page_title' : "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
-
-					'fb_app_name' : 'edgeflip',
-					'fb_app_id' : '471727162864364',
 
 					'fb_action_type' : 'support',
 					'fb_object_type' : 'cause',
@@ -51,10 +52,50 @@ def ofa_climate(state):
 					'fb_object_desc' : "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
 					'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
 				}
+	objParams.update(fbParams)
 
-	return render_template('ofa_climate_object.html', fbParams=fbParams, senInfo=targetDict)
+	if (not targetDict):
+		return "Whoopsie! No targets in that state." # you know, or some 404 page...
+
+	return render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
+
+@app.route("/ofa")
+def ofa_auth():
+	return render_template('ofa_share_page.html', fbParams=fbParams)
 
 
+@app.route("/ofa_faces")
+def ofa_faces():
+
+	# Do the FB stuff
+	# state = target state with most friends
+
+	state = 'EC'
+	faceFriends = {}
+	allFriends = {}
+	pickFriends = {}
+	numFriends = 0
+
+	targetDict = state_target.get(state)
+
+	msgParams = {
+					'msg1_pre' : "Hi there ",
+					'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
+					'msg2_pre' : "Now is the time for real climate legislation, ",
+					'msg2_post' : "!",
+					'msg_other_prompt' : "Write your own message (type around your friends' names):",
+					'msg_other_init' : "Replace this text with your message for " 
+				}
+
+	actionParams = 	{
+						'fb_action_type' : 'support',
+						'fb_object_type' : 'cause',
+						'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+					}
+	actionParams.update(fbParams)
+
+	return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+							face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 
 @app.route('/demo')
