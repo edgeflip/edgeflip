@@ -86,15 +86,15 @@
 
 	<div style="font-size: 14px; font-weight: bold; padding-bottom: 3px;">Suggested Messages:</div>
 	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="updateMsg();">use</div>
-		<div class="msg_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="$('#other_msg').html($('#msg1_txt').html());">use</div>
+		<div class="msg_txt" id="msg1_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">
 			{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}
 		</div>
 	</div>
 
 	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="updateMsg();">use</div>
-		<div class="msg_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="$('#other_msg').html($('#msg2_txt').html());">use</div>
+		<div class="msg_txt" id="msg2_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">
 			{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}
 		</div>
 	</div>
