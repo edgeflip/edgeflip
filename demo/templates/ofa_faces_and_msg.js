@@ -269,8 +269,6 @@ function doShare() {
 	$('#other_msg div').remove();
 	msg = $('#other_msg').text();
 
-	alert(msg);
-
 	// The actual call to do the sharing
 	// In the future, we'll probably want to parametarize this for different types of actions
 	FB.api(
