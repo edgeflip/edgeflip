@@ -118,7 +118,7 @@ def ofa_faces():
 					'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
 					'msg2_pre' : "Now is the time for real climate legislation, ",
 					'msg2_post' : "!",
-					'msg_other_prompt' : "Write your own message (type around your friends' names):",
+					'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
 					'msg_other_init' : "Replace this text with your message for " 
 				}
 

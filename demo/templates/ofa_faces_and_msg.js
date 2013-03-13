@@ -6,7 +6,18 @@ function friendNames(forMsg) {
   forMsg = typeof forMsg !== 'undefined' ? forMsg : false;
   recip_str = "";
 
-  if (recips.length == 0) { return ""; }
+  txt_recips = [];
+  if (recips.length === 0) { 
+  	if (forMsg) { return ""; }
+
+  	divs = $("input[id*='box-']");
+  	for (i=0; i < divs.length; i++) {
+  		txt_recips.push( parseInt(divs[i].id.split('-')[1]) );
+  	}
+
+  } else {
+  	txt_recips = recips.slice(0);
+  }
 
   function spanStr(id) {
   	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
@@ -18,19 +29,35 @@ function friendNames(forMsg) {
   	return ret
   }
 
-  for (i=0; i < (recips.length-1); i++) {
-    recip_str += spanStr(recips[i]) + fbnames[recips[i]] + "</span>, ";
+  for (i=0; i < (txt_recips.length-1); i++) {
+    recip_str += spanStr(txt_recips[i]) + fbnames[txt_recips[i]] + "</span>, ";
   }
 
-  if (recips.length > 2) {
-    recip_str += 'and ' + spanStr(recips[recips.length-1]) + fbnames[recips[recips.length-1]] + "</span>";
-  } else if (recips.length == 2) {
-    recip_str = spanStr(recips[0]) + fbnames[recips[0]] + "</span> and "+ spanStr(recips[1]) + fbnames[recips[1]] + "</span>";
+  if (txt_recips.length > 2) {
+    recip_str += 'and ' + spanStr(txt_recips[txt_recips.length-1]) + fbnames[txt_recips[txt_recips.length-1]] + "</span>";
+  } else if (txt_recips.length == 2) {
+    recip_str = spanStr(txt_recips[0]) + fbnames[txt_recips[0]] + "</span> and "+ spanStr(txt_recips[1]) + fbnames[txt_recips[1]] + "</span>";
   } else {
-    recip_str = spanStr(recips[0]) + fbnames[recips[0]] + "</span>";
+    recip_str = spanStr(txt_recips[0]) + fbnames[txt_recips[0]] + "</span>";
   }
 
   return recip_str;
+}
+
+function useSuggested(msgID) {
+	$('#other_msg').html($('#msg1_txt').html());
+
+	// If they don't have anyone checked, using the suggested message adds everyone
+	if (recips.length === 0) {
+
+		divs = $("input[id*='box-']");
+	  	for (i=0; i < divs.length; i++) {
+	  		recips.push( parseInt(divs[i].id.split('-')[1]) );
+	  		divs[i].prop('checked', true);
+	  	}
+
+	}
+	$('#other_msg .preset_names').html(friendNames(true));
 }
 
 

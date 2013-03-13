@@ -40,6 +40,11 @@
 
 </SCRIPT>
 
+<div style="height: 50px; border: none;">
+<h2>Ask your friends in {{ senInfo.state_name }} to let Senator {{ senInfo.name }} we're putting climate denial on trial!</h2>
+</div>
+<BR>
+
 <div id="the_left_container" class="left_container">
 
 	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
@@ -74,7 +79,7 @@
 </div> <!-- left_container -->
 
 <div class="right_container">
-<div class="msg_title">Choose A Message:</div>
+<div class="msg_title">Write A Message:</div>
 <div class="msg_picker" style="border: 2px solid #e4e6e0;">
 
 	<div class="msg_block">
@@ -86,13 +91,13 @@
 
 	<div style="font-size: 14px; font-weight: bold; padding-bottom: 3px;">Suggested Messages:</div>
 	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="$('#other_msg').html($('#msg1_txt').html()); $('#other_msg .preset_names').html(friendNames(true));">use</div>
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="useSuggested('#msg1_txt');">use</div>
 
 		<div class="msg_txt suggested_msg" id="msg1_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>
 	</div>
 
 	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="$('#other_msg').html($('#msg2_txt').html()); $('#other_msg .preset_names').html(friendNames(true));">use</div>
+		<div style="background-color: darkblue; color: white; border: thin solid gray; border-radius: 3px; float: left; padding-left: 2px; padding-right: 2px; font-size: 11px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; margin-right: 5px; margin-top: 3px; margin-left: 15px; font-weight: 200; line-height: 12px; letter-spacing: 1px; vertical-align: middle;" onClick="useSuggested('#msg2_txt');">use</div>
 
 		<div class="msg_txt suggested_msg" id="msg2_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>
 	</div>
@@ -151,11 +156,11 @@ function filter_newlines(div) {
 	// Quick code to pre-load messages for testing...
 	
     {% for face_friend in face_friends %}
-    	recips.push({{face_friend.id}});
+//    	recips.push({{face_friend.id}});
     {% endfor %}
 
     {% for face_friend in face_friends %}
-		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
+//		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
     {% endfor %}
 
 	$('.preset_names').html(friendNames());
