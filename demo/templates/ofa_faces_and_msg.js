@@ -51,9 +51,9 @@ function useSuggested(msgID) {
 	if (recips.length === 0) {
 
 		divs = $("input[id*='box-']");
+		divs.prop('checked', true);
 	  	for (i=0; i < divs.length; i++) {
 	  		recips.push( parseInt(divs[i].id.split('-')[1]) );
-	  		divs[i].prop('checked', true);
 	  	}
 
 	}

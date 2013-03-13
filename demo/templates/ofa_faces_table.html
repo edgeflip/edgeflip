@@ -163,6 +163,8 @@ function filter_newlines(div) {
 //		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
     {% endfor %}
 
+    $("input[id*='box-']").prop('checked', false)
+
 	$('.preset_names').html(friendNames());
 
 </script>
