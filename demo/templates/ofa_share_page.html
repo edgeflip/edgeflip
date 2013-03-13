@@ -33,6 +33,11 @@
 			text-decoration:none;
 			text-transform:lowercase;
 			font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+			vertical-align: middle;
+			line-height: 32px;
+			font-size: 20px;
+			letter-spacing: 1.5px;
+			margin: 15px;
 		}
 
 		#share_button:hover,
@@ -68,7 +73,7 @@
 <div style="display: table; position: relative; margin: 0px auto;">
 <div style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900; display: inline-block;">Organizing for Action</div> 
 
-<div id="share_content">
+<div id="share_content" style="height: 50px; border: none;">
 <h2>Support Climate Legislation and tell your friends in key states to contact their Senators!</h2>
 </div>
 <BR><BR>
@@ -79,6 +84,8 @@
 <div id='progress' style='text-align: center; display: none'>
 	<img src="{{url_for('static', filename='aniprogress.gif')}}">
 	<p></p>
+</div>
+
 </div>
 
 <div id="friends_div" style="display:none;">
