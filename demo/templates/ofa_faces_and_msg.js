@@ -2,21 +2,32 @@ var recips = []; // List to hold currently selected mention tag recipients
 
 
 // Return a string with correctly formatted names of current recipients (eg, "Larry, Darryl, and Darryl")
-function friendNames() {
+function friendNames(forMsg) {
+  forMsg = typeof forMsg !== 'undefined' ? forMsg : false;
   recip_str = "";
 
   if (recips.length == 0) { return ""; }
 
+  function spanStr(id) {
+  	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
+  	if (forMsg) {
+  		ret = "<span class='msg_friend_name msg-txt-friend' id='msg-txt-friend-"+id+"' contentEditable='False'>"
+  	} else {
+  		ret = "<span class='msg_friend_name'>"
+  	}
+  	return ret
+  }
+
   for (i=0; i < (recips.length-1); i++) {
-    recip_str += "<span class='msg_friend_name'>" + fbnames[recips[i]] + "</span>, ";
+    recip_str += spanStr(recips[i]) + fbnames[recips[i]] + "</span>, ";
   }
 
   if (recips.length > 2) {
-    recip_str += 'and ' + "<span class='msg_friend_name'>" + fbnames[recips[recips.length-1]] + "</span>";
+    recip_str += 'and ' + spanStr(recips[recips.length-1]) + fbnames[recips[recips.length-1]] + "</span>";
   } else if (recips.length == 2) {
-    recip_str = "<span class='msg_friend_name'>" + fbnames[recips[0]] + "</span> and <span class='msg_friend_name'>" + fbnames[recips[1]] + "</span>";
+    recip_str = spanStr(recips[0]) + fbnames[recips[0]] + "</span> and "+ spanStr(recips[1]) + fbnames[recips[1]] + "</span>";
   } else {
-    recip_str = "<span class='msg_friend_name'>" + fbnames[recips[0]] + "</span>";
+    recip_str = spanStr(recips[0]) + fbnames[recips[0]] + "</span>";
   }
 
   return recip_str;
@@ -31,10 +42,14 @@ function toggleFriend(fbid) {
 
   if ($('#box-'+fbid).is(':checked')) {
     recips.push(fbid);
-    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+    if ($('#other_msg .preset_names').length === 0) {
+    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
+	    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+	}
   }
 
-  $('.preset_names').html(friendNames());
+  $('.suggested_msg .preset_names').html(friendNames(false));
+  $('#other_msg .preset_names').html(friendNames(true));
 
 }
 
@@ -100,7 +115,9 @@ function doReplace(old_fbid) {
 
 		// Add the new friend to the list of message tags (since they'll start off pre-checked)
 		recips.push(id);
-		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+id+'" contentEditable="False">'+fbnames[id]+'</span> ');
+    	if ($('#other_msg .preset_names').length === 0) {
+			$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+id+'" contentEditable="False">'+fbnames[id]+'</span> ');
+		}
 
 		// Update the friends shown
 		friendHTML(old_fbid, id, fname, lname, div_id);
@@ -114,7 +131,8 @@ function doReplace(old_fbid) {
 	}
 
 	// Update the message text with the new names
-	$('.preset_names').html(friendNames());
+	$('.suggested_msg .preset_names').html(friendNames(false));
+	$('#other_msg .preset_names').html(friendNames(true));
 }
 
 
