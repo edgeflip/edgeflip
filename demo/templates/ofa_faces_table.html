@@ -119,8 +119,9 @@ var editable = $('#other_msg')
 
 editable.on('input', function() {
   recips_removed = false;
-  for (i = 0; i < recips.length; i++) {
-  	fbid = recips[i];
+  var curr_recips = recips.slice(0);
+  for (i = 0; i < curr_recips.length; i++) {
+  	fbid = curr_recips[i];
   	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
   		idx = recips.indexOf(fbid);
   		recips.splice(idx, 1);
