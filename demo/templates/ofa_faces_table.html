@@ -78,32 +78,26 @@
 <div class="msg_picker" style="border: 2px solid #e4e6e0;">
 
 	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="msg1" onChange="updateMsg();" /> 
+		<div class="msg_txt">
+			{{ msgParams.msg_other_prompt }}<BR />
+			<div id="other_msg" contentEditable="True" style="height: 25px; display: block;"></div>
 		</div>
+	</div>	
+
+	<div>Suggested Messages:</div>
+	<div class="msg_block">
+		<div style="background-color: darkblue; color: white; border: thin solid black; border-radius: 2px;" onClick="updateMsg();">use</div>
 		<div class="msg_txt">
 			{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}
 		</div>
 	</div>
 
 	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="msg2" onChange="updateMsg();" /> 
-		</div>
+		<div style="background-color: darkblue; color: white; border: thin solid black; border-radius: 2px;" onClick="updateMsg();">use</div>
 		<div class="msg_txt">
 			{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}
 		</div>
 	</div>
-
-	<div class="msg_block">
-		<div class="msg_radio">
-			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
-		</div>
-		<div class="msg_txt">
-			{{ msgParams.msg_other_prompt }}<BR />
-			<div id="other_msg" contentEditable="True">{{ msgParams.msg_other_init }}</div>
-		</div>
-	</div>	
 
 </div> <!-- msg_picker -->
 
