@@ -148,7 +148,7 @@ editable.on('input', function() {
   	}
   }
 
-  if (recips_added) { 
+  if (recips_added || $(".msg-txt-friend").length > recips.length) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
   	$('#other_msg .preset_names').html(friendNames(true));
   }
