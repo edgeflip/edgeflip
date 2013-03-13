@@ -1,0 +1,160 @@
+
+{% from 'new_face.html' import face %}
+
+<SCRIPT>
+	{% include 'ofa_faces_and_msg.js' %}
+</SCRIPT>
+
+<SCRIPT>
+
+	var nextidx = {{ face_friends | length }};
+
+	// Just the friends who can come in as faces
+	var friends = [
+		{% for friend in all_friends %}
+			{'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },
+		{% endfor %}
+		];
+
+  	// This needs to the dictionary of all names, not just those initially shown...
+    var fbnames = {
+
+    	{% for friend in pickFriends %}
+    		{{friend.id}}: '{{friend.name}}',
+    	{% endfor %}
+
+                  };
+
+  	// Needs to be ALL of the user's friends since they could type in anyone,
+  	// regardless of whether they meet our targeting criteria.
+    var pick_friends = [
+
+    {% for pickFriend in pickFriends %}
+    	{
+    		value: {{pickFriend.id}},
+    		label: "{{pickFriend.name}}"
+    	},
+    {% endfor %}
+
+    ];
+
+</SCRIPT>
+
+<div id="the_left_container" class="left_container">
+
+	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
+	<div class="faces_container">
+	<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
+		<tr>
+		{% for face_friend in face_friends %}
+
+			<td>
+				{{ face(face_friend.id, face_friend.fname, face_friend.lname) }}
+			</td>
+
+			{% if ( (loop.index0 == 1) and (numFriends > 2) ) or ( (loop.index0 == 3) and (numFriends > 4) ) %}
+					</tr><tr>
+
+			{% endif %}
+
+		{% endfor %}
+
+		</tr>
+	</table>
+
+	<div id="manual_add">
+		<div id="manual_input_container">
+			<div>Manually add up to three other friends:</div>
+			<div><input id="manual_input" onLoad="adjust_manual_width();" /></div>
+		</div>
+		<div id="picked_friends_container"></div>
+	</div> <!-- manual_add -->
+
+	</div> <!-- faces_container -->
+</div> <!-- left_container -->
+
+<div class="right_container">
+<div class="msg_title">Choose A Message:</div>
+<div class="msg_picker">
+
+	<div class="msg_block">
+		<div class="msg_radio">
+			<input type="radio" name="msg" value="msg1" onChange="updateMsg();" /> 
+		</div>
+		<div class="msg_txt">
+			{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}
+		</div>
+	</div>
+
+	<div class="msg_block">
+		<div class="msg_radio">
+			<input type="radio" name="msg" value="msg2" onChange="updateMsg();" /> 
+		</div>
+		<div class="msg_txt">
+			{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}
+		</div>
+	</div>
+
+	<div class="msg_block">
+		<div class="msg_radio">
+			<input type="radio" name="msg" value="other" onChange="updateMsg();" /> 
+		</div>
+		<div class="msg_txt">
+			{{ msgParams.msg_other_prompt }}<BR />
+			<div id="other_msg" contentEditable="True">{{ msgParams.msg_other_init }}</div>
+		</div>
+	</div>	
+
+</div> <!-- msg_picker -->
+
+<div id="do_share_container">
+	<div id="do_share_button" onclick="doShare();"></div>
+</div>
+
+</div> <!-- right_container -->
+
+
+<script>
+
+	// Quick code to pre-load messages for testing...
+	
+    {% for face_friend in face_friends %}
+    	recips.push({{face_friend.id}});
+    {% endfor %}
+
+    {% for face_friend in face_friends %}
+		$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
+    {% endfor %}
+
+	$('.preset_names').html(friendNames());
+
+</script>
+
+<script src="{{ url_for('static', filename='manual_add.js') }}"></script>
+
+<SCRIPT>
+
+	function set_right_width() {
+		var rcwidth = window.innerWidth - $('#the_left_container').outerWidth() - 2*parseInt($('body').css('margin-left')) - 20;
+		if (rcwidth < $('.right_container').css('min-width')) {
+			rcwidth = $('.right_container').css('min-width');
+		} else if (rcwidth > $('.right_container').css('max-width')) {
+			rcwidth = $('.right_container').css('max-width');
+		}
+		$('.right_container').width(rcwidth);
+	}
+
+	// Initial call and set up a listener on window resizing
+	$(document).ready(function(){ set_right_width(); });
+	$(window).resize(function(){ set_right_width(); });
+
+</SCRIPT>
+
+<script>
+	// Commenting this out because it seems to hit too early. Weird...
+	//var pfwidth = $("#manual_add").width() - $("#manual_input_container").width() - 20;
+	//$("#picked_friends_container").width(pfwidth);
+</script>
+
+
+
