@@ -118,6 +118,8 @@
 var editable = $('#other_msg')
 
 editable.on('input', function() {
+
+  // check if user has manually deleted a friend
   recips_removed = false;
   var curr_recips = recips.slice(0);
   for (i = 0; i < curr_recips.length; i++) {
@@ -129,7 +131,24 @@ editable.on('input', function() {
   		recips_removed = true;
   	}
   }
-  if (recips_removed) { $('.suggested_msg .preset_names').html(friendNames(false)); }
+
+  // in the event of an "undo" could actually add back a friend!
+  recips_added = false;
+  divs = $("div[id*='msg-txt-friend-']");
+  for (i = 0; i < divs.length; i++) {
+  	fbid = parseInt(divs[i].id.split('-')[3]);
+  	if (recips.indexOf(fbid) === -1) {
+  		recips.push(fbid);
+  		$('#box-'+fbid).prop('checked', true);
+  		recips_added = true;
+  	}
+  }
+
+
+  if (recips_removed || recips_added) { 
+  	$('.suggested_msg .preset_names').html(friendNames(false));
+  	$('#other_msg .preset_names').html(friendNames(true));
+  }
 
   return filter_newlines(editable);
 });
