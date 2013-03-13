@@ -65,7 +65,8 @@ function checkAll() {
 	divs = $("input[id*='box-']");
 	divs.prop('checked', true);
   	for (i=0; i < divs.length; i++) {
-  		recips.push( parseInt(divs[i].id.split('-')[1]) );
+  		fbid = parseInt(divs[i].id.split('-')[1]);
+  		recips.push(fbid);
 	    if ($('#other_msg .preset_names').length === 0) {
 	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
 		    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
