@@ -67,14 +67,49 @@ def ofa_auth():
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
 
-	# Do the FB stuff
-	# state = target state with most friends
+	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 
+	fbid = int(flask.request.json['fbid'])
+	tok = flask.request.json['token']
+	num = int(flask.request.json['num'])
+
+	# Try extending the token. If we hit an error, proceed with what we got from the page.
+	# zzz Will want to do this with the rank demo when we switch away from Shari!
+	try:
+		newToken = facebook.extendTokenFb(tok)
+		tok = newToken
+	except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError):
+		pass # Something went wrong, but the facebook script already logged it, so just go with the original token
+
+	conn = database.getConn()
+	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
+
+	edgesRanked = []
+	if (user is not None): # it's fresh
+		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
+	else:
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		# spawn off a separate thread to do the database writing
+		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
+		database.updateDb(user, tok, edgesRanked, background=True)
+	conn.close()
+
+	# now, spawn a full crawl in the background
+	# zzz No px5 for OFA...
+	# stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
+
+	friendDicts = [ e.toDict() for e in edgesRanked ]
+
+	# Apply control panel targeting filters
+	filteredDicts = filter_friends(friendDicts)
+
+	faceFriends = filteredDicts[:6]
+	numFace = len(faceFriends)
+	allFriends = filteredDicts[:25]
+
+	# zzz state = target state with most friends
 	state = 'EC'
-	faceFriends = {}
-	allFriends = {}
-	friendDicts = {}
-	numFace = 0
 
 	targetDict = state_target.get(state)
 
