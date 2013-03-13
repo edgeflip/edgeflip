@@ -118,6 +118,18 @@
 var editable = $('#other_msg')
 
 editable.on('input', function() {
+  recips_removed = false;
+  for (i = 0; i < recips.length; i++) {
+  	fbid = recips[i];
+  	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
+  		idx = recips.indexOf(fbid);
+  		recips.splice(idx, 1);
+  		$('#box-'+fbid).prop('checked', false);
+  		recips_removed = true;
+  	}
+  }
+  if (recips_removed) { $('.suggested_msg .preset_names').html(friendNames(false)); }
+
   return filter_newlines(editable);
 });
 
