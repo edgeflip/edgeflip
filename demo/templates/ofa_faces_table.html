@@ -128,6 +128,7 @@ editable.on('input', function() {
   		idx = recips.indexOf(fbid);
   		recips.splice(idx, 1);
   		$('#box-'+fbid).prop('checked', false);
+  		$('#added-'+fbid).remove();
   		recips_removed = true;
   	}
   }
@@ -143,7 +144,11 @@ editable.on('input', function() {
   	fbid = parseInt(divs[i].id.split('-')[3]);
   	if (recips.indexOf(fbid) === -1) {
   		recips.push(fbid);
-  		$('#box-'+fbid).prop('checked', true);
+  		if (('#box-'+fbid).length > 0) {
+	  		$('#box-'+fbid).prop('checked', true);
+	  	} else {
+	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
+	  	}
   		recips_added = true;
   	}
   }
@@ -201,11 +206,11 @@ function filter_newlines(div) {
 
     $("input[id*='box-']").prop('checked', false)
 
-	$('.preset_names').html(friendNames());
+	$('.suggested_msg .preset_names').html(friendNames(false));
 
 </script>
 
-<script src="{{ url_for('static', filename='manual_add.js') }}"></script>
+<script src="{{ url_for('static', filename='ofa_manual_add.js') }}"></script>
 
 <SCRIPT>
 
