@@ -144,7 +144,7 @@ editable.on('input', function() {
   	fbid = parseInt(divs[i].id.split('-')[3]);
   	if (recips.indexOf(fbid) === -1) {
   		recips.push(fbid);
-  		if (('#box-'+fbid).length > 0) {
+  		if ($('#box-'+fbid).length > 0) {
 	  		$('#box-'+fbid).prop('checked', true);
 	  	} else {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
