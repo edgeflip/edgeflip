@@ -49,7 +49,7 @@
 
 	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 	<div class="faces_container">
-	<div id="check_em_all" onClick="checkAll();" style="float: right; margin-top: 3px; margin-left: 3px; padding: 3px; background-color: #07304e; color: white; border: thin solid gray; border-radius: 5px; -moz-border-radius: 5px; font-size: 14px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; font-weight: 200; cursor: pointer;">Check All &gt;&gt;</div>
+	<div id="check_em_all" onClick="checkAll();" style="float: right; margin-top: 3px; margin-left: 3px; margin-right: 3px; padding: 3px; background-color: #07304e; color: white; border: thin solid gray; border-radius: 5px; -moz-border-radius: 5px; font-size: 14px; font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif; cursor: pointer; font-weight: 200; cursor: pointer;">Select All &gt;&gt;</div>
 	<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: all;">
 		<tr>
 		{% for face_friend in face_friends %}
@@ -106,7 +106,7 @@
 </div> <!-- msg_picker -->
 
 <div id="do_share_container" style="height: 75px;">
-	<div id="do_share_button" onclick="doShare();">Send Message</div>
+	<div id="do_share_button" onclick="doShare();">Show Your Support</div>
 </div>
 
 </div> <!-- right_container -->
@@ -207,6 +207,8 @@ function filter_newlines(div) {
     $("input[id*='box-']").prop('checked', false)
 
 	$('.suggested_msg .preset_names').html(friendNames(false));
+
+	$('#other_msg').focus();
 
 </script>
 

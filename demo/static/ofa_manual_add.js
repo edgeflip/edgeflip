@@ -26,7 +26,7 @@ $(function() {
 
 					recips.push(ui.item.value);
 					if ($('#other_msg .preset_names').length === 0) {
-						$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+ui.item.value+'" contentEditable="False">'+ui.item.label+'</span> ');
+						$('#other_msg').append(' '+spanStr(ui.item.value, true)+' ');
 					}
 					$('.suggested_msg .preset_names').html(friendNames(false));
   					$('#other_msg .preset_names').html(friendNames(true));

@@ -11,8 +11,40 @@
 }
 
 .msg_friend_name {
+/*
   color: #0A5195;
   border-bottom: thin dashed #0A5195;
+*/
+	font-family: sans-serif;
+	font-weight: 200;
+	color: black;
+	border: thin solid lightblue;
+	padding: 1px 2px 1px 2px;
+	background-color: #E6F2FF;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.msg-txt-friend {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.msg-sugg-friend {
+	font-size: 10px;
+	line-height: 13px;
+}
+
+.msg_friend_x {
+	font-weight: 900;
+	color: lightblue;
+	margin-left: 3px;
+}
+
+.msg_friend_x:hover {
+	color: #0270A0;
 }
 
 .msg_picker,
@@ -28,9 +60,11 @@
 }
 
 .msg_picker {
-	border: 1px solid #07304e;
+/*	border: 1px solid #07304e; */
+	border: 2px solid #AAA;
 	border-radius: 20px;
-	background-color: #E6F2FF;
+/*	background-color: #E6F2FF; */
+	background-color: #F7F7F7;
 	text-align: left;
 	padding: 10px;
 	margin-bottom: 5px;
@@ -56,6 +90,7 @@
 #other_msg {
 	display: none;
 	border: solid thin gray;
+	border-radius: 5px;
 	background-color: white;
 	padding: 10px;
 	width: 90%;

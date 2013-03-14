@@ -47,8 +47,8 @@
 
 .added_friend {
 	font-size: smaller;
-    color: white;
-    border: thin solid white;
+    color: #f0f0f8;
+    border: thin solid gray;
     border-radius: 5px;
     padding: 2px;
     margin: 2px;
@@ -58,7 +58,7 @@
 }
 
 .added_x {
-    border-left: thin solid white;
+    border-left: thin solid #f0f0f8;
     margin-left: 3px;
     padding-left: 2px;
     padding-right: 1px;

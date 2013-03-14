@@ -1,8 +1,21 @@
 var recips = []; // List to hold currently selected mention tag recipients
 
 
+function spanStr(id, forMsg) {
+	// forMsg should be true to return code for the message textarea and false for suggested messages
+
+	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
+	if (forMsg) {
+		ret = "<span class='msg_friend_name msg-txt-friend' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
+	} else {
+		ret = "<span class='msg_friend_name msg-sugg-friend'>"+fbnames[id]+"<span class='msg_x'>x</span></span>"
+	}
+	return ret
+}
+
 // Return a string with correctly formatted names of current recipients (eg, "Larry, Darryl, and Darryl")
 function friendNames(forMsg) {
+  // forMsg should be true to return code for the message textarea and false for suggested messages
   forMsg = typeof forMsg !== 'undefined' ? forMsg : false;
   recip_str = "";
 
@@ -19,29 +32,56 @@ function friendNames(forMsg) {
   	txt_recips = recips.slice(0);
   }
 
-  function spanStr(id) {
-  	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
-  	if (forMsg) {
-  		ret = "<span class='msg_friend_name msg-txt-friend' id='msg-txt-friend-"+id+"' contentEditable='False'>"
-  	} else {
-  		ret = "<span class='msg_friend_name'>"
-  	}
-  	return ret
-  }
-
   for (i=0; i < (txt_recips.length-1); i++) {
-    recip_str += spanStr(txt_recips[i]) + fbnames[txt_recips[i]] + "</span>, ";
+    recip_str += spanStr(txt_recips[i], forMsg) + ", ";
   }
 
   if (txt_recips.length > 2) {
-    recip_str += 'and ' + spanStr(txt_recips[txt_recips.length-1]) + fbnames[txt_recips[txt_recips.length-1]] + "</span>";
+    recip_str += 'and ' + spanStr(txt_recips[txt_recips.length-1], forMsg);
   } else if (txt_recips.length == 2) {
-    recip_str = spanStr(txt_recips[0]) + fbnames[txt_recips[0]] + "</span> and "+ spanStr(txt_recips[1]) + fbnames[txt_recips[1]] + "</span>";
+    recip_str = spanStr(txt_recips[0], forMsg) + " and "+ spanStr(txt_recips[1], forMsg);
   } else {
-    recip_str = spanStr(txt_recips[0]) + fbnames[txt_recips[0]] + "</span>";
+    recip_str = spanStr(txt_recips[0], forMsg);
   }
 
   return recip_str;
+}
+
+function msgRemove(id) {
+	idx = recips.indexOf(id);
+	recips.splice(idx, 1);
+	$('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
+	$('#added-'+id).remove();			  // remove the manually added friend (if it exists)
+	$('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
+
+	$('.suggested_msg .preset_names').html(friendNames(false)); // reword suggested messages
+	$('#other_msg .preset_names').html(friendNames(true));		// reword message in textbox
+
+}
+
+function msgFocus() {
+	$('#other_msg').focus();
+
+	// grabbed from stackoverflow (http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity)
+	contentEditableElement = document.getElementById('other_msg');
+	var range,selection;
+	if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+	{
+	    range = document.createRange();//Create a range (a range is a like the selection but invisible)
+	    range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+	    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+	    selection = window.getSelection();//get the selection object (allows you to change selection)
+	    selection.removeAllRanges();//remove any selections already made
+	    selection.addRange(range);//make the range you have just created the visible selection
+	}
+	else if(document.selection)//IE 8 and lower
+	{ 
+	    range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+	    range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
+	    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+	    range.select();//Select the range (make it the visible selection
+	}
+
 }
 
 function useSuggested(msgID) {
@@ -58,6 +98,8 @@ function useSuggested(msgID) {
 
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
+
+	msgFocus();
 }
 
 function checkAll() {
@@ -69,12 +111,14 @@ function checkAll() {
   		recips.push(fbid);
 	    if ($('#other_msg .preset_names').length === 0) {
 	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-		    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+		    $('#other_msg').append(' '+spanStr(fbid, true)+' ');
 		}
 	}
 
 	$('.suggested_msg .preset_names').html(friendNames(false));
 	$('#other_msg .preset_names').html(friendNames(true));
+
+	msgFocus();
 
 }
 
@@ -88,12 +132,14 @@ function toggleFriend(fbid) {
     recips.push(fbid);
     if ($('#other_msg .preset_names').length === 0) {
     	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-	    $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+fbid+'" contentEditable="False">'+fbnames[fbid]+'</span> ');
+	    $('#other_msg').append(' '+spanStr(fbid, true)+' ');
 	}
   }
 
   $('.suggested_msg .preset_names').html(friendNames(false));
   $('#other_msg .preset_names').html(friendNames(true));
+
+  msgFocus();
 
 }
 
@@ -162,7 +208,7 @@ function doReplace(old_fbid) {
 		// Add the new friend to the list of message tags (since they'll start off pre-checked)
 		recips.push(id);
     	if ($('#other_msg .preset_names').length === 0) {
-			$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+id+'" contentEditable="False">'+fbnames[id]+'</span> ');
+			$('#other_msg').append(' '+spanStr(fbid, true)+' ');
 		}
 
 		// Update the friends shown
@@ -179,6 +225,8 @@ function doReplace(old_fbid) {
 	// Update the message text with the new names
 	$('.suggested_msg .preset_names').html(friendNames(false));
 	$('#other_msg .preset_names').html(friendNames(true));
+
+	msgFocus();
 }
 
 
