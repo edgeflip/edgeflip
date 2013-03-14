@@ -37,13 +37,13 @@
 	line-height: 13px;
 }
 
-.msg_friend_x {
+.msg_x {
 	font-weight: 900;
 	color: lightblue;
-	margin-left: 3px;
+	margin-left: 5px;
 }
 
-.msg_friend_x:hover {
+.msg_x:hover {
 	color: #0270A0;
 }
 
