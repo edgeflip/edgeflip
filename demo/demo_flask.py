@@ -41,6 +41,9 @@ def ofa_climate(state):
 	state = state.strip().upper()
 	targetDict = state_target.get(state)
 
+	if (not targetDict):
+		return "Whoopsie! No targets in that state." # you know, or some 404 page...
+
 	objParams = {
 					'page_title' : "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
 
@@ -53,9 +56,6 @@ def ofa_climate(state):
 					'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
 				}
 	objParams.update(fbParams)
-
-	if (not targetDict):
-		return "Whoopsie! No targets in that state." # you know, or some 404 page...
 
 	return render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
 
