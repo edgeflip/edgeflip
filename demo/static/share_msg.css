@@ -18,7 +18,7 @@
 	font-family: sans-serif;
 	font-weight: 200;
 	color: black;
-	border: thin solid lightblue;
+	border: thin solid #89A8BD;
 	padding: 1px 2px 1px 2px;
 	background-color: #E6F2FF;
 	border-radius: 4px;
@@ -39,8 +39,9 @@
 
 .msg_x {
 	font-weight: 900;
-	color: lightblue;
-	margin-left: 5px;
+	color: #89A8BD;
+	margin-left: 3px;
+	cursor: pointer;
 }
 
 .msg_x:hover {

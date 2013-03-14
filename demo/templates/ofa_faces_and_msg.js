@@ -84,6 +84,44 @@ function msgFocus() {
 
 }
 
+function insertAtCursor(html) {
+    var sel, range;
+    if ($('#other_msg').is(':focus')) {
+	    if (window.getSelection) {
+	        // IE9 and non-IE
+	        sel = window.getSelection();
+	        if (sel.getRangeAt && sel.rangeCount) {
+	            range = sel.getRangeAt(0);
+	            range.deleteContents();
+
+	            // Range.createContextualFragment() would be useful here but is
+	            // non-standard and not supported in all browsers (IE9, for one)
+	            var el = document.createElement("div");
+	            el.innerHTML = html;
+	            var frag = document.createDocumentFragment(), node, lastNode;
+	            while ( (node = el.firstChild) ) {
+	                lastNode = frag.appendChild(node);
+	            }
+	            range.insertNode(frag);
+
+	            // Preserve the selection
+	            if (lastNode) {
+	                range = range.cloneRange();
+	                range.setStartAfter(lastNode);
+	                range.collapse(true);
+	                sel.removeAllRanges();
+	                sel.addRange(range);
+	            }
+	        }
+	    } else if (document.selection && document.selection.type != "Control") {
+	        // IE < 9
+	        document.selection.createRange().pasteHTML(html);
+	    }
+	} else {
+		$('#other_msg').append(html);
+	}
+}
+
 function useSuggested(msgID) {
 	$('#other_msg').html($(msgID).html());
 
@@ -111,7 +149,7 @@ function checkAll() {
   		recips.push(fbid);
 	    if ($('#other_msg .preset_names').length === 0) {
 	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-		    $('#other_msg').append(' '+spanStr(fbid, true)+' ');
+		    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
 		}
 	}
 
@@ -132,7 +170,7 @@ function toggleFriend(fbid) {
     recips.push(fbid);
     if ($('#other_msg .preset_names').length === 0) {
     	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-	    $('#other_msg').append(' '+spanStr(fbid, true)+' ');
+	    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
 	}
   }
 
@@ -208,7 +246,7 @@ function doReplace(old_fbid) {
 		// Add the new friend to the list of message tags (since they'll start off pre-checked)
 		recips.push(id);
     	if ($('#other_msg .preset_names').length === 0) {
-			$('#other_msg').append(' '+spanStr(fbid, true)+' ');
+			insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
 		}
 
 		// Update the friends shown
