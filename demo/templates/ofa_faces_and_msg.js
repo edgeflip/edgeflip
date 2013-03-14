@@ -86,7 +86,7 @@ function msgFocus() {
 
 function insertAtCursor(html) {
     var sel, range;
-    if ($('#other_msg').is(':focus')) {
+    if ( elementContainsSelection($('#other_msg').get(0)) ) {
 	    if (window.getSelection) {
 	        // IE9 and non-IE
 	        sel = window.getSelection();
@@ -120,6 +120,34 @@ function insertAtCursor(html) {
 	} else {
 		$('#other_msg').append(html);
 	}
+}
+
+function isOrContains(node, container) {
+    while (node) {
+        if (node === container) {
+            return true;
+        }
+        node = node.parentNode;
+    }
+    return false;
+}
+
+function elementContainsSelection(el) {
+    var sel;
+    if (window.getSelection) {
+        sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            for (var i = 0; i < sel.rangeCount; ++i) {
+                if (!isOrContains(sel.getRangeAt(i).commonAncestorContainer, el)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    } else if ( (sel = document.selection) && sel.type != "Control") {
+        return isOrContains(sel.createRange().parentElement(), el);
+    }
+    return false;
 }
 
 function useSuggested(msgID) {
