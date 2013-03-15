@@ -5,6 +5,7 @@ function spanStr(id, forMsg) {
 	// forMsg should be true to return code for the message textarea and false for suggested messages
 
 	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
+	var ret;
 	if (forMsg) {
 		ret = "<span class='msg_friend_name msg-txt-friend' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
 	} else {
@@ -17,14 +18,14 @@ function spanStr(id, forMsg) {
 function friendNames(forMsg) {
   // forMsg should be true to return code for the message textarea and false for suggested messages
   forMsg = typeof forMsg !== 'undefined' ? forMsg : false;
-  recip_str = "";
+  var recip_str = "";
 
-  txt_recips = [];
+  var txt_recips = [];
   if (recips.length === 0) { 
   	if (forMsg) { return ""; }
 
-  	divs = $("input[id*='box-']");
-  	for (i=0; i < divs.length; i++) {
+  	var divs = $("input[id*='box-']");
+  	for (var i=0; i < divs.length; i++) {
   		txt_recips.push( parseInt(divs[i].id.split('-')[1]) );
   	}
 
@@ -32,7 +33,7 @@ function friendNames(forMsg) {
   	txt_recips = recips.slice(0);
   }
 
-  for (i=0; i < (txt_recips.length-1); i++) {
+  for (var i=0; i < (txt_recips.length-1); i++) {
     recip_str += spanStr(txt_recips[i], forMsg) + ", ";
   }
 
@@ -47,8 +48,9 @@ function friendNames(forMsg) {
   return recip_str;
 }
 
+// When the user clicks the 'x' on a name in the message textarea
 function msgRemove(id) {
-	idx = recips.indexOf(id);
+	var idx = recips.indexOf(id);
 	recips.splice(idx, 1);
 	$('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
 	$('#added-'+id).remove();			  // remove the manually added friend (if it exists)
@@ -63,7 +65,7 @@ function msgFocusEnd() {
 	$('#other_msg').focus();
 
 	// grabbed from stackoverflow (http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity)
-	contentEditableElement = document.getElementById('other_msg');
+	var contentEditableElement = document.getElementById('other_msg');
 	var range,selection;
 	if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
 	{
@@ -84,6 +86,7 @@ function msgFocusEnd() {
 
 }
 
+// Thank you stackoverflow! http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
 function insertAtCursor(html) {
     var sel, range;
     if ( elementContainsSelection($('#other_msg').get(0)) ) {
@@ -129,6 +132,7 @@ function insertAtCursor(html) {
 	}
 }
 
+// more stackoverflow... http://stackoverflow.com/questions/8339857/how-to-know-if-selected-text-is-inside-a-specific-div/8340432#8340432
 function isOrContains(node, container) {
     while (node) {
         if (node === container) {
@@ -160,10 +164,10 @@ function elementContainsSelection(el) {
 function handleDeleted() {
   var recips_removed = false;
   var curr_recips = recips.slice(0);
-  for (i = 0; i < curr_recips.length; i++) {
-  	fbid = curr_recips[i];
+  for (var i = 0; i < curr_recips.length; i++) {
+  	var fbid = curr_recips[i];
   	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
-  		idx = recips.indexOf(fbid);
+  		var idx = recips.indexOf(fbid);
   		recips.splice(idx, 1);
   		$('#box-'+fbid).prop('checked', false);
   		$('#added-'+fbid).remove();
@@ -179,9 +183,9 @@ function useSuggested(msgID) {
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
 
-		divs = $("input[id*='box-']");
+		var divs = $("input[id*='box-']");
 		divs.prop('checked', true);
-	  	for (i=0; i < divs.length; i++) {
+	  	for (var i=0; i < divs.length; i++) {
 	  		recips.push( parseInt(divs[i].id.split('-')[1]) );
 	  	}
 
@@ -193,10 +197,10 @@ function useSuggested(msgID) {
 
 function checkAll() {
 
-	divs = $("input[id*='box-']:not(:checked)");
+	var divs = $("input[id*='box-']:not(:checked)");
 	divs.prop('checked', true);
-  	for (i=0; i < divs.length; i++) {
-  		fbid = parseInt(divs[i].id.split('-')[1]);
+  	for (var i=0; i < divs.length; i++) {
+  		var fbid = parseInt(divs[i].id.split('-')[1]);
   		recips.push(fbid);
 	    if ($('#other_msg .preset_names').length === 0) {
 	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
@@ -373,10 +377,10 @@ function doShare() {
 	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
 
 
-	msg_recips = "";
+	var msg_recips = "";
 
 	// FB format for mention tags: @[fbid]
-	for (i=0; i < (recips.length-1); i++) {
+	for (var i=0; i < (recips.length-1); i++) {
 		msg_recips += "@[" + recips[i] + "], ";
 	}
 
@@ -403,7 +407,7 @@ function doShare() {
 //	}
 
 	// Now, we always take the message text from the other_msg div
-	for (i=0; i < recips.length; i++) {
+	for (var i=0; i < recips.length; i++) {
 		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
 	}
 	if ($('#other_msg .preset_names').length > 0) {

@@ -120,16 +120,16 @@ var editable = $('#other_msg')
 editable.on('input', function() {
 
   // check if user has manually deleted a friend
-  recips_removed = handleDeleted();
+  var recips_removed = handleDeleted();
   if (recips_removed) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
   }
 
   // in the event of an "undo" could actually add back a friend!
-  recips_added = false;
-  divs = $(".msg-txt-friend");
-  for (i = 0; i < divs.length; i++) {
-  	fbid = parseInt(divs[i].id.split('-')[3]);
+  var recips_added = false;
+  var divs = $(".msg-txt-friend");
+  for (var i = 0; i < divs.length; i++) {
+  	var fbid = parseInt(divs[i].id.split('-')[3]);
   	if (recips.indexOf(fbid) === -1) {
   		recips.push(fbid);
   		if ($('#box-'+fbid).length > 0) {
