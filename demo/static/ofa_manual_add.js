@@ -26,7 +26,7 @@ $(function() {
 
 					recips.push(ui.item.value);
 					if ($('#other_msg .preset_names').length === 0) {
-						insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+						insertAtCursor('&nbsp;'+spanStr(ui.item.value, true)+'&nbsp;');
 					}
 					$('.suggested_msg .preset_names').html(friendNames(false));
   					$('#other_msg .preset_names').html(friendNames(true));

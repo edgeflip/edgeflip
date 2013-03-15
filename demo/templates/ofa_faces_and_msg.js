@@ -59,7 +59,7 @@ function msgRemove(id) {
 
 }
 
-function msgFocus() {
+function msgFocusEnd() {
 	$('#other_msg').focus();
 
 	// grabbed from stackoverflow (http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity)
@@ -117,8 +117,15 @@ function insertAtCursor(html) {
 	        // IE < 9
 	        document.selection.createRange().pasteHTML(html);
 	    }
+
+	    var recips_removed = handleDeleted();
+	    if (recips_removed) {
+	    	$('.suggested_msg .preset_names').html(friendNames(false));
+	    }
+
 	} else {
 		$('#other_msg').append(html);
+		msgFocusEnd();
 	}
 }
 
@@ -150,6 +157,22 @@ function elementContainsSelection(el) {
     return false;
 }
 
+function handleDeleted() {
+  var recips_removed = false;
+  var curr_recips = recips.slice(0);
+  for (i = 0; i < curr_recips.length; i++) {
+  	fbid = curr_recips[i];
+  	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
+  		idx = recips.indexOf(fbid);
+  		recips.splice(idx, 1);
+  		$('#box-'+fbid).prop('checked', false);
+  		$('#added-'+fbid).remove();
+  		recips_removed = true;
+  	}
+  }
+  return recips_removed;
+}
+
 function useSuggested(msgID) {
 	$('#other_msg').html($(msgID).html());
 
@@ -165,7 +188,7 @@ function useSuggested(msgID) {
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
-	msgFocus();
+	msgFocusEnd();
 }
 
 function checkAll() {
@@ -184,7 +207,9 @@ function checkAll() {
 	$('.suggested_msg .preset_names').html(friendNames(false));
 	$('#other_msg .preset_names').html(friendNames(true));
 
-	msgFocus();
+	if ($('#other_msg .preset_names').length !== 0) {
+		msgFocusEnd();
+	}
 
 }
 
@@ -205,7 +230,9 @@ function toggleFriend(fbid) {
   $('.suggested_msg .preset_names').html(friendNames(false));
   $('#other_msg .preset_names').html(friendNames(true));
 
-  msgFocus();
+  if ($('#other_msg .preset_names').length !== 0) {
+    msgFocusEnd();
+  }
 
 }
 
@@ -274,7 +301,7 @@ function doReplace(old_fbid) {
 		// Add the new friend to the list of message tags (since they'll start off pre-checked)
 		recips.push(id);
     	if ($('#other_msg .preset_names').length === 0) {
-			insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+			insertAtCursor('&nbsp;'+spanStr(id, true)+'&nbsp;');
 		}
 
 		// Update the friends shown
@@ -292,7 +319,9 @@ function doReplace(old_fbid) {
 	$('.suggested_msg .preset_names').html(friendNames(false));
 	$('#other_msg .preset_names').html(friendNames(true));
 
-	msgFocus();
+	if ($('#other_msg .preset_names').length !== 0) {
+		msgFocusEnd();
+	}
 }
 
 
