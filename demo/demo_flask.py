@@ -99,6 +99,11 @@ def ofa_faces():
 	# zzz No px5 for OFA...
 	# stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
+	targetState = getBestStateFromFriends(edgesRanked, ["Ohio", "Nevada"])
+
+
+
+
 	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
@@ -107,6 +112,10 @@ def ofa_faces():
 	faceFriends = filteredDicts[:6]
 	numFace = len(faceFriends)
 	allFriends = filteredDicts[:25]
+
+
+
+
 
 	# zzz state = target state with most friends
 	state = 'EC'
@@ -168,6 +177,9 @@ def face_it():
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
 		database.updateDb(user, tok, edgesRanked, background=True)
 	conn.close()
+
+
+
 
 	# now, spawn a full crawl in the background
 	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
