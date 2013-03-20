@@ -64,6 +64,29 @@ def ofa_auth():
 	return render_template('ofa_share_page.html', fbParams=fbParams)
 
 
+def getBestStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
+	elgCount = int(len(edgesRanked)*eligibleProportion)
+	edgesElg = edgesSort[:elgCount] # only grab the top x% of the pool
+	state_count = {}
+	for e in edgesElg:
+		state_count[e.state] = state_count.get(e.state, 0) + 1
+	bestCount = max(state_count.values())
+	bestStates = [ state for state, count in state_count.items if (count == bestCount) ]
+	if (len(bestStates) == 1):
+		return bestStates[0]
+	else:
+		# there's a tie for first, so grab the state with the best avg scores
+		bestState = None
+		bestScoreAvg = 0.0
+		for state in bestStates:
+			edgesState = [ e for e in edgesElg if (e.state == state) ]
+			scoreAvg = sum([ e.score for e in edgesState ])
+			if (scoreAvg > bestScoreAvg):
+				bestState = state
+				bestScoreAvg = scoreAvg
+		return bestState
+
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
 
@@ -99,48 +122,40 @@ def ofa_faces():
 	# zzz No px5 for OFA...
 	# stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	targetState = getBestStateFromFriends(edgesRanked, ["Ohio", "Nevada"])
+	bestState = getBestStateFromEdges(edgesRanked, ["Ohio", "Nevada"])
 
+	if (bestState is not None):
+		targetDict = state_target.get(bestState)
+		edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
+		friendDicts = [ e.toDict() for e in edgesFiltered ]
+		filteredDicts = filter_friends(friendDicts)
 
+		faceFriends = filteredDicts[:6]
+		numFace = len(faceFriends)
+		allFriends = filteredDicts[:25]
 
+		msgParams = {
+			'msg1_pre' : "Hi there ",
+			'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
+			'msg2_pre' : "Now is the time for real climate legislation, ",
+			'msg2_post' : "!",
+			'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
+			'msg_other_init' : "Replace this text with your message for "
+		}
+		actionParams = 	{
+			'fb_action_type' : 'support',
+			'fb_object_type' : 'cause',
+			'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+		}
+		actionParams.update(fbParams)
 
-	friendDicts = [ e.toDict() for e in edgesRanked ]
+		return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+						   face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
-	# Apply control panel targeting filters
-	filteredDicts = filter_friends(friendDicts)
-
-	faceFriends = filteredDicts[:6]
-	numFace = len(faceFriends)
-	allFriends = filteredDicts[:25]
-
-
-
-
-
-	# zzz state = target state with most friends
-	state = 'EC'
-
-	targetDict = state_target.get(state)
-
-	msgParams = {
-					'msg1_pre' : "Hi there ",
-					'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
-					'msg2_pre' : "Now is the time for real climate legislation, ",
-					'msg2_post' : "!",
-					'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-					'msg_other_init' : "Replace this text with your message for " 
-				}
-
-	actionParams = 	{
-						'fb_action_type' : 'support',
-						'fb_object_type' : 'cause',
-						'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
-					}
-	actionParams.update(fbParams)
-
-	return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
-							face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
-
+	else:
+		#zzz need to figure out what we do here
+		return render_template('ofa_faces_table_generic.html')
+		
 
 @app.route('/demo')
 @app.route('/button')
