@@ -119,6 +119,7 @@
 // http://jsfiddle.net/tG9Qa/
 
 var editable = $('#other_msg');
+var msg_length = $('#other_msg').text().length;
 
 // key presses that we'll let through in the event the message has gotten too long
 var allow_keys = [
@@ -177,21 +178,25 @@ editable.on('dragover drop', function(event) {
 // have to catch return key presses on the keydown (to use preventDefault)
 editable.on('keydown', function(event) {  
 
+	var code = (e.keyCode ? e.keyCode : e.which);
 	// return (13) or enter (108) key pressed
-	if(event.keyCode == 13 || event.keyCode == 108) {
+	if(code == 13 || code == 108) {
 		event.preventDefault();
 		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
 	} else {
 
-		if (event.keyCode == 49) {
+		if (code == 49) {
 			event.preventDefault();
 			return false;
 		}
 
-		if ($('#other_msg').text().length >= 10 && allow_keys.indexOf(event.keyCode) === -1) {
+		if (msg_length >= 10 && allow_keys.indexOf(code) === -1) {
 			event.preventDefault();
 			alert("Please limit your message to fewer than 1000 character.");
+			return false;
 		}
+
+		msg_length = $('#other_msg').text().length;
 
 //		return false;
 	}
@@ -215,8 +220,6 @@ editable.on('keyup', function(event) {
   	$('.suggested_msg .preset_names').html(friendNames(false));
   	$('#other_msg .preset_names').html(friendNames(true));
   }
-
-  return false;
 
 });
 
