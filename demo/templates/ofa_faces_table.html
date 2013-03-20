@@ -112,11 +112,7 @@
 </div> <!-- right_container -->
 
 <script>
-// Adding listeners in script block to ensure necessary divs exist...
-
-
-// Thank you stackoverflow...
-// http://jsfiddle.net/tG9Qa/
+// Adding listeners in script block to ensure necessary divs already exist...
 
 var editable = $('#other_msg');
 var msg_length = $('#other_msg').text().length;
@@ -130,6 +126,7 @@ var allow_keys = [
 					91,		// Command
 					93,		// Right Command
 					17,		// Control
+					18,		// Alt
 					40,		// Down
 					35,		// End
 					27,		// Escape
@@ -188,16 +185,14 @@ editable.on('keydown', function(event) {
 
 	} else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
 
-			event.preventDefault();
-			return false;
+		event.preventDefault();
+		return false;
 
 	} else {
 
 		msg_length = $('#other_msg').text().length;
 
 	}
-
-	// TODO: Determine maximum allowed length of message and limit input to this length, allowing for friend names/ids.
 
 });
 
@@ -219,6 +214,7 @@ editable.on('keyup', function(event) {
 		$('#other_msg .preset_names').html(friendNames(true));
 	}
 
+	// Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
 	if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
 		alert("Please limit your message to fewer than 1000 character.");
 	}
@@ -266,12 +262,5 @@ editable.on('keyup', function(event) {
 	$(window).resize(function(){ set_right_width(); });
 
 </SCRIPT>
-
-<script>
-	// Commenting this out because it seems to hit too early. Weird...
-	//var pfwidth = $("#manual_add").width() - $("#manual_input_container").width() - 20;
-	//$("#picked_friends_container").width(pfwidth);
-</script>
-
 
 

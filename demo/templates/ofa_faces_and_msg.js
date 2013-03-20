@@ -458,10 +458,8 @@ function doShare() {
 	msg = $('#other_msg').text();
 	msg = msg.replace(/[\n\r]/g, ' ');
 	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
-	// TODO: Determine maximum allowed length of message and limit submission to this length.
 
 	// The actual call to do the sharing
-	// In the future, we'll probably want to parametarize this for different types of actions
 	FB.api(
 		'/me/{{ fbParams.fb_app_name }}:{{ fbParams.fb_action_type }}',
 		'post',
