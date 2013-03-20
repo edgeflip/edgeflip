@@ -120,6 +120,7 @@
 
 var editable = $('#other_msg');
 var msg_length = $('#other_msg').text().length;
+var max_msg_length = 10;
 
 // key presses that we'll let through in the event the message has gotten too long
 var allow_keys = [
@@ -181,25 +182,19 @@ editable.on('keydown', function(event) {
 	var code = (event.keyCode ? event.keyCode : event.which);
 	// return (13) or enter (108) key pressed
 	if(code == 13 || code == 108) {
+
 		event.preventDefault();
 		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+
+	} else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
+
+			event.preventDefault();
+			return false;
+
 	} else {
-
-		if (code == 49) {
-			event.preventDefault();
-			return false;
-		}
-
-//		if (msg_length >= 10 && allow_keys.indexOf(code) === -1) {
-		if (msg_length >= 10 && allow_keys.indexOf(code) === -1) {
-			event.preventDefault();
-//			alert("Please limit your message to fewer than 1000 character.");
-			return false;
-		}
 
 		msg_length = $('#other_msg').text().length;
 
-//		return false;
 	}
 
 	// TODO: Determine maximum allowed length of message and limit input to this length, allowing for friend names/ids.
@@ -220,6 +215,10 @@ editable.on('keyup', function(event) {
   if (recips_added || $(".msg-txt-friend").length > recips.length) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
   	$('#other_msg .preset_names').html(friendNames(true));
+  }
+
+  if (msg_length >= max_msg_length) {
+  	alert("Please limit your message to fewer than 1000 character.");
   }
 
 });
