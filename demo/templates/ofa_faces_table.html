@@ -177,7 +177,7 @@ editable.on('keydown', function(event) {
 	// return (13) or enter (108) key pressed
 	if(event.keyCode == 13 || event.keyCode == 108) {
 		event.preventDefault();
-		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+		// return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
 	} else {
 
 		curr_msg = $('#other_msg').text();
