@@ -90,13 +90,13 @@ function selectFriend(fbid) {
 // refactor function to do any work necessary to unselect a friend
 // returns true if recipient was removed; false otherwise
 function unselectFriend(fbid) {
-	var idx = recips.indexOf(id);
+	var idx = recips.indexOf(fbid);
 	if (idx !== -1) {
 
 		recips.splice(idx, 1);
-		$('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
-		$('#added-'+id).remove();			  // remove the manually added friend (if it exists)
-		$('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
+		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
+		$('#added-'+fbid).remove();			  // remove the manually added friend (if it exists)
+		$('#msg-txt-friend-'+fbid).remove();	  // remove the friend from the message
 
 		return true;
 	} else {
