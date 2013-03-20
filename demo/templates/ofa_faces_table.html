@@ -185,6 +185,7 @@ editable.on('keydown', function(event) {
 
 		if (event.keyCode == 49) {
 			event.preventDefault();
+			return false;
 		}
 
 		if ($('#other_msg').text().length >= 10 && allow_keys.indexOf(event.keyCode) === -1) {
