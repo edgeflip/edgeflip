@@ -183,6 +183,10 @@ editable.on('keydown', function(event) {
 		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
 	} else {
 
+		if (event.keyCode == 49) {
+			event.preventDefault();
+		}
+
 		if ($('#other_msg').text().length >= 10 && allow_keys.indexOf(event.keyCode) === -1) {
 			event.preventDefault();
 			alert("Please limit your message to fewer than 1000 character.");
