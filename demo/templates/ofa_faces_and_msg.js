@@ -429,25 +429,30 @@ function doShare() {
 
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
 	var msg = "";
-	var msg_recips = "";
+//	var msg_recips = "";
 
 	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
 
 	// FB format for mention tags: @[fbid]
-	for (var i=0; i < (recips.length-1); i++) {
-		msg_recips += "@[" + recips[i] + "], ";
-	}
+//	for (var i=0; i < (recips.length-1); i++) {
+//		msg_recips += "@[" + recips[i] + "], ";
+//	}
 
-	if (recips.length > 2) {
-		msg_recips += 'and ' + "@[" + recips[recips.length-1] + "]";
-	} else if (recips.length == 2) {
-		msg_recips = "@[" + recips[0] + "] and @[" + recips[1] + "]";
-	} else {
-		msg_recips = "@[" + recips[0] + "]";
-	}
+//	if (recips.length > 2) {
+//		msg_recips += 'and ' + "@[" + recips[recips.length-1] + "]";
+//	} else if (recips.length == 2) {
+//		msg_recips = "@[" + recips[0] + "] and @[" + recips[1] + "]";
+//	} else {
+//		msg_recips = "@[" + recips[0] + "]";
+//	}
 
 	// The message text will just be whatever is in #other_msg when the user hits send
 	// but we need to clean it up a little bit first...
+	filter_newlines($('#other_msg'));	// might not need since we're replace \n & \r below
+	handleDeleted();
+	handleUndo();
+	msgNamesUpdate(false);
+
 	for (var i=0; i < recips.length; i++) {
 		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
 	}
