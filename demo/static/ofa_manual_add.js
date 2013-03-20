@@ -18,18 +18,21 @@ $(function() {
 					alert("Sorry: only three friends can be added manually.");
 				} else {
 
-					$("#picked_friends_container").append("<div class='added_friend' id='added-"+ui.item.value+"'>"+ui.item.label+"<div class='added_x' onClick='removeFriend("+ui.item.value+");'>x</div></div>");
+					selectFriend(ui.item.value);
 
-					var idx = recips.indexOf(ui.item.value);
-					if (idx > -1) { recips.splice(idx, 1); }
-					$('#msg-txt-friend-'+ui.item.value).remove();
+					// $("#picked_friends_container").append("<div class='added_friend' id='added-"+ui.item.value+"'>"+ui.item.label+"<div class='added_x' onClick='removeFriend("+ui.item.value+");'>x</div></div>");
 
-					recips.push(ui.item.value);
-					if ($('#other_msg .preset_names').length === 0) {
-						insertAtCursor('&nbsp;'+spanStr(ui.item.value, true)+'&nbsp;');
-					}
-					$('.suggested_msg .preset_names').html(friendNames(false));
-  					$('#other_msg .preset_names').html(friendNames(true));
+					// var idx = recips.indexOf(ui.item.value);
+					// if (idx > -1) { recips.splice(idx, 1); }
+					// $('#msg-txt-friend-'+ui.item.value).remove();
+
+					// recips.push(ui.item.value);
+					// if ($('#other_msg .preset_names').length === 0) {
+					// 		insertAtCursor('&nbsp;'+spanStr(ui.item.value, true)+'&nbsp;');
+					// }
+					msgNamesUpdate(false);
+					// $('.suggested_msg .preset_names').html(friendNames(false));
+  					// $('#other_msg .preset_names').html(friendNames(true));
 
 				}
 			}
@@ -47,12 +50,15 @@ $(function() {
 
 // Called when the user removes a manually added friend
 function removeFriend(fbid) {
-	$("#added-"+fbid).remove();
+	unselectFriend(fbid);
+	msgNamesUpdate(false);
 
-	var idx = recips.indexOf(fbid);
-	if (idx > -1) { recips.splice(idx, 1); }
-	$('#msg-txt-friend-'+fbid).remove();
+	// $("#added-"+fbid).remove();
 
-	$('.suggested_msg .preset_names').html(friendNames(false));
-  	$('#other_msg .preset_names').html(friendNames(true));
+	// var idx = recips.indexOf(fbid);
+	// if (idx > -1) { recips.splice(idx, 1); }
+	// $('#msg-txt-friend-'+fbid).remove();
+
+	// $('.suggested_msg .preset_names').html(friendNames(false));
+  	// $('#other_msg .preset_names').html(friendNames(true));
 }

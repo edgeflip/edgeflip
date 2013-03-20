@@ -48,16 +48,73 @@ function friendNames(forMsg) {
   return recip_str;
 }
 
-// When the user clicks the 'x' on a name in the message textarea
-function msgRemove(id) {
-	var idx = recips.indexOf(id);
-	recips.splice(idx, 1);
-	$('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
-	$('#added-'+id).remove();			  // remove the manually added friend (if it exists)
-	$('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
+function msgNamesUpdate(doFocus) {
 
 	$('.suggested_msg .preset_names').html(friendNames(false)); // reword suggested messages
 	$('#other_msg .preset_names').html(friendNames(true));		// reword message in textbox
+
+	if ( doFocus && ($('#other_msg .preset_names').length !== 0) ) {
+		msgFocusEnd();
+	}
+
+}
+
+// refactor function to do any work necessary to select a friend
+// returns true if recipient was added; false otherwise
+function selectFriend(fbid) {
+
+	// check if the friend is already in the recips list, in which case do nothing
+	if (recips.indexOf(fbid) === -1) {
+		recips.push(fbid);
+
+		// Append name to text area if user is writing their own message.
+		// Otherwise, adding to recipients will take care of this.
+		// Also, avoid appending if this div already exists -- might have been re-created by a user hitting undo after a manual delete.
+		if ( ($('#other_msg .preset_names').length === 0) && ($('#msg-txt-friend-'+fbid).length === 0) ) {
+	    	insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+		}
+
+		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
+  		if ($('#box-'+fbid).length > 0) {
+	  		$('#box-'+fbid).prop('checked', true);
+	  	} else {
+	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
+	  	}
+
+  		return true;
+  	} else {
+		return false;
+	}
+}
+
+// refactor function to do any work necessary to unselect a friend
+// returns true if recipient was removed; false otherwise
+function unselectFriend(fbid) {
+	var idx = recips.indexOf(id);
+	if (idx !== -1) {
+
+		recips.splice(idx, 1);
+		$('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
+		$('#added-'+id).remove();			  // remove the manually added friend (if it exists)
+		$('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
+
+		return true;
+	} else {
+		return false;
+	}
+}
+
+
+// When the user clicks the 'x' on a name in the message textarea
+function msgRemove(id) {
+	// var idx = recips.indexOf(id);
+	// recips.splice(idx, 1);
+	// $('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
+	// $('#added-'+id).remove();			  // remove the manually added friend (if it exists)
+	// $('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
+
+	uselectFriend(id);
+	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
 
 }
 
@@ -161,21 +218,70 @@ function elementContainsSelection(el) {
     return false;
 }
 
+function filter_newlines(div) {
+    var node, prev, _i, _len, _ref, _results;
+    prev = null;
+    _ref = div.contents();
+    _results = [];
+    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
+      node = _ref[_i];
+      if (node.nodeType === 3) {
+        node.nodeValue = node.nodeValue.replace('\n', '');
+        if (prev) {
+          node.nodeValue = prev.nodeValue + node.nodeValue;
+          $(prev).remove();
+        }
+        _results.push(prev = node);
+      } else if (node.tagName.toLowerCase() === 'br') {
+        _results.push($(node).remove());
+      } else {
+        $(node).css('display', 'inline');
+        filter_newlines($(node));
+        _results.push(prev = null);
+      }
+    }
+    return _results;
+}
+
+// If the user happens to manually delete a recipient while editing the message
 function handleDeleted() {
   var recips_removed = false;
   var curr_recips = recips.slice(0);
   for (var i = 0; i < curr_recips.length; i++) {
   	var fbid = curr_recips[i];
   	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
-  		var idx = recips.indexOf(fbid);
-  		recips.splice(idx, 1);
-  		$('#box-'+fbid).prop('checked', false);
-  		$('#added-'+fbid).remove();
+  		// var idx = recips.indexOf(fbid);
+  		// recips.splice(idx, 1);
+  		// $('#box-'+fbid).prop('checked', false);
+  		// $('#added-'+fbid).remove();
+  		unselectFriend(fbid);
   		recips_removed = true;
   	}
   }
   return recips_removed;
 }
+
+// If the user hits "undo" and manages to add back a deleted recipient
+function handleUndo() {
+  var recips_added = false;
+  var divs = $(".msg-txt-friend");
+  for (var i = 0; i < divs.length; i++) {
+  	var fbid = parseInt(divs[i].id.split('-')[3]);
+  	var id_added = selectFriend(fbid);
+  	recips_added = id_added || recips_added;	// might be able to do this in one line, but not clear selectFriend() will always get called once recips_added set to true...
+  	// if (recips.indexOf(fbid) === -1) {
+  	//	recips.push(fbid);
+  	//	if ($('#box-'+fbid).length > 0) {
+	//  	$('#box-'+fbid).prop('checked', true);
+	//  } else {
+	//  	$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
+	//  }
+  	//	recips_added = true;
+  	// }
+  }
+  return recips_added;
+}
+
 
 function useSuggested(msgID) {
 	$('#other_msg').html($(msgID).html());
@@ -183,11 +289,13 @@ function useSuggested(msgID) {
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
 
-		var divs = $("input[id*='box-']");
-		divs.prop('checked', true);
-	  	for (var i=0; i < divs.length; i++) {
-	  		recips.push( parseInt(divs[i].id.split('-')[1]) );
-	  	}
+		// var divs = $("input[id*='box-']");
+		// divs.prop('checked', true);
+	 	// for (var i=0; i < divs.length; i++) {
+	 	// 		recips.push( parseInt(divs[i].id.split('-')[1]) );
+		// }
+
+		checkAll();
 
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
@@ -198,92 +306,45 @@ function useSuggested(msgID) {
 function checkAll() {
 
 	var divs = $("input[id*='box-']:not(:checked)");
-	divs.prop('checked', true);
+	// divs.prop('checked', true);
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
-  		recips.push(fbid);
-	    if ($('#other_msg .preset_names').length === 0) {
-	    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-		    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
-		}
+  		// recips.push(fbid);
+	    // if ($('#other_msg .preset_names').length === 0) {
+	    //	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
+		//    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+		// }
+
+		selectFriend(fbid);
 	}
 
-	$('.suggested_msg .preset_names').html(friendNames(false));
-	$('#other_msg .preset_names').html(friendNames(true));
-
-	if ($('#other_msg .preset_names').length !== 0) {
-		msgFocusEnd();
-	}
+	msgNamesUpdate(true);
 
 }
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
-  var idx = recips.indexOf(fbid);
-  if (idx > -1) { recips.splice(idx, 1); }
-  $('#msg-txt-friend-'+fbid).remove();
+  // var idx = recips.indexOf(fbid);
+  // if (idx > -1) { recips.splice(idx, 1); }
+  // $('#msg-txt-friend-'+fbid).remove();
+
+  // if ($('#box-'+fbid).is(':checked')) {
+  //   recips.push(fbid);
+  //   if ($('#other_msg .preset_names').length === 0) {
+  //   	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
+  //     insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+  //   }
+  // }
 
   if ($('#box-'+fbid).is(':checked')) {
-    recips.push(fbid);
-    if ($('#other_msg .preset_names').length === 0) {
-    	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-	    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
-	}
+  	selectFriend(fbid);
+  } else {
+  	unselectFriend(fbid);
   }
 
-  $('.suggested_msg .preset_names').html(friendNames(false));
-  $('#other_msg .preset_names').html(friendNames(true));
-
-  if ($('#other_msg .preset_names').length !== 0) {
-    msgFocusEnd();
-  }
+  msgNamesUpdate(true);
 
 }
-
-
-// Toggle state of the user-entered message text field based on which radio button is selected
-function updateMsg() {
-
-	// Pretty sure this is no longer called at all, but holding off on deleting for the moment...
-
-	var msg_type = $('input:radio[name=msg]:checked').val();
-	if (msg_type === "other") {
-		$('#other_msg').show().focus();
-
-		// Is the default text still in there? If so, highlight it for easy replacement
-		var reptxt = $('#other_msg').text().indexOf("{{ msgParams.msg_other_init }}");
-
-		if ( reptxt > -1 ) {
-
-			var txtnode = document.getElementById('other_msg');
-
-			if (document.createRange) {
-
-				var selection = window.getSelection();
-				var range = document.createRange();
-
-				range.setStart(txtnode.firstChild, reptxt);
-				range.setEnd(txtnode.firstChild, reptxt+40);
-				selection.removeAllRanges();
-				selection.addRange(range);
-
-			} else {
-
-				var range = document.body.createTextRange();
-				range.moveToElementText($('#other_msg'));
-				range.moveStart("character", reptxt);
-				range.collapse(true);
-				range.moveEnd("character", reptxt+40);
-				range.select();
-
-			}
-		}
-	} else {
-		$('#other_msg').hide();
-	}
-
-}
-
 
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
@@ -291,9 +352,10 @@ function doReplace(old_fbid) {
 	var div_id = '#friend-'+old_fbid;
 
 	// Remove the friend from the messages
-	var idx = recips.indexOf(old_fbid);
-	if (idx > -1) { recips.splice(idx, 1); }
-	$('#msg-txt-friend-'+old_fbid).remove();
+	unselectFriend(old_fbid);
+	// var idx = recips.indexOf(old_fbid);
+	// if (idx > -1) { recips.splice(idx, 1); }
+	// $('#msg-txt-friend-'+old_fbid).remove();
 
 	if (nextidx < friends.length) {
 		// Figure out the new friend
@@ -302,14 +364,15 @@ function doReplace(old_fbid) {
 		var fname = friend['fname'];
 		var lname = friend['lname'];
 
-		// Add the new friend to the list of message tags (since they'll start off pre-checked)
-		recips.push(id);
-    	if ($('#other_msg .preset_names').length === 0) {
-			insertAtCursor('&nbsp;'+spanStr(id, true)+'&nbsp;');
-		}
-
 		// Update the friends shown
 		friendHTML(old_fbid, id, fname, lname, div_id);
+
+		// Add the new friend to the list of message tags (since they'll start off pre-checked)
+		selectFriend(id);
+		// recips.push(id);
+    	// if ($('#other_msg .preset_names').length === 0) {
+		// 		insertAtCursor('&nbsp;'+spanStr(id, true)+'&nbsp;');
+		// }
 
 		nextidx++;
 	} else {
@@ -320,12 +383,7 @@ function doReplace(old_fbid) {
 	}
 
 	// Update the message text with the new names
-	$('.suggested_msg .preset_names').html(friendNames(false));
-	$('#other_msg .preset_names').html(friendNames(true));
-
-	if ($('#other_msg .preset_names').length !== 0) {
-		msgFocusEnd();
-	}
+	msgNamesUpdate(true);
 }
 
 
@@ -370,14 +428,10 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 function doShare() {
 
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
-//	var msg_type = $('input:radio[name=msg]:checked').val();
 	var msg = "";
-
-//	if (!msg_type || msg_type === "") { alert('Please choose a message to send or write your own'); return;}
-	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
-
-
 	var msg_recips = "";
+
+	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
 
 	// FB format for mention tags: @[fbid]
 	for (var i=0; i < (recips.length-1); i++) {
@@ -392,29 +446,18 @@ function doShare() {
 		msg_recips = "@[" + recips[0] + "]";
 	}
 
-
-//	if (msg_type === "msg1") {
-//		msg = "{{ msgParams.msg1_pre }}"+msg_recips+"{{ msgParams.msg1_post }}";
-//	} else if (msg_type === "msg2") {
-//		msg = "{{ msgParams.msg2_pre }}"+msg_recips+"{{ msgParams.msg2_post }}";
-//	} else if (msg_type === "other") {
-//		for (i=0; i < recips.length; i++) {
-//			$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
-//		}
-//		msg = $('#other_msg').html();
-//	} else {
-//		alert("Ruh-Roh!!"); // I don't know how we go here, but here we are...
-//	}
-
-	// Now, we always take the message text from the other_msg div
+	// The message text will just be whatever is in #other_msg when the user hits send
+	// but we need to clean it up a little bit first...
 	for (var i=0; i < recips.length; i++) {
 		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
 	}
 	if ($('#other_msg .preset_names').length > 0) {
 		$('#other_msg .preset_names').replaceWith($('#other_msg .preset_names').text());
 	}
-	$('#other_msg div').remove();
+	// $('#other_msg div').remove();
 	msg = $('#other_msg').text();
+	msg = msg.replace(/[\n\r]/g, ' ');
+	// TODO: Determine maximum allowed length of message and limit submission to this length.
 
 	// The actual call to do the sharing
 	// In the future, we'll probably want to parametarize this for different types of actions

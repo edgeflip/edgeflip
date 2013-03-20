@@ -112,12 +112,54 @@
 </div> <!-- right_container -->
 
 <script>
+// Adding listeners in script block to ensure necessary divs exist...
+
+
 // Thank you stackoverflow...
 // http://jsfiddle.net/tG9Qa/
 
 var editable = $('#other_msg')
 
-editable.on('input', function() {
+// Seems to make Firefox cry...
+
+// editable.on('input', function() {
+
+//   // check if user has manually deleted a friend
+//   var recips_removed = handleDeleted();
+//   if (recips_removed) { 
+//   	$('.suggested_msg .preset_names').html(friendNames(false));
+//   }
+
+//   // in the event of an "undo" could actually add back a friend!
+//   var recips_added = handleUndo();
+//   if (recips_added || $(".msg-txt-friend").length > recips.length) { 
+//   	$('.suggested_msg .preset_names').html(friendNames(false));
+//   	$('#other_msg .preset_names').html(friendNames(true));
+//   }
+
+//   return filter_newlines(editable);
+// });
+
+
+// disable pasting to avoid introducing marked-up text
+editable.on('paste', function(event) {
+    event.preventDefault();
+});
+
+// have to catch return key presses on the keydown (to use preventDefault)
+editable.on('keydown', function(event) {  
+
+	if(event.keyCode == 13) {
+		event.preventDefault();
+		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+	}
+
+	// TODO: Determine maximum allowed length of message and limit input to this length, allowing for friend names/ids.
+
+});
+
+// catch deletes and undos on keyup (after text has been edited)
+editable.on('keyup', function(event) {
 
   // check if user has manually deleted a friend
   var recips_removed = handleDeleted();
@@ -126,57 +168,13 @@ editable.on('input', function() {
   }
 
   // in the event of an "undo" could actually add back a friend!
-  var recips_added = false;
-  var divs = $(".msg-txt-friend");
-  for (var i = 0; i < divs.length; i++) {
-  	var fbid = parseInt(divs[i].id.split('-')[3]);
-  	if (recips.indexOf(fbid) === -1) {
-  		recips.push(fbid);
-  		if ($('#box-'+fbid).length > 0) {
-	  		$('#box-'+fbid).prop('checked', true);
-	  	} else {
-	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
-	  	}
-  		recips_added = true;
-  	}
-  }
-
+  var recips_added = handleUndo();
   if (recips_added || $(".msg-txt-friend").length > recips.length) { 
   	$('.suggested_msg .preset_names').html(friendNames(false));
   	$('#other_msg .preset_names').html(friendNames(true));
   }
 
-  return filter_newlines(editable);
 });
-
-editable.on('paste', function(event) {
-    event.preventDefault();
-});
-
-function filter_newlines(div) {
-    var node, prev, _i, _len, _ref, _results;
-    prev = null;
-    _ref = div.contents();
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
-      if (node.nodeType === 3) {
-        node.nodeValue = node.nodeValue.replace('\n', '');
-        if (prev) {
-          node.nodeValue = prev.nodeValue + node.nodeValue;
-          $(prev).remove();
-        }
-        _results.push(prev = node);
-      } else if (node.tagName.toLowerCase() === 'br') {
-        _results.push($(node).remove());
-      } else {
-        $(node).css('display', 'inline');
-        filter_newlines($(node));
-        _results.push(prev = null);
-      }
-    }
-    return _results;
-  }
 
 </script>
 
