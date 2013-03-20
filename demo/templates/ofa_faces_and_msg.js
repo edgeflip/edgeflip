@@ -113,7 +113,7 @@ function msgRemove(id) {
 	// $('#added-'+id).remove();			  // remove the manually added friend (if it exists)
 	// $('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
 
-	uselectFriend(id);
+	unselectFriend(id);
 	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
 
 }
