@@ -204,22 +204,24 @@ editable.on('keydown', function(event) {
 // catch deletes and undos on keyup (after text has been edited)
 editable.on('keyup', function(event) {
 
-  // check if user has manually deleted a friend
-  var recips_removed = handleDeleted();
-  if (recips_removed) { 
-  	$('.suggested_msg .preset_names').html(friendNames(false));
-  }
+	var code = (event.keyCode ? event.keyCode : event.which);
 
-  // in the event of an "undo" could actually add back a friend!
-  var recips_added = handleUndo();
-  if (recips_added || $(".msg-txt-friend").length > recips.length) { 
-  	$('.suggested_msg .preset_names').html(friendNames(false));
-  	$('#other_msg .preset_names').html(friendNames(true));
-  }
+	// check if user has manually deleted a friend
+	var recips_removed = handleDeleted();
+	if (recips_removed) { 
+		$('.suggested_msg .preset_names').html(friendNames(false));
+	}
 
-  if (msg_length >= max_msg_length) {
-  	alert("Please limit your message to fewer than 1000 character.");
-  }
+	// in the event of an "undo" could actually add back a friend!
+	var recips_added = handleUndo();
+	if (recips_added || $(".msg-txt-friend").length > recips.length) { 
+		$('.suggested_msg .preset_names').html(friendNames(false));
+		$('#other_msg .preset_names').html(friendNames(true));
+	}
+
+	if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
+		alert("Please limit your message to fewer than 1000 character.");
+	}
 
 });
 
