@@ -181,10 +181,9 @@ editable.on('keydown', function(event) {
 	} else {
 
 		curr_msg = $('#other_msg').text();
-//		alert(curr_msg.length);
-		if (curr_msg.length >= 1000) {
+		if (curr_msg.length >= 10) {
 			if (allow_keys.indexOf(event.keyCode) === -1) {
-//				event.preventDefault();
+				event.preventDefault();
 				alert("Please limit your message to fewer than 1000 character.");
 			}
 		}
