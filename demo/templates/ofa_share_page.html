@@ -52,6 +52,10 @@
 
   	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
 
+  	<!-- edgeflip browser compatability: run first -->
+	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
+	<!-- edgeflip browser compatability -->
+
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
 	<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
@@ -60,7 +64,6 @@
 	</script>
 
 	<!-- edgeflip javascript -->
-	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
 	<script src="{{ url_for('static', filename='ofa_load_and_login.js') }}"></script>
 	<SCRIPT>
 		imgsToLoad = [	"{{ url_for('static', filename='aniprogress.gif') }}" ];

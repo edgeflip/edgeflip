@@ -118,8 +118,26 @@
 // Thank you stackoverflow...
 // http://jsfiddle.net/tG9Qa/
 
-var editable = $('#other_msg')
+var editable = $('#other_msg');
 
+// key presses that we'll let through in the event the message has gotten too long
+var allow_keys = [
+					8, 		// Backspace
+					46,		// Delete
+					20, 	// Caps Lock
+					91,		// Command
+					93,		// Right Command
+					17,		// Control
+					40,		// Down
+					35,		// End
+					27,		// Escape
+					36,		// Home
+					37,		// Left
+					34,		// Page Down
+					33,		// Page Up
+					39,		// Right
+					38		// Up
+				 ];
 // Seems to make Firefox cry...
 
 // editable.on('input', function() {
@@ -144,14 +162,33 @@ var editable = $('#other_msg')
 // disable pasting to avoid introducing marked-up text
 editable.on('paste', function(event) {
     event.preventDefault();
+    return false;
+});
+
+// disable drag-and-drop to avoid introducing marked-up text
+editable.on('dragover drop', function(event) {
+    event.preventDefault();
+    return false;
 });
 
 // have to catch return key presses on the keydown (to use preventDefault)
 editable.on('keydown', function(event) {  
 
-	if(event.keyCode == 13) {
+	// return (13) or enter (108) key pressed
+	if(event.keyCode == 13 || event.keyCode == 108) {
 		event.preventDefault();
 		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+	} else {
+
+		curr_msg = $('#other_msg').text();
+		if (curr_msg.length >= 1000) {
+			if (allow_keys.indexOf(event.keyCode) === -1) {
+				event.preventDefault();
+				alert("Please limit your message to fewer than 1000 character.");
+			}
+		}
+
+		return false;
 	}
 
 	// TODO: Determine maximum allowed length of message and limit input to this length, allowing for friend names/ids.
@@ -173,6 +210,8 @@ editable.on('keyup', function(event) {
   	$('.suggested_msg .preset_names').html(friendNames(false));
   	$('#other_msg .preset_names').html(friendNames(true));
   }
+
+  return false;
 
 });
 
