@@ -57,7 +57,7 @@
 	font-size: 22px;
 	text-align: left;
 	color: #07304e;
-	padding-left: 15px;
+/*	padding-left: 15px; */
 	font-family: 'Gill Sans', Helvetica, sans-serif;
 	font-weight: 200;
 	float: left;
@@ -120,7 +120,7 @@
 	border: solid thin gray;
 	border-radius: 5px;
 	background-color: white;
-	padding: 10px;
+	padding: 5px;
 	width: 90%;
 	margin-left: 3px;
 }
