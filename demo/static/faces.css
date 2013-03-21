@@ -1,15 +1,15 @@
 /* CSS FOR THE FACES */
 
-.left_container,
 .faces_container,
 #manual_add {
 	width: 405px;
 }
 
 .left_container {
+	width: 420px;
 	float: left;
-	padding-right: 15px;
-	margin-bottom: 100px;
+/*	margin-left: 10px;
+	margin-bottom: 100px; */
 }
 
 .faces_container {
@@ -18,7 +18,6 @@
 	border: 2px solid lightgrey;
 	border-radius: 10px;
 	padding: 5px;
-	margin-left: 10px;
 }
 
 .friends_table {

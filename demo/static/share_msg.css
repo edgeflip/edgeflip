@@ -3,7 +3,7 @@
 .right_container {
 	overflow-x: hidden;
 	vertical-align: top;
-	margin-left: 15px;
+	padding-left: 15px;
 	white-space: normal;
 	min-width: 300px;
 	max-width: 650px;
@@ -73,7 +73,6 @@
 	text-align: left;
 	padding: 5px;
 	margin-bottom: 5px;
-	margin-right: 10px;
 }
 
 .msg_block {
@@ -133,7 +132,7 @@
 #do_share_button {
 	display: block;
 	position: absolute;
-	right: 10px;
+	right: 0px;
 	color: white; 
 	cursor: pointer; 
 }

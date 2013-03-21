@@ -52,10 +52,6 @@
 
   	<link rel="stylesheet" href="http://code.jquery.com/ui/1.10.0/themes/base/jquery-ui.css" />
 
-  	<!-- edgeflip browser compatability: run first -->
-	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
-	<!-- edgeflip browser compatability -->
-
 	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
 	<script src="http://code.jquery.com/ui/1.10.0/jquery-ui.js"></script>
 	<script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
@@ -64,6 +60,7 @@
 	</script>
 
 	<!-- edgeflip javascript -->
+	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
 	<script src="{{ url_for('static', filename='ofa_load_and_login.js') }}"></script>
 	<SCRIPT>
 		imgsToLoad = [	"{{ url_for('static', filename='aniprogress.gif') }}" ];
@@ -74,7 +71,7 @@
 </HEAD>
 <BODY>
 
-<div style="width: 100%; background-color: #094163;">
+<div style="width: 100%; background-color: #094163; box-shadow: 0px 2px 8px black;">
 	<div style="font-family:arial,sans-serif; font-size:71px; color:#0052CC; font-weight:900; background-image: url('http://secure.assets.bostatic.com/uptown/images/ofa4-logo-large-white.png'); height: 50px; width: 100%; background-repeat: no-repeat; background-position: 50%; background-size: 30%; cursor: pointer;" onClick="window.location = 'http://www.barackobama.com/';"></div> 
 </div>
 

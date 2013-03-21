@@ -40,7 +40,7 @@
 
 </SCRIPT>
 
-<div style="border: none; white-space: normal; font-family: 'Gill Sans', Helvetica, sans-serif; margin-left: 10px; margin-right: 10px; margin-bottom: 25px;">
+<div style="border: none; white-space: normal; font-family: 'Gill Sans', Helvetica, sans-serif; margin-bottom: 25px;">
 <h2 style="font-weight: 200; color: #094163; background-color: #f7f7f7; padding: 5px; border-radius: 5px; margin: 2px; box-shadow: 2px 2px 5px black;">Ask your Facebook friends in {{ senInfo.state_name }} to let Senator {{ senInfo.name }} know we're putting climate denial on trial!</h2>
 </div>
 
@@ -252,13 +252,23 @@ editable.on('keyup', function(event) {
 <SCRIPT>
 
 	function set_right_width() {
-		var rcwidth = window.innerWidth - $('#the_left_container').outerWidth() - 2*parseInt($('body').css('margin-left')) - 20;
-		if (rcwidth < $('.right_container').css('min-width')) {
-			rcwidth = $('.right_container').css('min-width');
-		} else if (rcwidth > $('.right_container').css('max-width')) {
-			rcwidth = $('.right_container').css('max-width');
+		// need parseInt's for the comparisons...
+		var rcwidth = window.innerWidth 
+						- parseInt($('body').css('margin-left')) 
+						- parseInt($('body').css('margin-right'))
+						- parseInt($('#friends_div').css('padding-left')) 
+						- parseInt($('#friends_div').css('padding-right'))
+						- $('#the_left_container').outerWidth()
+						- parseInt($('.right_container').css('padding-left'));
+
+		if ( rcwidth < parseInt($('.right_container').css('min-width')) ) {
+			rcwidth = parseInt($('.right_container').css('min-width'));
+		} else if ( rcwidth > parseInt($('.right_container').css('max-width')) ) {
+			rcwidth = parseInt($('.right_container').css('max-width'));
 		}
+
 		$('.right_container').width(rcwidth);
+		$('#friends_div').width($('.left_container').outerWidth() + $('.right_container').outerWidth() );
 	}
 
 	// Initial call and set up a listener on window resizing
