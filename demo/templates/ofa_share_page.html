@@ -27,7 +27,7 @@
 			background-color: #0270A0;
 			text-align:center;
 			padding:4px;
-			border: 3px solid #4E9BBD;
+			border: 2px solid #4E9BBD;
 			box-shadow: 3px 3px 5px #094163;
 			border-radius: 10px;
 			text-decoration:none;
@@ -44,7 +44,7 @@
 		#do_share_button:hover {
 			background-color: #094163;
 			box-shadow: 2px 2px 3px #094163;
-			border: 3px solid #0270A0;
+			border: 2px solid #0270A0;
 		}
 
 	</STYLE>
@@ -85,9 +85,9 @@
 
 	<div id="share_button" onclick="show_friends();">Show Your Support</div>
 
-	<div id='progress' style='text-align: center; display: none'>
+	<div id='progress' style='text-align: center; width: 500px; display: none'>
+		<h2 style="font-family: 'Gill Sans', Helvetica, sans-serif; font-weight: 200; color: #094163; background-color: white; padding: 5px; border-radius: 5px; margin: 2px; box-shadow: 2px 2px 5px black;">L o a d i n g . . .</h2>
 		<img src="{{url_for('static', filename='aniprogress.gif')}}">
-		<p></p>
 	</div>
 
 </div>
