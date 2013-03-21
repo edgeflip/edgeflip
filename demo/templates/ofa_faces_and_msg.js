@@ -431,7 +431,17 @@ function doShare() {
 	var msg = "";
 //	var msg_recips = "";
 
-	if (recips.length == 0) { alert('Please choose at least one friend to share with.'); return; }
+	if (recips.length == 0) { 
+
+		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick Ok to share with all suggested friends or cancel to return to the page.");
+
+		if (use_all == true) {
+			checkAll();
+		} else {
+			return;
+		}
+
+	}
 
 	// FB format for mention tags: @[fbid]
 //	for (var i=0; i < (recips.length-1); i++) {
