@@ -14,7 +14,8 @@
 
 .faces_container {
 	background-color: #f7f7f7;
-	border: 2px solid #e4e6e0;
+/*	border: 2px solid #e4e6e0; */
+	border: 2px solid lightgrey;
 	border-radius: 10px;
 	padding: 5px;
 }
@@ -92,7 +93,8 @@
 	background-color: red;
 }
 
-#check_em_all {
+#check_em_all,
+#sugg_msg {
 	float: right;
 	margin-top: 3px;
 	margin-left: 3px;

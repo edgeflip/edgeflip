@@ -40,15 +40,15 @@
 
 </SCRIPT>
 
-<div style="height: 50px; border: none; white-space: normal; font-family: 'Gill Sans', Helvetica, sans-serif;">
+<div style="height: 50px; border: none; white-space: normal; font-family: 'Gill Sans', Helvetica, sans-serif; font-weight: 200;">
 <h2>Ask your Facebook friends in {{ senInfo.state_name }} to let Senator {{ senInfo.name }} know we're putting climate denial on trial!</h2>
 </div>
 <BR>
 
 <div id="the_left_container" class="left_container">
 
-	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 	<div class="faces_container">
+	<div class="msg_title" style="padding: 0px;">Choose Some Friends:</div>
 	<input type="button" id="check_em_all" onClick="checkAll();" value="Select All &gt;&gt;" />
 	<table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: both;">
 		<tr>
@@ -80,27 +80,32 @@
 </div> <!-- left_container -->
 
 <div class="right_container">
-<div class="msg_title">Write A Message:</div>
 <div class="msg_picker">
+	<div class="msg_title" style="margin-bottom: 3px;">Write A Message:</div>
 
 	<div class="msg_block">
 		<div class="msg_txt">
 			<div style="margin-bottom: 3px;">{{ msgParams.msg_other_prompt }}</div>
-			<div id="other_msg" contentEditable="True" style="min-height: 75px; display: block;"></div>
+			<div id="other_msg_container">
+				<div id="other_msg" contentEditable="True" style="min-height: 75px; display: block;"></div>
+				<div><input type="button" id="sugg_msg" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
+			</div>
 		</div>
 	</div>	
 
-	<div style="font-size: 14px; font-weight: bold; padding-bottom: 3px;">Suggested Messages:</div>
-	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div class="use_button" onClick="useSuggested('#msg1_txt');">use</div>
+	<div style="display: none;"> <!-- hide the suggestions -->
+		<div style="font-size: 14px; font-weight: bold; padding-bottom: 3px;">Suggested Messages:</div>
+		<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+			<div class="use_button" onClick="useSuggested('#msg1_txt');">use</div>
 
-		<div class="msg_txt suggested_msg" id="msg1_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>
-	</div>
+			<div class="msg_txt suggested_msg" id="msg1_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>
+		</div>
 
-	<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-		<div class="use_button" onClick="useSuggested('#msg2_txt');">use</div>
+		<div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+			<div class="use_button" onClick="useSuggested('#msg2_txt');">use</div>
 
-		<div class="msg_txt suggested_msg" id="msg2_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>
+			<div class="msg_txt suggested_msg" id="msg2_txt" style="font-size: 14px; padding-bottom: 2px; margin-bottom: 0px;">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>
+		</div>
 	</div>
 
 </div> <!-- msg_picker -->
