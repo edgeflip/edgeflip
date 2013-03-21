@@ -1,8 +1,11 @@
 body {
-	background-color: rgb(234, 234, 234);
-/*	margin-left: 15px;
+/*	background-color: rgb(234, 234, 234);
+	margin-left: 15px;
 	margin-right: 15px;
 */
+	background-image: url('http://secure.assets.bostatic.com/resize/wind-power-20130204002558.jpg');
+    background-size: cover;
+    background-attachment: fixed;
 	margin: 0px;
 	padding: 0px;
 }
