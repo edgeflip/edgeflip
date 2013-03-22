@@ -12,7 +12,7 @@ import time
 from config import config
 import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 
-
+import random # for testing endpoint
 
 
 app = Flask(__name__)
@@ -351,6 +351,51 @@ def queueLoad():
 def reset():
 	database.db.dbSetup()
 	return "database has been reset"
+
+# Endpoint for testing a faces response...
+# (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)
+@app.route("/face_test", methods=['POST'])
+def face_test():
+
+	s = random.randint(0,7);
+	time.sleep(s);
+
+	friendDicts = 	[ 
+						{'id': 123456789, 'fname': 'Bob', 'lname': 'Newhart', 'name': 'Bob Newhart', 
+						 'gender': 'male', 'age': 63, 'city': 'Chicago', 'state': 'Illinois', 'score': 0.43984,
+						 'desc': '0 0 0 0 0 0 0 0 0 0'}
+					]*100
+
+	# Apply control panel targeting filters
+	filteredDicts = filter_friends(friendDicts)
+
+	faceFriends = filteredDicts[:6]
+	numFace = len(faceFriends)
+	allFriends = filteredDicts[:25]
+
+	# zzz state = target state with most friends
+	state = 'EC'
+
+	targetDict = state_target.get(state)
+
+	msgParams = {
+					'msg1_pre' : "Hi there ",
+					'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
+					'msg2_pre' : "Now is the time for real climate legislation, ",
+					'msg2_post' : "!",
+					'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
+					'msg_other_init' : "Replace this text with your message for " 
+				}
+
+	actionParams = 	{
+						'fb_action_type' : 'support',
+						'fb_object_type' : 'cause',
+						'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+					}
+	actionParams.update(fbParams)
+
+	return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+							face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 
 
