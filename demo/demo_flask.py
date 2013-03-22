@@ -111,8 +111,8 @@ def ofa_faces():
 	if (user is not None): # it's fresh
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
 		database.updateDb(user, tok, edgesRanked, background=True)
@@ -155,7 +155,7 @@ def ofa_faces():
 	else:
 		#zzz need to figure out what we do here
 		return render_template('ofa_faces_table_generic.html')
-		
+
 
 @app.route('/demo')
 @app.route('/button')
@@ -186,8 +186,8 @@ def face_it():
 	if (user is not None): # it's fresh
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
+		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
 		database.updateDb(user, tok, edgesRanked, background=True)
@@ -240,8 +240,8 @@ def rank_faces():
 		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
 		# now do a partial crawl real-time
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
 		user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
 		# spawn off a separate thread to do the database writing

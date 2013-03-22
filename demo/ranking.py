@@ -1,6 +1,7 @@
 #!/usr/bin/python
 import sys
 import database
+import datastructs
 import logging
 from config import config
 
@@ -28,35 +29,37 @@ from config import config
 #        _px5 * 24.0) / 36.0
 
 
-def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
-			outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
-			primPhotoTags, otherPhotoTags, muts,
-			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax, inWallPostsMax, inWallCommsMax, inTagsMax,
-			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, outWallPostsMax, outWallCommsMax, outTagsMax,
-			primPhotoTagsMax, otherPhotoTagsMax, mutsMax):	
+
+# def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
+# 			outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
+# 			primPhotoTags, otherPhotoTags, muts,
+# 			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax, inWallPostsMax, inWallCommsMax, inTagsMax,
+# 			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, outWallPostsMax, outWallCommsMax, outTagsMax,
+# 			primPhotoTagsMax, otherPhotoTagsMax, mutsMax):
+def prox(e, eMax):
 	countMaxWeightTups = [
 		# px3
-		(muts, mutsMax, 1.0),
-		(primPhotoTags, primPhotoTagsMax, 3.0),
-		(otherPhotoTags, otherPhotoTagsMax, 2.0),
+		(e.mutuals, eMax.mutuals, 1.0),
+		(e.primPhotoTags, eMax.primPhotoTagsMax, 3.0),
+		(e.otherPhotoTags, eMax.otherPhotoTagsMax, 2.0),
 
 		# px4
-		(inPostLikes, inPostLikesMax, 1.0),
-		(inPostComms, inPostCommsMax, 1.0),
-		(inStatLikes, inStatLikesMax, 2.0),
-		(inStatComms, inStatCommsMax, 1.0),
-		(inWallPosts, inWallPostsMax, 1.0),		# guessed weight
-		(inWallComms, inWallCommsMax, 1.0),		# guessed weight
-		(inTags, inTagsMax, 1.0),			
+		(e.inPostLikes, eMax.inPostLikesMax, 1.0),
+		(e.inPostComms, eMax.inPostCommsMax, 1.0),
+		(e.inStatLikes, eMax.inStatLikesMax, 2.0),
+		(e.inStatComms, eMax.inStatCommsMax, 1.0),
+		(e.inWallPosts, eMax.inWallPostsMax, 1.0),		# guessed weight
+		(e.inWallComms, eMax.inWallCommsMax, 1.0),		# guessed weight
+		(e.inTags, eMax.inTagsMax, 1.0),
 
 		# px5
-		(outPostLikes, outPostLikesMax, 2.0),
-		(outPostComms, outPostCommsMax, 3.0),
-		(outStatLikes, outStatLikesMax, 2.0),
-		(outStatComms, outStatCommsMax, 16.0),
-		(outWallPosts, outWallPostsMax, 2.0),	# guessed weight
-		(outWallComms, outWallCommsMax, 3.0),	# guessed weight
-		(outTags, outTagsMax, 1.0),
+		(e.outPostLikes, eMax.outPostLikesMax, 2.0),
+		(e.outPostComms, eMax.outPostCommsMax, 3.0),
+		(e.outStatLikes, eMax.outStatLikesMax, 2.0),
+		(e.outStatComms, eMax.outStatCommsMax, 16.0),
+		(e.outWallPosts, eMax.outWallPostsMax, 2.0),	# guessed weight
+		(e.outWallComms, eMax.outWallCommsMax, 3.0),	# guessed weight
+		(e.outTags, eMax.outTagsMax, 1.0),
 	]
 	pxTotal = 0.0
 	weightTotal = 0.0
@@ -66,36 +69,12 @@ def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWall
 			weightTotal += weight
 	return pxTotal / weightTotal				
 
-def getFriendRanking(userId, edges, requireOutgoing=True):
+def getFriendRanking(userId, edges, requireIncoming=True, requireOutgoing=True):
 	logging.info("ranking %d edges", len(edges))
-	iplM = max([ e.inPostLikes for e in edges ] + [None])
-	ipcM = max([ e.inPostComms for e in edges ] + [None])
-	islM = max([ e.inStatLikes for e in edges ] + [None])
-	iscM = max([ e.inStatComms for e in edges ] + [None])
-	iwpM = max([ e.inWallPosts for e in edges ] + [None])
-	iwcM = max([ e.inWallComms for e in edges ] + [None])
-	itM  = max([ e.inTags for e in edges ] 		+ [None])
-
-	oplM = max([ e.outPostLikes for e in edges ] + [None]) if (requireOutgoing) else None
-	opcM = max([ e.outPostComms for e in edges ] + [None]) if (requireOutgoing) else None
-	oslM = max([ e.outStatLikes for e in edges ] + [None]) if (requireOutgoing) else None
-	opcM = max([ e.outStatComms for e in edges ] + [None]) if (requireOutgoing) else None
-	owpM = max([ e.outWallPosts for e in edges ] + [None]) if (requireOutgoing) else None
-	owcM = max([ e.outWallComms for e in edges ] + [None]) if (requireOutgoing) else None
-	otM  = max([ e.outTags for e in edges ] 	 + [None]) if (requireOutgoing) else None
-
-	pptM = max([ e.primPhotoTags for e in edges ]  + [None])
-	optM = max([ e.otherPhotoTags for e in edges ] + [None])
-	mutM = max([ e.mutuals for e in edges ] 	   + [None])
-
+	edgesMax = datastructs.EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
+	# score each one and store it on the edge
 	for e in edges:
-		e.score = prox(e.inPostLikes, e.inPostComms, e.inStatLikes, e.inStatComms, e.inWallPosts, e.inWallComms, e.inTags,
-							e.outPostLikes, e.outPostComms, e.outStatLikes, e.outStatComms, e.outWallPosts, e.outWallComms, e.outTags,
-							e.primPhotoTags, e.otherPhotoTags, e.mutuals, 
-							iplM, ipcM, islM, iscM, iwpM, iwcM, itM, 
-							oplM, opcM, oslM, opcM, owpM, owcM, otM,
-							pptM, optM, mutM)
-
+		e.score = prox(e, edgesMax)
 	return sorted(edges, key=lambda x: x.score, reverse=True)
 
 def getFriendRankingDb(conn, userId, requireOutgoing=True):
@@ -166,7 +145,7 @@ if (__name__ == '__main__'):
 		curs = conn.cursor()
 		user = facebook.getUserFb(userId, tok)
 		database.updateUserDb(curs, user, tok, None)
-		edges = facebook.getFriendEdgesFb(userId, tok, requireOutgoing=REQUIRE_OUTGOING)
+		edges = facebook.getFriendEdgesFb(userId, tok, requireIncoming=True, requireOutgoing=REQUIRE_OUTGOING)
 		newCount = database.updateFriendEdgesDb(userId, tok, edges)
 		logging.debug("inserted %d new edges\n" % newCount)
 		conn.close()
