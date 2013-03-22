@@ -95,8 +95,8 @@ function unselectFriend(fbid) {
 
 		recips.splice(idx, 1);
 		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
-		$('#added-'+fbid).remove();			  // remove the manually added friend (if it exists)
-		$('#msg-txt-friend-'+fbid).remove();	  // remove the friend from the message
+		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
+		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
 
 		return true;
 	} else {
@@ -107,15 +107,8 @@ function unselectFriend(fbid) {
 
 // When the user clicks the 'x' on a name in the message textarea
 function msgRemove(id) {
-	// var idx = recips.indexOf(id);
-	// recips.splice(idx, 1);
-	// $('#box-'+id).prop('checked', false); // uncheck the box (if it exists)
-	// $('#added-'+id).remove();			  // remove the manually added friend (if it exists)
-	// $('#msg-txt-friend-'+id).remove();	  // remove the friend from the message
-
 	unselectFriend(id);
 	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
-
 }
 
 function msgFocusEnd() {
@@ -218,31 +211,6 @@ function elementContainsSelection(el) {
     return false;
 }
 
-function filter_newlines(div) {
-    var node, prev, _i, _len, _ref, _results;
-    prev = null;
-    _ref = div.contents();
-    _results = [];
-    for (_i = 0, _len = _ref.length; _i < _len; _i++) {
-      node = _ref[_i];
-      if (node.nodeType === 3) {
-        node.nodeValue = node.nodeValue.replace('\n', '');
-        if (prev) {
-          node.nodeValue = prev.nodeValue + node.nodeValue;
-          $(prev).remove();
-        }
-        _results.push(prev = node);
-      } else if (node.tagName.toLowerCase() === 'br') {
-        _results.push($(node).remove());
-      } else {
-        $(node).css('display', 'inline');
-        filter_newlines($(node));
-        _results.push(prev = null);
-      }
-    }
-    return _results;
-}
-
 // If the user happens to manually delete a recipient while editing the message
 function handleDeleted() {
   var recips_removed = false;
@@ -250,10 +218,6 @@ function handleDeleted() {
   for (var i = 0; i < curr_recips.length; i++) {
   	var fbid = curr_recips[i];
   	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
-  		// var idx = recips.indexOf(fbid);
-  		// recips.splice(idx, 1);
-  		// $('#box-'+fbid).prop('checked', false);
-  		// $('#added-'+fbid).remove();
   		unselectFriend(fbid);
   		recips_removed = true;
   	}
@@ -269,15 +233,6 @@ function handleUndo() {
   	var fbid = parseInt(divs[i].id.split('-')[3]);
   	var id_added = selectFriend(fbid);
   	recips_added = id_added || recips_added;	// might be able to do this in one line, but not clear selectFriend() will always get called once recips_added set to true...
-  	// if (recips.indexOf(fbid) === -1) {
-  	//	recips.push(fbid);
-  	//	if ($('#box-'+fbid).length > 0) {
-	//  	$('#box-'+fbid).prop('checked', true);
-	//  } else {
-	//  	$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
-	//  }
-  	//	recips_added = true;
-  	// }
   }
   return recips_added;
 }
@@ -288,15 +243,7 @@ function useSuggested(msgID) {
 
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
-
-		// var divs = $("input[id*='box-']");
-		// divs.prop('checked', true);
-	 	// for (var i=0; i < divs.length; i++) {
-	 	// 		recips.push( parseInt(divs[i].id.split('-')[1]) );
-		// }
-
 		checkAll();
-
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
@@ -306,15 +253,8 @@ function useSuggested(msgID) {
 function checkAll() {
 
 	var divs = $("input[id*='box-']:not(:checked)");
-	// divs.prop('checked', true);
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
-  		// recips.push(fbid);
-	    // if ($('#other_msg .preset_names').length === 0) {
-	    //	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-		//    insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
-		// }
-
 		selectFriend(fbid);
 	}
 
@@ -324,17 +264,6 @@ function checkAll() {
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
-  // var idx = recips.indexOf(fbid);
-  // if (idx > -1) { recips.splice(idx, 1); }
-  // $('#msg-txt-friend-'+fbid).remove();
-
-  // if ($('#box-'+fbid).is(':checked')) {
-  //   recips.push(fbid);
-  //   if ($('#other_msg .preset_names').length === 0) {
-  //   	// Only append name if user is writing their own message. Otherwise, friendNames() call below will take care of this.
-  //     insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
-  //   }
-  // }
 
   if ($('#box-'+fbid).is(':checked')) {
   	selectFriend(fbid);
@@ -353,9 +282,6 @@ function doReplace(old_fbid) {
 
 	// Remove the friend from the messages
 	unselectFriend(old_fbid);
-	// var idx = recips.indexOf(old_fbid);
-	// if (idx > -1) { recips.splice(idx, 1); }
-	// $('#msg-txt-friend-'+old_fbid).remove();
 
 	if (nextidx < friends.length) {
 		// Figure out the new friend
@@ -369,11 +295,6 @@ function doReplace(old_fbid) {
 
 		// Add the new friend to the list of message tags (since they'll start off pre-checked)
 		selectFriend(id);
-		// recips.push(id);
-    	// if ($('#other_msg .preset_names').length === 0) {
-		// 		insertAtCursor('&nbsp;'+spanStr(id, true)+'&nbsp;');
-		// }
-
 		nextidx++;
 	} else {
 		// No new friends to add, so just remove this one
@@ -429,10 +350,8 @@ function doShare() {
 
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
 	var msg = "";
-//	var msg_recips = "";
 
 	if (recips.length == 0) { 
-
 		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick Ok to share with all suggested friends or cancel to return to the page.");
 
 		if (use_all == true) {
@@ -440,36 +359,22 @@ function doShare() {
 		} else {
 			return;
 		}
-
 	}
-
-	// FB format for mention tags: @[fbid]
-//	for (var i=0; i < (recips.length-1); i++) {
-//		msg_recips += "@[" + recips[i] + "], ";
-//	}
-
-//	if (recips.length > 2) {
-//		msg_recips += 'and ' + "@[" + recips[recips.length-1] + "]";
-//	} else if (recips.length == 2) {
-//		msg_recips = "@[" + recips[0] + "] and @[" + recips[1] + "]";
-//	} else {
-//		msg_recips = "@[" + recips[0] + "]";
-//	}
 
 	// The message text will just be whatever is in #other_msg when the user hits send
 	// but we need to clean it up a little bit first...
-	filter_newlines($('#other_msg'));	// might not need since we're replace \n & \r below
 	handleDeleted();
 	handleUndo();
 	msgNamesUpdate(false);
 
 	for (var i=0; i < recips.length; i++) {
+		// FB format for mention tags: @[fbid]
 		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
 	}
 	if ($('#other_msg .preset_names').length > 0) {
 		$('#other_msg .preset_names').replaceWith($('#other_msg .preset_names').text());
 	}
-	// $('#other_msg div').remove();
+
 	msg = $('#other_msg').text();
 	msg = msg.replace(/[\n\r]/g, ' ');
 	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)

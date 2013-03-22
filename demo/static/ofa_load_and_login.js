@@ -9,15 +9,10 @@ function preload(arrayOfImages) {
 
 // Called upon clicking the "share" button
 function show_friends() {
-	// hn = window.innerHeight*0.30;
-	//hn = 0;
-	//$("#share_content").animate({height:hn}, 500, function() { $('#share_content').remove(); });
 
 	$('#share_content').remove();
 	$('#share_button').hide();
 	$('#progress').show();
-
-	//setTimeout(function(){document.getElementById('share_button').style.display='none'; document.getElementById('friends_div').style.display='table';}, 400);
 
 	FB.login(function(response) {
 		if (response.authResponse) {

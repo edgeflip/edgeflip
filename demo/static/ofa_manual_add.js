@@ -17,24 +17,10 @@ $(function() {
 				if ($(".added_friend").length >= 3) {
 					alert("Sorry: only three friends can be added manually.");
 				} else {
-
 					selectFriend(ui.item.value);
-
-					// $("#picked_friends_container").append("<div class='added_friend' id='added-"+ui.item.value+"'>"+ui.item.label+"<div class='added_x' onClick='removeFriend("+ui.item.value+");'>x</div></div>");
-
-					// var idx = recips.indexOf(ui.item.value);
-					// if (idx > -1) { recips.splice(idx, 1); }
-					// $('#msg-txt-friend-'+ui.item.value).remove();
-
-					// recips.push(ui.item.value);
-					// if ($('#other_msg .preset_names').length === 0) {
-					// 		insertAtCursor('&nbsp;'+spanStr(ui.item.value, true)+'&nbsp;');
-					// }
 					msgNamesUpdate(false);
-					// $('.suggested_msg .preset_names').html(friendNames(false));
-  					// $('#other_msg .preset_names').html(friendNames(true));
-
 				}
+
 			}
 			$("#manual_input").val('');
 			return false;
@@ -52,13 +38,4 @@ $(function() {
 function removeFriend(fbid) {
 	unselectFriend(fbid);
 	msgNamesUpdate(false);
-
-	// $("#added-"+fbid).remove();
-
-	// var idx = recips.indexOf(fbid);
-	// if (idx > -1) { recips.splice(idx, 1); }
-	// $('#msg-txt-friend-'+fbid).remove();
-
-	// $('.suggested_msg .preset_names').html(friendNames(false));
-  	// $('#other_msg .preset_names').html(friendNames(true));
 }
