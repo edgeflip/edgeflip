@@ -354,7 +354,7 @@ def reset():
 
 # Endpoint for testing a faces response...
 # (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)
-@app.route("/face_test", methods=['POST'])
+@app.route("/face_test", methods=['GET','POST'])
 def face_test():
 
 	s = random.randint(0,7);
