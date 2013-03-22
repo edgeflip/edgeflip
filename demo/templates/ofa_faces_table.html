@@ -185,7 +185,8 @@ editable.on('keydown', function(event) {
 	if(code == 13 || code == 108) {
 
 		event.preventDefault();
-		return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+		//return filter_newlines(editable); // NOTE: may not need with the preventDefault() but should confirm that works on all browsers.
+		return false;
 
 	} else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
 
