@@ -11,10 +11,6 @@
 }
 
 .msg_friend_name {
-/*
-  color: #0A5195;
-  border-bottom: thin dashed #0A5195;
-*/
 	font-family: sans-serif;
 	font-weight: 200;
 	color: black;
@@ -57,8 +53,7 @@
 	font-size: 22px;
 	text-align: left;
 	color: #07304e;
-/*	padding-left: 15px; */
-	font-family: 'Gill Sans', Helvetica, sans-serif;
+	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 	font-weight: 200;
 	float: left;
 }
@@ -80,42 +75,31 @@
 	clear: both;
 }
 
-.use_button {
-	background-color: #0270A0;
-	color: white;
-	border: thin solid #094163;
-	border-radius: 3px;
-	-moz-border-radius: 3px;
-	float: left;
-	padding-left: 2px;
-	padding-right: 2px;
-	font-size: 11px;
-	font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif;
-	cursor: pointer;
-	margin-right: 5px;
-	margin-top: 3px;
-	margin-left: 15px;
-	font-weight: 200;
-	line-height: 12px;
-	letter-spacing: 1px;
-	vertical-align: middle;
-	box-shadow: 1px 1px 3px black;
-}
-
-.msg_radio {
-	float: left;
-	padding-right: 5px;
-	vertical-align: top;
-}
-
 .msg_txt {
 	overflow-x: auto;
 	overflow-y: visible;
 	padding-bottom: 3px;
 }
 
-#other_msg_container {
+#suggested_msg_title {
+	font-size: 14px;
+	font-weight: bold;
+	padding-bottom: 3px;
+}
+
+.suggested_msg {
+	font-size: 14px;
+	padding-bottom: 2px;
+	margin-bottom: 0px;
+}
+
+#other_msg_prompt {
+	margin-bottom: 3px;
 	display: none;
+}
+
+#other_msg_container {
+	display: block;
 	border: solid thin gray;
 	border-radius: 5px;
 	background-color: white;
@@ -124,9 +108,13 @@
 	margin-left: 2%;
 }
 
+#other_msg {
+	min-height: 75px;
+}
+
 #do_share_container {
 	position: relative;
-	height: 45px;
+	height: 75px;
 }
 
 #do_share_button {
