@@ -12,8 +12,10 @@ import time
 from config import config
 import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 
-import random # for testing endpoint
+# for testing endpoint -- could be removed for production-only code
+import random
 import datastructs
+import datetime
 
 
 app = Flask(__name__)
