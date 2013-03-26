@@ -13,6 +13,7 @@ from config import config
 import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 
 import random # for testing endpoint
+import datastructs
 
 
 app = Flask(__name__)
@@ -357,14 +358,40 @@ def reset():
 @app.route("/face_test", methods=['GET','POST'])
 def face_test():
 
-	s = random.randint(0,7);
-	time.sleep(s);
+	# Simulate taking to facebook with a 0-7 second sleep
+	s = random.randint(0,7)
+	time.sleep(s)
 
-	friendDicts = 	[ 
-						{'id': 123456789, 'fname': 'Bob', 'lname': 'Newhart', 'name': 'Bob Newhart', 
-						 'gender': 'male', 'age': 63, 'city': 'Chicago', 'state': 'Illinois', 'score': 0.43984,
-						 'desc': '0 0 0 0 0 0 0 0 0 0'}
-					]*100
+	# Generate between 50 and 450 fake friend edges
+	fc = random.randint(50,650)
+	edgesUnranked = []
+	for i in range(fc):
+
+		muts = random.randint(0,25)
+		primPhoto = random.randint(0,10)
+		otherPhoto = random.randint(0,20)
+
+		edgesUnranked.append(
+			datastructs.Edge(
+					datastructs.UserInfo(500876410, 'Rayid', 'Ghani', 'male', datetime.date(1975,03,14), 'Chicago', 'Illinois'),
+					datastructs.FriendInfo(500876410, 6963, 'Bob', 'Newhart', 'male', datetime.date(1930,01,01), 'Chicago', 'Illinois', primPhoto, otherPhoto, muts),
+					random.randint(0,10), random.randint(0,5), random.randint(0,3), random.randint(0,3), random.randint(0,7), random.randint(0,3), random.randint(0,5),
+					random.randint(0,10), random.randint(0,5), random.randint(0,3), random.randint(0,3), random.randint(0,7), random.randint(0,3), random.randint(0,5),
+					primPhoto, otherPhoto, muts
+				)
+
+			)
+
+#	friendDicts = 	[ 
+#						{'id': 123456789, 'fname': 'Bob', 'lname': 'Newhart', 'name': 'Bob Newhart', 
+#						 'gender': 'male', 'age': 63, 'city': 'Chicago', 'state': 'Illinois', 'score': 0.43984,
+#						 'desc': '0 0 0 0 0 0 0 0 0 0'}
+#					]*100
+
+
+	# Actually rank these edges and generate friend dictionaries from them
+	edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
+	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
