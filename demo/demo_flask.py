@@ -311,8 +311,10 @@ def reset():
 @app.route("/face_test", methods=['GET','POST'])
 def face_test():
 
+	maxTime = int(flask.request.args.get('maxtime', 7))
+
 	# Simulate taking to facebook with a 0-7 second sleep
-	s = random.randint(0,7)
+	s = random.randint(0,maxTime)
 	time.sleep(s)
 
 	# Generate between 50 and 450 fake friend edges
