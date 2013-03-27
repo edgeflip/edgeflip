@@ -9,11 +9,12 @@ import stream_queue
 import sys
 import json
 import time
-from config import config
 import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import config as conf
+config = conf.readJson()
 
-
-
+OFA_STATE_CONFIG = flask.url_for('static', filename='ofa_states.json')
+OFA_CAMPAIGN_CONFIG = flask.url_for('static', filename='ofa_campaign.json')
 
 app = Flask(__name__)
 
@@ -26,7 +27,7 @@ fbParams = {
 			}
 
 # this should probably end up in a DB...
-state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
+#state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
 
 
 
@@ -38,8 +39,10 @@ def home():
 @app.route("/ofa_climate/<state>")
 def ofa_climate(state):
 
+	state_senInfo = conf.readJson(OFA_STATE_CONFIG, False)
+
 	state = state.strip().upper()
-	targetDict = state_target.get(state)
+	targetDict = state_senInfo.get(state)
 
 	if (not targetDict):
 		return "Whoopsie! No targets in that state." # you know, or some 404 page...
@@ -89,12 +92,20 @@ def getBestStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
-
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
-
 	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
-	num = int(flask.request.json['num'])
+	campaign = flask.request.json['campaign']
+
+	state_senInfo = conf.readJson(OFA_STATE_CONFIG, False)  # 'EC' -> {'state_name':'East Calihio',
+														 	# 			'name':'Smokestax',
+														 	# 			'email':'smokestax@senate.gov',
+														 	# 			'phone' : '(202) 123-4567'}
+
+	numFace = int(flask.request.json['num'])
+
+
+
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
 	# zzz Will want to do this with the rank demo when we switch away from Shari!
@@ -122,21 +133,26 @@ def ofa_faces():
 	# zzz No px5 for OFA...
 	# stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	bestState = getBestStateFromEdges(edgesRanked, ["Ohio", "Nevada"])
-
+	bestState = getBestStateFromEdges(edgesRanked, state_senInfo.keys())
 	if (bestState is not None):
-		targetDict = state_target.get(bestState)
-		edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
-		friendDicts = [ e.toDict() for e in edgesFiltered ]
-		filteredDicts = filter_friends(friendDicts)
+		#edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
+		filterTups = conf.readJson(OFA_CAMPAIGN_CONFIG, False)[campaign]
+		filterTups.append(('state', 'eq', bestState))
+		edgesFiltered = filterEdges(edgesRanked, filterTups)
 
-		faceFriends = filteredDicts[:6]
-		numFace = len(faceFriends)
-		allFriends = filteredDicts[:25]
+		#friendDicts = [ e.toDict() for e in edgesFiltered ]
+		#filteredDicts = filter_friends(friendDicts)
+		friendDicts = [ e.toDict() for e in edgesFiltered ]
+
+		faceFriends = friendDicts[:numFace]
+		allFriends = friendDicts[:25]
+
+		senInfo = state_senInfo[bestState]
+
 
 		msgParams = {
 			'msg1_pre' : "Hi there ",
-			'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
+			'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
 			'msg2_pre' : "Now is the time for real climate legislation, ",
 			'msg2_post' : "!",
 			'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
@@ -145,11 +161,11 @@ def ofa_faces():
 		actionParams = 	{
 			'fb_action_type' : 'support',
 			'fb_object_type' : 'cause',
-			'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+			'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
 		}
 		actionParams.update(fbParams)
 
-		return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+		return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
 						   face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	else:
@@ -304,6 +320,16 @@ def targets():
 		return "Ruh-roh! Something went wrong..."
 
 
+def filterEdges(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
+	edgesGood = edges[:]
+	for attrName, compTag, attrVal in filterTups:
+		filtFunc = lambda e: hasattr(e, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
+		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
+	return edgesGood
+
+
+
 def filter_friends(friends):
 	# friends should be a list of dicts.
 	try:
@@ -342,6 +368,10 @@ def filter_friends(friends):
 
 	filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) and location_match(f) )]
 	return filtered_friends
+
+
+
+
 
 
 

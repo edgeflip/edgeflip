@@ -10,9 +10,14 @@ import threading
 import time
 import Queue
 from collections import defaultdict
-import datastructs
-from config import config
 from contextlib import closing
+import datastructs
+import config as conf
+config = conf.readJson()
+
+
+import config
+config = config.readJson()
 
 
 

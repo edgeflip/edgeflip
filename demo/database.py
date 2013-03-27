@@ -7,7 +7,8 @@ import threading
 import datastructs
 import facebook
 import database_rds as db # modify this to swtch db implementations
-from config import config
+import config as conf
+config = conf.readJson()
 
 
 def getConn():

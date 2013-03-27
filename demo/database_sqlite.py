@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import sys
 import sqlite3
-from config import config
+import config as conf
+config = conf.readJson()
 
 
 

@@ -3,7 +3,8 @@ import sys
 import database
 import datastructs
 import logging
-from config import config
+import config as conf
+config = conf.readJson()
 
 
 
