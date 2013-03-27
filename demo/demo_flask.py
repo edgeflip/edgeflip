@@ -10,11 +10,13 @@ import sys
 import json
 import time
 import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import logging
+import os
 import config as conf
 config = conf.readJson()
 
-OFA_STATE_CONFIG = flask.url_for('static', filename='ofa_states.json')
-OFA_CAMPAIGN_CONFIG = flask.url_for('static', filename='ofa_campaign.json')
+OFA_STATE_CONFIG = flask.url_for('config', filename='ofa_states.json')
+OFA_CAMPAIGN_CONFIG = flask.url_for('config', filename='ofa_campaigns.json')
 
 app = Flask(__name__)
 
@@ -96,15 +98,13 @@ def ofa_faces():
 	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
 	campaign = flask.request.json['campaign']
+	numFace = int(flask.request.json['num'])
 
 	state_senInfo = conf.readJson(OFA_STATE_CONFIG, False)  # 'EC' -> {'state_name':'East Calihio',
 														 	# 			'name':'Smokestax',
 														 	# 			'email':'smokestax@senate.gov',
 														 	# 			'phone' : '(202) 123-4567'}
-
-	numFace = int(flask.request.json['num'])
-
-
+	campaign_filterTups = readCampaigns(OFA_CAMPAIGN_CONFIG)
 
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -136,9 +136,9 @@ def ofa_faces():
 	bestState = getBestStateFromEdges(edgesRanked, state_senInfo.keys())
 	if (bestState is not None):
 		#edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
-		filterTups = conf.readJson(OFA_CAMPAIGN_CONFIG, False)[campaign]
+		filterTups = campaign_filterTups[campaign]
 		filterTups.append(('state', 'eq', bestState))
-		edgesFiltered = filterEdges(edgesRanked, filterTups)
+		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
 
 		#friendDicts = [ e.toDict() for e in edgesFiltered ]
 		#filteredDicts = filter_friends(friendDicts)
@@ -296,6 +296,59 @@ def suppress():
 
 ############################ CONTROL PANEL #############################
 
+# n.b.: these are not safe against multi-user race conditions
+def writeCampaign(campFileName, campName, configTups):
+	camp_configTups = readCampaigns(campFileName)
+	camp_configTups[campName] = configTups
+	ts = time.strftime("%Y%m%d_%H%M%S")
+	try:
+		campFileTempName = campFileName + ".tmp" + ts
+		with open(campFileTempName, 'w') as campFileTemp:
+			json.dump(camp_configTups, campFileTemp)
+		os.rename(campFileName, campFileName + '.old' + ts)
+		os.rename(campFileTempName, campFileName)
+		return True
+	except (IOError, OSError) as err:
+		logging.debug("error writing campaign file '%s': %s" % (campFileName, err.message))
+		return False
+
+def readCampaigns(campFileName):
+	try:
+		with open(campFileName, 'r') as campFile:
+			camp_configTups = json.load(campFile)
+		return camp_configTups
+	except IOError as err:
+		logging.debug("error reading campaign file '%s': %s" % (campFileName, err.message))
+		return {}
+
+@app.route("/save_campaign", methods=['POST', 'GET'])
+def saveCampaign():
+	campFileName = int(flask.request.json['campFileName'])
+	campName = flask.request.json['campName']
+	configTups = flask.request.json['configTups']
+	result = writeCampaign(campFileName, campName, configTups)
+	if (result):
+		return "Thank you. Your targeting parameters have been applied."
+	else:
+		return "Ruh-roh! Something went wrong..."
+
+
+
+
+
+def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
+	edgesGood = edges[:]
+	for attrName, compTag, attrVal in filterTups:
+		filtFunc = lambda e: hasattr(e, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
+		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
+	return edgesGood
+
+
+
+
+
+
 @app.route("/cp", methods=['POST', 'GET'])
 @app.route("/control_panel", methods=['POST', 'GET'])
 def cp():
@@ -319,14 +372,6 @@ def targets():
 		raise
 		return "Ruh-roh! Something went wrong..."
 
-
-def filterEdges(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
-	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
-	edgesGood = edges[:]
-	for attrName, compTag, attrVal in filterTups:
-		filtFunc = lambda e: hasattr(e, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
-		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-	return edgesGood
 
 
 
