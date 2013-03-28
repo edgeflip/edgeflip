@@ -35,6 +35,7 @@ def ofa_faces():
 	tok = flask.request.json['token']
 	campaign = flask.request.json.get('campaign')
 	numFace = int(flask.request.json['num'])
+	ip = getIP(req = flask.request)
 
 	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
 	filterTups = campaign_filterTups.get(campaign, [])
@@ -82,12 +83,16 @@ def ofa_faces():
 		'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
 		}
 		actionParams.update(fbParams)
+		writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], 
+					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
 									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	else:
 		#zzz need to figure out what we do here
 		#return flask.render_template('ofa_faces_table_generic.html')
+		writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], 
+			  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return "all of your friends are stateless"
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
@@ -147,18 +152,50 @@ def suppress():
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
 	oldid = flask.request.json['oldid']
+	ip = getIP(req = flask.request)
 
 	newid = flask.request.json['newid']
 	fname = flask.request.json['fname']
 	lname = flask.request.json['lname']
 
-	# SEND TO DB: userid suppressed oldid for appid+content
+	writeEventsDb(ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
 	if (newid != ''):
+		writeEventsDb(ip, userid, [newid], 'shown', appid, content, None, background=True)
 		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
 	else:
 		return ''
 
+@app.route('/clickback', methods=['POST'])
+def clickback():
+	actionid = flask.request.json['actionid']
+	appid = flask.request.json['appid']
+	content = flask.request.json['content']
+	ip = getIP(req = flask.request)
+
+	writeEventsDb(ip, None, [None], 'clickback', appid, content, actionid, background=True)
+
+	return ''
+
+@app.route('/share', methods=['POST'])
+def recordShare():
+	userid = flask.request.json['userid']
+	actionid = flask.request.json['actionid']
+	appid = flask.request.json['appid']
+	content = flask.request.json['content']
+	friends = [ int(f) for f in flask.request.json['recips'] ]
+	ip = getIP(req = flask.request)
+
+	writeEventsDb(ip, userid, friends, 'shared', appid, content, actionid, background=True)
+
+	return ''
+
+
+def getIP(req):
+	if not req.headers.getlist("X-Forwarded-For"):
+	   return req.remote_addr
+	else:
+	   return req.headers.getlist("X-Forwarded-For")[0]
 
 # Endpoint for testing a faces response...
 # (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)

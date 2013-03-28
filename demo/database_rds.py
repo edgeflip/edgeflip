@@ -30,7 +30,19 @@ TABLE_COLS = {
 								out_stat_comms INTEGER,
 								mut_friends INTEGER,
 								updated BIGINT,
-								PRIMARY KEY (prim_id, sec_id) """
+								PRIMARY KEY (prim_id, sec_id) """,
+
+				'events' : """	ip VARCHAR(32),
+								fbid BIGINT,
+								friend_fbid	BIGINT,
+								type VARCHAR(64),
+								appid BIGINT,
+								content VARCHAR(128),
+								activity_id BIGINT,
+								create_dt DATETIME,
+								KEY(fbid),
+								KEY(friend_fbid),
+								KEY(activity_id) """
 			 }
 
 
