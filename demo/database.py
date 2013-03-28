@@ -26,7 +26,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 	conn = connP if (connP is not None) else db.getConn()
 
 	freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
-	logging.debug("freshness date is %s" % freshness_date.strftime("%Y-%m-%d %H:%M:%S"))
+	logging.debug("getting user %s, freshness date is %s" % (userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S")))
 	sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
 	#logging.debug(sql)
 	curs = conn.cursor()
@@ -38,7 +38,8 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 		#logging.debug(str(rec))
 		fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
 		updateDate = datetime.date.fromtimestamp(updated)
-		logging.debug("update date is %s" % freshness_date.strftime("%Y-%m-%d %H:%M:%S"))
+		logging.debug("getting user %s, update date is %s" % (userId, updateDate.strftime("%Y-%m-%d %H:%M:%S")))
+
 		if (updateDate < freshness_date):
 			ret = None
 		else:
