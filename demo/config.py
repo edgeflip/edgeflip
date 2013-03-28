@@ -52,10 +52,11 @@ defaults = {
 
 # set up logging on the root logger
 def setLogger(logpath):
-	logger = logging.getLogger()
 	loghand = logging.handlers.TimedRotatingFileHandler(logpath, when='d', interval=1, backupCount=0, encoding=None, delay=False, utc=False)
 	logformat = logging.Formatter(fmt='%(asctime)s\t%(levelname)s\t%(process)d\t%(threadName)s\t%(message)s', datefmt=None)
 	loghand.setFormatter(logformat)
+	logger = logging.getLogger()
+	logger.handlers = []
 	logger.addHandler(loghand)
 	logger.setLevel(logging.DEBUG)
 
