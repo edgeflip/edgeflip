@@ -40,8 +40,14 @@ defaults = {
 	'freshness': 1,
 
 	# FB app parameters
-	'app_id': 471727162864364,
-	'app_secret': '120fe5e6d5bffa6a9aa3bf075bd3076a',
+	'fb_app_name': 'edgeflip',
+	'fb_app_id': 471727162864364,
+	'fb_app_secret': '120fe5e6d5bffa6a9aa3bf075bd3076a',
+
+	# OFA config file locations
+	'ofa_state_config': './config/ofa_states.json',
+	'ofa_campaign_config': './config/ofa_campaigns.json',
+
 }
 
 # set up logging on the root logger

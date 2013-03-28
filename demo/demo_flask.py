@@ -19,22 +19,16 @@ import random
 import datastructs
 import datetime
 
-OFA_STATE_CONFIG = flask.url_for('config', filename='ofa_states.json')
-OFA_CAMPAIGN_CONFIG = flask.url_for('config', filename='ofa_campaigns.json')
-
 
 app = flask.Flask(__name__)
 
-state_senInfo = conf.readJson(OFA_STATE_CONFIG, False)  # 'EC' -> {'state_name':'East Calihio',
-														# 			'name':'Smokestax',
-														# 			'email':'smokestax@senate.gov',
-														# 			'phone' : '(202) 123-4567'}
+state_senInfo = conf.readJson(config['ofa_state_config'], False)	# 'EC' -> {'state_name':'East Calihio',
+																	# 			'name':'Smokestax',
+																	# 			'email':'smokestax@senate.gov',
+																	# 			'phone' : '(202) 123-4567'}
 
 
-fbParams = {
-				'fb_app_name': 'edgeflip',
-				'fb_app_id': '471727162864364'
-			}
+fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
 
 
 @app.route("/", methods=['POST', 'GET'])
@@ -109,7 +103,8 @@ def ofa_faces():
 	campaign = flask.request.json['campaign']
 	numFace = int(flask.request.json['num'])
 
-	campaign_filterTups = readCampaigns(OFA_CAMPAIGN_CONFIG)
+	campaign_filterTups = readCampaigns(config['ofa_campaign_config'])
+	filterTups = campaign_filterTups[campaign]
 
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -123,8 +118,7 @@ def ofa_faces():
 	conn = database.getConn()
 	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
-	edgesRanked = []
-	if (user is not None): # it's fresh
+	if (user is not None):  # it's fresh
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
@@ -141,7 +135,6 @@ def ofa_faces():
 	bestState = getBestStateFromEdges(edgesRanked, state_senInfo.keys())
 	if (bestState is not None):
 		#edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
-		filterTups = campaign_filterTups[campaign]
 		filterTups.append(('state', 'eq', bestState))
 		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
 
@@ -263,7 +256,7 @@ def writeCampaign(campFileName, campName, configTups):
 		logging.debug("error writing campaign file '%s': %s" % (campFileName, err.message))
 		return False
 
-def readCampaigns(campFileName):
+def readCampaigns(campFileName):  #zzz this should be replaced by config.readJson()
 	try:
 		with open(campFileName, 'r') as campFile:
 			camp_configTups = json.load(campFile)

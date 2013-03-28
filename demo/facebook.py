@@ -82,7 +82,7 @@ def getUrlFb(url):
 	return responseJson
 
 def extendTokenFb(token):
-	url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=' + str(config['app_id']) + '&client_secret=' + config['app_secret'] + '&fb_exchange_token=' + token
+	url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret'] + '&fb_exchange_token=' + token
 
 	# Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
 	# even if you try passing &format=json in the URL.
