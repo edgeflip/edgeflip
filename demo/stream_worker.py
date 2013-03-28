@@ -9,9 +9,10 @@ import datastructs
 import time
 import json
 import pika
-
-from config import config
+import config as conf
+config = conf.readJson()
 logging.getLogger('pika').setLevel(logging.CRITICAL)
+
 
 
 

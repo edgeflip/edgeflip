@@ -7,7 +7,8 @@ import threading
 import datastructs
 import facebook
 import database_rds as db # modify this to swtch db implementations
-from config import config
+import config as conf
+config = conf.readJson()
 
 
 def getConn():
@@ -78,7 +79,8 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 	for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
 		secondary = getUserDb(conn, sId)
 		# For now, hard code Nones into Edge constructor until we integrate the new features into the DB
-		eds.append(datastructs.Edge(primary, secondary, inPstLk, inPstCm, inStLk, inStCm, None, None, None, outPstLk, outPstCm, outStLk, outStCm, None, None, None, None, None, muts))
+		eds.append(datastructs.EdgeFromCounts(primary, secondary, inPstLk, inPstCm, inStLk, inStCm,
+											  None, None, None, outPstLk, outPstCm, outStLk, outStCm, None, None, None, None, None, muts))
 	if (connP is None):
 		conn.close()
 	return eds

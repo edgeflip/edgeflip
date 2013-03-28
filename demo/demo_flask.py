@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import flask
-from flask import Flask, render_template
 #import ReadStream
 import database
 import facebook
@@ -9,75 +8,109 @@ import stream_queue
 import sys
 import json
 import time
-from config import config
-import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import logging
+import os
+import config as conf
+config = conf.readJson()
 
 # for testing endpoint -- could be removed for production-only code
 import random
 import datastructs
 import datetime
 
+OFA_STATE_CONFIG = flask.url_for('config', filename='ofa_states.json')
+OFA_CAMPAIGN_CONFIG = flask.url_for('config', filename='ofa_campaigns.json')
 
-app = Flask(__name__)
 
+app = flask.Flask(__name__)
 
+state_senInfo = conf.readJson(OFA_STATE_CONFIG, False)  # 'EC' -> {'state_name':'East Calihio',
+														# 			'name':'Smokestax',
+														# 			'email':'smokestax@senate.gov',
+														# 			'phone' : '(202) 123-4567'}
 
 
 fbParams = {
-				'fb_app_name' : 'edgeflip',
-				'fb_app_id' : '471727162864364'
+				'fb_app_name': 'edgeflip',
+				'fb_app_id': '471727162864364'
 			}
-
-# this should probably end up in a DB...
-state_target = { 'EC' : {'state_name' : 'East Calihio', 'name' : 'Smokestax', 'email' : 'smokestax@senate.gov', 'phone' : '(202) 123-4567'} }
-
 
 
 @app.route("/", methods=['POST', 'GET'])
 def home():
-	return render_template('index.html')
+	return flask.render_template('index.html')
 
 
 @app.route("/ofa_climate/<state>")
 def ofa_climate(state):
 
 	state = state.strip().upper()
-	targetDict = state_target.get(state)
+	targetDict = state_senInfo.get(state)
 
 	if (not targetDict):
-		return "Whoopsie! No targets in that state." # you know, or some 404 page...
+		return "Whoopsie! No targets in that state."  # you know, or some 404 page...
 
 	objParams = {
-					'page_title' : "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
+					'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
 
-					'fb_action_type' : 'support',
-					'fb_object_type' : 'cause',
-					'fb_object_title' : 'Climate Legislation',
+					'fb_action_type': 'support',
+					'fb_object_type': 'cause',
+					'fb_object_title': 'Climate Legislation',
 
-					'fb_object_image' : 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-					'fb_object_desc' : "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
-					'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+					'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
+					'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
+					'fb_object_url': 'http://demo.edgeflip.com/ofa_climate/%s' % state
 				}
 	objParams.update(fbParams)
 
-	return render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
+	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
 
 @app.route("/ofa")
 @app.route('/all_the_dude_ever_wanted')
 @app.route('/demo')
 @app.route('/button')
 def ofa_auth():
-	return render_template('ofa_share_page.html', fbParams=fbParams)
+	return flask.render_template('ofa_share_page.html', fbParams=fbParams)
 
+
+def getBestStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
+	elgCount = int(len(edgesRanked) * eligibleProportion)
+	edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
+	state_count = {}
+	for e in edgesElg:
+		state_count[e.state] = state_count.get(e.state, 0) + 1
+	if (statePool is not None):
+		for state in state_count.keys():
+			if (state not in statePool):
+				del state_count[state]
+	bestCount = max(state_count.values())
+	bestStates = [ state for state, count in state_count.items if (count == bestCount) ]
+	if (len(bestStates) == 1):
+		return bestStates[0]
+	else:
+		# there's a tie for first, so grab the state with the best avg scores
+		bestState = None
+		bestScoreAvg = 0.0
+		for state in bestStates:
+			edgesState = [ e for e in edgesElg if (e.state == state) ]
+			scoreAvg = sum([ e.score for e in edgesState ])
+			if (scoreAvg > bestScoreAvg):
+				bestState = state
+				bestScoreAvg = scoreAvg
+		return bestState
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
-
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
-
 	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
-	num = int(flask.request.json['num'])
+	campaign = flask.request.json['campaign']
+	numFace = int(flask.request.json['num'])
+
+	campaign_filterTups = readCampaigns(OFA_CAMPAIGN_CONFIG)
+
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
 	# zzz Will want to do this with the rank demo when we switch away from Shari!
@@ -85,7 +118,7 @@ def ofa_faces():
 		newToken = facebook.extendTokenFb(tok)
 		tok = newToken
 	except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError):
-		pass # Something went wrong, but the facebook script already logged it, so just go with the original token
+		pass  # Something went wrong, but the facebook script already logged it, so just go with the original token
 
 	conn = database.getConn()
 	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
@@ -94,8 +127,8 @@ def ofa_faces():
 	if (user is not None): # it's fresh
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
 		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
 		database.updateDb(user, tok, edgesRanked, background=True)
@@ -105,38 +138,44 @@ def ofa_faces():
 	# zzz No px5 for OFA...
 	# stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
-	friendDicts = [ e.toDict() for e in edgesRanked ]
+	bestState = getBestStateFromEdges(edgesRanked, state_senInfo.keys())
+	if (bestState is not None):
+		#edgesFiltered = [ e for e in edgesRanked if (e.state == bestState) ]
+		filterTups = campaign_filterTups[campaign]
+		filterTups.append(('state', 'eq', bestState))
+		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
 
-	# Apply control panel targeting filters
-	filteredDicts = filter_friends(friendDicts)
+		#friendDicts = [ e.toDict() for e in edgesFiltered ]
+		#filteredDicts = filter_friends(friendDicts)
+		friendDicts = [ e.toDict() for e in edgesFiltered ]
 
-	faceFriends = filteredDicts[:6]
-	numFace = len(faceFriends)
-	allFriends = filteredDicts[:25]
+		faceFriends = friendDicts[:numFace]
+		allFriends = friendDicts[:25]
 
-	# zzz state = target state with most friends
-	state = 'EC'
+		senInfo = state_senInfo[bestState]
 
-	targetDict = state_target.get(state)
 
-	msgParams = {
-					'msg1_pre' : "Hi there ",
-					'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % targetDict['name'],
-					'msg2_pre' : "Now is the time for real climate legislation, ",
-					'msg2_post' : "!",
-					'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-					'msg_other_init' : "Replace this text with your message for " 
-				}
+		msgParams = {
+			'msg1_pre' : "Hi there ",
+			'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
+			'msg2_pre' : "Now is the time for real climate legislation, ",
+			'msg2_post' : "!",
+			'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
+			'msg_other_init' : "Replace this text with your message for "
+		}
+		actionParams = 	{
+			'fb_action_type' : 'support',
+			'fb_object_type' : 'cause',
+			'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+		}
+		actionParams.update(fbParams)
 
-	actionParams = 	{
-						'fb_action_type' : 'support',
-						'fb_object_type' : 'cause',
-						'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
-					}
-	actionParams.update(fbParams)
+		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+						   face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
-	return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
-							face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
+	else:
+		#zzz need to figure out what we do here
+		return flask.render_template('ofa_faces_table_generic.html')
 
 
 @app.route('/rank')
@@ -151,7 +190,7 @@ def rank_demo():
 	rank_user = flask.request.args.get('user', '').lower()
 	fbid = default_users.get(rank_user, {}).get('fbid', None)
 	tok = default_users.get(rank_user, {}).get('tok', None)
-	return render_template('rank_demo.html', fbid=fbid, tok=tok)
+	return flask.render_template('rank_demo.html', fbid=fbid, tok=tok)
 
 @app.route('/rank_faces', methods=['POST'])
 def rank_faces():
@@ -167,22 +206,22 @@ def rank_faces():
 		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
 		# now do a partial crawl real-time
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
 		user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
 		# spawn off a separate thread to do the database writing
 		database.updateDb(user, tok, edgesRanked, background=True)
 
 	else:
- 		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
 	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
 
-	ret = render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
+	ret = flask.render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
 	return ret
 	
 
@@ -200,12 +239,66 @@ def suppress():
 	# SEND TO DB: userid suppressed oldid for appid+content
 
 	if (newid != ''):
-		return render_template('new_face.html', id=newid, fname=fname, lname=lname)
+		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
 	else:
 		return ''
 
 
 ############################ CONTROL PANEL #############################
+
+
+# n.b.: these are not safe against multi-user race conditions
+def writeCampaign(campFileName, campName, configTups):
+	camp_configTups = readCampaigns(campFileName)
+	camp_configTups[campName] = configTups
+	ts = time.strftime("%Y%m%d_%H%M%S")
+	try:
+		campFileTempName = campFileName + ".tmp" + ts
+		with open(campFileTempName, 'w') as campFileTemp:
+			json.dump(camp_configTups, campFileTemp)
+		os.rename(campFileName, campFileName + '.old' + ts)
+		os.rename(campFileTempName, campFileName)
+		return True
+	except (IOError, OSError) as err:
+		logging.debug("error writing campaign file '%s': %s" % (campFileName, err.message))
+		return False
+
+def readCampaigns(campFileName):
+	try:
+		with open(campFileName, 'r') as campFile:
+			camp_configTups = json.load(campFile)
+		return camp_configTups
+	except IOError as err:
+		logging.debug("error reading campaign file '%s': %s" % (campFileName, err.message))
+		return {}
+
+@app.route("/campaign_save", methods=['POST', 'GET'])
+def saveCampaign():
+	campFileName = int(flask.request.json['campFileName'])
+	campName = flask.request.json['campName']
+	configTups = flask.request.json['configTups']
+	result = writeCampaign(campFileName, campName, configTups)
+	if (result):
+		return "Thank you. Your targeting parameters have been applied."
+	else:
+		return "Ruh-roh! Something went wrong..."
+
+
+
+
+
+def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
+	edgesGood = edges[:]
+	for attrName, compTag, attrVal in filterTups:
+		filtFunc = lambda e: hasattr(e, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
+		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
+	return edgesGood
+
+
+
+
+
 
 @app.route("/cp", methods=['POST', 'GET'])
 @app.route("/control_panel", methods=['POST', 'GET'])
@@ -216,7 +309,7 @@ def cp():
 		config_dict = json.loads(cf.read())
 	except:
 		pass
-	return render_template('control_panel.html', config=config_dict)
+	return flask.render_template('control_panel.html', config=config_dict)
 
 
 @app.route("/set_targets", methods=['POST'])
@@ -229,6 +322,8 @@ def targets():
 	except:
 		raise
 		return "Ruh-roh! Something went wrong..."
+
+
 
 
 def filter_friends(friends):
@@ -272,6 +367,10 @@ def filter_friends(friends):
 
 
 
+
+
+
+
 ############################ UTILS #############################
 
 @app.route('/utils')
@@ -287,7 +386,7 @@ def queueStatus(msg=''):
 	qSize = stream_queue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
 	lName = './test_queue.txt'
-	return render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+	return flask.render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
 
 @app.route('/queue_reset')
 def queueReset():
@@ -358,7 +457,7 @@ def face_test():
 	# zzz state = target state with most friends
 	state = 'EC'
 
-	targetDict = state_target.get(state)
+	targetDict = state_senInfo.get(state)
 
 	msgParams = {
 					'msg1_pre' : "Hi there ",
@@ -376,9 +475,8 @@ def face_test():
 					}
 	actionParams.update(fbParams)
 
-	return render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+	return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
 							face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
-
 
 
 

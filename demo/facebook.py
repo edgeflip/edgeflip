@@ -10,9 +10,14 @@ import threading
 import time
 import Queue
 from collections import defaultdict
-import datastructs
-from config import config
 from contextlib import closing
+import datastructs
+import config as conf
+config = conf.readJson()
+
+
+import config
+config = config.readJson()
 
 
 
@@ -180,25 +185,25 @@ def getUserFb(userId, token):
 	user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
 	return user
 
-def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
+def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=set()):
 
 	logging.debug("getting friend edges from FB for %d" % userId)
 	tim = datastructs.Timer()
-
 	friends = getFriendsFb(userId, tok)
-	
 	logging.debug("got %d friends total", len(friends))
 	
 	friendQueue = [f for f in friends if f.id not in skipFriends]
+	if (requireIncoming):
+		logging.info('reading stream for user %s, %s', userId, tok)
+		sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
+		logging.debug('got %s', str(sc))
 
-	logging.info('reading stream for user %s, %s', userId, tok)
-	sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
-	logging.debug('got %s', str(sc))
-
-	# sort all the friends by their stream rank (if any) and mutual friend count
-	friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
-	logging.debug("got %d friends ranked", len(friendId_streamrank))
-	friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
+		# sort all the friends by their stream rank (if any) and mutual friend count
+		friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
+		logging.debug("got %d friends ranked", len(friendId_streamrank))
+		friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
+	else:
+		friendQueue.sort(key=lambda x: x.mutuals, reverse=True)
 
 	# Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
 	# relative to the number of calls we're making (the number of chunks) to 1 call / sec.
@@ -207,18 +212,21 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 	edges = []
 	user = getUserFb(userId, tok)
 	for i, friend in enumerate(friendQueue):
-		if (requireOutgoing):
-			timFriend = datastructs.Timer()
-			logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
-			try:
-				scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
-			except Exception as ex:
-				logging.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
-				continue
-			logging.debug('got %s', str(scFriend))
-			e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+		if (requireIncoming):
+			if (requireOutgoing):
+				timFriend = datastructs.Timer()
+				logging.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+				try:
+					scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
+				except Exception as ex:
+					logging.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
+					continue
+				logging.debug('got %s', str(scFriend))
+				e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+			else:
+				e = datastructs.EdgeSC1(user, friend, sc)
 		else:
-			e = datastructs.EdgeSC1(user, friend, sc)
+			e = datastructs.EdgeStreamless(user, friend)
 		edges.append(e)
 		logging.debug('edge %s', str(e))
 
@@ -231,10 +239,7 @@ def getFriendEdgesFb(userId, tok, requireOutgoing=False, skipFriends=set()):
 			if (secsLeft > 0):
 				logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
 				time.sleep(secsLeft)
-
-
 	logging.debug("got %d friend edges for %d (%s)" % (len(edges), userId, tim.elapsedPr()))
-
 	return edges
 
 
