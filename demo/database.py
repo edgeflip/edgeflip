@@ -40,7 +40,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 		updateDate = datetime.date.fromtimestamp(updated)
 		logging.debug("getting user %s, update date is %s" % (userId, updateDate.strftime("%Y-%m-%d %H:%M:%S")))
 
-		if (updateDate < freshness_date):
+		if (updateDate <= freshness_date):
 			ret = None
 		else:
 			if (freshnessIncludeEdge):
