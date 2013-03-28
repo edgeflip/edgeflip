@@ -53,12 +53,9 @@ def ofa_climate(state):
 
 	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
 
-@app.route("/ofa")
 @app.route('/all_the_dude_ever_wanted')
 @app.route('/demo')
 @app.route('/button')
-def ofa_auth():
-	return flask.render_template('ofa_share_page.html', fbParams=fbParams)
 
 
 
