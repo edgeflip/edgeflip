@@ -1,10 +1,7 @@
 #!/usr/bin/python
 import sys
-import os
 import time
 import datetime
-import json
-import logging
 import random
 import flask
 
