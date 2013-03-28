@@ -296,6 +296,7 @@ def suppress():
 
 ############################ CONTROL PANEL #############################
 
+
 # n.b.: these are not safe against multi-user race conditions
 def writeCampaign(campFileName, campName, configTups):
 	camp_configTups = readCampaigns(campFileName)
@@ -321,7 +322,7 @@ def readCampaigns(campFileName):
 		logging.debug("error reading campaign file '%s': %s" % (campFileName, err.message))
 		return {}
 
-@app.route("/save_campaign", methods=['POST', 'GET'])
+@app.route("/campaign_save", methods=['POST', 'GET'])
 def saveCampaign():
 	campFileName = int(flask.request.json['campFileName'])
 	campName = flask.request.json['campName']
