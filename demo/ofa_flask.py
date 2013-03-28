@@ -85,7 +85,8 @@ def ofa_faces():
 
 	else:
 		#zzz need to figure out what we do here
-		return flask.render_template('ofa_faces_table_generic.html')
+		#return flask.render_template('ofa_faces_table_generic.html')
+		return "all of your friends are stateless"
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
 	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
@@ -98,21 +99,24 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 		for state in state_count.keys():
 			if (state not in statePool):
 				del state_count[state]
-	bestCount = max(state_count.values())
-	bestStates = [ state for state, count in state_count.items if (count == bestCount) ]
-	if (len(bestStates) == 1):
-		return bestStates[0]
+	if (state_count):
+		bestCount = max(state_count.values() + [0])  # in case we don't get any states
+		bestStates = [ state for state, count in state_count.items if (count == bestCount) ]
+		if (len(bestStates) == 1):
+			return bestStates[0]
+		else:
+			# there's a tie for first, so grab the state with the best avg scores
+			bestState = None
+			bestScoreAvg = 0.0
+			for state in bestStates:
+				edgesState = [ e for e in edgesElg if (e.state == state) ]
+				scoreAvg = sum([ e.score for e in edgesState ])
+				if (scoreAvg > bestScoreAvg):
+					bestState = state
+					bestScoreAvg = scoreAvg
+			return bestState
 	else:
-		# there's a tie for first, so grab the state with the best avg scores
-		bestState = None
-		bestScoreAvg = 0.0
-		for state in bestStates:
-			edgesState = [ e for e in edgesElg if (e.state == state) ]
-			scoreAvg = sum([ e.score for e in edgesState ])
-			if (scoreAvg > bestScoreAvg):
-				bestState = state
-				bestScoreAvg = scoreAvg
-		return bestState
+		return None
 
 def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
 	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
