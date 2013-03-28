@@ -32,7 +32,7 @@ def ofa_faces():
 	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
-	campaign = flask.request.json['campaign']
+	campaign = flask.request.json.get('campaign')
 	numFace = int(flask.request.json['num'])
 
 	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
