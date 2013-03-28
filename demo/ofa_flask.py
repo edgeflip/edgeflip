@@ -226,3 +226,14 @@ def face_test():
 	return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
 								 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
+
+
+
+###########################################################################
+
+if (__name__ == "__main__"):
+
+	port = int(sys.argv[1]) if (len(sys.argv) > 1) else 5000
+	app.run('0.0.0.0', port=port, debug=False)
+
+
