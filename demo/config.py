@@ -65,7 +65,7 @@ def setLogger(logpath):
 # do this once on load
 setLogger(defaults['logpath'])
 
-def defaults():
+def getDefaults():
 	config = dict(defaults)
 	return config
 
@@ -74,7 +74,7 @@ def getConfig(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
 	# if we got a new logpath from this read, set the logger
 	if ('logpath' in configFromFile):
 		setLogger(configFromFile['logpath'])
-	config = defaults() if (includeDefaults) else {}
+	config = getDefaults() if (includeDefaults) else {}
 	for k, v in config.items():
 		logging.debug("config default %s: %s" % (k, str(v)))
 	for k, v in configFromFile.items():
