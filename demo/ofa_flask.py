@@ -55,7 +55,7 @@ def ofa_faces():
 		database.updateDb(user, tok, edgesRanked, background=True)
 	conn.close()
 
-	bestState = getBestStateFromEdges(edgesRanked, state_senInfo.keys())
+	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys())
 	if (bestState is not None):
 		filterTups.append(('state', 'eq', bestState))
 		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
@@ -87,13 +87,13 @@ def ofa_faces():
 		#zzz need to figure out what we do here
 		return flask.render_template('ofa_faces_table_generic.html')
 
-def getBestStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
 	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
 	elgCount = int(len(edgesRanked) * eligibleProportion)
 	edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
 	state_count = {}
 	for e in edgesElg:
-		state_count[e.state] = state_count.get(e.state, 0) + 1
+		state_count[e.secondary.state] = state_count.get(e.secondary.state, 0) + 1
 	if (statePool is not None):
 		for state in state_count.keys():
 			if (state not in statePool):
