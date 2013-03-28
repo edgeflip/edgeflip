@@ -13,26 +13,26 @@ def prox(e, eMax):
 	countMaxWeightTups = [
 		# px3
 		(e.mutuals, eMax.mutuals, 1.0),
-		(e.primPhotoTags, eMax.primPhotoTagsMax, 3.0),
-		(e.otherPhotoTags, eMax.otherPhotoTagsMax, 2.0),
+		(e.primPhotoTags, eMax.primPhotoTags, 3.0),
+		(e.otherPhotoTags, eMax.otherPhotoTags, 2.0),
 
 		# px4
-		(e.inPostLikes, eMax.inPostLikesMax, 1.0),
-		(e.inPostComms, eMax.inPostCommsMax, 1.0),
-		(e.inStatLikes, eMax.inStatLikesMax, 2.0),
-		(e.inStatComms, eMax.inStatCommsMax, 1.0),
-		(e.inWallPosts, eMax.inWallPostsMax, 1.0),		# guessed weight
-		(e.inWallComms, eMax.inWallCommsMax, 1.0),		# guessed weight
-		(e.inTags, eMax.inTagsMax, 1.0),
+		(e.inPostLikes, eMax.inPostLikes, 1.0),
+		(e.inPostComms, eMax.inPostComms, 1.0),
+		(e.inStatLikes, eMax.inStatLikes, 2.0),
+		(e.inStatComms, eMax.inStatComms, 1.0),
+		(e.inWallPosts, eMax.inWallPosts, 1.0),		# guessed weight
+		(e.inWallComms, eMax.inWallComms, 1.0),		# guessed weight
+		(e.inTags, eMax.inTags, 1.0),
 
 		# px5
-		(e.outPostLikes, eMax.outPostLikesMax, 2.0),
-		(e.outPostComms, eMax.outPostCommsMax, 3.0),
-		(e.outStatLikes, eMax.outStatLikesMax, 2.0),
-		(e.outStatComms, eMax.outStatCommsMax, 16.0),
-		(e.outWallPosts, eMax.outWallPostsMax, 2.0),	# guessed weight
-		(e.outWallComms, eMax.outWallCommsMax, 3.0),	# guessed weight
-		(e.outTags, eMax.outTagsMax, 1.0),
+		(e.outPostLikes, eMax.outPostLikes, 2.0),
+		(e.outPostComms, eMax.outPostComms, 3.0),
+		(e.outStatLikes, eMax.outStatLikes, 2.0),
+		(e.outStatComms, eMax.outStatComms, 16.0),
+		(e.outWallPosts, eMax.outWallPosts, 2.0),	# guessed weight
+		(e.outWallComms, eMax.outWallComms, 3.0),	# guessed weight
+		(e.outTags, eMax.outTags, 1.0),
 	]
 	pxTotal = 0.0
 	weightTotal = 0.0
