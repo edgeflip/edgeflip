@@ -4,7 +4,7 @@ import database
 import datastructs
 import logging
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 
 
 

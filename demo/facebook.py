@@ -13,7 +13,7 @@ from collections import defaultdict
 from contextlib import closing
 import datastructs
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 
 
 

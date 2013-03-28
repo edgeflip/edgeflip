@@ -8,7 +8,7 @@ import datastructs
 import facebook
 import database_rds as db # modify this to swtch db implementations
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 
 
 def getConn():

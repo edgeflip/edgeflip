@@ -2,6 +2,8 @@
 import json
 import logging
 import logging.handlers
+import datetime
+import os
 
 
 
@@ -67,23 +69,41 @@ def defaults():
 	config = dict(defaults)
 	return config
 
-def readJson(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
-	try:
-		configFromFile = json.load(open(infilePath, 'r'))
-	except IOError:
-		logging.error("config file '%s' not found" % (infilePath))
-		configFromFile = {}
+def getConfig(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
+	configFromFile = readJson(infilePath)
 	# if we got a new logpath from this read, set the logger
 	if ('logpath' in configFromFile):
 		setLogger(configFromFile['logpath'])
-
 	config = defaults() if (includeDefaults) else {}
 	for k, v in config.items():
 		logging.debug("config default %s: %s" % (k, str(v)))
 	for k, v in configFromFile.items():
 		logging.debug("config json %s: %s" % (k, str(v)))
-
 	config.update(configFromFile)
 	return config
+
+def readJson(infilePath):
+	try:
+		return json.load(open(infilePath, 'r'))
+	except IOError:
+		logging.error("config file '%s' not found" % (infilePath))
+		return {}
+
+# n.b.: this is not safe against multi-user race conditions
+def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
+	ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
+	tag_data = {} if (overwriteFile) else getConfig(fileName, includeDefaults=False)
+	for tag, dataNew in tag_dataNew:
+		tag_data[tag] = dataNew
+	try:
+		tempName = fileName + ".tmp" + ts
+		with open(tempName, 'w') as tempFile:
+			json.dump(tag_data, tempFile)
+		os.rename(fileName, fileName + ".old" + ts)
+		os.rename(tempName, fileName)
+		return True
+	except (IOError, OSError) as err:
+		logging.error("error writing config file '%s': %s" % (fileName, err.message))
+		return False
 
 

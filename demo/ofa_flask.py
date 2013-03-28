@@ -13,7 +13,7 @@ import ranking
 import database
 import datastructs
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 
 
 
@@ -36,7 +36,7 @@ def ofa_faces():
 	campaign = flask.request.json['campaign']
 	numFace = int(flask.request.json['num'])
 
-	campaign_filterTups = readCampaigns(config['ofa_campaign_config'])
+	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
 	filterTups = campaign_filterTups.get(campaign, [])
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -124,37 +124,12 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
 	return edgesGood
 
 
-# n.b.: these are not safe against multi-user race conditions
-def writeCampaign(campFileName, campName, configTups):
-	camp_configTups = readCampaigns(campFileName)
-	camp_configTups[campName] = configTups
-	ts = time.strftime("%Y%m%d_%H%M%S")
-	try:
-		campFileTempName = campFileName + ".tmp" + ts
-		with open(campFileTempName, 'w') as campFileTemp:
-			json.dump(camp_configTups, campFileTemp)
-		os.rename(campFileName, campFileName + '.old' + ts)
-		os.rename(campFileTempName, campFileName)
-		return True
-	except (IOError, OSError) as err:
-		logging.debug("error writing campaign file '%s': %s" % (campFileName, err.message))
-		return False
-
-def readCampaigns(campFileName):  #zzz this should be replaced by config.readJson()
-	try:
-		with open(campFileName, 'r') as campFile:
-			camp_configTups = json.load(campFile)
-		return camp_configTups
-	except IOError as err:
-		logging.debug("error reading campaign file '%s': %s" % (campFileName, err.message))
-		return {}
-
 @app.route("/campaign_save", methods=['POST', 'GET'])
 def saveCampaign():
 	campFileName = int(flask.request.json['campFileName'])
 	campName = flask.request.json['campName']
 	configTups = flask.request.json['configTups']
-	result = writeCampaign(campFileName, campName, configTups)
+	result = conf.writeJsonDict(campFileName, {campName: configTups}, overwriteFile=False)
 	if (result):
 		return "Thank you. Your targeting parameters have been applied."
 	else:
@@ -220,7 +195,7 @@ def face_test():
 	# Actually rank these edges and generate friend dictionaries from them
 	edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
 
-	campaign_filterTups = readCampaigns(config['ofa_campaign_config'])
+	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
 	campaign = "test"
 	filterTups = campaign_filterTups.get(campaign, [])
 	edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)

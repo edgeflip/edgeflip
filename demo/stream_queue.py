@@ -5,7 +5,7 @@ import argparse
 import json
 import logging
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 

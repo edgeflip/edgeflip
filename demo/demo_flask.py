@@ -12,7 +12,7 @@ import urllib2  # Just for handling errors raised from facebook module. Seems li
 import logging
 import os
 import config as conf
-config = conf.readJson(includeDefaults=True)
+config = conf.getConfig(includeDefaults=True)
 
 # for testing endpoint -- could be removed for production-only code
 import random
