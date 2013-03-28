@@ -3,6 +3,7 @@ import sys
 import time
 import datetime
 import random
+import logging
 import flask
 
 import facebook
@@ -46,13 +47,14 @@ def ofa_faces():
 	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
 	if (user is not None):  # it's fresh
+		logging.debug("user %s is fresh, getting data from db" % fbid)
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
+		logging.debug("user %s is not fresh, retrieving data from fb" % fbid)
 		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
 		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
-		# spawn off a separate thread to do the database writing
 		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateDb(user, tok, edgesRanked, background=True)
+		database.updateDb(user, tok, edgesRanked, background=True) 	# zzz should spawn off thread to do db writing
 	conn.close()
 
 	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys())
