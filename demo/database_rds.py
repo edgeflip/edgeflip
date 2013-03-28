@@ -2,7 +2,7 @@
 import sys
 import MySQLdb as mysql
 import config as conf
-config = conf.readJson()
+config = conf.readJson(includeDefaults=True)
 # import logging
 
 

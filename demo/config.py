@@ -66,7 +66,7 @@ def defaults():
 	config = dict(defaults)
 	return config
 
-def readJson(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=True):
+def readJson(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
 	try:
 		configFromFile = json.load(open(infilePath, 'r'))
 	except IOError:

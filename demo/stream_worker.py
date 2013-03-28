@@ -10,7 +10,7 @@ import time
 import json
 import pika
 import config as conf
-config = conf.readJson()
+config = conf.readJson(includeDefaults=True)
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 

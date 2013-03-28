@@ -12,7 +12,7 @@ import urllib2  # Just for handling errors raised from facebook module. Seems li
 import logging
 import os
 import config as conf
-config = conf.readJson()
+config = conf.readJson(includeDefaults=True)
 
 # for testing endpoint -- could be removed for production-only code
 import random
@@ -22,10 +22,10 @@ import datetime
 
 app = flask.Flask(__name__)
 
-state_senInfo = conf.readJson(config['ofa_state_config'], False)	# 'EC' -> {'state_name':'East Calihio',
-																	# 			'name':'Smokestax',
-																	# 			'email':'smokestax@senate.gov',
-																	# 			'phone' : '(202) 123-4567'}
+state_senInfo = conf.readJson(config['ofa_state_config'])	# 'EC' -> {'state_name':'East Calihio',
+															# 			'name':'Smokestax',
+															# 			'email':'smokestax@senate.gov',
+															# 			'phone' : '(202) 123-4567'}
 
 
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }

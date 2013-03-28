@@ -2,7 +2,7 @@
 import sys
 import sqlite3
 import config as conf
-config = conf.readJson()
+config = conf.readJson(includeDefaults=True)
 
 
 
