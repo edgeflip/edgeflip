@@ -83,15 +83,15 @@ def ofa_faces():
 		'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
 		}
 		actionParams.update(fbParams)
-		#writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
-		#			  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
+		database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
 									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 	else:
 		#zzz need to figure out what we do here
 		#return flask.render_template('ofa_faces_table_generic.html')
-		#writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		#database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 		#	  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return "all of your friends are stateless"
 
@@ -158,10 +158,10 @@ def suppress():
 	fname = flask.request.json['fname']
 	lname = flask.request.json['lname']
 
-	# writeEventsDb(ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+	database.writeEventsDb(ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
 	if (newid != ''):
-		# writeEventsDb(ip, userid, [newid], 'shown', appid, content, None, background=True)
+		database.writeEventsDb(ip, userid, [newid], 'shown', appid, content, None, background=True)
 		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
 	else:
 		return ''
@@ -173,8 +173,7 @@ def clickback():
 	content = flask.request.json['content']
 	ip = getIP(req = flask.request)
 
-	# writeEventsDb(ip, None, [None], 'clickback', appid, content, actionid, background=True)
-
+	database.writeEventsDb(ip, None, [None], 'clickback', appid, content, actionid, background=True)
 	return ''
 
 @app.route('/share', methods=['POST'])
@@ -186,7 +185,7 @@ def recordShare():
 	friends = [ int(f) for f in flask.request.json['recips'] ]
 	ip = getIP(req = flask.request)
 
-	# writeEventsDb(ip, userid, friends, 'shared', appid, content, actionid, background=True)
+	database.writeEventsDb(ip, userid, friends, 'shared', appid, content, actionid, background=True)
 	return ''
 
 
