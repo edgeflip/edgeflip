@@ -36,7 +36,7 @@ class Timer:
 # util func to deal with Nones, numbers, and unisuck
 def unidecodeSafe(s):
 	if (s is None):
-		return ""
+		return chr(167)
 	else:
 		try:
 			return str(s)
@@ -58,7 +58,7 @@ class UserInfo(object):
 				 unidecodeSafe(self.fname),
 				 unidecodeSafe(self.lname),
 				 self.gender,
-				 str(self.age),
+				 unidecodeSafe(self.age),
 				 unidecodeSafe(self.city),
 				 unidecodeSafe(self.state) ]
 		return " ".join(rets)
