@@ -62,6 +62,7 @@ def ofa_faces():
 	if (bestState is not None):
 		filterTups.append(('state', 'eq', bestState))
 		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
+		logging.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
 
 		friendDicts = [ e.toDict() for e in edgesFiltered ]
 		faceFriends = friendDicts[:numFace]
