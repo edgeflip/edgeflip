@@ -41,7 +41,7 @@ def ofa_faces():
 	filterTups = campaign_filterTups.get(campaign, [])
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
-	# zzz Will want to do this with the rank demo when we switch away from Shari!
+	#zzz Will want to do this with the rank demo when we switch away from Shari!
 	tok = facebook.extendTokenFb(tok) or tok
 
 	conn = database.getConn()
@@ -58,10 +58,11 @@ def ofa_faces():
 		database.updateDb(user, tok, edgesRanked, background=True) 	# zzz should spawn off thread to do db writing
 	conn.close()
 
-	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys())
+	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
 	if (bestState is not None):
 		filterTups.append(('state', 'eq', bestState))
 		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
+		logging.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
 
 		friendDicts = [ e.toDict() for e in edgesFiltered ]
 		faceFriends = friendDicts[:numFace]
@@ -107,9 +108,11 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 			if (state not in statePool):
 				del state_count[state]
 	if (state_count):
+		logging.debug("best state counts: %s" % str(state_count))
 		bestCount = max(state_count.values() + [0])  # in case we don't get any states
 		bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
 		if (len(bestStates) == 1):
+			logging.debug("best state returning %s" % bestStates[0])
 			return bestStates[0]
 		else:
 			# there's a tie for first, so grab the state with the best avg scores
@@ -121,6 +124,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 				if (scoreAvg > bestScoreAvg):
 					bestState = state
 					bestScoreAvg = scoreAvg
+			logging.debug("best state returning %s" % bestState)
 			return bestState
 	else:
 		return None
@@ -129,8 +133,10 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
 	str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
 	edgesGood = edges[:]
 	for attrName, compTag, attrVal in filterTups:
-		filtFunc = lambda e: hasattr(e, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
+		logging.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
+		filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
 		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
+		logging.debug("have %d edges left" % (len(edgesGood)))
 	return edgesGood
 
 
@@ -275,8 +281,12 @@ def face_test():
 ###########################################################################
 
 if (__name__ == "__main__"):
-
+	if ('--debug' in sys.argv):
+		sys.argv.remove('--debug')
+		debug = True
+	else:
+		debug = False
 	port = int(sys.argv[1]) if (len(sys.argv) > 1) else 5000
-	app.run('0.0.0.0', port=port, debug=False)
+	app.run('0.0.0.0', port=port, debug=debug)
 
 
