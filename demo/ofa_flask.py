@@ -81,7 +81,7 @@ def ofa_faces():
 		actionParams = 	{
 		'fb_action_type' : 'support',
 		'fb_object_type' : 'cause',
-		'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+		'fb_object_url' : flask.url_for('ofa_climate/' + bestState)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
 		}
 		actionParams.update(fbParams)
 		#writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
