@@ -153,13 +153,13 @@ def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 def writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId, background=False):
 	# friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
 	if (background):
-		t = threading.Thread(target=_writeEventDb, args=(ip, userId, friendIds, eventType, appid, content, activityId))
+		t = threading.Thread(target=_writeEventsDb, args=(ip, userId, friendIds, eventType, appid, content, activityId))
 		t.daemon = False
 		t.start()
-		logging.debug("writeEventDb() spawning background thread %d for %s event from ip %s" % (t.ident, eventType, ip))
+		logging.debug("writeEventsDb() spawning background thread %d for %s event from ip %s" % (t.ident, eventType, ip))
 		return 0
 	else:
-		logging.debug("writeEventDb() foreground thread %d for %s event from ip %s" % (threading.current_thread().ident, eventType, ip))
+		logging.debug("writeEventsDb() foreground thread %d for %s event from ip %s" % (threading.current_thread().ident, eventType, ip))
 		return _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 
 
