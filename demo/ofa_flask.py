@@ -58,7 +58,7 @@ def ofa_faces():
 		database.updateDb(user, tok, edgesRanked, background=True) 	# zzz should spawn off thread to do db writing
 	conn.close()
 
-	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys())
+	bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
 	if (bestState is not None):
 		filterTups.append(('state', 'eq', bestState))
 		edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
