@@ -301,6 +301,8 @@ function doReplace(old_fbid) {
 		// (note that we have to remove rather than hide the element to avoid avoid accidentally
 		// including the friend in the message that gets sent!)
 		$(div_id).remove();
+
+		//zzz Probably still want to do an Ajax call here to record suppression?
 	}
 
 	// Update the message text with the new names
@@ -392,8 +394,44 @@ function doShare() {
 				alert('Error occured ' + response.error.message);
 			} else {
 				// Eventually, this should just redirect to a thank you page
+				recordShare(response.id);
 				alert('Post was successful! Action ID: ' + response.id);
 			}
 	  	}
 	);
 }
+
+function recordShare(actionid) {
+	var new_html;
+	var userid = myfbid; // myfbid should get set globablly upon login/auth
+	var appid = {{ fbParams.fb_app_id }};
+	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+
+	var params = JSON.stringify({
+		userid: userid,
+		actionid: actionid,
+		appid: appid,
+		content: content,
+		friends: recips
+	});
+
+	$.ajax({
+		type: "POST",
+		url: '/share',
+		contentType: "application/json",
+		dataType: 'html',
+		data: params,
+		error: function(jqXHR, textStatus, errorThrown) {
+					new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+					// $(div_id).replaceWith(new_html);
+					// Don't think there's anything to do here...
+		},
+		success: function(data) {
+					new_html = data;
+					// $(div_id).replaceWith(new_html);
+					// ... or here.
+		}
+	});
+
+}
+
