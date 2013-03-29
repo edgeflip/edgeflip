@@ -33,6 +33,11 @@ class Timer:
 	def stderr(self, txt=""):
 		sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
 
+def unidecodeSafe(s):
+	if (s is None):
+		return ""
+	else:
+		return str(s)
 
 class UserInfo(object):
 	def __init__(self, uid, first_name, last_name, sex, birthday, city, state):
@@ -46,12 +51,12 @@ class UserInfo(object):
 		self.state = state
 	def __str__(self):
 		rets = [ str(self.id),
-				 unidecode(self.fname),
-				 unidecode(self.lname),
+				 unidecodeSafe(self.fname),
+				 unidecodeSafe(self.lname),
 				 self.gender,
 				 str(self.age),
-				 unidecode(self.city),
-				 unidecode(self.state) ]
+				 unidecodeSafe(self.city),
+				 unidecodeSafe(self.state) ]
 		return " ".join(rets)
 
 class FriendInfo(UserInfo):
