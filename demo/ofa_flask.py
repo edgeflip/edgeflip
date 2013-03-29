@@ -34,7 +34,7 @@ def ofa_faces():
 	fbid = int(flask.request.json['fbid'])
 	tok = flask.request.json['token']
 	campaign = flask.request.json.get('campaign')
-	numFace = 6 #zzzint(flask.request.json['num'])
+	numFace = int(flask.request.json['num'])
 	ip = getIP(req = flask.request)
 
 	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
