@@ -33,11 +33,15 @@ class Timer:
 	def stderr(self, txt=""):
 		sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
 
+# util func to deal with Nones, numbers, and unisuck
 def unidecodeSafe(s):
 	if (s is None):
 		return ""
 	else:
-		return str(s)
+		try:
+			return str(s)
+		except UnicodeEncodeError:
+			return unidecode(s)
 
 class UserInfo(object):
 	def __init__(self, uid, first_name, last_name, sex, birthday, city, state):
