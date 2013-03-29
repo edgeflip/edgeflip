@@ -2,6 +2,7 @@
 import sys
 import time
 import datetime
+from unidecode import unidecode
 
 
 
@@ -44,7 +45,8 @@ class UserInfo(object):
 		self.city = city
 		self.state = state
 	def __str__(self):
-		return "%d %s %s %s %s %s, %s" % (self.id, self.fname, self.lname, self.gender, self.age, self.city, self.state)
+		decodes = tuple(map(unidecode, (self.id, self.fname, self.lname, self.gender, self.age, self.city, self.state)))
+		return "%d %s %s %s %s %s, %s" % decodes
 
 class FriendInfo(UserInfo):
 	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
