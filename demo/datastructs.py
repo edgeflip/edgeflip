@@ -36,7 +36,7 @@ class Timer:
 # util func to deal with Nones, numbers, and unisuck
 def unidecodeSafe(s):
 	if (s is None):
-		return chr(167)
+		return "?"
 	else:
 		try:
 			return str(s)
