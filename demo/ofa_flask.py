@@ -134,7 +134,7 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
 	edgesGood = edges[:]
 	for attrName, compTag, attrVal in filterTups:
 		logging.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
-		filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__getattr__(attrName), attrVal)
+		filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__(attrName), attrVal)
 		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
 		logging.debug("have %d edges left" % (len(edgesGood)))
 	return edgesGood
