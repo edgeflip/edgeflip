@@ -282,8 +282,12 @@ def face_test():
 ###########################################################################
 
 if (__name__ == "__main__"):
-
+	if ('--debug' in sys.argv):
+		sys.argv.remove('--debug')
+		debug = True
+	else:
+		debug = False
 	port = int(sys.argv[1]) if (len(sys.argv) > 1) else 5000
-	app.run('0.0.0.0', port=port, debug=False)
+	app.run('0.0.0.0', port=port, debug=debug)
 
 
