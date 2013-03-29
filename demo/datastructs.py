@@ -45,8 +45,14 @@ class UserInfo(object):
 		self.city = city
 		self.state = state
 	def __str__(self):
-		func = lambda x: unidecode(str(x))
-		return " ".join(map(func, [self.id, self.fname, self.lname, self.gender, self.age, self.city, self.state]))
+		rets = [ str(self.id),
+				 unidecode(self.fname),
+				 unidecode(self.lname),
+				 self.gender,
+				 str(self.age),
+				 unidecode(self.city),
+				 unidecode(self.state) ]
+		return " ".join(rets)
 
 class FriendInfo(UserInfo):
 	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
