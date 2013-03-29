@@ -39,12 +39,12 @@ class UserInfo(object):
 		self.fname = first_name
 		self.lname = last_name
 		self.gender = sex
-
 		self.birthday = birthday
 		self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
-
 		self.city = city
 		self.state = state
+	def __str__(self):
+		return "%d %s %s %s %s %s, %s" % (self.id, self.fname, self.lname, self.gender, self.age, self.city, self.state)
 
 class FriendInfo(UserInfo):
 	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):

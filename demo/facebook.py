@@ -222,6 +222,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 		else:
 			e = datastructs.EdgeStreamless(user, friend)
 		edges.append(e)
+		logging.debug('friend %s', str(e.secondary))
 		logging.debug('edge %s', str(e))
 
 		# Throttling for Facebook limits
