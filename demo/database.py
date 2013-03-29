@@ -134,14 +134,13 @@ def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 
 	rows = [ {	'ip' : ip, 'userId' : userId, 'friendId' : friendId, 
 				'eventType' : eventType, 'appId' : appId, 'content' : content,
-				'activityId' : activityId, 'createDt' : time.strftime("%Y%m%d %H:%M:%S") 
+				'activityId' : activityId, 'createDt' : time.strftime("%Y-%m-%d %H:%M:%S") 
 			 } for friendId in friendIds ]
 	sql = """INSERT INTO events (ip, fbid, friend_fbid, type, appid, content, activity_id, create_dt) 
 				VALUES (%(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
 
 	insertCount = 0
 	for row in rows:
-		logging.debug("running: %s " % (sql % row))
 		curs.execute(sql, row)
 		conn.commit()
 		insertCount += 1
