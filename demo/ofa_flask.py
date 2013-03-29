@@ -108,7 +108,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 				del state_count[state]
 	if (state_count):
 		bestCount = max(state_count.values() + [0])  # in case we don't get any states
-		bestStates = [ state for state, count in state_count.items if (count == bestCount) ]
+		bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
 		if (len(bestStates) == 1):
 			return bestStates[0]
 		else:
