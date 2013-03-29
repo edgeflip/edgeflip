@@ -33,7 +33,7 @@ function login(response, info){
 	if (response.authResponse) {
 		var accessToken	= response.authResponse.accessToken;
 		var fbid = info.id;
-		var num = 1000;
+		var num = 6;
 		myfbid = fbid;
 
 		var friends_div = $('#friends_div');
