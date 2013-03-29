@@ -41,7 +41,7 @@ def ofa_faces():
 	filterTups = campaign_filterTups.get(campaign, [])
 
 	# Try extending the token. If we hit an error, proceed with what we got from the page.
-	# zzz Will want to do this with the rank demo when we switch away from Shari!
+	#zzz Will want to do this with the rank demo when we switch away from Shari!
 	tok = facebook.extendTokenFb(tok) or tok
 
 	conn = database.getConn()
@@ -107,9 +107,11 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 			if (state not in statePool):
 				del state_count[state]
 	if (state_count):
+		logging.debug("best state counts: %s" % str(state_count))
 		bestCount = max(state_count.values() + [0])  # in case we don't get any states
 		bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
 		if (len(bestStates) == 1):
+			logging.debug("best state returning %s" % bestStates[0])
 			return bestStates[0]
 		else:
 			# there's a tie for first, so grab the state with the best avg scores
@@ -121,6 +123,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
 				if (scoreAvg > bestScoreAvg):
 					bestState = state
 					bestScoreAvg = scoreAvg
+			logging.debug("best state returning %s" % bestState)
 			return bestState
 	else:
 		return None
