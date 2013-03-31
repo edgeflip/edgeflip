@@ -24,7 +24,7 @@
 		    background-size: cover;
 		    background-attachment: fixed;
 		    /* IE Fix for background-size: cover (https://github.com/louisremi/background-size-polyfill) */
-		    -ms-behavior: url("{{url_for('static', filename='backgroundsize.min.htc')}}");
+		    -ms-behavior: url({{url_for('static', filename='backgroundsize.min.htc')}});
 		}
 
 		#share_content {
