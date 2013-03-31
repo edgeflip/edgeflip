@@ -66,7 +66,7 @@ def setLogger(logpath):
 # zzz Unfortunately, this does break things if this path isn't defined (eg, with Apache)
 # 	  (But commenting this out means we'll never set the logger if we're using defaults,
 # 	   so obviously we need a better solution longer-term)
-setLogger(defaults['logpath'])
+# setLogger(defaults['logpath'])
 
 def getDefaults():
 	config = dict(defaults)
