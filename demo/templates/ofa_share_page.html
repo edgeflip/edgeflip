@@ -23,6 +23,8 @@
 			background-image: url('http://secure.assets.bostatic.com/resize/wind-power-20130204002558.jpg');
 		    background-size: cover;
 		    background-attachment: fixed;
+		    /* IE Fix for background-size: cover (https://github.com/louisremi/background-size-polyfill) */
+		    -ms-behavior: url("{{url_for('static', filename='backgroundsize.min.htc')}}");
 		}
 
 		#share_content {
