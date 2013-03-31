@@ -77,6 +77,9 @@ def getConfig(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
 	# if we got a new logpath from this read, set the logger
 	if ('logpath' in configFromFile):
 		setLogger(configFromFile['logpath'])
+	elif (includeDefaults):
+		# we don't have a logpath in the config file, but are including the default one...
+		setLogger(defaults['logpath'])
 	config = getDefaults() if (includeDefaults) else {}
 	for k, v in config.items():
 		logging.debug("config default %s: %s" % (k, str(v)))
@@ -89,6 +92,9 @@ def readJson(infilePath):
 	try:
 		return json.load(open(infilePath, 'r'))
 	except IOError:
+		if (not logging.getLogger().handlers):
+			# logging hasn't been set up yet, but we want to log failure to read config file
+			setLogger(defaults['logpath'])
 		logging.error("config file '%s' not found" % (infilePath))
 		return {}
 
