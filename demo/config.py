@@ -63,7 +63,10 @@ def setLogger(logpath):
 	logger.setLevel(logging.DEBUG)
 
 # do this once on load
-setLogger(defaults['logpath'])
+# zzz Unfortunately, this does break things if this path isn't defined (eg, with Apache)
+# 	  (But commenting this out means we'll never set the logger if we're using defaults,
+# 	   so obviously we need a better solution longer-term)
+# setLogger(defaults['logpath'])
 
 def getDefaults():
 	config = dict(defaults)
