@@ -23,7 +23,7 @@
 			urlparams[key] = value;
 			// Note -- if our param appears multiple times in the URL, this will only take the last one!
 		});
-		var actionid = urlparams['action_id']; //zzz double-check this!
+		var actionid = urlparams['fb_action_ids']; //zzz double-check this!
 
 		// Only write a clickback if we have an action_id in the URL
 		if (actionid) {
