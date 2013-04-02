@@ -65,8 +65,8 @@ def ofa_faces():
 	conn = database.getConn()
 	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
-#	if (user is not None):  # it's fresh
-	if (False): # Disable DB entirely for now because it's faster to crawl px3...
+	if (user is not None):  # it's fresh
+#	if (False): # Disable DB entirely for now because it's faster to crawl px3...
 		logging.debug("user %s is fresh, getting data from db" % fbid)
 		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
 	else:
