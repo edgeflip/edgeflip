@@ -74,7 +74,17 @@
 			xfbml: true,
 			oauth: true});
 
-		show_friends();
+		FB.Event.subscribe('auth.statusChange', function(response) {
+			if (response.status === 'connected') {
+				var uid = response.authResponse.userID;
+				var tok = response.authResponse.accessToken;
+				login(uid, tok, response);
+			} else {
+				// User isn't logged in or hasn't authed, so try doing the login directly
+				// (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
+				doFBLogin();
+			}
+		});
 
 	}; // fbAsyncInit
 
