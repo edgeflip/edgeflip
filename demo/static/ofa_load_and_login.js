@@ -7,26 +7,27 @@ function preload(arrayOfImages) {
 }
 
 
-// Called upon clicking the "share" button
-function show_friends() {
+// Should no longer need this since we're subscribing to the statusChange event in FB.init()...
 
-//	$('#share_content').remove();
-//	$('#share_button').hide();
-//	$('#progress').show();
+// function show_friends() {
 
-	FB.getLoginStatus(function(response) {
-	  if (response.status === 'connected') {
-	    var uid = response.authResponse.userID;
-	    var tok = response.authResponse.accessToken;
-	    login(uid, tok, response);
-	  } else {
-	  	// User isn't logged in or hasn't authed, so try doing the login directly
-	    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-	    doFBLogin();
-	  }
-	});
+// //	$('#share_content').remove();
+// //	$('#share_button').hide();
+// //	$('#progress').show();
 
-}
+// 	FB.getLoginStatus(function(response) {
+// 	  if (response.status === 'connected') {
+// 	    var uid = response.authResponse.userID;
+// 	    var tok = response.authResponse.accessToken;
+// 	    login(uid, tok, response);
+// 	  } else {
+// 	  	// User isn't logged in or hasn't authed, so try doing the login directly
+// 	    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
+// 	    doFBLogin();
+// 	  }
+// 	});
+
+// }
 
 function doFBLogin() {
 
@@ -46,10 +47,6 @@ function doFBLogin() {
 	}, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
 }
-
-
-// Old scope: {scope:'email,user_birthday,friends_birthday,publish_stream,user_about_me,user_location,friends_location'}
-// OFA scope (?): read-stream, publish-actions, user-birthday, user-likes, user-location, friends-birthday, friends-likes, friends-location, email
 
 
 function login(fbid, accessToken, response){
