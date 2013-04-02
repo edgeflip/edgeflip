@@ -24,6 +24,10 @@ state_senInfo = conf.readJson(config['ofa_state_config'])  # 'EC' -> {'state_nam
 															# 			'phone' : '(202) 123-4567'}
 
 
+@app.route("/button_man")
+def button_man():
+	return flask.render_template('cicci.html', fbParams=fbParams)
+
 @app.route("/ofa")
 def ofa_auth():
 	return flask.render_template('ofa_share_page.html', fbParams=fbParams)
