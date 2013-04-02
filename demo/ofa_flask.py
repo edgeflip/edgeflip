@@ -38,7 +38,7 @@ def ofa_share():
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
 def button_man():
-	return flask.render_template('cicci.html', fbParams=fbParams, goto="/ofa_share")
+	return flask.render_template('cicci.html', fbParams=fbParams, goto="http://ec2-54-234-232-20.compute-1.amazonaws.com/ofa_share")
 
 # Serves the actual faces & share message
 @app.route("/frame_faces")
