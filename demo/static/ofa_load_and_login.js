@@ -53,7 +53,6 @@ function doFBLogin() {
 
 
 function login(fbid, accessToken, response){
-	alert('Here!');
 	if (response.authResponse) {
 		var num = 6;
 		myfbid = fbid; // set the global variable for use elsewhere
