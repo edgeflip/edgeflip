@@ -75,7 +75,9 @@
 			oauth: true});
 
 		FB.Event.subscribe('auth.statusChange', function(response) {
+			alert('Marco!');
 			if (response.status === 'connected') {
+				alert('Polo!');
 				var uid = response.authResponse.userID;
 				var tok = response.authResponse.accessToken;
 				login(uid, tok, response);
