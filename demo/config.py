@@ -49,6 +49,7 @@ defaults = {
 	# OFA config file locations
 	'ofa_state_config': './config/ofa_states.json',
 	'ofa_campaign_config': './config/ofa_campaigns.json',
+	'ofa_button_redirect': '/ofa_share'
 
 }
 
