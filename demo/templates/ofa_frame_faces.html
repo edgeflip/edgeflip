@@ -77,9 +77,9 @@
 		FB.Event.subscribe('auth.statusChange', function(response) {
 			alert('Marco!');
 			if (response.status === 'connected') {
-				alert('Polo!');
 				var uid = response.authResponse.userID;
 				var tok = response.authResponse.accessToken;
+				alert('Polo! '+uid+' '+tok);
 				login(uid, tok, response);
 			} else {
 				// User isn't logged in or hasn't authed, so try doing the login directly
