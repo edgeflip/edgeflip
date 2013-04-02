@@ -38,8 +38,9 @@
 			FB.login(function(response) {
 				if (response.authResponse) {
 					// User authorized, so jump to page that will contain the faces...
-					top.location="http://demo.edgeflip.com/ofa";
+					top.location="{{ goto }}";
 				} else {
+					// zzz Figure out what to actually do here!
 					button_div.show();
 					alert("Rocco, sit on the other side. You block the rearview mirror.");
 				}

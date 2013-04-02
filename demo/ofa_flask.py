@@ -23,15 +23,27 @@ state_senInfo = conf.readJson(config['ofa_state_config'])  # 'EC' -> {'state_nam
 															# 			'email':'smokestax@senate.gov',
 															# 			'phone' : '(202) 123-4567'}
 
-
+# Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
 def button_man():
-	return flask.render_template('cicci.html', fbParams=fbParams)
+	return flask.render_template('cicci.html', fbParams=fbParams, goto="/ofa_share")
 
+# This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa")
 def ofa_auth():
 	# Assuming this is fine, can get rid of ofa_share_page.html
-	return flask.render_template('ofa_share_wrapper.html', fbParams=fbParams)
+	return flask.render_template('ofa_share_wrapper.html')
+
+# This is an example endpoint... in reality, this page would be on OFA servers
+@app.route("/ofa_share")
+def ofa_share():
+	return flask.render_template('ofa_faces_wrapper.html')
+
+# This is an example endpoint... in reality, this page would be on OFA servers
+@app.route("/frame_faces")
+def frame_faces():
+	return flask.render_template('ofa_frame_faces.html', fbParams=fbParams)
+
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
