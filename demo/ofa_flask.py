@@ -30,7 +30,8 @@ def button_man():
 
 @app.route("/ofa")
 def ofa_auth():
-	return flask.render_template('ofa_share_page.html', fbParams=fbParams)
+	# Assuming this is fine, can get rid of ofa_share_page.html
+	return flask.render_template('ofa_share_wrapper.html', fbParams=fbParams)
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
