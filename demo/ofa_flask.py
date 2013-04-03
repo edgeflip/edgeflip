@@ -220,6 +220,27 @@ def getIP(req):
 	else:
 	   return req.headers.getlist("X-Forwarded-For")[0]
 
+
+@app.route("/health_check")
+@app.route("/hes_a_good_man_and_thorough")
+def say_ahhh():
+	try:
+		# Make sure we can connect and return results from DB
+		conn = database.getConn()
+		curs = conn.cursor()
+		curs.execute("SELECT 1+1")
+		assert curs.fetchone() == 2
+
+		# Make sure we can talk to FB and get simple user info back
+		fbresp = getUrlFb("http://graph.facebook.com/6963")
+		assert int(fbresp['id']) == 6963
+
+		# zzz Do we want to check system-level things here, too??
+
+		return "Fit As A Fiddle!", 200
+	except:
+		return "Ruh-Roh - Health Check Failed!", 500
+
 # Endpoint for testing a faces response...
 # (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)
 @app.route("/face_test", methods=['GET','POST'])
