@@ -232,7 +232,7 @@ def say_ahhh():
 		assert curs.fetchone() == 2
 
 		# Make sure we can talk to FB and get simple user info back
-		fbresp = getUrlFb("http://graph.facebook.com/6963")
+		fbresp = facebook.getUrlFb("http://graph.facebook.com/6963")
 		assert int(fbresp['id']) == 6963
 
 		# zzz Do we want to check system-level things here, too??
