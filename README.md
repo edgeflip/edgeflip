@@ -11,9 +11,9 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
 2. A couple of utilities: `sudo apt-get install git emacs htop`
 3. Some python utilities and c++ compiler:
-	sudo apt-get update
-	sudo apt-get install python-pip python-dev python-mysqldb
-	sudo apt-get install gcc
+    sudo apt-get update
+    sudo apt-get install python-pip python-dev python-mysqldb
+    sudo apt-get install gcc
 4. Python packages: `sudo pip install flask unidecode pika` (at some point we'll want a requirements file...)
 5. Set up Apache & mod_wsgi: `sudo apt-get install apache2 libapache2-mod-wsgi`
 6. Get some directories ready:
