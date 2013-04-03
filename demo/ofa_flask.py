@@ -229,7 +229,7 @@ def say_ahhh():
 		conn = database.getConn()
 		curs = conn.cursor()
 		curs.execute("SELECT 1+1")
-		assert curs.fetchone() == 2
+		assert curs.fetchone()[0] == 2
 
 		# Make sure we can talk to FB and get simple user info back
 		fbresp = facebook.getUrlFb("http://graph.facebook.com/6963")
