@@ -224,6 +224,13 @@ def getIP(req):
 @app.route("/health_check")
 @app.route("/hes_a_good_man_and_thorough")
 def say_ahhh():
+
+	iselb = flask.request.args.get('elb', '').lower()
+	if (iselb == 'true'): return "It's Alive!", 200
+
+	isdevops = flask.request.args.get('devops', '').lower()
+	if (isdevops != 'true'): return "Sorry... you can't access this page", 403
+
 	try:
 		# Make sure we can connect and return results from DB
 		conn = database.getConn()
@@ -239,6 +246,7 @@ def say_ahhh():
 
 		return "Fit As A Fiddle!", 200
 	except:
+		# zzz One day, provide more detailed output...
 		return "Ruh-Roh - Health Check Failed!", 500
 
 # Endpoint for testing a faces response...
