@@ -33,10 +33,20 @@ class Timer(object):
 	def stderr(self, txt=""):
 		sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
 
-# util func to deal with Nones, numbers, and unisuck
 def unidecodeSafe(s):
+	"""util func to deal with None, numbers, and unisuck
+
+	If `s` is None, returns '?'. Otherwise uses :mod:'unidecode' to produce a reasonable bytestring.
+
+	:arg unicode s: a unicode string to convert to bytes
+	:returns: a reasonable-looking ASCII bytestring
+	:rtype: str
+	:raises ValueError: if s is not unicode or None
+	"""
 	if (s is None):
 		return "?"
+	elif not isinstance(s, unicode):
+		raise TypeError("expected unicode, got %s"%type(s))
 	else:
 		try:
 			return str(s)
