@@ -4,3 +4,5 @@ demo/old
 *.sqlite
 /demo/logs/*
 demo/edgeflip.config
+*.wpr
+*.wpu
