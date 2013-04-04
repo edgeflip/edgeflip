@@ -34,8 +34,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 	sudo mkdir gitclones
 	sudo chmod 777 gitclones
 	cd gitclones
-	git clone git@github.com:edgeflip/edgeflip.git
-	git checkout ofa</code></pre>
+	git clone git@github.com:edgeflip/edgeflip.git</code></pre>
 9. Set up logging and edgeflip.config file:
 <pre><code>cd /var/www/edgeflip
 	sudo mkdir logs
@@ -57,8 +56,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 <pre><code>cd /etc/apache2
 	sudo emacs httpd.conf</code></pre>
 12. Contents of httpd.conf:
-<pre><code>
-	&lt;VirtualHost *&gt;
+<pre><code>&lt;VirtualHost *&gt;
 	    ServerName localhost
 
 	    WSGIDaemonProcess edgeflip processes=2 threads=50
@@ -74,6 +72,5 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 	        Order deny,allow
 	        Allow from all
 	    &lt;/Directory&gt;
-	&lt;/VirtualHost&gt;
-</code></pre>
+	&lt;/VirtualHost&gt;</code></pre>
 13. Finally, restart Apache and you should be up and running: `sudo /etc/init.d/apache2 restart`
