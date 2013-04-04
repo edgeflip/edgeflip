@@ -3,32 +3,13 @@ import sys
 import database
 import datastructs
 import logging
-<<<<<<< HEAD
-from config import config
-=======
 import config as conf
 config = conf.getConfig(includeDefaults=True)
->>>>>>> ofa
 
 
 
 
-<<<<<<< HEAD
-
-
-
-
-
-# 
-def prox(inPostLikes, inPostComms, inStatLikes, inStatComms, inWallPosts, inWallComms, inTags,
-			outPostLikes, outPostComms, outStatLikes, outStatComms, outWallPosts, outWallComms, outTags,
-			primPhotoTags, otherPhotoTags, muts,
-			inPostLikesMax, inPostCommsMax, inStatLikesMax, inStatCommsMax, inWallPostsMax, inWallCommsMax, inTagsMax,
-			outPostLikesMax, outPostCommsMax, outStatLikesMax, outStatCommsMax, outWallPostsMax, outWallCommsMax, outTagsMax,
-			primPhotoTagsMax, otherPhotoTagsMax, mutsMax):	
-=======
 def prox(e, eMax):
->>>>>>> ofa
 	countMaxWeightTups = [
 		# px3
 		(e.mutuals, eMax.mutuals, 1.0),
