@@ -141,7 +141,6 @@ def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 
 	insertCount = 0
 	for row in rows:
-		logging.debug("_writeEventsDb() SQL: %s" % (sql % row))
 		curs.execute(sql, row)
 		conn.commit()
 		insertCount += 1
