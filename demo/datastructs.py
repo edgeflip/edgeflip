@@ -7,7 +7,7 @@ from unidecode import unidecode
 
 
 
-class Timer:
+class Timer(object):
 	def __init__(self):
 		self.start = time.time()
 	def reset(self):
@@ -65,7 +65,7 @@ class UserInfo(object):
 
 class FriendInfo(UserInfo):
 	def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
-		UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
+		super(FriendInfo, self).__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
 		self.idPrimary = primId
 		self.primPhotoTags = primPhotoTags
 		self.otherPhotoTags = otherPhotoTags
@@ -143,7 +143,7 @@ class EdgeFromCounts(Edge):
 
 class EdgeStreamless(Edge):
 	def __init__(self, userInfo, friendInfo):
-		Edge.__init__(self, userInfo, friendInfo)
+		super(EdgeStreamless, self).__init__(self, userInfo, friendInfo)
 		self.primPhotoTags = friendInfo.primPhotoTags
 		self.otherPhotoTags = friendInfo.otherPhotoTags
 		self.mutuals = friendInfo.mutuals
@@ -152,7 +152,7 @@ class EdgeStreamless(Edge):
 
 class EdgeSC1(EdgeStreamless):
 	def __init__(self, userInfo, friendInfo, userStreamCount):
-		EdgeStreamless.__init__(self, userInfo, friendInfo)
+		super(EdgeSC1, self).__init__(self, userInfo, friendInfo)
 		self.inPostLikes = userStreamCount.getPostLikes(friendInfo.id)
 		self.inPostComms = userStreamCount.getPostComms(friendInfo.id)
 		self.inStatLikes = userStreamCount.getStatLikes(friendInfo.id)
@@ -163,7 +163,7 @@ class EdgeSC1(EdgeStreamless):
 
 class EdgeSC2(EdgeSC1):
 	def __init__(self, userInfo, friendInfo, userStreamCount, friendStreamCount):
-		EdgeSC1.__init__(self, userInfo, friendInfo, userStreamCount)
+		super(EdgeSC2, self).__init__(self, userInfo, friendInfo, userStreamCount)
 		self.outPostLikes = friendStreamCount.getPostLikes(userInfo.id)
 		self.outPostComms = friendStreamCount.getPostComms(userInfo.id)
 		self.outStatLikes = friendStreamCount.getStatLikes(userInfo.id)
@@ -176,7 +176,7 @@ class EdgeSC2(EdgeSC1):
 
 class EdgeAggregator(Edge):
 	def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
-		Edge.__init__(self, None, None)
+		super(EdgeAggregator, self).__init__(self, None, None)
 		if (len(edgesSource) > 0):
 			if (requireIncoming):
 				self.inPostLikes = aggregFunc([ e.inPostLikes for e in edgesSource ])
