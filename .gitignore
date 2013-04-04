@@ -6,3 +6,4 @@ demo/old
 demo/edgeflip.config
 *.wpr
 *.wpu
+*.pickle
