@@ -51,15 +51,8 @@ function doFBLogin() {
 
 function login(fbid, accessToken, response){
 	if (response.authResponse) {
-<<<<<<< HEAD
 		var num = 6;
 		myfbid = fbid; // set the global variable for use elsewhere
-=======
-		var accessToken	= response.authResponse.accessToken;
-		var fbid = info.id;
-		var num = 6;
-		myfbid = fbid;
->>>>>>> fb_action
 
 		var friends_div = $('#friends_div');
 		var progress = $('#progress');
