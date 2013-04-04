@@ -141,11 +141,12 @@ def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 
 	insertCount = 0
 	for row in rows:
+		logging.debug("_writeEventsDb() SQL: %s" % (sql % row))
 		curs.execute(sql, row)
 		conn.commit()
 		insertCount += 1
 
-	logging.debug("_writeEventDb() thread %d updated %d %s event(s) from ip %s" % (threading.current_thread().ident, insertCount, eventType, ip) )
+	logging.debug("_writeEventsDb() thread %d updated %d %s event(s) from ip %s" % (threading.current_thread().ident, insertCount, eventType, ip) )
 	conn.close()
 	
 	return insertCount
