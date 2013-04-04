@@ -17,19 +17,10 @@ $(function() {
 				if ($(".added_friend").length >= 3) {
 					alert("Sorry: only three friends can be added manually.");
 				} else {
-
-					$("#picked_friends_container").append("<div class='added_friend' id='added-"+ui.item.value+"'>"+ui.item.label+"<div class='added_x' onClick='removeFriend("+ui.item.value+");'>x</div></div>");
-
-					var idx = recips.indexOf(ui.item.value);
-					if (idx > -1) { recips.splice(idx, 1); }
-					$('#msg-txt-friend-'+ui.item.value).remove();
-
-					recips.push(ui.item.value);
-					$('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+ui.item.value+'" contentEditable="False">'+ui.item.label+'</span> ');
-
-					$('.preset_names').html(friendNames());
-
+					selectFriend(ui.item.value);
+					msgNamesUpdate(false);
 				}
+
 			}
 			$("#manual_input").val('');
 			return false;
@@ -45,11 +36,6 @@ $(function() {
 
 // Called when the user removes a manually added friend
 function removeFriend(fbid) {
-	$("#added-"+fbid).remove();
-
-	var idx = recips.indexOf(fbid);
-	if (idx > -1) { recips.splice(idx, 1); }
-	$('#msg-txt-friend-'+fbid).remove();
-
-	$('.preset_names').html(friendNames());
+	unselectFriend(fbid);
+	msgNamesUpdate(false);
 }

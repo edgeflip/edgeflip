@@ -3,7 +3,7 @@
 .right_container {
 	overflow-x: hidden;
 	vertical-align: top;
-	margin-left: 15px;
+	padding-left: 15px;
 	white-space: normal;
 	min-width: 300px;
 	max-width: 650px;
@@ -11,8 +11,37 @@
 }
 
 .msg_friend_name {
-  color: #0A5195;
-  border-bottom: thin dashed #0A5195;
+	font-family: sans-serif;
+	font-weight: 200;
+	color: black;
+	border: thin solid #89A8BD;
+	padding: 1px 2px 1px 2px;
+	background-color: #E6F2FF;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
+	vertical-align: middle;
+	white-space: nowrap;
+}
+
+.msg-txt-friend {
+	font-size: 12px;
+	line-height: 18px;
+}
+
+.msg-sugg-friend {
+	font-size: 10px;
+	line-height: 13px;
+}
+
+.msg_x {
+	font-weight: 900;
+	color: #89A8BD;
+	margin-left: 3px;
+	cursor: pointer;
+}
+
+.msg_x:hover {
+	color: #0270A0;
 }
 
 .msg_picker,
@@ -24,27 +53,26 @@
 	font-size: 22px;
 	text-align: left;
 	color: #07304e;
-	padding-left: 15px;
+	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+	font-weight: 200;
+	float: left;
 }
 
 .msg_picker {
-	border: 1px solid #07304e;
-	border-radius: 20px;
-	background-color: #E6F2FF;
+/*	border: 1px solid #07304e; */
+/*	border: 2px solid #e4e6e0; */
+	border: 2px solid lightgrey;
+	border-radius: 10px;
+/*	background-color: #E6F2FF; */
+	background-color: #F7F7F7;
 	text-align: left;
-	padding: 10px;
+	padding: 5px;
 	margin-bottom: 5px;
-	margin-right: 10px;
 }
 
 .msg_block {
 	padding-bottom: 15px;
-}
-
-.msg_radio {
-	float: left;
-	padding-right: 5px;
-	vertical-align: top;
+	clear: both;
 }
 
 .msg_txt {
@@ -53,24 +81,46 @@
 	padding-bottom: 3px;
 }
 
-#other_msg {
+#suggested_msg_title {
+	font-size: 14px;
+	font-weight: bold;
+	padding-bottom: 3px;
+}
+
+.suggested_msg {
+	font-size: 14px;
+	padding-bottom: 2px;
+	margin-bottom: 0px;
+}
+
+#other_msg_prompt {
+	margin-bottom: 3px;
 	display: none;
+}
+
+#other_msg_container {
+	display: block;
 	border: solid thin gray;
+	border-radius: 5px;
 	background-color: white;
-	padding: 10px;
-	width: 90%;
-	margin-left: 3px;
+	padding: 5px;
+	width: 93%;
+	margin-left: 2%;
+}
+
+#other_msg {
+	min-height: 75px;
 }
 
 #do_share_container {
 	position: relative;
-	height: 45px;
+	height: 75px;
 }
 
 #do_share_button {
 	display: block;
 	position: absolute;
-	right: 10px;
+	right: 0px;
 	color: white; 
 	cursor: pointer; 
 }

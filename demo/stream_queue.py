@@ -3,9 +3,9 @@ import sys
 import pika
 import argparse
 import json
-
 import logging
-from config import config
+import config as conf
+config = conf.getConfig(includeDefaults=True)
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 

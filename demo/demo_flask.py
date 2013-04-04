@@ -1,6 +1,5 @@
 #!/usr/bin/python
 import flask
-from flask import Flask, render_template
 #import ReadStream
 import database
 import facebook
@@ -9,71 +8,34 @@ import stream_queue
 import sys
 import json
 import time
-from config import config
-import urllib2 # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
+import logging
+import os
+import config as conf
+config = conf.getConfig(includeDefaults=True)
+
+# for testing endpoint -- could be removed for production-only code
+import random
+import datastructs
+import datetime
 
 
-
-
-app = Flask(__name__)
-
+app = flask.Flask(__name__)
 
 
 
 @app.route("/", methods=['POST', 'GET'])
 def home():
-	return render_template('index.html')
+	return flask.render_template('index.html')
 
+
+
+@app.route('/all_the_dude_ever_wanted')
 @app.route('/demo')
 @app.route('/button')
-@app.route('/all_the_dude_ever_wanted')
-def button_man():
-	return render_template('frame_wide.html')
 
-@app.route('/demo_faces', methods=['POST'])
-def face_it():
-	sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
 
-	fbid = int(flask.request.json['fbid'])
-	tok = flask.request.json['token']
-	num = int(flask.request.json['num'])
 
-	# Try extending the token. If we hit an error, proceed with what we got from the page.
-	# zzz Will want to do this with the rank demo when we switch away from Shari!
-	try:
-		newToken = facebook.extendTokenFb(tok)
-		tok = newToken
-	except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError):
-		pass # Something went wrong, but the facebook script already logged it, so just go with the original token
-
-	conn = database.getConn()
-	user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
-
-	edgesRanked = []
-	if (user is not None): # it's fresh
-		edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
-	else:
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked   = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
-		# spawn off a separate thread to do the database writing
-		user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-		database.updateDb(user, tok, edgesRanked, background=True)
-	conn.close()
-
-	# now, spawn a full crawl in the background
-	stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
-
-	friendDicts = [ e.toDict() for e in edgesRanked ]
-
-	# Apply control panel targeting filters
-	filteredDicts = filter_friends(friendDicts)
-
-	faceFriends = filteredDicts[:6]
-	numFace = len(faceFriends)
-	allFriends = filteredDicts[:25]
-	ret = render_template('faces_table_wide.html', face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
-
-	return ret
 
 
 @app.route('/rank')
@@ -88,7 +50,7 @@ def rank_demo():
 	rank_user = flask.request.args.get('user', '').lower()
 	fbid = default_users.get(rank_user, {}).get('fbid', None)
 	tok = default_users.get(rank_user, {}).get('tok', None)
-	return render_template('rank_demo.html', fbid=fbid, tok=tok)
+	return flask.render_template('rank_demo.html', fbid=fbid, tok=tok)
 
 @app.route('/rank_faces', methods=['POST'])
 def rank_faces():
@@ -104,45 +66,40 @@ def rank_faces():
 		stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
 		# now do a partial crawl real-time
-		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireOutgoing=False)
-		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireOutgoing=False)
+		edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
+		edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
 		user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
 		# spawn off a separate thread to do the database writing
 		database.updateDb(user, tok, edgesRanked, background=True)
 
 	else:
- 		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+		edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
 
 	friendDicts = [ e.toDict() for e in edgesRanked ]
 
 	# Apply control panel targeting filters
 	filteredDicts = filter_friends(friendDicts)
 
-	ret = render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
+	ret = flask.render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
 	return ret
 	
 
-@app.route('/suppress', methods=['POST'])
-def suppress():
-	userid = flask.request.json['userid']
-	appid = flask.request.json['appid']
-	content = flask.request.json['content']
-	oldid = flask.request.json['oldid']
-
-	newid = flask.request.json['newid']
-	fname = flask.request.json['fname']
-	lname = flask.request.json['lname']
-
-	# SEND TO DB: userid suppressed oldid for appid+content
-
-	if (newid != ''):
-		return render_template('new_face.html', id=newid, fname=fname, lname=lname)
-	else:
-		return ''
 
 
 ############################ CONTROL PANEL #############################
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route("/cp", methods=['POST', 'GET'])
 @app.route("/control_panel", methods=['POST', 'GET'])
@@ -153,7 +110,7 @@ def cp():
 		config_dict = json.loads(cf.read())
 	except:
 		pass
-	return render_template('control_panel.html', config=config_dict)
+	return flask.render_template('control_panel.html', config=config_dict)
 
 
 @app.route("/set_targets", methods=['POST'])
@@ -166,6 +123,8 @@ def targets():
 	except:
 		raise
 		return "Ruh-roh! Something went wrong..."
+
+
 
 
 def filter_friends(friends):
@@ -209,6 +168,10 @@ def filter_friends(friends):
 
 
 
+
+
+
+
 ############################ UTILS #############################
 
 @app.route('/utils')
@@ -224,7 +187,7 @@ def queueStatus(msg=''):
 	qSize = stream_queue.getQueueSize(qName)
 	uTs = time.strftime("%Y-%m-%d %H:%M:%S")
 	lName = './test_queue.txt'
-	return render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+	return flask.render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
 
 @app.route('/queue_reset')
 def queueReset():
@@ -242,7 +205,6 @@ def queueLoad():
 def reset():
 	database.db.dbSetup()
 	return "database has been reset"
-
 
 
 
