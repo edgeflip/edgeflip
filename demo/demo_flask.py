@@ -29,29 +29,6 @@ def home():
 	return flask.render_template('index.html')
 
 
-@app.route("/ofa_climate/<state>")
-def ofa_climate(state):
-
-	state = state.strip().upper()
-	targetDict = state_senInfo.get(state)
-
-	if (not targetDict):
-		return "Whoopsie! No targets in that state."  # you know, or some 404 page...
-
-	objParams = {
-					'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % targetDict['name'],
-
-					'fb_action_type': 'support',
-					'fb_object_type': 'cause',
-					'fb_object_title': 'Climate Legislation',
-
-					'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-					'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % targetDict['name'],
-					'fb_object_url': 'http://demo.edgeflip.com/ofa_climate/%s' % state
-				}
-	objParams.update(fbParams)
-
-	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=targetDict)
 
 @app.route('/all_the_dude_ever_wanted')
 @app.route('/demo')
