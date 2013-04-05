@@ -74,12 +74,7 @@
 			FB.login(function(response) {
 				if (response.authResponse) {
 					// User authorized, so write event and jump to page that will contain the faces...
-					FB.api('/me', function(info) {
-						alert(info.id);
-						alert(response.authResponse.userID);
-						recordEvent('authorized', info.id);
-					});
-
+					recordEvent('authorized', response.authResponse.userID);
 					var gotoURL = "{{ goto }}";
 					if (sessionid) {
 						gotoURL = gotoURL + '?efsid=' + efSessionId;
