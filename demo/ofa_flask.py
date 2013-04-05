@@ -254,7 +254,7 @@ def recordShare():
 	actionid = flask.request.json['actionid']
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
-	friends = [ int(f) for f in flask.request.json['recips'] ]
+	friends = [ int(f) for f in flask.request.json['friends'] ]
 	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
