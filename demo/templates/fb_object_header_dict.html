@@ -23,7 +23,7 @@
 
 			var urlparams = read_url_params();
 			var actionid = urlparams['fb_action_ids']; //zzz double-check this!
-			var sessionid = urlparams['fb_action_ids'] || '';
+			var sessionid = urlparams['efsid'] || '';
 
 			// Only write a clickback if we have an action_id in the URL
 			if (actionid) {
