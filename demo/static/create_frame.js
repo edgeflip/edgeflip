@@ -12,5 +12,5 @@
 	efTempDiv.innerHTML = efFrameHTML;
 
 	var efDiv = document.getElementById('ef_frame_div');
-	efDiv.append(efTempDiv.firstChild);
+	efDiv.appendChild(efTempDiv.firstChild);
 }());
