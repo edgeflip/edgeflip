@@ -265,7 +265,9 @@ def getIP(req):
 	   return req.headers.getlist("X-Forwarded-For")[0]
 
 
-def generateSessionId(ip, content, timestr=('%.10f' % time.time())):
+def generateSessionId(ip, content, timestr=None):
+	if (not timestr):
+		timestr = '%.10f' % time.time()
 	# Is MD5 the right strategy here?
 	sessionId = hashlib.md5(ip+content+timestr).hexdigest()
 	logging.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
