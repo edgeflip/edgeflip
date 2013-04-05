@@ -3,6 +3,7 @@ import sys
 import time
 import datetime
 import random
+import hashlib
 import logging
 import flask
 
@@ -105,7 +106,7 @@ def ofa_faces():
 		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
 		actionParams.update(fbParams)
-		database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		database.writeEventsDb(None, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
 									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
@@ -113,7 +114,7 @@ def ofa_faces():
 	else:
 		#zzz need to figure out what we do here
 		#return flask.render_template('ofa_faces_table_generic.html')
-		#database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		#database.writeEventsDb(None, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 		#	  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
 		return "all of your friends are stateless"
 
@@ -208,10 +209,10 @@ def suppress():
 	fname = flask.request.json['fname']
 	lname = flask.request.json['lname']
 
-	database.writeEventsDb(ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+	database.writeEventsDb(None, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
 	if (newid != ''):
-		database.writeEventsDb(ip, userid, [newid], 'shown', appid, content, None, background=True)
+		database.writeEventsDb(None, ip, userid, [newid], 'shown', appid, content, None, background=True)
 		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
 	else:
 		return ''
@@ -223,7 +224,7 @@ def clickback():
 	content = flask.request.json['content']
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(ip, None, [None], 'clickback', appid, content, actionid, background=True)
+	database.writeEventsDb(None, ip, None, [None], 'clickback', appid, content, actionid, background=True)
 	return ''
 
 @app.route('/share', methods=['POST'])
@@ -235,15 +236,38 @@ def recordShare():
 	friends = [ int(f) for f in flask.request.json['recips'] ]
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(ip, userid, friends, 'shared', appid, content, actionid, background=True)
+	database.writeEventsDb(None, ip, userid, friends, 'shared', appid, content, actionid, background=True)
 	return ''
 
+@app.route('/button_event', methods=['POST'])
+def buttonEvent():
+	userId = flask.request.json['userid']
+	userId = userId or None
+	appId = flask.request.json['appid']
+	content = flask.request.json['content']
+	eventType = flask.request.json['eventType']
+	sessionId = flask.request.json['sessionid']
+	ip = getIP(req = flask.request)
+
+	if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
+		return "Ah, ah, ah. You didn't say the magic word.", 403
+
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(None, sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
+	return ''
 
 def getIP(req):
 	if not req.headers.getlist("X-Forwarded-For"):
 	   return req.remote_addr
 	else:
 	   return req.headers.getlist("X-Forwarded-For")[0]
+
+
+def generateSessionId(ip, content, timestr=('%.10f' % time.time())):
+	# Is MD5 the right strategy here?
+	return hashlib.md5(ip+content+timestr).hexdigest()
 
 
 @app.route("/health_check")

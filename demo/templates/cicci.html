@@ -29,17 +29,63 @@
 	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
 	<SCRIPT>
 
+		var sessionid = '';
+
+		function recordEvent(eventType, fbid) {
+
+			var appid = {{ fbParams.fb_app_id }};
+			var content = '{{ fbParams.fb_app_name }}:button {{ goto }}';
+
+			var params = JSON.stringify({
+				userid: fbid,
+				appid: appid,
+				content: content,
+				eventType: eventType,
+				sessionid: sessionid
+			});
+
+			$.ajax({
+				type: "POST",
+				url: '/button_event',
+				contentType: "application/json",
+				dataType: 'html',
+				data: params,
+				error: function(jqXHR, textStatus, errorThrown) {
+					// Nothing to do here...
+				},
+				success: function(data) {
+					sessionid = '?????';
+				}
+			});
+
+		}
+
+		// Initial call on page load
+		recordEvent('button_load', '');
+
 		// Called upon clicking the "share" button
 		function doFBLogin() {
+
+			recordEvent('button_click', '');
 
 			var button_div = $('#share_button');
 			button_div.hide();
 
 			FB.login(function(response) {
 				if (response.authResponse) {
-					// User authorized, so jump to page that will contain the faces...
-					top.location="{{ goto }}";
+					// User authorized, so write event and jump to page that will contain the faces...
+					FB.api('/me', function(info) {
+						recordEvent('authorized', info.id);
+					});
+
+					var gotoURL = "{{ goto }}";
+					if (sessionid) {
+						gotoURL = gotoURL + '?efsid=' + efSessionId;
+					}
+					top.location = gotoURL;
+
 				} else {
+					recordEvent('auth_fail', '');
 					// zzz Figure out what to actually do here!
 					button_div.show();
 					alert("Rocco, sit on the other side. You block the rearview mirror.");
