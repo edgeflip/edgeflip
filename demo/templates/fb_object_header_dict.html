@@ -14,48 +14,48 @@
 
 	<!-- Might want to do something smarter to detect if jquery already present? -->
 	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+	<script src="{{ url_for('static', filename='url_params.js') }}"></script>
 
 	<!-- Ajax call to register clickbacks -->
 	<script>
 
-		var urlparams = {};
-		var parts = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m,key,value) {
-			urlparams[key] = value;
-			// Note -- if our param appears multiple times in the URL, this will only take the last one!
-		});
-		var actionid = urlparams['fb_action_ids']; //zzz double-check this!
+		(function() {
 
-		// Only write a clickback if we have an action_id in the URL
-		if (actionid) {
+			var urlparams = read_url_params();
+			var actionid = urlparams['fb_action_ids']; //zzz double-check this!
 
-			var new_html;
-			var appid = {{ fbParams.fb_app_id }};
-			var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+			// Only write a clickback if we have an action_id in the URL
+			if (actionid) {
 
-			var params = JSON.stringify({
-				appid: appid,
-				content: content,
-				actionid: actionid
-			});
+				var new_html;
+				var appid = {{ fbParams.fb_app_id }};
+				var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
 
-			// NOTE: Will need to specify full URL if hosting objects on a different domain!!
-			$.ajax({
-				type: "POST",
-				url: '/clickback',
-				contentType: "application/json",
-				dataType: 'html',
-				data: params,
-				error: function(jqXHR, textStatus, errorThrown) {
-							new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-							// $(div_id).replaceWith(new_html);
-							// Don't think there's anything to do here...
-				},
-				success: function(data) {
-							new_html = data;
-							// $(div_id).replaceWith(new_html);
-							// ... or here.
-				}
-			});
-		}
+				var params = JSON.stringify({
+					appid: appid,
+					content: content,
+					actionid: actionid
+				});
+
+				// NOTE: Will need to specify full URL if hosting objects on a different domain!!
+				$.ajax({
+					type: "POST",
+					url: '/clickback',
+					contentType: "application/json",
+					dataType: 'html',
+					data: params,
+					error: function(jqXHR, textStatus, errorThrown) {
+								new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+								// $(div_id).replaceWith(new_html);
+								// Don't think there's anything to do here...
+					},
+					success: function(data) {
+								new_html = data;
+								// $(div_id).replaceWith(new_html);
+								// ... or here.
+					}
+				});
+			}
+		}());
 
 	</script>

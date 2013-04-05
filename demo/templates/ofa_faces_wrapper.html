@@ -45,10 +45,14 @@
 			cursor: pointer;
 		}
 
+		#ef_frame_div,
 		#faces_frame {
 			width: 100%;
 			height: 600px; /* Better way to do this relative to content size?? */
 			border: none;
+		}
+
+		#faces_frame {
 			margin-top: 30px;
 		}
 
@@ -62,8 +66,10 @@
 	<div id="ofa_header" onClick="window.location = 'http://www.barackobama.com/';"></div> 
 </div>
 
-<iframe src="/frame_faces" id="faces_frame" ALLOWTRANSPARENCY="true"></iframe>
-
+<div id="ef_frame_div">
+	<script src="{{ url_for('static', filename='url_params.js') }}"></script>
+	<script src="{{ url_for('static', filename='create_frame.js') }}"></script>
+</div>
 
 </BODY>
 </HTML>
