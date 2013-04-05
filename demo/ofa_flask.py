@@ -256,7 +256,9 @@ def buttonEvent():
 		sessionId = generateSessionId(ip, content)
 
 	database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
-	return ''
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 def getIP(req):
 	if not req.headers.getlist("X-Forwarded-For"):

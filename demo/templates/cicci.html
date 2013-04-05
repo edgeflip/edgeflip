@@ -53,8 +53,9 @@
 				error: function(jqXHR, textStatus, errorThrown) {
 					// Nothing to do here...
 				},
-				success: function(data) {
-					// sessionid = '?????';
+				success: function(data, textStatus, jqXHR) {
+					var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+					sessionid = header_efsid || sessionid;
 				}
 			});
 
