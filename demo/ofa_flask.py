@@ -255,7 +255,7 @@ def buttonEvent():
 	if (not sessionId):
 		sessionId = generateSessionId(ip, content)
 
-	database.writeEventsDb(None, sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
+	database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
 	return ''
 
 def getIP(req):
