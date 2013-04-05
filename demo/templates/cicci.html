@@ -78,7 +78,7 @@
 					recordEvent('authorized', response.authResponse.userID);
 					var gotoURL = "{{ goto }}";
 					if (sessionid) {
-						gotoURL = gotoURL + '?efsid=' + efSessionId;
+						gotoURL = gotoURL + '?efsid=' + sessionId;
 					}
 					top.location = gotoURL;
 
