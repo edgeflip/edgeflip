@@ -398,7 +398,8 @@ def face_test():
 	actionParams = 	{
 	'fb_action_type' : 'support',
 	'fb_object_type' : 'cause',
-	'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+#	'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % state
+	'fb_object_url' : 'http://ec2-50-19-198-118.compute-1.amazonaws.com/fbobj.html'
 	}
 	actionParams.update(fbParams)
 
