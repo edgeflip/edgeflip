@@ -44,8 +44,6 @@
 				sessionid: sessionid
 			});
 
-			alert(params);
-
 			$.ajax({
 				type: "POST",
 				url: '/button_event',
@@ -77,6 +75,8 @@
 				if (response.authResponse) {
 					// User authorized, so write event and jump to page that will contain the faces...
 					FB.api('/me', function(info) {
+						alert(info.id);
+						alert(response.authResponse.userID);
 						recordEvent('authorized', info.id);
 					});
 
