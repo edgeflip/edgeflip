@@ -267,7 +267,9 @@ def getIP(req):
 
 def generateSessionId(ip, content, timestr=('%.10f' % time.time())):
 	# Is MD5 the right strategy here?
-	return hashlib.md5(ip+content+timestr).hexdigest()
+	sessionId = hashlib.md5(ip+content+timestr).hexdigest()
+	logging.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
+	return sessionId
 
 
 @app.route("/health_check")
