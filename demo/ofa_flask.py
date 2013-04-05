@@ -105,8 +105,8 @@ def ofa_faces():
 		actionParams = 	{
 		'fb_action_type' : 'support',
 		'fb_object_type' : 'cause',
-#		'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
-		'fb_object_url' : 'http://ec2-50-19-198-118.compute-1.amazonaws.com/fbobj.html'
+		'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+#		'fb_object_url' : 'http://ec2-50-19-198-118.compute-1.amazonaws.com/fbobj.html'
 		}
 		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
