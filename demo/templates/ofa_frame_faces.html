@@ -36,10 +36,20 @@
 
 	<!-- edgeflip javascript -->
 	<script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
+	<script src="{{ url_for('static', filename='url_params.js') }}"></script>
 	<script src="{{ url_for('static', filename='ofa_load_and_login.js') }}"></script>
 	<SCRIPT>
 //		imgsToLoad = [	"{{ url_for('static', filename='aniprogress.gif') }}" ];
 //		preload(imgsToLoad);
+
+		// Read the session id from the query string if it exists
+		var sessionid = '';
+		var urlparams = read_url_params();
+		var efsid = urlparams['efsid'];
+		if (efsid) {
+			sessionid = efsid;
+		}
+
 	</SCRIPT>
 	<!-- edgeflip javascript -->
 

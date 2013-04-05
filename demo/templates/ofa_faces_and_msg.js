@@ -300,9 +300,8 @@ function doReplace(old_fbid) {
 		// No new friends to add, so just remove this one
 		// (note that we have to remove rather than hide the element to avoid avoid accidentally
 		// including the friend in the message that gets sent!)
-		$(div_id).remove();
-
-		//zzz Probably still want to do an Ajax call here to record suppression?
+		friendHTML(old_fbid, '', '', '', div_id);
+		// $(div_id).remove();
 	}
 
 	// Update the message text with the new names
@@ -325,7 +324,8 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		oldid: oldid,
 		newid: id,
 		fname: fname,
-		lname: lname
+		lname: lname,
+		sessionid: sessionid	// global session id was pulled in from query string above
 	});
 
 	$.ajax({
@@ -335,12 +335,18 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-					new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-					$(div_id).replaceWith(new_html);
+			new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+			$(div_id).replaceWith(new_html);
 		},
-		success: function(data) {
-					new_html = data;
-					$(div_id).replaceWith(new_html);
+		success: function(data, textStatus, jqXHR) {
+			if (id) {
+				new_html = data;
+				$(div_id).replaceWith(new_html);
+			} else {
+				$(div_id).remove();
+			}
+			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+			sessionid = header_efsid || sessionid;
 		}
 	});
 
@@ -412,7 +418,8 @@ function recordShare(actionid) {
 		actionid: actionid,
 		appid: appid,
 		content: content,
-		friends: recips
+		friends: recips,
+		sessionid: sessionid	// global session id was pulled in from query string above
 	});
 
 	$.ajax({
@@ -422,14 +429,11 @@ function recordShare(actionid) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-					new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-					// $(div_id).replaceWith(new_html);
-					// Don't think there's anything to do here...
+			// Don't think there's anything to do here...
 		},
-		success: function(data) {
-					new_html = data;
-					// $(div_id).replaceWith(new_html);
-					// ... or here.
+		success: function(data, textStatus, jqXHR) {
+			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+			sessionid = header_efsid || sessionid;
 		}
 	});
 

@@ -61,7 +61,8 @@ function login(fbid, accessToken, response){
 		var params = JSON.stringify({
 			fbid: fbid,
 			token: accessToken,
-			num: num
+			num: num,
+			sessionid: sessionid	// global session id was pulled in from query string above
 		});
 
 		$.ajax({
@@ -71,16 +72,19 @@ function login(fbid, accessToken, response){
 			dataType: 'html',
 			data: params,
 			error: function(jqXHR, textStatus, errorThrown) {
-						your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
-						your_friends_div.show();
-						progress.hide();
+				your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
+				your_friends_div.show();
+				progress.hide();
 			},
-			success: function(data) {
-						your_friends_div.html(data);
-						your_friends_div.show();	
-						friends_div.css('display', 'table');
-						progress.hide();
-						$('#do_share_button').show()
+			success: function(data, textStatus, jqXHR) {
+				your_friends_div.html(data);
+				your_friends_div.show();	
+				friends_div.css('display', 'table');
+				progress.hide();
+				$('#do_share_button').show()
+
+				var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+				sessionid = header_efsid || sessionid;
 			}
 		});
 

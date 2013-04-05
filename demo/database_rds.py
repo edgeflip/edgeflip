@@ -32,7 +32,8 @@ TABLE_COLS = {
 								updated BIGINT,
 								PRIMARY KEY (prim_id, sec_id) """,
 
-				'events' : """	ip VARCHAR(32),
+				'events' : """	session_id VARCHAR(128),
+								ip VARCHAR(32),
 								fbid BIGINT,
 								friend_fbid	BIGINT,
 								type VARCHAR(64),
@@ -40,6 +41,7 @@ TABLE_COLS = {
 								content VARCHAR(128),
 								activity_id BIGINT,
 								create_dt DATETIME,
+								KEY(session_id),
 								KEY(fbid),
 								KEY(friend_fbid),
 								KEY(activity_id) """

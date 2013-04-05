@@ -4,14 +4,9 @@
 
 </HEAD>
 <BODY>
-<h2>This is the OFA landing page...</h2>
-<p>It needs to conain the Facebook object headers and should also probably contain some javascript to send us click-tracking data if we're not using a redirector (hopefully FB will just drop the share's object ID in the URL and we can use that?). At any rate, it will probably contain content such as:</p>
+<h2>This is the edgeflip object page...</h2>
+<p>It contains the Facebook object headers, some javascript to send us clickback data, and then sends users off to the OFA page.</p>
 
-<h3>{{ senInfo.state_name }} Residents: Tell Senator {{ senInfo.name }} It's Time for Climate Legislation!</h3>
-<p style="margin-left: 50px;"><span style="font-weight:bold;">Senator {{ senInfo.name }}</span><BR>
-Email: <a href="mailto:{{ senInfo.email }}">{{ senInfo.email }}</a><BR>
-Phone: {{ senInfo.phone }}
-</p>
-<p style="font-size:10px; margin-top: 15px;">Not in {{ senInfo.state_name }}? <a href="http://demo.edgeflip.com/ofa">Click here to tell your friends.</a></p>
+<h3><a href="{{ redirectURL }}">Click here</a> if you're not sent to OFA immediately...</h3>
 </BODY>
 </HTML>
