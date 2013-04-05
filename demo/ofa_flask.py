@@ -54,7 +54,11 @@ def ofa_faces():
 	tok = flask.request.json['token']
 	campaign = flask.request.json.get('campaign')
 	numFace = int(flask.request.json['num'])
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
+
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
 
 	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
 	filterTups = campaign_filterTups.get(campaign, [])
@@ -106,17 +110,20 @@ def ofa_faces():
 		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
 		actionParams.update(fbParams)
-		database.writeEventsDb(None, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
+		resp = flask.make_response(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200)
 
 	else:
 		#zzz need to figure out what we do here
 		#return flask.render_template('ofa_faces_table_generic.html')
-		#database.writeEventsDb(None, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		#database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 		#	  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-		return "all of your friends are stateless"
+		resp = flask.make_response('all of your friends are stateless', 200)
+
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
 	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
@@ -203,29 +210,42 @@ def suppress():
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
 	oldid = flask.request.json['oldid']
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
 	newid = flask.request.json['newid']
 	fname = flask.request.json['fname']
 	lname = flask.request.json['lname']
 
-	database.writeEventsDb(None, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
 	if (newid != ''):
-		database.writeEventsDb(None, ip, userid, [newid], 'shown', appid, content, None, background=True)
-		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
+		database.writeEventsDb(sessionId, ip, userid, [newid], 'shown', appid, content, None, background=True)
+		resp = flask.make_response(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200)
 	else:
-		return ''
+		resp = flask.make_response('', 200)
+
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 @app.route('/clickback', methods=['POST'])
 def clickback():
 	actionid = flask.request.json['actionid']
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(None, ip, None, [None], 'clickback', appid, content, actionid, background=True)
-	return ''
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 @app.route('/share', methods=['POST'])
 def recordShare():
@@ -234,10 +254,16 @@ def recordShare():
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
 	friends = [ int(f) for f in flask.request.json['recips'] ]
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(None, ip, userid, friends, 'shared', appid, content, actionid, background=True)
-	return ''
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 @app.route('/button_event', methods=['POST'])
 def buttonEvent():

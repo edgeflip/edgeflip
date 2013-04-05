@@ -23,6 +23,7 @@
 
 			var urlparams = read_url_params();
 			var actionid = urlparams['fb_action_ids']; //zzz double-check this!
+			var sessionid = urlparams['fb_action_ids'] || '';
 
 			// Only write a clickback if we have an action_id in the URL
 			if (actionid) {
@@ -34,7 +35,8 @@
 				var params = JSON.stringify({
 					appid: appid,
 					content: content,
-					actionid: actionid
+					actionid: actionid,
+					sessionid: sessionid
 				});
 
 				// NOTE: Will need to specify full URL if hosting objects on a different domain!!
@@ -45,14 +47,16 @@
 					dataType: 'html',
 					data: params,
 					error: function(jqXHR, textStatus, errorThrown) {
-								new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-								// $(div_id).replaceWith(new_html);
-								// Don't think there's anything to do here...
+						new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+						// $(div_id).replaceWith(new_html);
+						// Don't think there's anything to do here...
 					},
-					success: function(data) {
-								new_html = data;
-								// $(div_id).replaceWith(new_html);
-								// ... or here.
+					success: function(data, textStatus, jqXHR) {
+						new_html = data;
+						var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+						sessionid = header_efsid || sessionid;
+						// $(div_id).replaceWith(new_html);
+						// ... or here.
 					}
 				});
 			}
