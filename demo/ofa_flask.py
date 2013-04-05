@@ -106,7 +106,6 @@ def ofa_faces():
 		'fb_action_type' : 'support',
 		'fb_object_type' : 'cause',
 		'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
-#		'fb_object_url' : 'http://ec2-50-19-198-118.compute-1.amazonaws.com/fbobj.html'
 		}
 		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
@@ -175,7 +174,7 @@ def ofa_climate(state):
 	#state = state.strip().upper()
 	senInfo = state_senInfo.get(state)
 	if (not senInfo):
-		return "Whoopsie! No targets in that state."  # you know, or some 404 page...
+		return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
 
 	objParams = {
 	'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
@@ -188,9 +187,21 @@ def ofa_climate(state):
 	}
 	objParams.update(fbParams)
 
-	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=senInfo)
+	# zzz Are we going to want/need to pass URL parameters to this redirect?
+	redirectURL = flask.url_for('ofa_landing', state=state, _external=True)	# Will actually be client's external URL...
+
+	return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
+# This is an example endpoint... in reality, this page would be on OFA servers
+@app.route("/ofa_landing/<state>")
+def ofa_landing(state):
+	senInfo = state_senInfo.get(state)
+	if (not senInfo):
+		return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+	pageTitle = "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name']
+
+	return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
 
 
 @app.route("/campaign_save", methods=['POST', 'GET'])

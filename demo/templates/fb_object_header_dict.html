@@ -19,8 +19,6 @@
 	<!-- Ajax call to register clickbacks -->
 	<script>
 
-		window.location = 'http://www.barackobama.com/';
-
 		(function() {
 
 			var urlparams = read_url_params();
@@ -30,7 +28,6 @@
 			// Only write a clickback if we have an action_id in the URL
 			if (actionid) {
 
-				var new_html;
 				var appid = {{ fbParams.fb_app_id }};
 				var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
 
@@ -49,18 +46,23 @@
 					dataType: 'html',
 					data: params,
 					error: function(jqXHR, textStatus, errorThrown) {
-						new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-						// $(div_id).replaceWith(new_html);
-						// Don't think there's anything to do here...
+						{% if redirectURL -%}
+						window.location = '{{ redirectURL }}';
+						{%- endif %}
 					},
 					success: function(data, textStatus, jqXHR) {
 						new_html = data;
 						var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
 						sessionid = header_efsid || sessionid;
-						// $(div_id).replaceWith(new_html);
-						// ... or here.
+						{% if redirectURL -%}
+						window.location = '{{ redirectURL }}';
+						{%- endif %}
 					}
 				});
+			} else {
+				{% if redirectURL -%}
+				window.location = '{{ redirectURL }}';
+				{%- endif %}
 			}
 		}());
 
