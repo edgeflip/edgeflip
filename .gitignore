@@ -9,3 +9,4 @@ demo/edgeflip.config
 *.pickle
 .coverage
 /htmlcov/*
+snakefood.pdf
