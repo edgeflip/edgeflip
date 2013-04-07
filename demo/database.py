@@ -113,31 +113,18 @@ def updateDb(user, token, edges, background=False):
 		logging.debug("updateDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
 		return _updateDb(user, token, edges)
 
-
-"""	ip VARCHAR(32),
-								fbid BIGINT,
-								friend_fbid	BIGINT,
-								type VARCHAR(64),
-								appid BIGINT,
-								content VARCHAR(128),
-								activity_id BIGINT,
-								create_dt DATETIME,
-								KEY(fbid),
-								KEY(friend_fbid),
-								KEY(activity_id) """
-
 # helper function that may get run in a background thread
-def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId):
+def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId):
 	tim = datastructs.Timer()
 	conn = db.getConn()
 	curs = conn.cursor()
 
-	rows = [ {	'ip' : ip, 'userId' : userId, 'friendId' : friendId, 
+	rows = [ {	'sessionId' : sessionId, 'ip' : ip, 'userId' : userId, 'friendId' : friendId, 
 				'eventType' : eventType, 'appId' : appId, 'content' : content,
 				'activityId' : activityId, 'createDt' : time.strftime("%Y-%m-%d %H:%M:%S") 
 			 } for friendId in friendIds ]
-	sql = """INSERT INTO events (ip, fbid, friend_fbid, type, appid, content, activity_id, create_dt) 
-				VALUES (%(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
+	sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, create_dt) 
+				VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
 
 	insertCount = 0
 	for row in rows:
@@ -145,22 +132,22 @@ def _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
 		conn.commit()
 		insertCount += 1
 
-	logging.debug("_writeEventDb() thread %d updated %d %s event(s) from ip %s" % (threading.current_thread().ident, insertCount, eventType, ip) )
+	logging.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s" % (threading.current_thread().ident, insertCount, eventType, sessionId) )
 	conn.close()
 	
 	return insertCount
 
-def writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId, background=False):
+def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
 	# friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
 	if (background):
-		t = threading.Thread(target=_writeEventsDb, args=(ip, userId, friendIds, eventType, appId, content, activityId))
+		t = threading.Thread(target=_writeEventsDb, args=(sessionId, ip, userId, friendIds, eventType, appId, content, activityId))
 		t.daemon = False
 		t.start()
-		logging.debug("writeEventsDb() spawning background thread %d for %s event from ip %s" % (t.ident, eventType, ip))
+		logging.debug("writeEventsDb() spawning background thread %d for %s event from session %s" % (t.ident, eventType, sessionId))
 		return 0
 	else:
-		logging.debug("writeEventsDb() foreground thread %d for %s event from ip %s" % (threading.current_thread().ident, eventType, ip))
-		return _writeEventsDb(ip, userId, friendIds, eventType, appId, content, activityId)
+		logging.debug("writeEventsDb() foreground thread %d for %s event from session %s" % (threading.current_thread().ident, eventType, sessionId))
+		return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
 
 
 # will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so

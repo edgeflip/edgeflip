@@ -3,6 +3,7 @@ import sys
 import time
 import datetime
 import random
+import hashlib
 import logging
 import flask
 
@@ -53,7 +54,11 @@ def ofa_faces():
 	tok = flask.request.json['token']
 	campaign = flask.request.json.get('campaign')
 	numFace = int(flask.request.json['num'])
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
+
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
 
 	campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
 	filterTups = campaign_filterTups.get(campaign, [])
@@ -105,17 +110,20 @@ def ofa_faces():
 		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
 		actionParams.update(fbParams)
-		database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-		return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
+		resp = flask.make_response(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+									 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200)
 
 	else:
 		#zzz need to figure out what we do here
 		#return flask.render_template('ofa_faces_table_generic.html')
-		#database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
+		#database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 		#	  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-		return "all of your friends are stateless"
+		resp = flask.make_response('all of your friends are stateless', 200)
+
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
 	edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
@@ -166,7 +174,7 @@ def ofa_climate(state):
 	#state = state.strip().upper()
 	senInfo = state_senInfo.get(state)
 	if (not senInfo):
-		return "Whoopsie! No targets in that state."  # you know, or some 404 page...
+		return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
 
 	objParams = {
 	'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
@@ -179,9 +187,21 @@ def ofa_climate(state):
 	}
 	objParams.update(fbParams)
 
-	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=senInfo)
+	# zzz Are we going to want/need to pass URL parameters to this redirect?
+	redirectURL = flask.url_for('ofa_landing', state=state, _external=True)	# Will actually be client's external URL...
+
+	return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
+# This is an example endpoint... in reality, this page would be on OFA servers
+@app.route("/ofa_landing/<state>")
+def ofa_landing(state):
+	senInfo = state_senInfo.get(state)
+	if (not senInfo):
+		return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+	pageTitle = "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name']
+
+	return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
 
 
 @app.route("/campaign_save", methods=['POST', 'GET'])
@@ -202,29 +222,42 @@ def suppress():
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
 	oldid = flask.request.json['oldid']
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
 	newid = flask.request.json['newid']
 	fname = flask.request.json['fname']
 	lname = flask.request.json['lname']
 
-	database.writeEventsDb(ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
 	if (newid != ''):
-		database.writeEventsDb(ip, userid, [newid], 'shown', appid, content, None, background=True)
-		return flask.render_template('new_face.html', id=newid, fname=fname, lname=lname)
+		database.writeEventsDb(sessionId, ip, userid, [newid], 'shown', appid, content, None, background=True)
+		resp = flask.make_response(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200)
 	else:
-		return ''
+		resp = flask.make_response('', 200)
+
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 @app.route('/clickback', methods=['POST'])
 def clickback():
 	actionid = flask.request.json['actionid']
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(ip, None, [None], 'clickback', appid, content, actionid, background=True)
-	return ''
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 @app.route('/share', methods=['POST'])
 def recordShare():
@@ -232,18 +265,53 @@ def recordShare():
 	actionid = flask.request.json['actionid']
 	appid = flask.request.json['appid']
 	content = flask.request.json['content']
-	friends = [ int(f) for f in flask.request.json['recips'] ]
+	friends = [ int(f) for f in flask.request.json['friends'] ]
+	sessionId = flask.request.json['sessionid']
 	ip = getIP(req = flask.request)
 
-	database.writeEventsDb(ip, userid, friends, 'shared', appid, content, actionid, background=True)
-	return ''
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
 
+	database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
+
+@app.route('/button_event', methods=['POST'])
+def buttonEvent():
+	userId = flask.request.json['userid']
+	userId = userId or None
+	appId = flask.request.json['appid']
+	content = flask.request.json['content']
+	eventType = flask.request.json['eventType']
+	sessionId = flask.request.json['sessionid']
+	ip = getIP(req = flask.request)
+
+	if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
+		return "Ah, ah, ah. You didn't say the magic word.", 403
+
+	if (not sessionId):
+		sessionId = generateSessionId(ip, content)
+
+	database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
+	resp = flask.make_response('', 200)
+	resp.headers['X-EF-SessionID'] = sessionId
+	return resp
 
 def getIP(req):
 	if not req.headers.getlist("X-Forwarded-For"):
 	   return req.remote_addr
 	else:
 	   return req.headers.getlist("X-Forwarded-For")[0]
+
+
+def generateSessionId(ip, content, timestr=None):
+	if (not timestr):
+		timestr = '%.10f' % time.time()
+	# Is MD5 the right strategy here?
+	sessionId = hashlib.md5(ip+content+timestr).hexdigest()
+	logging.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
+	return sessionId
 
 
 @app.route("/health_check")
@@ -262,6 +330,7 @@ def say_ahhh():
 		curs = conn.cursor()
 		curs.execute("SELECT 1+1")
 		assert curs.fetchone()[0] == 2
+		conn.close()
 
 		# Make sure we can talk to FB and get simple user info back
 		fbresp = facebook.getUrlFb("http://graph.facebook.com/6963")
