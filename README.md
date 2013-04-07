@@ -26,7 +26,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 	sudo emacs edgeflip.wsgi</code></pre>
 7. Contents of edgeflip.wsgi:
 <pre><code>import sys
-	sys.path.insert(0, '/var/www/edgeflip/gitclones/edgeflip/demo/')
+	sys.path.insert(0, '/var/www/edgeflip/gitclones/edgeflip/edgeflip/')
 
 	from ofa_flask import app as application</code></pre>
 8. Set up the git clone:
@@ -45,12 +45,12 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 10. Contents of edgeflip.config:
 <pre><code>{
 	  "outdir":"edgeflip/",
-	  "codedir":"/var/www/edgeflip/gitclones/edgeflip/demo/",
+	  "codedir":"/var/www/edgeflip/gitclones/edgeflip/edgeflip/",
 	  "logpath":"edgeflip/logs/demo.log",
 	  "dbpath":"edgeflip/demo.sqlite",
 	  "queue":"edgeflip_prod",
-	  "ofa_state_config": "/var/www/edgeflip/gitclones/edgeflip/demo/config/ofa_states.json",
-	  "ofa_campaign_config": "/var/www/edgeflip/gitclones/edgeflip/demo/config/ofa_campaigns.json"
+	  "ofa_state_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_states.json",
+	  "ofa_campaign_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_campaigns.json"
 	}</code></pre>
 11. Set up Apache Virtual Host:
 <pre><code>cd /etc/apache2
