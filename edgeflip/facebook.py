@@ -11,8 +11,9 @@ import time
 import Queue
 from collections import defaultdict
 from contextlib import closing
-import datastructs
-import config as conf
+
+from . import datastructs
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 

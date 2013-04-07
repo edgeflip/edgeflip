@@ -1,22 +1,27 @@
 #!/usr/bin/python
 import flask
 #import ReadStream
-import database
-import facebook
-import ranking
-import stream_queue
+
+from . import database
+from . import facebook
+from . import ranking
+from . import stream_queue
+
 import sys
 import json
 import time
 import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 import logging
 import os
-import config as conf
+
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 # for testing endpoint -- could be removed for production-only code
 import random
-import datastructs
+
+from . import datastructs
+
 import datetime
 
 

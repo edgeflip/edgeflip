@@ -1,9 +1,12 @@
 #!/usr/bin/python
 import sys
-import database
-import datastructs
+
+from . import database
+from . import datastructs
+
 import logging
-import config as conf
+
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 

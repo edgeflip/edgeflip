@@ -4,10 +4,11 @@ import time
 import logging
 import datetime
 import threading
-import datastructs
-import facebook
-import database_rds as db # modify this to swtch db implementations
-import config as conf
+
+from . import datastructs
+from . import facebook
+from . import database_rds as db # modify this to swtch db implementations
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 

@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import sys
 import sqlite3
-import config as conf
+
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 

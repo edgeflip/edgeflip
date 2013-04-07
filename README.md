@@ -26,9 +26,9 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 	sudo emacs edgeflip.wsgi</code></pre>
 7. Contents of edgeflip.wsgi:
 <pre><code>import sys
-	sys.path.insert(0, '/var/www/edgeflip/gitclones/edgeflip/edgeflip/')
+	sys.path.insert(0, '/var/www/edgeflip/gitclones/edgeflip/')
 
-	from ofa_flask import app as application</code></pre>
+	from edgeflip.ofa_flask import app as application</code></pre>
 8. Set up the git clone:
 <pre><code>sudo chmod 755 edgeflip.wsgi
 	sudo mkdir gitclones

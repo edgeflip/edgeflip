@@ -7,11 +7,11 @@ import hashlib
 import logging
 import flask
 
-import facebook
-import ranking
-import database
-import datastructs
-import config as conf
+from . import facebook
+from . import ranking
+from . import database
+from . import datastructs
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 

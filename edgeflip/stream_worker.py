@@ -3,13 +3,16 @@ import os
 import sys
 import argparse
 import logging
-import facebook
-import database
-import datastructs
+
+from . import facebook
+from . import database
+from . import datastructs
+
 import time
 import json
 import pika
-import config as conf
+
+from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
