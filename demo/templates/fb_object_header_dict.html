@@ -1,69 +1,69 @@
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US"
       xmlns:fb="https://www.facebook.com/2008/fbml"> 
-	<head prefix="og: http://ogp.me/ns# {{ fbParams.fb_app_name }}: 
+    <head prefix="og: http://ogp.me/ns# {{ fbParams.fb_app_name }}: 
                   http://ogp.me/ns/apps/{{ fbParams.fb_app_name }}#">
-	<title>{{ fbParams.page_title }}</title>
-	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-	<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-	<meta property="fb:app_id" content="{{ fbParams.fb_app_id }}" /> 
-	<meta property="og:type" content="{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }}" /> 
-	<meta property="og:title" content="{{ fbParams.fb_object_title }}" /> 
-	<meta property="og:image" content="{{ fbParams.fb_object_image }}" /> 
-	<meta property="og:description" content="{{ fbParams.fb_object_desc }}" /> 
-	<meta property="og:url" content="{{ fbParams.fb_object_url }}">
+    <title>{{ fbParams.page_title }}</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta property="fb:app_id" content="{{ fbParams.fb_app_id }}" /> 
+    <meta property="og:type" content="{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }}" /> 
+    <meta property="og:title" content="{{ fbParams.fb_object_title }}" /> 
+    <meta property="og:image" content="{{ fbParams.fb_object_image }}" /> 
+    <meta property="og:description" content="{{ fbParams.fb_object_desc }}" /> 
+    <meta property="og:url" content="{{ fbParams.fb_object_url }}">
 
-	<!-- Might want to do something smarter to detect if jquery already present? -->
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-	<script src="{{ url_for('static', filename='url_params.js') }}"></script>
+    <!-- Might want to do something smarter to detect if jquery already present? -->
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="{{ url_for('static', filename='url_params.js') }}"></script>
 
-	<!-- Ajax call to register clickbacks -->
-	<script>
+    <!-- Ajax call to register clickbacks -->
+    <script>
 
-		(function() {
+        (function() {
 
-			var urlparams = read_url_params();
-			var actionid = urlparams['fb_action_ids']; //zzz double-check this!
-			var sessionid = urlparams['efsid'] || '';
+            var urlparams = read_url_params();
+            var actionid = urlparams['fb_action_ids']; //zzz double-check this!
+            var sessionid = urlparams['efsid'] || '';
 
-			// Only write a clickback if we have an action_id in the URL
-			if (actionid) {
+            // Only write a clickback if we have an action_id in the URL
+            if (actionid) {
 
-				var appid = {{ fbParams.fb_app_id }};
-				var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+                var appid = {{ fbParams.fb_app_id }};
+                var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
 
-				var params = JSON.stringify({
-					appid: appid,
-					content: content,
-					actionid: actionid,
-					sessionid: sessionid
-				});
+                var params = JSON.stringify({
+                    appid: appid,
+                    content: content,
+                    actionid: actionid,
+                    sessionid: sessionid
+                });
 
-				// NOTE: Will need to specify full URL if hosting objects on a different domain!!
-				$.ajax({
-					type: "POST",
-					url: '/clickback',
-					contentType: "application/json",
-					dataType: 'html',
-					data: params,
-					error: function(jqXHR, textStatus, errorThrown) {
-						{% if redirectURL -%}
-						window.location = '{{ redirectURL }}';
-						{%- endif %}
-					},
-					success: function(data, textStatus, jqXHR) {
-						new_html = data;
-						var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-						sessionid = header_efsid || sessionid;
-						{% if redirectURL -%}
-						window.location = '{{ redirectURL }}';
-						{%- endif %}
-					}
-				});
-			} else {
-				{% if redirectURL -%}
-				window.location = '{{ redirectURL }}';
-				{%- endif %}
-			}
-		}());
+                // NOTE: Will need to specify full URL if hosting objects on a different domain!!
+                $.ajax({
+                    type: "POST",
+                    url: '/clickback',
+                    contentType: "application/json",
+                    dataType: 'html',
+                    data: params,
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        {% if redirectURL -%}
+                        window.location = '{{ redirectURL }}';
+                        {%- endif %}
+                    },
+                    success: function(data, textStatus, jqXHR) {
+                        new_html = data;
+                        var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                        sessionid = header_efsid || sessionid;
+                        {% if redirectURL -%}
+                        window.location = '{{ redirectURL }}';
+                        {%- endif %}
+                    }
+                });
+            } else {
+                {% if redirectURL -%}
+                window.location = '{{ redirectURL }}';
+                {%- endif %}
+            }
+        }());
 
-	</script>
+    </script>

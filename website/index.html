@@ -2,294 +2,294 @@
 
 <HTML>
 <HEAD>
-	<meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-	<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0" />
-	<TITLE>edgeflip</TITLE>
-	<link rel="stylesheet" type="text/css" href="edgeflip.css" />
-	<script src="http://code.jquery.com/jquery-1.8.3.js"></script>
-	<script>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; user-scalable=0" />
+    <TITLE>edgeflip</TITLE>
+    <link rel="stylesheet" type="text/css" href="edgeflip.css" />
+    <script src="http://code.jquery.com/jquery-1.8.3.js"></script>
+    <script>
 
-		function preload(arrayOfImages) {
-			$(arrayOfImages).each(function () {
-				$('<img />').attr('src',this);
-			});
-		}
+        function preload(arrayOfImages) {
+            $(arrayOfImages).each(function () {
+                $('<img />').attr('src',this);
+            });
+        }
 
-		imgsToLoad = [	"target_share.png", 
-						"em_mouse.png",
-						"tumblr_mouse.png",
-						"facebook_mouse.png",
-						"twitter_mouse.png"
-					];
-		preload(imgsToLoad);
+        imgsToLoad = [    "target_share.png", 
+                        "em_mouse.png",
+                        "tumblr_mouse.png",
+                        "facebook_mouse.png",
+                        "twitter_mouse.png"
+                    ];
+        preload(imgsToLoad);
 
 
-		var pagedivs =  {
-							'product': ['#prod1', '#prod2', '#prod3', '#prod4'],
-							'who': ['#who1', '#who2', '#who3', '#who4']
-						};
-		var curr = {'product': 0, 'who': 0};
-		$(document).ready(function() {
+        var pagedivs =  {
+                            'product': ['#prod1', '#prod2', '#prod3', '#prod4'],
+                            'who': ['#who1', '#who2', '#who3', '#who4']
+                        };
+        var curr = {'product': 0, 'who': 0};
+        $(document).ready(function() {
 
-			function elementSizes() {
+            function elementSizes() {
 
-				// REDIRECT TO MOBILE SITE IF window.innerWidth < 750
-				if (window.innerWidth < 750) {
-					window.location = "http://m.edgeflip.com/"
-				}
+                // REDIRECT TO MOBILE SITE IF window.innerWidth < 750
+                if (window.innerWidth < 750) {
+                    window.location = "http://m.edgeflip.com/"
+                }
 
-				$('#home').height(window.innerHeight);
-				$('#product_container, #product_slider, .product').height(window.innerHeight);
-//				$('#who_container, .who').height(window.innerHeight*.75);
-//				$('#contact_container').height(window.innerHeight*.25);
-				$('#contact_container').height(175);
-				$('#who_container, .who').height(window.innerHeight - 175);
-				$('#share_container').height(window.innerHeight);
-				$('.who .inset_box').css('max-height', (window.innerHeight*.65 - 200)+'px');
-			}
+                $('#home').height(window.innerHeight);
+                $('#product_container, #product_slider, .product').height(window.innerHeight);
+//                $('#who_container, .who').height(window.innerHeight*.75);
+//                $('#contact_container').height(window.innerHeight*.25);
+                $('#contact_container').height(175);
+                $('#who_container, .who').height(window.innerHeight - 175);
+                $('#share_container').height(window.innerHeight);
+                $('.who .inset_box').css('max-height', (window.innerHeight*.65 - 200)+'px');
+            }
 
-			elementSizes();
-			$(window).resize(function(){ elementSizes(); });
+            elementSizes();
+            $(window).resize(function(){ elementSizes(); });
 
-			$('.arrow').click(function() {
-				var this_parent;
-				var this_curr;
-				if ($(this).parent().hasClass('product')) {
-					this_parent = 'product';
-					this_curr = curr['product'];
-				} else if ($(this).parent().hasClass('who')) {
-					this_parent = 'who';
-					this_curr = curr['who'];
-				}
-				var dir = 1;
-				if ($(this).hasClass('left_arrow')) {
-					dir = -1;
-				} 
-				$(pagedivs[this_parent][this_curr]).stop().animate({width:'toggle'}, 500);
-				$(pagedivs[this_parent][this_curr+dir]).stop().animate({width:'toggle'}, 500);
-//				$("#product_slider").css("transform","translateX("+ (this_curr + dir) * -900+"px)");
-				curr[this_parent] += dir;
+            $('.arrow').click(function() {
+                var this_parent;
+                var this_curr;
+                if ($(this).parent().hasClass('product')) {
+                    this_parent = 'product';
+                    this_curr = curr['product'];
+                } else if ($(this).parent().hasClass('who')) {
+                    this_parent = 'who';
+                    this_curr = curr['who'];
+                }
+                var dir = 1;
+                if ($(this).hasClass('left_arrow')) {
+                    dir = -1;
+                } 
+                $(pagedivs[this_parent][this_curr]).stop().animate({width:'toggle'}, 500);
+                $(pagedivs[this_parent][this_curr+dir]).stop().animate({width:'toggle'}, 500);
+//                $("#product_slider").css("transform","translateX("+ (this_curr + dir) * -900+"px)");
+                curr[this_parent] += dir;
 
-				return false;
-			});
+                return false;
+            });
 
-			$('.learn_more').click(function() { $('#prod1 .arrow').click(); });
+            $('.learn_more').click(function() { $('#prod1 .arrow').click(); });
 
-		});
-	</script>
+        });
+    </script>
 
-	<script>
+    <script>
 
-		function ipad_scroll_fix(topScrollTarget) {
-//			$(window).scrollTop($(window).scrollTop() + 1);
-//			$(window).scrollTop($(window).scrollTop() - 1);
+        function ipad_scroll_fix(topScrollTarget) {
+//            $(window).scrollTop($(window).scrollTop() + 1);
+//            $(window).scrollTop($(window).scrollTop() - 1);
 
-//			$('body').append($('<div></div>').addClass('iosfix'));
-//			setTimeout(function() {	$('.iosfix').remove(); }, 500);
+//            $('body').append($('<div></div>').addClass('iosfix'));
+//            setTimeout(function() {    $('.iosfix').remove(); }, 500);
 
-		    $('.menu, .menu_social').css({ "position": "relative" });
-		    window.scroll(0, topScrollTarget );
-		    $('.menu, .menu_social').css({ "position": "fixed" });
-		}
+            $('.menu, .menu_social').css({ "position": "relative" });
+            window.scroll(0, topScrollTarget );
+            $('.menu, .menu_social').css({ "position": "fixed" });
+        }
 
-	</script>
+    </script>
 
-	<style>
-		.iosfix {
-		  height: 101%;
-		  overflow: hidden;
-		}
-	</style>
+    <style>
+        .iosfix {
+          height: 101%;
+          overflow: hidden;
+        }
+    </style>
 
-	<!--[if IE]> 
-		<style type="text/css"> 
-			.big_quote { color: #094163; } 
-		</style> 
-	<![endif]-->
+    <!--[if IE]> 
+        <style type="text/css"> 
+            .big_quote { color: #094163; } 
+        </style> 
+    <![endif]-->
 
 </HEAD>
 <BODY>
-	<div class="menu">
-		<ul>
-			<li><a href="#" onClick="$('html, body').animate({scrollTop: 0}, 1000, function() { ipad_scroll_fix(0); }); return false;" style="font-weight: normal; text-align: center;">edgeflip</a></li>
-			<li><a href="#" onClick="$('html, body').animate({scrollTop: $('#product_container').position().top}, 1000, function() { ipad_scroll_fix($('#product_container').position().top); }); return false;">What We Do</a></li>
-			<li><a href="#" onClick="$('html, body').animate({scrollTop: $('#who_container').position().top}, 1000, function() { ipad_scroll_fix($('#who_container').position().top); }); return false;">Who We Are</a></li>
-			<li><a href="#" onClick="$('html, body').animate({scrollTop: $('#contact_container').position().top - 40}, 1000, function() { ipad_scroll_fix($('#contact_container').position().top - 40); }); return false;">Contact Us</a></li>
-			<!--
-			<li><a href="#" onClick="$('html, body').animate({scrollTop: $('#share_container').position().top}, 1000); return false;">Spread The Word</a></li>
-			-->
-			<li><a href="http://edgeflip.tumblr.com/">Fundraising Tips</a></li>
-		</ul>
-	</div> <!-- menu -->
-	<div class="menu_social">
-		<!--
-		<a href="http://www.facebook.com/edgeflip">f</a> <a href="http://www.twitter.com/edgeflip">tw</a>
-		-->
+    <div class="menu">
+        <ul>
+            <li><a href="#" onClick="$('html, body').animate({scrollTop: 0}, 1000, function() { ipad_scroll_fix(0); }); return false;" style="font-weight: normal; text-align: center;">edgeflip</a></li>
+            <li><a href="#" onClick="$('html, body').animate({scrollTop: $('#product_container').position().top}, 1000, function() { ipad_scroll_fix($('#product_container').position().top); }); return false;">What We Do</a></li>
+            <li><a href="#" onClick="$('html, body').animate({scrollTop: $('#who_container').position().top}, 1000, function() { ipad_scroll_fix($('#who_container').position().top); }); return false;">Who We Are</a></li>
+            <li><a href="#" onClick="$('html, body').animate({scrollTop: $('#contact_container').position().top - 40}, 1000, function() { ipad_scroll_fix($('#contact_container').position().top - 40); }); return false;">Contact Us</a></li>
+            <!--
+            <li><a href="#" onClick="$('html, body').animate({scrollTop: $('#share_container').position().top}, 1000); return false;">Spread The Word</a></li>
+            -->
+            <li><a href="http://edgeflip.tumblr.com/">Fundraising Tips</a></li>
+        </ul>
+    </div> <!-- menu -->
+    <div class="menu_social">
+        <!--
+        <a href="http://www.facebook.com/edgeflip">f</a> <a href="http://www.twitter.com/edgeflip">tw</a>
+        -->
 
-		<a href="http://www.twitter.com/edgeflip"><img src="tw_sm.png" style="height: 20px; padding-bottom: 5px; padding-left: 7px; padding-top: 11px; padding-right: 8px;" /></a>
+        <a href="http://www.twitter.com/edgeflip"><img src="tw_sm.png" style="height: 20px; padding-bottom: 5px; padding-left: 7px; padding-top: 11px; padding-right: 8px;" /></a>
 
-		<a href="http://www.facebook.com/edgeflip"><img src="f_sm.png" style="height: 25px; padding-bottom: 3px; padding-left: 8px; padding-top: 8px;" /></a>
+        <a href="http://www.facebook.com/edgeflip"><img src="f_sm.png" style="height: 25px; padding-bottom: 3px; padding-left: 8px; padding-top: 8px;" /></a>
 
-		<a href="http://edgeflip.tumblr.com/"><img src="t_sm.png" style="height:22px; padding-bottom: 3px; padding-left: 8px; padding-top: 9px;" /></a>
-	</div>
+        <a href="http://edgeflip.tumblr.com/"><img src="t_sm.png" style="height:22px; padding-bottom: 3px; padding-left: 8px; padding-top: 9px;" /></a>
+    </div>
 
-	<div id="content_container">
+    <div id="content_container">
 
-		<div id="home">
-			<div style="text-align: center; padding-top: 225px;">
-				<h1>edgeflip</h1>
-				<h2><span style="font-weight:900">targeted</span><span style="font-weight:100">sharing</span></h2>
-			</div>
-		</div>
+        <div id="home">
+            <div style="text-align: center; padding-top: 225px;">
+                <h1>edgeflip</h1>
+                <h2><span style="font-weight:900">targeted</span><span style="font-weight:100">sharing</span></h2>
+            </div>
+        </div>
 
-		<div id="product_container">
-		<div id="product_slider">
-<!--		<div id="product_slider"> -->
+        <div id="product_container">
+        <div id="product_slider">
+<!--        <div id="product_slider"> -->
 
-			<div class="product" id="prod1">
-				<div class="prod_box opaque">
-					<p class="big_quote">It was one of the most<BR />important things we did</p>
-					<p style="font-size: 16px;">&mdash; Jim Messina, Obama for America Campaign Manager</p>
-					<div class="learn_more">Learn More &gt;</div>
-				</div>
-				<div class="prod_box transparent"></div>
-				<div class="arrow right_arrow">&gt;</div>
-			</div> <!-- prod1 -->
+            <div class="product" id="prod1">
+                <div class="prod_box opaque">
+                    <p class="big_quote">It was one of the most<BR />important things we did</p>
+                    <p style="font-size: 16px;">&mdash; Jim Messina, Obama for America Campaign Manager</p>
+                    <div class="learn_more">Learn More &gt;</div>
+                </div>
+                <div class="prod_box transparent"></div>
+                <div class="arrow right_arrow">&gt;</div>
+            </div> <!-- prod1 -->
 
-			<div class="product" id="prod2">
-				<div style="position: relative; top:15%; left: 150px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3>what we do</h3>
-					<p class="inset_box">edgeflip helps non-profits, charities, and other good causes use the social networks of their existing supporters to increase fundraising, more effectively recruit and mobilize volunteers, and expand their reach &amp; supporter base.<BR />
-					<BR />
-					We initially developed this technology to help the Obama Campaign maximize the effectivness of its social media presence by asking supporters to reach out to their friends with personally-targeted content about registering to vote, the President's agenda, or how and where to vote. Because of the reach and power of these friend-to-friend contacts, the campaign's digital director described Targeted Sharing to TIME magazine as "the most groundbreaking piece of technology developed for this campaign."</p>
-				</div>
-				<div class="arrow right_arrow">&gt;</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div> <!-- prod2 -->
+            <div class="product" id="prod2">
+                <div style="position: relative; top:15%; left: 150px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3>what we do</h3>
+                    <p class="inset_box">edgeflip helps non-profits, charities, and other good causes use the social networks of their existing supporters to increase fundraising, more effectively recruit and mobilize volunteers, and expand their reach &amp; supporter base.<BR />
+                    <BR />
+                    We initially developed this technology to help the Obama Campaign maximize the effectivness of its social media presence by asking supporters to reach out to their friends with personally-targeted content about registering to vote, the President's agenda, or how and where to vote. Because of the reach and power of these friend-to-friend contacts, the campaign's digital director described Targeted Sharing to TIME magazine as "the most groundbreaking piece of technology developed for this campaign."</p>
+                </div>
+                <div class="arrow right_arrow">&gt;</div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div> <!-- prod2 -->
 
-			<div class="product" id="prod3">
-				<div style="position: relative; top:10%; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3 style="text-shadow: 2px 2px 3px #E69C67;">how it works</h3>
-					<p class="inset_box" style="width: 650px; height: 315px; margin-left: 20px; background-image: url('target_share.png'); background-repeat: no-repeat; backbround-attachment: fixed; background-size: 690px auto; background-position: -5px -5px;"></p>
-					<!-- <p>(Obviously something updated/less OFA-centric...)</p> -->
-				</div>
-				<div class="arrow right_arrow">&gt;</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div> <!-- prod3 -->
+            <div class="product" id="prod3">
+                <div style="position: relative; top:10%; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3 style="text-shadow: 2px 2px 3px #E69C67;">how it works</h3>
+                    <p class="inset_box" style="width: 650px; height: 315px; margin-left: 20px; background-image: url('target_share.png'); background-repeat: no-repeat; backbround-attachment: fixed; background-size: 690px auto; background-position: -5px -5px;"></p>
+                    <!-- <p>(Obviously something updated/less OFA-centric...)</p> -->
+                </div>
+                <div class="arrow right_arrow">&gt;</div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div> <!-- prod3 -->
 
-			<div class="product" id="prod4">
-				<div style="position: relative; top:20%; left: 150px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3 style="text-shadow: 3px 3px 5px white;">learn more</h3>
-					<div class="inset_box" style="text-align: left; font-size: 18px;">Read about our work in the press:
-						<ul style="font-weight: 400; font-size: 16px;">
-							<li><a href="http://techpresident.com/news/23159/how-obama-america-made-its-facebook-friends-effective-advocates">How Obama for America Made its Facebook Friends into Effective Advocates (TechPresident)</a></li>
-							<li><a href="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/">How the Obama Campaign Connected with Young Voters (TIME)</a></li>
-							<li><a href="http://www.politico.com/playbook/1112/playbook9515.html">Messina Pulls Back the Curtain on Obama's Data Mine (Politico)</a></li>
-							<li><a href="http://allfacebook.com/facebook-app-obama-campaign_b105201">Facebook App Proves a Game-Changer for Obama Campaign (allfacebook.com)</a></li>
+            <div class="product" id="prod4">
+                <div style="position: relative; top:20%; left: 150px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3 style="text-shadow: 3px 3px 5px white;">learn more</h3>
+                    <div class="inset_box" style="text-align: left; font-size: 18px;">Read about our work in the press:
+                        <ul style="font-weight: 400; font-size: 16px;">
+                            <li><a href="http://techpresident.com/news/23159/how-obama-america-made-its-facebook-friends-effective-advocates">How Obama for America Made its Facebook Friends into Effective Advocates (TechPresident)</a></li>
+                            <li><a href="http://swampland.time.com/2012/11/20/friended-how-the-obama-campaign-connected-with-young-voters/">How the Obama Campaign Connected with Young Voters (TIME)</a></li>
+                            <li><a href="http://www.politico.com/playbook/1112/playbook9515.html">Messina Pulls Back the Curtain on Obama's Data Mine (Politico)</a></li>
+                            <li><a href="http://allfacebook.com/facebook-app-obama-campaign_b105201">Facebook App Proves a Game-Changer for Obama Campaign (allfacebook.com)</a></li>
 <!--
-							<li><a href="http://dawn.com/2013/01/21/obamas-secret-weapon-in-re-election-pakistani-scientist-rayid-ghani/">Meet Rayid Ghani: Obama's Pakistani Secret Weapon (dawn.com)</a></li>
+                            <li><a href="http://dawn.com/2013/01/21/obamas-secret-weapon-in-re-election-pakistani-scientist-rayid-ghani/">Meet Rayid Ghani: Obama's Pakistani Secret Weapon (dawn.com)</a></li>
 -->
-						</ul>
-					</div>
-				</div>
-<!--				<div class="arrow right_arrow">&gt;</div> -->
-				<div class="arrow left_arrow">&lt;</div>
-			</div> <!-- prod4 -->
+                        </ul>
+                    </div>
+                </div>
+<!--                <div class="arrow right_arrow">&gt;</div> -->
+                <div class="arrow left_arrow">&lt;</div>
+            </div> <!-- prod4 -->
 <!--
-			<div class="product" id="prod5">
-				<div style="position: relative; top:20%; left: 250px; padding: 10px;">
-					<img src="idontneedthis.jpg" style="box-shadow: 10px 10px 20px pink, -10px -10px 20px pink, 10px -10px 20px pink, -10px 10px 20px pink; border-radius: 10px" \>
-				</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div> 
+            <div class="product" id="prod5">
+                <div style="position: relative; top:20%; left: 250px; padding: 10px;">
+                    <img src="idontneedthis.jpg" style="box-shadow: 10px 10px 20px pink, -10px -10px 20px pink, 10px -10px 20px pink, -10px 10px 20px pink; border-radius: 10px" \>
+                </div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div> 
 -->
 <!--
-		</div>
-			<div class="arrow right_arrow" style="z-index: 100;">&gt;</div>
-			<div class="arrow left_arrow">&lt;</div>
+        </div>
+            <div class="arrow right_arrow" style="z-index: 100;">&gt;</div>
+            <div class="arrow left_arrow">&lt;</div>
 -->
-		</div> <!-- product_slider -->
-		</div> <!-- product_container -->
+        </div> <!-- product_slider -->
+        </div> <!-- product_container -->
 
 
-		<div id="who_container">
-		<div id="who_slider">
+        <div id="who_container">
+        <div id="who_slider">
 
-			<div class="who" id="who1">
-				<div style="position: relative; top:60px; left: 40px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3 style="text-shadow: 2px 2px 3px white;">who we are</h3>
-					<p id="rayid_short" class="who_short" style="padding-top: 15px;"><img src="http://graph.facebook.com/500876410/picture" style="float:left; margin-right: 10px; margin-top: 3px;"> <span style="font-weight: 900">Rayid Ghani:</span> As Chief Scientist for Obama for America, Rayid conceived of targeted sharing and guided its development and implementation. Before OFA, he was the Chief Scientist at Accenture.</p>
+            <div class="who" id="who1">
+                <div style="position: relative; top:60px; left: 40px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3 style="text-shadow: 2px 2px 3px white;">who we are</h3>
+                    <p id="rayid_short" class="who_short" style="padding-top: 15px;"><img src="http://graph.facebook.com/500876410/picture" style="float:left; margin-right: 10px; margin-top: 3px;"> <span style="font-weight: 900">Rayid Ghani:</span> As Chief Scientist for Obama for America, Rayid conceived of targeted sharing and guided its development and implementation. Before OFA, he was the Chief Scientist at Accenture.</p>
 
-					<p id="matt_short" class="who_short"><img src="http://graph.facebook.com/100003222687678/picture" style="float:left; margin-right: 10px; margin-top: 3px;"> <span style="font-weight: 900">Matthew Rattigan:</span> The Obama Campaign's lead analyst on the targeted sharing project. Before OFA, Matthew earned his PhD in Computer Science from University of Massachusetts at Amherst.</p>
+                    <p id="matt_short" class="who_short"><img src="http://graph.facebook.com/100003222687678/picture" style="float:left; margin-right: 10px; margin-top: 3px;"> <span style="font-weight: 900">Matthew Rattigan:</span> The Obama Campaign's lead analyst on the targeted sharing project. Before OFA, Matthew earned his PhD in Computer Science from University of Massachusetts at Amherst.</p>
 
-					<p id="kit_short" class="who_short"><img src="kit.jpg" style="float:left; margin-right: 10px; margin-top: 3px; width: 50px;"> <span style="font-weight: 900">Kit Rodolfa:</span> The digital modeling &amp; engineering director for the Obama Campaign. Before OFA, Kit earned an MPP from Harvard's Kennedy School and a PhD in Stem Cell Biology from Harvard.</p>
-				</div>
-				<div class="arrow right_arrow">&gt;</div>
-			</div>
+                    <p id="kit_short" class="who_short"><img src="kit.jpg" style="float:left; margin-right: 10px; margin-top: 3px; width: 50px;"> <span style="font-weight: 900">Kit Rodolfa:</span> The digital modeling &amp; engineering director for the Obama Campaign. Before OFA, Kit earned an MPP from Harvard's Kennedy School and a PhD in Stem Cell Biology from Harvard.</p>
+                </div>
+                <div class="arrow right_arrow">&gt;</div>
+            </div>
 
-			<div class="who" id="who2">
-				<div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3>Rayid Ghani</h3>
-					<p class="inset_box" style="font-weight:400; font-size:16px;"><img src="http://graph.facebook.com/500876410/picture?type=normal" style="float:left; margin-right: 10px; margin-bottom: 10px;" />Rayid served as the Chief Scientist for President Obama's re-election campaign begining in July 2011. Among his numerous contributions to the campaign's efforts was the conception of a new way to use the social networks of the President's supporters to greatly expand the campaign's reach with highly targeted campaign materials. During his year and a half on the campaign, Rayid guided the development, testing, and implementation of this Targeted Sharing Technology. Prior to joining the campaign, Rayid was a Senior Research Scientist and Director of Analytics research at Accenture Labs where he led a technology research team focused on applied R&amp;D in analytics, machine learning, and data mining for large-scale &amp; emerging business problems in various industries including healthcare, retail &amp; CPG, manufacturing, intelligence, and financial services.</p>
-				</div>
-				<div class="arrow right_arrow">&gt;</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div>
+            <div class="who" id="who2">
+                <div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3>Rayid Ghani</h3>
+                    <p class="inset_box" style="font-weight:400; font-size:16px;"><img src="http://graph.facebook.com/500876410/picture?type=normal" style="float:left; margin-right: 10px; margin-bottom: 10px;" />Rayid served as the Chief Scientist for President Obama's re-election campaign begining in July 2011. Among his numerous contributions to the campaign's efforts was the conception of a new way to use the social networks of the President's supporters to greatly expand the campaign's reach with highly targeted campaign materials. During his year and a half on the campaign, Rayid guided the development, testing, and implementation of this Targeted Sharing Technology. Prior to joining the campaign, Rayid was a Senior Research Scientist and Director of Analytics research at Accenture Labs where he led a technology research team focused on applied R&amp;D in analytics, machine learning, and data mining for large-scale &amp; emerging business problems in various industries including healthcare, retail &amp; CPG, manufacturing, intelligence, and financial services.</p>
+                </div>
+                <div class="arrow right_arrow">&gt;</div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div>
 
-			<div class="who" id="who3">
-				<div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3>Matthew Rattigan</h3>
-					<p class="inset_box" style="font-weight:400; font-size:16px;"><img src="http://graph.facebook.com/100003222687678/picture?type=normal" style="float:left; margin-right: 10px; margin-bottom: 10px;" />Matthew joined the Obama Campaign in December 2011, where he worked as the lead Analyst on the Targeted Sharing project. Matt single-handedly built the initial prototype of the tool and oversaw the optimization and modeling for the final product. Before the campaign, Matthew earned his PhD in Computer Science from the University of Massachusetts at Amherst, where his work in the laboratory of Prof. David Jensen focused on causal inference in social graph and network data. Matthew's areas of expertise include machine learning, knowledge discovery and data mining, causal inference, social network analysis, statistical relational learning, experimental design.</p>
-				</div>
-				<div class="arrow right_arrow">&gt;</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div>
+            <div class="who" id="who3">
+                <div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3>Matthew Rattigan</h3>
+                    <p class="inset_box" style="font-weight:400; font-size:16px;"><img src="http://graph.facebook.com/100003222687678/picture?type=normal" style="float:left; margin-right: 10px; margin-bottom: 10px;" />Matthew joined the Obama Campaign in December 2011, where he worked as the lead Analyst on the Targeted Sharing project. Matt single-handedly built the initial prototype of the tool and oversaw the optimization and modeling for the final product. Before the campaign, Matthew earned his PhD in Computer Science from the University of Massachusetts at Amherst, where his work in the laboratory of Prof. David Jensen focused on causal inference in social graph and network data. Matthew's areas of expertise include machine learning, knowledge discovery and data mining, causal inference, social network analysis, statistical relational learning, experimental design.</p>
+                </div>
+                <div class="arrow right_arrow">&gt;</div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div>
 
-			<div class="who" id="who4">
-				<div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-					<h3>Kit Rodolfa</h3>
-					<p class="inset_box" style="font-weight:400; font-size:16px;"><img src="kit.jpg" style="float:left; margin-right: 10px; margin-bottom: 10px; width: 100px;" />Kit joined the Obama Campaign in June 2011 and served as the Digital Modeling and Engineering Director, a that role included acting as the Analytics Department's lead for coordinating the campaign's online and offline efforts. Before the campaign, he earned a Master's in Public Policy from Harvard's Kennedy School of Government, where his thesis focused on helping a national healthcare non-profit navigate the complexities of Medicaid reimbursement and the Affordable Care Act. Kit's background is in the natural sciences and he holds a PhD in Stem Cell Biology from Harvard and an MPhil in Chemistry from Cambridge. His doctoral work earned recognition as the journal Science's 2008 "Breathrough of the Year" and was featured on the cover of TIME magazine.</p>
-				</div>
-				<div class="arrow left_arrow">&lt;</div>
-			</div>
+            <div class="who" id="who4">
+                <div style="position: relative; top:60px; left: 100px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                    <h3>Kit Rodolfa</h3>
+                    <p class="inset_box" style="font-weight:400; font-size:16px;"><img src="kit.jpg" style="float:left; margin-right: 10px; margin-bottom: 10px; width: 100px;" />Kit joined the Obama Campaign in June 2011 and served as the Digital Modeling and Engineering Director, a that role included acting as the Analytics Department's lead for coordinating the campaign's online and offline efforts. Before the campaign, he earned a Master's in Public Policy from Harvard's Kennedy School of Government, where his thesis focused on helping a national healthcare non-profit navigate the complexities of Medicaid reimbursement and the Affordable Care Act. Kit's background is in the natural sciences and he holds a PhD in Stem Cell Biology from Harvard and an MPhil in Chemistry from Cambridge. His doctoral work earned recognition as the journal Science's 2008 "Breathrough of the Year" and was featured on the cover of TIME magazine.</p>
+                </div>
+                <div class="arrow left_arrow">&lt;</div>
+            </div>
 
-		</div> <!-- who_slider -->
-		</div> <!-- who_container -->
+        </div> <!-- who_slider -->
+        </div> <!-- who_container -->
 
-		<div id="contact_container">
-			<div style="position: relative; top:10px; width:900px; padding-top: 3px; padding-bottom: 3px; overflow:hidden; text-align: center;">
-				<a href="mailto:all@edgeflip.com"><img src="em.png" onmouseover="$('#where_to').html('all@edgeflip.com'); $(this).attr('src', 'em_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'em.png');" style="padding-right:8px; border: 0;" /></a>
+        <div id="contact_container">
+            <div style="position: relative; top:10px; width:900px; padding-top: 3px; padding-bottom: 3px; overflow:hidden; text-align: center;">
+                <a href="mailto:all@edgeflip.com"><img src="em.png" onmouseover="$('#where_to').html('all@edgeflip.com'); $(this).attr('src', 'em_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'em.png');" style="padding-right:8px; border: 0;" /></a>
 
-				<a href="http://edgeflip.tumblr.com/"><img src="tumblr.png" onmouseover="$('#where_to').html('edgeflip.tumblr.com'); $(this).attr('src', 'tumblr_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'tumblr.png');" style="border: 0;" /></a>
+                <a href="http://edgeflip.tumblr.com/"><img src="tumblr.png" onmouseover="$('#where_to').html('edgeflip.tumblr.com'); $(this).attr('src', 'tumblr_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'tumblr.png');" style="border: 0;" /></a>
 
-				<a href="http://www.facebook.com/edgeflip"><img src="facebook.png" onmouseover="$('#where_to').html('facebook.com/edgeflip'); $(this).attr('src', 'facebook_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'facebook.png');" style="border: 0;" /></a>
+                <a href="http://www.facebook.com/edgeflip"><img src="facebook.png" onmouseover="$('#where_to').html('facebook.com/edgeflip'); $(this).attr('src', 'facebook_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'facebook.png');" style="border: 0;" /></a>
 
-				<a href="http://www.twitter.com/edgeflip"><img src="twitter.png" onmouseover="$('#where_to').html('twitter.com/edgeflip'); $(this).attr('src', 'twitter_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'twitter.png');" style="padding-left:8px; margin-bottom: -5px; border: 0;" /></a>
-
-<!--
-				<h3 style="text-shadow: 2px 2px 3px #EBD1BF; border: none; word-spacing: 50px; font-size: 85px;">
-					<a href="mailto:all@edgeflip.com" onmouseover="$('#where_to').html('all@edgeflip.com')" onmouseout="$('#where_to').html('')">@</a> 
-					<a href="http://www.facebook.com/edgeflip" onmouseover="$('#where_to').html('facebook.com/edgeflip')" onmouseout="$('#where_to').html('')">f</a> 
-					<a href="http://www.twitter.com/edgeflip" onmouseover="$('#where_to').html('twitter.com/edgeflip')" onmouseout="$('#where_to').html('')">tw</a>
-				</h3>
--->
-				<div id="where_to"></div>
-			</div>
-		</div> <!-- contact_container -->
+                <a href="http://www.twitter.com/edgeflip"><img src="twitter.png" onmouseover="$('#where_to').html('twitter.com/edgeflip'); $(this).attr('src', 'twitter_mouse.png');" onmouseout="$('#where_to').html(''); $(this).attr('src', 'twitter.png');" style="padding-left:8px; margin-bottom: -5px; border: 0;" /></a>
 
 <!--
-		<div id="share_container">
-			<div style="position: relative; top:50px; left: 50px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
-				<h3 style="text-shadow: 3px 3px 5px white;">spread the word</h3>
-				<div style="margin-left: 50px; padding-top: 30px; font-size: 25px; font-weight: 600; width: 600px; text-align: justify;">Try out edgeflip's targeted sharing technology for yourself by letting your friends know that you've been reading about our product!</div>
-				<div style="margin-left: -50px; width: 900px;">
-					<img src="face_pile.jpg" style="padding-top: 25px; display: table; margin: 0px auto;">
-				</div>
-			</div>
-		</div> 
+                <h3 style="text-shadow: 2px 2px 3px #EBD1BF; border: none; word-spacing: 50px; font-size: 85px;">
+                    <a href="mailto:all@edgeflip.com" onmouseover="$('#where_to').html('all@edgeflip.com')" onmouseout="$('#where_to').html('')">@</a> 
+                    <a href="http://www.facebook.com/edgeflip" onmouseover="$('#where_to').html('facebook.com/edgeflip')" onmouseout="$('#where_to').html('')">f</a> 
+                    <a href="http://www.twitter.com/edgeflip" onmouseover="$('#where_to').html('twitter.com/edgeflip')" onmouseout="$('#where_to').html('')">tw</a>
+                </h3>
+-->
+                <div id="where_to"></div>
+            </div>
+        </div> <!-- contact_container -->
+
+<!--
+        <div id="share_container">
+            <div style="position: relative; top:50px; left: 50px; padding-top: 3px; padding-bottom: 3px; overflow:hidden;">
+                <h3 style="text-shadow: 3px 3px 5px white;">spread the word</h3>
+                <div style="margin-left: 50px; padding-top: 30px; font-size: 25px; font-weight: 600; width: 600px; text-align: justify;">Try out edgeflip's targeted sharing technology for yourself by letting your friends know that you've been reading about our product!</div>
+                <div style="margin-left: -50px; width: 900px;">
+                    <img src="face_pile.jpg" style="padding-top: 25px; display: table; margin: 0px auto;">
+                </div>
+            </div>
+        </div> 
 -->
 
-	</div> <!-- content_container -->
+    </div> <!-- content_container -->
 
 <div id="bottom_padding" style="float: right; padding-right: 50px; padding-top: 50px; font-size: 0.8em;"><a href="http://www.imdb.com/title/tt0113957/" style="text-decoration: none;">&pi;</a></div>
 
