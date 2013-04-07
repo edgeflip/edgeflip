@@ -18,7 +18,7 @@ config = conf.getConfig(includeDefaults=True)
 
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
-state_senInfo = conf.readJson(config['ofa_state_config'])  # 'EC' -> {'state_name':'East Calihio',
+state_senInfo = conf.readJson(config['ofa_state_config'])  # 'East Calihio' -> {'state_name':'East Calihio',
 															# 			'name':'Smokestax',
 															# 			'email':'smokestax@senate.gov',
 															# 			'phone' : '(202) 123-4567'}
@@ -100,8 +100,10 @@ def ofa_faces():
 		actionParams = 	{
 		'fb_action_type' : 'support',
 		'fb_object_type' : 'cause',
-		'fb_object_url' : 'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+		'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
 		}
+		logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
+
 		actionParams.update(fbParams)
 		database.writeEventsDb(ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
 					  actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
@@ -157,6 +159,29 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
 		edgesGood = [ e for e in edgesGood if filtFunc(e) ]
 		logging.debug("have %d edges left" % (len(edgesGood)))
 	return edgesGood
+
+
+@app.route("/ofa_climate/<state>")
+def ofa_climate(state):
+	#state = state.strip().upper()
+	senInfo = state_senInfo.get(state)
+	if (not senInfo):
+		return "Whoopsie! No targets in that state."  # you know, or some 404 page...
+
+	objParams = {
+	'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
+	'fb_action_type': 'support',
+	'fb_object_type': 'cause',
+	'fb_object_title': 'Climate Legislation',
+	'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
+	'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
+	'fb_object_url' : flask.url_for('ofa_climate', state=state, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+	}
+	objParams.update(fbParams)
+
+	return flask.render_template('ofa_climate_object.html', fbParams=objParams, senInfo=senInfo)
+
+
 
 
 @app.route("/campaign_save", methods=['POST', 'GET'])
