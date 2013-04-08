@@ -10,11 +10,12 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
 2. Install minimal developer tools `sudo apt-get install git`
-3. Check out the repo `git clone https://github.com/edgeflip/edgeflip.git` All following commands are run in checkout directory.
+3. Check out the repo `git clone https://github.com/edgeflip/edgeflip.git` *All following commands are run in checkout directory.*
 4. Install system dependencies: `./scripts/install-dependencies.txt`
 5. Create a virtualenv (you will need to open a new terminal/shell first): `mkvirtualenv edgeflip`
-6. Upgrade distribute: `pip install -U distribute`
-7. Install python packages: `pip install -r requirements.txt`
+6. Add your checkout to the virtualenv `add2virtualenv .`
+7. Upgrade distribute: `pip install -U distribute`
+8. Install python packages: `pip install -r requirements.txt`
 
 Configuring Apache
 ------------------
@@ -29,8 +30,11 @@ Configuring Apache
 	cd edgeflip
 	sudo emacs edgeflip.wsgi</code></pre>
 7. Contents of edgeflip.wsgi:
-<pre><code>import sys
-	sys.path.insert(0, '/var/www/edgeflip/gitclones/edgeflip/')
+See also: [mod_wsgi virtualenv docs](http://code.google.com/p/modwsgi/wiki/VirtualEnvironments)
+<pre><code>
+    # enable virtualenv
+    activate_this = '/path/to/virtualenvs/edgeflip/bin/activate_this.py'
+    execfile(activate_this, dict(__file__=activate_this))
 
 	from edgeflip.ofa_flask import app as application</code></pre>
 8. Set up the git clone:
