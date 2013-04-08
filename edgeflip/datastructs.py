@@ -36,7 +36,7 @@ class Timer(object):
 def unidecodeSafe(s):
     """util func to deal with None, numbers, and unisuck
 
-    If `s` is None, returns '?'. Otherwise uses :mod:'unidecode' to produce a reasonable bytestring.
+    If `s` is None, returns '?'. Otherwise uses :mod:`unidecode` to produce a reasonable bytestring.
 
     :arg unicode s: a unicode string to convert to bytes
     :returns: a reasonable-looking ASCII bytestring
