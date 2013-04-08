@@ -35,13 +35,14 @@
                     appid: appid,
                     content: content,
                     actionid: actionid,
+                    eventType: 'clickback',
                     sessionid: sessionid
                 });
 
                 // NOTE: Will need to specify full URL if hosting objects on a different domain!!
                 $.ajax({
                     type: "POST",
-                    url: '/clickback',
+                    url: '/record_event',
                     contentType: "application/json",
                     dataType: 'html',
                     data: params,

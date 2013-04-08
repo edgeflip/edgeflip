@@ -419,12 +419,13 @@ function recordShare(actionid) {
 		appid: appid,
 		content: content,
 		friends: recips,
+        eventType: 'shared',
 		sessionid: sessionid	// global session id was pulled in from query string above
 	});
 
 	$.ajax({
 		type: "POST",
-		url: '/share',
+		url: '/record_event',
 		contentType: "application/json",
 		dataType: 'html',
 		data: params,

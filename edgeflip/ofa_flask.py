@@ -112,18 +112,16 @@ def ofa_faces():
         actionParams.update(fbParams)
         database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
                       actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-        resp = flask.make_response(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-                                     face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200)
+        return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+                                     face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
     else:
         #zzz need to figure out what we do here
         #return flask.render_template('ofa_faces_table_generic.html')
         #database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
         #      actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
-        resp = flask.make_response('all of your friends are stateless', 200)
+        return ajaxResponse('all of your friends are stateless', 200, sessionId)
 
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
     edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
@@ -236,65 +234,91 @@ def suppress():
 
     if (newid != ''):
         database.writeEventsDb(sessionId, ip, userid, [newid], 'shown', appid, content, None, background=True)
-        resp = flask.make_response(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200)
+        return ajaxResponse(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200, sessionId)
     else:
-        resp = flask.make_response('', 200)
+        return ajaxResponse('', 200, sessionId)
 
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
 
-@app.route('/clickback', methods=['POST'])
-def clickback():
-    actionid = flask.request.json['actionid']
-    appid = flask.request.json['appid']
-    content = flask.request.json['content']
-    sessionId = flask.request.json['sessionid']
-    ip = getIP(req = flask.request)
+# @app.route('/clickback', methods=['POST'])
+# def clickback():
+#     actionid = flask.request.json['actionid']
+#     appid = flask.request.json['appid']
+#     content = flask.request.json['content']
+#     sessionId = flask.request.json['sessionid']
+#     ip = getIP(req = flask.request)
 
-    if (not sessionId):
-        sessionId = generateSessionId(ip, content)
+#     if (not sessionId):
+#         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
-    resp = flask.make_response('', 200)
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
+#     database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
+#     resp = flask.make_response('', 200)
+#     resp.headers['X-EF-SessionID'] = sessionId
+#     return resp
 
-@app.route('/share', methods=['POST'])
-def recordShare():
-    userid = flask.request.json['userid']
-    actionid = flask.request.json['actionid']
-    appid = flask.request.json['appid']
-    content = flask.request.json['content']
-    friends = [ int(f) for f in flask.request.json['friends'] ]
-    sessionId = flask.request.json['sessionid']
-    ip = getIP(req = flask.request)
+# @app.route('/share', methods=['POST'])
+# def recordShare():
+#     userid = flask.request.json['userid']
+#     actionid = flask.request.json['actionid']
+#     appid = flask.request.json['appid']
+#     content = flask.request.json['content']
+#     friends = [ int(f) for f in flask.request.json['friends'] ]
+#     sessionId = flask.request.json['sessionid']
+#     ip = getIP(req = flask.request)
 
-    if (not sessionId):
-        sessionId = generateSessionId(ip, content)
+#     if (not sessionId):
+#         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
-    resp = flask.make_response('', 200)
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
+#     database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
+#     resp = flask.make_response('', 200)
+#     resp.headers['X-EF-SessionID'] = sessionId
+#     return resp
 
-@app.route('/button_event', methods=['POST'])
-def buttonEvent():
-    userId = flask.request.json['userid']
+# @app.route('/button_event', methods=['POST'])
+# def buttonEvent():
+#     userId = flask.request.json['userid']
+#     userId = userId or None
+#     appId = flask.request.json['appid']
+#     content = flask.request.json['content']
+#     eventType = flask.request.json['eventType']
+#     sessionId = flask.request.json['sessionid']
+#     ip = getIP(req = flask.request)
+
+#     if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
+#         return "Ah, ah, ah. You didn't say the magic word.", 403
+
+#     if (not sessionId):
+#         sessionId = generateSessionId(ip, content)
+
+#     database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
+#     resp = flask.make_response('', 200)
+#     resp.headers['X-EF-SessionID'] = sessionId
+#     return resp
+
+@app.route('/record_event', methods=['POST'])
+def recordEvent():
+    userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
     content = flask.request.json['content']
+    actionId = flask.request.json.get('actionid')
+    friends = [ int(f) for f in flask.request.json.get('friends', []) ]
+    friends = friends or [None]
     eventType = flask.request.json['eventType']
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
+    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'share', 'clickback']):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
-    resp = flask.make_response('', 200)
+    database.writeEventsDb(sessionId, ip, userId, friends, eventType, appId, content, actionId, background=True)
+    return ajaxResponse('', 200, sessionId)
+
+
+def ajaxResponse(content, code, sessionId):
+    resp = flask.make_response(content, code)
     resp.headers['X-EF-SessionID'] = sessionId
     return resp
 
@@ -303,7 +327,6 @@ def getIP(req):
        return req.remote_addr
     else:
        return req.headers.getlist("X-Forwarded-For")[0]
-
 
 def generateSessionId(ip, content, timestr=None):
     if (not timestr):
