@@ -3,18 +3,22 @@ edgeflip
 
 This repo contains the code for the edgeflip Targeted Sharing application. Below are some quick notes on getting started.
 
-AWS Set Up
-----------
+Basic Installation
+------------------
 
 Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basic steps to getting up and running:
 
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
-2. A couple of utilities: `sudo apt-get install git emacs htop`
-3. Some python utilities and c++ compiler:
-<pre><code>sudo apt-get update
-	sudo apt-get install python-pip python-dev python-mysqldb
-	sudo apt-get install gcc</code></pre>
-4. Python packages: `sudo pip install flask unidecode pika` (at some point we'll want a requirements file...)
+2. Install minimal developer tools `sudo apt-get install git`
+3. Check out the repo `git clone https://github.com/edgeflip/edgeflip.git` All following commands are run in checkout directory.
+4. Install system dependencies: `./scripts/install-dependencies.txt`
+5. Create a virtualenv (you will need to open a new terminal/shell first): `mkvirtualenv edgeflip`
+6. Upgrade distribute: `pip install -U distribute`
+7. Install python packages: `pip install -r requirements.txt`
+
+Configuring Apache
+------------------
+**XXX this needs a little attention***
 5. Set up Apache & mod_wsgi: `sudo apt-get install apache2 libapache2-mod-wsgi`
 6. Get some directories ready:
 <pre><code>cd /var/www
