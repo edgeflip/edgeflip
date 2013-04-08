@@ -20,6 +20,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 Configuring Apache
 ------------------
 **XXX this needs a little attention***
+
 5. Set up Apache & mod_wsgi: `sudo apt-get install apache2 libapache2-mod-wsgi`
 6. Get some directories ready:
 <pre><code>cd /var/www
