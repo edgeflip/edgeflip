@@ -52,7 +52,6 @@
                         {%- endif %}
                     },
                     success: function(data, textStatus, jqXHR) {
-                        new_html = data;
                         var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
                         sessionid = header_efsid || sessionid;
                         {% if redirectURL -%}
