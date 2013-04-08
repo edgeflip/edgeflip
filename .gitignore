@@ -10,4 +10,4 @@ edgeflip/edgeflip.config
 .coverage
 /htmlcov/*
 snakefood.pdf
-
+/doc/_build/*
