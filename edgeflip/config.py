@@ -14,7 +14,7 @@ defaults = {
     'outdir': '.',
     'codedir': '.',
     'queue': 'edgeflip_demo',
-    'logpath': './logs/demo.log',
+    'logpath': '/tmp/edgeflip-demo.log',
     #'dbpath': './demo.sqlite',
     'dbhost': 'edgeflipdev.cwvoczji8mgi.us-east-1.rds.amazonaws.com',
     'dbuser': 'edgeflip',
