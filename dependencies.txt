@@ -1,0 +1,5 @@
+python-dev
+libmysqlclient-dev
+build-essential
+virtualenvwrapper
+snakefood
