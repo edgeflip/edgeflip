@@ -57,9 +57,6 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (not sessionId):
-        sessionId = generateSessionId(ip, content)
-
     campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
     filterTups = campaign_filterTups.get(campaign, [])
 
@@ -109,9 +106,12 @@ def ofa_faces():
         }
         logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
+        content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
+        if (not sessionId):
+            sessionId = generateSessionId(ip, content)
+
         actionParams.update(fbParams)
-        database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
-                      actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
+        database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
         return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
@@ -120,6 +120,9 @@ def ofa_faces():
         #return flask.render_template('ofa_faces_table_generic.html')
         #database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
         #      actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
+        content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
+        if (not sessionId):
+            sessionId = generateSessionId(ip, content)
         return ajaxResponse('all of your friends are stateless', 200, sessionId)
 
 
