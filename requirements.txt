@@ -1,4 +1,11 @@
+Flask==0.9
+Jinja2==2.6
+MySQL-python==1.2.4
+Pygments==1.6
 Unidecode==0.04.12
-argparse==1.2.1
-distribute==0.6.24
-wsgiref==0.1.2
+Werkzeug==0.8.3
+bpython==0.12
+coverage==3.6
+distribute==0.6.36
+pika==0.9.12
+pythoscope==0.4.3
