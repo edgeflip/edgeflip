@@ -10,3 +10,4 @@ edgeflip/edgeflip.config
 .coverage
 /htmlcov/*
 /doc/_build/*
+*~
