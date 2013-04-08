@@ -45,6 +45,7 @@ help:
 
 clean:
 	-rm -rf $(BUILDDIR)/*
+	-rm -rf $(CURDIR)/snakefood.svg
 
 html: snakefood
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -159,6 +160,6 @@ doctest:
 
 snakefood:
 	mkdir -p $(BUILDDIR)/html
-	sfood --internal $(CODEROOT) | sfood-graph | dot -Tsvg > $(BUILDDIR)/html/snakefood.svg
+	sfood --internal $(CODEROOT) | sfood-graph | dot -Tsvg > $(CURDIR)/snakefood.svg
 	@echo
-	@echo "Dependency graph generation complete; output in $(BUILDDIR)/html/snakefood.svg"
+	@echo "Dependency graph generation complete; output in $(CURDIR)/snakefood.svg"
