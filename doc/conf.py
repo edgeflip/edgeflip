@@ -40,8 +40,8 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'edgeflip'
-copyright = u'2013, Author'
+project = u'Edgeflip Targeted Sharing'
+copyright = u'2013, Edgeflip'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
