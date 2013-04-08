@@ -104,13 +104,13 @@ def ofa_faces():
         'fb_object_type' : 'cause',
         'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
         }
+        actionParams.update(fbParams)
         logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
         content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
 
-        actionParams.update(fbParams)
         database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
         return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
