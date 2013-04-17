@@ -25,6 +25,7 @@ config = conf.getConfig(includeDefaults=True)
 
 
 
+
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
 state_senInfo = conf.readJson(config['ofa_state_config'])  # 'East Calihio' -> {'state_name':'East Calihio',
