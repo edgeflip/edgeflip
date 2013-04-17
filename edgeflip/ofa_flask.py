@@ -7,11 +7,19 @@ import hashlib
 import logging
 import flask
 
-from . import facebook
-from . import ranking
-from . import database
-from . import datastructs
-from . import config as conf
+
+if (__name__ == "__main__"):
+    import facebook
+    import ranking
+    import database
+    import datastructs
+    import config as conf
+else:
+    from . import facebook
+    from . import ranking
+    from . import database
+    from . import datastructs
+    from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 
 
