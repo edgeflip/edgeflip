@@ -9,11 +9,11 @@ import flask
 
 
 if (__name__ == "__main__"):
-    import facebook
-    import ranking
-    import database
-    import datastructs
-    import config as conf
+    import edgeflip.facebook
+    import edgeflip.ranking
+    import edgeflip.database
+    import edgeflip.datastructs
+    import edgeflip.config as conf
 else:
     from . import facebook
     from . import ranking
