@@ -16,6 +16,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 6. Add your checkout to the virtualenv `add2virtualenv .`
 7. Upgrade distribute: `pip install -U distribute`
 8. Install python packages: `pip install -r requirements.txt`
+9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 
 Configuring Apache
 ------------------
@@ -30,14 +31,7 @@ Configuring Apache
 	sudo chgrp www-data edgeflip
 	cd edgeflip
 	sudo emacs edgeflip.wsgi</code></pre>
-7. Contents of edgeflip.wsgi:
-See also: [mod_wsgi virtualenv docs](http://code.google.com/p/modwsgi/wiki/VirtualEnvironments)
-<pre><code>
-    # enable virtualenv
-    activate_this = '/path/to/virtualenvs/edgeflip/bin/activate_this.py'
-    execfile(activate_this, dict(__file__=activate_this))
 
-	from edgeflip.ofa_flask import app as application</code></pre>
 8. Set up the git clone:
 <pre><code>sudo chmod 755 edgeflip.wsgi
 	sudo mkdir gitclones
