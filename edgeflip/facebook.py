@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys
+import time
 import datetime
 import urllib
 import urllib2
@@ -7,7 +8,6 @@ import urlparse
 import json
 import logging
 import threading
-import time
 import Queue
 from collections import defaultdict
 from contextlib import closing
@@ -77,11 +77,12 @@ def getUrlFb(url):
 
     return responseJson
 
-def extendTokenFb(token):
+def extendTokenFb(user, token):
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token
     url += '&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret']
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
     # even if you try passing &format=json in the URL.
+    ts = time.time()
     try:
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
@@ -90,7 +91,8 @@ def extendTokenFb(token):
             newToken = responseDict['access_token'][0]
             expiresIn = responseDict['expires'][0]
             logging.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
-        return newToken
+            expDate = datetime.utcfromtimestamp(ts + expiresIn)
+        return datastructs.TokenInfo(newToken, user, config['fb_app_id'], expDate)
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
         logging.info("error extending token %s: %s" % (token, str(e)))
         try:

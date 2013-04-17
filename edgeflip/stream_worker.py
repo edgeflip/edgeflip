@@ -42,7 +42,7 @@ def readStreamCallback(ch, method, properties, body):
     conn = database.getConn()
     curs = conn.cursor()
 
-    database.updateUsersDb(curs, [user], tok, None) # Update the primary user in DB
+    database.updateUsersDb(curs, [user], tok, tokOwner) # Update the primary user in DB
 
     skipFriends = set()
     if (readStreamCallback.overwriteThresh != 0):
@@ -86,7 +86,7 @@ def readStreamCallback(ch, method, properties, body):
         else:
             e = datastructs.EdgeSC1(user, friend, sc)
 
-        database.updateUsersDb(curs, [e.secondary], None, tok) # Update the secondary user in DB
+        database.updateUsersDb(curs, [e.secondary], tok, tokOwner) # Update the secondary user in DB
         database.updateFriendEdgesDb(curs, [e]) # Update the edge in DB
         conn.commit()
 

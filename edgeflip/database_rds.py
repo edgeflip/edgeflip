@@ -6,6 +6,9 @@ from . import config as conf
 config = conf.getConfig(includeDefaults=True)
 # import logging
 
+TABLE_PRIMARY_KEYS = {
+    'tokens': ['fbid', 'appid', 'ownerid']
+}
 
 TABLE_COLS = {
                 'users' : """    fbid BIGINT PRIMARY KEY,
@@ -18,6 +21,13 @@ TABLE_COLS = {
                                 token VARCHAR(512),
                                 friend_token VARCHAR(512),
                                 updated BIGINT """,
+
+                'tokens' : """  fbid BIGINT,
+                                appid BIGINT,
+                                ownerid BIGINT,
+                                token VARCHAR(512),
+                                expires TIMESTAMP,
+                                updated TIMESTAMP """,
 
                 'edges' : """    prim_id BIGINT,
                                 sec_id BIGINT,
@@ -55,12 +65,15 @@ def getConn():
 
 
 # Reset the DB by dropping and recreating tables
-def dbSetup(connP=None):
+def dbSetup(connP=None, tableKeys=None):
 
     conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
 
-    for t, c in TABLE_COLS.items():
+    if (tableKeys is None):
+        tableKeys = TABLE_COLS.keys()
+    for t in tableKeys:
+        c = TABLE_COLS[t]
         curs.execute("DROP TABLE IF EXISTS %s" % t)
         curs.execute("CREATE TABLE %s ( %s )" % (t, c) )
 

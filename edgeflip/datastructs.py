@@ -71,6 +71,14 @@ class FriendInfo(UserInfo):
         self.otherPhotoTags = otherPhotoTags
         self.mutuals = mutual_friend_count
 
+class TokenInfo(object):
+    def __init__(self, tok, own, app, exp):
+        self.tok = tok
+        self.ownerId = own
+        self.appId = app
+        self.expires = exp
+    def __str__(self):
+        return str(self.tok) + "(exp " + self.expires.strftime("%m/%d") + ")"
 
 class Edge(object):
     def __init__(self, primInfo, secInfo):

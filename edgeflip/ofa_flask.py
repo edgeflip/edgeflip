@@ -57,15 +57,19 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (not sessionId):
-        sessionId = generateSessionId(ip, content)
+    #if (not sessionId):
+    #    sessionId = generateSessionId(ip, content)
 
     campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
     filterTups = campaign_filterTups.get(campaign, [])
 
     # Try extending the token. If we hit an error, proceed with what we got from the page.
     #zzz Will want to do this with the rank demo when we switch away from Shari!
-    tok = facebook.extendTokenFb(tok) or tok
+    token = facebook.extendTokenFb(None, tok)
+    if (token is None):
+        token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+
+
 
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
@@ -76,10 +80,10 @@ def ofa_faces():
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
         logging.debug("user %s is not fresh, retrieving data from fb" % fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
+        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-        database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
+        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
+        database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
     bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
