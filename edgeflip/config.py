@@ -5,53 +5,13 @@ import logging.handlers
 import datetime
 import os
 
+import pymlconf
 
+DEFAULT_CONF_DIR = os.path.join(os.path.dirname(__file__), 'conf.d')
 
+defaults = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=False)
 
 DEFAULTS_LOCAL_PATH = './edgeflip.config'
-
-defaults = {
-    'outdir': '.',
-    'codedir': '.',
-    'queue': 'edgeflip_demo',
-    'logpath': '/tmp/edgeflip-demo.log',
-    #'dbpath': './demo.sqlite',
-    'dbhost': 'edgeflipdev.cwvoczji8mgi.us-east-1.rds.amazonaws.com',
-    'dbuser': 'edgeflip',
-    'dbpass': 'B0redsickdog',
-    'dbname': 'edgeflipdev',
-    #'dburi': 'mysql://edgeflip:B0redsickdog@edgeflipdev.cwvoczji8mgi.us-east-1.rds.amazonaws.com:3306/edgeflipdev'
-
-    # parameters for initial incoming stream reading ("px4")
-    'stream_days_in': 120,
-    'stream_days_chunk_in': 2,
-    'stream_threadcount_in': 60,
-    'stream_read_timeout_in': 10,  # seconds
-    'stream_read_sleep_in': 0.1,  # seconds
-
-    # parameters for outgoing stream reading ("px5")
-    'stream_days_out': 120,
-    'stream_days_chunk_out': 10,
-    'stream_threadcount_out': 12,
-    'stream_read_timeout_out': 20,  # seconds
-    'stream_read_sleep_out': 0.2,  # seconds
-
-    # general parameters for crawling and results
-    'stream_read_trycount': 3,  # ...strikes and you're out
-    'bad_chunk_thresh': 0.25,  # abort crawl if too many chunks fail
-    'freshness': 1,
-
-    # FB app parameters
-    'fb_app_name': 'edgeflip',
-    'fb_app_id': 471727162864364,
-    'fb_app_secret': '120fe5e6d5bffa6a9aa3bf075bd3076a',
-
-    # OFA config file locations
-    'ofa_state_config': './config/ofa_states.json',
-    'ofa_campaign_config': './config/ofa_campaigns.json',
-    'ofa_button_redirect': '/ofa_share'
-
-}
 
 # set up logging on the root logger
 def setLogger(logpath):
