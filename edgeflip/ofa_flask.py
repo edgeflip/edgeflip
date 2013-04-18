@@ -19,10 +19,10 @@ config = conf.getConfig(includeDefaults=True)
 
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
-state_senInfo = conf.readJson(config['ofa_state_config'])  # 'East Calihio' -> {'state_name':'East Calihio',
-                                                            #             'name':'Smokestax',
-                                                            #             'email':'smokestax@senate.gov',
-                                                            #             'phone' : '(202) 123-4567'}
+state_senInfo = config.ofa_state  # 'East Calihio' -> {'state_name':'East Calihio',
+                                  #             'name':'Smokestax',
+                                  #             'email':'smokestax@senate.gov',
+                                  #             'phone' : '(202) 123-4567'}
 
 
 # This is an example endpoint... in reality, this page would be on OFA servers
@@ -57,7 +57,7 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaign
     filterTups = campaign_filterTups.get(campaign, [])
 
     # Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -409,7 +409,7 @@ def face_test():
     # Actually rank these edges and generate friend dictionaries from them
     edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
 
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaign
     campaign = "test"
     filterTups = campaign_filterTups.get(campaign, [])
     edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)

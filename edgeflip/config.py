@@ -34,7 +34,7 @@ def getDefaults():
     return config
 
 def getConfig(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
-    configFromFile = readJson(infilePath)
+    configFromFile = json.load(open(infilePath, 'r'))
     # if we got a new logpath from this read, set the logger
     if ('logpath' in configFromFile):
         setLogger(configFromFile['logpath'])
@@ -48,16 +48,6 @@ def getConfig(infilePath=DEFAULTS_LOCAL_PATH, includeDefaults=False):
         logging.debug("config json %s: %s" % (k, str(v)))
     config.update(configFromFile)
     return config
-
-def readJson(infilePath):
-    try:
-        return json.load(open(infilePath, 'r'))
-    except IOError:
-        if (not logging.getLogger().handlers):
-            # logging hasn't been set up yet, but we want to log failure to read config file
-            setLogger(defaults['logpath'])
-        logging.error("config file '%s' not found" % (infilePath))
-        return {}
 
 def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
     raise NotImplementedError
