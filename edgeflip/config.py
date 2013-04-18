@@ -59,21 +59,6 @@ def readJson(infilePath):
         logging.error("config file '%s' not found" % (infilePath))
         return {}
 
-# n.b.: this is not safe against multi-user race conditions
 def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
-    ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S%f")
-    tag_data = {} if (overwriteFile) else getConfig(fileName, includeDefaults=False)
-    for tag, dataNew in tag_dataNew:
-        tag_data[tag] = dataNew
-    try:
-        tempName = fileName + ".tmp" + ts
-        with open(tempName, 'w') as tempFile:
-            json.dump(tag_data, tempFile)
-        os.rename(fileName, fileName + ".old" + ts)
-        os.rename(tempName, fileName)
-        return True
-    except (IOError, OSError) as err:
-        logging.error("error writing config file '%s': %s" % (fileName, err.message))
-        return False
-
+    raise NotImplementedError
 
