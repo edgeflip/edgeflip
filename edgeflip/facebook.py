@@ -91,7 +91,7 @@ def extendTokenFb(user, token):
             newToken = responseDict['access_token'][0]
             expiresIn = responseDict['expires'][0]
             logging.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
-            expDate = datetime.utcfromtimestamp(ts + expiresIn)
+            expDate = datetime.datetime.utcfromtimestamp(ts + expiresIn)
         return datastructs.TokenInfo(newToken, user, config['fb_app_id'], expDate)
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
         logging.info("error extending token %s: %s" % (token, str(e)))
