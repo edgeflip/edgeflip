@@ -14,8 +14,6 @@ config = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=F
 
 if os.path.exists(USER_CONF_DIR):
     config.load_dirs(USER_CONF_DIR, filename_as_namespace=False)
-    
-DEFAULTS_LOCAL_PATH = './edgeflip.config'
 
 # set up logging on the root logger
 def setLogger(logpath):
