@@ -89,7 +89,7 @@ def extendTokenFb(user, token):
             # newToken = responseStr.split('=')[1].split('&')[0]
             # expiresIn = responseStr.split('=')[2]
             newToken = responseDict['access_token'][0]
-            expiresIn = responseDict['expires'][0]
+            expiresIn = int(responseDict['expires'][0])
             logging.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
             expDate = datetime.datetime.utcfromtimestamp(ts + expiresIn)
         return datastructs.TokenInfo(newToken, user, config['fb_app_id'], expDate)
