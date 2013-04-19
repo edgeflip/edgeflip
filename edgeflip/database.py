@@ -220,6 +220,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ")"
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=" + DB_WC for c in valColNames])
     params = keyColVals + valColVals + valColVals
+    logging.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
     return curs.rowcount
 
