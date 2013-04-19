@@ -107,7 +107,7 @@ TABLES['tokens'] =    Table(name='tokens',
                                 ('ownerid', 'BIGINT'),
                                 ('token', 'VARCHAR(512)'),
                                 ('expires', 'DATETIME'),
-                                ('updated', 'TIMESTAMP', 'DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+                                ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
                             key=['fbid', 'appid', 'ownerid'])
 
