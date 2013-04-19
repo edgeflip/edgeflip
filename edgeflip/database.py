@@ -33,23 +33,15 @@ def dateFromIso(dateStr):
 
 class Table(object):
     def __init__(self, name, cols=[], indices=[], key=[]):
-        sys.stderr.write("hey 0\n")
         self.name = name
-        sys.stderr.write("hey 1\n")
         self.colTups = []
-        sys.stderr.write("hey 2\n")
         self.addCols(cols)
-        sys.stderr.write("hey 3\n")
         self.indices = []
-        sys.stderr.write("hey 4\n")
         for col in indices:
             self.addIndex(col)
-        sys.stderr.write("hey 5\n")
         self.keyCols = key
-        sys.stderr.write("hey 6\n")
     def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for cTup in cTups:
-            sys.stderr.write("\they 2 %s\n" % cTup[0])
             if (len(cTup) == 2):
                 cTup = (cTup[0], cTup[1], None)
             self.colTups.append(cTup)
@@ -84,7 +76,6 @@ class Table(object):
 
 TABLES = dict()
 
-sys.stderr.write("users\n")
 TABLES['users'] =     Table(name='users',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -100,7 +91,6 @@ TABLES['users'] =     Table(name='users',
                             ],
                             key=['fbid'])
 
-sys.stderr.write("tokens\n")
 TABLES['tokens'] =    Table(name='tokens',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -112,7 +102,6 @@ TABLES['tokens'] =    Table(name='tokens',
                             ],
                             key=['fbid', 'appid', 'ownerid'])
 
-sys.stderr.write("edges\n")
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('prim_id', 'BIGINT'),
@@ -130,7 +119,6 @@ TABLES['edges'] =     Table(name='edges',
                             ],
                             key=['prim_id', 'sec_id'])
 
-sys.stderr.write("events\n")
 TABLES['events'] =    Table(name='events',
                             cols=[
                                 ('session_id', 'VARCHAR(128)'),
@@ -177,7 +165,7 @@ def getUserTokenDb(connP, userId, appId):
     For now, it simply grabs all non-expired tokens and orders them by
     primary status (whether owner matches user), followed by updated date.
     """
-    conn = connP if (connP is not None) else db.getConn()
+    conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
     ts = time.time()
     sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=%s AND expiration<%s AND appid=%s"
@@ -193,7 +181,7 @@ def getUserTokenDb(connP, userId, appId):
 
 
 def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100 years!
-    conn = connP if (connP is not None) else db.getConn()
+    conn = connP if (connP is not None) else getConn()
 
     freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
     logging.debug("getting user %s, freshness date is %s" % (userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S")))
@@ -232,7 +220,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 
 
 def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
-    conn = connP if (connP is not None) else db.getConn()
+    conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
     sql = """
             SELECT prim_id, sec_id,
@@ -265,7 +253,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 # helper function that may get run in a background thread
 def _updateDb(user, token, edges):
     tim = datastructs.Timer()
-    conn = db.getConn()
+    conn = getConn()
     curs = conn.cursor()
     updateUsersDb(curs, [user])
     updateTokensDb(curs, [user], token)
@@ -368,10 +356,44 @@ def upsert(curs, table, col_val, coalesceCols=None):
     curs.execute(sql, params)
     return curs.rowcount
 
+# # keeping this around just in case we want to go back to a two-step process... if we do, we MUST use
+# # transactions to avoid race conditions.
+# def insert_update(curs, updateTable, coalesceCols, overwriteCols, keyCols, vals):
+#     """Helper class to update records in a table."""
+#     allCols = keyCols + overwriteCols + coalesceCols
+#     keySQL = ' AND '.join([ c + ' = %('+c+')s' for c in keyCols ])
+#
+#     selectSQL = "SELECT %s FROM %s WHERE %s" % ( ', '.join(keyCols), updateTable, keySQL )
+#
+#     coalesceSQL  = [ '%s = COALESCE(%s, %s)' % (c, '%('+c+')s', c) for c in coalesceCols ]
+#     overwriteSQL = [ '%s = %s' % (c, '%('+c+')s') for c in overwriteCols ]
+#     upColsSQL = ', '.join(overwriteSQL + coalesceSQL)
+#     updateSQL = "UPDATE %s SET %s WHERE %s" % (updateTable, upColsSQL, keySQL)
+#
+#     insertSQL = "INSERT INTO %s (%s) VALUES (%s)" % (
+#         updateTable, ', '.join(allCols), ', '.join(['%('+c+')s' for c in allCols]) )
+#
+#     insertCount = 0
+#     for row in vals:
+#
+#         curs.execute(selectSQL, row)
+#
+#         sql = updateSQL if ( curs.fetchone() ) else insertSQL
+#         curs.execute(sql, row)
+#
+#         curs.execute("COMMIT")
+#         insertCount += 1
+#
+#     return insertCount
+
+
+
+
+
 # helper function that may get run in a background thread
 def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId):
     tim = datastructs.Timer()
-    conn = db.getConn()
+    conn = getConn()
     curs = conn.cursor()
 
     rows = [{'sessionId': sessionId, 'ip': ip, 'userId': userId, 'friendId': friendId,
