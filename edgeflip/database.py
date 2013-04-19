@@ -33,25 +33,26 @@ def dateFromIso(dateStr):
 
 class Table(object):
     def __init__(self, name, cols=[], indices=[], key=[]):
-        sys.stderr.write("hey 0")
+        sys.stderr.write("hey 0\n")
         self.name = name
-        sys.stderr.write("hey 1")
+        sys.stderr.write("hey 1\n")
         self.colTups = []
-        sys.stderr.write("hey 2")
+        sys.stderr.write("hey 2\n")
         self.addCols(cols)
-        sys.stderr.write("hey 3")
+        sys.stderr.write("hey 3\n")
         self.indices = []
-        sys.stderr.write("hey 4")
+        sys.stderr.write("hey 4\n")
         for col in indices:
             self.addIndex(col)
-        sys.stderr.write("hey 5")
+        sys.stderr.write("hey 5\n")
         self.keyCols = key
-        sys.stderr.write("hey 6")
-    def addCols(self, colTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
-        for colTup in colTups:
-            if (len(colTup) == 2):
-                colTup = (colTup[0], colTup[1], None)
-            colTups.append(colTup)
+        sys.stderr.write("hey 6\n")
+    def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
+        for cTup in cTups:
+            sys.stderr.write("\they 2 %s\n" % cTup[0])
+            if (len(cTup) == 2):
+                cTup = (cTup[0], cTup[1], None)
+            self.colTups.append(cTup)
     def addCol(self, colName, colType, colDefault=None):
         self.addCols([(colName, colType, colDefault)])
     def addIndex(self, colName):
