@@ -65,6 +65,7 @@ class Table(object):
         sql = "CREATE TABLE " + self.name
         sql += " ("
         colSqls = []
+        sys.stderr.write("colTups: " + str(colTups) + "\n")
         for colName, colType, colDefault in self.colTups:
             colSql = colName + " " + colType
             if (colDefault is not None):
@@ -153,10 +154,10 @@ def dbSetup(connP=None, tableKeys=None):
     for tabName in tableKeys:
         tab = TABLES[tabName]
         sql = tab.sqlDrop()
-        sys.stderr.write(sql)
+        sys.stderr.write(sql + "\n")
         curs.execute(sql)
         sql = tab.sqlCreate()
-        sys.stderr.write(sql)
+        sys.stderr.write(sql + "\n")
         curs.execute(sql)
     conn.commit()
     if (connP is None):
