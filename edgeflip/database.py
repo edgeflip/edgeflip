@@ -189,10 +189,17 @@ def updateUsersDb(curs, users):
             } for u in users]
     return db.insert_update(curs, 'users', coalesceCols, overwriteCols, joinCols, vals)
 
-def updateTokensDb(curs, users, tok):
+def updateTokensDb(curs, users, token):
     insertedTokens = 0
     for user in users:
-        col_val = { 'fbid': user.id, 'appid': tok.appId, 'ownerid': tok.ownerId, 'expires': tok.expires, 'updated': None }
+        col_val = {
+            'fbid': user.id,
+            'appid': token.appId,
+            'ownerid': token.ownerId,
+            'token':token.tok,
+            'expires': token.expires,
+            'updated': None
+        }
         insertedTokens += upsert(curs, "tokens", col_val)
     return insertedTokens
 
@@ -217,7 +224,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     valColWilds = [ DB_WC for c in valColNames ]
 
     sql = "INSERT INTO " + table + " (" + ", ".join(keyColNames + valColNames) + ") "
-    sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ")"
+    sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=" + DB_WC for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logging.debug("upsert sql: " + sql + " " + str(params))
