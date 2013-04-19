@@ -4,20 +4,21 @@ import time
 import logging
 import datetime
 import threading
+import MySQLdb as mysql
 
 from . import datastructs
-from . import facebook
 from . import database_rds as db # modify this to swtch db implementations
 from . import config as conf
 
 config = conf.getConfig(includeDefaults=True)
 
 
-DB_WC = '%s'  # wildcard char for database (%s: mysql/rds, ?: sqlite)
 
 
 def getConn():
-    return db.getConn()
+    #return db.getConn()
+    return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
+
 
 
 def dateFromIso(dateStr):
@@ -29,10 +30,126 @@ def dateFromIso(dateStr):
     return None
 
 
-def migrate():
+
+class Table(object):
+    def __init__(self, name, cols=[], indices=[], key=[]):
+        self.name = name
+        self.colTups = []
+        self.addCols(cols)
+        self.indices = []
+        for col in indices:
+            self.addIndex(col)
+        self.keyCols = key
+    def addCols(self, colTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
+        for colTup in colTups:
+            if (len(colTup) == 2):
+                colTup = (colTup[0], colTup[1], None)
+            colTups.append(colTup)
+    def addCol(self, colName, colType, colDefault=None):
+        self.addCols([(colName, colType, colDefault)])
+    def addIndex(self, colName):
+        self.indices.append(colName)
+    def setKey(self, cols):
+        self.keyCols = cols
+    def getKey(self):
+        return self.keyCols
+    def sqlCreate(self):
+        sql = "CREATE TABLE " + self.name
+        sql += " ("
+        for colName, colType, colDefault in self.colTups:
+            sql += colName + " " + colType
+            if (colDefault is not None):
+                sql += " DEFAULT " + colDefault
+        if (self.indices):  # , INDEX(colA), INDEX(colB)
+            sql += ", " + ", ".join([ "INDEX(" + c + ")" for c in self.indices ])
+        if (self.keyCols):  # PRIMARY KEY (colA, colB)
+            sql += ", PRIMARY KEY (" + ", ".join(self.keyCols) + ")"
+        sql += ") "
+        return sql
+    def sqlDrop(self):
+        return "DROP TABLE IF EXISTS " + self.name
+
+
+TABLES = dict()
+
+TABLES['users'] =     Table(name='users',
+                            cols=[
+                                ('fbid' 'BIGINT'),
+                                ('fname', 'VARCHAR(128)'),
+                                ('lname' 'VARCHAR(128)'),
+                                ('gender', 'VARCHAR(8)'),
+                                ('birthday', 'VARCHAR(16)'),
+                                ('city', 'VARCHAR(32)'),
+                                ('state', 'VARCHAR(32)'),
+                                ('token', 'VARCHAR(512)'),
+                                ('friend_token', 'VARCHAR(512)'),
+                                ('updated', 'BIGINT')
+                            ],
+                            key=['fbid'])
+
+TABLES['tokens'] =    Table(name='tokens',
+                            cols=[
+                                ('fbid', 'BIGINT'),
+                                ('appid', 'BIGINT'),
+                                ('ownerid', 'BIGINT'),
+                                ('token', 'VARCHAR(512)'),
+                                ('expires', 'DATETIME'),
+                                ('updated', 'TIMESTAMP', 'DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
+                            ],
+                            key=['fbid', 'appid', 'ownerid'])
+
+TABLES['edges'] =     Table(name='edges',
+                            cols=[
+                                ('prim_id', 'BIGINT'),
+                                ('sec_id', 'BIGINT'),
+                                ('in_post_likes', 'INTEGER'),
+                                ('in_post_comms', 'INTEGER'),
+                                ('in_stat_likes', 'INTEGER'),
+                                ('in_stat_comms', 'INTEGER'),
+                                ('out_post_likes', 'INTEGER'),
+                                ('out_post_comms', 'INTEGER'),
+                                ('out_stat_likes', 'INTEGER'),
+                                ('out_stat_comms', 'INTEGER'),
+                                ('mut_friends', 'INTEGER'),
+                                ('updated', 'BIGINT')
+                            ],
+                            key=['prim_id', 'sec_id'])
+
+TABLES['events'] =    Table(name='events',
+                            cols=[
+                                ('session_id', 'VARCHAR(128)'),
+                                ('ip', 'VARCHAR(32)'),
+                                ('fbid', 'BIGINT'),
+                                ('friend_fbid', 'BIGINT'),
+                                ('type', 'VARCHAR(64)'),
+                                ('appid', 'BIGINT'),
+                                ('content', 'VARCHAR(128)'),
+                                ('activity_id', 'BIGINT'),
+                                ('create_dt', 'DATETIME')
+                            ],
+                            indices=['session_id', 'fbid', 'friend_fbid', 'activity_id'])
+
+# Reset the DB by dropping and recreating tables
+def dbSetup(connP=None, tableKeys=None):
+    conn = connP if (connP is not None) else getConn()
+    curs = conn.cursor()
+    if (tableKeys is None):
+        tableKeys = TABLES.keys()
+    for tabName in tableKeys:
+        tab = TABLES[tabName]
+        curs.execute(tab.sqlDrop())
+        curs.execute(tab.sqlCreate())
+    conn.commit()
+    if (connP is None):
+        conn.close()
+
+def dbMigrate():
     #todo: copy existing tokens from users table to tokens table
     #todo: remove token columns from users table
     return
+
+
+
 
 def getUserTokenDb(connP, userId, appId):
     """grab the "best" token from the tokens table
@@ -43,7 +160,7 @@ def getUserTokenDb(connP, userId, appId):
     conn = connP if (connP is not None) else db.getConn()
     curs = conn.cursor()
     ts = time.time()
-    sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=" + DB_WC + " AND expiration<" + DB_WC + " AND appid=" + DB_WC
+    sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=%s AND expiration<%s AND appid=%s"
     params = (userId, ts, appId)
     sql += "ORDER BY CASE WHEN userid=ownerid THEN 0 ELSE 1 END, updated DESC"
     curs.execute(sql, params)
@@ -216,16 +333,16 @@ def upsert(curs, table, col_val, coalesceCols=None):
     keyCols specifies key columns
     coalesceCols specifies columns that should be coalesced instead of overwritten (TODO)
     """
-    keyColNames = db.TABLE_PRIMARY_KEYS.get(table, [])
+    keyColNames = TABLES[table].getKey()
     valColNames = [ c for c in col_val.keys() if c not in set(keyColNames) ]
     keyColVals = [ col_val[c] for c in keyColNames ]
     valColVals = [ col_val[c] for c in valColNames ]
-    keyColWilds = [ DB_WC for c in keyColNames ]
-    valColWilds = [ DB_WC for c in valColNames ]
+    keyColWilds = [ '%s' for c in keyColNames ]
+    valColWilds = [ '%s' for c in valColNames ]
 
     sql = "INSERT INTO " + table + " (" + ", ".join(keyColNames + valColNames) + ") "
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
-    sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=" + DB_WC for c in valColNames])
+    sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logging.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
