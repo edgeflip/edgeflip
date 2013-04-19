@@ -64,10 +64,13 @@ class Table(object):
     def sqlCreate(self):
         sql = "CREATE TABLE " + self.name
         sql += " ("
+        colSqls = []
         for colName, colType, colDefault in self.colTups:
-            sql += colName + " " + colType
+            colSql = colName + " " + colType
             if (colDefault is not None):
-                sql += " DEFAULT " + colDefault
+                colSql += " DEFAULT " + colDefault
+            colSqls.append(colSql)
+        sql += ", ".join(colSqls)
         if (self.indices):  # , INDEX(colA), INDEX(colB)
             sql += ", " + ", ".join([ "INDEX(" + c + ")" for c in self.indices ])
         if (self.keyCols):  # PRIMARY KEY (colA, colB)
