@@ -72,6 +72,7 @@ class Table(object):
 
 TABLES = dict()
 
+sys.stderr.write("users\n")
 TABLES['users'] =     Table(name='users',
                             cols=[
                                 ('fbid' 'BIGINT'),
@@ -87,6 +88,7 @@ TABLES['users'] =     Table(name='users',
                             ],
                             key=['fbid'])
 
+sys.stderr.write("tokens\n")
 TABLES['tokens'] =    Table(name='tokens',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -98,6 +100,7 @@ TABLES['tokens'] =    Table(name='tokens',
                             ],
                             key=['fbid', 'appid', 'ownerid'])
 
+sys.stderr.write("edges\n")
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('prim_id', 'BIGINT'),
@@ -115,6 +118,7 @@ TABLES['edges'] =     Table(name='edges',
                             ],
                             key=['prim_id', 'sec_id'])
 
+sys.stderr.write("events\n")
 TABLES['events'] =    Table(name='events',
                             cols=[
                                 ('session_id', 'VARCHAR(128)'),
