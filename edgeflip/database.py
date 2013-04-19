@@ -62,10 +62,10 @@ class Table(object):
     def getKey(self):
         return self.keyCols
     def sqlCreate(self):
+        sys.stderr.write("colTups: " + str(self.colTups) + "\n")
         sql = "CREATE TABLE " + self.name
         sql += " ("
         colSqls = []
-        sys.stderr.write("colTups: " + str(colTups) + "\n")
         for colName, colType, colDefault in self.colTups:
             colSql = colName + " " + colType
             if (colDefault is not None):
