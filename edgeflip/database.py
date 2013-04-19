@@ -87,9 +87,9 @@ TABLES = dict()
 sys.stderr.write("users\n")
 TABLES['users'] =     Table(name='users',
                             cols=[
-                                ('fbid' 'BIGINT'),
+                                ('fbid', 'BIGINT'),
                                 ('fname', 'VARCHAR(128)'),
-                                ('lname' 'VARCHAR(128)'),
+                                ('lname', 'VARCHAR(128)'),
                                 ('gender', 'VARCHAR(8)'),
                                 ('birthday', 'VARCHAR(16)'),
                                 ('city', 'VARCHAR(32)'),
