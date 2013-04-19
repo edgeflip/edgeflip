@@ -78,7 +78,7 @@ def getUrlFb(url):
     return responseJson
 
 def extendTokenFb(user, token):
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
     url += '&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret']
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
     # even if you try passing &format=json in the URL.
@@ -88,13 +88,13 @@ def extendTokenFb(user, token):
             responseDict = urlparse.parse_qs(responseFile.read())
             # newToken = responseStr.split('=')[1].split('&')[0]
             # expiresIn = responseStr.split('=')[2]
-            newToken = responseDict['access_token'][0]
+            tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
-            logging.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
+            logging.debug("Extended access token %s expires in %s seconds." % (tokNew, expiresIn))
             expDate = datetime.datetime.utcfromtimestamp(ts + expiresIn)
-        return datastructs.TokenInfo(newToken, user, config['fb_app_id'], expDate)
+        return datastructs.TokenInfo(tokNew, user, config['fb_app_id'], expDate)
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
-        logging.info("error extending token %s: %s" % (token, str(e)))
+        logging.info("error extending token %s: %s" % (token.tok, str(e)))
         try:
             # If we actually got an error back from a server, should be able to read the message here
             logging.error("returned error was: %s" % e.read())

@@ -72,13 +72,10 @@ def ofa_faces():
     campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
     filterTups = campaign_filterTups.get(campaign, [])
 
-    # Try extending the token. If we hit an error, proceed with what we got from the page.
-    #zzz Will want to do this with the rank demo when we switch away from Shari!
-    token = facebook.extendTokenFb(None, tok)
-    if (token is None):
-        token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
-
-
+    # Assume we're starting with a short term token, expiring now, then try extending the
+    # token. If we hit an error, proceed with what we got from the old one.
+    token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+    token = facebook.extendTokenFb(fbid, token) or token
 
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
