@@ -152,8 +152,12 @@ def dbSetup(connP=None, tableKeys=None):
         tableKeys = TABLES.keys()
     for tabName in tableKeys:
         tab = TABLES[tabName]
-        curs.execute(tab.sqlDrop())
-        curs.execute(tab.sqlCreate())
+        sql = tab.sqlDrop()
+        sys.stderr.write(sql)
+        curs.execute(sql)
+        sql = tab.sqlCreate()
+        sys.stderr.write(sql)
+        curs.execute(sql)
     conn.commit()
     if (connP is None):
         conn.close()
