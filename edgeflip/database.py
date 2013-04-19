@@ -33,13 +33,20 @@ def dateFromIso(dateStr):
 
 class Table(object):
     def __init__(self, name, cols=[], indices=[], key=[]):
+        sys.stderr.write("hey 0")
         self.name = name
+        sys.stderr.write("hey 1")
         self.colTups = []
+        sys.stderr.write("hey 2")
         self.addCols(cols)
+        sys.stderr.write("hey 3")
         self.indices = []
+        sys.stderr.write("hey 4")
         for col in indices:
             self.addIndex(col)
+        sys.stderr.write("hey 5")
         self.keyCols = key
+        sys.stderr.write("hey 6")
     def addCols(self, colTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for colTup in colTups:
             if (len(colTup) == 2):
