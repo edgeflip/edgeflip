@@ -23,8 +23,5 @@ config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 logging.config.dictConfig(config.logging)
 logging.info("Configured with %r", config.list_files())
 
-# blah, database, queues, etc.
-
-
 
 
