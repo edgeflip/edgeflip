@@ -21,7 +21,5 @@ config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 # set up singletons
 
 logging.config.dictConfig(config.logging)
-logging.info("Configured with %r", config.list_files())
-
-
+logging.getLogger('config').info("Configured with %r", config.list_dirs())
 
