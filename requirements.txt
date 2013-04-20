@@ -12,7 +12,7 @@ coverage==3.6
 distribute==0.6.36
 docutils==0.10
 pika==0.9.12
--e git+https://github.com/wearpants/pymlconf.git@b7fda280fd50c7d6d9072f2007eafc4eae560f9b#egg=pymlconf-dev
+-e git+https://github.com/systemadev/pymlconf.git@eca8cdd0cfc0eabd44edae903c18dd0f3b88f0c7#egg=pymlconf-dev
 pythoscope==0.4.3
 snakefood==1.4
 wsgiref==0.1.2
