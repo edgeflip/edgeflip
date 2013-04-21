@@ -45,16 +45,7 @@ Configuring Apache
 	sudo chgrp www-data /var/www/edgeflip/logs/
 	cd /var/www
 	sudo emacs edgeflip.config</code></pre>
-10. Contents of edgeflip.config:
-<pre><code>{
-	  "outdir":"edgeflip/",
-	  "codedir":"/var/www/edgeflip/gitclones/edgeflip/edgeflip/",
-	  "logpath":"edgeflip/logs/demo.log",
-	  "dbpath":"edgeflip/demo.sqlite",
-	  "queue":"edgeflip_prod",
-	  "ofa_state_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_states.json",
-	  "ofa_campaign_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_campaigns.json"
-	}</code></pre>
+10. Set up your configuation, as specified in the [docs](http://edgeflip.github.io/edgeflip/index.html)
 11. Set up Apache Virtual Host:
 <pre><code>cd /etc/apache2
 	sudo emacs httpd.conf</code></pre>
