@@ -82,12 +82,10 @@ TABLES['users'] =     Table(name='users',
                                 ('fname', 'VARCHAR(128)'),
                                 ('lname', 'VARCHAR(128)'),
                                 ('gender', 'VARCHAR(8)'),
-                                ('birthday', 'VARCHAR(16)'),
+                                ('birthday', 'DATE'),
                                 ('city', 'VARCHAR(32)'),
                                 ('state', 'VARCHAR(32)'),
-                                ('token', 'VARCHAR(512)'),
-                                ('friend_token', 'VARCHAR(512)'),
-                                ('updated', 'BIGINT')
+                                ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
                             key=['fbid'])
 
@@ -106,16 +104,14 @@ TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('prim_id', 'BIGINT'),
                                 ('sec_id', 'BIGINT'),
-                                ('in_post_likes', 'INTEGER'),
-                                ('in_post_comms', 'INTEGER'),
-                                ('in_stat_likes', 'INTEGER'),
-                                ('in_stat_comms', 'INTEGER'),
-                                ('out_post_likes', 'INTEGER'),
-                                ('out_post_comms', 'INTEGER'),
-                                ('out_stat_likes', 'INTEGER'),
-                                ('out_stat_comms', 'INTEGER'),
+                                ('post_likes', 'INTEGER'),
+                                ('post_comms', 'INTEGER'),
+                                ('stat_likes', 'INTEGER'),
+                                ('stat_comms', 'INTEGER'),
+                                ('wall_posts', 'INTEGER'),
+                                ('wall_comms', 'INTEGER'),
                                 ('mut_friends', 'INTEGER'),
-                                ('updated', 'BIGINT')
+                                ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
                             key=['prim_id', 'sec_id'])
 
@@ -129,7 +125,7 @@ TABLES['events'] =    Table(name='events',
                                 ('appid', 'BIGINT'),
                                 ('content', 'VARCHAR(128)'),
                                 ('activity_id', 'BIGINT'),
-                                ('create_dt', 'DATETIME')
+                                ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
                             indices=['session_id', 'fbid', 'friend_fbid', 'activity_id'])
 
@@ -152,8 +148,43 @@ def dbSetup(connP=None, tableKeys=None):
         conn.close()
 
 def dbMigrate():
-    #todo: copy existing tokens from users table to tokens table
-    #todo: remove token columns from users table
+    conn = getConn()
+    curs = conn.cursor()
+
+    # create the new token table
+    dbSetup(conn, tableKeys=["tokens"])
+
+    # rename users table
+    curs.execute("RENAME TABLE users TO users_OLD")
+
+    #copy existing tokens from the old users table to the new tokens table
+    curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
+    tok_fbid = {}
+    for fbid, tok in curs.fetchall():
+        token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+        updateTokensDb(curs, [fbid], token)
+        tok_fbid[tok] = fbid
+    curs.execute("SELECT fbid, friend_token FROM users_OLD WHERE (friend_token IS NOT NULL)")
+    for fbid, tokFriend in curs.fetchall():
+        if (tokFriend in tok_fbid):
+            owner = tok_fbid[token]
+            token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+            updateTokensDb(curs, [fbid], token)
+
+    # create the new users table
+    dbSetup(conn, tableKeys=["users"])
+
+    # insert old user rows into new table
+    sql = """
+        INSERT INTO users (fbid, fname, lname, gender, birthday, city, state)
+            SELECT fbid, fname, lname, gender, CASE WHEN birthday='None' THEN NULL ELSE birthday END, city, state
+            FROM users_OLD
+    """
+    curs.execute(sql)
+
+
+
+
     return
 
 
@@ -185,7 +216,6 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 
     freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
     logging.debug("getting user %s, freshness date is %s" % (userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S")))
-    #sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
     #logging.debug(sql)
     curs = conn.cursor()
@@ -196,10 +226,10 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
     else:
         #logging.debug(str(rec))
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        updateDate = datetime.date.fromtimestamp(updated)
-        logging.debug("getting user %s, update date is %s" % (userId, updateDate.strftime("%Y-%m-%d %H:%M:%S")))
+        #updateDate = datetime.date.fromtimestamp(updated)
+        logging.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
-        if (updateDate <= freshness_date):
+        if (updated <= freshness_date):
             ret = None
         else:
             if (freshnessIncludeEdge):
@@ -210,10 +240,12 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
                 if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
                     ret = None
                 else:
-                    ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+                    #ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+                    ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
             else:
-                ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
-            #zzz todo: clean this up
+                #ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
+                ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
+                #zzz todo: clean this up
     if (connP is None):
         conn.close()
     return ret
@@ -304,15 +336,21 @@ def updateFriendEdgesDb(curs, edges, overwriteOutgoing=False):
     return db.insert_update(curs, 'edges', coalesceCols, overwriteCols, joinCols, vals)
 
 def updateUsersDb(curs, users):
-    coalesceCols = []
-    overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
-    joinCols = ['fbid']
-    vals = [{
-            'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender,
-            'birthday': str(u.birthday), 'city': u.city, 'state': u.state,
-            'updated': time.time()
-            } for u in users]
-    return db.insert_update(curs, 'users', coalesceCols, overwriteCols, joinCols, vals)
+    # coalesceCols = []
+    # overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
+    # joinCols = ['fbid']
+    # vals = [{
+    #         'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender,
+    #         'birthday': str(u.birthday), 'city': u.city, 'state': u.state,
+    #         'updated': time.time()
+    #         } for u in users]
+    # return db.insert_update(curs, 'users', coalesceCols, overwriteCols, joinCols, vals)
+    updateCount = 0
+    for u in users:
+        col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
+                    'city': u.city, 'state': u.state, 'updated': None }
+        updateCount += upsert(curs, 'users', col_val)
+    return updateCount
 
 def updateTokensDb(curs, users, token):
     insertedTokens = 0
