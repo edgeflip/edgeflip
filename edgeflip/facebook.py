@@ -15,6 +15,7 @@ from contextlib import closing
 from . import datastructs
 from .settings import config
 
+logger = logging.getLogger(__name__)
 
 class STREAMTYPE:
     GROUP_CREATED = 11

@@ -8,8 +8,7 @@ import logging
 
 from .settings import config
 
-
-
+logger = logging.getLogger(__name__)
 
 def prox(e, eMax):
     countMaxWeightTups = [

@@ -10,6 +10,8 @@ from . import facebook
 from . import database_rds as db # modify this to swtch db implementations
 from .settings import config 
 
+logger = logging.getLogger(__name__)
+
 def getConn():
     return db.getConn()
 

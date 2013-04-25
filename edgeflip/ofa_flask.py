@@ -13,6 +13,7 @@ from . import database
 from . import datastructs
 from .settings import config
 
+logger = logging.getLogger(__name__)
 
 
 app = flask.Flask(__name__)

@@ -15,8 +15,7 @@ import pika
 from .settings import config
 logging.getLogger('pika').setLevel(logging.CRITICAL)
 
-
-
+logger = logging.getLogger(__name__)
 
 def readStreamCallback(ch, method, properties, body):
     logging.debug("[worker] got raw message %d '%s' from queue" % (readStreamCallback.messCount, body))

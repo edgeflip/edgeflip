@@ -70,5 +70,7 @@ config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 # set up singletons
 
 logging.config.dictConfig(config.logging)
-logging.getLogger('config').info("Configured with %r", config.list_dirs())
+logger = logging.getLogger(__name__)
+
+logger.info("Configured with %r", config.list_dirs())
 
