@@ -13,7 +13,6 @@ import json
 import pika
 
 from .settings import config
-logging.getLogger('pika').setLevel(logging.CRITICAL)
 
 logger = logging.getLogger(__name__)
 

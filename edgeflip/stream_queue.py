@@ -6,8 +6,6 @@ import json
 import logging
 
 from .settings import config
-logging.getLogger('pika').setLevel(logging.CRITICAL)
-
 
 def createQueue(queueName):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
