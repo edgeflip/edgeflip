@@ -27,7 +27,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
     conn = connP if (connP is not None) else db.getConn()
 
     freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
-    logger.debug("getting user %s, freshness date is %s" % (userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S")))
+    logger.debug("getting user %s, freshness date is %s", userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S"))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
     #logger.debug(sql)
     curs = conn.cursor()
@@ -39,7 +39,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
         #logger.debug(str(rec))
         fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
         updateDate = datetime.date.fromtimestamp(updated)
-        logger.debug("getting user %s, update date is %s" % (userId, updateDate.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.debug("getting user %s, update date is %s", userId, updateDate.strftime("%Y-%m-%d %H:%M:%S"))
 
         if (updateDate <= freshness_date):
             ret = None
@@ -99,7 +99,7 @@ def _updateDb(user, token, edges):
     fCount = updateUsersDb(curs, [e.secondary for e in edges], None, token)
     eCount = updateFriendEdgesDb(curs, edges)
     conn.commit()
-    logger.debug("updateFriendEdgesDb() thread %d updated %d friends and %d edges for user %d (took %s)" % (threading.current_thread().ident, fCount, eCount, user.id, tim.elapsedPr()))
+    logger.debug("updateFriendEdgesDb() thread %d updated %d friends and %d edges for user %d (took %s)", threading.current_thread().ident, fCount, eCount, user.id, tim.elapsedPr())
     conn.close()
     return eCount
 
@@ -108,10 +108,10 @@ def updateDb(user, token, edges, background=False):
         t = threading.Thread(target=_updateDb, args=(user, token, edges))
         t.daemon = False
         t.start()
-        logger.debug("updateDb() spawning background thread %d for user %d" % (t.ident, user.id))
+        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
         return 0
     else:
-        logger.debug("updateDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
+        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
         return _updateDb(user, token, edges)
 
 # helper function that may get run in a background thread
@@ -144,10 +144,10 @@ def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, a
         t = threading.Thread(target=_writeEventsDb, args=(sessionId, ip, userId, friendIds, eventType, appId, content, activityId))
         t.daemon = False
         t.start()
-        logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s" % (t.ident, eventType, sessionId))
+        logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
         return 0
     else:
-        logger.debug("writeEventsDb() foreground thread %d for %s event from session %s" % (threading.current_thread().ident, eventType, sessionId))
+        logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
         return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
 
 

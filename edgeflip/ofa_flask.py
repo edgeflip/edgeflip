@@ -82,7 +82,7 @@ def ofa_faces():
     if (bestState is not None):
         filterTups.append(('state', 'eq', bestState))
         edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
-        logger.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
+        logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
 
         friendDicts = [ e.toDict() for e in edgesFiltered ]
         faceFriends = friendDicts[:numFace]
@@ -162,10 +162,10 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
     str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
     edgesGood = edges[:]
     for attrName, compTag, attrVal in filterTups:
-        logger.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
+        logger.debug("filtering %d edges on '%s %s %s'", len(edgesGood), attrName, compTag, attrVal)
         filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
         edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-        logger.debug("have %d edges left" % (len(edgesGood)))
+        logger.debug("have %d edges left", len(edgesGood))
     return edgesGood
 
 
@@ -338,7 +338,7 @@ def generateSessionId(ip, content, timestr=None):
         timestr = '%.10f' % time.time()
     # Is MD5 the right strategy here?
     sessionId = hashlib.md5(ip+content+timestr).hexdigest()
-    logger.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
+    logger.debug('Generated session id %s for IP %s with content %s at time %s', sessionId, ip, content, timestr)
     return sessionId
 
 

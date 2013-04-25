@@ -17,13 +17,13 @@ from .settings import config
 logger = logging.getLogger(__name__)
 
 def readStreamCallback(ch, method, properties, body):
-    logger.debug("[worker] got raw message %d '%s' from queue" % (readStreamCallback.messCount, body))
+    logger.debug("[worker] got raw message %d '%s' from queue", readStreamCallback.messCount, body)
     readStreamCallback.messCount += 1
     elts = json.loads(body)
     #logger.debug("got message elts %s from queue" % str(elts))
     userId, tok, extra = elts
     userId = int(userId)
-    logger.debug("[worker] received %d, %s from queue" % (userId, tok))
+    logger.debug("[worker] received %d, %s from queue", userId, tok)
     sys.stderr.write("received %d, %s from queue\n" % (userId, tok))
 
     try:
@@ -50,7 +50,7 @@ def readStreamCallback(ch, method, properties, body):
 
     friends = facebook.getFriendsFb(userId, tok)
     friendQueue = [f for f in friends if f.id not in skipFriends]
-    logger.debug("[worker] got %d friends total; updating %d of them" % ( len(friends), len(friendQueue) ))
+    logger.debug("[worker] got %d friends total; updating %d of them",  len(friends), len(friendQueue) )
 
     logger.info('[worker] reading stream for user %s, %s', userId, tok)
     sc = facebook.ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
@@ -75,7 +75,7 @@ def readStreamCallback(ch, method, properties, body):
             try:
                 scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
             except Exception as ex:
-                logger.warning("[worker] error reading stream for %d: %s" % (friend.id, str(ex)))
+                logger.warning("[worker] error reading stream for %d: %s", friend.id, str(ex))
                 continue
             logger.debug('[worker] got %s', str(scFriend))
             e = datastructs.EdgeSC2(user, friend, sc, scFriend)
@@ -103,7 +103,7 @@ def readStreamCallback(ch, method, properties, body):
 
     conn.close()
 
-    logger.debug("[worker] updated %d friend edges for %d (took: %s)" % (newCount, userId, tim.elapsedPr()))
+    logger.debug("[worker] updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
     sys.stderr.write("updated %d friend edges for %d (took: %s)\n" % (newCount, userId, tim.elapsedPr()))
 
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
@@ -146,7 +146,7 @@ if (__name__ == '__main__'):
     callbackFunc = readStreamCallback
 
     pid = os.getpid()
-    logger.info("starting worker %d for queue %s" % (pid, args.queueName))
+    logger.info("starting worker %d for queue %s", pid, args.queueName)
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()

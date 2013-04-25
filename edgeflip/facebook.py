@@ -66,7 +66,7 @@ def getUrlFb(url):
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseJson = json.load(responseFile)
     except (urllib2.URLError, urllib2.HTTPError) as e: 
-        logger.info("error opening url %s: %s" % (url, e.reason))
+        logger.info("error opening url %s: %s", url, e.reason)
         try:
             # If we actually got an error back from a server, should be able to read the message here
             logger.error("returned error was: %s" % e.read())
@@ -88,10 +88,10 @@ def extendTokenFb(token):
             # expiresIn = responseStr.split('=')[2]
             newToken = responseDict['access_token'][0]
             expiresIn = responseDict['expires'][0]
-            logger.debug("Extended access token %s expires in %s seconds." % (newToken, expiresIn))
+            logger.debug("Extended access token %s expires in %s seconds.", newToken, expiresIn)
         return newToken
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
-        logger.info("error extending token %s: %s" % (token, str(e)))
+        logger.info("error extending token %s: %s", token, str(e))
         try:
             # If we actually got an error back from a server, should be able to read the message here
             logger.error("returned error was: %s" % e.read())
@@ -123,7 +123,7 @@ def getFriendsFb(userId, token):
 
     queryJson = '{' + ','.join(queryJsons) + '}'
     url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token    
-    #logger.debug("url for friends query for %d: %s" % (userId, url))
+    #logger.debug("url for friends query for %d: %s", userId, url)
     responseJson = getUrlFb(url)
     #sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
 
@@ -145,8 +145,8 @@ def getFriendsFb(userId, token):
         if (rec['subject']):
             otherPhotoCounts[int(rec['subject'])] += 1
 
-    #logger.debug("Primary photo counts for %d: %s" % (userId, str(primPhotoCounts)))
-    #logger.debug("Other photo counts for %d: %s" % (userId, str(otherPhotoCounts)))
+    #logger.debug("Primary photo counts for %d: %s", userId, str(primPhotoCounts))
+    #logger.debug("Other photo counts for %d: %s", userId, str(otherPhotoCounts))
 
     friends = []
     for rec in lab_recs['friendInfo']:
@@ -157,11 +157,11 @@ def getFriendsFb(userId, token):
         otherPhotoTags = otherPhotoCounts[friendId]
 
         if (primPhotoTags + otherPhotoTags > 0):
-            logger.debug("Friend %d has %d primary photo tags and %d other photo tags" % (friendId, primPhotoTags, otherPhotoTags))
+            logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
         f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
         friends.append(f)
-    logger.debug("returning %d friends for %d (%s)" % (len(friends), userId, tim.elapsedPr()))
+    logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
     return friends
 
 
@@ -213,7 +213,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                 try:
                     scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
                 except Exception as ex:
-                    logger.warning("error reading stream for %d: %s" % (friend.id, str(ex)))
+                    logger.warning("error reading stream for %d: %s", friend.id, str(ex))
                     continue
                 logger.debug('got %s', str(scFriend))
                 e = datastructs.EdgeSC2(user, friend, sc, scFriend)
@@ -234,7 +234,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
             if (secsLeft > 0):
                 logger.debug("Nap time! Waiting %d seconds..." % secsLeft)
                 time.sleep(secsLeft)
-    logger.debug("got %d friend edges for %d (%s)" % (len(edges), userId, tim.elapsedPr()))
+    logger.debug("got %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
 
 
@@ -362,7 +362,7 @@ class StreamCounts(object):
     
 class ReadStreamCounts(StreamCounts):
     def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60, loopTimeout=10, loopSleep=0.1):
-        logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount))
+        logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
         tim = datastructs.Timer()
         self.id = userId
         self.stream = []
@@ -414,13 +414,13 @@ class ReadStreamCounts(StreamCounts):
             for t in threads:
                 t.kill_received = True
             tc = len([ t for t in threads if t.isAlive() ])
-            logger.debug("now have %d threads" % (tc))
+            logger.debug("now have %d threads", tc)
 
-        logger.debug("%d threads still alive after loop" % (len(threads)))
+        logger.debug("%d threads still alive after loop", len(threads))
         #for t in threads:
         #    t.kill_received = True        
         #tc = len([ t for t in threads if t.isAlive() ])
-        #logger.debug("now have %d threads" % (tc))
+        #logger.debug("now have %d threads", tc)
     
         logger.debug("%d chunk results for user %s", len(scChunks), userId)
 
@@ -430,9 +430,9 @@ class ReadStreamCounts(StreamCounts):
 
         sc = StreamCounts(userId) # is this left over from something? I don't think it's used... --Kit
         for i, scChunk in enumerate(scChunks):
-            logger.debug("chunk %d %s" % (i, str(scChunk)))
+            logger.debug("chunk %d %s", i, str(scChunk))
             self.__iadd__(scChunk)
-        logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s" % (userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr()))
+        logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr())
 
 #zzz
 #import gc
@@ -460,7 +460,7 @@ class ThreadStreamReader(threading.Thread):
         
             tim = datastructs.Timer()
 
-            logger.debug("reading stream for %s, interval (%s - %s)" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2))))
+            logger.debug("reading stream for %s, interval (%s - %s)", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
 
             queryJsons = []
             streamLabel = "stream"
@@ -489,7 +489,7 @@ class ThreadStreamReader(threading.Thread):
             #    with closing(urllib2.urlopen(req, timeout=60)) as responseFile:
             #        responseJson = json.load(responseFile)
             #except Exception as e:
-            #    logger.error("error reading stream chunk for user %s (%s - %s): %s\n" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+            #    logger.error("error reading stream chunk for user %s (%s - %s): %s\n", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
             #    self.queue.task_done()
             #    self.queue.put((ts1, ts2))
             #    continue
@@ -498,7 +498,7 @@ class ThreadStreamReader(threading.Thread):
             try:
                 responseFile = urllib2.urlopen(req, timeout=60)
             except Exception as e:
-                logger.error("error reading stream chunk for user %s (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e)))
+                logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
                 #try:
                 #    responseFile.fp._sock.recv = None
                 #except: # in case it's not applicable, ignore this.
@@ -536,8 +536,8 @@ class ThreadStreamReader(threading.Thread):
             tagIds   = [ i for r in lab_recs['tags'] for i in r['tagged_ids'] ]
             sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
 
-            logger.debug("stream counts for %s: %s" % (self.userId, str(sc)))
-            logger.debug("chunk took %s" % (tim.elapsedPr()))
+            logger.debug("stream counts for %s: %s", self.userId, str(sc))
+            logger.debug("chunk took %s", tim.elapsedPr())
 
             goodCount += 1
 
@@ -545,9 +545,9 @@ class ThreadStreamReader(threading.Thread):
             self.queue.task_done()
         
         else: # we've reached the stop limit
-            logger.debug("thread %s reached lifespan, exiting" % (self.name))
+            logger.debug("thread %s reached lifespan, exiting", self.name)
 
-        logger.debug("thread %s finishing with %d/%d good (took %s)" % (self.name, goodCount, (goodCount + errCount), timThread.elapsedPr()))
+        logger.debug("thread %s finishing with %d/%d good (took %s)", self.name, goodCount, (goodCount + errCount), timThread.elapsedPr())
 
 class BadChunksError(Exception):
     def __init__(self, msg):
