@@ -1,5 +1,5 @@
 import unittest
-from demo.datastructs import unidecodeSafe
+from edgeflip.datastructs import unidecodeSafe
 
 class TestTimer(unittest.TestCase):
     def test___init__(self):
