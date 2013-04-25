@@ -1,14 +1,6 @@
 edgeflip Package
 ================
 
-:mod:`config` Module
---------------------
-
-.. automodule:: edgeflip.config
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`database` Module
 ----------------------
 

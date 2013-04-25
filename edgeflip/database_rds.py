@@ -2,8 +2,7 @@
 import sys
 import MySQLdb as mysql
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
+from .settings import config 
 # import logging
 
 

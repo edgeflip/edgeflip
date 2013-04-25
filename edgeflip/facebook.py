@@ -13,9 +13,7 @@ from collections import defaultdict
 from contextlib import closing
 
 from . import datastructs
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-
+from .settings import config
 
 
 class STREAMTYPE:

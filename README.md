@@ -17,6 +17,8 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 7. Upgrade distribute: `pip install -U distribute`
 8. Install python packages: `pip install -r requirements.txt`
 9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
+10. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
+ 
 
 Configuring Apache
 ------------------
@@ -30,7 +32,7 @@ Configuring Apache
 	sudo chown www-data edgeflip
 	sudo chgrp www-data edgeflip
 	cd edgeflip
-	sudo emacs edgeflip.wsgi</code></pre>
+	</code></pre>
 
 8. Set up the git clone:
 <pre><code>sudo chmod 755 edgeflip.wsgi
@@ -38,32 +40,19 @@ Configuring Apache
 	sudo chmod 777 gitclones
 	cd gitclones
 	git clone git@github.com:edgeflip/edgeflip.git</code></pre>
-9. Set up logging and edgeflip.config file:
-<pre><code>cd /var/www/edgeflip
-	sudo mkdir logs
-	sudo chown www-data /var/www/edgeflip/logs/
-	sudo chgrp www-data /var/www/edgeflip/logs/
-	cd /var/www
-	sudo emacs edgeflip.config</code></pre>
-10. Contents of edgeflip.config:
-<pre><code>{
-	  "outdir":"edgeflip/",
-	  "codedir":"/var/www/edgeflip/gitclones/edgeflip/edgeflip/",
-	  "logpath":"edgeflip/logs/demo.log",
-	  "dbpath":"edgeflip/demo.sqlite",
-	  "queue":"edgeflip_prod",
-	  "ofa_state_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_states.json",
-	  "ofa_campaign_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_campaigns.json"
-	}</code></pre>
-11. Set up Apache Virtual Host:
+
+
+12. httpd.conf 
 <pre><code>cd /etc/apache2
 	sudo emacs httpd.conf</code></pre>
-12. Contents of httpd.conf:
+
+
+Contents of httpd.conf:
 <pre><code>&lt;VirtualHost *&gt;
 	    ServerName localhost
 
 	    WSGIDaemonProcess edgeflip processes=2 threads=50
-	    WSGIScriptAlias / /var/www/edgeflip/edgeflip.wsgi
+	    WSGIScriptAlias / /var/www/edgeflip/edgeflip/edgeflip/edgeflip.wsgi
 
 	    LogLevel info
 	    ErrorLog "/var/log/apache2/error.log"
@@ -76,4 +65,5 @@ Configuring Apache
 	        Allow from all
 	    &lt;/Directory&gt;
 	&lt;/VirtualHost&gt;</code></pre>
+	
 13. Finally, restart Apache and you should be up and running: `sudo /etc/init.d/apache2 restart`

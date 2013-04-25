@@ -8,9 +8,7 @@ import threading
 from . import datastructs
 from . import facebook
 from . import database_rds as db # modify this to swtch db implementations
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-
+from .settings import config 
 
 def getConn():
     return db.getConn()

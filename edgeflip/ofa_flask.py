@@ -11,18 +11,16 @@ from . import facebook
 from . import ranking
 from . import database
 from . import datastructs
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-
+from .settings import config
 
 
 
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
-state_senInfo = conf.readJson(config['ofa_state_config'])  # 'East Calihio' -> {'state_name':'East Calihio',
-                                                            #             'name':'Smokestax',
-                                                            #             'email':'smokestax@senate.gov',
-                                                            #             'phone' : '(202) 123-4567'}
+state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihio',
+                                  #             'name':'Smokestax',
+                                  #             'email':'smokestax@senate.gov',
+                                  #             'phone' : '(202) 123-4567'}
 
 
 # This is an example endpoint... in reality, this page would be on OFA servers
@@ -57,7 +55,7 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaigns
     filterTups = campaign_filterTups.get(campaign, [])
 
     # Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -205,12 +203,15 @@ def ofa_landing(state):
     return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
 
 
+def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
+    raise NotImplementedError
+
 @app.route("/campaign_save", methods=['POST', 'GET'])
 def saveCampaign():
     campFileName = int(flask.request.json['campFileName'])
     campName = flask.request.json['campName']
     configTups = flask.request.json['configTups']
-    result = conf.writeJsonDict(campFileName, {campName: configTups}, overwriteFile=False)
+    result = writeJsonDict(campFileName, {campName: configTups}, overwriteFile=False)
     if (result):
         return "Thank you. Your targeting parameters have been applied."
     else:
@@ -409,7 +410,7 @@ def face_test():
     # Actually rank these edges and generate friend dictionaries from them
     edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
 
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaigns
     campaign = "test"
     filterTups = campaign_filterTups.get(campaign, [])
     edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)

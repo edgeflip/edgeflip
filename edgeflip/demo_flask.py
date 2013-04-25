@@ -14,8 +14,7 @@ import urllib2  # Just for handling errors raised from facebook module. Seems li
 import logging
 import os
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
+from .settings import config 
 
 # for testing endpoint -- could be removed for production-only code
 import random
@@ -105,7 +104,7 @@ def rank_faces():
 
 
 
-
+# XXX Fix local .json file
 @app.route("/cp", methods=['POST', 'GET'])
 @app.route("/control_panel", methods=['POST', 'GET'])
 def cp():
@@ -117,7 +116,7 @@ def cp():
         pass
     return flask.render_template('control_panel.html', config=config_dict)
 
-
+# XXX Fix local .json file
 @app.route("/set_targets", methods=['POST'])
 def targets():
     try:
