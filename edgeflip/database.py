@@ -47,7 +47,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
             if (freshnessIncludeEdge):
                 curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
                 rec = curs.fetchone()
-                #logger.debug("got rec: %s" % str(rec))
+                #logger.debug("got rec: %s", str(rec))
                 updatedEdge = rec[0]
                 if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
                     ret = None
@@ -133,7 +133,7 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
         conn.commit()
         insertCount += 1
 
-    logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s" % (threading.current_thread().ident, insertCount, eventType, sessionId) )
+    logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
     conn.close()
     
     return insertCount

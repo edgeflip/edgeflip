@@ -69,7 +69,7 @@ def getUrlFb(url):
         logger.info("error opening url %s: %s", url, e.reason)
         try:
             # If we actually got an error back from a server, should be able to read the message here
-            logger.error("returned error was: %s" % e.read())
+            logger.error("returned error was: %s", e.read())
         except:
             pass
         raise
@@ -94,14 +94,14 @@ def extendTokenFb(token):
         logger.info("error extending token %s: %s", token, str(e))
         try:
             # If we actually got an error back from a server, should be able to read the message here
-            logger.error("returned error was: %s" % e.read())
+            logger.error("returned error was: %s", e.read())
         except:
             pass
         return None
 
 def getFriendsFb(userId, token):
     tim = datastructs.Timer()
-    logger.debug("getting friends for %d" % userId)
+    logger.debug("getting friends for %d", userId)
 
     # Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
 
@@ -181,7 +181,7 @@ def getUserFb(userId, token):
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=set()):
 
-    logger.debug("getting friend edges from FB for %d" % userId)
+    logger.debug("getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     friends = getFriendsFb(userId, tok)
     logger.debug("got %d friends total", len(friends))
@@ -232,7 +232,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
         if (requireOutgoing):
             secsLeft = friendSecs - timFriend.elapsedSecs()
             if (secsLeft > 0):
-                logger.debug("Nap time! Waiting %d seconds..." % secsLeft)
+                logger.debug("Nap time! Waiting %d seconds...", secsLeft)
                 time.sleep(secsLeft)
     logger.debug("got %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
@@ -448,7 +448,7 @@ class ThreadStreamReader(threading.Thread):
 
     def run(self):
         timeStop = time.time() + self.lifespan
-        logger.debug("thread %s starting" % self.name)
+        logger.debug("thread %s starting", self.name)
         timThread = datastructs.Timer()
         goodCount = 0
         errCount = 0
@@ -482,7 +482,7 @@ class ThreadStreamReader(threading.Thread):
             #sys.stderr.write(url + "\n\n") 
 
             # Can be useful, but sure prints out a lot!
-            # logger.debug("url from %s, interval (%s - %s): %s" % (self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)) 
+            # logger.debug("url from %s, interval (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)
 
             #try:
             #    req = urllib2.Request(url)
@@ -505,7 +505,7 @@ class ThreadStreamReader(threading.Thread):
                 #    pass
                 try:
                     # If we actually got an error back from a server, should be able to read the message here
-                    logger.error("returned error was: %s" % e.read())
+                    logger.error("returned error was: %s", e.read())
                 except:
                     pass
                 errCount += 1

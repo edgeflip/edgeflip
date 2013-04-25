@@ -121,7 +121,7 @@ if (__name__ == '__main__'):
         database.updateUserDb(curs, user, tok, None)
         edges = facebook.getFriendEdgesFb(userId, tok, requireIncoming=True, requireOutgoing=REQUIRE_OUTGOING)
         newCount = database.updateFriendEdgesDb(userId, tok, edges)
-        logger.debug("inserted %d new edges\n" % newCount)
+        logger.debug("inserted %d new edges\n", newCount)
         conn.close()
 
     for friend in getFriendRankingDb(None, userId, REQUIRE_OUTGOING):

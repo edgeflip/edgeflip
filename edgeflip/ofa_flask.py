@@ -68,10 +68,10 @@ def ofa_faces():
 
     if (user is not None):  # it's fresh
 #    if (False): # Disable DB entirely for now because it's faster to crawl px3...
-        logger.debug("user %s is fresh, getting data from db" % fbid)
+        logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
-        logger.debug("user %s is not fresh, retrieving data from fb" % fbid)
+        logger.debug("user %s is not fresh, retrieving data from fb", fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
@@ -137,11 +137,11 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
             if (state not in statePool):
                 del state_count[state]
     if (state_count):
-        logger.debug("best state counts: %s" % str(state_count))
+        logger.debug("best state counts: %s", str(state_count))
         bestCount = max(state_count.values() + [0])  # in case we don't get any states
         bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
         if (len(bestStates) == 1):
-            logger.debug("best state returning %s" % bestStates[0])
+            logger.debug("best state returning %s", bestStates[0])
             return bestStates[0]
         else:
             # there's a tie for first, so grab the state with the best avg scores
@@ -153,7 +153,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
                 if (scoreAvg > bestScoreAvg):
                     bestState = state
                     bestScoreAvg = scoreAvg
-            logger.debug("best state returning %s" % bestState)
+            logger.debug("best state returning %s", bestState)
             return bestState
     else:
         return None

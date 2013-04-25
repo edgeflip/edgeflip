@@ -20,7 +20,7 @@ def readStreamCallback(ch, method, properties, body):
     logger.debug("[worker] got raw message %d '%s' from queue", readStreamCallback.messCount, body)
     readStreamCallback.messCount += 1
     elts = json.loads(body)
-    #logger.debug("got message elts %s from queue" % str(elts))
+    #logger.debug("got message elts %s from queue", str(elts))
     userId, tok, extra = elts
     userId = int(userId)
     logger.debug("[worker] received %d, %s from queue", userId, tok)
@@ -33,7 +33,7 @@ def readStreamCallback(ch, method, properties, body):
         return
 
 
-    logger.debug("[worker] getting friend edges from FB for %d" % userId)
+    logger.debug("[worker] getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     
     conn = database.getConn()
@@ -98,7 +98,7 @@ def readStreamCallback(ch, method, properties, body):
         if (readStreamCallback.requireOutgoing):
             secsLeft = friendSecs - timFriend.elapsedSecs()
             if (secsLeft > 0):
-                logger.debug("Nap time! Waiting %d seconds..." % secsLeft)
+                logger.debug("Nap time! Waiting %d seconds...", secsLeft)
                 time.sleep(secsLeft)
 
     conn.close()
