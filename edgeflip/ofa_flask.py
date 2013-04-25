@@ -55,7 +55,7 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    campaign_filterTups = config.ofa_campaign
+    campaign_filterTups = config.ofa_campaigns
     filterTups = campaign_filterTups.get(campaign, [])
 
     # Try extending the token. If we hit an error, proceed with what we got from the page.
@@ -410,7 +410,7 @@ def face_test():
     # Actually rank these edges and generate friend dictionaries from them
     edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
 
-    campaign_filterTups = config.ofa_campaign
+    campaign_filterTups = config.ofa_campaigns
     campaign = "test"
     filterTups = campaign_filterTups.get(campaign, [])
     edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
