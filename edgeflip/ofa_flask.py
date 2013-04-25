@@ -68,10 +68,10 @@ def ofa_faces():
 
     if (user is not None):  # it's fresh
 #    if (False): # Disable DB entirely for now because it's faster to crawl px3...
-        logging.debug("user %s is fresh, getting data from db" % fbid)
+        logger.debug("user %s is fresh, getting data from db" % fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
-        logging.debug("user %s is not fresh, retrieving data from fb" % fbid)
+        logger.debug("user %s is not fresh, retrieving data from fb" % fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
@@ -82,7 +82,7 @@ def ofa_faces():
     if (bestState is not None):
         filterTups.append(('state', 'eq', bestState))
         edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
-        logging.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
+        logger.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
 
         friendDicts = [ e.toDict() for e in edgesFiltered ]
         faceFriends = friendDicts[:numFace]
@@ -104,7 +104,7 @@ def ofa_faces():
         'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
         }
         actionParams.update(fbParams)
-        logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
+        logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
         content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
         if (not sessionId):
@@ -137,11 +137,11 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
             if (state not in statePool):
                 del state_count[state]
     if (state_count):
-        logging.debug("best state counts: %s" % str(state_count))
+        logger.debug("best state counts: %s" % str(state_count))
         bestCount = max(state_count.values() + [0])  # in case we don't get any states
         bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
         if (len(bestStates) == 1):
-            logging.debug("best state returning %s" % bestStates[0])
+            logger.debug("best state returning %s" % bestStates[0])
             return bestStates[0]
         else:
             # there's a tie for first, so grab the state with the best avg scores
@@ -153,7 +153,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
                 if (scoreAvg > bestScoreAvg):
                     bestState = state
                     bestScoreAvg = scoreAvg
-            logging.debug("best state returning %s" % bestState)
+            logger.debug("best state returning %s" % bestState)
             return bestState
     else:
         return None
@@ -162,10 +162,10 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
     str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
     edgesGood = edges[:]
     for attrName, compTag, attrVal in filterTups:
-        logging.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
+        logger.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
         filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
         edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-        logging.debug("have %d edges left" % (len(edgesGood)))
+        logger.debug("have %d edges left" % (len(edgesGood)))
     return edgesGood
 
 
@@ -338,7 +338,7 @@ def generateSessionId(ip, content, timestr=None):
         timestr = '%.10f' % time.time()
     # Is MD5 the right strategy here?
     sessionId = hashlib.md5(ip+content+timestr).hexdigest()
-    logging.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
+    logger.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
     return sessionId
 
 

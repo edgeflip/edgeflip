@@ -44,7 +44,7 @@ def prox(e, eMax):
     return pxTotal / weightTotal                
 
 def getFriendRanking(userId, edges, requireIncoming=True, requireOutgoing=True):
-    logging.info("ranking %d edges", len(edges))
+    logger.info("ranking %d edges", len(edges))
     edgesMax = datastructs.EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
     # score each one and store it on the edge
     for e in edges:
@@ -121,7 +121,7 @@ if (__name__ == '__main__'):
         database.updateUserDb(curs, user, tok, None)
         edges = facebook.getFriendEdgesFb(userId, tok, requireIncoming=True, requireOutgoing=REQUIRE_OUTGOING)
         newCount = database.updateFriendEdgesDb(userId, tok, edges)
-        logging.debug("inserted %d new edges\n" % newCount)
+        logger.debug("inserted %d new edges\n" % newCount)
         conn.close()
 
     for friend in getFriendRankingDb(None, userId, REQUIRE_OUTGOING):
