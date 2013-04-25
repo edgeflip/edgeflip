@@ -3,3 +3,4 @@ libmysqlclient-dev
 build-essential
 virtualenvwrapper
 graphviz
+mysql-server
