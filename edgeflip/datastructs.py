@@ -68,7 +68,7 @@ class UserInfo(object):
                  unidecodeSafe(self.fname),
                  unidecodeSafe(self.lname),
                  self.gender,
-                 unidecodeSafe(self.age),
+                 str(self.age),
                  unidecodeSafe(self.city),
                  unidecodeSafe(self.state) ]
         return " ".join(rets)
