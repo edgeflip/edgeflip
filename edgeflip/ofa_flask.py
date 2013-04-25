@@ -312,7 +312,7 @@ def recordEvent():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'share', 'clickback']):
+    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'shared', 'clickback']):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):
