@@ -4,9 +4,6 @@ import time
 import datetime
 from unidecode import unidecode
 
-
-
-
 class Timer(object):
     def __init__(self):
         self.start = time.time()
@@ -31,6 +28,7 @@ class Timer(object):
         else:
             return hoursStr + ":" + minsStr + ":" + secsStr
     def stderr(self, txt=""):
+        raise NotImplementedError # what is this intended to do? No stderr please!
         sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
 
 def unidecodeSafe(s):

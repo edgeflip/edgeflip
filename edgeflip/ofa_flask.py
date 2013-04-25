@@ -48,7 +48,7 @@ def frame_faces():
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
-    sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
+    logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
     campaign = flask.request.json.get('campaign')

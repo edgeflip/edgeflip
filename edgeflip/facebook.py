@@ -125,13 +125,13 @@ def getFriendsFb(userId, token):
     url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token    
     #logger.debug("url for friends query for %d: %s", userId, url)
     responseJson = getUrlFb(url)
-    #sys.stderr.write("responseJson: " + str(responseJson) + "\n\n")
+    #logger.debug("responseJson: %s", str(responseJson))
 
     lab_recs = {}
     for entry in responseJson['data']:
         label = entry['name']
         records = entry['fql_result_set']
-        #sys.stderr.write(label + ": " + str(records) + "\n\n")
+        #logger.debug("%s: %s", label, str(records))
         lab_recs[label] = records
 
     primPhotoCounts = defaultdict(int)
@@ -249,10 +249,10 @@ class StreamCounts(object):
         self.friendId_wallPostCount = defaultdict(int)
         self.friendId_wallCommCount = defaultdict(int)
         self.friendId_tagCount        = defaultdict(int)
-        #sys.stderr.write("got post likers: %s\n" % (str(postLikers)))
-        #sys.stderr.write("got post commers: %s\n" % (str(postCommers)))
-        #sys.stderr.write("got stat likers: %s\n" % (str(statLikers)))
-        #sys.stderr.write("got stat commers: %s\n" % (str(statCommers)))
+        #logger.debug("got post likers: %s\n", str(postLikers))
+        #logger.debug("got post commers: %s\n", str(postCommers))
+        #logger.debug("got stat likers: %s\n", str(statLikers))
+        #logger.debug("got stat commers: %s\n", str(statCommers))
         self.stream.extend(stream)
         self.addPostLikers(postLikers)
         self.addPostCommers(postCommers)
@@ -476,10 +476,10 @@ class ThreadStreamReader(threading.Thread):
             queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(FQL_WALL_COMMS % (wallPostsRef, wallPostsRef, self.userId))))
             queryJsons.append('"tags":"%s"' % (urllib.quote_plus(FQL_TAGS % (streamRef, self.userId))))
             queryJson = '{' + ','.join(queryJsons) + '}'
-            #sys.stderr.write(queryJson + "\n\n")
+            #logger.debug("%r", queryJson)
 
             url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token    
-            #sys.stderr.write(url + "\n\n") 
+            #logger.debug("%r", url) 
 
             # Can be useful, but sure prints out a lot!
             # logger.debug("url from %s, interval (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)
@@ -518,13 +518,13 @@ class ThreadStreamReader(threading.Thread):
             responseJson = json.load(responseFile)
             responseFile.close()
 
-            #sys.stderr.write("responseJson: " + str(responseJson)[:1000] + "\n\n")
+            #logger.debug("responseJson: %s", str(responseJson)[:1000])
 
             lab_recs = {}
             for entry in responseJson['data']:
                 label = entry['name']
                 records = entry['fql_result_set']
-                #sys.stderr.write(label + ": " + str(records) + "\n\n")
+                #logger.debug("%s: %s", label, str(records))
                 lab_recs[label] = records
             #return lab_recs
             pLikeIds = [ r['user_id'] for r in lab_recs['postLikes'] ]

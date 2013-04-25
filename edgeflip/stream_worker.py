@@ -24,7 +24,7 @@ def readStreamCallback(ch, method, properties, body):
     userId, tok, extra = elts
     userId = int(userId)
     logger.debug("[worker] received %d, %s from queue", userId, tok)
-    sys.stderr.write("received %d, %s from queue\n" % (userId, tok))
+    logger.debug("received %d, %s from queue", userId, tok)
 
     try:
         user = facebook.getUserFb(userId, tok)
@@ -89,7 +89,7 @@ def readStreamCallback(ch, method, properties, body):
 
         newCount += 1
         logger.debug('[worker] edge %s', str(e))
-        sys.stderr.write("\twrote edge %d/%d %d--%d %s\n" % (i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e)))
+        logger.debug("wrote edge %d/%d %d--%d %s", i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e))
 
         # Throttling for Facebook limits
         # If this friend took fewer seconds to crawl than the number of chunks, wait that
@@ -104,7 +104,7 @@ def readStreamCallback(ch, method, properties, body):
     conn.close()
 
     logger.debug("[worker] updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
-    sys.stderr.write("updated %d friend edges for %d (took: %s)\n" % (newCount, userId, tim.elapsedPr()))
+    logger.debug("updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
 
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
@@ -115,7 +115,7 @@ readStreamCallback.messCount = 0
 
 
 def debugCallback(ch, method, properties, body):
-    sys.stderr.write("received %s from queue\n" % (str(body)))
+    logger.debug("received %s from queue", str(body))
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
 
