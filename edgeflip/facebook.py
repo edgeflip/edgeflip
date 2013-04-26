@@ -18,6 +18,7 @@ from .settings import config
 logger = logging.getLogger(__name__)
 
 class STREAMTYPE:
+    """bag of facebook codes"""
     GROUP_CREATED = 11
     EVENT_CREATED = 12
     STATUS_UPDATE = 46
@@ -31,6 +32,11 @@ class STREAMTYPE:
     APP_STORY2 = 272
     CHECKIN = 285
     GROUP_POST = 308
+
+"""stock queries for facebook
+
+these all need to be functions
+"""
 
 FQL_STREAM_CHUNK = " ".join("""SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids FROM stream
                                 WHERE source_id=%s AND %d <= created_time AND created_time < %d LIMIT 5000""".split())
@@ -54,6 +60,7 @@ FQL_USER_INFO   = """SELECT uid, first_name, last_name, sex, birthday_date, curr
 FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 def dateFromFb(dateStr):
+    """i can die"""
     if (dateStr):
         dateElts = dateStr.split('/')
         if (len(dateElts) == 3): 
@@ -62,6 +69,10 @@ def dateFromFb(dateStr):
     return None
 
 def getUrlFb(url):
+    """load JSON blob from facebook. facebook is flakey, this deals with that.
+    
+    timeout should be parameter, etc.
+    """
     try:
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseJson = json.load(responseFile)
@@ -77,6 +88,9 @@ def getUrlFb(url):
     return responseJson
 
 def extendTokenFb(token):
+    """extends lifetime of a user token from FB, which doesn't return JSON
+    """
+
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token
     url += '&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret']
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
@@ -100,6 +114,10 @@ def extendTokenFb(token):
         return None
 
 def getFriendsFb(userId, token):
+    """retrieve basic info on user's FB friends in a single call,
+
+    returns object from datastructs
+    """
     tim = datastructs.Timer()
     logger.debug("getting friends for %d", userId)
 
@@ -170,6 +188,9 @@ def getFriendsFb(userId, token):
 
 
 def getUserFb(userId, token):
+    """gets more info about primary user from FB
+
+    """
     fql = FQL_USER_INFO % (userId)
     url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token    
     responseJson = getUrlFb(url)
@@ -180,7 +201,12 @@ def getUserFb(userId, token):
     return user
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=set()):
+    """retrieves user's FB stream and calcs edges b/w user and her friends.
 
+    XXX skipFriends has horrible bug! 
+
+    makes multiple calls to FB! separate calcs & FB calls
+    """
     logger.debug("getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     friends = getFriendsFb(userId, tok)
@@ -239,6 +265,14 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
 
 class StreamCounts(object):
+    """data structure representing a single facebook user stream
+
+    intermediary data structure
+
+    XXX horrible bug in __init__ arguments!
+
+    we would like this die
+    """
     def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[], wallPosters=[], wallCommeds=[], taggeds=[]):
         self.id = userId
         self.stream = []
@@ -279,6 +313,7 @@ class StreamCounts(object):
             self.friendId_tagCount[fId] += cnt
         return self        
     def __add__(self, other):
+        """XXX wrong Exception"""
         if (self.id != other.id):
             raise Exception("cannot add stream counts for different users (%d, %d)" % (self.id, other.id))
         sc = StreamCounts(self.id)
@@ -348,6 +383,9 @@ class StreamCounts(object):
         fIds.update(self.friendId_tagCount.keys())
         return fIds        
     def getFriendRanking(self):
+        """preliminary ranking used to decide which friends to crawl
+
+        """
         fIds = self.getFriendIds()
         friendId_total = defaultdict(int)
         for fId in fIds:
@@ -361,6 +399,10 @@ class StreamCounts(object):
         return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
     
 class ReadStreamCounts(StreamCounts):
+    """does work of reading a single user's stream
+
+    i need to be refactored
+    """
     def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60, loopTimeout=10, loopSleep=0.1):
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
         tim = datastructs.Timer()
@@ -438,6 +480,9 @@ class ReadStreamCounts(StreamCounts):
 #import gc
 
 class ThreadStreamReader(threading.Thread):
+    """implements work of ReadStreamCounts
+
+    """
     def __init__(self, userId, token, queue, results, lifespan):
         threading.Thread.__init__(self)
         self.userId = userId
@@ -550,6 +595,7 @@ class ThreadStreamReader(threading.Thread):
         logger.debug("thread %s finishing with %d/%d good (took %s)", self.name, goodCount, (goodCount + errCount), timThread.elapsedPr())
 
 class BadChunksError(Exception):
+    """facebook returned garbage"""
     def __init__(self, msg):
         self.msg = msg
     def __str__(self):

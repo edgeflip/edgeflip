@@ -5,6 +5,9 @@ import datetime
 from unidecode import unidecode
 
 class Timer(object):
+    """used for inline profiling & debugging
+
+    """
     def __init__(self):
         self.start = time.time()
     def reset(self):
