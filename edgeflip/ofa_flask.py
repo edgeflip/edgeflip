@@ -1,4 +1,8 @@
 #!/usr/bin/python
+"""closer to end user facing webapp
+
+"""
+
 import sys
 import time
 import datetime
@@ -27,27 +31,32 @@ state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihi
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa")
 def ofa_auth():
+    """demo"""
     return flask.render_template('ofa_share_wrapper.html')
 
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa_share")
 def ofa_share():
+    """demo"""
     return flask.render_template('ofa_faces_wrapper.html')
 
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
 def button_man():
+    """serves the button in iframe on client site"""
     return flask.render_template('cicci.html', fbParams=fbParams, goto=config['ofa_button_redirect'])
 
 # Serves the actual faces & share message
 @app.route("/frame_faces")
 def frame_faces():
+    """html container (iframe) for client site """
     return flask.render_template('ofa_frame_faces.html', fbParams=fbParams)
 
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
+    """return list of faces - HTML snippet"""
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
@@ -63,6 +72,7 @@ def ofa_faces():
     #zzz Will want to do this with the rank demo when we switch away from Shari!
     tok = facebook.extendTokenFb(tok) or tok
 
+    """next 60 lines or so get pulled out"""
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
@@ -90,6 +100,7 @@ def ofa_faces():
 
         senInfo = state_senInfo[bestState]
 
+        """these messages move into database"""
         msgParams = {
         'msg1_pre' : "Hi there ",
         'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
@@ -126,6 +137,7 @@ def ofa_faces():
 
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+    """move to filtering module"""
     edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
     elgCount = int(len(edgesRanked) * eligibleProportion)
     edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
@@ -159,6 +171,7 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
         return None
 
 def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+    """move to filtering module"""
     str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
     edgesGood = edges[:]
     for attrName, compTag, attrVal in filterTups:
@@ -171,6 +184,10 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
 
 @app.route("/ofa_climate/<state>")
 def ofa_climate(state):
+    """endpoint linked to on facebook.com
+
+    redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
+    """
     #state = state.strip().upper()
     senInfo = state_senInfo.get(state)
     if (not senInfo):
@@ -196,6 +213,7 @@ def ofa_climate(state):
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa_landing/<state>")
 def ofa_landing(state):
+    """lives on client site - where ofa_climate redirects to"""
     senInfo = state_senInfo.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
@@ -209,6 +227,7 @@ def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
 
 @app.route("/campaign_save", methods=['POST', 'GET'])
 def saveCampaign():
+    """control panel functionality"""
     campFileName = int(flask.request.json['campFileName'])
     campName = flask.request.json['campName']
     configTups = flask.request.json['configTups']
@@ -221,6 +240,9 @@ def saveCampaign():
 
 @app.route('/suppress', methods=['POST'])
 def suppress():
+    """called when user declines a friend. returns a new friend (HTML snippet)
+
+    """
     userid = flask.request.json['userid']
     appid = flask.request.json['appid']
     content = flask.request.json['content']
@@ -244,6 +266,7 @@ def suppress():
         return ajaxResponse('', 200, sessionId)
 
 
+"""this can all die"""
 # @app.route('/clickback', methods=['POST'])
 # def clickback():
 #     actionid = flask.request.json['actionid']
@@ -301,6 +324,10 @@ def suppress():
 
 @app.route('/record_event', methods=['POST'])
 def recordEvent():
+    """endpoint that stores client events (clicks, etc.) for analytics
+
+    used on events that don't generate any useful data themselves
+    """
     userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
@@ -321,7 +348,7 @@ def recordEvent():
     database.writeEventsDb(sessionId, ip, userId, friends, eventType, appId, content, actionId, background=True)
     return ajaxResponse('', 200, sessionId)
 
-
+"""move to a web utils module"""
 def ajaxResponse(content, code, sessionId):
     resp = flask.make_response(content, code)
     resp.headers['X-EF-SessionID'] = sessionId
@@ -334,6 +361,11 @@ def getIP(req):
        return req.headers.getlist("X-Forwarded-For")[0]
 
 def generateSessionId(ip, content, timestr=None):
+    """replace me with browser session cookie w/ short expiry,
+    ttl resets on each interaction
+
+    Add a permanent cookie too.
+    """
     if (not timestr):
         timestr = '%.10f' % time.time()
     # Is MD5 the right strategy here?
@@ -345,7 +377,11 @@ def generateSessionId(ip, content, timestr=None):
 @app.route("/health_check")
 @app.route("/hes_a_good_man_and_thorough")
 def say_ahhh():
+    """ break up into newrelic, internal monitoring
 
+    need aliveness check for ELB.
+
+    """
     iselb = flask.request.args.get('elb', '').lower()
     if (iselb == 'true'): return "It's Alive!", 200
 
@@ -375,7 +411,9 @@ def say_ahhh():
 # (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)
 @app.route("/face_test", methods=['GET','POST'])
 def face_test():
+    """webserver (flask + apache) benchmark method. fakes facebook, can probably die.
 
+    """
     maxTime = int(flask.request.args.get('maxtime', 7))
 
     # Simulate taking to facebook with a 0-7 second sleep
