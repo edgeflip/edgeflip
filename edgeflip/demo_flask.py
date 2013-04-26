@@ -1,4 +1,8 @@
 #!/usr/bin/python
+"""bastard child we pretend doesn't exist
+
+"""
+
 import flask
 #import ReadStream
 
@@ -44,6 +48,13 @@ def home():
 
 @app.route('/rank')
 def rank_demo():
+"""move to ofa_flask & fix
+for demonstration of algo internals to clients
+not user facing
+
+base page - returns HTML container.
+
+"""
     default_users = {
                         'shari': { 'fbid': 1509232539, 'tok': 'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD'},
                         'rayid': { 'fbid': 500876410, 'tok': 'AAAGtCIn5MuwBAEaZBhZBr1yK6QfUfhgTZBMKzUt9mkapze1pzXYFZAkvBssMoMar0kQ0WTR6psczIkTiU2KUUdduES8tZCrZBfwFlVh3k71gZDZD'},
@@ -58,6 +69,14 @@ def rank_demo():
 
 @app.route('/rank_faces', methods=['POST'])
 def rank_faces():
+"""move to ofa_flask & fix
+for demonstration of algo internals to clients
+not user facing
+
+AJAX endpoint for two columns of results in rank_demo; returns HTML fragment
+
+"""
+
     import time
     
     fbid = int(flask.request.json['fbid'])
@@ -92,7 +111,10 @@ def rank_faces():
 
 
 ############################ CONTROL PANEL #############################
+"""
+this all needs to get rewritten
 
+"""
 
 
 
@@ -177,6 +199,12 @@ def filter_friends(friends):
 
 
 ############################ UTILS #############################
+"""utility code - this should all move to scripts
+
+want big red buttons for control
+
+"""
+
 
 @app.route('/utils')
 def utils():
