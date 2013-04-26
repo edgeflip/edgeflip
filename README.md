@@ -22,6 +22,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 Local Database
 --------------
 To set up a local mysql database:
+
 1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
 2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
 
