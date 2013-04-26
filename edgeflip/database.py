@@ -7,7 +7,7 @@ import threading
 import MySQLdb as mysql
 
 from . import datastructs
-from . import database_rds as db # modify this to swtch db implementations
+# from . import database_rds as db # modify this to swtch db implementations
 from . import config as conf
 
 config = conf.getConfig(includeDefaults=True)
@@ -18,17 +18,6 @@ config = conf.getConfig(includeDefaults=True)
 def getConn():
     #return db.getConn()
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
-
-
-
-def dateFromIso(dateStr):
-    if (dateStr):
-        dateElts = dateStr.split('-')
-        if (len(dateElts) == 3):
-            y, m, d = dateElts
-            return datetime.date(int(y), int(m), int(d))
-    return None
-
 
 
 class Table(object):
@@ -73,7 +62,6 @@ class Table(object):
     def sqlDrop(self):
         return "DROP TABLE IF EXISTS " + self.name
 
-
 TABLES = dict()
 
 TABLES['users'] =     Table(name='users',
@@ -102,18 +90,21 @@ TABLES['tokens'] =    Table(name='tokens',
 
 TABLES['edges'] =     Table(name='edges',
                             cols=[
-                                ('prim_id', 'BIGINT'),
-                                ('sec_id', 'BIGINT'),
+                                ('fbid_source', 'BIGINT'),
+                                ('fbid_target', 'BIGINT'),
                                 ('post_likes', 'INTEGER'),
                                 ('post_comms', 'INTEGER'),
                                 ('stat_likes', 'INTEGER'),
                                 ('stat_comms', 'INTEGER'),
                                 ('wall_posts', 'INTEGER'),
                                 ('wall_comms', 'INTEGER'),
+                                ('tags', 'INTEGER')
+                                ('photos_target', 'INTEGER'),
+                                ('photos_other', 'INTEGER'),
                                 ('mut_friends', 'INTEGER'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            key=['prim_id', 'sec_id'])
+                            key=['fbid', 'secid'])
 
 TABLES['events'] =    Table(name='events',
                             cols=[
@@ -182,9 +173,6 @@ def dbMigrate():
     """
     curs.execute(sql)
 
-
-
-
     return
 
 
@@ -205,17 +193,20 @@ def getUserTokenDb(connP, userId, appId):
     curs.execute(sql, params)
     rec = curs.fetchone()
     if (rec is None):
-        return None
+        ret = None
     else:
         expDate = datetime.utcfromtimestamp(rec[2])
-        return datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
+        ret = datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
+    if (connP is None):
+        conn.close()
+    return ret
 
 
-def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100 years!
+def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     conn = connP if (connP is not None) else getConn()
 
-    freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
-    logging.debug("getting user %s, freshness date is %s" % (userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S")))
+    freshnessDate = datetime.date.today() - datetime.timedelta(days=freshnessDays)
+    logging.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
     #logging.debug(sql)
     curs = conn.cursor()
@@ -224,28 +215,22 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
     if (rec is None):
         ret = None
     else:
-        #logging.debug(str(rec))
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        #updateDate = datetime.date.fromtimestamp(updated)
         logging.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
-        if (updated <= freshness_date):
+        if (updated <= freshnessDate):
             ret = None
         else:
             if (freshnessIncludeEdge):
-                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
+                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%s OR sec_id=%s", (userId, userId))
                 rec = curs.fetchone()
-                #logging.debug("got rec: %s" % str(rec))
                 updatedEdge = rec[0]
-                if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
+                if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshnessDate):
                     ret = None
                 else:
-                    #ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
                     ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
             else:
-                #ret = datastructs.UserInfo(fbid, fname, lname, gender, dateFromIso(birthday), city, state)
                 ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-                #zzz todo: clean this up
     if (connP is None):
         conn.close()
     return ret
@@ -253,34 +238,74 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
 
 def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
     conn = connP if (connP is not None) else getConn()
-    curs = conn.cursor()
-    sql = """
-            SELECT prim_id, sec_id,
-                    in_post_likes, in_post_comms, in_stat_likes, in_stat_comms,
-                    out_post_likes, out_post_comms, out_stat_likes, out_stat_comms, 
-                    mut_friends, updated
-            FROM edges
-            WHERE prim_id=%s AND updated>%s
-    """ % (primId, newerThan)
-    if (requireOutgoing):
-        sql += """
-            AND out_post_likes IS NOT NULL 
-            AND out_post_comms IS NOT NULL 
-            AND out_stat_likes IS NOT NULL
-            AND out_stat_comms IS NOT NULL
-        """
-    curs.execute(sql)
-    eds = []
+
+    edges = []  # list of edges to be returned
     primary = getUserDb(conn, primId)
-    for pId, sId, inPstLk, inPstCm, inStLk, inStCm, outPstLk, outPstCm, outStLk, outStCm, muts, updated in curs:
-        secondary = getUserDb(conn, sId)
-        # For now, hard code Nones into Edge constructor until we integrate the new features into the DB
-        eds.append(datastructs.EdgeFromCounts(primary, secondary, inPstLk, inPstCm, inStLk, inStCm,
-                                              None, None, None, outPstLk, outPstCm, outStLk, outStCm, None, None, None,
-                                              None, None, muts))
+
+    curs = conn.cursor()
+    sqlSelect = """
+            SELECT fbid_source, fbid_target,
+                    post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
+                    tags, photos_target, photos_other, mut_friends, updated
+            FROM edges
+            WHERE updated>%s
+    """
+
+    sql = sqlSelect + " AND fbid_target=%s"
+    params = (newerThan, primId)
+    secId_edgeCountsIn = {}
+    curs.execute(sql, params)
+    for rec in curs: # here, the secondary is the source, primary is the target
+        secId, primId, iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated = rec
+        edgeCountsIn = datastructs.EdgeCounts(secId, primId,
+                                              iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
+                                              iTags, iPhOwn, iPhOth, iMuts)
+        secId_edgeCountsIn[secId] = edgeCountsIn
+
+    if (not requireOutgoing):
+        # for pId, sId, inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm, inTags, photPrim, photOth, muts, updated in curs:
+        #     secondary = getUserDb(conn, sId)
+        #
+        #     # edges.append(datastructs.EdgeFromCounts1(primary, secondary,
+        #     #                                          inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm, inTags,
+        #     #                                          photPrim, photOth, muts))
+        #
+        #     edgeCountsIn = datastructs.EdgeCounts(secondary, primary,
+        #                                           inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm,
+        #                                           inTags, photPrim, photOth)
+        #
+        #     edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None, muts))
+        for secId, edgeCountsIn in secId_edgeCountsIn.items():
+            secondary = getUserDb(conn, secId)
+            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
+
+    else:
+        # sId_rec1 = dict([ (rec[1], rec) for rec in curs ])  # index should match secId in query above
+        sql = sqlSelect + " AND fbid_source=%s"
+        params = (newerThan, primId)
+        curs.execute(sql, params)
+        for rec in curs: # here, primary is the source, secondary is target
+            primId, secId, oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated = rec
+            edgeCountsOut = datastructs.EdgeCounts(primId, secId,
+                                                   oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
+                                                   oTags, oPhOwn, oPhOth, oMuts)
+            edgeCountsIn = secId_edgeCountsIn[secId]
+            secondary = getUserDb(conn, secId)
+
+            #rec1 = sId_rec1[sId]
+            #pId, sId, iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags, iPhPrim, iPhOth, iMuts, iUpdated = rec1
+
+            # e = datastructs.EdgeFromCounts2(primary, secondary,
+            #                                 iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags,
+            #                                 oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm, oTags,
+            #                                 max(iPhPrim, oPhPrim), max(iPhOth, oPhOth), max(iMuts, oMuts), None)
+            # edges.append(e)
+
+            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+
     if (connP is None):
         conn.close()
-    return eds
+    return edges
 
 # helper function that may get run in a background thread
 def _updateDb(user, token, edges):
@@ -310,30 +335,52 @@ def updateDb(user, token, edges, background=False):
         logging.debug("updateDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
         return _updateDb(user, token, edges)
 
-# will not overwrite full crawl values with partial crawl nulls unless explicitly told to do so
-def updateFriendEdgesDb(curs, edges, overwriteOutgoing=False):
-    incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
-    outgoing = ['out_post_likes', 'out_post_comms', 'out_stat_likes', 'out_stat_comms']
+def updateFriendEdgesDb(curs, edges):
+    writeCount = 0
+    for e in edges:
+        for counts in [e.countsIn, e.countsOut]:
+            if (counts is not None):
+                col_val = {
+                    'fbid_source': counts.sourceId,
+                    'fbid_target': counts.targetId,
+                    'post_likes': counts.postLikes,
+                    'post_comms': counts.postComms,
+                    'stat_likes': counts.statLikes,
+                    'stat_comms': counts.statComms,
+                    'wall_posts': counts.wallPosts,
+                    'wall_comms': counts.wallComms,
+                    'tags': counts.tags,
+                    'photos_target': counts.photoTarget,
+                    'photos_other': counts.photoOther,
+                    'mut_friends': counts.mutuals
+                }
+                writeCount += upsert(curs, "edges", col_val)
 
-    coalesceCols = []
-    overwriteCols = incoming + ['mut_friends', 'updated']
-    if (overwriteOutgoing):
-        overwriteCols.extend(outgoing)
-    else:
-        coalesceCols.extend(outgoing)
+    #
+    # incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
+    # outgoing = ['out_post_likes', 'out_post_comms', 'out_stat_likes', 'out_stat_comms']
+    #
+    # coalesceCols = []
+    # overwriteCols = incoming + ['mut_friends', 'updated']
+    # if (overwriteOutgoing):
+    #     overwriteCols.extend(outgoing)
+    # else:
+    #     coalesceCols.extend(outgoing)
+    #
+    # joinCols = ['prim_id', 'sec_id']
+    #
+    # vals = [{
+    #         'prim_id': e.primary.id, 'sec_id': e.secondary.id,
+    #         'in_post_likes': e.inPostLikes, 'in_post_comms': e.inPostComms,
+    #         'in_stat_likes': e.inStatLikes, 'in_stat_comms': e.inStatComms,
+    #         'out_post_likes': e.outPostLikes, 'out_post_comms': e.outPostComms,
+    #         'out_stat_likes': e.outStatLikes, 'out_stat_comms': e.outStatComms,
+    #         'mut_friends': e.mutuals, 'updated': time.time()
+    #         } for e in edges]
+    #
+    # return db.insert_update(curs, 'edges', coalesceCols, overwriteCols, joinCols, vals)
+    return writeCount
 
-    joinCols = ['prim_id', 'sec_id']
-
-    vals = [{
-            'prim_id': e.primary.id, 'sec_id': e.secondary.id,
-            'in_post_likes': e.inPostLikes, 'in_post_comms': e.inPostComms,
-            'in_stat_likes': e.inStatLikes, 'in_stat_comms': e.inStatComms,
-            'out_post_likes': e.outPostLikes, 'out_post_comms': e.outPostComms,
-            'out_stat_likes': e.outStatLikes, 'out_stat_comms': e.outStatComms,
-            'mut_friends': e.mutuals, 'updated': time.time()
-            } for e in edges]
-
-    return db.insert_update(curs, 'edges', coalesceCols, overwriteCols, joinCols, vals)
 
 def updateUsersDb(curs, users):
     # coalesceCols = []

@@ -15,27 +15,30 @@ config = conf.getConfig(includeDefaults=True)
 def prox(e, eMax):
     countMaxWeightTups = [
         # px3
-        (e.mutuals, eMax.mutuals, 1.0),
-        (e.primPhotoTags, eMax.primPhotoTags, 3.0),
-        (e.otherPhotoTags, eMax.otherPhotoTags, 2.0),
+        (e.countsIn.mutuals, eMax.inMutuals, 0.5),
+        (e.countsOut.mutuals, eMax.outMutuals, 0.5),
+        (e.countsIn.photoTarget, eMax.inPhotoTarget, 2.0),
+        (e.countsIn.photoOther, eMax.inPhotoOther, 1.0),
+        (e.countsOut.photoTarget, eMax.outPhotoTarget, 1.0),
+        (e.countsOut.photoOther, eMax.outPhotoOther, 1.0),
 
         # px4
-        (e.inPostLikes, eMax.inPostLikes, 1.0),
-        (e.inPostComms, eMax.inPostComms, 1.0),
-        (e.inStatLikes, eMax.inStatLikes, 2.0),
-        (e.inStatComms, eMax.inStatComms, 1.0),
-        (e.inWallPosts, eMax.inWallPosts, 1.0),        # guessed weight
-        (e.inWallComms, eMax.inWallComms, 1.0),        # guessed weight
-        (e.inTags, eMax.inTags, 1.0),
+        (e.countsIn.postLikes, eMax.inPostLikes, 1.0),
+        (e.countsIn.postComms, eMax.inPostComms, 1.0),
+        (e.countsIn.statLikes, eMax.inStatLikes, 2.0),
+        (e.countsIn.statComms, eMax.inStatComms, 1.0),
+        (e.countsIn.wallPosts, eMax.inWallPosts, 1.0),        # guessed weight
+        (e.countsIn.wallComms, eMax.inWallComms, 1.0),        # guessed weight
+        (e.countsIn.tags, eMax.inTags, 1.0),
 
         # px5
-        (e.outPostLikes, eMax.outPostLikes, 2.0),
-        (e.outPostComms, eMax.outPostComms, 3.0),
-        (e.outStatLikes, eMax.outStatLikes, 2.0),
-        (e.outStatComms, eMax.outStatComms, 16.0),
-        (e.outWallPosts, eMax.outWallPosts, 2.0),    # guessed weight
-        (e.outWallComms, eMax.outWallComms, 3.0),    # guessed weight
-        (e.outTags, eMax.outTags, 1.0),
+        (e.countsOut.postLikes, eMax.outPostLikes, 2.0),
+        (e.countsOut.postComms, eMax.outPostComms, 3.0),
+        (e.countsOut.statLikes, eMax.outStatLikes, 2.0),
+        (e.countsOut.statComms, eMax.outStatComms, 16.0),
+        (e.countsOut.wallPosts, eMax.outWallPosts, 2.0),    # guessed weight
+        (e.countsOut.wallComms, eMax.outWallComms, 3.0),    # guessed weight
+        (e.countsOut.tags, eMax.outTags, 1.0),
     ]
     pxTotal = 0.0
     weightTotal = 0.0
