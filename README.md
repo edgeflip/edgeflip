@@ -19,6 +19,12 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 10. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
  
+Local Database
+--------------
+To set up a local mysql database:
+1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
+2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
+
 
 Configuring Apache
 ------------------
