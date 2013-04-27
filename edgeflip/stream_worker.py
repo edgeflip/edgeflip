@@ -1,4 +1,7 @@
 #!/usr/bin/python
+"""rabbitMQ queue consumer
+
+"""
 import os
 import sys
 import argparse
@@ -17,6 +20,9 @@ from .settings import config
 logger = logging.getLogger(__name__)
 
 def readStreamCallback(ch, method, properties, body):
+    """out of band FB crawl, store results in DB
+
+    """
     logger.debug("[worker] got raw message %d '%s' from queue", readStreamCallback.messCount, body)
     readStreamCallback.messCount += 1
     elts = json.loads(body)

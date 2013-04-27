@@ -1,4 +1,7 @@
 #!/usr/bin/python
+"""utilties around rabbitMQ
+
+"""
 import sys
 import pika
 import argparse
