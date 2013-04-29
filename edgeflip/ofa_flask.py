@@ -295,9 +295,9 @@ def ajaxResponse(content, code, sessionId):
 
 def getIP(req):
     if not req.headers.getlist("X-Forwarded-For"):
-       return req.remote_addr
+        return req.remote_addr
     else:
-       return req.headers.getlist("X-Forwarded-For")[0]
+        return req.headers.getlist("X-Forwarded-For")[0]
 
 def generateSessionId(ip, content, timestr=None):
     """replace me with browser session cookie w/ short expiry,
