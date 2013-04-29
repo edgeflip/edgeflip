@@ -1,5 +1,5 @@
 #!/usr/bin/python
-"""closer to end user facing webapp
+"""closer to what end user facing webapp should look like
 
 """
 
