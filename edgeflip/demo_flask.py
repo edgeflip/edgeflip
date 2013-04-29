@@ -4,7 +4,7 @@
 """
 
 import flask
-#import ReadStream
+
 
 from . import database
 from . import facebook
@@ -19,9 +19,6 @@ import logging
 import os
 
 from .settings import config 
-
-# for testing endpoint -- could be removed for production-only code
-import random
 
 from . import datastructs
 

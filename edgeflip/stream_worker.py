@@ -26,7 +26,7 @@ def readStreamCallback(ch, method, properties, body):
     logger.debug("[worker] got raw message %d '%s' from queue", readStreamCallback.messCount, body)
     readStreamCallback.messCount += 1
     elts = json.loads(body)
-    #logger.debug("got message elts %s from queue", str(elts))
+
     userId, tok, extra = elts
     userId = int(userId)
     logger.debug("[worker] received %d, %s from queue", userId, tok)
@@ -148,7 +148,7 @@ if (__name__ == '__main__'):
     overwriteThresh = args.overwrite
 
     #zzz
-    #callbackFunc = debugCallback
+
     callbackFunc = readStreamCallback
 
     pid = os.getpid()

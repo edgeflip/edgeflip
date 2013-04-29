@@ -77,7 +77,7 @@ def ofa_faces():
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
-#    if (False): # Disable DB entirely for now because it's faster to crawl px3...
+
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
@@ -126,10 +126,10 @@ def ofa_faces():
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
     else:
-        #zzz need to figure out what we do here
-        #return flask.render_template('ofa_faces_table_generic.html')
-        #database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
-        #      actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
+
+
+
+
         content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
@@ -188,7 +188,7 @@ def ofa_climate(state):
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
-    #state = state.strip().upper()
+
     senInfo = state_senInfo.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
@@ -264,63 +264,6 @@ def suppress():
         return ajaxResponse(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200, sessionId)
     else:
         return ajaxResponse('', 200, sessionId)
-
-
-"""this can all die"""
-# @app.route('/clickback', methods=['POST'])
-# def clickback():
-#     actionid = flask.request.json['actionid']
-#     appid = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
-
-# @app.route('/share', methods=['POST'])
-# def recordShare():
-#     userid = flask.request.json['userid']
-#     actionid = flask.request.json['actionid']
-#     appid = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     friends = [ int(f) for f in flask.request.json['friends'] ]
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
-
-# @app.route('/button_event', methods=['POST'])
-# def buttonEvent():
-#     userId = flask.request.json['userid']
-#     userId = userId or None
-#     appId = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     eventType = flask.request.json['eventType']
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
-#         return "Ah, ah, ah. You didn't say the magic word.", 403
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
 
 @app.route('/record_event', methods=['POST'])
 def recordEvent():
@@ -439,11 +382,6 @@ def face_test():
             )
 
         )
-    #    friendDicts =     [
-    #                        {'id': 123456789, 'fname': 'Bob', 'lname': 'Newhart', 'name': 'Bob Newhart',
-    #                         'gender': 'male', 'age': 63, 'city': 'Chicago', 'state': 'Illinois', 'score': 0.43984,
-    #                         'desc': '0 0 0 0 0 0 0 0 0 0'}
-    #                    ]*100
 
 
     # Actually rank these edges and generate friend dictionaries from them

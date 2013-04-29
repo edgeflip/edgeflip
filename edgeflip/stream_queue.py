@@ -76,8 +76,8 @@ if (__name__ == '__main__'):
         resetQueue(args.queueName)
     if (args.load):
         loadQueueFile(args.queueName, args.load)    
-        #with open(args.load, 'r') as infile:
-        #    loadQueue(args.queueName, infile, lambda line: json.loads(line.rstrip("\n")))
+
+
 
     sys.stderr.write("queue has %d elements\n" % getQueueSize(args.queueName))
 

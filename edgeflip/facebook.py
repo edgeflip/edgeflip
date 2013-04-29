@@ -98,8 +98,6 @@ def extendTokenFb(token):
     try:
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
-            # newToken = responseStr.split('=')[1].split('&')[0]
-            # expiresIn = responseStr.split('=')[2]
             newToken = responseDict['access_token'][0]
             expiresIn = responseDict['expires'][0]
             logger.debug("Extended access token %s expires in %s seconds.", newToken, expiresIn)
@@ -141,15 +139,15 @@ def getFriendsFb(userId, token):
 
     queryJson = '{' + ','.join(queryJsons) + '}'
     url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token    
-    #logger.debug("url for friends query for %d: %s", userId, url)
+
     responseJson = getUrlFb(url)
-    #logger.debug("responseJson: %s", str(responseJson))
+
 
     lab_recs = {}
     for entry in responseJson['data']:
         label = entry['name']
         records = entry['fql_result_set']
-        #logger.debug("%s: %s", label, str(records))
+
         lab_recs[label] = records
 
     primPhotoCounts = defaultdict(int)
@@ -163,8 +161,7 @@ def getFriendsFb(userId, token):
         if (rec['subject']):
             otherPhotoCounts[int(rec['subject'])] += 1
 
-    #logger.debug("Primary photo counts for %d: %s", userId, str(primPhotoCounts))
-    #logger.debug("Other photo counts for %d: %s", userId, str(otherPhotoCounts))
+
 
     friends = []
     for rec in lab_recs['friendInfo']:
@@ -291,10 +288,10 @@ class StreamCounts(object):
         self.friendId_wallPostCount = defaultdict(int)
         self.friendId_wallCommCount = defaultdict(int)
         self.friendId_tagCount        = defaultdict(int)
-        #logger.debug("got post likers: %s\n", str(postLikers))
-        #logger.debug("got post commers: %s\n", str(postCommers))
-        #logger.debug("got stat likers: %s\n", str(statLikers))
-        #logger.debug("got stat commers: %s\n", str(statCommers))
+
+
+
+
         self.stream.extend(stream)
         self.addPostLikers(postLikers)
         self.addPostCommers(postCommers)
@@ -337,10 +334,10 @@ class StreamCounts(object):
         ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
         ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
         ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
-        #ret += "\n"
-        #ret += "stream %s\n" % (id(self.stream))
-        #for i in range(min(5, len(self.stream))):
-            #ret += "\t" + str(self.stream[i]) + "\n"
+
+
+
+
         return ret            
             
     def addPostLikers(self, friendIds):
@@ -467,10 +464,10 @@ class ReadStreamCounts(StreamCounts):
             logger.debug("now have %d threads", tc)
 
         logger.debug("%d threads still alive after loop", len(threads))
-        #for t in threads:
-        #    t.kill_received = True        
-        #tc = len([ t for t in threads if t.isAlive() ])
-        #logger.debug("now have %d threads", tc)
+
+
+
+
     
         logger.debug("%d chunk results for user %s", len(scChunks), userId)
 
@@ -484,8 +481,7 @@ class ReadStreamCounts(StreamCounts):
             self.__iadd__(scChunk)
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr())
 
-#zzz
-#import gc
+
 
 class ThreadStreamReader(threading.Thread):
     """implements work of ReadStreamCounts
@@ -529,33 +525,31 @@ class ThreadStreamReader(threading.Thread):
             queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(FQL_WALL_COMMS % (wallPostsRef, wallPostsRef, self.userId))))
             queryJsons.append('"tags":"%s"' % (urllib.quote_plus(FQL_TAGS % (streamRef, self.userId))))
             queryJson = '{' + ','.join(queryJsons) + '}'
-            #logger.debug("%r", queryJson)
+
 
             url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token    
-            #logger.debug("%r", url) 
 
-            # Can be useful, but sure prints out a lot!
-            # logger.debug("url from %s, interval (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), url)
 
-            #try:
-            #    req = urllib2.Request(url)
-            #    with closing(urllib2.urlopen(req, timeout=60)) as responseFile:
-            #        responseJson = json.load(responseFile)
-            #except Exception as e:
-            #    logger.error("error reading stream chunk for user %s (%s - %s): %s\n", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
-            #    self.queue.task_done()
-            #    self.queue.put((ts1, ts2))
-            #    continue
+
+
+
+
+
+
+
+
+
+
 
             req = urllib2.Request(url)
             try:
                 responseFile = urllib2.urlopen(req, timeout=60)
             except Exception as e:
                 logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
-                #try:
-                #    responseFile.fp._sock.recv = None
-                #except: # in case it's not applicable, ignore this.
-                #    pass
+
+
+
+
                 try:
                     # If we actually got an error back from a server, should be able to read the message here
                     logger.error("returned error was: %s", e.read())
@@ -571,15 +565,14 @@ class ThreadStreamReader(threading.Thread):
             responseJson = json.load(responseFile)
             responseFile.close()
 
-            #logger.debug("responseJson: %s", str(responseJson)[:1000])
 
             lab_recs = {}
             for entry in responseJson['data']:
                 label = entry['name']
                 records = entry['fql_result_set']
-                #logger.debug("%s: %s", label, str(records))
+
                 lab_recs[label] = records
-            #return lab_recs
+
             pLikeIds = [ r['user_id'] for r in lab_recs['postLikes'] ]
             pCommIds = [ r['fromid'] for r in lab_recs['postComms'] ]
             sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]

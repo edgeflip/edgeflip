@@ -29,14 +29,14 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
     freshness_date = datetime.date.today() - datetime.timedelta(days=freshness)
     logger.debug("getting user %s, freshness date is %s", userId, freshness_date.strftime("%Y-%m-%d %H:%M:%S"))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated FROM users WHERE fbid=%s""" % userId
-    #logger.debug(sql)
+
     curs = conn.cursor()
     curs.execute(sql)
     rec = curs.fetchone()
     if (rec is None):
         ret = None
     else:
-        #logger.debug(str(rec))
+
         fbid, fname, lname, gender, birthday, city, state, token, friend_token, updated = rec
         updateDate = datetime.date.fromtimestamp(updated)
         logger.debug("getting user %s, update date is %s", userId, updateDate.strftime("%Y-%m-%d %H:%M:%S"))
@@ -47,7 +47,7 @@ def getUserDb(connP, userId, freshness=36525, freshnessIncludeEdge=False): # 100
             if (freshnessIncludeEdge):
                 curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%d" % userId)
                 rec = curs.fetchone()
-                #logger.debug("got rec: %s", str(rec))
+
                 updatedEdge = rec[0]
                 if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshness_date):
                     ret = None

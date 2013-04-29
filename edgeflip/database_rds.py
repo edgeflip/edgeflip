@@ -3,7 +3,7 @@ import sys
 import MySQLdb as mysql
 
 from .settings import config 
-# import logging
+
 
 
 TABLE_COLS = {
