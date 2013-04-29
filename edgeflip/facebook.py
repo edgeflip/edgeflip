@@ -200,13 +200,13 @@ def getUserFb(userId, token):
     user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
     return user
 
-def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=set()):
+def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):
     """retrieves user's FB stream and calcs edges b/w user and her friends.
-
-    XXX skipFriends has horrible bug! 
 
     makes multiple calls to FB! separate calcs & FB calls
     """
+    skipFriends = skipFriends if skipFriends is not None else set()
+    
     logger.debug("getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     friends = getFriendsFb(userId, tok)
@@ -269,11 +269,19 @@ class StreamCounts(object):
 
     intermediary data structure
 
-    XXX horrible bug in __init__ arguments!
-
     we would like this die
     """
-    def __init__(self, userId, stream=[], postLikers=[], postCommers=[], statLikers=[], statCommers=[], wallPosters=[], wallCommeds=[], taggeds=[]):
+    def __init__(self, userId, stream=None, postLikers=None, postCommers=None, statLikers=None, statCommers=None, wallPosters=None, wallCommeds=None, taggeds=None):
+
+        stream = stream if stream is not None else []
+        postLikers = postLikers if postLikers is not None else []
+        postCommers = postCommers if postCommers is not None else []
+        statLikers = statLikers if statLikers is not None else []
+        statCommers = statCommers if statCommers is not None else []
+        wallPosters = wallPosters if wallPosters is not None else []
+        wallCommeds = wallCommeds if wallCommeds is not None else []
+        taggeds = taggeds if taggeds is not None else []
+
         self.id = userId
         self.stream = []
         self.friendId_postLikeCount = defaultdict(int)
