@@ -124,10 +124,6 @@ def debugCallback(ch, method, properties, body):
     logger.debug("received %s from queue", str(body))
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
-
-
-
-
 #####################################################
 
 if (__name__ == '__main__'):

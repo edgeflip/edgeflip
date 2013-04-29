@@ -54,8 +54,6 @@ def getQueueSize(queueName):
     return count
 
 
-
-
 ##############################################
 
 if (__name__ == '__main__'):
@@ -76,8 +74,6 @@ if (__name__ == '__main__'):
         resetQueue(args.queueName)
     if (args.load):
         loadQueueFile(args.queueName, args.load)    
-
-
 
     sys.stderr.write("queue has %d elements\n" % getQueueSize(args.queueName))
 

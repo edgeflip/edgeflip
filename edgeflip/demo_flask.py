@@ -27,21 +27,13 @@ import datetime
 
 app = flask.Flask(__name__)
 
-
-
 @app.route("/", methods=['POST', 'GET'])
 def home():
     return flask.render_template('index.html')
 
-
-
 @app.route('/all_the_dude_ever_wanted')
 @app.route('/demo')
 @app.route('/button')
-
-
-
-
 
 @app.route('/rank')
 def rank_demo():
@@ -104,23 +96,11 @@ def rank_faces():
     return ret
     
 
-
-
 ############################ CONTROL PANEL #############################
 """
 this all needs to get rewritten
 
 """
-
-
-
-
-
-
-
-
-
-
 
 # XXX Fix local .json file
 @app.route("/cp", methods=['POST', 'GET'])
@@ -145,8 +125,6 @@ def targets():
     except:
         raise
         return "Ruh-roh! Something went wrong..."
-
-
 
 
 def filter_friends(friends):
@@ -188,12 +166,6 @@ def filter_friends(friends):
     filtered_friends = [f for f in friends if ( age_match(f) and gender_match(f) and location_match(f) )]
     return filtered_friends
 
-
-
-
-
-
-
 ############################ UTILS #############################
 """utility code - this should all move to scripts
 
@@ -233,8 +205,6 @@ def queueLoad():
 def reset():
     database.db.dbSetup()
     return "database has been reset"
-
-
 
 ###########################################################################
 

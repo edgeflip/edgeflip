@@ -161,8 +161,6 @@ def getFriendsFb(userId, token):
         if (rec['subject']):
             otherPhotoCounts[int(rec['subject'])] += 1
 
-
-
     friends = []
     for rec in lab_recs['friendInfo']:
         friendId = rec['uid']
@@ -178,10 +176,6 @@ def getFriendsFb(userId, token):
         friends.append(f)
     logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
     return friends
-
-
-
-
 
 
 def getUserFb(userId, token):
@@ -289,9 +283,6 @@ class StreamCounts(object):
         self.friendId_wallCommCount = defaultdict(int)
         self.friendId_tagCount        = defaultdict(int)
 
-
-
-
         self.stream.extend(stream)
         self.addPostLikers(postLikers)
         self.addPostCommers(postCommers)
@@ -334,8 +325,6 @@ class StreamCounts(object):
         ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
         ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
         ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
-
-
 
 
         return ret            
@@ -464,11 +453,6 @@ class ReadStreamCounts(StreamCounts):
             logger.debug("now have %d threads", tc)
 
         logger.debug("%d threads still alive after loop", len(threads))
-
-
-
-
-    
         logger.debug("%d chunk results for user %s", len(scChunks), userId)
 
         badChunkRate = 1.0*(numChunks - len(scChunks)) / numChunks
@@ -480,8 +464,6 @@ class ReadStreamCounts(StreamCounts):
             logger.debug("chunk %d %s", i, str(scChunk))
             self.__iadd__(scChunk)
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr())
-
-
 
 class ThreadStreamReader(threading.Thread):
     """implements work of ReadStreamCounts
@@ -529,26 +511,11 @@ class ThreadStreamReader(threading.Thread):
 
             url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token    
 
-
-
-
-
-
-
-
-
-
-
-
-
             req = urllib2.Request(url)
             try:
                 responseFile = urllib2.urlopen(req, timeout=60)
             except Exception as e:
                 logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
-
-
-
 
                 try:
                     # If we actually got an error back from a server, should be able to read the message here

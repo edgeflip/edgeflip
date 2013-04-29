@@ -4,8 +4,6 @@ import MySQLdb as mysql
 
 from .settings import config 
 
-
-
 TABLE_COLS = {
                 'users' : """    fbid BIGINT PRIMARY KEY,
                                 fname VARCHAR(128),
@@ -46,8 +44,6 @@ TABLE_COLS = {
                                 KEY(friend_fbid),
                                 KEY(activity_id) """
              }
-
-
 
 def getConn():
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)

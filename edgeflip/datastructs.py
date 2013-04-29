@@ -212,5 +212,3 @@ class EdgeAggregator(Edge):
     def isBidir(self):
         return self.bidir
 
-
-

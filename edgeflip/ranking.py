@@ -69,8 +69,6 @@ def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
     return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)
 
 
-
-
 #####################################################
 
 if (__name__ == '__main__'):

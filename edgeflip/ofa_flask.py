@@ -126,10 +126,6 @@ def ofa_faces():
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
     else:
-
-
-
-
         content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
@@ -420,8 +416,6 @@ def face_test():
 
     return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
-
-
 
 
 ###########################################################################
