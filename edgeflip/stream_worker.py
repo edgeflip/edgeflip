@@ -143,8 +143,6 @@ if (__name__ == '__main__'):
 
     overwriteThresh = args.overwrite
 
-    #zzz
-
     callbackFunc = readStreamCallback
 
     pid = os.getpid()
