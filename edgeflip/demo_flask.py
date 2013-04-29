@@ -48,13 +48,12 @@ def home():
 
 @app.route('/rank')
 def rank_demo():
-"""move to ofa_flask & fix
-for demonstration of algo internals to clients
-not user facing
-
-base page - returns HTML container.
-
-"""
+    """move to ofa_flask & fix
+    for demonstration of algo internals to clients
+    not user facing
+    
+    base page - returns HTML container.
+    """
     default_users = {
                         'shari': { 'fbid': 1509232539, 'tok': 'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD'},
                         'rayid': { 'fbid': 500876410, 'tok': 'AAAGtCIn5MuwBAEaZBhZBr1yK6QfUfhgTZBMKzUt9mkapze1pzXYFZAkvBssMoMar0kQ0WTR6psczIkTiU2KUUdduES8tZCrZBfwFlVh3k71gZDZD'},
@@ -69,13 +68,13 @@ base page - returns HTML container.
 
 @app.route('/rank_faces', methods=['POST'])
 def rank_faces():
-"""move to ofa_flask & fix
-for demonstration of algo internals to clients
-not user facing
+    """move to ofa_flask & fix
+    for demonstration of algo internals to clients
+    not user facing
 
-AJAX endpoint for two columns of results in rank_demo; returns HTML fragment
+    AJAX endpoint for two columns of results in rank_demo; returns HTML fragment
 
-"""
+    """
 
     import time
     
