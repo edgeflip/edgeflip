@@ -218,22 +218,6 @@ def ofa_landing(state):
     return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
 
 
-def writeJsonDict(fileName, tag_dataNew, overwriteFile=False):
-    raise NotImplementedError
-
-@app.route("/campaign_save", methods=['POST', 'GET'])
-def saveCampaign():
-    """control panel functionality"""
-    campFileName = int(flask.request.json['campFileName'])
-    campName = flask.request.json['campName']
-    configTups = flask.request.json['configTups']
-    result = writeJsonDict(campFileName, {campName: configTups}, overwriteFile=False)
-    if (result):
-        return "Thank you. Your targeting parameters have been applied."
-    else:
-        return "Ruh-roh! Something went wrong..."
-
-
 @app.route('/suppress', methods=['POST'])
 def suppress():
     """called when user declines a friend. returns a new friend (HTML snippet)
