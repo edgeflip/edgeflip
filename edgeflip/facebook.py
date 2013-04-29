@@ -325,8 +325,6 @@ class StreamCounts(object):
         ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
         ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
         ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
-
-
         return ret            
             
     def addPostLikers(self, friendIds):
