@@ -33,14 +33,6 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`demo_flask` Module
-------------------------
-
-.. automodule:: edgeflip.demo_flask
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`facebook` Module
 ----------------------
 
