@@ -26,51 +26,6 @@ To set up a local mysql database:
 1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
 2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
 
-
-Configuring Apache
-------------------
-**XXX this needs a little attention***
-
-5. Set up Apache & mod_wsgi: `sudo apt-get install apache2 libapache2-mod-wsgi`
-6. Get some directories ready:
-<pre><code>cd /var/www
-	sudo mkdir edgeflip
-	sudo chmod 755 edgeflip
-	sudo chown www-data edgeflip
-	sudo chgrp www-data edgeflip
-	cd edgeflip
-	</code></pre>
-
-8. Set up the git clone:
-<pre><code>sudo chmod 755 edgeflip.wsgi
-	sudo mkdir gitclones
-	sudo chmod 777 gitclones
-	cd gitclones
-	git clone git@github.com:edgeflip/edgeflip.git</code></pre>
-
-
-12. httpd.conf 
-<pre><code>cd /etc/apache2
-	sudo emacs httpd.conf</code></pre>
-
-
-Contents of httpd.conf:
-<pre><code>&lt;VirtualHost *&gt;
-	    ServerName localhost
-
-	    WSGIDaemonProcess edgeflip processes=2 threads=50
-	    WSGIScriptAlias / /var/www/edgeflip/edgeflip/edgeflip/edgeflip.wsgi
-
-	    LogLevel info
-	    ErrorLog "/var/log/apache2/error.log"
-	    CustomLog "/var/log/apache2/access.log" combined
-
-	    &lt;Directory /var/www/edgeflip&gt;
-	        WSGIProcessGroup edgeflip
-	        WSGIApplicationGroup %{GLOBAL}
-	        Order deny,allow
-	        Allow from all
-	    &lt;/Directory&gt;
-	&lt;/VirtualHost&gt;</code></pre>
-	
-13. Finally, restart Apache and you should be up and running: `sudo /etc/init.d/apache2 restart`
+Devel Server
+------------
+To run the server use `bin/devel_server.py`. If you need a barebones server (for use with a debugger, for example), use `bin/debug_server.py`.
