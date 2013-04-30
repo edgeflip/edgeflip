@@ -1,4 +1,4 @@
-activate_this = '$VIRTUALENV_PATH/bin/activate_this.py'
+activate_this = '/var/www/edgeflip/bin/activate'
 execfile(activate_this, dict(__file__=activate_this))
 
 from edgeflip.settings import config
