@@ -2,9 +2,8 @@
 
 from werkzeug.serving import run_simple
 from edgeflip.settings import config
-
-# ideally, the app to run would be determined by config? or uWSGI, hmm...
-from edgeflip.ofa_flask import app
+import edgeflip.web
+app = edgeflip.web.getApp()
 
 app.debug = True
 
