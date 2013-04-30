@@ -16,13 +16,13 @@ import urllib2  # Just for handling errors raised from facebook module. Seems li
 import os
 
 
-from . import facebook
-from . import ranking
-from . import database
-from . import datastructs
-from . import stream_queue
+from .. import facebook
+from .. import ranking
+from .. import database
+from .. import datastructs
+from .. import stream_queue
 
-from .settings import config
+from ..settings import config
 
 logger = logging.getLogger(__name__)
 
