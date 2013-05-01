@@ -15,6 +15,8 @@ import json
 import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
 import os
 
+from .utils import ajaxResponse, generateSessionId, getIP
+
 
 from .. import facebook
 from .. import ranking
@@ -277,31 +279,6 @@ def recordEvent():
 
     database.writeEventsDb(sessionId, ip, userId, friends, eventType, appId, content, actionId, background=True)
     return ajaxResponse('', 200, sessionId)
-
-"""move to a web utils module"""
-def ajaxResponse(content, code, sessionId):
-    resp = flask.make_response(content, code)
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
-
-def getIP(req):
-    if not req.headers.getlist("X-Forwarded-For"):
-        return req.remote_addr
-    else:
-        return req.headers.getlist("X-Forwarded-For")[0]
-
-def generateSessionId(ip, content, timestr=None):
-    """replace me with browser session cookie w/ short expiry,
-    ttl resets on each interaction
-
-    Add a permanent cookie too.
-    """
-    if (not timestr):
-        timestr = '%.10f' % time.time()
-    # Is MD5 the right strategy here?
-    sessionId = hashlib.md5(ip+content+timestr).hexdigest()
-    logger.debug('Generated session id %s for IP %s with content %s at time %s', sessionId, ip, content, timestr)
-    return sessionId
 
 
 @app.route("/health_check")
