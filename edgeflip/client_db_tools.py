@@ -17,6 +17,8 @@ from .settings import config
 
 logger = logging.getLogger(__name__)
 
+FILTER_LIST_DELIM = '||'
+
 def now():
     """Return the current GMT time formatted for MySQL"""
     return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
@@ -78,6 +80,8 @@ def createFacesStyle(clientId, name, description, htmlFile, cssFile):
 def createFilter(clientId, name, description, features=None, metadata=None):
     """Creates a new filter, associated with the given client"""
 
+    # features is a list of tuples of form (feature, operator, value)
+
     features = features if (features is not None) else []
     metadata = metadata if (metadata is not None) else []
 
@@ -109,21 +113,23 @@ def updateFilterFeatures(filterId, features, replaceAll=False):
     rows = []
     newFeatures = []
     for feature, operator, value in features:
-        if isinstance(value, int):
+        if (isinstance(value, int) or isinstance(value, long)):
             value_type = 'int'
         elif isinstance(value, float):
             value_type = 'float'
+            value = '%.8f' % value
         elif isinstance(value, str):
             value_type = 'string'
         elif isinstance(value, list):
             value_type = 'list'
+            value = FILTER_LIST_DELIM.join([str(v) for v in value])
         else:
-            raise UnsupportedValueTypeError("Can't filter on type of %s" % value)
+            raise ValueError("Can't filter on type of %s" % value)
 
         # Check if we're trying to insert the same 
         # feature/operator combo more than once
         if ((feature, operator) in newFeatures):
-            raise DuplicateInsertError("Filter features must be unique on feature & operator. Duplicate found for (%s, %s)" % (feature, operator))
+            raise ValueError("Filter features must be unique on feature & operator. Duplicate found for (%s, %s)" % (feature, operator))
 
         newFeatures.append((feature, operator))
         rows.append({
@@ -166,7 +172,34 @@ def updateCampaignGlobalFilters(campaignId, filterTupes):
     return len(rows)
 
 
+def getFilter(filterId):
+    """Reads a filter from the database and returns a Filter object"""
+
+    rows = dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'], 
+                                'filter_id', filterId)
+
+    features = []
+    for feature, operator, value, value_type in rows:
+        if value_type == 'int':
+            value = int(value)
+        elif value_type == 'float':
+            value = float(value)
+        elif value_type == 'string':
+            value = str(value)
+        elif value_type == 'list':
+            value = value.split(FILTER_LIST_DELIM)
+        else:
+            raise ValueError("Unknown filter value type: %s" % value_type)
+
+        features.append((feature, operator, value))
+
+    return Filter(filterId, features)
+
+
 def createChoiceSet(clientId, name, description, filters, metadata=None):
+
+    # filters is a list of tuples of form (filterId, urlSlug, modelType)
+
     if (not filters):
         raise ValueError("Must associate at least one filter with a choice set")
     metadata = metadata if (metadata is not None) else []
@@ -199,7 +232,7 @@ def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
 
         # Check if we're trying to insert the same filter more than once
         if (filterId in newFilters):
-            raise DuplicateInsertError("Choice set filters must be unique. Duplicate found for %s" % filterId)
+            raise ValueError("Choice set filters must be unique. Duplicate found for %s" % filterId)
 
         newFilters.append(filterId)
         rows.append({
@@ -221,22 +254,32 @@ def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
 def updateCampaignChoiceSets(campaignId, choiceSetTupes):
     # choiceSetTupes should be (choice_set_id, CDF probability)
     # will always replace all in the table, since any change affects ALL probabilities
-    checkCDF(choiceSetTupes)
+    checkCDF([t[:2] for t in choiceSetTupes])
 
     rows = []
-    for choiceSetId, prob in choiceSetTupes:
+    for choiceSetId, prob, allowGeneric in choiceSetTupes:
         rows.append({
                     'campaign_id' : campaignId,
                     'choice_set_id' : choiceSetId,
                     'rand_cdf' : prob,
+                    'allow_generic' : allowGeneric,
                     'start_dt' : now()
                     })
 
-    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'start_dt']
+    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'start_dt']
 
     dbInsert('campaign_choice_sets', 'campaign_choice_set_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
 
     return len(rows)
+
+
+def getChoiceSet(choiceSetId):
+    """Reads a choice set from database and returns a ChoiceSet object."""
+
+    rows = dbGetObjectAttributes('choice_set_filters', ['choice_set_filter_id', 'filter_id', 'url_slug', 'propensity_model_type'], 
+                                'choice_set_id', choiceSetId)
+    csFilters = [ChoiceSetFilter(r[0], r[1], r[2], r[3], filterObj=getFilter(r[1])) for r in rows]
+    return ChoiceSet(choiceSetId, csFilters)
 
 
 def createClientContent(clientId, name, description, url):
@@ -300,13 +343,16 @@ def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallba
 
 
 def checkRequiredFbObjAttributes(attributes):
-    required_attributes = ['og_type', 'og_title', 'og_image', 'og_description', 'sharing_prompt']
+    required_attributes = ['og_action', 'og_type', 'og_title', 'og_image', 'og_description', 'sharing_prompt']
     for attr in required_attributes:
         if (not attributes.get(attr)):
             raise ValueError("Must specify %s for the Facebook object." % attr)
 
 
 def createFacebookObject(clientId, name, description, attributes, metadata=None):
+
+    # attributes is a dictionary of Facebook object attributes
+
     checkRequiredFbObjAttributes(attributes)
     metadata = metadata if (metadata is not None) else []
 
@@ -343,7 +389,7 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
     # filter_fbObjTupes should be a dictionary: {filter_id : [(fb_object_id, CDF Prob)]}
     # will always replace all in the table, since any change affects ALL probabilities
     # Should probably check against DB to ensure objects are provided for ALL filters
-    for filterId, tupes in filter_fbObjTupes:
+    for filterId, tupes in filter_fbObjTupes.items():
         checkCDF(tupes)
     if (genericTupes):
         checkCDF(genericTupes)
@@ -352,7 +398,7 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
 
     if (filter_fbObjTupes):
         filter_rows = []
-        for filterId, tupes in filter_fbObjTupes:
+        for filterId, tupes in filter_fbObjTupes.items():
             for fbObjectId, prob in tupes:
                 filter_rows.append({
                             'campaign_id' : campaignId,
@@ -488,7 +534,7 @@ def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False
 
         # Check if we're trying to insert the same key more than once
         if (name in newNames):
-            raise DuplicateInsertError("Names must be unique for metadata. Duplicate found for %s in %s" % (name, table))
+            raise ValueError("Names must be unique for metadata. Duplicate found for %s in %s" % (name, table))
 
         newNames.append(name)
         rows.append({
@@ -612,12 +658,12 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
 
 class Filter(object):
     def __init__(self, filterId, features):
-        self.filterId = filterId
+        self.filterId = int(filterId)
         # features should be a list of tupes: (feature, operator, value)
         self.features = features
         self.str_func = {
-                            "min": lambda x, y: x > y, 
-                            "max": lambda x, y: x < y, 
+                            "min": lambda x, y: x >= y, 
+                            "max": lambda x, y: x <= y, 
                             "eq": lambda x, y: x == y,
                             "in": lambda x, l: x in l 
                         }
@@ -634,15 +680,24 @@ class Filter(object):
         return edgesgood
 
 class ChoiceSetFilter(Filter):
-    def __init__(self, choiceSetFilterId, filterId, features, urlSlug, modelType=None):
-        super(ChoiceSetFilter, self).__init__(filterId, features)
-        self.choiceSetFilterId = choiceSetFilterId
+    def __init__(self, choiceSetFilterId, filterId, urlSlug, modelType=None, features=None, filterObj=None):
+
+        if (features is not None and filterObj is not None):
+            raise ValueError("Only specify one of features or filterObj")
+        elif (features is not None):
+            super(ChoiceSetFilter, self).__init__(filterId, features)
+        elif (filterObj is not None):
+            super(ChoiceSetFilter, self).__init__(filterId, filterObj.features)
+        else:
+            raise ValueError("Must specify either features or filterObj")
+
+        self.choiceSetFilterId = int(choiceSetFilterId)
         self.urlSlug = urlSlug
         self.modelType = modelType
 
 class ChoiceSet(object):
     def __init__(self, choiceSetId, choiceSetFilters):
-        self.choiceSetId = choiceSetId
+        self.choiceSetId = int(choiceSetId)
         self.choiceSetFilters = choiceSetFilters
         self.sortFunc = lambda el: (len(el), sum([e.score for e in el])/len(el) if el else 0)
 
@@ -670,14 +725,6 @@ class ChoiceSet(object):
 
 class TooFewFriendsError(Exception):
     """Too few friends found in picking best choice set filter"""
-    pass
-
-class DuplicateInsertError(Exception):
-    """Tried inserting multiple records with the same unique columns"""
-    pass
-
-class UnsupportedValueTypeError(Exception):
-    """Tried setting a filter feature with a datatype we don't know how to filter on"""
     pass
 
 class CDFProbsError(Exception):
