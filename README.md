@@ -26,6 +26,16 @@ To set up a local mysql database:
 1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
 2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
 
+Hostname Alias
+--------------
+Facebook requires a URL to use as a callback after auth. To point this to your local development server, add the following entry to `/etc/hosts`
+
+```
+127.0.0.1   local.edgeflip.com
+```
+
+If you are using a local virtual machine, you will need an entry in the *host* machine's `/etc/hosts` as well. Use the same line, but replace with the IP address of the VM.
+
 Devel Server
 ------------
 To run the server use `bin/devel_server.py`. If you need a barebones server (for use with a debugger, for example), use `bin/debug_server.py`.
