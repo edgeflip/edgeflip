@@ -202,18 +202,6 @@ def ofa_climate(state):
     return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
-# This is an example endpoint... in reality, this page would be on OFA servers
-@app.route("/ofa_landing/<state>")
-def ofa_landing(state):
-    """lives on client site - where ofa_climate redirects to"""
-    senInfo = state_senInfo.get(state)
-    if (not senInfo):
-        return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
-    pageTitle = "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name']
-
-    return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
-
-
 @app.route('/suppress', methods=['POST'])
 def suppress():
     """called when user declines a friend. returns a new friend (HTML snippet)
