@@ -1,0 +1,685 @@
+
+# Eventually this module should serve as the backing for a control panel API
+
+# Will generally need to work out some auth, probably at the API level
+# (including a check that requests are always consistent with the authed user)
+
+
+import time
+import random
+import logging
+import threading
+from MySQLdb import IntegrityError
+
+from . import database as db
+from . import datastructs
+from .settings import config 
+
+logger = logging.getLogger(__name__)
+
+def now():
+    """Return the current GMT time formatted for MySQL"""
+    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+
+
+def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=False):
+    """Creates a new client in the database, returning the client_id"""
+
+    row = {
+            'name' : name, 
+            'fb_app_name' : fbAppName, 
+            'fb_app_id' : fbAppId, 
+            'domain' : domain, 
+            'subdomain' : subdomain, 
+            'create_dt' : now() 
+          }
+
+    try:
+        clientId = dbInsert('clients', 'client_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    ret = {'client_id' : clientId}
+
+    if (generateDefaults):
+        defaultName = 'edgeflip default'
+        defaultDesc = 'Default element created by edgeflip'
+
+#        buttonStyleId = createButtonStyle(clientId, defaultName, defaultDesc, 'ef_default_button.html', 'ef_default_button.css').get('button_style_id')
+#        facesStyleId = createFacesStyle(clientId, defaultName, defaultDesc, 'ef_default_faces.html', 'ef_default_faces.css').get('faces_style_id')
+
+        # zzz best way to get default propensity, proximity, and mix model id's (and choice set algorithms) that are created globally?
+
+        filterId = createFilter(clientId, defaultName, defaultDesc).get('filter_id')
+        choiceSetId = createChoiceSet(clientId, defaultName, defaultDesc, [(filterId, 'all', None)]).get('choice_set_id')
+
+        row = {
+                'client_id' : clientId, 
+                'filter_id' : filterId, 
+                'choice_set_id' : choiceSetId, 
+                'start_dt' : now()
+              }
+
+        clientDefaultId = dbInsert('client_defaults', 'client_default_id', row.keys(), [row], 'client_id', clientId, replaceAll=True)
+
+        ret['filter_id'] = filterId
+        ret['choice_set_id'] = choiceSetId
+        ret['client_default_id'] = clientDefaultId
+
+    return ret
+
+
+def createButtonStyle(clientId, name, description, htmlFile, cssFile):
+    raise NotImplementedError
+
+def createFacesStyle(clientId, name, description, htmlFile, cssFile):
+    raise NotImplementedError
+
+def createFilter(clientId, name, description, features=None, metadata=None):
+    """Creates a new filter, associated with the given client"""
+
+    features = features if (features is not None) else []
+    metadata = metadata if (metadata is not None) else []
+
+    row = {
+            'client_id' : clientId, 
+            'name' : name, 
+            'description' : description, 
+            'create_dt' : now()
+          }
+
+    # zzz This will create the filter record, commit, then load the features & meta data
+    #     would we rather the commit only happen if everything gets in?
+    try:
+        filterId = dbInsert('filters', 'filter_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    updateFilterFeatures(filterId, features, replaceAll=True)
+    updateMetadata('filter_meta', 'filter_meta_id', 'filter_id', filterId, metadata, replaceAll=True)
+
+    return {'filter_id' : filterId}
+
+def updateFilterFeatures(filterId, features, replaceAll=False):
+    """Update features that define a filter"""
+
+    if (not features):
+        return 0    # no records to insert
+
+    rows = []
+    newFeatures = []
+    for feature, operator, value in features:
+        if isinstance(value, int):
+            value_type = 'int'
+        elif isinstance(value, float):
+            value_type = 'float'
+        elif isinstance(value, str):
+            value_type = 'string'
+        elif isinstance(value, list):
+            value_type = 'list'
+        else:
+            raise UnsupportedValueTypeError("Can't filter on type of %s" % value)
+
+        # Check if we're trying to insert the same 
+        # feature/operator combo more than once
+        if ((feature, operator) in newFeatures):
+            raise DuplicateInsertError("Filter features must be unique on feature & operator. Duplicate found for (%s, %s)" % (feature, operator))
+
+        newFeatures.append((feature, operator))
+        rows.append({
+                    'filter_id' : filterId, 
+                    'feature' : feature, 
+                    'operator' : operator, 
+                    'value' : str(value), 
+                    'value_type' : value_type, 
+                    'start_dt' : now()
+                    })
+
+    insCols = ['filter_id', 'feature', 'operator', 'value', 'value_type', 'start_dt']
+    uniqueCols = ['feature', 'operator']
+
+    dbInsert('filter_features', 'filter_feature_id', insCols, rows, 'filter_id', filterId, uniqueCols, replaceAll=replaceAll)
+
+    return len(rows)
+
+
+def updateCampaignGlobalFilters(campaignId, filterTupes):
+    """Associate filters with a campaign"""
+    # filterTupes should be (filter_id, CDF probability)
+    # will always replace all in the table, since any change affects ALL probabilities
+    
+    checkCDF(filterTupes)
+
+    rows = []
+    for filterId, prob in filterTupes:
+        rows.append({
+                    'campaign_id' : campaignId,
+                    'filter_id' : filterId,
+                    'rand_cdf' : prob,
+                    'start_dt' : now()
+                    })
+
+    insCols = ['campaign_id', 'filter_id', 'rand_cdf', 'start_dt']
+
+    dbInsert('campaign_global_filters', 'campaign_global_filter_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
+
+    return len(rows)
+
+
+def createChoiceSet(clientId, name, description, filters, metadata=None):
+    if (not filters):
+        raise ValueError("Must associate at least one filter with a choice set")
+    metadata = metadata if (metadata is not None) else []
+
+    row = {
+            'client_id' : clientId,
+            'name' : name,
+            'description' : description,
+            'create_dt' : now()
+          }
+
+    try:
+        choiceSetId = dbInsert('choice_sets', 'choice_set_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    updateChoiceSetFilters(choiceSetId, filters, replaceAll=True)
+    updateMetadata('choice_set_meta', 'choice_set_meta_id', 'choice_set_id', choiceSetId, metadata, replaceAll=True)
+
+    return {'choice_set_id' : choiceSetId}
+
+
+def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
+    if (not filters):
+        return 0    # no records to insert
+
+    rows = []
+    newFilters = []
+    for filterId, urlSlug, modelType in filters:
+
+        # Check if we're trying to insert the same filter more than once
+        if (filterId in newFilters):
+            raise DuplicateInsertError("Choice set filters must be unique. Duplicate found for %s" % filterId)
+
+        newFilters.append(filterId)
+        rows.append({
+                    'choice_set_id' : choiceSetId, 
+                    'filter_id' : filterId, 
+                    'url_slug' : urlSlug,
+                    'propensity_model_type' : modelType, 
+                    'start_dt' : now()
+                    })
+
+    insCols = ['choice_set_id', 'filter_id', 'url_slug', 'propensity_model_type', 'start_dt']
+    uniqueCols = ['filter_id']
+
+    dbInsert('choice_set_filters', 'choice_set_filter_id', insCols, rows, 'choice_set_id', choiceSetId, uniqueCols, replaceAll=replaceAll)
+
+    return len(rows)
+
+
+def updateCampaignChoiceSets(campaignId, choiceSetTupes):
+    # choiceSetTupes should be (choice_set_id, CDF probability)
+    # will always replace all in the table, since any change affects ALL probabilities
+    checkCDF(choiceSetTupes)
+
+    rows = []
+    for choiceSetId, prob in choiceSetTupes:
+        rows.append({
+                    'campaign_id' : campaignId,
+                    'choice_set_id' : choiceSetId,
+                    'rand_cdf' : prob,
+                    'start_dt' : now()
+                    })
+
+    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'start_dt']
+
+    dbInsert('campaign_choice_sets', 'campaign_choice_set_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
+
+    return len(rows)
+
+
+def createClientContent(clientId, name, description, url):
+    if (not url):
+        raise ValueError("Must provide a URL")
+
+    row = {
+            'client_id' : clientId,
+            'name' : name,
+            'description' : description,
+            'url' : url,
+            'create_dt' : now()
+          }
+
+    try:
+        clientContentId = dbInsert('client_content', 'client_content_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    return {'client_content_id' : clientContentId}
+
+
+def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
+    if (not facesURL):
+        raise ValueError("Must specify a URL for the faces page")
+    metadata = metadata if (metadata is not None) else []
+
+    row = {
+            'client_id' : clientId,
+            'name' : name,
+            'description' : description,
+            'create_dt' : now()
+          }
+
+    try:
+        campaignId = dbInsert('campaigns', 'campaign_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    updateCampaignProperties(campaignId, facesURL, fallbackCampaign, fallbackContent)
+    updateMetadata('campaign_meta', 'campaign_meta_id', 'campaign_id', campaignId, metadata, replaceAll=True)
+
+    return {'campaign_id' : campaignId}
+
+
+def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallbackContent=None):
+    if (not facesURL):
+        raise ValueError("Must specify a URL for the faces page")
+
+    row = {
+            'campaign_id' : campaignId,
+            'client_faces_url' : facesURL,
+            'fallback_campaign_id' : fallbackCampaign,
+            'fallback_content_id' : fallbackContent,
+            'start_dt' : now()
+          }
+
+    dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
+
+    return 1
+
+
+def checkRequiredFbObjAttributes(attributes):
+    required_attributes = ['og_type', 'og_title', 'og_image', 'og_description', 'sharing_prompt']
+    for attr in required_attributes:
+        if (not attributes.get(attr)):
+            raise ValueError("Must specify %s for the Facebook object." % attr)
+
+
+def createFacebookObject(clientId, name, description, attributes, metadata=None):
+    checkRequiredFbObjAttributes(attributes)
+    metadata = metadata if (metadata is not None) else []
+
+    row = {
+            'client_id' : clientId,
+            'name' : name,
+            'description' : description,
+            'create_dt' : now()
+          }
+
+    try:
+        fbObjectId = dbInsert('fb_objects', 'fb_object_id', row.keys(), [row])
+    except IntegrityError as e:
+        return {'error' : str(e)}
+
+    updateFacebookObjectAttributes(fbObjectId, attributes)
+    updateMetadata('fb_object_meta', 'fb_object_meta_id', 'fb_object_id', fbObjectId, metadata, replaceAll=True)
+
+    return {'fb_object_id' : fbObjectId}
+
+
+def updateFacebookObjectAttributes(fbObjectId, attributes):
+    checkRequiredFbObjAttributes(attributes)
+
+    row = attributes
+    row['fb_object_id'] = fbObjectId
+
+    dbInsert('fb_object_attributes', 'fb_object_attributes_id', row.keys(), [row], 'fb_object_id', fbObjectId, replaceAll=True)
+
+    return 1
+
+
+def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTupes=None):
+    # filter_fbObjTupes should be a dictionary: {filter_id : [(fb_object_id, CDF Prob)]}
+    # will always replace all in the table, since any change affects ALL probabilities
+    # Should probably check against DB to ensure objects are provided for ALL filters
+    for filterId, tupes in filter_fbObjTupes:
+        checkCDF(tupes)
+    if (genericTupes):
+        checkCDF(genericTupes)
+
+    numRows = 0
+
+    if (filter_fbObjTupes):
+        filter_rows = []
+        for filterId, tupes in filter_fbObjTupes:
+            for fbObjectId, prob in tupes:
+                filter_rows.append({
+                            'campaign_id' : campaignId,
+                            'filter_id' : filterId,
+                            'fb_object_id' : fbObjectId,
+                            'rand_cdf' : prob,
+                            'start_dt' : now()
+                            })
+
+        filter_insCols = ['campaign_id', 'filter_id', 'fb_object_id', 'rand_cdf', 'start_dt']
+        dbInsert('campaign_fb_objects', 'campaign_fb_object_id', filter_insCols, filter_rows, 'campaign_id', campaignId, replaceAll=True)
+        numRows = len(filter_rows)
+
+    if (genericTupes):
+        generic_rows = []
+        for fbObjectId, prob in genericTupes:
+            generic_rows.append({
+                        'campaign_id' : campaignId,
+                        'fb_object_id' : fbObjectId,
+                        'rand_cdf' : prob,
+                        'start_dt' : now()
+                        })
+
+        generic_insCols = ['campaign_id', 'fb_object_id', 'rand_cdf', 'start_dt']
+        dbInsert('campaign_generic_fb_objects', 'campaign_generic_fb_object_id', generic_insCols, generic_rows, 'campaign_id', campaignId, replaceAll=True)
+        numRows += len(generic_rows)
+
+    return numRows
+
+
+# Will also need functions for models/algorithms, but punting on those for now...
+
+
+def dbGetObject(table, cols, objectIndex, objectId):
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND NOT is_deleted"
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    try:
+        curs.execute(sql)
+        ret = curs.fetchall()
+    finally:
+        conn.close()
+
+    return ret
+
+
+def dbGetObjectAttributes(table, cols, objectIndex, objectId):
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND end_dt IS NULL"
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    try:
+        curs.execute(sql)
+        ret = curs.fetchall()
+    finally:
+        conn.close()
+
+    return ret
+
+
+def dbGetExperimentTupes(table, index, objectKey, keyTupes):
+    # keyTupes can be [(campaign_id, id)] or [(campaign_id, id), (filter_id, id)] in case of FB Object
+    where = ' AND '.join(['='.join(str(t)) for t in keyTupes])
+    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf FROM " + table + " WHERE " + where + " AND end_dt IS NULL"
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    try:
+        curs.execute(sql)
+        ret = curs.fetchall()   # returns (index, object_id, cdf_prob)
+    finally:
+        conn.close()
+
+    tupes = sorted([(r[1], r[2]) for r in ret], key=lambda t: t[1])
+    checkCDF(tupes)
+
+    return ret
+
+
+def dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows, background=False):
+    if (background):
+        t = threading.Thread(target=_dbWriteAssignment, args=(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows))
+        t.daemon = False
+        t.start()
+        logger.debug("dbWriteAssignment() spawning background thread %d for %s:%s from session %s", t.ident, featureType, featureRow, sessionId)
+        return 0
+    else:
+        logger.debug("dbWriteAssignment() foreground thread %d for %s:%s from session %s", threading.current_thread().ident, featureType, featureRow, sessionId)
+        return _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows)
+
+
+# helper function that may get run in a background thread
+def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows):
+    tim = datastructs.Timer()
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    row = {
+            'session_id' : sessionId, 
+            'campaign_id' : campaignId,
+            'content_id' : contentId,
+            'feature_type' : featureType,
+            'feature_row' : featureRow,
+            'random_assign' : randomAssign,
+            'assign_dt' : now(),
+            'chosen_from_table' : chosenFromTable,
+            'chosen_from_rows' : str(sorted([int(r) for r in chosenFromRows]))
+          }
+    sql = """INSERT INTO assignments (session_id, campaign_id, content_id, feature_type, feature_row, random_assign, assign_dt, chosen_from_table, chosen_from_rows) 
+                VALUES (%(session_id)s, %(campaign_id)s, %(content_id)s, %(feature_type)s, %(feature_row)s, %(random_assign)s, %(assign_dt)s, %(chosen_from_table)s, %(chosen_from_rows)s) """
+
+    try:
+        curs.execute(sql, row)
+        conn.commit()
+    finally:
+        conn.close()
+
+    logger.debug("_dbWriteAssignment() thread %d wrote %s:%s assignment from session %s", threading.current_thread().ident, featureType, featureRow, sessionId)
+    conn.close()
+    
+    return 1
+
+
+def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False):
+
+    if (not metadata):
+        return 0    # no records to insert
+
+    rows = []
+    newNames = []
+    for name, value in metadata:
+
+        # Check if we're trying to insert the same key more than once
+        if (name in newNames):
+            raise DuplicateInsertError("Names must be unique for metadata. Duplicate found for %s in %s" % (name, table))
+
+        newNames.append(name)
+        rows.append({
+                    objectCol : objectId, 
+                    'name' : name, 
+                    'value' : value, 
+                    'start_dt' : now()
+                    })
+
+    insCols = [objectCol, 'name', 'value', 'start_dt']
+    uniqueCols = ['name']
+
+    dbInsert(table, index, insCols, rows, objectCol, objectId, uniqueCols, replaceAll=replaceAll)
+
+    return len(rows)
+
+
+def doRandAssign(tupes):
+    """takes a set of tuples of (id, cdf probability) and chooses one id randomly"""
+
+    tupes = sorted(tupes, key=lambda t: t[1])   # ensure sorted by CDF Probability
+    checkCDF(tupes)
+
+    rand = random.random()
+
+    # Pick out smallest probability greater than (or equal to) random number
+    for objId, prob in tupes:
+        if prob >= rand:
+            return objId
+
+    raise CDFProbsError("Math must be broken if we got here...")
+
+
+def checkCDF(tupes):
+    """Takes tuples of (id, CDF Probability) and ensures the CDF is well-defined"""
+
+    probs = sorted([t[1] for t in tupes])
+    if (min(probs) <= 0):
+        raise CDFProbsError("Zero or negative probabilities detected")
+    if (max(probs) != 1.0):
+        raise CDFProbsError("Max probability is not 1.0")
+    if (len(probs) != len(set(probs))):
+        raise CDFProbsError("Duplicate values found in CDF")
+
+
+def dbSetEndDate(table, index, endIds, connP=None):
+    """Set the end_dt for a set of records, removing them from use."""
+
+    conn = connP if (connP is not None) else db.getConn()
+    curs = conn.cursor()
+
+    sql = "UPDATE" + table + "SET end_dt = %s WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")"
+    vals = [now()]
+
+    try:
+        curs.execute(sql, vals)
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+    finally:
+        if (connP is None):
+            conn.close()
+
+    return len(endIds)
+
+
+def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueCols=None, connP=None, replaceAll=False):
+    """Insert rows into the specified table.
+       If replaceAll is any true, any current records associated with the given object
+       will be removed (by setting their end_dt). Otherwise, if uniqueCols are specified,
+       only existing records that conflict with new ones will be removed."""
+
+    rows = rows if (rows is not None) else []
+
+    conn = connP if (connP is not None) else db.getConn()
+    curs = conn.cursor()
+
+    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join(['%('+c+')s' for c in insCols]) + ")"
+
+    try:
+        replaceIds = []
+        if (uniqueCols and not replaceAll):
+            curs.execute("SELECT " + index + ", " + ', '.join(uniqueCols) + " FROM " + table + " WHERE " + objectCol + " = " + objectId + " AND end_dt IS NULL FOR UPDATE")
+            currRecs = { tuple(r[1:]) : int(r[0]) for r in curs }
+
+            for row in rows:
+                repId = currRecs.get(tuple(row[u] for u in uniqueCols))
+                replaceIds += [repId] if repId is not None else []
+
+        if (replaceAll):
+            prepsql = "UPDATE " + table + " SET end_dt = %s WHERE " + objectCol + " IN (" + str(objectId) + ")"
+        elif (replaceIds):
+            prepsql = "UPDATE " + table + " SET end_dt = %s WHERE " + index + " IN (" + ','.join([str(i) for i in replaceIds]) + ")"
+        else:
+            prepsql = None
+
+        prepvals = [now()]
+
+        if (prepsql): 
+            logging.debug(prepsql)
+            curs.execute(prepsql, prepvals)
+        for row in rows:
+            logging.debug(insSQL)
+            logging.debug(row)
+            curs.execute(insSQL, row)
+        newId = curs.lastrowid
+
+        conn.commit()
+
+    except:
+        conn.rollback()
+        raise
+
+    finally:
+        if (connP is None):
+            conn.close()
+
+    return newId
+
+
+class Filter(object):
+    def __init__(self, filterId, features):
+        self.filterId = filterId
+        # features should be a list of tupes: (feature, operator, value)
+        self.features = features
+        self.str_func = {
+                            "min": lambda x, y: x > y, 
+                            "max": lambda x, y: x < y, 
+                            "eq": lambda x, y: x == y,
+                            "in": lambda x, l: x in l 
+                        }
+
+    def filterFriend(self, user):
+        for feature, operator, value in self.features:
+            if not (hasattr(user, feature) and self.str_func[operator](user.__dict__[feature], value)):
+                return False
+
+        return True    # user made it through all the filters
+
+    def filterEdgesBySec(self, edges):
+        edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
+        return edgesgood
+
+class ChoiceSetFilter(Filter):
+    def __init__(self, choiceSetFilterId, filterId, features, urlSlug, modelType=None):
+        super(ChoiceSetFilter, self).__init__(filterId, features)
+        self.choiceSetFilterId = choiceSetFilterId
+        self.urlSlug = urlSlug
+        self.modelType = modelType
+
+class ChoiceSet(object):
+    def __init__(self, choiceSetId, choiceSetFilters):
+        self.choiceSetId = choiceSetId
+        self.choiceSetFilters = choiceSetFilters
+        self.sortFunc = lambda el: (len(el), sum([e.score for e in el])/len(el) if el else 0)
+
+    def chooseBestFilter(self, edges, useGeneric=False, minFriends=2, eligibleProportion=0.5):
+        edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
+        elgCount = int(len(edges) * eligibleProportion)
+        edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
+        
+        filteredEdges = [(f, f.filterEdgesBySec(edgesElg)) for f in self.choiceSetFilters]
+        sortedFilters = sorted(filteredEdges, key=lambda t: self.sortFunc(t[1]), reverse=True)
+
+        if (len(sortedFilters[0][1]) < minFriends):
+
+            if (not useGeneric):
+                raise TooFewFriendsError("Too few friends were available after filtering")
+
+            genericFriends = set(e.secondary.id for t in sortedFilters for e in t[1])
+            if (len(genericFriends) < minFriends):
+                raise TooFewFriendsError("Too few friends were available after filtering")
+            else:
+                return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
+
+        return sortedFilters[0]
+
+
+class TooFewFriendsError(Exception):
+    """Too few friends found in picking best choice set filter"""
+    pass
+
+class DuplicateInsertError(Exception):
+    """Tried inserting multiple records with the same unique columns"""
+    pass
+
+class UnsupportedValueTypeError(Exception):
+    """Tried setting a filter feature with a datatype we don't know how to filter on"""
+    pass
+
+class CDFProbsError(Exception):
+    """CDF specified for a experimental probabilities is not well-defined"""
+    pass
