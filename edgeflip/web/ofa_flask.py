@@ -108,7 +108,7 @@ def faces():
         actionParams =     {
         'fb_action_type' : 'support',
         'fb_object_type' : 'cause',
-        'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+        'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True)
         }
         actionParams.update(fbParams)
         logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
@@ -174,13 +174,16 @@ def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, a
     return edgesGood
 
 
-@app.route("/ofa_climate/<state>")
-def ofa_climate(state):
+@app.route("/fb_object")
+def fb_object():
     """endpoint linked to on facebook.com
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
-
+    state = flask.request.args.get('state')
+    if state is None:
+        return "No state specified", 404
+    
     senInfo = state_senInfo.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
@@ -192,7 +195,7 @@ def ofa_climate(state):
     'fb_object_title': 'Climate Legislation',
     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-    'fb_object_url' : flask.url_for('ofa_climate', state=state, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+    'fb_object_url' : flask.url_for('fb_object', state=state, _external=True)
     }
     objParams.update(fbParams)
 
