@@ -199,7 +199,7 @@ def ofa_climate(state):
     # zzz Are we going to want/need to pass URL parameters to this redirect?
     redirectURL = flask.url_for('ofa_landing', state=state, _external=True)    # Will actually be client's external URL...
 
-    return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
+    return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
 @app.route('/suppress', methods=['POST'])
