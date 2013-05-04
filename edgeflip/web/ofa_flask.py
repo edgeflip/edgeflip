@@ -23,6 +23,7 @@ from .. import ranking
 from .. import database
 from .. import datastructs
 from .. import stream_queue
+from .. import filtering
 
 from ..settings import config
 
@@ -79,10 +80,10 @@ def faces():
         database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
-    bestState = getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
+    bestState = filtering.getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
     if (bestState is not None):
         filterTups.append(('state', 'eq', bestState))
-        edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
+        edgesFiltered = filtering.filterEdgesBySec(edgesRanked, filterTups)
         logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
 
         friendDicts = [ e.toDict() for e in edgesFiltered ]
@@ -121,53 +122,6 @@ def faces():
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
         return ajaxResponse('all of your friends are stateless', 200, sessionId)
-
-
-def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
-    """move to filtering module"""
-    edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
-    elgCount = int(len(edgesRanked) * eligibleProportion)
-    edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
-    state_count = {}
-    for e in edgesElg:
-        state_count[e.secondary.state] = state_count.get(e.secondary.state, 0) + 1
-    if (statePool is not None):
-        for state in state_count.keys():
-            if (state not in statePool):
-                del state_count[state]
-    if (state_count):
-        logger.debug("best state counts: %s", str(state_count))
-        bestCount = max(state_count.values() + [0])  # in case we don't get any states
-        bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
-        if (len(bestStates) == 1):
-            logger.debug("best state returning %s", bestStates[0])
-            return bestStates[0]
-        else:
-            # there's a tie for first, so grab the state with the best avg scores
-            bestState = None
-            bestScoreAvg = 0.0
-            for state in bestStates:
-                edgesState = [ e for e in edgesElg if (e.state == state) ]
-                scoreAvg = sum([ e.score for e in edgesState ])
-                if (scoreAvg > bestScoreAvg):
-                    bestState = state
-                    bestScoreAvg = scoreAvg
-            logger.debug("best state returning %s", bestState)
-            return bestState
-    else:
-        return None
-
-def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
-    """move to filtering module"""
-    str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
-    edgesGood = edges[:]
-    for attrName, compTag, attrVal in filterTups:
-        logger.debug("filtering %d edges on '%s %s %s'", len(edgesGood), attrName, compTag, attrVal)
-        filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
-        edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-        logger.debug("have %d edges left", len(edgesGood))
-    return edgesGood
-
 
 @app.route("/fb_object")
 def fb_object():
