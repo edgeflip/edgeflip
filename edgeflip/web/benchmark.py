@@ -74,5 +74,5 @@ def face_test():
     }
     actionParams.update(fbParams)
 
-    return flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
+    return flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=targetDict,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)

@@ -118,7 +118,7 @@ def ofa_faces():
             sessionId = generateSessionId(ip, content)
 
         database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
-        return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+        return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
     else:
