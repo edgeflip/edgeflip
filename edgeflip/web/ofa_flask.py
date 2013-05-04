@@ -200,7 +200,7 @@ def fb_object():
     objParams.update(fbParams)
 
     # zzz Are we going to want/need to pass URL parameters to this redirect?
-    redirectURL = flask.url_for('ofa_landing', state=state, _external=True)    # Will actually be client's external URL...
+    redirectURL = config.web.fb_object_redirect
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
 
