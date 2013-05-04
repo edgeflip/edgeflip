@@ -50,8 +50,8 @@ def frame_faces():
     return flask.render_template('frame_faces.html', fbParams=fbParams)
 
 
-@app.route("/ofa_faces", methods=['POST'])
-def ofa_faces():
+@app.route("/faces", methods=['POST'])
+def faces():
     """return list of faces - HTML snippet"""
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
