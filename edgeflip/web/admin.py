@@ -16,11 +16,6 @@ from ..settings import config
 
 app = flask.Flask(__name__)
 
-
-@app.route('/utils')
-def utils():
-    return "Combine queue and DB utils (and log reader?)"
-
 @app.route('/queue')
 def queueStatus(msg=''):
     if (flask.request.args.get('queueName')):
@@ -43,8 +38,3 @@ def queueLoad():
     qName = flask.request.args.get('queueName')
     count = stream_queue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
     return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
-
-@app.route("/db_reset")
-def reset():
-    database.db.dbSetup()
-    return "database has been reset"
