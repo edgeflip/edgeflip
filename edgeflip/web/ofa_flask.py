@@ -31,11 +31,6 @@ logger = logging.getLogger(__name__)
 
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
-state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihio',
-                                  #             'name':'Smokestax',
-                                  #             'email':'smokestax@senate.gov',
-                                  #             'phone' : '(202) 123-4567'}
-
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
@@ -84,7 +79,7 @@ def faces():
         database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
-    bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
+    bestState = getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
     if (bestState is not None):
         filterTups.append(('state', 'eq', bestState))
         edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
@@ -94,7 +89,7 @@ def faces():
         faceFriends = friendDicts[:numFace]
         allFriends = friendDicts[:25]
 
-        senInfo = state_senInfo[bestState]
+        senInfo = config.ofa_states[bestState]
 
         """these messages move into database"""
         msgParams = {
@@ -184,7 +179,7 @@ def fb_object():
     if state is None:
         return "No state specified", 404
     
-    senInfo = state_senInfo.get(state)
+    senInfo = config.ofa_states.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
 
