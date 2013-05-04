@@ -41,7 +41,7 @@ state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihi
 @app.route("/button_man")
 def button_man():
     """serves the button in iframe on client site"""
-    return flask.render_template('button_man.html', fbParams=fbParams, goto=config['ofa_button_redirect'])
+    return flask.render_template('button_man.html', fbParams=fbParams, goto=config.web.button_redirect)
 
 # Serves the actual faces & share message
 @app.route("/frame_faces")
