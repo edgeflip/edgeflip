@@ -47,7 +47,7 @@ def button_man():
 @app.route("/frame_faces")
 def frame_faces():
     """html container (iframe) for client site """
-    return flask.render_template('ofa_frame_faces.html', fbParams=fbParams)
+    return flask.render_template('frame_faces.html', fbParams=fbParams)
 
 
 @app.route("/ofa_faces", methods=['POST'])
