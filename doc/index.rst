@@ -13,6 +13,7 @@ Contents:
 
    depgraph
    configuration
+   commands
    edgeflip
 
 
