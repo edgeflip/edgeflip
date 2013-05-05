@@ -131,6 +131,17 @@ def validateClientDb():
         "All choice sets have at least one filter")
 
 
+    # Any choice set filter specifying a url_slug is url safe
+    # (but note that not every object must specify a slug)
+    sql = """SELECT DISTINCT choice_set_filter_id FROM choice_set_filters
+                    WHERE end_dt IS NOT NULL AND url_slug IS NOT NULL
+                    AND url_slug RLIKE '[^A-z0-9%_.~\\|-]';"""
+
+    runDbCheck(curs, sql,
+        "Choice set filters with URL-unsafe slugs: %s",
+        "All choice set filter url slugs are safe")
+
+
     # Full coverage of FB Objects over campaign choice set filters
     sql = """SELECT DISTINCT ccs.campaign_id, csf.filter_id 
                     FROM campaign_choice_sets ccs 
@@ -194,6 +205,17 @@ def validateClientDb():
     runDbCheck(curs, sql,
         "Information missing for FB objects: %s",
         "All FB objects contain required information")
+
+
+    # Any FB object specifying a url_slug is url safe
+    # (but note that not every object must specify a slug)
+    sql = """SELECT DISTINCT fb_object_id FROM fb_object_attributes
+                    WHERE end_dt IS NOT NULL AND url_slug IS NOT NULL
+                    AND url_slug RLIKE '[^A-z0-9%_.~\\|-]';"""
+
+    runDbCheck(curs, sql,
+        "Facebook objects with URL-unsafe slugs: %s",
+        "All Facebook object url slugs are safe")
 
 
     # Every filter associated with a current campaign is current/actually exists
