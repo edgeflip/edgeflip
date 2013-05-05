@@ -11,7 +11,8 @@ config = conf.getConfig(includeDefaults=True)
 
 
 
-class EdgeAggregator(Edge):
+# class EdgeAggregator(Edge):
+class EdgeAggregator(object):
     def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
         # Edge.__init__(self, None, None)
         if (len(edgesSource) > 0):
