@@ -194,10 +194,6 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
         logging.info('reading stream for user %s, %s', userId, tok)
         sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
         logging.debug('got %s', str(sc))
-
-
-
-
         # sort all the friends by their stream rank (if any) and mutual friend count
         friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
         logging.debug("got %d friends ranked", len(friendId_streamrank))
@@ -256,8 +252,14 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                 #e = datastructs.EdgeSC1(user, friend, sc)
                 e = datastructs.Edge(user, friend, ecIn, None)
         else:
+
+            ecIn = datastructs.EdgeCounts(friend.id,
+                  user.id,
+                  photoTarg=friend.primPhotoTags,
+                  photoOth=friend.otherPhotoTags,
+                  muts=friend.mutuals)
             #e = datastructs.EdgeStreamless(user, friend)
-            e = datastructs.Edge(user, friend, None, None)
+            e = datastructs.Edge(user, friend, ecIn, None)
 
         edges.append(e)
         logging.debug('friend %s', str(e.secondary))
