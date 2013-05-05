@@ -205,7 +205,7 @@ def getUserTokenDb(connP, userId, appId):
 def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     conn = connP if (connP is not None) else getConn()
 
-    freshnessDate = datetime.date.today() - datetime.timedelta(days=freshnessDays)
+    freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
     logging.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
     #logging.debug(sql)
