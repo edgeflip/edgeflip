@@ -3,26 +3,14 @@
 
 """
 
-import sys
-import time
-import datetime
-import random
-import hashlib
 import logging
 import flask
 
-import json
-import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
-import os
-
 from .utils import ajaxResponse, generateSessionId, getIP
-
 
 from .. import facebook
 from .. import ranking
 from .. import database
-from .. import datastructs
-from .. import stream_queue
 from .. import filtering
 
 from ..settings import config
