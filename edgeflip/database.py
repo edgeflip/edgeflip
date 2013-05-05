@@ -485,7 +485,7 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
              'eventType': eventType, 'appId': appId, 'content': content,
              'activityId': activityId, 'createDt': time.strftime("%Y-%m-%d %H:%M:%S")
             } for friendId in friendIds]
-    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, create_dt)
+    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, updated)
                 VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
 
     insertCount = 0
