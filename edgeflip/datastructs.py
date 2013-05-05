@@ -78,7 +78,7 @@ class TokenInfo(object):
         self.appId = app
         self.expires = exp
     def __str__(self):
-        return "%s:%s %s (exp %s)" % (self.appId, self.owernId, self.tok, self.expires.strftime("%m/%d"))
+        return "%s:%s %s (exp %s)" % (self.appId, self.ownerId, self.tok, self.expires.strftime("%m/%d"))
 
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
@@ -103,7 +103,7 @@ class EdgeCounts(object):
         self.mutuals = muts
 
 class Edge(object):
-    def __init__(self, primInfo, secInfo, edgeCountsIn=None, edgeCountsOut=None):
+    def __init__(self, primInfo, secInfo, edgeCountsIn, edgeCountsOut=None):
         self.primary = primInfo
         self.secondary = secInfo
         self.countsIn = edgeCountsIn
@@ -227,30 +227,4 @@ class Edge(object):
 #     def isBidir(self):
 #         return True
 #
-class EdgeAggregator(Edge):
-    def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
-        Edge.__init__(self, None, None)
-        if (len(edgesSource) > 0):
-            if (requireIncoming):
-                self.inPostLikes = aggregFunc([ e.countsIn.postLikes for e in edgesSource ])
-                self.inPostComms = aggregFunc([ e.countsIn.postComms for e in edgesSource ])
-                self.inStatLikes = aggregFunc([ e.countsIn.statLikes for e in edgesSource ])
-                self.inStatComms = aggregFunc([ e.countsIn.statComms for e in edgesSource ])
-                self.inWallPosts = aggregFunc([ e.countsIn.wallPosts for e in edgesSource ])
-                self.inWallComms = aggregFunc([ e.countsIn.wallComms for e in edgesSource ])
-                self.inTags = aggregFunc([ e.countsIn.tags for e in edgesSource ])
-                self.inPhotoTarget = aggregFunc([ e.countsIn.photoTarget for e in edgesSource ])
-                self.inPhotoOther = aggregFunc([ e.countsIn.photoOther for e in edgesSource ])
-                self.inMutuals = aggregFunc([ e.countsIn.mutuals for e in edgesSource ])
-            if (requireOutgoing):
-                self.outPostLikes = aggregFunc([ e.countsOut.postLikes for e in edgesSource ])
-                self.outPostComms = aggregFunc([ e.countsOut.postComms for e in edgesSource ])
-                self.outStatLikes = aggregFunc([ e.countsOut.statLikes for e in edgesSource ])
-                self.outStatComms = aggregFunc([ e.countsOut.statComms for e in edgesSource ])
-                self.outWallPosts = aggregFunc([ e.countsOut.wallPosts for e in edgesSource ])
-                self.outWallComms = aggregFunc([ e.countsOut.wallComms for e in edgesSource ])
-                self.outTags = aggregFunc([ e.countsOut.tags for e in edgesSource ])
-                self.outPhotoTarget = aggregFunc([ e.countsOut.photoTarget for e in edgesSource ])
-                self.outPhotoOther = aggregFunc([ e.countsOut.photoOther for e in edgesSource ])
-                self.outMutuals = aggregFunc([ e.countsOut.mutuals for e in edgesSource ])
 
