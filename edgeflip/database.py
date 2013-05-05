@@ -104,7 +104,7 @@ TABLES['edges'] =     Table(name='edges',
                                 ('mut_friends', 'INTEGER'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            key=['fbid', 'secid'])
+                            key=['fbid_source', 'fbid_target'])
 
 TABLES['events'] =    Table(name='events',
                             cols=[
