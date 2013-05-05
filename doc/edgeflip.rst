@@ -41,6 +41,15 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`filtering` Module
+-----------------------
+
+.. automodule:: edgeflip.filtering
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 :mod:`ranking` Module
 ---------------------
 
@@ -77,6 +86,23 @@ edgeflip Package
 ----------------------------
 
 .. automodule:: edgeflip.web.ofa_flask
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`web.algorithm` Module
+----------------------------
+
+.. automodule:: edgeflip.web.algorithm
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
+:mod:`web.utils` Module
+----------------------------
+
+.. automodule:: edgeflip.web.utils
     :members:
     :undoc-members:
     :show-inheritance:
