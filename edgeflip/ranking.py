@@ -30,6 +30,14 @@ class EdgeAggregator(object):
                 self.inWallPosts = aggregFunc([ e.countsIn.wallPosts for e in edgesSource ])
                 self.inWallComms = aggregFunc([ e.countsIn.wallComms for e in edgesSource ])
                 self.inTags = aggregFunc([ e.countsIn.tags for e in edgesSource ])
+            else:
+                self.inPostLikes = None
+                self.inPostComms = None
+                self.inStatLikes = None
+                self.inStatComms = None
+                self.inWallPosts = None
+                self.inWallComms = None
+                self.inTags = None
 
             if (requireOutgoing):
                 self.outPostLikes = aggregFunc([ e.countsOut.postLikes for e in edgesSource ])
@@ -42,7 +50,17 @@ class EdgeAggregator(object):
                 self.outPhotoTarget = aggregFunc([ e.countsOut.photoTarget for e in edgesSource ])
                 self.outPhotoOther = aggregFunc([ e.countsOut.photoOther for e in edgesSource ])
                 self.outMutuals = aggregFunc([ e.countsOut.mutuals for e in edgesSource ])
-
+            else:
+                self.outPostLikes = None
+                self.outPostComms = None
+                self.outStatLikes = None
+                self.outStatComms = None
+                self.outWallPosts = None
+                self.outWallComms = None
+                self.outTags = None
+                self.outPhotoTarget = None
+                self.outPhotoOther = None
+                self.outMutuals = None
 
 def prox(e, eMax):
     countMaxWeightTups = []
