@@ -109,6 +109,15 @@ class Edge(object):
         self.countsIn = edgeCountsIn
         self.countsOut = edgeCountsOut
         self.score = None
+    def toDict(self):
+        u = self.secondary
+        d = { 'id': u.id, 'fname': u.fname, 'lname': u.lname, 'name': u.fname + " " + u.lname,
+                'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score,
+                'desc': ''
+        }
+        return d
+
+
 
 
 # class Edge(object):
