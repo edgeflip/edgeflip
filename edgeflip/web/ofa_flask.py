@@ -16,22 +16,21 @@ from .. import filtering
 from ..settings import config
 
 logger = logging.getLogger(__name__)
-
-
 app = flask.Flask(__name__)
-fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
 def button_man():
     """serves the button in iframe on client site"""
-    return flask.render_template('button_man.html', fbParams=fbParams, goto=config.web.button_redirect)
+    return flask.render_template('button_man.html',
+                                 fbParams={'fb_app_name': config.fb_app_name, 'fb_app_id': config.fb_app_id},
+                                 goto=config.web.button_redirect)
 
 # Serves the actual faces & share message
 @app.route("/frame_faces")
 def frame_faces():
     """html container (iframe) for client site """
-    return flask.render_template('frame_faces.html', fbParams=fbParams)
+    return flask.render_template('frame_faces.html', fbParams={'fb_app_name': config.fb_app_name, 'fb_app_id': config.fb_app_id})
 
 
 @app.route("/faces", methods=['POST'])
@@ -92,9 +91,10 @@ def faces():
         actionParams =     {
         'fb_action_type' : 'support',
         'fb_object_type' : 'cause',
-        'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True)
-        }
-        actionParams.update(fbParams)
+        'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True),
+        'fb_app_name': config.fb_app_name,
+        'fb_app_id': config.fb_app_id}
+        
         logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
         content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
@@ -132,9 +132,10 @@ def fb_object():
     'fb_object_title': 'Climate Legislation',
     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-    'fb_object_url' : flask.url_for('fb_object', state=state, _external=True)
+    'fb_object_url' : flask.url_for('fb_object', state=state, _external=True),
+    'fb_app_name': config.fb_app_name,
+    'fb_app_id': config.fb_app_id
     }
-    objParams.update(fbParams)
 
     # zzz Are we going to want/need to pass URL parameters to this redirect?
     redirectURL = config.web.fb_object_redirect
