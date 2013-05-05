@@ -7,12 +7,21 @@ import hashlib
 import logging
 import flask
 
-from . import facebook
-from . import ranking
-from . import database
-from . import datastructs
-from . import config as conf
+
+if (__name__ == "__main__"):
+    import edgeflip.facebook as facebook
+    import edgeflip.ranking as ranking
+    import edgeflip.database as database
+    import edgeflip.datastructs as datastructs
+    import edgeflip.config as conf
+else:
+    from . import facebook
+    from . import ranking
+    from . import database
+    from . import datastructs
+    from . import config as conf
 config = conf.getConfig(includeDefaults=True)
+
 
 
 
@@ -57,12 +66,16 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
+    #if (not sessionId):
+    #    sessionId = generateSessionId(ip, content)
+
     campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
     filterTups = campaign_filterTups.get(campaign, [])
 
-    # Try extending the token. If we hit an error, proceed with what we got from the page.
-    #zzz Will want to do this with the rank demo when we switch away from Shari!
-    tok = facebook.extendTokenFb(tok) or tok
+    # Assume we're starting with a short term token, expiring now, then try extending the
+    # token. If we hit an error, proceed with what we got from the old one.
+    token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+    token = facebook.extendTokenFb(fbid, token) or token
 
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
@@ -73,10 +86,10 @@ def ofa_faces():
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
         logging.debug("user %s is not fresh, retrieving data from fb" % fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
+        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-        database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
+        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
+        database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
     bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
