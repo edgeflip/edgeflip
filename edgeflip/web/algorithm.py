@@ -2,7 +2,7 @@
 
 """
 
-from .ofa_flask import * # XXX gross
+from .sharing import * # XXX gross
 
 ###########################################################################
 

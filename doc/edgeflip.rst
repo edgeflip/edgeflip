@@ -82,14 +82,6 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`web.ofa_flask` Module
-----------------------------
-
-.. automodule:: edgeflip.web.ofa_flask
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`web.algorithm` Module
 ----------------------------
 
@@ -98,6 +90,13 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`web.sharing` Module
+----------------------------
+
+.. automodule:: edgeflip.web.sharing
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 :mod:`web.utils` Module
 ----------------------------
