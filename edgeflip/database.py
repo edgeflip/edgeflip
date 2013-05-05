@@ -98,7 +98,7 @@ TABLES['edges'] =     Table(name='edges',
                                 ('stat_comms', 'INTEGER'),
                                 ('wall_posts', 'INTEGER'),
                                 ('wall_comms', 'INTEGER'),
-                                ('tags', 'INTEGER')
+                                ('tags', 'INTEGER'),
                                 ('photos_target', 'INTEGER'),
                                 ('photos_other', 'INTEGER'),
                                 ('mut_friends', 'INTEGER'),
