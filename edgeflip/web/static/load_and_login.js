@@ -1,5 +1,16 @@
+/* only used if a non-authed user hits the faces page - /faces_frame endpoint 
+
+this should probably redirect to a default page on client site
+or show user a button (same behavior)
+
+*/
+
 var myfbid; // The FB ID of the current user to be filled in upon auth.
 
+/* loads a bunch of images
+
+XXX maybe unused
+*/
 function preload(arrayOfImages) {
 	$(arrayOfImages).each(function () {
 		$('<img />').attr('src',this);
@@ -7,6 +18,7 @@ function preload(arrayOfImages) {
 }
 
 
+/* XXX I can die!*/
 // Should no longer need this since we're subscribing to the statusChange event in FB.init()...
 
 // function show_friends() {
@@ -29,6 +41,7 @@ function preload(arrayOfImages) {
 
 // }
 
+/* pops up facebook's signin page in a _top window */
 function doFBLogin() {
 
 	// Should never get here since we should only send someone to the faces page upon authorizing...
@@ -48,7 +61,7 @@ function doFBLogin() {
 
 }
 
-
+/* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
 function login(fbid, accessToken, response){
 	if (response.authResponse) {
 		var num = 6;
