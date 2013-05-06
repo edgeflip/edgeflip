@@ -71,6 +71,23 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
     return ret
 
 
+def validateClientSubdomain(campaignId, contentId, clientSubdomain):
+    cmpgClientId = dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
+    cntClientId = dbGetObject('client_content', ['client_id'], 'content_id', contentId)[0][0]
+
+    if (cmpgClientId != cntClientId):
+        logging.error("Campaign and content must belong to the same client")
+        raise ValueError("Campaign and content must belong to the same client")
+
+    sub = dbGetClient(cmpgClientId, ['subdomain'])[0][0]
+
+    if (sub != clientSubdomain):
+        logging.error("Subdomain must match campaign's client_id")
+        raise ValueError("Subdomain must match campaign's client_id")
+
+    return cmpgClientId
+
+
 def createButtonStyle(clientId, name, description, htmlFile, cssFile):
     raise NotImplementedError
 
@@ -302,6 +319,27 @@ def createClientContent(clientId, name, description, url):
     return {'client_content_id' : clientContentId}
 
 
+def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
+    choiceSetFilterSlug = choiceSetFilterSlug or ''
+    fbObjectSlug = fbObjectSlug or ''
+
+    sql = "SELECT url FROM client_content WHERE content_id = %s" % contentId
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    try:
+        curs.execute(sql)
+        url = curs.fetchone()[0]
+    finally:
+        conn.close()
+
+    # Fill in choice set and FB object slugs
+    url = url.replace('{{choice_set_slug}}', choiceSetFilterSlug)
+    url = url.replace('{{fb_obj_slug}}', fbObjectSlug)
+
+    return url
+
+
 def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
     if (not facesURL):
         raise ValueError("Must specify a URL for the faces page")
@@ -340,6 +378,16 @@ def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallba
     dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
 
     return 1
+
+
+def getFacesURL(campaignId, contentId):
+    url = dbGetObjectAttributes('campaign_properties', ['client_faces_url'], 'campaign_id', campaignId)[0][0]
+    if (url.find('?') == -1):
+        url += '?'
+    else:
+        url += '&'
+    
+    return url + 'efcmpg=' + str(campaignId) + '&efcnt=' + str(contentId)
 
 
 def checkRequiredFbObjAttributes(attributes):
@@ -432,6 +480,20 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
 # Will also need functions for models/algorithms, but punting on those for now...
 
 
+def dbGetClient(clientId, cols):
+    sql = "SELECT " + ', '.join(cols) + " FROM clients WHERE client_id=" + str(clientId)
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    try:
+        curs.execute(sql)
+        ret = curs.fetchall()
+    finally:
+        conn.close()
+
+    return ret
+
+
 def dbGetObject(table, cols, objectIndex, objectId):
     sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND NOT is_deleted"
     conn = db.getConn()
@@ -460,10 +522,13 @@ def dbGetObjectAttributes(table, cols, objectIndex, objectId):
     return ret
 
 
-def dbGetExperimentTupes(table, index, objectKey, keyTupes):
+def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
     # keyTupes can be [(campaign_id, id)] or [(campaign_id, id), (filter_id, id)] in case of FB Object
-    where = ' AND '.join(['='.join(str(t)) for t in keyTupes])
-    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf FROM " + table + " WHERE " + where + " AND end_dt IS NULL"
+    where = ' AND '.join(['='.join(map(str, t)) for t in keyTupes])
+    ecsql = ''
+    if (extraCols):
+        ecsql = ', '+', '.join(extraCols)
+    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf" + ecsql + " FROM " + table + " WHERE " + where + " AND end_dt IS NULL"
     conn = db.getConn()
     curs = conn.cursor()
 
@@ -518,7 +583,6 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
         conn.close()
 
     logger.debug("_dbWriteAssignment() thread %d wrote %s:%s assignment from session %s", threading.current_thread().ident, featureType, featureRow, sessionId)
-    conn.close()
     
     return 1
 

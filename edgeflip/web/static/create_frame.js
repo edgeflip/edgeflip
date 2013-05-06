@@ -2,6 +2,11 @@
 	var efFrameURL = '/frame_faces';
 	var urlparams = read_url_params();
 
+	var efCampaignId = urlparams['efcmpg'];
+	var efContentId = urlparams['efcnt'];
+
+	efFrameURL = efFrameURL + '/' + efCampaignId + '/' + efContentId
+
 	var efSessionId = urlparams['efsid'];
 	if (efSessionId) {
 		efFrameURL = efFrameURL + '?efsid=' + efSessionId;

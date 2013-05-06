@@ -33,7 +33,7 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
             badCDFS.append(key)
 
     if (not badCDFs):
-        logging.debug("All CDFs well-defined in %s" % cdfTable)
+        logging.debug("All CDFs are well-defined in %s" % cdfTable)
 
     return badCDFs
 
@@ -139,7 +139,7 @@ def validateClientDb():
 
     runDbCheck(curs, sql,
         "Choice set filters with URL-unsafe slugs: %s",
-        "All choice set filter url slugs are safe")
+        "All choice set filter URL slugs are URL-safe")
 
 
     # Full coverage of FB Objects over campaign choice set filters
@@ -215,7 +215,7 @@ def validateClientDb():
 
     runDbCheck(curs, sql,
         "Facebook objects with URL-unsafe slugs: %s",
-        "All Facebook object url slugs are safe")
+        "All Facebook object URL slugs are url-safe")
 
 
     # Every filter associated with a current campaign is current/actually exists

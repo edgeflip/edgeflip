@@ -57,12 +57,14 @@ function login(fbid, accessToken, response){
 		var friends_div = $('#friends_div');
 		var progress = $('#progress');
 		var your_friends_div = $('#your-friends-here');
-					
+
 		var params = JSON.stringify({
 			fbid: fbid,
 			token: accessToken,
 			num: num,
-			sessionid: sessionid	// global session id was pulled in from query string above
+			sessionid: sessionid,	// global session id was pulled in from query string above
+			campaignid: campaignid,
+			contentid: contentid
 		});
 
 		$.ajax({
