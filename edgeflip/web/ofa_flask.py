@@ -141,16 +141,16 @@ def ofa_faces():
     filteredEdges = globalFilter.filterEdgesBySec(edgesRanked)
 
     # Get choice set experiments, do assignment (and write DB)
-    choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic'])
+    choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
     choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
     choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
-    allowGeneric = {r[1] : r[3] for r in choiceSetRecs}[choiceSetId]
+    allowGeneric = {r[1] : [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
 
     # pick best choice set filter (and write DB)
     choiceSet = cdb.getChoiceSet(choiceSetId)
     try:
-        bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric, minFriends=1, eligibleProportion=1.0)
+        bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
     except cdb.TooFewFriendsError as e:
         # zzz Here, basically want to check if there's a fallback campaign.
         # zzz If so, we want to recurse on this entire block (filterRecs down).
@@ -164,7 +164,7 @@ def ofa_faces():
     faceFriends = friendDicts[:numFace]
     allFriends = friendDicts[:25]
 
-    choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else None
+    choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
     fbObjectTable = 'campaign_fb_objects'
     fbObjectIdx = 'campaign_fb_object_id'

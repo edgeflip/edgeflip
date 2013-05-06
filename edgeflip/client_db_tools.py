@@ -25,7 +25,10 @@ def now():
 
 
 def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=False):
-    """Creates a new client in the database, returning the client_id"""
+    """Creates a new client in the database, returning the client_id.
+    Optionally, creates default objects that can be used to get up and
+    running more quickly.
+    """
 
     row = {
             'name' : name, 
@@ -72,6 +75,9 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
 
 
 def validateClientSubdomain(campaignId, contentId, clientSubdomain):
+    """Utility function to check that the client_id associated with
+    a given campaign_id and content_id match the subdomain that the
+    request came in on."""
     cmpgClientId = dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
     cntClientId = dbGetObject('client_content', ['client_id'], 'content_id', contentId)[0][0]
 
@@ -89,15 +95,18 @@ def validateClientSubdomain(campaignId, contentId, clientSubdomain):
 
 
 def createButtonStyle(clientId, name, description, htmlFile, cssFile):
+    """Right now, button styles are hard-coded in the app."""
     raise NotImplementedError
 
 def createFacesStyle(clientId, name, description, htmlFile, cssFile):
+    """Right now, faces styles are hard-coded in the app."""
     raise NotImplementedError
 
 def createFilter(clientId, name, description, features=None, metadata=None):
-    """Creates a new filter, associated with the given client"""
+    """Creates a new filter associated with the given client
 
-    # features is a list of tuples of form (feature, operator, value)
+    features should be a list of tupes of the form: (feature, operator, value)
+    """
 
     features = features if (features is not None) else []
     metadata = metadata if (metadata is not None) else []
@@ -122,7 +131,10 @@ def createFilter(clientId, name, description, features=None, metadata=None):
     return {'filter_id' : filterId}
 
 def updateFilterFeatures(filterId, features, replaceAll=False):
-    """Update features that define a filter"""
+    """Update features that define a filter
+
+    features should be a list of tupes of the form: (feature, operator, value)
+    """
 
     if (not features):
         return 0    # no records to insert
@@ -167,10 +179,15 @@ def updateFilterFeatures(filterId, features, replaceAll=False):
 
 
 def updateCampaignGlobalFilters(campaignId, filterTupes):
-    """Associate filters with a campaign"""
-    # filterTupes should be (filter_id, CDF probability)
-    # will always replace all in the table, since any change affects ALL probabilities
-    
+    """Associate filters with a campaign.
+    Will always replace all rows associated with this campaign in the table,
+    since any change affects ALL probabilities.
+
+    filterTupes should be (filter_id, CDF probability)
+    """
+
+    # Ensure the CDF described by these tuples is well-defined
+    # before trying to insert them (this will raise an exception if not)
     checkCDF(filterTupes)
 
     rows = []
@@ -214,8 +231,10 @@ def getFilter(filterId):
 
 
 def createChoiceSet(clientId, name, description, filters, metadata=None):
+    """Create a new choice set associated with this client
 
-    # filters is a list of tuples of form (filterId, urlSlug, modelType)
+    filters is a list of tuples of the form: (filterId, urlSlug, modelType)
+    """
 
     if (not filters):
         raise ValueError("Must associate at least one filter with a choice set")
@@ -240,6 +259,15 @@ def createChoiceSet(clientId, name, description, filters, metadata=None):
 
 
 def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
+    """Update the filters that make up a given choice set, Optionally
+    replacing all of the current filters or adding to the existing
+    definition (note that records for filters already associated with
+    the choice set and passed here in the filters list will be replaced 
+    in either case).
+
+    filters should be a list of tuples of form: (filterId, urlSlug, modelType)
+    """
+
     if (not filters):
         return 0    # no records to insert
 
@@ -269,21 +297,31 @@ def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
 
 
 def updateCampaignChoiceSets(campaignId, choiceSetTupes):
-    # choiceSetTupes should be (choice_set_id, CDF probability)
-    # will always replace all in the table, since any change affects ALL probabilities
+    """Update the choice sets associated with a campaign.
+    Will always replace all rows associated with this campaign in the table,
+    since any change affects ALL probabilities
+
+    choiceSetTupes should be (choice_set_id, CDF probability, allowGeneric, genericSlug)
+    In the tuples:
+        allowGeneric is a boolean to specify whether the campaign should fall back to
+          generic content if too few friends fall in a given choice set filter.
+        genericSlug provides the url slug that should be passed through to the content URL
+          in that case. 
+    """
     checkCDF([t[:2] for t in choiceSetTupes])
 
     rows = []
-    for choiceSetId, prob, allowGeneric in choiceSetTupes:
+    for choiceSetId, prob, allowGeneric, genericSlug in choiceSetTupes:
         rows.append({
                     'campaign_id' : campaignId,
                     'choice_set_id' : choiceSetId,
                     'rand_cdf' : prob,
                     'allow_generic' : allowGeneric,
+                    'generic_url_slug' : genericSlug,
                     'start_dt' : now()
                     })
 
-    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'start_dt']
+    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'generic_url_slug', 'start_dt']
 
     dbInsert('campaign_choice_sets', 'campaign_choice_set_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
 
@@ -300,6 +338,14 @@ def getChoiceSet(choiceSetId):
 
 
 def createClientContent(clientId, name, description, url):
+    """Create an entry for a piece of content on a client's server.
+    This will be used to determine where to send users after they
+    clickback off a share on Facebook.
+
+    url may contain {{choice_set_slug}} and {{fb_object_slug}} to allow
+    for templating of parameters to tell the client server what page to
+    display to the user on their side.
+    """
     if (not url):
         raise ValueError("Must provide a URL")
 
@@ -320,6 +366,9 @@ def createClientContent(clientId, name, description, url):
 
 
 def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
+    """Return a URL for a piece of client content, with choice set and
+    facebook object slugs filled in.
+    """
     choiceSetFilterSlug = choiceSetFilterSlug or ''
     fbObjectSlug = fbObjectSlug or ''
 
@@ -341,6 +390,14 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
 
 
 def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
+    """Create a new campaign associated with the given client.
+
+    facesURL must be provided and specifies the page on the client's servers
+    that will hold the iframe with the facces/message for sharing.
+    Specifying a fallback campaign and content are optional, but can be used
+    to allow for trying a second campaign if we don't have friends to return
+    for the current one.
+    """
     if (not facesURL):
         raise ValueError("Must specify a URL for the faces page")
     metadata = metadata if (metadata is not None) else []
@@ -364,6 +421,7 @@ def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None,
 
 
 def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallbackContent=None):
+    """Update the properties associated with a given campaign."""
     if (not facesURL):
         raise ValueError("Must specify a URL for the faces page")
 
@@ -381,6 +439,10 @@ def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallba
 
 
 def getFacesURL(campaignId, contentId):
+    """Get the URL (on the client's servers) for the page that will hold
+    the faces iframe. Add querystring parameters for the campaign_id and
+    content_id that our faces page will have to pick up...
+    """
     url = dbGetObjectAttributes('campaign_properties', ['client_faces_url'], 'campaign_id', campaignId)[0][0]
     if (url.find('?') == -1):
         url += '?'
@@ -391,6 +453,9 @@ def getFacesURL(campaignId, contentId):
 
 
 def checkRequiredFbObjAttributes(attributes):
+    """Helper function to check that an atrribute dictionary being used to
+    define a Facebook object contains all the required pieces of information.
+    """
     required_attributes = ['og_action', 'og_type', 'og_title', 'og_image', 'og_description', 'sharing_prompt']
     for attr in required_attributes:
         if (not attributes.get(attr)):
@@ -398,8 +463,12 @@ def checkRequiredFbObjAttributes(attributes):
 
 
 def createFacebookObject(clientId, name, description, attributes, metadata=None):
+    """Create a new Facebook object associated with the client. This determines
+    both what will actually be shared on facebook and the prompt & suggested
+    messages for our sharing page (since those should relate to each other)
 
-    # attributes is a dictionary of Facebook object attributes
+    attributes is a dictionary of the various attributes of the object, too
+    numerous to include as separate parameters to the function."""
 
     checkRequiredFbObjAttributes(attributes)
     metadata = metadata if (metadata is not None) else []
@@ -423,6 +492,7 @@ def createFacebookObject(clientId, name, description, attributes, metadata=None)
 
 
 def updateFacebookObjectAttributes(fbObjectId, attributes):
+    """Update the attributes associated with an existing Facebook object"""
     checkRequiredFbObjAttributes(attributes)
 
     row = attributes
@@ -434,9 +504,17 @@ def updateFacebookObjectAttributes(fbObjectId, attributes):
 
 
 def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTupes=None):
-    # filter_fbObjTupes should be a dictionary: {filter_id : [(fb_object_id, CDF Prob)]}
-    # will always replace all in the table, since any change affects ALL probabilities
-    # Should probably check against DB to ensure objects are provided for ALL filters
+    """Update the facebook objects associated with a given campaign.
+    Will always replace all rows associated with this campaign in the table,
+    since any change affects ALL probabilities
+
+    filter_fbObjTupes should be a dictionary: {filter_id : [(fb_object_id, CDF Prob)]}
+    
+    TODO: Should probably include check against DB to ensure objects are provided for 
+          ALL choice set filters that have been associated with the campaign 
+          (otherwise, someone could come in, get assigned to a set of friends, but have
+          no facebook object to share with them!)
+    """
     for filterId, tupes in filter_fbObjTupes.items():
         checkCDF(tupes)
     if (genericTupes):
@@ -476,11 +554,14 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
 
     return numRows
 
-
-# Will also need functions for models/algorithms, but punting on those for now...
-
+"""
+NOTE:
+Will also need functions for models/algorithms, 
+but punting on those for now...
+"""
 
 def dbGetClient(clientId, cols):
+    """Get the specified columns associated with a client_id"""
     sql = "SELECT " + ', '.join(cols) + " FROM clients WHERE client_id=" + str(clientId)
     conn = db.getConn()
     curs = conn.cursor()
@@ -495,6 +576,9 @@ def dbGetClient(clientId, cols):
 
 
 def dbGetObject(table, cols, objectIndex, objectId):
+    """Get the specified columns associated with a given current object.
+    For instance, might call: dbGetObject('filters', ['name', 'description'], 'filter_id', 42)
+    """
     sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND NOT is_deleted"
     conn = db.getConn()
     curs = conn.cursor()
@@ -509,6 +593,13 @@ def dbGetObject(table, cols, objectIndex, objectId):
 
 
 def dbGetObjectAttributes(table, cols, objectIndex, objectId):
+    """Get the specified columns associated with a given object's attributes.
+    This is mainly distinguished from above by referencing "end_dt" to determine that a 
+    row is current, rather than an object's "is_deleted" field. Could probably combine
+    this with above with an extra param for that...
+
+    Example call: dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'], 'filter_id', 23)
+    """
     sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND end_dt IS NULL"
     conn = db.getConn()
     curs = conn.cursor()
@@ -523,7 +614,21 @@ def dbGetObjectAttributes(table, cols, objectIndex, objectId):
 
 
 def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
-    # keyTupes can be [(campaign_id, id)] or [(campaign_id, id), (filter_id, id)] in case of FB Object
+    """Get the rows that define an A/B test over a certain object type.
+
+    index is the column name for the table's index, used to track the 
+      records that define the experiment in logging.
+    objectKey is the column name for the object type that is being
+      chosen experimentally.
+    keyTupes defines the scope of the experiment and can be 
+      [(campaign_id, id)] or [(campaign_id, id), (filter_id, id)]
+      (the latter is in case of FB Object)
+    extraCols is optional and provided to allow for grabbing additional 
+      info that is specified at the level of the experiment (such as the 
+      'allow_generic' field for choice sets)
+
+    Example call: dbGetExperimentTupes('camapign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', 16)])
+    """
     where = ' AND '.join(['='.join(map(str, t)) for t in keyTupes])
     ecsql = ''
     if (extraCols):
@@ -545,6 +650,12 @@ def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
 
 
 def dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows, background=False):
+    """Record an assignment to a given condition to the database.
+    Used for logging and later experimental purposes.
+
+    This function simply passes parameters through to _dbWriteAssignment()
+    either in the current thread or a background one, depending on the
+    background parameter's value"""
     if (background):
         t = threading.Thread(target=_dbWriteAssignment, args=(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows))
         t.daemon = False
@@ -558,6 +669,7 @@ def dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow,
 
 # helper function that may get run in a background thread
 def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows):
+    """Function that actually records an assignment to the database."""
     tim = datastructs.Timer()
     conn = db.getConn()
     curs = conn.cursor()
@@ -588,6 +700,7 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
 
 
 def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False):
+    """Update the metadata table for a given object."""
 
     if (not metadata):
         return 0    # no records to insert
@@ -668,7 +781,7 @@ def dbSetEndDate(table, index, endIds, connP=None):
 
 def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueCols=None, connP=None, replaceAll=False):
     """Insert rows into the specified table.
-       If replaceAll is any true, any current records associated with the given object
+       If replaceAll is true, any current records associated with the given object
        will be removed (by setting their end_dt). Otherwise, if uniqueCols are specified,
        only existing records that conflict with new ones will be removed."""
 
@@ -722,8 +835,12 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
 
 class Filter(object):
     def __init__(self, filterId, features):
+        """A class to hold filters and associated functionality
+
+        filterId should be the ID from our database
+        features should be a list of tupes: [(feature, operator, value)]
+        """
         self.filterId = int(filterId)
-        # features should be a list of tupes: (feature, operator, value)
         self.features = features
         self.str_func = {
                             "min": lambda x, y: x >= y, 
@@ -733,6 +850,12 @@ class Filter(object):
                         }
 
     def filterFriend(self, user):
+        """Determine if the given user object passes the current filter object.
+
+        Note that we implicitly assume an "AND" relationship between all the
+        feature/operator sets that define the filter. Will likely want more
+        complex logic in the future.
+        """
         for feature, operator, value in self.features:
             if not (hasattr(user, feature) and self.str_func[operator](user.__dict__[feature], value)):
                 return False
@@ -740,11 +863,19 @@ class Filter(object):
         return True    # user made it through all the filters
 
     def filterEdgesBySec(self, edges):
+        """Given a list of edge objects, return those objects for which
+        the secondary passes the current filter."""
         edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
         return edgesgood
 
 class ChoiceSetFilter(Filter):
     def __init__(self, choiceSetFilterId, filterId, urlSlug, modelType=None, features=None, filterObj=None):
+        """A class to hold filters associated with a choice set
+        (in particular, this means holding onto a choice_set_filter_id,
+        a url slug, and a propensity model type).
+
+        May be initialized with either an existing Filter object or
+        a list of feature tuples of form [(feature, operator, value)]"""
 
         if (features is not None and filterObj is not None):
             raise ValueError("Only specify one of features or filterObj")
@@ -761,11 +892,28 @@ class ChoiceSetFilter(Filter):
 
 class ChoiceSet(object):
     def __init__(self, choiceSetId, choiceSetFilters):
+        """A class to represent choice sets and associated choice logic.
+
+        choiceSetId refers to the id for this choice set in our DB.
+        choiceSetFilters should be a list of ChoiceSetFilter objects
+        """
         self.choiceSetId = int(choiceSetId)
         self.choiceSetFilters = choiceSetFilters
         self.sortFunc = lambda el: (len(el), sum([e.score for e in el])/len(el) if el else 0)
 
     def chooseBestFilter(self, edges, useGeneric=False, minFriends=2, eligibleProportion=0.5):
+        """Determine the best choice set filter from a list of edges based on
+        the filter that passes the largest number of secondaries (average score
+        is used for tie breaking)
+
+        useGeneric specifies whether the choice set should fall back to friends
+          who fall in ANY bin if there not enough friends in a single bin.
+        minFriends is the minimum number of friends that must be returned,
+          otherwise, we'll raise a TooFewFriendsError.
+        eligibleProportion specifies the top fraction (based on score) of friends
+          that should even be considered here (if we want to restrict only to
+          those friends with a reasonable proximity to the primary).
+        """
         edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
         elgCount = int(len(edges) * eligibleProportion)
         edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
@@ -792,5 +940,5 @@ class TooFewFriendsError(Exception):
     pass
 
 class CDFProbsError(Exception):
-    """CDF specified for a experimental probabilities is not well-defined"""
+    """CDF defined by provided experimental probabilities is not well-defined"""
     pass

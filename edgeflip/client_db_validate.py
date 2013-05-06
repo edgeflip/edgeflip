@@ -98,6 +98,19 @@ def validateClientDb():
         "All campaigns have a faces URL specified")
 
 
+    # No campaign specifies itself as a fallback
+    # (because infinite loops tend to increase our average time to return content to a user...)
+    # I guess you could still accomplish an infinite loop by having two campaigns that
+    # fall back to each other. Not sure if it's really worth trying to detect that...
+    sql = """SELECT DISTINCT campaign_id FROM campaign_properties
+                    WHERE end_dt IS NULL 
+                    AND fallback_campaign_id = campaign_id;"""
+ 
+    runDbCheck(curs, sql,
+        "Campaigns that fallback to themselves: %s",
+        "No campaigns fallback to themselves")
+
+
     # Every campaign has at least one global filter?
     sql = """SELECT DISTINCT cmp.campaign_id FROM campaigns cmp 
                     LEFT JOIN campaign_global_filters filt 
@@ -140,6 +153,17 @@ def validateClientDb():
     runDbCheck(curs, sql,
         "Choice set filters with URL-unsafe slugs: %s",
         "All choice set filter URL slugs are URL-safe")
+
+
+    # Any campaign specifying a generic_url_slug is url safe
+    # (but note that not every campaign must specify a slug)
+    sql = """SELECT DISTINCT campaign_choice_set_id FROM campaign_choice_sets
+                    WHERE end_dt IS NOT NULL AND generic_url_slug IS NOT NULL
+                    AND generic_url_slug RLIKE '[^A-z0-9%_.~\\|-]';"""
+
+    runDbCheck(curs, sql,
+        "Campaign choice sets with URL-unsafe generic slugs: %s",
+        "All campaign choice set generic URL slugs are URL-safe")
 
 
     # Full coverage of FB Objects over campaign choice set filters
