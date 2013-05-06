@@ -1,4 +1,7 @@
 #!/usr/bin/python
+"""
+XXX I can die!
+"""
 import sys
 import sqlite3
 
