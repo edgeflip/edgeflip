@@ -132,7 +132,6 @@ def ofa_faces():
 
     # Get filter experiments, do assignment (and write DB)
     filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
-    filterRecs = sorted(filterRecs, key=lambda t: t[0])
     filterExpTupes = [(r[1], r[2]) for r in filterRecs]
     globalFilterId = cdb.doRandAssign(filterExpTupes)
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=True)
@@ -143,7 +142,6 @@ def ofa_faces():
 
     # Get choice set experiments, do assignment (and write DB)
     choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic'])
-    choiceSetRecs = sorted(choiceSetRecs, key=lambda t: t[0])
     choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
     choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
@@ -182,7 +180,6 @@ def ofa_faces():
 
     # Get FB Object experiments, do assignment (and write DB)
     fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
-    fbObjectRecs = sorted(fbObjectRecs, key=lambda t: t[0])
     fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
     fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=True)
