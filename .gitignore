@@ -12,3 +12,5 @@ edgeflip/edgeflip.config
 /doc/_build/*
 /doc/snakefood.svg
 *~
+*.sublime-project
+*.sublime-workspace

@@ -1,64 +1,66 @@
 #!/usr/bin/python
+"""closer to what end user facing webapp should look like
+
+"""
+
 import sys
 import time
 import datetime
 import random
-import hashlib
 import logging
 import flask
 
+from .utils import ajaxResponse, generateSessionId, getIP
+from .. import facebook
+from .. import ranking
+from .. import database
+from .. import datastructs
+from .. import stream_queue
 
-if (__name__ == "__main__"):
-    import edgeflip.facebook as facebook
-    import edgeflip.ranking as ranking
-    import edgeflip.database as database
-    import edgeflip.datastructs as datastructs
-    import edgeflip.config as conf
-else:
-    from . import facebook
-    from . import ranking
-    from . import database
-    from . import datastructs
-    from . import config as conf
-config = conf.getConfig(includeDefaults=True)
+from ..settings import config
 
-
+logger = logging.getLogger(__name__)
 
 
 
 app = flask.Flask(__name__)
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
-state_senInfo = conf.readJson(config['ofa_state_config'])  # 'East Calihio' -> {'state_name':'East Calihio',
-                                                            #             'name':'Smokestax',
-                                                            #             'email':'smokestax@senate.gov',
-                                                            #             'phone' : '(202) 123-4567'}
+state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihio',
+                                  #             'name':'Smokestax',
+                                  #             'email':'smokestax@senate.gov',
+                                  #             'phone' : '(202) 123-4567'}
 
 
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa")
 def ofa_auth():
+    """demo"""
     return flask.render_template('ofa_share_wrapper.html')
 
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa_share")
 def ofa_share():
+    """demo"""
     return flask.render_template('ofa_faces_wrapper.html')
 
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man")
 def button_man():
+    """serves the button in iframe on client site"""
     return flask.render_template('cicci.html', fbParams=fbParams, goto=config['ofa_button_redirect'])
 
 # Serves the actual faces & share message
 @app.route("/frame_faces")
 def frame_faces():
+    """html container (iframe) for client site """
     return flask.render_template('ofa_frame_faces.html', fbParams=fbParams)
 
 
 @app.route("/ofa_faces", methods=['POST'])
 def ofa_faces():
-    sys.stderr.write("flask.request.json: %s\n" % (str(flask.request.json)))
+    """return list of faces - HTML snippet"""
+    logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
     campaign = flask.request.json.get('campaign')
@@ -66,10 +68,7 @@ def ofa_faces():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    #if (not sessionId):
-    #    sessionId = generateSessionId(ip, content)
-
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaigns
     filterTups = campaign_filterTups.get(campaign, [])
 
     # Assume we're starting with a short term token, expiring now, then try extending the
@@ -77,15 +76,15 @@ def ofa_faces():
     token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
     token = facebook.extendTokenFb(fbid, token) or token
 
+    """next 60 lines or so get pulled out"""
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
-#    if (False): # Disable DB entirely for now because it's faster to crawl px3...
-        logging.debug("user %s is fresh, getting data from db" % fbid)
+        logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
-        logging.debug("user %s is not fresh, retrieving data from fb" % fbid)
+        logger.debug("user %s is not fresh, retrieving data from fb" % fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
@@ -96,7 +95,7 @@ def ofa_faces():
     if (bestState is not None):
         filterTups.append(('state', 'eq', bestState))
         edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
-        logging.debug("have %d edges after filtering on %s" % (len(edgesFiltered), str(filterTups)))
+        logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
 
         friendDicts = [ e.toDict() for e in edgesFiltered ]
         faceFriends = friendDicts[:numFace]
@@ -104,6 +103,7 @@ def ofa_faces():
 
         senInfo = state_senInfo[bestState]
 
+        """these messages move into database"""
         msgParams = {
         'msg1_pre' : "Hi there ",
         'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
@@ -118,7 +118,7 @@ def ofa_faces():
         'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
         }
         actionParams.update(fbParams)
-        logging.debug('fb_object_url: ' + actionParams['fb_object_url'])
+        logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
         content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
         if (not sessionId):
@@ -129,10 +129,6 @@ def ofa_faces():
                                      face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
     else:
-        #zzz need to figure out what we do here
-        #return flask.render_template('ofa_faces_table_generic.html')
-        #database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'],
-        #      actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url'], None, background=True)
         content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
@@ -140,6 +136,7 @@ def ofa_faces():
 
 
 def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+    """move to filtering module"""
     edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
     elgCount = int(len(edgesRanked) * eligibleProportion)
     edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
@@ -151,11 +148,11 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
             if (state not in statePool):
                 del state_count[state]
     if (state_count):
-        logging.debug("best state counts: %s" % str(state_count))
+        logger.debug("best state counts: %s", str(state_count))
         bestCount = max(state_count.values() + [0])  # in case we don't get any states
         bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
         if (len(bestStates) == 1):
-            logging.debug("best state returning %s" % bestStates[0])
+            logger.debug("best state returning %s", bestStates[0])
             return bestStates[0]
         else:
             # there's a tie for first, so grab the state with the best avg scores
@@ -167,25 +164,30 @@ def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5
                 if (scoreAvg > bestScoreAvg):
                     bestState = state
                     bestScoreAvg = scoreAvg
-            logging.debug("best state returning %s" % bestState)
+            logger.debug("best state returning %s", bestState)
             return bestState
     else:
         return None
 
 def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+    """move to filtering module"""
     str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
     edgesGood = edges[:]
     for attrName, compTag, attrVal in filterTups:
-        logging.debug("filtering %d edges on '%s %s %s'" % (len(edgesGood), attrName, compTag, attrVal))
+        logger.debug("filtering %d edges on '%s %s %s'", len(edgesGood), attrName, compTag, attrVal)
         filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
         edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-        logging.debug("have %d edges left" % (len(edgesGood)))
+        logger.debug("have %d edges left", len(edgesGood))
     return edgesGood
 
 
 @app.route("/ofa_climate/<state>")
 def ofa_climate(state):
-    #state = state.strip().upper()
+    """endpoint linked to on facebook.com
+
+    redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
+    """
+
     senInfo = state_senInfo.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
@@ -210,6 +212,7 @@ def ofa_climate(state):
 # This is an example endpoint... in reality, this page would be on OFA servers
 @app.route("/ofa_landing/<state>")
 def ofa_landing(state):
+    """lives on client site - where ofa_climate redirects to"""
     senInfo = state_senInfo.get(state)
     if (not senInfo):
         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
@@ -218,20 +221,11 @@ def ofa_landing(state):
     return flask.render_template('ofa_climate_landing.html', senInfo=senInfo, page_title=pageTitle)
 
 
-@app.route("/campaign_save", methods=['POST', 'GET'])
-def saveCampaign():
-    campFileName = int(flask.request.json['campFileName'])
-    campName = flask.request.json['campName']
-    configTups = flask.request.json['configTups']
-    result = conf.writeJsonDict(campFileName, {campName: configTups}, overwriteFile=False)
-    if (result):
-        return "Thank you. Your targeting parameters have been applied."
-    else:
-        return "Ruh-roh! Something went wrong..."
-
-
 @app.route('/suppress', methods=['POST'])
 def suppress():
+    """called when user declines a friend. returns a new friend (HTML snippet)
+
+    """
     userid = flask.request.json['userid']
     appid = flask.request.json['appid']
     content = flask.request.json['content']
@@ -254,64 +248,12 @@ def suppress():
     else:
         return ajaxResponse('', 200, sessionId)
 
-
-# @app.route('/clickback', methods=['POST'])
-# def clickback():
-#     actionid = flask.request.json['actionid']
-#     appid = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, None, [None], 'clickback', appid, content, actionid, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
-
-# @app.route('/share', methods=['POST'])
-# def recordShare():
-#     userid = flask.request.json['userid']
-#     actionid = flask.request.json['actionid']
-#     appid = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     friends = [ int(f) for f in flask.request.json['friends'] ]
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, userid, friends, 'shared', appid, content, actionid, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
-
-# @app.route('/button_event', methods=['POST'])
-# def buttonEvent():
-#     userId = flask.request.json['userid']
-#     userId = userId or None
-#     appId = flask.request.json['appid']
-#     content = flask.request.json['content']
-#     eventType = flask.request.json['eventType']
-#     sessionId = flask.request.json['sessionid']
-#     ip = getIP(req = flask.request)
-
-#     if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail']):
-#         return "Ah, ah, ah. You didn't say the magic word.", 403
-
-#     if (not sessionId):
-#         sessionId = generateSessionId(ip, content)
-
-#     database.writeEventsDb(sessionId, ip, userId, [None], eventType, appId, content, None, background=True)
-#     resp = flask.make_response('', 200)
-#     resp.headers['X-EF-SessionID'] = sessionId
-#     return resp
-
 @app.route('/record_event', methods=['POST'])
 def recordEvent():
+    """endpoint that stores client events (clicks, etc.) for analytics
+
+    used on events that don't generate any useful data themselves
+    """
     userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
@@ -323,7 +265,7 @@ def recordEvent():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'share', 'clickback']):
+    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'shared', 'clickback']):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):
@@ -333,30 +275,14 @@ def recordEvent():
     return ajaxResponse('', 200, sessionId)
 
 
-def ajaxResponse(content, code, sessionId):
-    resp = flask.make_response(content, code)
-    resp.headers['X-EF-SessionID'] = sessionId
-    return resp
-
-def getIP(req):
-    if not req.headers.getlist("X-Forwarded-For"):
-       return req.remote_addr
-    else:
-       return req.headers.getlist("X-Forwarded-For")[0]
-
-def generateSessionId(ip, content, timestr=None):
-    if (not timestr):
-        timestr = '%.10f' % time.time()
-    # Is MD5 the right strategy here?
-    sessionId = hashlib.md5(ip+content+timestr).hexdigest()
-    logging.debug('Generated session id %s for IP %s with content %s at time %s' % (sessionId, ip, content, timestr))
-    return sessionId
-
-
 @app.route("/health_check")
 @app.route("/hes_a_good_man_and_thorough")
 def say_ahhh():
+    """ break up into newrelic, internal monitoring
 
+    need aliveness check for ELB.
+
+    """
     iselb = flask.request.args.get('elb', '').lower()
     if (iselb == 'true'): return "It's Alive!", 200
 
@@ -386,7 +312,9 @@ def say_ahhh():
 # (might just want to ultimately do this inline by passing a test mode param so we can actually spin up threads, etc.)
 @app.route("/face_test", methods=['GET','POST'])
 def face_test():
+    """webserver (flask + apache) benchmark method. fakes facebook, can probably die.
 
+    """
     maxTime = int(flask.request.args.get('maxtime', 7))
 
     # Simulate taking to facebook with a 0-7 second sleep
@@ -412,17 +340,12 @@ def face_test():
             )
 
         )
-    #    friendDicts =     [
-    #                        {'id': 123456789, 'fname': 'Bob', 'lname': 'Newhart', 'name': 'Bob Newhart',
-    #                         'gender': 'male', 'age': 63, 'city': 'Chicago', 'state': 'Illinois', 'score': 0.43984,
-    #                         'desc': '0 0 0 0 0 0 0 0 0 0'}
-    #                    ]*100
 
 
     # Actually rank these edges and generate friend dictionaries from them
     edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
 
-    campaign_filterTups = conf.readJson(config['ofa_campaign_config'])
+    campaign_filterTups = config.ofa_campaigns
     campaign = "test"
     filterTups = campaign_filterTups.get(campaign, [])
     edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
@@ -457,9 +380,118 @@ def face_test():
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace)
 
 
+###########################################################################
 
+@app.route('/all_the_dude_ever_wanted')
+@app.route('/demo')
+@app.route('/button')
+
+@app.route('/rank')
+def rank_demo():
+    """for demonstration of algo internals to clients
+    not user facing
+    
+    base page - returns HTML container.
+    
+    originally from demo_flask.py    
+    """
+    default_users = {
+                        'shari': { 'fbid': 1509232539, 'tok': 'AAABlUSrYhfIBAFOpiiSrYlBxIvCgQXMhPPZCUJWM70phLO4gQbssC3APFza3kZCMzlgcMZAkmTjZC9UACIctzDD4pn2ulXkZD'},
+                        'rayid': { 'fbid': 500876410, 'tok': 'AAAGtCIn5MuwBAEaZBhZBr1yK6QfUfhgTZBMKzUt9mkapze1pzXYFZAkvBssMoMar0kQ0WTR6psczIkTiU2KUUdduES8tZCrZBfwFlVh3k71gZDZD'},
+                        'matt': { 'fbid': 100003222687678, 'tok': 'AAAGtCIn5MuwBAMQ9d0HMAYuHgzSadSNiZAQbGxellczZC1OygQzZBx3vPeStoOhM9j05RmCJhOfcc7OMG4I2pCl2RvdlZCCzAbRNbXic9wZDZD'},
+                        '6963': { 'fbid': 6963, 'tok': 'AAAGtCIn5MuwBACC6710Xe3HiUK89U9C9eN58uQPGmfVb83HaQ4ihVvCLAmECtJ0Nttyf3ck59paUirvtZBVZC9kZBMrZCT0ZD'}
+                    }
+
+    rank_user = flask.request.args.get('user', '').lower()
+    fbid = default_users.get(rank_user, {}).get('fbid', None)
+    tok = default_users.get(rank_user, {}).get('tok', None)
+    return flask.render_template('rank_demo.html', fbid=fbid, tok=tok)
+
+@app.route('/rank_faces', methods=['POST'])
+def rank_faces():
+    """for demonstration of algo internals to clients
+    not user facing
+
+    AJAX endpoint for two columns of results in rank_demo; returns HTML fragment
+
+    originally from demo_flask.py
+    """
+
+    import time
+    
+    fbid = int(flask.request.json['fbid'])
+    tok = flask.request.json['token']
+    rankfn = flask.request.json['rankfn']
+
+    if (rankfn.lower() == "px4"):
+
+        # first, spawn a full crawl in the background
+        stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
+
+        # now do a partial crawl real-time
+        edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
+        edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
+        user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
+
+        # spawn off a separate thread to do the database writing
+        database.updateDb(user, tok, edgesRanked, background=True)
+
+    else:
+        edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+
+    friendDicts = [ e.toDict() for e in edgesRanked ]
+
+    # Apply control panel targeting filters
+    filteredDicts = filter_friends(friendDicts)
+
+    ret = flask.render_template('rank_faces.html', rankfn=rankfn, face_friends=filteredDicts)
+    return ret
+    
+
+############################ UTILS #############################
+"""utility code - this should all move to scripts
+
+want big red buttons for control
+
+originally from demo_flask.py
+"""
+
+
+@app.route('/utils')
+def utils():
+    return "Combine queue and DB utils (and log reader?)"
+
+@app.route('/queue')
+def queueStatus(msg=''):
+    if (flask.request.args.get('queueName')):
+        qName = flask.request.args.get('queueName')
+    else:
+        qName = config['queue']
+    qSize = stream_queue.getQueueSize(qName)
+    uTs = time.strftime("%Y-%m-%d %H:%M:%S")
+    lName = './test_queue.txt'
+    return flask.render_template('queue.html', msg=msg, queueName=qName, queueSize=qSize, updateTs=uTs, loadName=lName)
+
+@app.route('/queue_reset')
+def queueReset():
+    qName = flask.request.args.get('queueName')
+    stream_queue.resetQueue(qName)
+    return queueStatus("Queue '%s' has been reset." % (qName))
+
+@app.route('/queue_load')
+def queueLoad():
+    qName = flask.request.args.get('queueName')
+    count = stream_queue.loadQueueFile(flask.request.args.get('queueName'), flask.request.args.get('loadPath'))
+    return queueStatus("Loaded %d entries into queue '%s'." % (count, qName))
+
+@app.route("/db_reset")
+def reset():
+    database.db.dbSetup()
+    return "database has been reset"
 
 ###########################################################################
+
+
 
 if (__name__ == "__main__"):
     if ('--debug' in sys.argv):

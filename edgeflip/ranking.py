@@ -6,12 +6,11 @@ from . import datastructs
 
 import logging
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
+from .settings import config
+
+logger = logging.getLogger(__name__)
 
 
-
-# class EdgeAggregator(Edge):
 class EdgeAggregator(object):
     def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
         # Edge.__init__(self, None, None)
@@ -107,7 +106,7 @@ def prox(e, eMax):
     return pxTotal / weightTotal                
 
 def getFriendRanking(userId, edges, requireIncoming=True, requireOutgoing=True):
-    logging.info("ranking %d edges", len(edges))
+    logger.info("ranking %d edges", len(edges))
     edgesMax = EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
     # score each one and store it on the edge
     for e in edges:
@@ -130,8 +129,6 @@ def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
     edgesPart = database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
     edgesFull = database.getFriendEdgesDb(conn, userId, requireOutgoing=True)
     return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)
-
-
 
 
 #####################################################
@@ -184,10 +181,10 @@ if (__name__ == '__main__'):
         database.updateUserDb(curs, user, tok, None)
         edges = facebook.getFriendEdgesFb(userId, tok, requireIncoming=True, requireOutgoing=REQUIRE_OUTGOING)
         newCount = database.updateFriendEdgesDb(userId, tok, edges)
-        logging.debug("inserted %d new edges\n" % newCount)
+        logger.debug("inserted %d new edges", newCount)
         conn.close()
 
     for friend in getFriendRankingDb(None, userId, REQUIRE_OUTGOING):
         name = "%s %s" % (friend.fname, friend.lname)
-        sys.stderr.write("friend %20s %32s\n" % (friend.id, name))
+        sys.stderr.write("friend %20s %32s" % (friend.id, name))
 

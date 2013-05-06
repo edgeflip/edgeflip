@@ -4,10 +4,10 @@ import time
 import datetime
 from unidecode import unidecode
 
+class Timer(object):
+    """used for inline profiling & debugging
 
-
-
-class Timer:
+    """
     def __init__(self):
         self.start = time.time()
     def reset(self):
@@ -31,7 +31,7 @@ class Timer:
         else:
             return hoursStr + ":" + minsStr + ":" + secsStr
     def stderr(self, txt=""):
-        sys.stderr.write(self.elapsedPr() + " " + txt + "\n")
+        raise NotImplementedError # what is this intended to do? No stderr please!
 
 def unidecodeSafe(s):
     """util func to deal with None, numbers, and unisuck
@@ -68,7 +68,7 @@ class UserInfo(object):
                  unidecodeSafe(self.fname),
                  unidecodeSafe(self.lname),
                  self.gender,
-                 unidecodeSafe(self.age),
+                 str(self.age),
                  unidecodeSafe(self.city),
                  unidecodeSafe(self.state) ]
         return " ".join(rets)

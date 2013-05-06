@@ -1,14 +1,14 @@
 #!/usr/bin/python
+"""utilties around rabbitMQ
+
+"""
 import sys
 import pika
 import argparse
 import json
 import logging
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-logging.getLogger('pika').setLevel(logging.CRITICAL)
-
+from .settings import config
 
 def createQueue(queueName):
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
@@ -54,8 +54,6 @@ def getQueueSize(queueName):
     return count
 
 
-
-
 ##############################################
 
 if (__name__ == '__main__'):
@@ -76,8 +74,6 @@ if (__name__ == '__main__'):
         resetQueue(args.queueName)
     if (args.load):
         loadQueueFile(args.queueName, args.load)    
-        #with open(args.load, 'r') as infile:
-        #    loadQueue(args.queueName, infile, lambda line: json.loads(line.rstrip("\n")))
 
     sys.stderr.write("queue has %d elements\n" % getQueueSize(args.queueName))
 

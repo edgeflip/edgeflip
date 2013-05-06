@@ -2,11 +2,7 @@
 import sys
 import sqlite3
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-
-
-
+from .settings import config 
 
 def getConn():
     return sqlite3.connect(config['dbpath'])

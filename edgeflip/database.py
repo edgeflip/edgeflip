@@ -7,11 +7,11 @@ import threading
 import MySQLdb as mysql
 
 from . import datastructs
-# from . import database_rds as db # modify this to swtch db implementations
-from . import config as conf
 
 config = conf.getConfig(includeDefaults=True)
+from .settings import config
 
+logger = logging.getLogger(__name__)
 
 
 
@@ -208,7 +208,7 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
     freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
     logging.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
-    #logging.debug(sql)
+
     curs = conn.cursor()
     curs.execute(sql)
     rec = curs.fetchone()
@@ -224,6 +224,7 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
             if (freshnessIncludeEdge):
                 curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%s OR sec_id=%s", (userId, userId))
                 rec = curs.fetchone()
+
                 updatedEdge = rec[0]
                 if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshnessDate):
                     ret = None
@@ -318,6 +319,7 @@ def _updateDb(user, token, edges):
     tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
     eCount = updateFriendEdgesDb(curs, edges)
     conn.commit()
+    logger.debug("updateFriendEdgesDb() thread %d updated %d friends and %d edges for user %d (took %s)", threading.current_thread().ident, fCount, eCount, user.id, tim.elapsedPr())
     logging.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     conn.close()
@@ -329,10 +331,10 @@ def updateDb(user, token, edges, background=False):
         t = threading.Thread(target=_updateDb, args=(user, token, edges))
         t.daemon = False
         t.start()
-        logging.debug("updateDb() spawning background thread %d for user %d" % (t.ident, user.id))
+        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
         return 0
     else:
-        logging.debug("updateDb() foreground thread %d for user %d" % (threading.current_thread().ident, user.id))
+        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
         return _updateDb(user, token, edges)
 
 def updateFriendEdgesDb(curs, edges):
@@ -494,6 +496,7 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
         conn.commit()
         insertCount += 1
 
+    logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
     logging.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s" % (threading.current_thread().ident, insertCount, eventType, sessionId))
     conn.close()
 
@@ -506,10 +509,12 @@ def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, a
                              args=(sessionId, ip, userId, friendIds, eventType, appId, content, activityId))
         t.daemon = False
         t.start()
+        logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
         logging.debug("writeEventsDb() spawning background thread %d for %s event from session %s" % (
             t.ident, eventType, sessionId))
         return 0
     else:
+        logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
         logging.debug("writeEventsDb() foreground thread %d for %s event from session %s" % (
             threading.current_thread().ident, eventType, sessionId))
         return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)

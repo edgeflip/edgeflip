@@ -16,70 +16,26 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 6. Add your checkout to the virtualenv `add2virtualenv .`
 7. Upgrade distribute: `pip install -U distribute`
 8. Install python packages: `pip install -r requirements.txt`
+9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
+10. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
+ 
+Local Database
+--------------
+To set up a local mysql database:
 
-Configuring Apache
-------------------
-**XXX this needs a little attention***
+1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
+2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
 
-5. Set up Apache & mod_wsgi: `sudo apt-get install apache2 libapache2-mod-wsgi`
-6. Get some directories ready:
-<pre><code>cd /var/www
-	sudo mkdir edgeflip
-	sudo chmod 755 edgeflip
-	sudo chown www-data edgeflip
-	sudo chgrp www-data edgeflip
-	cd edgeflip
-	sudo emacs edgeflip.wsgi</code></pre>
-7. Contents of edgeflip.wsgi:
-See also: [mod_wsgi virtualenv docs](http://code.google.com/p/modwsgi/wiki/VirtualEnvironments)
-<pre><code>
-    # enable virtualenv
-    activate_this = '/path/to/virtualenvs/edgeflip/bin/activate_this.py'
-    execfile(activate_this, dict(__file__=activate_this))
+Hostname Alias
+--------------
+Facebook requires a URL to use as a callback after auth. To point this to your local development server, add the following entry to `/etc/hosts`
 
-	from edgeflip.ofa_flask import app as application</code></pre>
-8. Set up the git clone:
-<pre><code>sudo chmod 755 edgeflip.wsgi
-	sudo mkdir gitclones
-	sudo chmod 777 gitclones
-	cd gitclones
-	git clone git@github.com:edgeflip/edgeflip.git</code></pre>
-9. Set up logging and edgeflip.config file:
-<pre><code>cd /var/www/edgeflip
-	sudo mkdir logs
-	sudo chown www-data /var/www/edgeflip/logs/
-	sudo chgrp www-data /var/www/edgeflip/logs/
-	cd /var/www
-	sudo emacs edgeflip.config</code></pre>
-10. Contents of edgeflip.config:
-<pre><code>{
-	  "outdir":"edgeflip/",
-	  "codedir":"/var/www/edgeflip/gitclones/edgeflip/edgeflip/",
-	  "logpath":"edgeflip/logs/demo.log",
-	  "dbpath":"edgeflip/demo.sqlite",
-	  "queue":"edgeflip_prod",
-	  "ofa_state_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_states.json",
-	  "ofa_campaign_config": "/var/www/edgeflip/gitclones/edgeflip/edgeflip/config/ofa_campaigns.json"
-	}</code></pre>
-11. Set up Apache Virtual Host:
-<pre><code>cd /etc/apache2
-	sudo emacs httpd.conf</code></pre>
-12. Contents of httpd.conf:
-<pre><code>&lt;VirtualHost *&gt;
-	    ServerName localhost
+```
+127.0.0.1   local.edgeflip.com
+```
 
-	    WSGIDaemonProcess edgeflip processes=2 threads=50
-	    WSGIScriptAlias / /var/www/edgeflip/edgeflip.wsgi
+If you are using a local virtual machine, you will need an entry in the *host* machine's `/etc/hosts` as well. Use the same line, but replace with the IP address of the VM.
 
-	    LogLevel info
-	    ErrorLog "/var/log/apache2/error.log"
-	    CustomLog "/var/log/apache2/access.log" combined
-
-	    &lt;Directory /var/www/edgeflip&gt;
-	        WSGIProcessGroup edgeflip
-	        WSGIApplicationGroup %{GLOBAL}
-	        Order deny,allow
-	        Allow from all
-	    &lt;/Directory&gt;
-	&lt;/VirtualHost&gt;</code></pre>
-13. Finally, restart Apache and you should be up and running: `sudo /etc/init.d/apache2 restart`
+Devel Server
+------------
+To run the server use `bin/devel_server.py`. If you need a barebones server (for use with a debugger, for example), use `bin/debug_server.py`.

@@ -1,4 +1,7 @@
 #!/usr/bin/python
+"""rabbitMQ queue consumer
+
+"""
 import os
 import sys
 import argparse
@@ -12,22 +15,22 @@ import time
 import json
 import pika
 
-from . import config as conf
-config = conf.getConfig(includeDefaults=True)
-logging.getLogger('pika').setLevel(logging.CRITICAL)
+from .settings import config
 
-
-
+logger = logging.getLogger(__name__)
 
 def readStreamCallback(ch, method, properties, body):
-    logging.debug("[worker] got raw message %d '%s' from queue" % (readStreamCallback.messCount, body))
+    """out of band FB crawl, store results in DB
+
+    """
+    logger.debug("[worker] got raw message %d '%s' from queue", readStreamCallback.messCount, body)
     readStreamCallback.messCount += 1
     elts = json.loads(body)
-    #logging.debug("got message elts %s from queue" % str(elts))
+
     userId, tok, extra = elts
     userId = int(userId)
-    logging.debug("[worker] received %d, %s from queue" % (userId, tok))
-    sys.stderr.write("received %d, %s from queue\n" % (userId, tok))
+    logger.debug("[worker] received %d, %s from queue", userId, tok)
+    logger.debug("received %d, %s from queue", userId, tok)
 
     try:
         user = facebook.getUserFb(userId, tok)
@@ -36,7 +39,7 @@ def readStreamCallback(ch, method, properties, body):
         return
 
 
-    logging.debug("[worker] getting friend edges from FB for %d" % userId)
+    logger.debug("[worker] getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     
     conn = database.getConn()
@@ -53,15 +56,15 @@ def readStreamCallback(ch, method, properties, body):
 
     friends = facebook.getFriendsFb(userId, tok)
     friendQueue = [f for f in friends if f.id not in skipFriends]
-    logging.debug("[worker] got %d friends total; updating %d of them" % ( len(friends), len(friendQueue) ))
+    logger.debug("[worker] got %d friends total; updating %d of them",  len(friends), len(friendQueue) )
 
-    logging.info('[worker] reading stream for user %s, %s', userId, tok)
+    logger.info('[worker] reading stream for user %s, %s', userId, tok)
     sc = facebook.ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
-    logging.debug('[worker] got %s', str(sc))
+    logger.debug('[worker] got %s', str(sc))
 
     # sort all the friends by their stream rank (if any) and mutual friend count
     friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
-    logging.debug("[worker] got %d friends ranked", len(friendId_streamrank))
+    logger.debug("[worker] got %d friends ranked", len(friendId_streamrank))
     friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
 
     # Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
@@ -73,14 +76,14 @@ def readStreamCallback(ch, method, properties, body):
         if (readStreamCallback.requireOutgoing):
             timFriend = datastructs.Timer()
 
-            logging.info("[worker] reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+            logger.info("[worker] reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
 
             try:
                 scFriend = facebook.ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
             except Exception as ex:
-                logging.warning("[worker] error reading stream for %d: %s" % (friend.id, str(ex)))
+                logger.warning("[worker] error reading stream for %d: %s", friend.id, str(ex))
                 continue
-            logging.debug('[worker] got %s', str(scFriend))
+            logger.debug('[worker] got %s', str(scFriend))
             e = datastructs.EdgeSC2(user, friend, sc, scFriend)
 
         else:
@@ -91,8 +94,8 @@ def readStreamCallback(ch, method, properties, body):
         conn.commit()
 
         newCount += 1
-        logging.debug('[worker] edge %s', str(e))
-        sys.stderr.write("\twrote edge %d/%d %d--%d %s\n" % (i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e)))
+        logger.debug('[worker] edge %s', str(e))
+        logger.debug("wrote edge %d/%d %d--%d %s", i, len(friendQueue)-1, e.primary.id, e.secondary.id, str(e))
 
         # Throttling for Facebook limits
         # If this friend took fewer seconds to crawl than the number of chunks, wait that
@@ -101,13 +104,13 @@ def readStreamCallback(ch, method, properties, body):
         if (readStreamCallback.requireOutgoing):
             secsLeft = friendSecs - timFriend.elapsedSecs()
             if (secsLeft > 0):
-                logging.debug("Nap time! Waiting %d seconds..." % secsLeft)
+                logger.debug("Nap time! Waiting %d seconds...", secsLeft)
                 time.sleep(secsLeft)
 
     conn.close()
 
-    logging.debug("[worker] updated %d friend edges for %d (took: %s)" % (newCount, userId, tim.elapsedPr()))
-    sys.stderr.write("updated %d friend edges for %d (took: %s)\n" % (newCount, userId, tim.elapsedPr()))
+    logger.debug("[worker] updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
+    logger.debug("updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
 
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
 
@@ -118,12 +121,8 @@ readStreamCallback.messCount = 0
 
 
 def debugCallback(ch, method, properties, body):
-    sys.stderr.write("received %s from queue\n" % (str(body)))
+    logger.debug("received %s from queue", str(body))
     ch.basic_ack(delivery_tag=method.delivery_tag, multiple=False)
-
-
-
-
 
 #####################################################
 
@@ -144,12 +143,10 @@ if (__name__ == '__main__'):
 
     overwriteThresh = args.overwrite
 
-    #zzz
-    #callbackFunc = debugCallback
     callbackFunc = readStreamCallback
 
     pid = os.getpid()
-    logging.info("starting worker %d for queue %s" % (pid, args.queueName))
+    logger.info("starting worker %d for queue %s", pid, args.queueName)
 
     connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
     channel = connection.channel()
