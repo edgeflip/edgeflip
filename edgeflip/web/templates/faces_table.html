@@ -1,3 +1,7 @@
+<!-- DOC snippet returned by faces enpoint
+
+this is the message div and the faces themselves
+ -->
 
 {% from 'new_face.html' import face %}
 
@@ -6,7 +10,7 @@
 </SCRIPT>
 
 <SCRIPT>
-
+    <!-- different sets of friends returned from algorithm -->
     var nextidx = {{ face_friends | length }};
 
     // Just the friends who can come in as faces
@@ -114,6 +118,8 @@
 <script>
 // Adding listeners in script block to ensure necessary divs already exist...
 
+/* event binding & key handling for editable msg div*/
+
 var editable = $('#other_msg');
 var msg_length = $('#other_msg').text().length;
 var max_msg_length = 1000;
@@ -202,6 +208,10 @@ editable.on('keyup', function(event) {
 </script>
 
 <script>
+    /* this whole thing can probably die - boxes should already be unchecked
+
+    commented-out lines can die
+    */
 
     // Quick code to pre-load messages for testing...
     
@@ -224,6 +234,10 @@ editable.on('keyup', function(event) {
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
 
 <SCRIPT>
+    /* resize message div based on browser window size
+
+    replace me with some proper CSS
+    */
 
     function set_right_width() {
         var rcwidth = window.innerWidth 

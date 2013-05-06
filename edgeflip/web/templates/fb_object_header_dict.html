@@ -3,6 +3,7 @@
     <head prefix="og: http://ogp.me/ns# {{ fbParams.fb_app_name }}: 
                   http://ogp.me/ns/apps/{{ fbParams.fb_app_name }}#">
     <title>{{ fbParams.page_title }}</title>
+    <!-- DOC: destination page facebook sends user to after auth -->
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <meta property="fb:app_id" content="{{ fbParams.fb_app_id }}" /> 
@@ -18,7 +19,10 @@
 
     <!-- Ajax call to register clickbacks -->
     <script>
-
+        /* stuff cheesry session id in url
+        event tracking on fb_action_ids
+        redirect to page on client site
+        */
         (function() {
 
             var urlparams = read_url_params();
