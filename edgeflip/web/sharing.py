@@ -62,7 +62,7 @@ def faces():
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
-        edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
         database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()

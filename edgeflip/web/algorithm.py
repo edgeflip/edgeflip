@@ -54,7 +54,7 @@ def rank_faces():
 
         # now do a partial crawl real-time
         edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
-        edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=True, requireOutgoing=False)
         user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
         # spawn off a separate thread to do the database writing
