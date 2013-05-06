@@ -12,6 +12,13 @@ logger = logging.getLogger(__name__)
 
 
 class EdgeAggregator(object):
+    """scoring function
+
+    edgesSource: list of datastructs.Edge from a primary to all friends
+    aggregFunc: a function over properties of Edges (usually max)
+
+    """
+
     def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
         if (len(edgesSource) > 0):
 
@@ -61,6 +68,13 @@ class EdgeAggregator(object):
                 self.outMutuals = None
 
 def prox(e, eMax):
+    """proximity - scoring function
+
+    e: a single datastructs.Edge
+    eMax: EdgeAggregator
+    rtype: score, float 
+
+    """
     countMaxWeightTups = []
     if (e.countsIn is not None):
         countMaxWeightTups.extend([
@@ -105,6 +119,14 @@ def prox(e, eMax):
     return pxTotal / weightTotal                
 
 def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
+    """returns sorted list of edges by score
+
+    mutates Edges!
+
+    edges: list of Edges
+
+    """
+
     logger.info("ranking %d edges", len(edges))
     edgesMax = EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
     # score each one and store it on the edge
@@ -113,10 +135,20 @@ def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
     return sorted(edges, key=lambda x: x.score, reverse=True)
 
 def getFriendRankingDb(conn, userId, requireOutgoing=True):
+    """hits DB, calls getFriendRankingDb
+
+    """
+
     edgesDb = database.getFriendEdgesDb(conn, userId, requireOutgoing)
     return getFriendRanking(edgesDb, requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
+    """conditionally call getFriendRanking
+
+    edgesPart: list of incoming Edges
+    edgesFull: list of incoming + outgoing Edges
+    """
+
     edgeCountPart = len(edgesPart)
     edgeCountFull = len(edgesFull)
     if (edgeCountPart*threshold > edgeCountFull):
@@ -125,6 +157,9 @@ def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
         return getFriendRanking(edgesFull, requireOutgoing=True)
 
 def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
+    """hit DB & call getFriendRankingBestAvail
+
+    """
     edgesPart = database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
     edgesFull = database.getFriendEdgesDb(conn, userId, requireOutgoing=True)
     return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)
@@ -132,6 +167,7 @@ def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
 
 #####################################################
 
+# XXX this can die!
 if (__name__ == '__main__'):
     import facebook
 
