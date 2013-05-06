@@ -88,12 +88,9 @@ def getUrlFb(url):
     return responseJson
 
 def extendTokenFb(user, token):
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
-def extendTokenFb(token):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
-
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
     url += '&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret']
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
     # even if you try passing &format=json in the URL.
@@ -101,8 +98,6 @@ def extendTokenFb(token):
     try:
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
-            # newToken = responseStr.split('=')[1].split('&')[0]
-            # expiresIn = responseStr.split('=')[2]
             tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
             logging.debug("Extended access token %s expires in %s seconds." % (tokNew, expiresIn))
@@ -266,13 +261,9 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                                                photoOth=None,
                                                muts=None)
 
-                #e = datastructs.EdgeSC2(user, friend, sc, scFriend)
                 e = datastructs.Edge(user, friend, ecIn, ecOut)
 
-                logger.debug('got %s', str(scFriend))
-                e = datastructs.EdgeSC2(user, friend, sc, scFriend)
             else:
-                #e = datastructs.EdgeSC1(user, friend, sc)
                 e = datastructs.Edge(user, friend, ecIn, None)
         else:
             ecIn = datastructs.EdgeCounts(friend.id,
@@ -280,7 +271,6 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                   photoTarg=friend.primPhotoTags,
                   photoOth=friend.otherPhotoTags,
                   muts=friend.mutuals)
-            #e = datastructs.EdgeStreamless(user, friend)
             e = datastructs.Edge(user, friend, ecIn, None)
 
         edges.append(e)

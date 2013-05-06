@@ -264,24 +264,11 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
         secId_edgeCountsIn[secId] = edgeCountsIn
 
     if (not requireOutgoing):
-        # for pId, sId, inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm, inTags, photPrim, photOth, muts, updated in curs:
-        #     secondary = getUserDb(conn, sId)
-        #
-        #     # edges.append(datastructs.EdgeFromCounts1(primary, secondary,
-        #     #                                          inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm, inTags,
-        #     #                                          photPrim, photOth, muts))
-        #
-        #     edgeCountsIn = datastructs.EdgeCounts(secondary, primary,
-        #                                           inPstLk, inPstCm, inStLk, inStCm, inWaPst, inWaCm,
-        #                                           inTags, photPrim, photOth)
-        #
-        #     edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None, muts))
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
             secondary = getUserDb(conn, secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
 
     else:
-        # sId_rec1 = dict([ (rec[1], rec) for rec in curs ])  # index should match secId in query above
         sql = sqlSelect + " AND fbid_source=%s"
         params = (newerThan, primId)
         curs.execute(sql, params)
@@ -292,16 +279,6 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
                                                    oTags, oPhOwn, oPhOth, oMuts)
             edgeCountsIn = secId_edgeCountsIn[secId]
             secondary = getUserDb(conn, secId)
-
-            #rec1 = sId_rec1[sId]
-            #pId, sId, iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags, iPhPrim, iPhOth, iMuts, iUpdated = rec1
-
-            # e = datastructs.EdgeFromCounts2(primary, secondary,
-            #                                 iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags,
-            #                                 oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm, oTags,
-            #                                 max(iPhPrim, oPhPrim), max(iPhOth, oPhOth), max(iMuts, oMuts), None)
-            # edges.append(e)
-
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
 
     if (connP is None):
@@ -357,43 +334,10 @@ def updateFriendEdgesDb(curs, edges):
                     'mut_friends': counts.mutuals
                 }
                 writeCount += upsert(curs, "edges", col_val)
-
-    #
-    # incoming = ['in_post_likes', 'in_post_comms', 'in_stat_likes', 'in_stat_comms']
-    # outgoing = ['out_post_likes', 'out_post_comms', 'out_stat_likes', 'out_stat_comms']
-    #
-    # coalesceCols = []
-    # overwriteCols = incoming + ['mut_friends', 'updated']
-    # if (overwriteOutgoing):
-    #     overwriteCols.extend(outgoing)
-    # else:
-    #     coalesceCols.extend(outgoing)
-    #
-    # joinCols = ['prim_id', 'sec_id']
-    #
-    # vals = [{
-    #         'prim_id': e.primary.id, 'sec_id': e.secondary.id,
-    #         'in_post_likes': e.inPostLikes, 'in_post_comms': e.inPostComms,
-    #         'in_stat_likes': e.inStatLikes, 'in_stat_comms': e.inStatComms,
-    #         'out_post_likes': e.outPostLikes, 'out_post_comms': e.outPostComms,
-    #         'out_stat_likes': e.outStatLikes, 'out_stat_comms': e.outStatComms,
-    #         'mut_friends': e.mutuals, 'updated': time.time()
-    #         } for e in edges]
-    #
-    # return db.insert_update(curs, 'edges', coalesceCols, overwriteCols, joinCols, vals)
     return writeCount
 
 
 def updateUsersDb(curs, users):
-    # coalesceCols = []
-    # overwriteCols = ['fname', 'lname', 'gender', 'birthday', 'city', 'state', 'updated']
-    # joinCols = ['fbid']
-    # vals = [{
-    #         'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender,
-    #         'birthday': str(u.birthday), 'city': u.city, 'state': u.state,
-    #         'updated': time.time()
-    #         } for u in users]
-    # return db.insert_update(curs, 'users', coalesceCols, overwriteCols, joinCols, vals)
     updateCount = 0
     for u in users:
         col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,

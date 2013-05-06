@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 class EdgeAggregator(object):
     def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
-        # Edge.__init__(self, None, None)
         if (len(edgesSource) > 0):
 
             # these are defined even if requireIncoming is False, even though they are stored in countsIn
@@ -105,7 +104,7 @@ def prox(e, eMax):
             weightTotal += weight
     return pxTotal / weightTotal                
 
-def getFriendRanking(userId, edges, requireIncoming=True, requireOutgoing=True):
+def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
     logger.info("ranking %d edges", len(edges))
     edgesMax = EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
     # score each one and store it on the edge
@@ -115,15 +114,15 @@ def getFriendRanking(userId, edges, requireIncoming=True, requireOutgoing=True):
 
 def getFriendRankingDb(conn, userId, requireOutgoing=True):
     edgesDb = database.getFriendEdgesDb(conn, userId, requireOutgoing)
-    return getFriendRanking(userId, edgesDb, requireOutgoing)
+    return getFriendRanking(edgesDb, requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
     edgeCountPart = len(edgesPart)
     edgeCountFull = len(edgesFull)
     if (edgeCountPart*threshold > edgeCountFull):
-        return getFriendRanking(userId, edgesPart, requireOutgoing=False)
+        return getFriendRanking(edgesPart, requireOutgoing=False)
     else:
-        return getFriendRanking(userId, edgesFull, requireOutgoing=True)
+        return getFriendRanking(edgesFull, requireOutgoing=True)
 
 def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
     edgesPart = database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
