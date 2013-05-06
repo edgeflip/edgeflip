@@ -7,8 +7,6 @@ import threading
 import MySQLdb as mysql
 
 from . import datastructs
-
-config = conf.getConfig(includeDefaults=True)
 from .settings import config
 
 logger = logging.getLogger(__name__)
@@ -145,8 +143,9 @@ def dbMigrate():
     # create the new token table
     dbSetup(conn, tableKeys=["tokens"])
 
-    # rename users table
+    # rename users table, create new
     curs.execute("RENAME TABLE users TO users_OLD")
+    dbSetup(conn, tableKeys=["users"])
 
     #copy existing tokens from the old users table to the new tokens table
     curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
@@ -162,9 +161,6 @@ def dbMigrate():
             token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
             updateTokensDb(curs, [fbid], token)
 
-    # create the new users table
-    dbSetup(conn, tableKeys=["users"])
-
     # insert old user rows into new table
     sql = """
         INSERT INTO users (fbid, fname, lname, gender, birthday, city, state)
@@ -172,6 +168,14 @@ def dbMigrate():
             FROM users_OLD
     """
     curs.execute(sql)
+
+    # rename edges table, create new
+    curs.execute("RENAME TABLE edges TO edges_OLD")
+    dbSetup(conn, tableKeys=["edges"])
+
+    # rename events table, create new
+    curs.execute("RENAME TABLE events TO events_OLD")
+    dbSetup(conn, tableKeys=["events"])
 
     return
 
@@ -206,7 +210,7 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
     conn = connP if (connP is not None) else getConn()
 
     freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
-    logging.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+    logger.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
 
     curs = conn.cursor()
@@ -216,7 +220,7 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
         ret = None
     else:
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        logging.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
             ret = None
@@ -296,8 +300,7 @@ def _updateDb(user, token, edges):
     tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
     eCount = updateFriendEdgesDb(curs, edges)
     conn.commit()
-    logger.debug("updateFriendEdgesDb() thread %d updated %d friends and %d edges for user %d (took %s)", threading.current_thread().ident, fCount, eCount, user.id, tim.elapsedPr())
-    logging.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
+    logger.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     conn.close()
     return eCount
@@ -383,7 +386,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
-    logging.debug("upsert sql: " + sql + " " + str(params))
+    logger.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
     return curs.rowcount
 
@@ -441,7 +444,6 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
         insertCount += 1
 
     logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
-    logging.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s" % (threading.current_thread().ident, insertCount, eventType, sessionId))
     conn.close()
 
     return insertCount
@@ -454,11 +456,9 @@ def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, a
         t.daemon = False
         t.start()
         logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
-        logging.debug("writeEventsDb() spawning background thread %d for %s event from session %s" % (
             t.ident, eventType, sessionId))
         return 0
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
-        logging.debug("writeEventsDb() foreground thread %d for %s event from session %s" % (
             threading.current_thread().ident, eventType, sessionId))
         return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
