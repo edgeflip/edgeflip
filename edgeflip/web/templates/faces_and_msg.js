@@ -1,6 +1,16 @@
+/* ALL TEH CODES */
+
+/* who user has selected to share with
+
+this should probably turn to a parameter instead of global
+*/
 var recips = []; // List to hold currently selected mention tag recipients
 
+/* makes an HTML snippet - used to create message to share with friends
 
+XXX may never be called w/ forMsg=false?
+
+ */
 function spanStr(id, forMsg) {
 	// forMsg should be true to return code for the message textarea and false for suggested messages
 
@@ -14,6 +24,11 @@ function spanStr(id, forMsg) {
 	return ret
 }
 
+
+/* return a human-friendly string from friends
+
+list of friends from global recips
+*/
 // Return a string with correctly formatted names of current recipients (eg, "Larry, Darryl, and Darryl")
 function friendNames(forMsg) {
   // forMsg should be true to return code for the message textarea and false for suggested messages
@@ -48,6 +63,7 @@ function friendNames(forMsg) {
   return recip_str;
 }
 
+/* manages state of sharing message */
 function msgNamesUpdate(doFocus) {
 
 	$('.suggested_msg .preset_names').html(friendNames(false)); // reword suggested messages
@@ -58,6 +74,12 @@ function msgNamesUpdate(doFocus) {
 	}
 
 }
+
+/* runs when user picks a friend 
+
+activated by click a friend to share with or from manual drop
+
+*/
 
 // refactor function to do any work necessary to select a friend
 // returns true if recipient was added; false otherwise
@@ -87,6 +109,11 @@ function selectFriend(fbid) {
 	}
 }
 
+/* runs when user deselects a friend 
+
+activated by unclick a friend to share with or from manual drop or in edit message
+
+*/
 // refactor function to do any work necessary to unselect a friend
 // returns true if recipient was removed; false otherwise
 function unselectFriend(fbid) {
@@ -111,6 +138,7 @@ function msgRemove(id) {
 	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
 }
 
+/* focuses & moves cursor to end of content-editable div */
 function msgFocusEnd() {
 	$('#other_msg').focus();
 
@@ -136,6 +164,8 @@ function msgFocusEnd() {
 
 }
 
+
+/* if cursor in editable div, & user selects a friend, at add insertion point */
 // Thank you stackoverflow! http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
 function insertAtCursor(html) {
     var sel, range;
@@ -182,6 +212,7 @@ function insertAtCursor(html) {
 	}
 }
 
+/* */
 // more stackoverflow... http://stackoverflow.com/questions/8339857/how-to-know-if-selected-text-is-inside-a-specific-div/8340432#8340432
 function isOrContains(node, container) {
     while (node) {
@@ -237,7 +268,7 @@ function handleUndo() {
   return recips_added;
 }
 
-
+/* populates message div w/ suggested text*/
 function useSuggested(msgID) {
 	$('#other_msg').html($(msgID).html());
 
@@ -250,6 +281,7 @@ function useSuggested(msgID) {
 	msgFocusEnd();
 }
 
+/* selects all friends */
 function checkAll() {
 
 	var divs = $("input[id*='box-']:not(:checked)");
@@ -275,6 +307,7 @@ function toggleFriend(fbid) {
 
 }
 
+/* called when some suppress friend (X in faces list) */
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
 
@@ -352,7 +385,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 
 }
 
-
+/* hits facebook API */
 // Called when someone actually shares a message
 function doShare() {
 
@@ -407,6 +440,7 @@ function doShare() {
 	);
 }
 
+/* records share event on edgeflip servers */
 function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth

@@ -7,6 +7,8 @@ from unidecode import unidecode
 class Timer(object):
     """used for inline profiling & debugging
 
+
+    XXX i can probably die
     """
     def __init__(self):
         self.start = time.time()
@@ -36,6 +38,8 @@ class Timer(object):
 def unidecodeSafe(s):
     """util func to deal with None, numbers, and unisuck
 
+    XXX I can probably die
+
     If `s` is None, returns '?'. Otherwise uses :mod:`unidecode` to produce a reasonable bytestring.
 
     :arg unicode s: a unicode string to convert to bytes
@@ -54,6 +58,12 @@ def unidecodeSafe(s):
             return unidecode(s)
 
 class UserInfo(object):
+    """basic facebook data from a user's profile
+
+    some attrs may be missing
+
+    """
+
     def __init__(self, uid, first_name, last_name, sex, birthday, city, state):
         self.id = uid
         self.fname = first_name
@@ -74,7 +84,13 @@ class UserInfo(object):
         return " ".join(rets)
 
 class FriendInfo(UserInfo):
+    """same as a UserInfo w/ addtional fields relative to a target user
+
+    target user = idPrimary
+    """
+
     def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
+        # XXX replace with super()
         UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
         self.idPrimary = primId
         self.primPhotoTags = primPhotoTags
@@ -82,6 +98,14 @@ class FriendInfo(UserInfo):
         self.mutuals = mutual_friend_count
 
 class TokenInfo(object):
+    """auth token for a user
+
+    friends never have a token, just primary user
+
+    ownerId: which user this token is for
+    expires: when the token expires as datetime string
+    """
+
     def __init__(self, tok, own, app, exp):
         self.tok = tok
         self.ownerId = own
@@ -93,6 +117,9 @@ class TokenInfo(object):
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
         the actions of the source user on the target's feed.
+    
+
+
     """
     def __init__(self, sourceId, targetId,
                  postLikes=None, postComms=None, statLikes=None, statComms=None, wallPosts=None, wallComms=None,
@@ -113,6 +140,16 @@ class EdgeCounts(object):
         self.mutuals = muts
 
 class Edge(object):
+    """relationship between two users
+
+    just a container for other objects in module
+
+    primary: UserInfo
+    secondary: UserInfo
+    edgeCountsIn: primary to secondary
+    edgeCountsOut: secondary to primary
+    """
+
     def __init__(self, primInfo, secInfo, edgeCountsIn, edgeCountsOut=None):
         self.primary = primInfo
         self.secondary = secInfo

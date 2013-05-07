@@ -19,6 +19,10 @@ def getConn():
 
 
 class Table(object):
+    """represents a Table
+
+    XXX mutable default args in __init__
+    """
     def __init__(self, name, cols=[], indices=[], key=[]):
         self.name = name
         self.colTups = []
@@ -62,6 +66,7 @@ class Table(object):
 
 TABLES = dict()
 
+# datastructs.UserInfo
 TABLES['users'] =     Table(name='users',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -75,6 +80,7 @@ TABLES['users'] =     Table(name='users',
                             ],
                             key=['fbid'])
 
+# datastructs.Tokens
 TABLES['tokens'] =    Table(name='tokens',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -86,6 +92,7 @@ TABLES['tokens'] =    Table(name='tokens',
                             ],
                             key=['fbid', 'appid', 'ownerid'])
 
+# raw data behind datastructs.Edge*
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('fbid_source', 'BIGINT'),
@@ -104,6 +111,7 @@ TABLES['edges'] =     Table(name='edges',
                             ],
                             key=['fbid_source', 'fbid_target'])
 
+# user activity tracking
 TABLES['events'] =    Table(name='events',
                             cols=[
                                 ('session_id', 'VARCHAR(128)'),
@@ -120,6 +128,8 @@ TABLES['events'] =    Table(name='events',
 
 # Reset the DB by dropping and recreating tables
 def dbSetup(connP=None, tableKeys=None):
+    """creates tables"""
+
     conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
     if (tableKeys is None):
@@ -137,6 +147,7 @@ def dbSetup(connP=None, tableKeys=None):
         conn.close()
 
 def dbMigrate():
+    """migrate from old (pre token_table) schema"""
     conn = getConn()
     curs = conn.cursor()
 
@@ -191,6 +202,8 @@ def getUserTokenDb(connP, userId, appId):
 
     For now, it simply grabs all non-expired tokens and orders them by
     primary status (whether owner matches user), followed by updated date.
+
+    :rtype: datastructs.TokenInfo
     """
     conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
@@ -211,6 +224,12 @@ def getUserTokenDb(connP, userId, appId):
 
 
 def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
+    """
+    :rtype: datastructs.UserInfo
+
+    freshness - how recent does data need to be? returns None if not fresh enough
+    """
+
     conn = connP if (connP is not None) else getConn()
 
     freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
@@ -249,6 +268,10 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
 
 
 def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
+    """return list of datastructs.Edge objects for primaryId user
+
+    """
+
     conn = connP if (connP is not None) else getConn()
 
     edges = []  # list of edges to be returned
@@ -298,6 +321,8 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 
 # helper function that may get run in a background thread
 def _updateDb(user, token, edges):
+    """takes datastructs.* and writes to database
+    """
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
@@ -307,6 +332,7 @@ def _updateDb(user, token, edges):
     tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
     eCount = updateFriendEdgesDb(curs, edges)
     conn.commit()
+    # XXX bad log message
     logger.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     conn.close()
@@ -314,6 +340,10 @@ def _updateDb(user, token, edges):
 
 
 def updateDb(user, token, edges, background=False):
+    """calls _updateDb maybe in thread
+
+    """
+
     if (background):
         t = threading.Thread(target=_updateDb, args=(user, token, edges))
         t.daemon = False
@@ -325,6 +355,10 @@ def updateDb(user, token, edges, background=False):
         return _updateDb(user, token, edges)
 
 def updateFriendEdgesDb(curs, edges):
+    """update edges table
+
+    """
+
     writeCount = 0
     for e in edges:
         for counts in [e.countsIn, e.countsOut]:
@@ -348,6 +382,10 @@ def updateFriendEdgesDb(curs, edges):
 
 
 def updateUsersDb(curs, users):
+    """update users table
+
+    """
+
     updateCount = 0
     for u in users:
         col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
@@ -356,6 +394,8 @@ def updateUsersDb(curs, users):
     return updateCount
 
 def updateTokensDb(curs, users, token):
+    """update tokens table"""
+
     insertedTokens = 0
     for user in users:
         col_val = {
@@ -433,6 +473,10 @@ def upsert(curs, table, col_val, coalesceCols=None):
 
 # helper function that may get run in a background thread
 def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId):
+    """update events table
+
+    """
+
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
@@ -456,6 +500,9 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
     return insertCount
 
 def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
+    """calls _writeEventsDb maybe in a thread
+
+    """
     # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
     if (background):
         t = threading.Thread(target=_writeEventsDb,

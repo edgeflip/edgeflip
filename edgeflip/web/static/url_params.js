@@ -1,3 +1,4 @@
+/* parses query parameters out of url */
 function read_url_params() {
 	var urlparams = {};
 
