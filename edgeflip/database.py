@@ -456,9 +456,7 @@ def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, a
         t.daemon = False
         t.start()
         logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
-            t.ident, eventType, sessionId))
         return 0
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
-            threading.current_thread().ident, eventType, sessionId))
         return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
