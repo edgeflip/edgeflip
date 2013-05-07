@@ -334,7 +334,6 @@ def objects(fbObjectId, contentId):
     'fb_app_name' : paramsDB[0],
     'fb_app_id' : int(paramsDB[1])
     }
-    objParams.update(fbParams)
 
     return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
 
