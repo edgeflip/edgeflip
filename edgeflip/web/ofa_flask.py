@@ -1,6 +1,8 @@
 #!/usr/bin/python
 """closer to what end user facing webapp should look like
 
+
+TODO: I think this can totally go away now, right? -- Kit
 """
 
 import sys

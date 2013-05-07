@@ -11,6 +11,7 @@ from .utils import ajaxResponse, generateSessionId, getIP
 from .. import facebook
 from .. import ranking
 from .. import database
+from .. import client_db_tools as cdb
 from .. import filtering
 
 from ..settings import config
@@ -19,18 +20,41 @@ logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
 # Serves just a button, to be displayed in an iframe
-@app.route("/button_man")
-def button_man():
+@app.route("/button_man/<int:campaignId>/<int:contentId>")
+def button_man(campaignId, contentId):
     """serves the button in iframe on client site"""
-    return flask.render_template('button_man.html',
-                                 fbParams={'fb_app_name': config.fb_app_name, 'fb_app_id': config.fb_app_id},
-                                 goto=config.web.button_redirect)
+    # Should be able to get subdomain using the subdomain keyword in app.route()
+    # but I was having some trouble getting this to work locally, even setting
+    # app.config['SERVER_NAME'] = 'edgeflip.com:8080' -- should probably revisit,
+    # but this hack will work for now...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404
+
+    facesURL = cdb.getFacesURL(campaignId, contentId)
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+
+    return flask.render_template('button_man.html', fbParams=paramsDict, goto=facesURL)
+
 
 # Serves the actual faces & share message
-@app.route("/frame_faces")
-def frame_faces():
+@app.route("/frame_faces/<int:campaignId>/<int:contentId>")
+def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
-    return flask.render_template('frame_faces.html', fbParams={'fb_app_name': config.fb_app_name, 'fb_app_id': config.fb_app_id})
+    # zzz As above, do this right (with subdomain keyword)...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404     # Better fallback here or something?
+
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+
+    return flask.render_template('frame_faces.html', fbParams=paramsDict, campaignId=campaignId, contentId=contentId)
 
 
 @app.route("/faces", methods=['POST'])
@@ -39,108 +63,243 @@ def faces():
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
-    campaign = flask.request.json.get('campaign')
+# TO REMOVE ON TESTING:
+#    campaign = flask.request.json.get('campaign')
     numFace = int(flask.request.json['num'])
     sessionId = flask.request.json['sessionid']
+    campaignId = flask.request.json['campaignid']
+    contentId = flask.request.json['contentid']
     ip = getIP(req = flask.request)
 
-    campaign_filterTups = config.ofa_campaigns
-    filterTups = campaign_filterTups.get(campaign, [])
+    # zzz As above, do this right (with subdomain keyword)...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404     # Better fallback here or something?
 
-    # Try extending the token. If we hit an error, proceed with what we got from the page.
-    #zzz Will want to do this with the rank demo when we switch away from Shari!
-    tok = facebook.extendTokenFb(tok) or tok
+# TO REMOVE ON TESTING:
+#    campaign_filterTups = config.ofa_campaigns
+#    filterTups = campaign_filterTups.get(campaign, [])
+
+    # Assume we're starting with a short term token, expiring now, then try extending the
+    # token. If we hit an error, proceed with what we got from the old one.
+    token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+    token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
     conn = database.getConn()
     user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
-
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
+        edgesUnranked = facebook.getFriendEdgesFb(fbid, token, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-        database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
+        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token)
+        database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
-    bestState = filtering.getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
-    if (bestState is not None):
-        filterTups.append(('state', 'eq', bestState))
-        edgesFiltered = filtering.filterEdgesBySec(edgesRanked, filterTups)
-        logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
+    # Get filter experiments, do assignment (and write DB)
+    filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
+    filterExpTupes = [(r[1], r[2]) for r in filterRecs]
+    globalFilterId = cdb.doRandAssign(filterExpTupes)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=True)
 
-        friendDicts = [ e.toDict() for e in edgesFiltered ]
-        faceFriends = friendDicts[:numFace]
-        allFriends = friendDicts[:25]
+    # apply filter
+    globalFilter = cdb.getFilter(globalFilterId)
+    filteredEdges = globalFilter.filterEdgesBySec(edgesRanked)
 
-        senInfo = config.ofa_states[bestState]
+    # Get choice set experiments, do assignment (and write DB)
+    choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
+    choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
+    choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
+    allowGeneric = {r[1] : [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
 
-        """these messages move into database"""
-        msgParams = {
-        'msg1_pre' : "Hi there ",
-        'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
-        'msg2_pre' : "Now is the time for real climate legislation, ",
-        'msg2_post' : "!",
-        'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-        'msg_other_init' : "Replace this text with your message for "
-        }
-        actionParams =     {
-        'fb_action_type' : 'support',
-        'fb_object_type' : 'cause',
-        'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True),
-        'fb_app_name': config.fb_app_name,
-        'fb_app_id': config.fb_app_id}
-        
-        logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
-
-        content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
-        if (not sessionId):
-            sessionId = generateSessionId(ip, content)
-
-        database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
-        return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-                                     face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
-
-    else:
+    # pick best choice set filter (and write DB)
+    choiceSet = cdb.getChoiceSet(choiceSetId)
+    try:
+        bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
+    except cdb.TooFewFriendsError as e:
+        # zzz Here, basically want to check if there's a fallback campaign.
+        # zzz If so, we want to recurse on this entire block (filterRecs down).
+        # zzz If not, we need to return some error to the user...
         content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
         return ajaxResponse('all of your friends are stateless', 200, sessionId)
 
-@app.route("/fb_object")
-def fb_object():
+    friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
+    faceFriends = friendDicts[:numFace]
+    allFriends = friendDicts[:25]
+
+    choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
+
+    fbObjectTable = 'campaign_fb_objects'
+    fbObjectIdx = 'campaign_fb_object_id'
+    fbObjectKeys = [('campaign_id', campaignId)]
+    if (bestCSFilter[0] is None):
+        # We got generic...
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        fbObjectTable = 'campaign_fb_objects'
+        fbObjectIdx = 'campaign_fb_object_id'
+    else:
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        fbObjectKeys = [('campaign_id', campaignId), ('filter_id', bestCSFilter[0].filterId)]
+
+    # Get FB Object experiments, do assignment (and write DB)
+    fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
+    fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
+    fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=True)
+
+    # Find template params, return faces
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+                    ['og_action', 'og_type', 'sharing_prompt', 
+                    'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post'], 
+                    'fb_object_id', fbObjectId)[0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+
+    msgParams = {
+        'sharing_prompt' : fbObjectInfo[2],
+        'msg1_pre' : fbObjectInfo[3],
+        'msg1_post' : fbObjectInfo[4],
+        'msg2_pre' : fbObjectInfo[5],
+        'msg2_post' : fbObjectInfo[6]
+    }
+    actionParams = {
+        'fb_action_type' : fbObjectInfo[0],
+        'fb_object_type' : fbObjectInfo[1],
+        'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+        'fb_app_name' : paramsDB[0],
+        'fb_app_id' : int(paramsDB[1])
+    }
+    logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
+
+    content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
+    if (not sessionId):
+        sessionId = generateSessionId(ip, content)
+
+    database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
+                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+
+
+# TO REMOVE ON TESTING:
+    # bestState = filtering.getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
+    # if (bestState is not None):
+    #     filterTups.append(('state', 'eq', bestState))
+    #     edgesFiltered = filtering.filterEdgesBySec(edgesRanked, filterTups)
+    #     logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
+
+    #     friendDicts = [ e.toDict() for e in edgesFiltered ]
+    #     faceFriends = friendDicts[:numFace]
+    #     allFriends = friendDicts[:25]
+
+    #     senInfo = config.ofa_states[bestState]
+
+    #     """these messages move into database"""
+    #     msgParams = {
+    #     'msg1_pre' : "Hi there ",
+    #     'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
+    #     'msg2_pre' : "Now is the time for real climate legislation, ",
+    #     'msg2_post' : "!",
+    #     'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
+    #     'msg_other_init' : "Replace this text with your message for "
+    #     }
+    #     actionParams =     {
+    #     'fb_action_type' : 'support',
+    #     'fb_object_type' : 'cause',
+    #     'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True),
+    #     'fb_app_name': config.fb_app_name,
+    #     'fb_app_id': config.fb_app_id}
+        
+    #     logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
+
+    #     content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
+    #     if (not sessionId):
+    #         sessionId = generateSessionId(ip, content)
+
+    #     database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    #     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+    #                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+
+    # else:
+    #     content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
+    #     if (not sessionId):
+    #         sessionId = generateSessionId(ip, content)
+    #     return ajaxResponse('all of your friends are stateless', 200, sessionId)
+
+
+@app.route("/objects/<fbObjectId>/<contentId>")
+def objects(fbObjectId, contentId):
     """endpoint linked to on facebook.com
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
-    state = flask.request.args.get('state')
-    if state is None:
-        return "No state specified", 404
-    
-    senInfo = config.ofa_states.get(state)
-    if (not senInfo):
-        return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+                    ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
+                    'page_title', 'url_slug'], 
+                    'fb_object_id', fbObjectId)[0]
+    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)[0][0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+
+    choiceSetSlug = flask.request.args.get('csslug', '')
+    fbObjectSlug = fbObjectInfo[6]
+
+    # Determine redirect URL
+    redirectURL = cdb.getClientContentURL(contentId, choiceSetSlug, fbObjectSlug)
 
     objParams = {
-    'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
-    'fb_action_type': 'support',
-    'fb_object_type': 'cause',
-    'fb_object_title': 'Climate Legislation',
-    'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-    'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-    'fb_object_url' : flask.url_for('fb_object', state=state, _external=True),
-    'fb_app_name': config.fb_app_name,
-    'fb_app_id': config.fb_app_id
+    'page_title': fbObjectInfo[5],
+    'fb_action_type': fbObjectInfo[0],
+    'fb_object_type': fbObjectInfo[1],
+    'fb_object_title': fbObjectInfo[2],
+    'fb_object_image': fbObjectInfo[3],     # zzz need to figure out if these will all be hosted locally or full URL's in DB
+    'fb_object_desc': fbObjectInfo[4],
+    'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+    'fb_app_name' : paramsDB[0],
+    'fb_app_id' : int(paramsDB[1])
     }
-
-    # zzz Are we going to want/need to pass URL parameters to this redirect?
-    redirectURL = config.web.fb_object_redirect
+    objParams.update(fbParams)
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
+
+
+# TO REMOVE ON TESTING:
+# @app.route("/fb_object")
+# def fb_object():
+#     """endpoint linked to on facebook.com
+
+#     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
+#     """
+#     state = flask.request.args.get('state')
+#     if state is None:
+#         return "No state specified", 404
+    
+#     senInfo = config.ofa_states.get(state)
+#     if (not senInfo):
+#         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+
+#     objParams = {
+#     'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
+#     'fb_action_type': 'support',
+#     'fb_object_type': 'cause',
+#     'fb_object_title': 'Climate Legislation',
+#     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
+#     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
+#     'fb_object_url' : flask.url_for('fb_object', state=state, _external=True),
+#     'fb_app_name': config.fb_app_name,
+#     'fb_app_id': config.fb_app_id
+#     }
+
+#     # zzz Are we going to want/need to pass URL parameters to this redirect?
+#     redirectURL = config.web.fb_object_redirect
+
+#     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
 @app.route('/suppress', methods=['POST'])

@@ -1,5 +1,9 @@
 """functions for filtering
 
+
+TODO: These can go away, but we'll probably want to move the filter-specific
+      stuff from client_db_tools.py in here (which is where all this logic
+      has moved at this point) -- Kit
 """
 
 import logging
