@@ -17,7 +17,9 @@ from .settings import config
 
 logger = logging.getLogger(__name__)
 
-FILTER_LIST_DELIM = '||'
+"""TODO: verify client_id matches between object & campaign when creating associations!"""
+
+FILTER_LIST_DELIM = '||'  # Shouldn't move to config, since this needs to be globally used in the DB
 
 def now():
     """Return the current GMT time formatted for MySQL"""

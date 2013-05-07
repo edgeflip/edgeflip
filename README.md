@@ -11,7 +11,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
 2. Install minimal developer tools `sudo apt-get install git`
 3. Check out the repo `git clone https://github.com/edgeflip/edgeflip.git` *All following commands are run in checkout directory.*
-4. Install system dependencies: `./scripts/install-dependencies.txt`
+4. Install system dependencies: `./scripts/install-dependencies.sh`
 5. Create a virtualenv (you will need to open a new terminal/shell first): `mkvirtualenv edgeflip`
 6. Add your checkout to the virtualenv `add2virtualenv .`
 7. Upgrade distribute: `pip install -U distribute`

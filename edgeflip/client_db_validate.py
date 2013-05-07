@@ -29,11 +29,11 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
         try:
             cdb.checkCDF(tupes)
         except cdb.CDFProbsError as e:
-            logging.error("Bad CDF found in %s for %s=%s: %s", (cdfTable, str(keyCols), str(key), str(e)))
+            logger.error("Bad CDF found in %s for %s=%s: %s", (cdfTable, str(keyCols), str(key), str(e)))
             badCDFS.append(key)
 
     if (not badCDFs):
-        logging.debug("All CDFs are well-defined in %s" % cdfTable)
+        logger.debug("All CDFs are well-defined in %s" % cdfTable)
 
     return badCDFs
 
@@ -51,9 +51,9 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 
     if (rows):
         badRecs = ', '.join([errorRecsFn(r) for r in rows])
-        logging.error(errorMsg % badRecs)
+        logger.error(errorMsg % badRecs)
     else:
-        logging.debug(okMsg)
+        logger.debug(okMsg)
 
     return rows
 
@@ -61,7 +61,7 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 def validateClientDb():
     """Run several validation checks against the DB client schema"""
 
-    logging.debug("=========== Running Client DB Validation ===========")
+    logger.debug("=========== Running Client DB Validation ===========")
 
     conn = db.getConn()
     curs = conn.cursor()
@@ -109,6 +109,32 @@ def validateClientDb():
     runDbCheck(curs, sql,
         "Campaigns that fallback to themselves: %s",
         "No campaigns fallback to themselves")
+
+
+    # Fallback campaign client_id matches parent campaign client_id
+    sql = """SELECT DISTINCT cmp1.campaign_id FROM campaign_properties props
+                    JOIN campaigns cmp1 on props.campaign_id = cmp1.campaign_id
+                    JOIN campaigns cmp2 on props.fallback_campaign_id = cmp2.campaign_id
+                    WHERE props.end_dt IS NULL 
+                    AND NOT cmp1.is_deleted
+                    AND cmp1.client_id != cmp2.client_id;"""
+ 
+    runDbCheck(curs, sql,
+        "Campaigns that specify a fallback campaign belonging to another client: %s",
+        "No campaigns specify a fallback campaign belonging to another client")
+
+
+    # Fallback content client_id matches parent campaign client_id
+    sql = """SELECT DISTINCT cmp1.campaign_id FROM campaign_properties props
+                    JOIN campaigns cmp1 on props.campaign_id = cmp1.campaign_id
+                    JOIN client_content cnt2 on props.fallback_content_id = cnt2.content_id
+                    WHERE props.end_dt IS NULL 
+                    AND NOT cmp1.is_deleted
+                    AND cmp1.client_id != cnt2.client_id;"""
+ 
+    runDbCheck(curs, sql,
+        "Campaigns that specify fallback content belonging to another client: %s",
+        "No campaigns specify fallback content belonging to another client")
 
 
     # Every campaign has at least one global filter?
@@ -286,6 +312,29 @@ def validateClientDb():
         "Missing FB objects associated with campaigns: %s",
         "All FB objects associated with campaigns are accounted for.")
 
+
+    # Every fallback campaign associated with a current campaign is current/actually exists
+    sql = """SELECT DISTINCT props.campaign_id FROM campaign_properties props
+                    LEFT JOIN campaigns cmp ON props.fallback_campaign_id = cmp.campaign_id
+                    WHERE props.end_dt IS NULL AND props.fallback_campaign_id IS NOT NULL
+                    AND (cmp.is_deleted OR cmp.campaign_id IS NULL);"""
+
+    runDbCheck(curs, sql,
+        "Missing fallback campaigns associated with campaigns: %s",
+        "All fallback campaigns associated with campaigns are accounted for.")
+
+
+    # Every fallback content associated with a current campaign is current/actually exists
+    sql = """SELECT DISTINCT props.campaign_id FROM campaign_properties props
+                    LEFT JOIN client_content cnt ON props.fallback_content_id = cnt.content_id
+                    WHERE props.end_dt IS NULL AND props.fallback_content_id
+                    AND (cnt.is_deleted OR cnt.content_id IS NULL);"""
+
+    runDbCheck(curs, sql,
+        "Missing fallback content associated with campaigns: %s",
+        "All fallback content associated with campaigns are accounted for.")
+
+
     conn.close()
 
-    logging.debug("=========== Finished Client DB Validation ===========")
+    logger.debug("=========== Finished Client DB Validation ===========")

@@ -21,6 +21,8 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
+MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
+
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man/<int:campaignId>/<int:contentId>")
 def button_man(campaignId, contentId):
@@ -80,13 +82,20 @@ def faces():
     except ValueError as e:
         return "Content not found", 404     # Better fallback here or something?
 
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+
+    if (not sessionId):
+        # If we don't have a sessionId, generate one with "content" as the button that would have pointed to this page...
+        thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
+        sessionId = generateSessionId(ip, thisContent)
+
 # TO REMOVE ON TESTING:
 #    campaign_filterTups = config.ofa_campaigns
 #    filterTups = campaign_filterTups.get(campaign, [])
 
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
-    token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+    token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
     token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
@@ -101,9 +110,22 @@ def faces():
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
-        database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
+        database.updateDb(user, token, edgesRanked, background=True)
     conn.close()
 
+    return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
+
+
+def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount=0):
+    """Do the work of applying campaign properties to a set of edges.
+    May recursively call itself upon falling back, up to MAX_FALLBACK_COUNT times.
+
+    Should move out of the flask app soon...
+    """
+
+    if (fallbackCount > MAX_FALLBACK_COUNT):
+        raise RuntimeError("Exceeded maximum fallback count")
+    
     # Get filter experiments, do assignment (and write DB)
     filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
     filterExpTupes = [(r[1], r[2]) for r in filterRecs]
@@ -126,13 +148,27 @@ def faces():
     try:
         bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
     except cdb.TooFewFriendsError as e:
-        # zzz Here, basically want to check if there's a fallback campaign.
-        # zzz If so, we want to recurse on this entire block (filterRecs down).
-        # zzz If not, we need to return some error to the user...
-        content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
-        if (not sessionId):
-            sessionId = generateSessionId(ip, content)
-        return ajaxResponse('all of your friends are stateless', 200, sessionId)
+        logger.debug("Too few friends found for %s with campaign %s. Checking for fallback." % (fbid, campaignId))
+
+        # Get fallback campaign_id and content_id from DB
+        cmpgPropsId, fallbackCampaignId, fallbackContentId = cdb.dbGetObjectAttributes('campaign_properties', ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id'], 'campaign_id', campaignId)[0]
+        # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
+        if (fallbackCampaignId is None):
+            # zzz Obviously, do something smarter here...
+            return ajaxResponse('No friends identified for you.', 200, sessionId)
+
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
+
+        # if fallback content_id IS NULL, defer to current content_id
+        if (fallbackContentId is None):
+            fallbackContentId = contentId
+
+        # write "fallback" assignments to DB
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=True)
+
+        # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
+        return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
     faceFriends = friendDicts[:numFace]
@@ -145,6 +181,7 @@ def faces():
     fbObjectKeys = [('campaign_id', campaignId)]
     if (bestCSFilter[0] is None):
         # We got generic...
+        logger.debug("Generic returned for %s with campaign %s." % (fbid, campaignId))
         cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
         fbObjectTable = 'campaign_fb_objects'
         fbObjectIdx = 'campaign_fb_object_id'
@@ -163,7 +200,6 @@ def faces():
                     ['og_action', 'og_type', 'sharing_prompt', 
                     'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post'], 
                     'fb_object_id', fbObjectId)[0]
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
 
     msgParams = {
         'sharing_prompt' : fbObjectInfo[2],
@@ -188,6 +224,7 @@ def faces():
     database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+
 
 
 # TO REMOVE ON TESTING:

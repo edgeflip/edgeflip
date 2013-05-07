@@ -235,7 +235,9 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
                 rec = curs.fetchone()
 
                 updatedEdge = rec[0]
-                if (updatedEdge is None) or (datetime.date.fromtimestamp(updatedEdge) < freshnessDate):
+                # zzz updated is now coming back as a datetime.datetime(), no longer a float.
+                #     Used to be datetime.date.fromtimestamp(updatedEdge)
+                if (updatedEdge is None) or (updatedEdge < freshnessDate):
                     ret = None
                 else:
                     ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
