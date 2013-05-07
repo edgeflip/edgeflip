@@ -1,6 +1,8 @@
 #!/usr/bin/python
 """closer to what end user facing webapp should look like
 
+
+TODO: I think this can totally go away now, right? -- Kit
 """
 
 import sys
@@ -14,6 +16,7 @@ from .utils import ajaxResponse, generateSessionId, getIP
 from .. import facebook
 from .. import ranking
 from .. import database
+from .. import client_db_tools as cdb
 from .. import datastructs
 from .. import stream_queue
 
@@ -24,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 
 app = flask.Flask(__name__)
+
 fbParams = { 'fb_app_name': config['fb_app_name'], 'fb_app_id': config['fb_app_id'] }
 state_senInfo = config.ofa_states # 'East Calihio' -> {'state_name':'East Calihio',
                                   #             'name':'Smokestax',
@@ -43,18 +47,42 @@ def ofa_share():
     """demo"""
     return flask.render_template('ofa_faces_wrapper.html')
 
-
 # Serves just a button, to be displayed in an iframe
-@app.route("/button_man")
-def button_man():
+@app.route("/button_man/<int:campaignId>/<int:contentId>")
+def button_man(campaignId, contentId):
     """serves the button in iframe on client site"""
-    return flask.render_template('cicci.html', fbParams=fbParams, goto=config['ofa_button_redirect'])
+    # Should be able to get subdomain using the subdomain keyword in app.route()
+    # but I was having some trouble getting this to work locally, even setting
+    # app.config['SERVER_NAME'] = 'edgeflip.com:8080' -- should probably revisit,
+    # but this hack will work for now...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404
+
+    facesURL = cdb.getFacesURL(campaignId, contentId)
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+
+    return flask.render_template('cicci.html', fbParams=paramsDict, goto=facesURL)
+
 
 # Serves the actual faces & share message
-@app.route("/frame_faces")
-def frame_faces():
+@app.route("/frame_faces/<int:campaignId>/<int:contentId>")
+def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
-    return flask.render_template('ofa_frame_faces.html', fbParams=fbParams)
+    # zzz As above, do this right (with subdomain keyword)...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404     # Better fallback here or something?
+
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+
+    return flask.render_template('ofa_frame_faces.html', fbParams=paramsDict, campaignId=campaignId, contentId=contentId)
 
 
 @app.route("/ofa_faces", methods=['POST'])
@@ -63,13 +91,22 @@ def ofa_faces():
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
-    campaign = flask.request.json.get('campaign')
+#    campaign = flask.request.json.get('campaign')
     numFace = int(flask.request.json['num'])
     sessionId = flask.request.json['sessionid']
+    campaignId = flask.request.json['campaignid']
+    contentId = flask.request.json['contentid']
     ip = getIP(req = flask.request)
 
-    campaign_filterTups = config.ofa_campaigns
-    filterTups = campaign_filterTups.get(campaign, [])
+    # zzz As above, do this right (with subdomain keyword)...
+    clientSubdomain = flask.request.host.split('.')[0]
+    try:
+        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    except ValueError as e:
+        return "Content not found", 404     # Better fallback here or something?
+
+#    campaign_filterTups = config.ofa_campaigns
+#    filterTups = campaign_filterTups.get(campaign, [])
 
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
@@ -91,122 +128,243 @@ def ofa_faces():
         database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
-    bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
-    if (bestState is not None):
-        filterTups.append(('state', 'eq', bestState))
-        edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
-        logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
+    # Get filter experiments, do assignment (and write DB)
+    filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
+    filterExpTupes = [(r[1], r[2]) for r in filterRecs]
+    globalFilterId = cdb.doRandAssign(filterExpTupes)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=True)
 
-        friendDicts = [ e.toDict() for e in edgesFiltered ]
-        faceFriends = friendDicts[:numFace]
-        allFriends = friendDicts[:25]
+    # apply filter
+    globalFilter = cdb.getFilter(globalFilterId)
+    filteredEdges = globalFilter.filterEdgesBySec(edgesRanked)
 
-        senInfo = state_senInfo[bestState]
+    # Get choice set experiments, do assignment (and write DB)
+    choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
+    choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
+    choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
+    allowGeneric = {r[1] : [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
 
-        """these messages move into database"""
-        msgParams = {
-        'msg1_pre' : "Hi there ",
-        'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
-        'msg2_pre' : "Now is the time for real climate legislation, ",
-        'msg2_post' : "!",
-        'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-        'msg_other_init' : "Replace this text with your message for "
-        }
-        actionParams =     {
-        'fb_action_type' : 'support',
-        'fb_object_type' : 'cause',
-        'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
-        }
-        actionParams.update(fbParams)
-        logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
-
-        content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
-        if (not sessionId):
-            sessionId = generateSessionId(ip, content)
-
-        database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
-        return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-                                     face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
-
-    else:
+    # pick best choice set filter (and write DB)
+    choiceSet = cdb.getChoiceSet(choiceSetId)
+    try:
+        bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
+    except cdb.TooFewFriendsError as e:
+        # zzz Here, basically want to check if there's a fallback campaign.
+        # zzz If so, we want to recurse on this entire block (filterRecs down).
+        # zzz If not, we need to return some error to the user...
         content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
         if (not sessionId):
             sessionId = generateSessionId(ip, content)
         return ajaxResponse('all of your friends are stateless', 200, sessionId)
 
+    friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
+    faceFriends = friendDicts[:numFace]
+    allFriends = friendDicts[:25]
 
-def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
-    """move to filtering module"""
-    edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
-    elgCount = int(len(edgesRanked) * eligibleProportion)
-    edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
-    state_count = {}
-    for e in edgesElg:
-        state_count[e.secondary.state] = state_count.get(e.secondary.state, 0) + 1
-    if (statePool is not None):
-        for state in state_count.keys():
-            if (state not in statePool):
-                del state_count[state]
-    if (state_count):
-        logger.debug("best state counts: %s", str(state_count))
-        bestCount = max(state_count.values() + [0])  # in case we don't get any states
-        bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
-        if (len(bestStates) == 1):
-            logger.debug("best state returning %s", bestStates[0])
-            return bestStates[0]
-        else:
-            # there's a tie for first, so grab the state with the best avg scores
-            bestState = None
-            bestScoreAvg = 0.0
-            for state in bestStates:
-                edgesState = [ e for e in edgesElg if (e.state == state) ]
-                scoreAvg = sum([ e.score for e in edgesState ])
-                if (scoreAvg > bestScoreAvg):
-                    bestState = state
-                    bestScoreAvg = scoreAvg
-            logger.debug("best state returning %s", bestState)
-            return bestState
+    choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
+
+    fbObjectTable = 'campaign_fb_objects'
+    fbObjectIdx = 'campaign_fb_object_id'
+    fbObjectKeys = [('campaign_id', campaignId)]
+    if (bestCSFilter[0] is None):
+        # We got generic...
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        fbObjectTable = 'campaign_fb_objects'
+        fbObjectIdx = 'campaign_fb_object_id'
     else:
-        return None
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        fbObjectKeys = [('campaign_id', campaignId), ('filter_id', bestCSFilter[0].filterId)]
 
-def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
-    """move to filtering module"""
-    str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
-    edgesGood = edges[:]
-    for attrName, compTag, attrVal in filterTups:
-        logger.debug("filtering %d edges on '%s %s %s'", len(edgesGood), attrName, compTag, attrVal)
-        filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
-        edgesGood = [ e for e in edgesGood if filtFunc(e) ]
-        logger.debug("have %d edges left", len(edgesGood))
-    return edgesGood
+    # Get FB Object experiments, do assignment (and write DB)
+    fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
+    fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
+    fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=True)
+
+    # Find template params, return faces
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+                    ['og_action', 'og_type', 'sharing_prompt', 
+                    'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post'], 
+                    'fb_object_id', fbObjectId)[0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+
+    msgParams = {
+        'sharing_prompt' : fbObjectInfo[2],
+        'msg1_pre' : fbObjectInfo[3],
+        'msg1_post' : fbObjectInfo[4],
+        'msg2_pre' : fbObjectInfo[5],
+        'msg2_post' : fbObjectInfo[6]
+    }
+    actionParams = {
+        'fb_action_type' : fbObjectInfo[0],
+        'fb_object_type' : fbObjectInfo[1],
+        'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+        'fb_app_name' : paramsDB[0],
+        'fb_app_id' : int(paramsDB[1])
+    }
+    logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
+
+    content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
+    if (not sessionId):
+        sessionId = generateSessionId(ip, content)
+
+    database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams,
+                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
 
-@app.route("/ofa_climate/<state>")
-def ofa_climate(state):
+    # bestState = getBestSecStateFromEdges(edgesRanked, state_senInfo.keys(), eligibleProportion=1.0)
+    # if (bestState is not None):
+    #     filterTups.append(('state', 'eq', bestState))
+    #     edgesFiltered = filterEdgesBySec(edgesRanked, filterTups)
+    #     logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
+
+    #     friendDicts = [ e.toDict() for e in edgesFiltered ]
+    #     faceFriends = friendDicts[:numFace]
+    #     allFriends = friendDicts[:25]
+
+    #     senInfo = state_senInfo[bestState]
+
+    #     """these messages move into database"""
+    #     msgParams = {
+    #     'msg1_pre' : "Hi there ",
+    #     'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
+    #     'msg2_pre' : "Now is the time for real climate legislation, ",
+    #     'msg2_post' : "!",
+    #     'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
+    #     'msg_other_init' : "Replace this text with your message for "
+    #     }
+    #     actionParams =     {
+    #     'fb_action_type' : 'support',
+    #     'fb_object_type' : 'cause',
+    #     'fb_object_url' : flask.url_for('ofa_climate', state=bestState, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+    #     }
+    #     actionParams.update(fbParams)
+    #     logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
+
+    #     content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
+    #     if (not sessionId):
+    #         sessionId = generateSessionId(ip, content)
+
+    #     database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    #     return ajaxResponse(flask.render_template('ofa_faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
+    #                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+
+    # else:
+    #     content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
+    #     if (not sessionId):
+    #         sessionId = generateSessionId(ip, content)
+    #     return ajaxResponse('all of your friends are stateless', 200, sessionId)
+
+
+# def getBestSecStateFromEdges(edgesRanked, statePool=None, eligibleProportion=0.5):
+#     """move to filtering module"""
+#     edgesSort = sorted(edgesRanked, key=lambda x: x.score, reverse=True)
+#     elgCount = int(len(edgesRanked) * eligibleProportion)
+#     edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
+#     state_count = {}
+#     for e in edgesElg:
+#         state_count[e.secondary.state] = state_count.get(e.secondary.state, 0) + 1
+#     if (statePool is not None):
+#         for state in state_count.keys():
+#             if (state not in statePool):
+#                 del state_count[state]
+#     if (state_count):
+#         logger.debug("best state counts: %s", str(state_count))
+#         bestCount = max(state_count.values() + [0])  # in case we don't get any states
+#         bestStates = [ state for state, count in state_count.items() if (count == bestCount) ]
+#         if (len(bestStates) == 1):
+#             logger.debug("best state returning %s", bestStates[0])
+#             return bestStates[0]
+#         else:
+#             # there's a tie for first, so grab the state with the best avg scores
+#             bestState = None
+#             bestScoreAvg = 0.0
+#             for state in bestStates:
+#                 edgesState = [ e for e in edgesElg if (e.state == state) ]
+#                 scoreAvg = sum([ e.score for e in edgesState ])
+#                 if (scoreAvg > bestScoreAvg):
+#                     bestState = state
+#                     bestScoreAvg = scoreAvg
+#             logger.debug("best state returning %s", bestState)
+#             return bestState
+#     else:
+#         return None
+
+# def filterEdgesBySec(edges, filterTups):  # filterTups are (attrName, compTag, attrVal)
+#     """move to filtering module"""
+#     str_func = { "min": lambda x, y: x > y, "max": lambda x, y: x < y, "eq": lambda x, y: x == y }
+#     edgesGood = edges[:]
+#     for attrName, compTag, attrVal in filterTups:
+#         logger.debug("filtering %d edges on '%s %s %s'", len(edgesGood), attrName, compTag, attrVal)
+#         filtFunc = lambda e: hasattr(e.secondary, attrName) and str_func[compTag](e.secondary.__dict__[attrName], attrVal)
+#         edgesGood = [ e for e in edgesGood if filtFunc(e) ]
+#         logger.debug("have %d edges left", len(edgesGood))
+#     return edgesGood
+
+
+@app.route("/objects/<fbObjectId>/<contentId>")
+def objects(fbObjectId, contentId):
     """endpoint linked to on facebook.com
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+                    ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
+                    'page_title', 'url_slug'], 
+                    'fb_object_id', fbObjectId)[0]
+    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)[0][0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
 
-    senInfo = state_senInfo.get(state)
-    if (not senInfo):
-        return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+    choiceSetSlug = flask.request.args.get('csslug', '')
+    fbObjectSlug = fbObjectInfo[6]
+
+    # Determine redirect URL
+    redirectURL = cdb.getClientContentURL(contentId, choiceSetSlug, fbObjectSlug)
 
     objParams = {
-    'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
-    'fb_action_type': 'support',
-    'fb_object_type': 'cause',
-    'fb_object_title': 'Climate Legislation',
-    'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-    'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-    'fb_object_url' : flask.url_for('ofa_climate', state=state, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+    'page_title': fbObjectInfo[5],
+    'fb_action_type': fbObjectInfo[0],
+    'fb_object_type': fbObjectInfo[1],
+    'fb_object_title': fbObjectInfo[2],
+    'fb_object_image': fbObjectInfo[3],     # zzz need to figure out if these will all be hosted locally or full URL's in DB
+    'fb_object_desc': fbObjectInfo[4],
+    'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+    'fb_app_name' : paramsDB[0],
+    'fb_app_id' : int(paramsDB[1])
     }
-    objParams.update(fbParams)
-
-    # zzz Are we going to want/need to pass URL parameters to this redirect?
-    redirectURL = flask.url_for('ofa_landing', state=state, _external=True)    # Will actually be client's external URL...
 
     return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
+
+
+# @app.route("/ofa_climate/<state>")
+# def ofa_climate(state):
+#     """endpoint linked to on facebook.com
+
+#     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
+#     """
+
+#     senInfo = state_senInfo.get(state)
+#     if (not senInfo):
+#         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
+
+#     objParams = {
+#     'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
+#     'fb_action_type': 'support',
+#     'fb_object_type': 'cause',
+#     'fb_object_title': 'Climate Legislation',
+#     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
+#     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
+#     'fb_object_url' : flask.url_for('ofa_climate', state=state, _external=True)  #'http://demo.edgeflip.com/ofa_climate/%s' % bestState
+#     }
+#     objParams.update(fbParams)
+
+#     # zzz Are we going to want/need to pass URL parameters to this redirect?
+#     redirectURL = flask.url_for('ofa_landing', state=state, _external=True)    # Will actually be client's external URL...
+
+#     return flask.render_template('ofa_climate_object.html', fbParams=objParams, redirectURL=redirectURL)
+
 
 
 # This is an example endpoint... in reality, this page would be on OFA servers

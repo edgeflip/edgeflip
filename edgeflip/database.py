@@ -152,14 +152,16 @@ def dbMigrate():
     tok_fbid = {}
     for fbid, tok in curs.fetchall():
         token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-        updateTokensDb(curs, [fbid], token)
+        user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+        updateTokensDb(curs, [user], token)
         tok_fbid[tok] = fbid
     curs.execute("SELECT fbid, friend_token FROM users_OLD WHERE (friend_token IS NOT NULL)")
     for fbid, tokFriend in curs.fetchall():
         if (tokFriend in tok_fbid):
-            owner = tok_fbid[token]
+            owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
             token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-            updateTokensDb(curs, [fbid], token)
+            user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+            updateTokensDb(curs, [user], token)
 
     # insert old user rows into new table
     sql = """
@@ -168,6 +170,8 @@ def dbMigrate():
             FROM users_OLD
     """
     curs.execute(sql)
+
+    """Not migrating the actual edge and event records?"""
 
     # rename edges table, create new
     curs.execute("RENAME TABLE edges TO edges_OLD")
@@ -226,7 +230,8 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
             ret = None
         else:
             if (freshnessIncludeEdge):
-                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE prim_id=%s OR sec_id=%s", (userId, userId))
+                # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
+                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
                 updatedEdge = rec[0]
@@ -456,9 +461,11 @@ def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, a
         t.daemon = False
         t.start()
         logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
-            t.ident, eventType, sessionId))
+# Probably a merge conflict or something??
+#            t.ident, eventType, sessionId))
         return 0
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
-            threading.current_thread().ident, eventType, sessionId))
+# Also a merge conflict??
+#            threading.current_thread().ident, eventType, sessionId))
         return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
