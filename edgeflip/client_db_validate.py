@@ -29,11 +29,11 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
         try:
             cdb.checkCDF(tupes)
         except cdb.CDFProbsError as e:
-            logging.error("Bad CDF found in %s for %s=%s: %s", (cdfTable, str(keyCols), str(key), str(e)))
+            logger.error("Bad CDF found in %s for %s=%s: %s", (cdfTable, str(keyCols), str(key), str(e)))
             badCDFS.append(key)
 
     if (not badCDFs):
-        logging.debug("All CDFs are well-defined in %s" % cdfTable)
+        logger.debug("All CDFs are well-defined in %s" % cdfTable)
 
     return badCDFs
 
@@ -51,9 +51,9 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 
     if (rows):
         badRecs = ', '.join([errorRecsFn(r) for r in rows])
-        logging.error(errorMsg % badRecs)
+        logger.error(errorMsg % badRecs)
     else:
-        logging.debug(okMsg)
+        logger.debug(okMsg)
 
     return rows
 
@@ -61,7 +61,7 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 def validateClientDb():
     """Run several validation checks against the DB client schema"""
 
-    logging.debug("=========== Running Client DB Validation ===========")
+    logger.debug("=========== Running Client DB Validation ===========")
 
     conn = db.getConn()
     curs = conn.cursor()
@@ -337,4 +337,4 @@ def validateClientDb():
 
     conn.close()
 
-    logging.debug("=========== Finished Client DB Validation ===========")
+    logger.debug("=========== Finished Client DB Validation ===========")

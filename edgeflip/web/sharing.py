@@ -21,7 +21,7 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)?? Raises RuntimeError
+MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button_man/<int:campaignId>/<int:contentId>")
@@ -168,7 +168,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=True)
 
         # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
-        return applyCampaign(edges, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
+        return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
     faceFriends = friendDicts[:numFace]
