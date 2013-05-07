@@ -69,7 +69,7 @@ function login(fbid, accessToken, response){
 
 		$.ajax({
 			type: "POST",
-			url: '/ofa_faces',
+			url: '/faces',
 			contentType: "application/json",
 			dataType: 'html',
 			data: params,

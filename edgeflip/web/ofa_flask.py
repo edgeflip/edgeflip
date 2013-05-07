@@ -7,17 +7,10 @@ import sys
 import time
 import datetime
 import random
-import hashlib
 import logging
 import flask
 
-import json
-import urllib2  # Just for handling errors raised from facebook module. Seems like this should be unncessary...
-import os
-
 from .utils import ajaxResponse, generateSessionId, getIP
-
-
 from .. import facebook
 from .. import ranking
 from .. import database
@@ -28,6 +21,7 @@ from .. import stream_queue
 from ..settings import config
 
 logger = logging.getLogger(__name__)
+
 
 
 app = flask.Flask(__name__)
@@ -112,8 +106,10 @@ def ofa_faces():
 #    campaign_filterTups = config.ofa_campaigns
 #    filterTups = campaign_filterTups.get(campaign, [])
 
-    # Try extending the token. If we hit an error, proceed with what we got from the page.
-    tok = facebook.extendTokenFb(tok) or tok
+    # Assume we're starting with a short term token, expiring now, then try extending the
+    # token. If we hit an error, proceed with what we got from the old one.
+    token = datastructs.TokenInfo(tok, fbid, config['fb_app_id'], datetime.datetime.now())
+    token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
     conn = database.getConn()
@@ -123,11 +119,11 @@ def ofa_faces():
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
-        logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=False, requireOutgoing=False)
-        edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, tok)
-        database.updateDb(user, tok, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
+        logger.debug("user %s is not fresh, retrieving data from fb" % fbid)
+        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
+        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
+        database.updateDb(user, token, edgesRanked, background=True)     # zzz should spawn off thread to do db writing
     conn.close()
 
     # Get filter experiments, do assignment (and write DB)
@@ -504,7 +500,7 @@ def face_test():
 
 
     # Actually rank these edges and generate friend dictionaries from them
-    edgesRanked = ranking.getFriendRanking(500876410, edgesUnranked, requireOutgoing=False)
+    edgesRanked = ranking.getFriendRanking(edgesUnranked, requireOutgoing=False)
 
     campaign_filterTups = config.ofa_campaigns
     campaign = "test"
@@ -591,7 +587,7 @@ def rank_faces():
 
         # now do a partial crawl real-time
         edgesUnranked = facebook.getFriendEdgesFb(fbid, tok, requireIncoming=True, requireOutgoing=False)
-        edgesRanked = ranking.getFriendRanking(fbid, edgesUnranked, requireIncoming=True, requireOutgoing=False)
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=True, requireOutgoing=False)
         user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
         # spawn off a separate thread to do the database writing

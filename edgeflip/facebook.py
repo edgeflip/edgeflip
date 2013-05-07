@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import sys
+import time
 import datetime
 import urllib
 import urllib2
@@ -7,7 +8,6 @@ import urlparse
 import json
 import logging
 import threading
-import time
 import Queue
 from collections import defaultdict
 from contextlib import closing
@@ -87,23 +87,25 @@ def getUrlFb(url):
 
     return responseJson
 
-def extendTokenFb(token):
+def extendTokenFb(user, token):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
-
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
     url += '&client_id=' + str(config['fb_app_id']) + '&client_secret=' + config['fb_app_secret']
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
     # even if you try passing &format=json in the URL.
+    ts = time.time()
     try:
         with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
-            newToken = responseDict['access_token'][0]
-            expiresIn = responseDict['expires'][0]
-            logger.debug("Extended access token %s expires in %s seconds.", newToken, expiresIn)
-        return newToken
+            tokNew = responseDict['access_token'][0]
+            expiresIn = int(responseDict['expires'][0])
+            logging.debug("Extended access token %s expires in %s seconds." % (tokNew, expiresIn))
+            expDate = datetime.datetime.utcfromtimestamp(ts + expiresIn)
+        return datastructs.TokenInfo(tokNew, user, config['fb_app_id'], expDate)
+
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
-        logger.info("error extending token %s: %s", token, str(e))
+        logger.info("error extending token %s: %s" % (token.tok, str(e)))
         try:
             # If we actually got an error back from a server, should be able to read the message here
             logger.error("returned error was: %s", e.read())
@@ -142,12 +144,10 @@ def getFriendsFb(userId, token):
 
     responseJson = getUrlFb(url)
 
-
     lab_recs = {}
     for entry in responseJson['data']:
         label = entry['name']
         records = entry['fql_result_set']
-
         lab_recs[label] = records
 
     primPhotoCounts = defaultdict(int)
@@ -207,6 +207,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     if (requireIncoming):
         logger.info('reading stream for user %s, %s', userId, tok)
         sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
+        logging.debug('got %s', str(sc))
         logger.debug('got %s', str(sc))
 
         # sort all the friends by their stream rank (if any) and mutual friend count
@@ -224,6 +225,19 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
         if (requireIncoming):
+            ecIn = datastructs.EdgeCounts(friend.id,
+                              user.id,
+                              postLikes=sc.getPostLikes(friend.id),
+                              postComms=sc.getPostComms(friend.id),
+                              statLikes=sc.getStatLikes(friend.id),
+                              statComms=sc.getStatComms(friend.id),
+                              wallPosts=sc.getWallComms(friend.id),
+                              wallComms=sc.getWallComms(friend.id),
+                              tags=sc.getTags(friend.id),
+                              photoTarg=friend.primPhotoTags,
+                              photoOth=friend.otherPhotoTags,
+                              muts=friend.mutuals)
+
             if (requireOutgoing):
                 timFriend = datastructs.Timer()
                 logger.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
@@ -232,12 +246,33 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                 except Exception as ex:
                     logger.warning("error reading stream for %d: %s", friend.id, str(ex))
                     continue
-                logger.debug('got %s', str(scFriend))
-                e = datastructs.EdgeSC2(user, friend, sc, scFriend)
+                logging.debug('got %s', str(scFriend))
+
+                ecOut = datastructs.EdgeCounts(user.id,
+                                               friend.id,
+                                               postLikes=scFriend.getPostLikes(friend.id),
+                                               postComms=scFriend.getPostComms(friend.id),
+                                               statLikes=scFriend.getStatLikes(friend.id),
+                                               statComms=scFriend.getStatComms(friend.id),
+                                               wallPosts=scFriend.getWallComms(friend.id),
+                                               wallComms=scFriend.getWallComms(friend.id),
+                                               tags=scFriend.getTags(friend.id),
+                                               photoTarg=None,
+                                               photoOth=None,
+                                               muts=None)
+
+                e = datastructs.Edge(user, friend, ecIn, ecOut)
+
             else:
-                e = datastructs.EdgeSC1(user, friend, sc)
+                e = datastructs.Edge(user, friend, ecIn, None)
         else:
-            e = datastructs.EdgeStreamless(user, friend)
+            ecIn = datastructs.EdgeCounts(friend.id,
+                  user.id,
+                  photoTarg=friend.primPhotoTags,
+                  photoOth=friend.otherPhotoTags,
+                  muts=friend.mutuals)
+            e = datastructs.Edge(user, friend, ecIn, None)
+
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
         logger.debug('edge %s', str(e))
@@ -281,6 +316,11 @@ class StreamCounts(object):
         self.friendId_statCommCount = defaultdict(int)
         self.friendId_wallPostCount = defaultdict(int)
         self.friendId_wallCommCount = defaultdict(int)
+        self.friendId_tagCount      = defaultdict(int)
+        #sys.stderr.write("got post likers: %s\n" % (str(postLikers)))
+        #sys.stderr.write("got post commers: %s\n" % (str(postCommers)))
+        #sys.stderr.write("got stat likers: %s\n" % (str(statLikers)))
+        #sys.stderr.write("got stat commers: %s\n" % (str(statCommers)))
         self.friendId_tagCount        = defaultdict(int)
 
         self.stream.extend(stream)

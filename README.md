@@ -39,3 +39,7 @@ If you are using a local virtual machine, you will need an entry in the *host* m
 Devel Server
 ------------
 To run the server use `bin/devel_server.py`. If you need a barebones server (for use with a debugger, for example), use `bin/debug_server.py`.
+
+Mock Client
+-----------
+The default configuration is written against a mock client site. You'll need to run this server as well; see the instructions in the [mockclient repo](https://github.com/edgeflip/mockclient)
