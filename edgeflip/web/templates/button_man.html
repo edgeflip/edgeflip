@@ -76,9 +76,9 @@
                 if (response.authResponse) {
                     // User authorized, so write event and jump to page that will contain the faces...
                     recordEvent('authorized', response.authResponse.userID);
-                    var gotoURL = "{{ goto }}";
+                    var gotoURL = "{{ goto | safe }}";
                     if (sessionid) {
-                        gotoURL = gotoURL + '?efsid=' + sessionid;
+                        gotoURL = gotoURL + '&efsid=' + sessionid;
                     }
                     top.location = gotoURL;
 
@@ -86,7 +86,7 @@
                     recordEvent('auth_fail', '');
                     // zzz Figure out what to actually do here!
                     button_div.show();
-                    alert("Rocco, sit on the other side. You block the rearview mirror.");
+                    alert("Rocco, sit on the other side. You block the rearview mirror. "+JSON.stringify(response));
                 }
             }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
