@@ -390,7 +390,7 @@ def updateUsersDb(curs, users):
     updateCount = 0
     for u in users:
         col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
-                    'city': u.city, 'state': u.state, 'updated': None }
+                    'city': u.city, 'state': u.state }
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
