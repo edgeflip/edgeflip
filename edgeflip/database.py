@@ -282,9 +282,9 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
     sqlSelect = """
             SELECT fbid_source, fbid_target,
                     post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
-                    tags, photos_target, photos_other, mut_friends, updated
+                    tags, photos_target, photos_other, mut_friends, unix_timestamp(updated)
             FROM edges
-            WHERE updated>%s
+            WHERE unix_timestamp(updated)>%s
     """
 
     sql = sqlSelect + " AND fbid_target=%s"
