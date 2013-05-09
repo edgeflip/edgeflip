@@ -404,8 +404,7 @@ def updateTokensDb(curs, users, token):
             'appid': token.appId,
             'ownerid': token.ownerId,
             'token':token.tok,
-            'expires': token.expires,
-            'updated': None
+            'expires': token.expires
         }
         insertedTokens += upsert(curs, "tokens", col_val)
     return insertedTokens
@@ -483,11 +482,10 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
     curs = conn.cursor()
 
     rows = [{'sessionId': sessionId, 'ip': ip, 'userId': userId, 'friendId': friendId,
-             'eventType': eventType, 'appId': appId, 'content': content,
-             'activityId': activityId, 'createDt': time.strftime("%Y-%m-%d %H:%M:%S")
+             'eventType': eventType, 'appId': appId, 'content': content, 'activityId': activityId
             } for friendId in friendIds]
-    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, updated)
-                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
+    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
+                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
 
     insertCount = 0
     for row in rows:
