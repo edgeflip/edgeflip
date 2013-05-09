@@ -232,9 +232,9 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
 
     conn = connP if (connP is not None) else getConn()
 
-    freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
-    logger.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
+    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s""" % userId
 
     curs = conn.cursor()
     curs.execute(sql)
@@ -243,17 +243,18 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
         ret = None
     else:
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        logger.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
+        updated = datetime.datetime.utcfromtimestamp(updated)
+        logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
             ret = None
         else:
             if (freshnessIncludeEdge):
                 # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
-                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
-                updatedEdge = rec[0]
+                updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
                 # zzz updated is now coming back as a datetime.datetime(), no longer a float.
                 #     Used to be datetime.date.fromtimestamp(updatedEdge)
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
