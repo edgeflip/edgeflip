@@ -208,15 +208,15 @@ def getUserTokenDb(connP, userId, appId):
     conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
     ts = time.time()
-    sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=%s AND expiration<%s AND appid=%s"
+    sql = "SELECT token, ownerid, unix_timestamp(expires) FROM tokens WHERE fbid=%s AND unix_timestamp(expires)>%s AND appid=%s "
     params = (userId, ts, appId)
-    sql += "ORDER BY CASE WHEN userid=ownerid THEN 0 ELSE 1 END, updated DESC"
+    sql += "ORDER BY (CASE WHEN fbid=ownerid THEN 0 ELSE 1 END), updated DESC"
     curs.execute(sql, params)
     rec = curs.fetchone()
     if (rec is None):
         ret = None
     else:
-        expDate = datetime.utcfromtimestamp(rec[2])
+        expDate = datetime.datetime.utcfromtimestamp(rec[2])
         ret = datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
     if (connP is None):
         conn.close()
