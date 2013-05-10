@@ -41,7 +41,7 @@ def button_man(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('button_man.html', fbParams=paramsDict, goto=facesURL)
+    return flask.render_template('button_man.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
@@ -308,7 +308,7 @@ def objects(fbObjectId, contentId):
     'fb_app_id' : int(paramsDB[1])
     }
 
-    return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
+    return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
 
 
 # TO REMOVE ON TESTING:
@@ -382,10 +382,11 @@ def recordEvent():
     userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
-    campaignId = flask.request.json['campaignid']
-    contentId = flask.request.json['contentid']
+    campaignId = flask.request.json.get('campaignid')
+    contentId = flask.request.json.get('contentid')
     content = flask.request.json['content']
     actionId = flask.request.json.get('actionid')
+    actionId = actionId or None     # might get empty string from ajax...
     friends = [ int(f) for f in flask.request.json.get('friends', []) ]
     friends = friends or [None]
     eventType = flask.request.json['eventType']

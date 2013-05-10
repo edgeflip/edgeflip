@@ -3,7 +3,10 @@
 <HTML>
 <HEAD>
     <!-- DOC served in iframe for button itself -->
+    <!--
     <TITLE>Button Man Goes to the Mattresses (because he's em_bed_dable... stop rolling your eyes.)</TITLE>
+    -->
+    <TITLE>Edgeflip sharing button</TITLE>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
@@ -31,6 +34,8 @@
     <SCRIPT>
 
         var sessionid = '';
+        var campaignid = {{ campaignId }};
+        var contentid = {{ contentId }};
 
         function recordEvent(eventType, fbid) {
 
@@ -42,7 +47,9 @@
                 appid: appid,
                 content: content,
                 eventType: eventType,
-                sessionid: sessionid
+                sessionid: sessionid,
+                campaignid: campaignid,
+                contentid: contentid
             });
 
             $.ajax({

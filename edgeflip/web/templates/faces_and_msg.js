@@ -358,7 +358,9 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		newid: id,
 		fname: fname,
 		lname: lname,
-		sessionid: sessionid	// global session id was pulled in from query string above
+		sessionid: sessionid,	// global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
 	});
 
 	$.ajax({
@@ -368,8 +370,11 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-			new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-			$(div_id).replaceWith(new_html);
+			//new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+			//$(div_id).replaceWith(new_html);
+
+            // Something went wrong, so just remove the div as though no friend was returned
+            $(div_id).remove();
 		},
 		success: function(data, textStatus, jqXHR) {
 			if (id) {
@@ -401,6 +406,12 @@ function doShare() {
 			return;
 		}
 	}
+
+    recordEvent('share_click');
+
+    $('#friends_div').hide();
+    $('#progress h2').html('S e n d i n g . . .');
+    $('#progress').show();
 
 	// The message text will just be whatever is in #other_msg when the user hits send
 	// but we need to clean it up a little bit first...
@@ -434,7 +445,7 @@ function doShare() {
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
-                // zzz record the error to our server!!!!
+                recordEvent('share_fail');
 			} else {
                 // thank you page redirect happens in recordShare()
 				recordShare(response.id);
@@ -444,7 +455,7 @@ function doShare() {
 	);
 }
 
-/* records share event on edgeflip servers */
+/* records share event on edgeflip servers; redirects user to thank you page */
 function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
@@ -458,7 +469,9 @@ function recordShare(actionid) {
 		content: content,
 		friends: recips,
         eventType: 'shared',
-		sessionid: sessionid	// global session id was pulled in from query string above
+		sessionid: sessionid,	// global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
 	});
 
 	$.ajax({
@@ -479,4 +492,41 @@ function recordShare(actionid) {
 	});
 
 }
+
+// record events other than the share (so, no redirect).
+// should obviously combine with above at some point, but
+// just want to have something working now...
+function recordEvent(eventType) {
+
+    var userid = myfbid;
+    var appid = {{ fbParams.fb_app_id }};
+    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+
+    var params = JSON.stringify({
+        userid: userid,
+        appid: appid,
+        content: content,
+        eventType: eventType,
+        sessionid: sessionid,   // global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
+    });
+
+    $.ajax({
+        type: "POST",
+        url: '/record_event',
+        contentType: "application/json",
+        dataType: 'html',
+        data: params,
+        error: function(jqXHR, textStatus, errorThrown) {
+            // Nothing to do here...
+        },
+        success: function(data, textStatus, jqXHR) {
+            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+            sessionid = header_efsid || sessionid;
+        }
+    });
+
+}
+
 

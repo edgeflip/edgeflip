@@ -25,49 +25,49 @@
         */
         (function() {
 
+            // zzz Since these objects always live on our servers now, could
+            //     actually move all of these into the call that's building
+            //     this page. No need to do it now, but obviously much better
+            //     for the future!
+
             var urlparams = read_url_params();
-            var actionid = urlparams['fb_action_ids']; //zzz double-check this!
+            var actionid = urlparams['fb_action_ids'] || ''; //zzz double-check this!
             var sessionid = urlparams['efsid'] || '';
 
-            // Only write a clickback if we have an action_id in the URL
-            if (actionid) {
+            // Always write a clickback to our server, even if no actionid...
+            var appid = {{ fbParams.fb_app_id }};
+            var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+            var contentid = {{ contentid }};
 
-                var appid = {{ fbParams.fb_app_id }};
-                var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+            var params = JSON.stringify({
+                appid: appid,
+                content: content,
+                actionid: actionid,
+                eventType: 'clickback',
+                sessionid: sessionid,
+                contentid: contentid
+            });
 
-                var params = JSON.stringify({
-                    appid: appid,
-                    content: content,
-                    actionid: actionid,
-                    eventType: 'clickback',
-                    sessionid: sessionid
-                });
-
-                // NOTE: Will need to specify full URL if hosting objects on a different domain!!
-                $.ajax({
-                    type: "POST",
-                    url: '/record_event',
-                    contentType: "application/json",
-                    dataType: 'html',
-                    data: params,
-                    error: function(jqXHR, textStatus, errorThrown) {
-                        {% if redirectURL -%}
-                        window.location = '{{ redirectURL }}';
-                        {%- endif %}
-                    },
-                    success: function(data, textStatus, jqXHR) {
-                        var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-                        sessionid = header_efsid || sessionid;
-                        {% if redirectURL -%}
-                        window.location = '{{ redirectURL }}';
-                        {%- endif %}
-                    }
-                });
-            } else {
-                {% if redirectURL -%}
-                window.location = '{{ redirectURL }}';
-                {%- endif %}
-            }
+            // NOTE: Will need to specify full URL if hosting objects on a different domain!!
+            $.ajax({
+                type: "POST",
+                url: '/record_event',
+                contentType: "application/json",
+                dataType: 'html',
+                data: params,
+                error: function(jqXHR, textStatus, errorThrown) {
+                    {% if redirectURL -%}
+                    window.location = '{{ redirectURL }}';
+                    {%- endif %}
+                },
+                success: function(data, textStatus, jqXHR) {
+                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                    sessionid = header_efsid || sessionid;
+                    {% if redirectURL -%}
+                    window.location = '{{ redirectURL }}';
+                    {%- endif %}
+                }
+            });
         }());
 
     </script>
