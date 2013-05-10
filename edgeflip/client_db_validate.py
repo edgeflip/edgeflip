@@ -98,6 +98,30 @@ def validateClientDb():
         "All campaigns have a faces URL specified")
 
 
+    # Every campaign specifies a thank you url
+    sql = """SELECT DISTINCT cmp.campaign_id FROM campaigns cmp 
+                    LEFT JOIN campaign_properties props 
+                    ON cmp.campaign_id = props.campaign_id AND props.end_dt IS NULL
+                    WHERE NOT cmp.is_deleted 
+                    AND (props.client_thanks_url IS NULL OR props.client_thanks_url = '');"""
+ 
+    runDbCheck(curs, sql,
+        "Thank you URL missing for campaigns: %s",
+        "All campaigns have a thank you URL specified")
+
+
+    # Every campaign specifies an error url
+    sql = """SELECT DISTINCT cmp.campaign_id FROM campaigns cmp 
+                    LEFT JOIN campaign_properties props 
+                    ON cmp.campaign_id = props.campaign_id AND props.end_dt IS NULL
+                    WHERE NOT cmp.is_deleted 
+                    AND (props.client_error_url IS NULL OR props.client_error_url = '');"""
+ 
+    runDbCheck(curs, sql,
+        "Error URL missing for campaigns: %s",
+        "All campaigns have a error URL specified")
+
+
     # No campaign specifies itself as a fallback
     # (because infinite loops tend to increase our average time to return content to a user...)
     # I guess you could still accomplish an infinite loop by having two campaigns that

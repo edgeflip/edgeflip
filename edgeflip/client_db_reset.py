@@ -6,6 +6,8 @@
    moving to an ORM, doesn't seem worth that at the moment.
 """
 
+import logging
+
 from . import database as db
 from .settings import config 
 
@@ -156,6 +158,8 @@ def client_db_reset():
         campaign_property_id INT AUTO_INCREMENT PRIMARY KEY,
         campaign_id INT,
         client_faces_url VARCHAR(2096),
+        client_thanks_url VARCHAR(2096),
+        client_error_url VARCHAR(2096),
         fallback_campaign_id INT,
         fallback_content_id INT,
         start_dt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -347,11 +347,11 @@ def createClientContent(clientId, name, description, url):
           }
 
     try:
-        clientContentId = dbInsert('client_content', 'client_content_id', row.keys(), [row])
+        contentId = dbInsert('client_content', 'content_id', row.keys(), [row])
     except IntegrityError as e:
         return {'error' : str(e)}
 
-    return {'client_content_id' : clientContentId}
+    return {'content_id' : contentId}
 
 
 def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
@@ -378,7 +378,7 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
     return url
 
 
-def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
+def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
     """Create a new campaign associated with the given client.
 
     facesURL must be provided and specifies the page on the client's servers
@@ -402,20 +402,22 @@ def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None,
     except IntegrityError as e:
         return {'error' : str(e)}
 
-    updateCampaignProperties(campaignId, facesURL, fallbackCampaign, fallbackContent)
+    updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent)
     updateMetadata('campaign_meta', 'campaign_meta_id', 'campaign_id', campaignId, metadata, replaceAll=True)
 
     return {'campaign_id' : campaignId}
 
 
-def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallbackContent=None):
+def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None):
     """Update the properties associated with a given campaign."""
-    if (not facesURL):
-        raise ValueError("Must specify a URL for the faces page")
+    if (not facesURL or not thanksURL or not errorURL):
+        raise ValueError("Must specify URLs for the faces, thank you, and error pages")
 
     row = {
             'campaign_id' : campaignId,
             'client_faces_url' : facesURL,
+            'client_thanks_url' : thanksURL,
+            'client_error_url' : errorURL,
             'fallback_campaign_id' : fallbackCampaign,
             'fallback_content_id' : fallbackContent
           }
