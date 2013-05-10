@@ -225,7 +225,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
@@ -351,7 +351,9 @@ def suppress():
     """
     userid = flask.request.json['userid']
     appid = flask.request.json['appid']
-    content = flask.request.json['content']
+    campaignId = flask.request.json['campaignid'] # This is an ID in our client DB schema
+    contentId = flask.request.json['contentid'] # Also an ID in our client DB schema
+    content = flask.request.json['content']     # This is a string with type & URL as passed to FB
     oldid = flask.request.json['oldid']
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
@@ -363,10 +365,10 @@ def suppress():
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
 
     if (newid != ''):
-        database.writeEventsDb(sessionId, ip, userid, [newid], 'shown', appid, content, None, background=True)
+        database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [newid], 'shown', appid, content, None, background=True)
         return ajaxResponse(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200, sessionId)
     else:
         return ajaxResponse('', 200, sessionId)
@@ -380,6 +382,8 @@ def recordEvent():
     userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
+    campaignId = flask.request.json['campaignid']
+    contentId = flask.request.json['contentid']
     content = flask.request.json['content']
     actionId = flask.request.json.get('actionid')
     friends = [ int(f) for f in flask.request.json.get('friends', []) ]
@@ -388,13 +392,13 @@ def recordEvent():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'shared', 'clickback']):
+    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'share_click', 'share_fail', 'shared', 'clickback']):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userId, friends, eventType, appId, content, actionId, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=True)
     return ajaxResponse('', 200, sessionId)
 
 

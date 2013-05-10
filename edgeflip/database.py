@@ -115,6 +115,8 @@ TABLES['edges'] =     Table(name='edges',
 TABLES['events'] =    Table(name='events',
                             cols=[
                                 ('session_id', 'VARCHAR(128)'),
+                                ('campaign_id', 'INT'),
+                                ('content_id', 'INT'),
                                 ('ip', 'VARCHAR(32)'),
                                 ('fbid', 'BIGINT'),
                                 ('friend_fbid', 'BIGINT'),
@@ -124,7 +126,7 @@ TABLES['events'] =    Table(name='events',
                                 ('activity_id', 'BIGINT'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            indices=['session_id', 'fbid', 'friend_fbid', 'activity_id'])
+                            indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
 # Reset the DB by dropping and recreating tables
 def dbSetup(connP=None, tableKeys=None):
@@ -493,7 +495,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
 
 
 # helper function that may get run in a background thread
-def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId):
+def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId):
     """update events table
 
     """
@@ -502,11 +504,12 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
     conn = getConn()
     curs = conn.cursor()
 
-    rows = [{'sessionId': sessionId, 'ip': ip, 'userId': userId, 'friendId': friendId,
+    rows = [{'sessionId': sessionId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'ip': ip, 'userId': userId, 'friendId': friendId,
              'eventType': eventType, 'appId': appId, 'content': content, 'activityId': activityId
             } for friendId in friendIds]
-    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
-                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
+    sql = """INSERT INTO events (session_id, campaign_id, content_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
+                VALUES (%(sessionId)s, %(campaignId)s, %(contentId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
 
     insertCount = 0
     for row in rows:
@@ -519,18 +522,18 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
 
     return insertCount
 
-def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
+def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
     """calls _writeEventsDb maybe in a thread
 
     """
     # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
     if (background):
         t = threading.Thread(target=_writeEventsDb,
-                             args=(sessionId, ip, userId, friendIds, eventType, appId, content, activityId))
+                             args=(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId))
         t.daemon = False
         t.start()
         logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
         return 0
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
-        return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
+        return _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId)

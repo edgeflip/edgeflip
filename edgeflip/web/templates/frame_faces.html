@@ -54,6 +54,11 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
+        //zzz Passing these through "safe" probably isn't ideal since it came
+        //    from something a client entered in the control panel, but right
+        //    now we're setting these parameters in the DB by hand and I don't
+        //    want Jinja trying to escape URL characters. Let's find a better
+        //    solution going forward...
         var thanksURL = {{ thanksURL | safe }};
         var errorURL = {{ errorURL | safe }};
 
