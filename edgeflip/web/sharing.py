@@ -55,10 +55,14 @@ def frame_faces(campaignId, contentId):
     except ValueError as e:
         return "Content not found", 404     # Better fallback here or something?
 
+    thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
+
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('frame_faces.html', fbParams=paramsDict, campaignId=campaignId, contentId=contentId)
+    return flask.render_template('frame_faces.html', fbParams=paramsDict, 
+                                campaignId=campaignId, contentId=contentId,
+                                thanksURL=thanksURL, errorURL=errorURL)
 
 
 @app.route("/faces", methods=['POST'])

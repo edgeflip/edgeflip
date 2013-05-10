@@ -430,11 +430,15 @@ function doShare() {
 		},
 		function(response) {
 			if (!response || response.error) {
-				alert('Error occured ' + response.error.message);
+				// alert('Error occured ' + response.error.message);
+                // show an alert and then redirect them to wherever the client wants them to go in this case...
+                alert("Sorry. An error occured sending your message to facebook. Please try again later.");
+                top.location = errorURL; // set in frame_faces.html via Jinja
+                // zzz record the error to our server!!!!
 			} else {
-				// Eventually, this should just redirect to a thank you page
+                // thank you page redirect happens in recordShare()
 				recordShare(response.id);
-				alert('Post was successful! Action ID: ' + response.id);
+				// alert('Post was successful! Action ID: ' + response.id);
 			}
 	  	}
 	);
@@ -464,11 +468,13 @@ function recordShare(actionid) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-			// Don't think there's anything to do here...
+			// Even if recording the event on our servers failed, we should send them on their way...
+            top.location = thanksURL; // set in frame_faces.html via Jinja
 		},
 		success: function(data, textStatus, jqXHR) {
 			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
 			sessionid = header_efsid || sessionid;
+            top.location = thanksURL; // set in frame_faces.html via Jinja
 		}
 	});
 

@@ -42,6 +42,14 @@ this is the message div and the faces themselves
 
     ];
 
+    if (nextidx === 0 || friends.length === 0) {
+        // Should never, ever get here unless something went very wrong in Flask land
+        // Even so, let's be sure to send the user somewhere reasonable rather than 
+        // land them on a page with nothing to do...
+        alert("Sorry. An error was encountered while communicating with Facebook.");
+        top.location = errorURL; // set in frame_faces.html via Jinja
+    }
+
 </SCRIPT>
 
 <div class="h2_container" style="margin-bottom: 25px;">
