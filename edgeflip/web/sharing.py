@@ -283,18 +283,36 @@ def objects(fbObjectId, contentId):
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
+    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)
+    if (not clientId):
+        return "404 - Content Not Found", 404
+    else:
+        clientId = clientId[0][0]
+
     fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
                     ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
                     'page_title', 'url_slug'], 
-                    'fb_object_id', fbObjectId)[0]
-    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)[0][0]
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+                    'fb_object_id', fbObjectId)
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])
+
+    if (not fbObjectInfo or not paramsDB):
+        return "404 - Content Not Found", 404
+    else:
+        fbObjectInfo = fbObjectInfo[0]
+        paramsDB = paramsDB[0]
 
     choiceSetSlug = flask.request.args.get('csslug', '')
+    actionId = flask.request.args.get('fb_action_ids', '').split(',')[0].strip()
+        # Note: could potentially be a comma-delimited list, but shouldn't be in our case...
+    actionId = int(actionId) if actionId else None
+
     fbObjectSlug = fbObjectInfo[6]
 
     # Determine redirect URL
     redirectURL = cdb.getClientContentURL(contentId, choiceSetSlug, fbObjectSlug)
+
+    if (not redirectURL):
+        return "404 - Content Not Found", 404
 
     objParams = {
     'page_title': fbObjectInfo[5],
@@ -307,6 +325,15 @@ def objects(fbObjectId, contentId):
     'fb_app_name' : paramsDB[0],
     'fb_app_id' : int(paramsDB[1])
     }
+
+    ip = getIP(req = flask.request)
+    sessionId = flask.request.args.get('efsid')
+    content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % objParams
+    if (not sessionId):
+        sessionId = generateSessionId(ip, content)
+
+    # record the clickback event to the DB
+    database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=True)
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
 

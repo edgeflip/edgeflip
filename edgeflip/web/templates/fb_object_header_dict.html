@@ -30,44 +30,46 @@
             //     this page. No need to do it now, but obviously much better
             //     for the future!
 
-            var urlparams = read_url_params();
-            var actionid = urlparams['fb_action_ids'] || ''; //zzz double-check this!
-            var sessionid = urlparams['efsid'] || '';
+//            var urlparams = read_url_params();
+//            var actionid = urlparams['fb_action_ids'] || ''; //zzz double-check this!
+//            var sessionid = urlparams['efsid'] || '';
 
             // Always write a clickback to our server, even if no actionid...
-            var appid = {{ fbParams.fb_app_id }};
-            var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
-            var contentid = {{ contentid }};
+//            var appid = {{ fbParams.fb_app_id }};
+//            var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+//            var contentid = {{ contentId }};
 
-            var params = JSON.stringify({
-                appid: appid,
-                content: content,
-                actionid: actionid,
-                eventType: 'clickback',
-                sessionid: sessionid,
-                contentid: contentid
-            });
+//            var params = JSON.stringify({
+//                appid: appid,
+//                content: content,
+//                actionid: actionid,
+//                eventType: 'clickback',
+//                sessionid: sessionid,
+//                contentid: contentid
+//            });
 
-            // NOTE: Will need to specify full URL if hosting objects on a different domain!!
-            $.ajax({
-                type: "POST",
-                url: '/record_event',
-                contentType: "application/json",
-                dataType: 'html',
-                data: params,
-                error: function(jqXHR, textStatus, errorThrown) {
-                    {% if redirectURL -%}
-                    window.location = '{{ redirectURL }}';
-                    {%- endif %}
-                },
-                success: function(data, textStatus, jqXHR) {
-                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-                    sessionid = header_efsid || sessionid;
-                    {% if redirectURL -%}
-                    window.location = '{{ redirectURL }}';
-                    {%- endif %}
-                }
-            });
+//            $.ajax({
+//                type: "POST",
+//                url: '/record_event',
+//                contentType: "application/json",
+//                dataType: 'html',
+//                data: params,
+//                error: function(jqXHR, textStatus, errorThrown) {
+//                    {% if redirectURL -%}
+//                    window.location = '{{ redirectURL }}';
+//                    {%- endif %}
+//                },
+//                success: function(data, textStatus, jqXHR) {
+//                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+//                    sessionid = header_efsid || sessionid;
+//                    {% if redirectURL -%}
+//                    window.location = '{{ redirectURL }}';
+//                    {%- endif %}
+//                }
+//            });
+
+            window.location = '{{ redirectURL }}';
+
         }());
 
     </script>
