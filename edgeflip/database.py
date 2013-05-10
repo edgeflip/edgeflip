@@ -374,7 +374,11 @@ def updateFriendEdgesDb(curs, edges):
                     'tags': counts.tags,
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
-                    'mut_friends': counts.mutuals
+                    'mut_friends': counts.mutuals,
+                    'updated': None     # Force DB to change updated to current_timestamp 
+                                        # even if rest of record is identical. Depends on
+                                        # MySQL handling of NULLs in timestamps and feels
+                                        # a bit ugly...
                 }
                 writeCount += upsert(curs, "edges", col_val)
     return writeCount
@@ -387,8 +391,19 @@ def updateUsersDb(curs, users):
 
     updateCount = 0
     for u in users:
-        col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
-                    'city': u.city, 'state': u.state }
+        col_val = { 
+            'fbid': u.id, 
+            'fname': u.fname, 
+            'lname': u.lname, 
+            'gender': u.gender, 
+            'birthday': u.birthday,
+            'city': u.city, 
+            'state': u.state, 
+            'updated' : None    # Force DB to change updated to current_timestamp 
+                                # even if rest of record is identical. Depends on
+                                # MySQL handling of NULLs in timestamps and feels
+                                # a bit ugly...
+        }
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
@@ -402,7 +417,11 @@ def updateTokensDb(curs, users, token):
             'appid': token.appId,
             'ownerid': token.ownerId,
             'token':token.tok,
-            'expires': token.expires
+            'expires': token.expires,
+            'updated' : None    # Force DB to change updated to current_timestamp 
+                                # even if rest of record is identical. Depends on
+                                # MySQL handling of NULLs in timestamps and feels
+                                # a bit ugly...
         }
         insertedTokens += upsert(curs, "tokens", col_val)
     return insertedTokens
@@ -433,7 +452,11 @@ def upsert(curs, table, col_val, coalesceCols=None):
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
-    return curs.rowcount
+    # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
+    #     but we only want to count either case as a single affected row...
+    #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)
+    return 1 if curs.rowcount else 0
+
 
 # # keeping this around just in case we want to go back to a two-step process... if we do, we MUST use
 # # transactions to avoid race conditions.
