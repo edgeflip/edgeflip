@@ -275,7 +275,8 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))
+        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method... 
+                                         #     not important enough to fix for mayors, but maybe should one day?
 
         # Throttling for Facebook limits
         # If this friend took fewer seconds to crawl than the number of chunks, wait that
