@@ -208,15 +208,15 @@ def getUserTokenDb(connP, userId, appId):
     conn = connP if (connP is not None) else getConn()
     curs = conn.cursor()
     ts = time.time()
-    sql = "SELECT token, ownerid, unix_timestamp(expires) FROM tokens WHERE fbid=%s AND unix_timestamp(expires)>%s AND appid=%s "
+    sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=%s AND expiration<%s AND appid=%s"
     params = (userId, ts, appId)
-    sql += "ORDER BY (CASE WHEN fbid=ownerid THEN 0 ELSE 1 END), updated DESC"
+    sql += "ORDER BY CASE WHEN userid=ownerid THEN 0 ELSE 1 END, updated DESC"
     curs.execute(sql, params)
     rec = curs.fetchone()
     if (rec is None):
         ret = None
     else:
-        expDate = datetime.datetime.utcfromtimestamp(rec[2])
+        expDate = datetime.utcfromtimestamp(rec[2])
         ret = datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
     if (connP is None):
         conn.close()
@@ -232,9 +232,9 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
 
     conn = connP if (connP is not None) else getConn()
 
-    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
-    logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s""" % userId
+    freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
+    logger.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
 
     curs = conn.cursor()
     curs.execute(sql)
@@ -243,18 +243,19 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
         ret = None
     else:
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        updated = datetime.datetime.utcfromtimestamp(updated)
-        logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
+        logger.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
             ret = None
         else:
             if (freshnessIncludeEdge):
                 # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
-                curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
-                updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
+                updatedEdge = rec[0]
+                # zzz updated is now coming back as a datetime.datetime(), no longer a float.
+                #     Used to be datetime.date.fromtimestamp(updatedEdge)
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
                     ret = None
                 else:
@@ -280,9 +281,9 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
     sqlSelect = """
             SELECT fbid_source, fbid_target,
                     post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
-                    tags, photos_target, photos_other, mut_friends, unix_timestamp(updated)
+                    tags, photos_target, photos_other, mut_friends, updated
             FROM edges
-            WHERE unix_timestamp(updated)>%s
+            WHERE updated>%s
     """
 
     sql = sqlSelect + " AND fbid_target=%s"
@@ -374,11 +375,7 @@ def updateFriendEdgesDb(curs, edges):
                     'tags': counts.tags,
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
-                    'mut_friends': counts.mutuals,
-                    'updated': None     # Force DB to change updated to current_timestamp 
-                                        # even if rest of record is identical. Depends on
-                                        # MySQL handling of NULLs in timestamps and feels
-                                        # a bit ugly...
+                    'mut_friends': counts.mutuals
                 }
                 writeCount += upsert(curs, "edges", col_val)
     return writeCount
@@ -391,19 +388,8 @@ def updateUsersDb(curs, users):
 
     updateCount = 0
     for u in users:
-        col_val = { 
-            'fbid': u.id, 
-            'fname': u.fname, 
-            'lname': u.lname, 
-            'gender': u.gender, 
-            'birthday': u.birthday,
-            'city': u.city, 
-            'state': u.state, 
-            'updated' : None    # Force DB to change updated to current_timestamp 
-                                # even if rest of record is identical. Depends on
-                                # MySQL handling of NULLs in timestamps and feels
-                                # a bit ugly...
-        }
+        col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
+                    'city': u.city, 'state': u.state, 'updated': None }
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
@@ -418,10 +404,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : None    # Force DB to change updated to current_timestamp 
-                                # even if rest of record is identical. Depends on
-                                # MySQL handling of NULLs in timestamps and feels
-                                # a bit ugly...
+            'updated': None
         }
         insertedTokens += upsert(curs, "tokens", col_val)
     return insertedTokens
@@ -452,11 +435,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
-    # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
-    #     but we only want to count either case as a single affected row...
-    #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)
-    return 1 if curs.rowcount else 0
-
+    return curs.rowcount
 
 # # keeping this around just in case we want to go back to a two-step process... if we do, we MUST use
 # # transactions to avoid race conditions.
@@ -503,10 +482,11 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
     curs = conn.cursor()
 
     rows = [{'sessionId': sessionId, 'ip': ip, 'userId': userId, 'friendId': friendId,
-             'eventType': eventType, 'appId': appId, 'content': content, 'activityId': activityId
+             'eventType': eventType, 'appId': appId, 'content': content,
+             'activityId': activityId, 'createDt': time.strftime("%Y-%m-%d %H:%M:%S")
             } for friendId in friendIds]
-    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
-                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
+    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, updated)
+                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
 
     insertCount = 0
     for row in rows:
