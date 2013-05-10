@@ -21,10 +21,6 @@ logger = logging.getLogger(__name__)
 
 FILTER_LIST_DELIM = '||'  # Shouldn't move to config, since this needs to be globally used in the DB
 
-def now():
-    """Return the current GMT time formatted for MySQL"""
-    return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-
 
 def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=False):
     """Creates a new client in the database, returning the client_id.
@@ -37,8 +33,7 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
             'fb_app_name' : fbAppName, 
             'fb_app_id' : fbAppId, 
             'domain' : domain, 
-            'subdomain' : subdomain, 
-            'create_dt' : now() 
+            'subdomain' : subdomain 
           }
 
     try:
@@ -63,8 +58,7 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
         row = {
                 'client_id' : clientId, 
                 'filter_id' : filterId, 
-                'choice_set_id' : choiceSetId, 
-                'start_dt' : now()
+                'choice_set_id' : choiceSetId
               }
 
         clientDefaultId = dbInsert('client_defaults', 'client_default_id', row.keys(), [row], 'client_id', clientId, replaceAll=True)
@@ -116,8 +110,7 @@ def createFilter(clientId, name, description, features=None, metadata=None):
     row = {
             'client_id' : clientId, 
             'name' : name, 
-            'description' : description, 
-            'create_dt' : now()
+            'description' : description
           }
 
     # zzz This will create the filter record, commit, then load the features & meta data
@@ -168,11 +161,10 @@ def updateFilterFeatures(filterId, features, replaceAll=False):
                     'feature' : feature, 
                     'operator' : operator, 
                     'value' : str(value), 
-                    'value_type' : value_type, 
-                    'start_dt' : now()
+                    'value_type' : value_type
                     })
 
-    insCols = ['filter_id', 'feature', 'operator', 'value', 'value_type', 'start_dt']
+    insCols = ['filter_id', 'feature', 'operator', 'value', 'value_type']
     uniqueCols = ['feature', 'operator']
 
     dbInsert('filter_features', 'filter_feature_id', insCols, rows, 'filter_id', filterId, uniqueCols, replaceAll=replaceAll)
@@ -197,11 +189,10 @@ def updateCampaignGlobalFilters(campaignId, filterTupes):
         rows.append({
                     'campaign_id' : campaignId,
                     'filter_id' : filterId,
-                    'rand_cdf' : prob,
-                    'start_dt' : now()
+                    'rand_cdf' : prob
                     })
 
-    insCols = ['campaign_id', 'filter_id', 'rand_cdf', 'start_dt']
+    insCols = ['campaign_id', 'filter_id', 'rand_cdf']
 
     dbInsert('campaign_global_filters', 'campaign_global_filter_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
 
@@ -245,8 +236,7 @@ def createChoiceSet(clientId, name, description, filters, metadata=None):
     row = {
             'client_id' : clientId,
             'name' : name,
-            'description' : description,
-            'create_dt' : now()
+            'description' : description
           }
 
     try:
@@ -286,11 +276,10 @@ def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
                     'choice_set_id' : choiceSetId, 
                     'filter_id' : filterId, 
                     'url_slug' : urlSlug,
-                    'propensity_model_type' : modelType, 
-                    'start_dt' : now()
+                    'propensity_model_type' : modelType
                     })
 
-    insCols = ['choice_set_id', 'filter_id', 'url_slug', 'propensity_model_type', 'start_dt']
+    insCols = ['choice_set_id', 'filter_id', 'url_slug', 'propensity_model_type']
     uniqueCols = ['filter_id']
 
     dbInsert('choice_set_filters', 'choice_set_filter_id', insCols, rows, 'choice_set_id', choiceSetId, uniqueCols, replaceAll=replaceAll)
@@ -319,11 +308,10 @@ def updateCampaignChoiceSets(campaignId, choiceSetTupes):
                     'choice_set_id' : choiceSetId,
                     'rand_cdf' : prob,
                     'allow_generic' : allowGeneric,
-                    'generic_url_slug' : genericSlug,
-                    'start_dt' : now()
+                    'generic_url_slug' : genericSlug
                     })
 
-    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'generic_url_slug', 'start_dt']
+    insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'generic_url_slug']
 
     dbInsert('campaign_choice_sets', 'campaign_choice_set_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
 
@@ -355,8 +343,7 @@ def createClientContent(clientId, name, description, url):
             'client_id' : clientId,
             'name' : name,
             'description' : description,
-            'url' : url,
-            'create_dt' : now()
+            'url' : url
           }
 
     try:
@@ -407,8 +394,7 @@ def createCampaign(clientId, name, description, facesURL, fallbackCampaign=None,
     row = {
             'client_id' : clientId,
             'name' : name,
-            'description' : description,
-            'create_dt' : now()
+            'description' : description
           }
 
     try:
@@ -431,8 +417,7 @@ def updateCampaignProperties(campaignId, facesURL, fallbackCampaign=None, fallba
             'campaign_id' : campaignId,
             'client_faces_url' : facesURL,
             'fallback_campaign_id' : fallbackCampaign,
-            'fallback_content_id' : fallbackContent,
-            'start_dt' : now()
+            'fallback_content_id' : fallbackContent
           }
 
     dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
@@ -478,8 +463,7 @@ def createFacebookObject(clientId, name, description, attributes, metadata=None)
     row = {
             'client_id' : clientId,
             'name' : name,
-            'description' : description,
-            'create_dt' : now()
+            'description' : description
           }
 
     try:
@@ -532,11 +516,10 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
                             'campaign_id' : campaignId,
                             'filter_id' : filterId,
                             'fb_object_id' : fbObjectId,
-                            'rand_cdf' : prob,
-                            'start_dt' : now()
+                            'rand_cdf' : prob
                             })
 
-        filter_insCols = ['campaign_id', 'filter_id', 'fb_object_id', 'rand_cdf', 'start_dt']
+        filter_insCols = ['campaign_id', 'filter_id', 'fb_object_id', 'rand_cdf']
         dbInsert('campaign_fb_objects', 'campaign_fb_object_id', filter_insCols, filter_rows, 'campaign_id', campaignId, replaceAll=True)
         numRows = len(filter_rows)
 
@@ -546,11 +529,10 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
             generic_rows.append({
                         'campaign_id' : campaignId,
                         'fb_object_id' : fbObjectId,
-                        'rand_cdf' : prob,
-                        'start_dt' : now()
+                        'rand_cdf' : prob
                         })
 
-        generic_insCols = ['campaign_id', 'fb_object_id', 'rand_cdf', 'start_dt']
+        generic_insCols = ['campaign_id', 'fb_object_id', 'rand_cdf']
         dbInsert('campaign_generic_fb_objects', 'campaign_generic_fb_object_id', generic_insCols, generic_rows, 'campaign_id', campaignId, replaceAll=True)
         numRows += len(generic_rows)
 
@@ -683,12 +665,11 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
             'feature_type' : featureType,
             'feature_row' : featureRow,
             'random_assign' : randomAssign,
-            'assign_dt' : now(),
             'chosen_from_table' : chosenFromTable,
             'chosen_from_rows' : str(sorted([int(r) for r in chosenFromRows]))
           }
-    sql = """INSERT INTO assignments (session_id, campaign_id, content_id, feature_type, feature_row, random_assign, assign_dt, chosen_from_table, chosen_from_rows) 
-                VALUES (%(session_id)s, %(campaign_id)s, %(content_id)s, %(feature_type)s, %(feature_row)s, %(random_assign)s, %(assign_dt)s, %(chosen_from_table)s, %(chosen_from_rows)s) """
+    sql = """INSERT INTO assignments (session_id, campaign_id, content_id, feature_type, feature_row, random_assign, chosen_from_table, chosen_from_rows) 
+                VALUES (%(session_id)s, %(campaign_id)s, %(content_id)s, %(feature_type)s, %(feature_row)s, %(random_assign)s, %(chosen_from_table)s, %(chosen_from_rows)s) """
 
     try:
         curs.execute(sql, row)
@@ -719,11 +700,10 @@ def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False
         rows.append({
                     objectCol : objectId, 
                     'name' : name, 
-                    'value' : value, 
-                    'start_dt' : now()
+                    'value' : value
                     })
 
-    insCols = [objectCol, 'name', 'value', 'start_dt']
+    insCols = [objectCol, 'name', 'value']
     uniqueCols = ['name']
 
     dbInsert(table, index, insCols, rows, objectCol, objectId, uniqueCols, replaceAll=replaceAll)
@@ -765,11 +745,10 @@ def dbSetEndDate(table, index, endIds, connP=None):
     conn = connP if (connP is not None) else db.getConn()
     curs = conn.cursor()
 
-    sql = "UPDATE" + table + "SET end_dt = %s WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")"
-    vals = [now()]
+    sql = "UPDATE" + table + "SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")"
 
     try:
-        curs.execute(sql, vals)
+        curs.execute(sql)
         conn.commit()
     except:
         conn.rollback()
@@ -805,17 +784,15 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
                 replaceIds += [repId] if repId is not None else []
 
         if (replaceAll):
-            prepsql = "UPDATE " + table + " SET end_dt = %s WHERE " + objectCol + " IN (" + str(objectId) + ")"
+            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + objectCol + " IN (" + str(objectId) + ")"
         elif (replaceIds):
-            prepsql = "UPDATE " + table + " SET end_dt = %s WHERE " + index + " IN (" + ','.join([str(i) for i in replaceIds]) + ")"
+            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in replaceIds]) + ")"
         else:
             prepsql = None
 
-        prepvals = [now()]
-
         if (prepsql): 
             logging.debug(prepsql)
-            curs.execute(prepsql, prepvals)
+            curs.execute(prepsql)
         for row in rows:
             logging.debug(insSQL)
             logging.debug(row)
