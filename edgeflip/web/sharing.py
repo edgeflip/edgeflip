@@ -93,10 +93,6 @@ def faces():
         thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
-# TO REMOVE ON TESTING:
-#    campaign_filterTups = config.ofa_campaigns
-#    filterTups = campaign_filterTups.get(campaign, [])
-
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
@@ -230,53 +226,6 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
 
-
-# TO REMOVE ON TESTING:
-    # bestState = filtering.getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
-    # if (bestState is not None):
-    #     filterTups.append(('state', 'eq', bestState))
-    #     edgesFiltered = filtering.filterEdgesBySec(edgesRanked, filterTups)
-    #     logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
-
-    #     friendDicts = [ e.toDict() for e in edgesFiltered ]
-    #     faceFriends = friendDicts[:numFace]
-    #     allFriends = friendDicts[:25]
-
-    #     senInfo = config.ofa_states[bestState]
-
-    #     """these messages move into database"""
-    #     msgParams = {
-    #     'msg1_pre' : "Hi there ",
-    #     'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
-    #     'msg2_pre' : "Now is the time for real climate legislation, ",
-    #     'msg2_post' : "!",
-    #     'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-    #     'msg_other_init' : "Replace this text with your message for "
-    #     }
-    #     actionParams =     {
-    #     'fb_action_type' : 'support',
-    #     'fb_object_type' : 'cause',
-    #     'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True),
-    #     'fb_app_name': config.fb_app_name,
-    #     'fb_app_id': config.fb_app_id}
-        
-    #     logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
-
-    #     content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
-    #     if (not sessionId):
-    #         sessionId = generateSessionId(ip, content)
-
-    #     database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
-    #     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-    #                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
-
-    # else:
-    #     content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
-    #     if (not sessionId):
-    #         sessionId = generateSessionId(ip, content)
-    #     return ajaxResponse('all of your friends are stateless', 200, sessionId)
-
-
 @app.route("/objects/<fbObjectId>/<contentId>")
 def objects(fbObjectId, contentId):
     """endpoint linked to on facebook.com
@@ -336,39 +285,6 @@ def objects(fbObjectId, contentId):
     database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=True)
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
-
-
-# TO REMOVE ON TESTING:
-# @app.route("/fb_object")
-# def fb_object():
-#     """endpoint linked to on facebook.com
-
-#     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
-#     """
-#     state = flask.request.args.get('state')
-#     if state is None:
-#         return "No state specified", 404
-    
-#     senInfo = config.ofa_states.get(state)
-#     if (not senInfo):
-#         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
-
-#     objParams = {
-#     'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
-#     'fb_action_type': 'support',
-#     'fb_object_type': 'cause',
-#     'fb_object_title': 'Climate Legislation',
-#     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-#     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-#     'fb_object_url' : flask.url_for('fb_object', state=state, _external=True),
-#     'fb_app_name': config.fb_app_name,
-#     'fb_app_id': config.fb_app_id
-#     }
-
-#     # zzz Are we going to want/need to pass URL parameters to this redirect?
-#     redirectURL = config.web.fb_object_redirect
-
-#     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
 
 
 @app.route('/suppress', methods=['POST'])
