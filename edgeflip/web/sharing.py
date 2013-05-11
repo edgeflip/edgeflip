@@ -71,8 +71,6 @@ def faces():
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
-# TO REMOVE ON TESTING:
-#    campaign = flask.request.json.get('campaign')
     numFace = int(flask.request.json['num'])
     sessionId = flask.request.json['sessionid']
     campaignId = flask.request.json['campaignid']
