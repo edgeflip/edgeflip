@@ -47,9 +47,6 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
         defaultName = 'edgeflip default'
         defaultDesc = 'Default element created by edgeflip'
 
-#        buttonStyleId = createButtonStyle(clientId, defaultName, defaultDesc, 'ef_default_button.html', 'ef_default_button.css').get('button_style_id')
-#        facesStyleId = createFacesStyle(clientId, defaultName, defaultDesc, 'ef_default_faces.html', 'ef_default_faces.css').get('faces_style_id')
-
         # zzz best way to get default propensity, proximity, and mix model id's (and choice set algorithms) that are created globally?
 
         filterId = createFilter(clientId, defaultName, defaultDesc).get('filter_id')
