@@ -60,7 +60,7 @@ FQL_USER_INFO   = """SELECT uid, first_name, last_name, sex, birthday_date, curr
 FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 def dateFromFb(dateStr):
-    """i can die"""
+    """we would like this to die"""
     if (dateStr):
         dateElts = dateStr.split('/')
         if (len(dateElts) == 3): 
