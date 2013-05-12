@@ -61,7 +61,7 @@ def rank_faces():
         database.updateDb(user, tok, edgesRanked, background=True)
 
     else:
-        edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+        edgesRanked = ranking.getFriendRankingDb(fbid, requireOutgoing=True)
 
     friendDicts = [ e.toDict() for e in edgesRanked ]
 

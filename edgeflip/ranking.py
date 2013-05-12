@@ -134,12 +134,12 @@ def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
         e.score = prox(e, edgesMax)
     return sorted(edges, key=lambda x: x.score, reverse=True)
 
-def getFriendRankingDb(conn, userId, requireOutgoing=True):
+def getFriendRankingDb(userId, requireOutgoing=True):
     """hits DB, calls getFriendRankingDb
 
     """
 
-    edgesDb = database.getFriendEdgesDb(conn, userId, requireOutgoing)
+    edgesDb = database.getFriendEdgesDb(userId, requireOutgoing)
     return getFriendRanking(edgesDb, requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
@@ -156,10 +156,10 @@ def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
     else:
         return getFriendRanking(edgesFull, requireOutgoing=True)
 
-def getFriendRankingBestAvailDb(conn, userId, threshold=0.5):
+def getFriendRankingBestAvailDb(userId, threshold=0.5):
     """hit DB & call getFriendRankingBestAvail
 
     """
-    edgesPart = database.getFriendEdgesDb(conn, userId, requireOutgoing=False)
-    edgesFull = database.getFriendEdgesDb(conn, userId, requireOutgoing=True)
+    edgesPart = database.getFriendEdgesDb(userId, requireOutgoing=False)
+    edgesFull = database.getFriendEdgesDb(userId, requireOutgoing=True)
     return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)

@@ -102,7 +102,7 @@ def faces():
 
     if (user is not None):  # it's fresh
         logger.debug("user %s is fresh, getting data from db", fbid)
-        edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
+        edgesRanked = ranking.getFriendRankingBestAvailDb(fbid, threshold=0.5)
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)

@@ -281,12 +281,12 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
     return ret
 
 
-def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
+def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     """return list of datastructs.Edge objects for primaryId user
 
     """
 
-    conn = connP if (connP is not None) else getConn()
+    conn = getConn()
 
     edges = []  # list of edges to be returned
     primary = getUserDb(primId)
@@ -328,9 +328,6 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
             edgeCountsIn = secId_edgeCountsIn[secId]
             secondary = getUserDb(secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
-
-    if (connP is None):
-        conn.close()
     return edges
 
 # helper function that may get run in a background thread

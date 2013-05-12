@@ -51,7 +51,7 @@ def readStreamCallback(ch, method, properties, body):
     if (readStreamCallback.overwriteThresh != 0):
         # want the edges that were updated less than overwriteThresh secs ago, we'll exclude these
         updateThresh = time.time() - readStreamCallback.overwriteThresh
-        edgesDb = database.getFriendEdgesDb(conn, userId, readStreamCallback.requireOutgoing, newerThan=updateThresh)
+        edgesDb = database.getFriendEdgesDb(userId, readStreamCallback.requireOutgoing, newerThan=updateThresh)
         skipFriends.update([ e.secondary.id for e in edgesDb ])
 
     friends = facebook.getFriendsFb(userId, tok)
