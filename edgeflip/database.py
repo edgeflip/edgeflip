@@ -1,4 +1,10 @@
 #!/usr/bin/python
+"""
+.. envvar:: database.use_threads
+
+    should work be done in background threads. Respected by some parts of the code, other modules, etc. and some not?
+"""
+
 import sys
 import time
 import logging
