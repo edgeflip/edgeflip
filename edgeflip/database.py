@@ -30,7 +30,18 @@ def getConn():
     """
     try:
         return flask.g.conn
+    except RuntimeError as err:        
+        # xxx gross, le sigh
+        if err.message != "working outside of request context":
+            raise
+        else:
+            # we are in a random thread the code spawned off from
+            # $DIETY knows where. Here, have a connection:
+            logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
+            return _make_connection()
     except AttributeError:
+        # we are in flask-managed thread, which is nice.
+        # create a new connection & save it for reuse
         conn = flask.g.conn = _make_connection()
         return conn
 
