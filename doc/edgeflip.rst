@@ -1,26 +1,35 @@
 edgeflip Package
 ================
 
+:mod:`client_db_reset` Module
+-------------------------------
+
+.. automodule:: edgeflip.client_db_reset
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`client_db_tools` Module
+------------------------------
+
+.. automodule:: edgeflip.client_db_tools
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`client_db_validate` Module
+---------------------------------
+
+.. automodule:: edgeflip.client_db_validate
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 :mod:`database` Module
 ----------------------
 
 .. automodule:: edgeflip.database
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`database_rds` Module
---------------------------
-
-.. automodule:: edgeflip.database_rds
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`database_sqlite` Module
------------------------------
-
-.. automodule:: edgeflip.database_sqlite
     :members:
     :undoc-members:
     :show-inheritance:
