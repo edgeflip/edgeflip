@@ -97,7 +97,6 @@ def faces():
     token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
-    conn = database.getConn()
     user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
@@ -109,7 +108,6 @@ def faces():
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
         database.updateDb(user, token, edgesRanked, background=True)
-    conn.close()
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
