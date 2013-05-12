@@ -7,7 +7,6 @@ if (typeof JSON == 'undefined') {
 
 
 // IE 8 doesn't seem to implement indexOf() for arrays
-// XXX bug here - misspelling
 if (!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function(obj, start) {
 		for (var i = (start || 0), j = this.length; i < j; i++) {

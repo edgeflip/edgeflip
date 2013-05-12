@@ -8,8 +8,6 @@ or show user a button (same behavior)
 var myfbid; // The FB ID of the current user to be filled in upon auth.
 
 /* loads a bunch of images
-
-XXX maybe unused
 */
 function preload(arrayOfImages) {
 	$(arrayOfImages).each(function () {
