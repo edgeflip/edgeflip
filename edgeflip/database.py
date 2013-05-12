@@ -5,18 +5,34 @@ import logging
 import datetime
 import threading
 import MySQLdb as mysql
+import flask
 
 from . import datastructs
 from .settings import config
 
 logger = logging.getLogger(__name__)
 
-
-
-def getConn():
-    #return db.getConn()
+def _make_connection():
+    """makes a connection to mysql, based on configuration. For internal use.
+    
+    :rtype: mysql connection object
+    
+    """
+    
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
 
+def getConn():
+    """return a connection for this thread.
+    
+    All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
+    
+    You are responsible for managing the state of your connection; it may be cleaned up (rollback()'d , etc.) on thread destruction, but you shouldn't rely on such things.
+    """
+    try:
+        return flask.g.conn
+    except AttributeError:
+        conn = flask.g.conn = _make_connection()
+        return conn
 
 class Table(object):
     """represents a Table
