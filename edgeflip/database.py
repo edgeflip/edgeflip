@@ -21,9 +21,12 @@ def getConn():
 class Table(object):
     """represents a Table
 
-    XXX mutable default args in __init__
     """
-    def __init__(self, name, cols=[], indices=[], key=[]):
+    def __init__(self, name, cols=None, indices=None, key=None):
+        cols = cols if cols is not None else []
+        indices = indices if indices is not None else []
+        key = key if key is not None else []
+         
         self.name = name
         self.colTups = []
         self.addCols(cols)
