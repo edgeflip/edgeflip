@@ -359,6 +359,6 @@ def validateClientDb():
         "All fallback content associated with campaigns are accounted for.")
 
 
-    conn.close()
+    conn.rollback()
 
     logger.debug("=========== Finished Client DB Validation ===========")

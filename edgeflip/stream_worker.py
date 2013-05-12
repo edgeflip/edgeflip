@@ -107,7 +107,7 @@ def readStreamCallback(ch, method, properties, body):
                 logger.debug("Nap time! Waiting %d seconds...", secsLeft)
                 time.sleep(secsLeft)
 
-    conn.close()
+    conn.rollback()
 
     logger.debug("[worker] updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())
     logger.debug("updated %d friend edges for %d (took: %s)", newCount, userId, tim.elapsedPr())

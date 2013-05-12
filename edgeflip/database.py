@@ -337,15 +337,20 @@ def _updateDb(user, token, edges):
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
-    updateUsersDb(curs, [user])
-    updateTokensDb(curs, [user], token)
-    fCount = updateUsersDb(curs, [e.secondary for e in edges])
-    tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
-    eCount = updateFriendEdgesDb(curs, edges)
-    conn.commit()
+    
+    try:
+        updateUsersDb(curs, [user])
+        updateTokensDb(curs, [user], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        eCount = updateFriendEdgesDb(curs, edges)
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+    
     logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
-    conn.close()
     return eCount
 
 
@@ -494,7 +499,6 @@ def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, even
         insertCount += 1
 
     logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
-    conn.close()
 
     return insertCount
 

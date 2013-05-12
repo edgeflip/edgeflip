@@ -366,7 +366,7 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
         curs.execute(sql)
         url = curs.fetchone()[0]
     finally:
-        conn.close()
+        conn.rollback()
 
     # Fill in choice set and FB object slugs
     url = url.replace('{{choice_set_slug}}', choiceSetFilterSlug)
@@ -553,7 +553,7 @@ def dbGetClient(clientId, cols):
         curs.execute(sql)
         ret = curs.fetchall()
     finally:
-        conn.close()
+        conn.rollback()
 
     return ret
 
@@ -570,7 +570,7 @@ def dbGetObject(table, cols, objectIndex, objectId):
         curs.execute(sql)
         ret = curs.fetchall()
     finally:
-        conn.close()
+        conn.rollback()
 
     return ret
 
@@ -591,7 +591,7 @@ def dbGetObjectAttributes(table, cols, objectIndex, objectId):
         curs.execute(sql)
         ret = curs.fetchall()
     finally:
-        conn.close()
+        conn.rollback()
 
     return ret
 
@@ -624,7 +624,7 @@ def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
         curs.execute(sql)
         ret = curs.fetchall()   # returns (index, object_id, cdf_prob)
     finally:
-        conn.close()
+        conn.rollback()
 
     tupes = sorted([(r[1], r[2]) for r in ret], key=lambda t: t[1])
     checkCDF(tupes)
@@ -673,9 +673,10 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
     try:
         curs.execute(sql, row)
         conn.commit()
-    finally:
-        conn.close()
-
+    except:
+        conn.rollback()
+        raise
+    
     logger.debug("_dbWriteAssignment() thread %d wrote %s:%s assignment from session %s", threading.current_thread().ident, featureType, featureRow, sessionId)
     
     return 1
