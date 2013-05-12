@@ -148,10 +148,10 @@ TABLES['events'] =    Table(name='events',
                             indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
 # Reset the DB by dropping and recreating tables
-def dbSetup(connP=None, tableKeys=None):
+def dbSetup(tableKeys=None):
     """creates tables"""
 
-    conn = connP if (connP is not None) else getConn()
+    conn = getConn()
     curs = conn.cursor()
     if (tableKeys is None):
         tableKeys = TABLES.keys()
@@ -164,8 +164,6 @@ def dbSetup(connP=None, tableKeys=None):
         sys.stderr.write(sql + "\n")
         curs.execute(sql)
     conn.commit()
-    if (connP is None):
-        conn.close()
 
 def dbMigrate():
     """migrate from old (pre token_table) schema"""
@@ -173,11 +171,11 @@ def dbMigrate():
     curs = conn.cursor()
 
     # create the new token table
-    dbSetup(conn, tableKeys=["tokens"])
+    dbSetup(tableKeys=["tokens"])
 
     # rename users table, create new
     curs.execute("RENAME TABLE users TO users_OLD")
-    dbSetup(conn, tableKeys=["users"])
+    dbSetup(tableKeys=["users"])
 
     #copy existing tokens from the old users table to the new tokens table
     curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
@@ -207,11 +205,11 @@ def dbMigrate():
 
     # rename edges table, create new
     curs.execute("RENAME TABLE edges TO edges_OLD")
-    dbSetup(conn, tableKeys=["edges"])
+    dbSetup(tableKeys=["edges"])
 
     # rename events table, create new
     curs.execute("RENAME TABLE events TO events_OLD")
-    dbSetup(conn, tableKeys=["events"])
+    dbSetup(tableKeys=["events"])
 
     return
 
