@@ -336,8 +336,7 @@ def _updateDb(user, token, edges):
     tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
     eCount = updateFriendEdgesDb(curs, edges)
     conn.commit()
-    # XXX bad log message
-    logger.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
+    logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     conn.close()
     return eCount
