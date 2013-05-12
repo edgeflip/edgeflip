@@ -215,21 +215,10 @@ editable.on('keyup', function(event) {
 </script>
 
 <script>
-    /* this whole thing can probably die - boxes should already be unchecked
-
-    commented-out lines can die
-    */
+    /* this whole thing can probably die - boxes should already be unchecked */
 
     // Quick code to pre-load messages for testing...
     
-    {% for face_friend in face_friends %}
-//        recips.push({{face_friend.id}});
-    {% endfor %}
-
-    {% for face_friend in face_friends %}
-//        $('#other_msg').append(' <span class="msg_friend_name msg-txt-friend" id="msg-txt-friend-'+{{face_friend.id}}+'" contentEditable="False">'+fbnames[{{face_friend.id}}]+'</span> ');
-    {% endfor %}
-
     $("input[id*='box-']").prop('checked', false)
 
     $('.suggested_msg .preset_names').html(friendNames(false));
