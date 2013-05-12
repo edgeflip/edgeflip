@@ -107,7 +107,7 @@ def faces():
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
-        database.updateDb(user, token, edgesRanked, background=True)
+        database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
@@ -126,7 +126,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
     filterExpTupes = [(r[1], r[2]) for r in filterRecs]
     globalFilterId = cdb.doRandAssign(filterExpTupes)
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=config.database.use_threads)
 
     # apply filter
     globalFilter = cdb.getFilter(globalFilterId)
@@ -136,7 +136,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
     choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
     choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=config.database.use_threads)
     allowGeneric = {r[1] : [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
 
     # pick best choice set filter (and write DB)
@@ -153,15 +153,15 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
             # zzz Obviously, do something smarter here...
             return ajaxResponse('No friends identified for you.', 200, sessionId)
 
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
         # if fallback content_id IS NULL, defer to current content_id
         if (fallbackContentId is None):
             fallbackContentId = contentId
 
         # write "fallback" assignments to DB
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
         # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
         return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
@@ -178,18 +178,18 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     if (bestCSFilter[0] is None):
         # We got generic...
         logger.debug("Generic returned for %s with campaign %s." % (fbid, campaignId))
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
         fbObjectTable = 'campaign_fb_objects'
         fbObjectIdx = 'campaign_fb_object_id'
     else:
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
         fbObjectKeys = [('campaign_id', campaignId), ('filter_id', bestCSFilter[0].filterId)]
 
     # Get FB Object experiments, do assignment (and write DB)
     fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
     fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
     fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=config.database.use_threads)
 
     # Find template params, return faces
     fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
@@ -217,7 +217,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
 
@@ -278,7 +278,7 @@ def objects(fbObjectId, contentId):
         sessionId = generateSessionId(ip, content)
 
     # record the clickback event to the DB
-    database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=True)
+    database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
 
@@ -304,10 +304,10 @@ def suppress():
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [oldid], 'suppressed', appid, content, None, background=config.database.use_threads)
 
     if (newid != ''):
-        database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [newid], 'shown', appid, content, None, background=True)
+        database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [newid], 'shown', appid, content, None, background=config.database.use_threads)
         return ajaxResponse(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200, sessionId)
     else:
         return ajaxResponse('', 200, sessionId)
@@ -338,7 +338,7 @@ def recordEvent():
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
 

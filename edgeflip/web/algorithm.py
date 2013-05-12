@@ -58,7 +58,7 @@ def rank_faces():
         user = edgesRanked[0].primary if (edgesUnranked) else facebook.getUserFb(fbid, tok) # just in case they have no friends
 
         # spawn off a separate thread to do the database writing
-        database.updateDb(user, tok, edgesRanked, background=True)
+        database.updateDb(user, tok, edgesRanked, background=config.database.use_threads)
 
     else:
         edgesRanked = ranking.getFriendRankingDb(fbid, requireOutgoing=True)
