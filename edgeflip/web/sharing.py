@@ -24,8 +24,8 @@ app = flask.Flask(__name__)
 MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
 
 # Serves just a button, to be displayed in an iframe
-@app.route("/button_man/<int:campaignId>/<int:contentId>")
-def button_man(campaignId, contentId):
+@app.route("/button/<int:campaignId>/<int:contentId>")
+def button(campaignId, contentId):
     """serves the button in iframe on client site"""
     # Should be able to get subdomain using the subdomain keyword in app.route()
     # but I was having some trouble getting this to work locally, even setting
@@ -41,7 +41,7 @@ def button_man(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('button_man.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
+    return flask.render_template('button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
