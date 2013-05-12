@@ -25,6 +25,7 @@ To set up a local mysql database:
 
 1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
 2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
+3. To seed the database with values for the mockclient, use `bin/mockclient_campaigns.py`. This uses the edgeflip and mockclient host data in your configuration.
 
 Hostname Alias
 --------------
