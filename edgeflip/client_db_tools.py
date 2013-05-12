@@ -738,10 +738,10 @@ def checkCDF(tupes):
         raise CDFProbsError("Duplicate values found in CDF")
 
 
-def dbSetEndDate(table, index, endIds, connP=None):
+def dbSetEndDate(table, index, endIds):
     """Set the end_dt for a set of records, removing them from use."""
 
-    conn = connP if (connP is not None) else db.getConn()
+    conn = db.getConn()
     curs = conn.cursor()
 
     sql = "UPDATE" + table + "SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")"
@@ -752,14 +752,11 @@ def dbSetEndDate(table, index, endIds, connP=None):
     except:
         conn.rollback()
         raise
-    finally:
-        if (connP is None):
-            conn.close()
-
-    return len(endIds)
+    else:
+        return len(endIds)
 
 
-def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueCols=None, connP=None, replaceAll=False):
+def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueCols=None, replaceAll=False):
     """Insert rows into the specified table.
        If replaceAll is true, any current records associated with the given object
        will be removed (by setting their end_dt). Otherwise, if uniqueCols are specified,
@@ -767,7 +764,7 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
 
     rows = rows if (rows is not None) else []
 
-    conn = connP if (connP is not None) else db.getConn()
+    conn = db.getConn()
     curs = conn.cursor()
 
     insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join(['%('+c+')s' for c in insCols]) + ")"
@@ -799,16 +796,11 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         newId = curs.lastrowid
 
         conn.commit()
-
     except:
         conn.rollback()
         raise
-
-    finally:
-        if (connP is None):
-            conn.close()
-
-    return newId
+    else:
+        return newId
 
 
 class Filter(object):

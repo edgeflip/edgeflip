@@ -218,7 +218,7 @@ def dbMigrate():
 
 
 
-def getUserTokenDb(connP, userId, appId):
+def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table
 
     For now, it simply grabs all non-expired tokens and orders them by
@@ -226,7 +226,7 @@ def getUserTokenDb(connP, userId, appId):
 
     :rtype: datastructs.TokenInfo
     """
-    conn = connP if (connP is not None) else getConn()
+    conn = getConn()
     curs = conn.cursor()
     ts = time.time()
     sql = "SELECT token, ownerid, unix_timestamp(expires) FROM tokens WHERE fbid=%s AND unix_timestamp(expires)>%s AND appid=%s "
@@ -239,8 +239,6 @@ def getUserTokenDb(connP, userId, appId):
     else:
         expDate = datetime.datetime.utcfromtimestamp(rec[2])
         ret = datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
-    if (connP is None):
-        conn.close()
     return ret
 
 
