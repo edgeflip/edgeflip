@@ -460,39 +460,6 @@ def upsert(curs, table, col_val, coalesceCols=None):
     return 1 if curs.rowcount else 0
 
 
-# # keeping this around just in case we want to go back to a two-step process... if we do, we MUST use
-# # transactions to avoid race conditions.
-# def insert_update(curs, updateTable, coalesceCols, overwriteCols, keyCols, vals):
-#     """Helper class to update records in a table."""
-#     allCols = keyCols + overwriteCols + coalesceCols
-#     keySQL = ' AND '.join([ c + ' = %('+c+')s' for c in keyCols ])
-#
-#     selectSQL = "SELECT %s FROM %s WHERE %s" % ( ', '.join(keyCols), updateTable, keySQL )
-#
-#     coalesceSQL  = [ '%s = COALESCE(%s, %s)' % (c, '%('+c+')s', c) for c in coalesceCols ]
-#     overwriteSQL = [ '%s = %s' % (c, '%('+c+')s') for c in overwriteCols ]
-#     upColsSQL = ', '.join(overwriteSQL + coalesceSQL)
-#     updateSQL = "UPDATE %s SET %s WHERE %s" % (updateTable, upColsSQL, keySQL)
-#
-#     insertSQL = "INSERT INTO %s (%s) VALUES (%s)" % (
-#         updateTable, ', '.join(allCols), ', '.join(['%('+c+')s' for c in allCols]) )
-#
-#     insertCount = 0
-#     for row in vals:
-#
-#         curs.execute(selectSQL, row)
-#
-#         sql = updateSQL if ( curs.fetchone() ) else insertSQL
-#         curs.execute(sql, row)
-#
-#         curs.execute("COMMIT")
-#         insertCount += 1
-#
-#     return insertCount
-
-
-
-
 
 # helper function that may get run in a background thread
 def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId):
