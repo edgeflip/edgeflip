@@ -90,8 +90,7 @@ class FriendInfo(UserInfo):
     """
 
     def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
-        # XXX replace with super()
-        UserInfo.__init__(self, friendId, first_name, last_name, sex, birthday, city, state)
+        super(FriendInfo, self).__init__(friendId, first_name, last_name, sex, birthday, city, state)
         self.idPrimary = primId
         self.primPhotoTags = primPhotoTags
         self.otherPhotoTags = otherPhotoTags
