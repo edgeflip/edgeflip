@@ -240,14 +240,14 @@ def getUserTokenDb(userId, appId):
     return ret
 
 
-def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
+def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
     :rtype: datastructs.UserInfo
 
     freshness - how recent does data need to be? returns None if not fresh enough
     """
 
-    conn = connP if (connP is not None) else getConn()
+    conn = getConn()
 
     freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
@@ -278,8 +278,6 @@ def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): #
                     ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
             else:
                 ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-    if (connP is None):
-        conn.close()
     return ret
 
 
@@ -291,7 +289,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
     conn = connP if (connP is not None) else getConn()
 
     edges = []  # list of edges to be returned
-    primary = getUserDb(conn, primId)
+    primary = getUserDb(primId)
 
     curs = conn.cursor()
     sqlSelect = """
@@ -315,7 +313,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
-            secondary = getUserDb(conn, secId)
+            secondary = getUserDb(secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
 
     else:
@@ -328,7 +326,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
                                                    oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                    oTags, oPhOwn, oPhOth, oMuts)
             edgeCountsIn = secId_edgeCountsIn[secId]
-            secondary = getUserDb(conn, secId)
+            secondary = getUserDb(secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
 
     if (connP is None):

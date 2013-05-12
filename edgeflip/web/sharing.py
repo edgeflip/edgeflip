@@ -98,7 +98,7 @@ def faces():
 
     """next 60 lines or so get pulled out"""
     conn = database.getConn()
-    user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
+    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
         logger.debug("user %s is fresh, getting data from db", fbid)
