@@ -343,34 +343,37 @@ def recordEvent():
 
 
 @app.route("/health_check")
-@app.route("/hes_a_good_man_and_thorough")
-def say_ahhh():
-    """ break up into newrelic, internal monitoring
-
-    need aliveness check for ELB.
-
+def health_check():
+    """ELB status
+    
+    - if called as `/health_check?elb` just return 200
+    - if called as `/health_check` return a JSON dict with status of various component
+    
     """
-    iselb = flask.request.args.get('elb', '').lower()
-    if (iselb == 'true'): return "It's Alive!", 200
+    if 'elb' in flask.request.args:
+        return "It's Alive!", 200
 
-    isdevops = flask.request.args.get('devops', '').lower()
-    if (isdevops != 'true'): return "Sorry... you can't access this page", 403
+    components = {'database': False,
+                  'facebook': False}
 
+    # Make sure we can connect and return results from DB
+    conn = database.getConn()
     try:
-        # Make sure we can connect and return results from DB
-        conn = database.getConn()
         curs = conn.cursor()
         curs.execute("SELECT 1+1")
-        assert curs.fetchone()[0] == 2
+        if curs.fetchone()[0] == 2:
+            components['database'] = True
+    finally:
         conn.rollback()
 
-        # Make sure we can talk to FB and get simple user info back
+    # Make sure we can talk to FB and get simple user info back
+    try:
         fbresp = facebook.getUrlFb("http://graph.facebook.com/6963")
-        assert int(fbresp['id']) == 6963
-
-        # zzz Do we want to check system-level things here, too??
-
-        return "Fit As A Fiddle!", 200
+        if int(fbresp['id']) == 6963:
+            components['facebook'] = True
     except:
-        # zzz One day, provide more detailed output...
-        return "Ruh-Roh - Health Check Failed!", 500
+        # xxx do something more intelligent here?
+        raise
+    
+    return flask.jsonify(components)
+    
