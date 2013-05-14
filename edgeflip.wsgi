@@ -9,7 +9,7 @@ if config.newrelic.enabled:
                               config.newrelic.environment)
 
 import edgeflip.web
-app = edgeflip.web.getApp()
+application = edgeflip.web.getApp()
 
 if config.newrelic.enabled:
-    app = newrelic.agent.wsgi_application()(app)
+    application = newrelic.agent.wsgi_application()(application)
