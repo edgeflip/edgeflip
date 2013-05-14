@@ -1,0 +1,105 @@
+{
+    "primary_info" : {
+        "fbid" : 1,
+        "first_name" : "Bob",
+        "last_name" : "Newhart",
+        "gender" : "male",
+        "birthday" : "1929-09-05",
+        "city" : "Stratford Inn",
+        "state" : "Vermont"
+    },
+
+    "friends" : [
+    {
+        "secondary_info" : {
+            "fbid" : 2,
+            "first_name" : "Larry",
+            "last_name" : "Doe",
+            "gender" : "male"
+        },
+
+        "edge" : {
+            "postLikesIn" : 1, 
+            "postCommsIn" : 0, 
+            "statLikesIn" : 0, 
+            "statCommsIn" : 1, 
+            "wallPostsIn" : 0, 
+            "wallCommsIn" : 0,
+            "tagsIn" : 4, 
+            "photoPrim" : 1, 
+            "photoOth" : 0, 
+            "muts" : 2,
+            "postLikesOut" : 0, 
+            "postCommsOut" : 0, 
+            "statLikesOut" : 3, 
+            "statCommsOut" : 1, 
+            "wallPostsOut" : 0, 
+            "wallCommsOut" : 2,
+            "tagsOut" : 1 
+        }
+    },
+
+    {
+        "secondary_info" : {
+            "fbid" : 3,
+            "first_name" : "Darryl",
+            "last_name" : "Doe",
+            "gender" : "male",
+            "city" : "Stratford Inn",
+            "state" : "Vermont"
+        },
+
+        "edge" : {
+            "postLikesIn" : 0, 
+            "postCommsIn" : 0, 
+            "statLikesIn" : 2, 
+            "statCommsIn" : 1, 
+            "wallPostsIn" : 3, 
+            "wallCommsIn" : 0,
+            "tagsIn" : 1, 
+            "photoPrim" : 0, 
+            "photoOth" : 0, 
+            "muts" : 3,
+            "postLikesOut" : 6, 
+            "postCommsOut" : 2, 
+            "statLikesOut" : 1, 
+            "statCommsOut" : 0, 
+            "wallPostsOut" : 0, 
+            "wallCommsOut" : 4,
+            "tagsOut" : 2 
+        }
+    },
+
+    {
+        "secondary_info" : {
+            "fbid" : 4,
+            "first_name" : "Darryl",
+            "last_name" : "Doe",
+            "gender" : "male",
+            "birthday" : "1945-11-11"
+        },
+
+        "edge" : {
+            "postLikesIn" : 1, 
+            "postCommsIn" : 1, 
+            "statLikesIn" : 0, 
+            "statCommsIn" : 0, 
+            "wallPostsIn" : 2, 
+            "wallCommsIn" : 1,
+            "tagsIn" : 0, 
+            "photoPrim" : 0, 
+            "photoOth" : 0, 
+            "muts" : 3,
+            "postLikesOut" : 2, 
+            "postCommsOut" : 1, 
+            "statLikesOut" : 0, 
+            "statCommsOut" : 1, 
+            "wallPostsOut" : 0, 
+            "wallCommsOut" : 2,
+            "tagsOut" : 3 
+        }
+    }
+
+    ]
+}
+
