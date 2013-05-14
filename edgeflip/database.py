@@ -183,7 +183,11 @@ def dbSetup(tableKeys=None):
     conn.commit()
 
 def dbMigrate():
-    """migrate from old (pre token_table) schema"""
+    """migrate from old (pre token_table) schema
+    
+    
+    XXX I can probably die!
+    """
     conn = getConn()
     curs = conn.cursor()
 
@@ -268,10 +272,10 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s""" % userId
+    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
     curs = conn.cursor()
-    curs.execute(sql)
+    curs.execute(sql, (userId,))
     rec = curs.fetchone()
     if (rec is None):
         ret = None
@@ -284,7 +288,6 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
             ret = None
         else:
             if (freshnessIncludeEdge):
-                # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
                 curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
@@ -479,6 +482,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     keyColWilds = [ '%s' for c in keyColNames ]
     valColWilds = [ '%s' for c in valColNames ]
 
+    # SQLi
     sql = "INSERT INTO " + table + " (" + ", ".join(keyColNames + valColNames) + ") "
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
