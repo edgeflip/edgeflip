@@ -67,6 +67,21 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`stream_queue` Module
+--------------------------
+
+.. automodule:: edgeflip.stream_queue
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`stream_worker` Module
+---------------------------
+
+.. automodule:: edgeflip.stream_worker
+    :members:
+    :undoc-members:
+    :show-inheritance:
 
 :mod:`web` Module
 -----------------------

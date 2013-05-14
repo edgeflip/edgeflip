@@ -11,6 +11,7 @@ bpython==0.12
 coverage==3.6
 distribute==0.6.36
 docutils==0.10
+pika==0.9.12
 -e git+https://github.com/systemadev/pymlconf.git@c8447a5ef8a00ef5f450fc14f5d679d82c652ff5#egg=pymlconf-dev
 pythoscope==0.4.3
 snakefood==1.4
