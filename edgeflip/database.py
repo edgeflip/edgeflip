@@ -18,6 +18,9 @@ from .settings import config
 
 logger = logging.getLogger(__name__)
 
+# `threading.local` for db connections created outside of flask. gross.
+_non_flask_threadlocal = threading.local()
+
 def _make_connection():
     """makes a connection to mysql, based on configuration. For internal use.
     
@@ -35,7 +38,7 @@ def getConn():
     You are responsible for managing the state of your connection; it may be cleaned up (rollback()'d , etc.) on thread destruction, but you shouldn't rely on such things.
     """
     try:
-        return flask.g.conn
+        conn = flask.g.conn
     except RuntimeError as err:        
         # xxx gross, le sigh
         if err.message != "working outside of request context":
@@ -44,12 +47,16 @@ def getConn():
             # we are in a random thread the code spawned off from
             # $DIETY knows where. Here, have a connection:
             logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
-            return _make_connection()
+            try:
+                return _non_flask_threadlocal.conn
+            except AttributeError:                
+                conn = _non_flask_threadlocal.conn = _make_connection()
     except AttributeError:
         # we are in flask-managed thread, which is nice.
         # create a new connection & save it for reuse
         conn = flask.g.conn = _make_connection()
-        return conn
+    
+    return conn
 
 class Table(object):
     """represents a Table
@@ -183,7 +190,11 @@ def dbSetup(tableKeys=None):
     conn.commit()
 
 def dbMigrate():
-    """migrate from old (pre token_table) schema"""
+    """migrate from old (pre token_table) schema
+    
+    
+    XXX I can probably die!
+    """
     conn = getConn()
     curs = conn.cursor()
 
@@ -268,10 +279,10 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s""" % userId
+    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
     curs = conn.cursor()
-    curs.execute(sql)
+    curs.execute(sql, (userId,))
     rec = curs.fetchone()
     if (rec is None):
         ret = None
@@ -284,7 +295,6 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
             ret = None
         else:
             if (freshnessIncludeEdge):
-                # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
                 curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
@@ -479,6 +489,7 @@ def upsert(curs, table, col_val, coalesceCols=None):
     keyColWilds = [ '%s' for c in keyColNames ]
     valColWilds = [ '%s' for c in valColNames ]
 
+    # SQLi
     sql = "INSERT INTO " + table + " (" + ", ".join(keyColNames + valColNames) + ") "
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])

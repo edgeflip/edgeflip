@@ -358,12 +358,12 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
     choiceSetFilterSlug = choiceSetFilterSlug or ''
     fbObjectSlug = fbObjectSlug or ''
 
-    sql = "SELECT url FROM client_content WHERE content_id = %s" % contentId
+    sql = "SELECT url FROM client_content WHERE content_id = %s"
     conn = db.getConn()
     curs = conn.cursor()
 
     try:
-        curs.execute(sql)
+        curs.execute(sql, (contentId,))
         url = curs.fetchone()[0]
     finally:
         conn.rollback()
@@ -545,12 +545,12 @@ but punting on those for now...
 
 def dbGetClient(clientId, cols):
     """Get the specified columns associated with a client_id"""
-    sql = "SELECT " + ', '.join(cols) + " FROM clients WHERE client_id=" + str(clientId)
+    sql = "SELECT " + ', '.join(cols) + " FROM clients WHERE client_id = %s"
     conn = db.getConn()
     curs = conn.cursor()
 
     try:
-        curs.execute(sql)
+        curs.execute(sql, (clientId,))
         ret = curs.fetchall()
     finally:
         conn.rollback()
@@ -562,12 +562,12 @@ def dbGetObject(table, cols, objectIndex, objectId):
     """Get the specified columns associated with a given current object.
     For instance, might call: dbGetObject('filters', ['name', 'description'], 'filter_id', 42)
     """
-    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND NOT is_deleted"
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND NOT is_deleted" #SQLi
     conn = db.getConn()
     curs = conn.cursor()
 
     try:
-        curs.execute(sql)
+        curs.execute(sql, (objectId,) )
         ret = curs.fetchall()
     finally:
         conn.rollback()
@@ -583,12 +583,12 @@ def dbGetObjectAttributes(table, cols, objectIndex, objectId):
 
     Example call: dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'], 'filter_id', 23)
     """
-    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "=" + str(objectId) + " AND end_dt IS NULL"
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND end_dt IS NULL" #SQLi
     conn = db.getConn()
     curs = conn.cursor()
 
     try:
-        curs.execute(sql)
+        curs.execute(sql, (objectId,))
         ret = curs.fetchall()
     finally:
         conn.rollback()
@@ -616,7 +616,7 @@ def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
     ecsql = ''
     if (extraCols):
         ecsql = ', '+', '.join(extraCols)
-    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf" + ecsql + " FROM " + table + " WHERE " + where + " AND end_dt IS NULL"
+    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf" + ecsql + " FROM " + table + " WHERE " + where + " AND end_dt IS NULL" #SQLi
     conn = db.getConn()
     curs = conn.cursor()
 
@@ -745,7 +745,7 @@ def dbSetEndDate(table, index, endIds):
     conn = db.getConn()
     curs = conn.cursor()
 
-    sql = "UPDATE" + table + "SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")"
+    sql = "UPDATE" + table + "SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in endIds]) + ")" # SQLi
 
     try:
         curs.execute(sql)
@@ -761,19 +761,20 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
     """Insert rows into the specified table.
        If replaceAll is true, any current records associated with the given object
        will be removed (by setting their end_dt). Otherwise, if uniqueCols are specified,
-       only existing records that conflict with new ones will be removed."""
+       only existing records that conflict with new ones will be removed.
+       """
 
     rows = rows if (rows is not None) else []
 
     conn = db.getConn()
     curs = conn.cursor()
 
-    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join(['%('+c+')s' for c in insCols]) + ")"
+    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join(['%('+c+')s' for c in insCols]) + ")" # SQLi
 
     try:
         replaceIds = []
         if (uniqueCols and not replaceAll):
-            curs.execute("SELECT " + index + ", " + ', '.join(uniqueCols) + " FROM " + table + " WHERE " + objectCol + " = " + objectId + " AND end_dt IS NULL FOR UPDATE")
+            curs.execute("SELECT " + index + ", " + ', '.join(uniqueCols) + " FROM " + table + " WHERE " + objectCol + " = %s" + " AND end_dt IS NULL FOR UPDATE", (objectId,) ) # SQLi
             currRecs = { tuple(r[1:]) : int(r[0]) for r in curs }
 
             for row in rows:
@@ -781,9 +782,9 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
                 replaceIds += [repId] if repId is not None else []
 
         if (replaceAll):
-            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + objectCol + " IN (" + str(objectId) + ")"
+            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + objectCol + " IN (" + str(objectId) + ")" # SQLi
         elif (replaceIds):
-            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in replaceIds]) + ")"
+            prepsql = "UPDATE " + table + " SET end_dt = CURRENT_TIMESTAMP WHERE " + index + " IN (" + ','.join([str(i) for i in replaceIds]) + ")" # SQLi
         else:
             prepsql = None
 

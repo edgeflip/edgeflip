@@ -16,7 +16,7 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
           ", rand_cdf FROM " +
           cdfTable +
           " WHERE end_dt IS NULL")
-    curs.execute(sql)
+    curs.execute(sql) # SQLi
     rows = curs.fetchall()
     rows = [(tuple(r[:numKeys]), r[numKeys], r[numKeys+1]) for r in rows]
 
@@ -46,7 +46,7 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
     if (errorRecsFn is None):
         errorRecsFn = lambda r: str(r[0])
 
-    curs.execute(sql)
+    curs.execute(sql) # SQLi
     rows = curs.fetchall()
 
     if (rows):
