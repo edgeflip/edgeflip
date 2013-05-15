@@ -59,7 +59,10 @@
                 dataType: 'html',
                 data: params,
                 error: function(jqXHR, textStatus, errorThrown) {
-                    // Nothing to do here...
+                    // Even if the event writing failed, still send the user on their way...
+                    if (redirect) {
+                        top.location = redirect;
+                    }
                 },
                 success: function(data, textStatus, jqXHR) {
                     var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
