@@ -53,7 +53,7 @@ def rank_faces():
         stream_queue.loadQueue(config['queue'], [(fbid, tok, "")])
 
         # now do a partial crawl real-time
-        user = facebook.getUserFb(fbid, tok) # just in case they have no friends
+        user = facebook.getUserFb(fbid, tok)
         edgesUnranked = facebook.getFriendEdgesFb(user, tok, requireIncoming=True, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=True, requireOutgoing=False)
 
