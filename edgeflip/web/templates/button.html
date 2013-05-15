@@ -37,7 +37,7 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
-        function recordEvent(eventType, fbid) {
+        function recordEvent(eventType, fbid, redirect) {
 
             var appid = {{ fbParams.fb_app_id }};
             var content = '{{ fbParams.fb_app_name }}:button {{ goto }}';
@@ -64,6 +64,9 @@
                 success: function(data, textStatus, jqXHR) {
                     var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
                     sessionid = header_efsid || sessionid;
+                    if (redirect) {
+                        top.location = redirect;
+                    }
                 }
             });
 
@@ -83,12 +86,11 @@
             FB.login(function(response) {
                 if (response.authResponse) {
                     // User authorized, so write event and jump to page that will contain the faces...
-                    recordEvent('authorized', response.authResponse.userID);
                     var gotoURL = "{{ goto | safe }}";
                     if (sessionid) {
                         gotoURL = gotoURL + '&efsid=' + sessionid;
                     }
-                    top.location = gotoURL;
+                    recordEvent('authorized', response.authResponse.userID, gotoURL);
 
                 } else {
                     recordEvent('auth_fail', '');
