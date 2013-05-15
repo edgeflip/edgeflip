@@ -14,64 +14,12 @@
     <meta property="og:description" content="{{ fbParams.fb_object_desc }}" /> 
     <meta property="og:url" content="{{ fbParams.fb_object_url }}">
 
-    <!-- Might want to do something smarter to detect if jquery already present? -->
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script src="{{ url_for('static', filename='url_params.js') }}"></script>
-
-    <!-- Ajax call to register clickbacks -->
     <script>
-        /* stuff cheesry session id in url
-        event tracking on fb_action_ids
+        /* 
         redirect to page on client site
         */
-        (function() {
 
-            // zzz Since these objects always live on our servers now, could
-            //     actually move all of these into the call that's building
-            //     this page. No need to do it now, but obviously much better
-            //     for the future!
-
-//            var urlparams = read_url_params();
-//            var actionid = urlparams['fb_action_ids'] || ''; //zzz double-check this!
-//            var sessionid = urlparams['efsid'] || '';
-
-            // Always write a clickback to our server, even if no actionid...
-//            var appid = {{ fbParams.fb_app_id }};
-//            var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
-//            var contentid = {{ contentId }};
-
-//            var params = JSON.stringify({
-//                appid: appid,
-//                content: content,
-//                actionid: actionid,
-//                eventType: 'clickback',
-//                sessionid: sessionid,
-//                contentid: contentid
-//            });
-
-//            $.ajax({
-//                type: "POST",
-//                url: '/record_event',
-//                contentType: "application/json",
-//                dataType: 'html',
-//                data: params,
-//                error: function(jqXHR, textStatus, errorThrown) {
-//                    {% if redirectURL -%}
-//                    window.location = '{{ redirectURL }}';
-//                    {%- endif %}
-//                },
-//                success: function(data, textStatus, jqXHR) {
-//                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-//                    sessionid = header_efsid || sessionid;
-//                    {% if redirectURL -%}
-//                    window.location = '{{ redirectURL }}';
-//                    {%- endif %}
-//                }
-//            });
-
-            window.location = '{{ redirectURL }}';
-
-        }());
+        window.location = '{{ redirectURL | safe }}';
 
     </script>
 
