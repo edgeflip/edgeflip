@@ -1,6 +1,16 @@
+/* ALL TEH CODES */
+
+/* who user has selected to share with
+
+this should probably turn to a parameter instead of global
+*/
 var recips = []; // List to hold currently selected mention tag recipients
 
+/* makes an HTML snippet - used to create message to share with friends
 
+XXX may never be called w/ forMsg=false?
+
+ */
 function spanStr(id, forMsg) {
 	// forMsg should be true to return code for the message textarea and false for suggested messages
 
@@ -14,6 +24,11 @@ function spanStr(id, forMsg) {
 	return ret
 }
 
+
+/* return a human-friendly string from friends
+
+list of friends from global recips
+*/
 // Return a string with correctly formatted names of current recipients (eg, "Larry, Darryl, and Darryl")
 function friendNames(forMsg) {
   // forMsg should be true to return code for the message textarea and false for suggested messages
@@ -48,6 +63,7 @@ function friendNames(forMsg) {
   return recip_str;
 }
 
+/* manages state of sharing message */
 function msgNamesUpdate(doFocus) {
 
 	$('.suggested_msg .preset_names').html(friendNames(false)); // reword suggested messages
@@ -58,6 +74,12 @@ function msgNamesUpdate(doFocus) {
 	}
 
 }
+
+/* runs when user picks a friend 
+
+activated by click a friend to share with or from manual drop
+
+*/
 
 // refactor function to do any work necessary to select a friend
 // returns true if recipient was added; false otherwise
@@ -87,6 +109,11 @@ function selectFriend(fbid) {
 	}
 }
 
+/* runs when user deselects a friend 
+
+activated by unclick a friend to share with or from manual drop or in edit message
+
+*/
 // refactor function to do any work necessary to unselect a friend
 // returns true if recipient was removed; false otherwise
 function unselectFriend(fbid) {
@@ -111,6 +138,7 @@ function msgRemove(id) {
 	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
 }
 
+/* focuses & moves cursor to end of content-editable div */
 function msgFocusEnd() {
 	$('#other_msg').focus();
 
@@ -136,6 +164,8 @@ function msgFocusEnd() {
 
 }
 
+
+/* if cursor in editable div, & user selects a friend, at add insertion point */
 // Thank you stackoverflow! http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
 function insertAtCursor(html) {
     var sel, range;
@@ -182,6 +212,7 @@ function insertAtCursor(html) {
 	}
 }
 
+/* */
 // more stackoverflow... http://stackoverflow.com/questions/8339857/how-to-know-if-selected-text-is-inside-a-specific-div/8340432#8340432
 function isOrContains(node, container) {
     while (node) {
@@ -237,7 +268,7 @@ function handleUndo() {
   return recips_added;
 }
 
-
+/* populates message div w/ suggested text*/
 function useSuggested(msgID) {
 	$('#other_msg').html($(msgID).html());
 
@@ -250,6 +281,7 @@ function useSuggested(msgID) {
 	msgFocusEnd();
 }
 
+/* selects all friends */
 function checkAll() {
 
 	var divs = $("input[id*='box-']:not(:checked)");
@@ -275,6 +307,7 @@ function toggleFriend(fbid) {
 
 }
 
+/* called when some suppress friend (X in faces list) */
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
 
@@ -325,7 +358,9 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		newid: id,
 		fname: fname,
 		lname: lname,
-		sessionid: sessionid	// global session id was pulled in from query string above
+		sessionid: sessionid,	// global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
 	});
 
 	$.ajax({
@@ -335,8 +370,11 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-			new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-			$(div_id).replaceWith(new_html);
+			//new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+			//$(div_id).replaceWith(new_html);
+
+            // Something went wrong, so just remove the div as though no friend was returned
+            $(div_id).remove();
 		},
 		success: function(data, textStatus, jqXHR) {
 			if (id) {
@@ -352,7 +390,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 
 }
 
-
+/* hits facebook API */
 // Called when someone actually shares a message
 function doShare() {
 
@@ -368,6 +406,12 @@ function doShare() {
 			return;
 		}
 	}
+
+    recordEvent('share_click');
+
+    $('#friends_div').hide();
+    $('#progress h2').html('S e n d i n g . . .');
+    $('#progress').show();
 
 	// The message text will just be whatever is in #other_msg when the user hits send
 	// but we need to clean it up a little bit first...
@@ -397,16 +441,21 @@ function doShare() {
 		},
 		function(response) {
 			if (!response || response.error) {
-				alert('Error occured ' + response.error.message);
+				// alert('Error occured ' + response.error.message);
+                // show an alert and then redirect them to wherever the client wants them to go in this case...
+                alert("Sorry. An error occured sending your message to facebook. Please try again later.");
+                top.location = errorURL; // set in frame_faces.html via Jinja
+                recordEvent('share_fail');
 			} else {
-				// Eventually, this should just redirect to a thank you page
+                // thank you page redirect happens in recordShare()
 				recordShare(response.id);
-				alert('Post was successful! Action ID: ' + response.id);
+				// alert('Post was successful! Action ID: ' + response.id);
 			}
 	  	}
 	);
 }
 
+/* records share event on edgeflip servers; redirects user to thank you page */
 function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
@@ -420,7 +469,9 @@ function recordShare(actionid) {
 		content: content,
 		friends: recips,
         eventType: 'shared',
-		sessionid: sessionid	// global session id was pulled in from query string above
+		sessionid: sessionid,	// global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
 	});
 
 	$.ajax({
@@ -430,13 +481,52 @@ function recordShare(actionid) {
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
-			// Don't think there's anything to do here...
+			// Even if recording the event on our servers failed, we should send them on their way...
+            top.location = thanksURL; // set in frame_faces.html via Jinja
 		},
 		success: function(data, textStatus, jqXHR) {
 			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
 			sessionid = header_efsid || sessionid;
+            top.location = thanksURL; // set in frame_faces.html via Jinja
 		}
 	});
 
 }
+
+// record events other than the share (so, no redirect).
+// should obviously combine with above at some point, but
+// just want to have something working now...
+function recordEvent(eventType) {
+
+    var userid = myfbid;
+    var appid = {{ fbParams.fb_app_id }};
+    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+
+    var params = JSON.stringify({
+        userid: userid,
+        appid: appid,
+        content: content,
+        eventType: eventType,
+        sessionid: sessionid,   // global session id was pulled in from query string above
+        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        contentid: contentid
+    });
+
+    $.ajax({
+        type: "POST",
+        url: '/record_event',
+        contentType: "application/json",
+        dataType: 'html',
+        data: params,
+        error: function(jqXHR, textStatus, errorThrown) {
+            // Nothing to do here...
+        },
+        success: function(data, textStatus, jqXHR) {
+            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+            sessionid = header_efsid || sessionid;
+        }
+    });
+
+}
+
 

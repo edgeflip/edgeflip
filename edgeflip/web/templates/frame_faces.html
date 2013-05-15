@@ -2,6 +2,7 @@
 
 <HTML>
 <HEAD>
+    <!-- served in iframe on client - container for faces & mesg div -->
     <TITLE>OFA Sharing Page</TITLE>
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
@@ -10,7 +11,7 @@
     <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button_man.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
@@ -53,6 +54,14 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
+        //zzz Passing these through "safe" probably isn't ideal since it came
+        //    from something a client entered in the control panel, but right
+        //    now we're setting these parameters in the DB by hand and I don't
+        //    want Jinja trying to escape URL characters. Let's find a better
+        //    solution going forward...
+        var thanksURL = '{{ thanksURL | safe }}';
+        var errorURL = '{{ errorURL | safe }}';
+
     </SCRIPT>
     <!-- edgeflip javascript -->
 
@@ -78,6 +87,8 @@
 <div id="fb-root"></div>
 <script type="text/javascript">
     
+    /* standard facebook workflow */
+
     window.fbAsyncInit = function() {
 
 

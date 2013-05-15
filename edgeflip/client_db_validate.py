@@ -16,7 +16,7 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
           ", rand_cdf FROM " +
           cdfTable +
           " WHERE end_dt IS NULL")
-    curs.execute(sql)
+    curs.execute(sql) # SQLi
     rows = curs.fetchall()
     rows = [(tuple(r[:numKeys]), r[numKeys], r[numKeys+1]) for r in rows]
 
@@ -46,7 +46,7 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
     if (errorRecsFn is None):
         errorRecsFn = lambda r: str(r[0])
 
-    curs.execute(sql)
+    curs.execute(sql) # SQLi
     rows = curs.fetchall()
 
     if (rows):
@@ -96,6 +96,30 @@ def validateClientDb():
     runDbCheck(curs, sql,
         "Faces URL missing for campaigns: %s",
         "All campaigns have a faces URL specified")
+
+
+    # Every campaign specifies a thank you url
+    sql = """SELECT DISTINCT cmp.campaign_id FROM campaigns cmp 
+                    LEFT JOIN campaign_properties props 
+                    ON cmp.campaign_id = props.campaign_id AND props.end_dt IS NULL
+                    WHERE NOT cmp.is_deleted 
+                    AND (props.client_thanks_url IS NULL OR props.client_thanks_url = '');"""
+ 
+    runDbCheck(curs, sql,
+        "Thank you URL missing for campaigns: %s",
+        "All campaigns have a thank you URL specified")
+
+
+    # Every campaign specifies an error url
+    sql = """SELECT DISTINCT cmp.campaign_id FROM campaigns cmp 
+                    LEFT JOIN campaign_properties props 
+                    ON cmp.campaign_id = props.campaign_id AND props.end_dt IS NULL
+                    WHERE NOT cmp.is_deleted 
+                    AND (props.client_error_url IS NULL OR props.client_error_url = '');"""
+ 
+    runDbCheck(curs, sql,
+        "Error URL missing for campaigns: %s",
+        "All campaigns have a error URL specified")
 
 
     # No campaign specifies itself as a fallback
@@ -335,6 +359,6 @@ def validateClientDb():
         "All fallback content associated with campaigns are accounted for.")
 
 
-    conn.close()
+    conn.rollback()
 
     logger.debug("=========== Finished Client DB Validation ===========")

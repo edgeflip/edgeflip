@@ -1,3 +1,4 @@
+/* IE-specifc stuff */
 
 // IE 7 doesn't seem to implement JSON...
 if (typeof JSON == 'undefined') {
@@ -6,7 +7,7 @@ if (typeof JSON == 'undefined') {
 
 
 // IE 8 doesn't seem to implement indexOf() for arrays
-if (!Array.prototype.inexOf) {
+if (!Array.prototype.indexOf) {
 	Array.prototype.indexOf = function(obj, start) {
 		for (var i = (start || 0), j = this.length; i < j; i++) {
 			if (this[i] === obj) { return i; }

@@ -58,10 +58,10 @@ def rank_faces():
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=True, requireOutgoing=False)
 
         # spawn off a separate thread to do the database writing
-        database.updateDb(user, tok, edgesRanked, background=True)
+        database.updateDb(user, tok, edgesRanked, background=config.database.use_threads)
 
     else:
-        edgesRanked = ranking.getFriendRankingDb(None, fbid, requireOutgoing=True)
+        edgesRanked = ranking.getFriendRankingDb(fbid, requireOutgoing=True)
 
     friendDicts = [ e.toDict() for e in edgesRanked ]
 

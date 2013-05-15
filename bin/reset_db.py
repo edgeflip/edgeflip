@@ -1,3 +1,5 @@
 #!/usr/bin/env python
 import edgeflip.database
-edgeflip.database.db.dbSetup()
+import edgeflip.client_db_reset as cdbr
+edgeflip.database.dbSetup()
+cdbr.client_db_reset()

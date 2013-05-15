@@ -1,5 +1,14 @@
+/* only used if a non-authed user hits the faces page - /faces_frame endpoint 
+
+this should probably redirect to a default page on client site
+or show user a button (same behavior)
+
+*/
+
 var myfbid; // The FB ID of the current user to be filled in upon auth.
 
+/* loads a bunch of images
+*/
 function preload(arrayOfImages) {
 	$(arrayOfImages).each(function () {
 		$('<img />').attr('src',this);
@@ -7,28 +16,7 @@ function preload(arrayOfImages) {
 }
 
 
-// Should no longer need this since we're subscribing to the statusChange event in FB.init()...
-
-// function show_friends() {
-
-// //	$('#share_content').remove();
-// //	$('#share_button').hide();
-// //	$('#progress').show();
-
-// 	FB.getLoginStatus(function(response) {
-// 	  if (response.status === 'connected') {
-// 	    var uid = response.authResponse.userID;
-// 	    var tok = response.authResponse.accessToken;
-// 	    login(uid, tok, response);
-// 	  } else {
-// 	  	// User isn't logged in or hasn't authed, so try doing the login directly
-// 	    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-// 	    doFBLogin();
-// 	  }
-// 	});
-
-// }
-
+/* pops up facebook's signin page in a _top window */
 function doFBLogin() {
 
 	// Should never get here since we should only send someone to the faces page upon authorizing...
@@ -41,14 +29,17 @@ function doFBLogin() {
 				login(info.id, response.authResponse.accessToken, response);
 			});
 		} else {
-			// zzz Figure out what to actually do here!
-			alert("Rocco, sit on the other side. You block the rearview mirror.");
+			// alert("Rocco, sit on the other side. You block the rearview mirror.");
+
+			// zzz Probably not the right thing to do in this case, but better than nothing...
+			alert("Sorry - an error occured communicating with Facebook.");
+			top.location = errorURL; // set in frame_faces.html via Jinja
 		}
 	}, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
 }
 
-
+/* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
 function login(fbid, accessToken, response){
 	if (response.authResponse) {
 		var num = 6;
@@ -74,9 +65,11 @@ function login(fbid, accessToken, response){
 			dataType: 'html',
 			data: params,
 			error: function(jqXHR, textStatus, errorThrown) {
-				your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
+				// your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
 				your_friends_div.show();
 				progress.hide();
+				alert("Sorry - an error occured communicating with Facebook.");
+				top.location = errorURL; // set in frame_faces.html via Jinja
 			},
 			success: function(data, textStatus, jqXHR) {
 				your_friends_div.html(data);

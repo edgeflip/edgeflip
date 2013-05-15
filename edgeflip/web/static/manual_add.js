@@ -1,3 +1,5 @@
+/* widget for manually adding a friend */
+
 
 // Set up the autofill drop-down for manually adding friends
 $(function() {

@@ -24,8 +24,8 @@ app = flask.Flask(__name__)
 MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
 
 # Serves just a button, to be displayed in an iframe
-@app.route("/button_man/<int:campaignId>/<int:contentId>")
-def button_man(campaignId, contentId):
+@app.route("/button/<int:campaignId>/<int:contentId>")
+def button(campaignId, contentId):
     """serves the button in iframe on client site"""
     # Should be able to get subdomain using the subdomain keyword in app.route()
     # but I was having some trouble getting this to work locally, even setting
@@ -41,7 +41,7 @@ def button_man(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('button_man.html', fbParams=paramsDict, goto=facesURL)
+    return flask.render_template('button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
@@ -55,10 +55,14 @@ def frame_faces(campaignId, contentId):
     except ValueError as e:
         return "Content not found", 404     # Better fallback here or something?
 
+    thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
+
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('frame_faces.html', fbParams=paramsDict, campaignId=campaignId, contentId=contentId)
+    return flask.render_template('frame_faces.html', fbParams=paramsDict, 
+                                campaignId=campaignId, contentId=contentId,
+                                thanksURL=thanksURL, errorURL=errorURL)
 
 
 @app.route("/faces", methods=['POST'])
@@ -67,8 +71,6 @@ def faces():
     logger.debug("flask.request.json: %s", str(flask.request.json))
     fbid = int(flask.request.json['fbid'])
     tok = flask.request.json['token']
-# TO REMOVE ON TESTING:
-#    campaign = flask.request.json.get('campaign')
     numFace = int(flask.request.json['num'])
     sessionId = flask.request.json['sessionid']
     campaignId = flask.request.json['campaignid']
@@ -89,30 +91,24 @@ def faces():
         thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
-# TO REMOVE ON TESTING:
-#    campaign_filterTups = config.ofa_campaigns
-#    filterTups = campaign_filterTups.get(campaign, [])
-
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
     token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
-    conn = database.getConn()
-    user = database.getUserDb(conn, fbid, config['freshness'], freshnessIncludeEdge=True)
+    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
         logger.debug("user %s is fresh, getting data from db", fbid)
-        edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
+        edgesRanked = ranking.getFriendRankingBestAvailDb(fbid, threshold=0.5)
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
         user = facebook.getUserFb(fbid, token.tok)
         edgesUnranked = facebook.getFriendEdgesFb(user, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         database.updateDb(user, token, edgesRanked, background=True)
-    conn.close()
-
+    
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
 
@@ -130,7 +126,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
     filterExpTupes = [(r[1], r[2]) for r in filterRecs]
     globalFilterId = cdb.doRandAssign(filterExpTupes)
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', globalFilterId, True, 'campaign_global_filters', [r[0] for r in filterRecs], background=config.database.use_threads)
 
     # apply filter
     globalFilter = cdb.getFilter(globalFilterId)
@@ -140,7 +136,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
     choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
     choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True, 'campaign_choice_sets', [r[0] for r in filterRecs], background=config.database.use_threads)
     allowGeneric = {r[1] : [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
 
     # pick best choice set filter (and write DB)
@@ -157,15 +153,15 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
             # zzz Obviously, do something smarter here...
             return ajaxResponse('No friends identified for you.', 200, sessionId)
 
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
         # if fallback content_id IS NULL, defer to current content_id
         if (fallbackContentId is None):
             fallbackContentId = contentId
 
         # write "fallback" assignments to DB
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=True)
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
         # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
         return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
@@ -182,18 +178,18 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     if (bestCSFilter[0] is None):
         # We got generic...
         logger.debug("Generic returned for %s with campaign %s." % (fbid, campaignId))
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
         fbObjectTable = 'campaign_fb_objects'
         fbObjectIdx = 'campaign_fb_object_id'
     else:
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=True)
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
         fbObjectKeys = [('campaign_id', campaignId), ('filter_id', bestCSFilter[0].filterId)]
 
     # Get FB Object experiments, do assignment (and write DB)
     fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
     fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
     fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=True)
+    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=config.database.use_threads)
 
     # Find template params, return faces
     fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
@@ -221,56 +217,9 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
-
-
-
-# TO REMOVE ON TESTING:
-    # bestState = filtering.getBestSecStateFromEdges(edgesRanked, config.ofa_states.keys(), eligibleProportion=1.0)
-    # if (bestState is not None):
-    #     filterTups.append(('state', 'eq', bestState))
-    #     edgesFiltered = filtering.filterEdgesBySec(edgesRanked, filterTups)
-    #     logger.debug("have %d edges after filtering on %s", len(edgesFiltered), str(filterTups))
-
-    #     friendDicts = [ e.toDict() for e in edgesFiltered ]
-    #     faceFriends = friendDicts[:numFace]
-    #     allFriends = friendDicts[:25]
-
-    #     senInfo = config.ofa_states[bestState]
-
-    #     """these messages move into database"""
-    #     msgParams = {
-    #     'msg1_pre' : "Hi there ",
-    #     'msg1_post' : " -- Contact Sen. %s to say you stand with the president on climate legislation!" % senInfo['name'],
-    #     'msg2_pre' : "Now is the time for real climate legislation, ",
-    #     'msg2_post' : "!",
-    #     'msg_other_prompt' : "Checking friends on the left will add tags for them (type around their names):",
-    #     'msg_other_init' : "Replace this text with your message for "
-    #     }
-    #     actionParams =     {
-    #     'fb_action_type' : 'support',
-    #     'fb_object_type' : 'cause',
-    #     'fb_object_url' : flask.url_for('fb_object', state=bestState, _external=True),
-    #     'fb_app_name': config.fb_app_name,
-    #     'fb_app_id': config.fb_app_id}
-        
-    #     logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
-
-    #     content = actionParams['fb_app_name']+':'+actionParams['fb_object_type']+' '+actionParams['fb_object_url']
-    #     if (not sessionId):
-    #         sessionId = generateSessionId(ip, content)
-
-    #     database.writeEventsDb(sessionId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=True)
-    #     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams, senInfo=senInfo,
-    #                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
-
-    # else:
-    #     content = 'edgeflip:cause http://allyourfriendsarestateless.com/'
-    #     if (not sessionId):
-    #         sessionId = generateSessionId(ip, content)
-    #     return ajaxResponse('all of your friends are stateless', 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")
@@ -279,18 +228,36 @@ def objects(fbObjectId, contentId):
 
     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
     """
+    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)
+    if (not clientId):
+        return "404 - Content Not Found", 404
+    else:
+        clientId = clientId[0][0]
+
     fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
                     ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
                     'page_title', 'url_slug'], 
-                    'fb_object_id', fbObjectId)[0]
-    clientId = cdb.dbGetObject('fb_objects', ['client_id'], 'fb_object_id', fbObjectId)[0][0]
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+                    'fb_object_id', fbObjectId)
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])
+
+    if (not fbObjectInfo or not paramsDB):
+        return "404 - Content Not Found", 404
+    else:
+        fbObjectInfo = fbObjectInfo[0]
+        paramsDB = paramsDB[0]
 
     choiceSetSlug = flask.request.args.get('csslug', '')
+    actionId = flask.request.args.get('fb_action_ids', '').split(',')[0].strip()
+        # Note: could potentially be a comma-delimited list, but shouldn't be in our case...
+    actionId = int(actionId) if actionId else None
+
     fbObjectSlug = fbObjectInfo[6]
 
     # Determine redirect URL
     redirectURL = cdb.getClientContentURL(contentId, choiceSetSlug, fbObjectSlug)
+
+    if (not redirectURL):
+        return "404 - Content Not Found", 404
 
     objParams = {
     'page_title': fbObjectInfo[5],
@@ -304,40 +271,16 @@ def objects(fbObjectId, contentId):
     'fb_app_id' : int(paramsDB[1])
     }
 
-    return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
+    ip = getIP(req = flask.request)
+    sessionId = flask.request.args.get('efsid')
+    content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % objParams
+    if (not sessionId):
+        sessionId = generateSessionId(ip, content)
 
+    # record the clickback event to the DB
+    database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 
-# TO REMOVE ON TESTING:
-# @app.route("/fb_object")
-# def fb_object():
-#     """endpoint linked to on facebook.com
-
-#     redirect to client page in JS (b/c this must live on our domain for facebook to crawl)
-#     """
-#     state = flask.request.args.get('state')
-#     if state is None:
-#         return "No state specified", 404
-    
-#     senInfo = config.ofa_states.get(state)
-#     if (not senInfo):
-#         return "Whoopsie! No targets in that state.", 404  # you know, or some 404 page...
-
-#     objParams = {
-#     'page_title': "Tell Sen. %s We're Putting Denial on Trial!" % senInfo['name'],
-#     'fb_action_type': 'support',
-#     'fb_object_type': 'cause',
-#     'fb_object_title': 'Climate Legislation',
-#     'fb_object_image': 'http://demo.edgeflip.com/' + flask.url_for('static', filename='doc_brown.jpg'),
-#     'fb_object_desc': "The time has come for real climate legislation in America. Tell Senator %s that you stand with President Obama and Organizing for Action on this important issue. We can't wait one more day to act." % senInfo['name'],
-#     'fb_object_url' : flask.url_for('fb_object', state=state, _external=True),
-#     'fb_app_name': config.fb_app_name,
-#     'fb_app_id': config.fb_app_id
-#     }
-
-#     # zzz Are we going to want/need to pass URL parameters to this redirect?
-#     redirectURL = config.web.fb_object_redirect
-
-#     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL)
+    return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
 
 
 @app.route('/suppress', methods=['POST'])
@@ -347,7 +290,9 @@ def suppress():
     """
     userid = flask.request.json['userid']
     appid = flask.request.json['appid']
-    content = flask.request.json['content']
+    campaignId = flask.request.json['campaignid'] # This is an ID in our client DB schema
+    contentId = flask.request.json['contentid'] # Also an ID in our client DB schema
+    content = flask.request.json['content']     # This is a string with type & URL as passed to FB
     oldid = flask.request.json['oldid']
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
@@ -359,10 +304,10 @@ def suppress():
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userid, [oldid], 'suppressed', appid, content, None, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [oldid], 'suppressed', appid, content, None, background=config.database.use_threads)
 
     if (newid != ''):
-        database.writeEventsDb(sessionId, ip, userid, [newid], 'shown', appid, content, None, background=True)
+        database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [newid], 'shown', appid, content, None, background=config.database.use_threads)
         return ajaxResponse(flask.render_template('new_face.html', id=newid, fname=fname, lname=lname), 200, sessionId)
     else:
         return ajaxResponse('', 200, sessionId)
@@ -376,53 +321,59 @@ def recordEvent():
     userId = flask.request.json.get('userid')
     userId = userId or None
     appId = flask.request.json['appid']
+    campaignId = flask.request.json.get('campaignid')
+    contentId = flask.request.json.get('contentid')
     content = flask.request.json['content']
     actionId = flask.request.json.get('actionid')
+    actionId = actionId or None     # might get empty string from ajax...
     friends = [ int(f) for f in flask.request.json.get('friends', []) ]
     friends = friends or [None]
     eventType = flask.request.json['eventType']
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'shared', 'clickback']):
+    if (eventType not in ['button_load', 'button_click', 'authorized', 'auth_fail', 'share_click', 'share_fail', 'shared', 'clickback']):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, ip, userId, friends, eventType, appId, content, actionId, background=True)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
 
 @app.route("/health_check")
-@app.route("/hes_a_good_man_and_thorough")
-def say_ahhh():
-    """ break up into newrelic, internal monitoring
-
-    need aliveness check for ELB.
-
+def health_check():
+    """ELB status
+    
+    - if called as `/health_check?elb` just return 200
+    - if called as `/health_check` return a JSON dict with status of various component
+    
     """
-    iselb = flask.request.args.get('elb', '').lower()
-    if (iselb == 'true'): return "It's Alive!", 200
+    if 'elb' in flask.request.args:
+        return "It's Alive!", 200
 
-    isdevops = flask.request.args.get('devops', '').lower()
-    if (isdevops != 'true'): return "Sorry... you can't access this page", 403
+    components = {'database': False,
+                  'facebook': False}
 
+    # Make sure we can connect and return results from DB
+    conn = database.getConn()
     try:
-        # Make sure we can connect and return results from DB
-        conn = database.getConn()
         curs = conn.cursor()
         curs.execute("SELECT 1+1")
-        assert curs.fetchone()[0] == 2
-        conn.close()
+        if curs.fetchone()[0] == 2:
+            components['database'] = True
+    finally:
+        conn.rollback()
 
-        # Make sure we can talk to FB and get simple user info back
+    # Make sure we can talk to FB and get simple user info back
+    try:
         fbresp = facebook.getUrlFb("http://graph.facebook.com/6963")
-        assert int(fbresp['id']) == 6963
-
-        # zzz Do we want to check system-level things here, too??
-
-        return "Fit As A Fiddle!", 200
+        if int(fbresp['id']) == 6963:
+            components['facebook'] = True
     except:
-        # zzz One day, provide more detailed output...
-        return "Ruh-Roh - Health Check Failed!", 500
+        # xxx do something more intelligent here?
+        raise
+    
+    return flask.jsonify(components)
+    

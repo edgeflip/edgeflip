@@ -1,25 +1,72 @@
 #!/usr/bin/python
+"""
+.. envvar:: database.use_threads
+
+    should work be done in background threads. Respected by some parts of the code, other modules, etc. and some not?
+"""
+
 import sys
 import time
 import logging
 import datetime
 import threading
 import MySQLdb as mysql
+import flask
 
 from . import datastructs
 from .settings import config
 
 logger = logging.getLogger(__name__)
 
+# `threading.local` for db connections created outside of flask. gross.
+_non_flask_threadlocal = threading.local()
 
-
-def getConn():
-    #return db.getConn()
+def _make_connection():
+    """makes a connection to mysql, based on configuration. For internal use.
+    
+    :rtype: mysql connection object
+    
+    """
+    
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
 
+def getConn():
+    """return a connection for this thread.
+    
+    All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
+    
+    You are responsible for managing the state of your connection; it may be cleaned up (rollback()'d , etc.) on thread destruction, but you shouldn't rely on such things.
+    """
+    try:
+        conn = flask.g.conn
+    except RuntimeError as err:        
+        # xxx gross, le sigh
+        if err.message != "working outside of request context":
+            raise
+        else:
+            # we are in a random thread the code spawned off from
+            # $DIETY knows where. Here, have a connection:
+            logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
+            try:
+                return _non_flask_threadlocal.conn
+            except AttributeError:                
+                conn = _non_flask_threadlocal.conn = _make_connection()
+    except AttributeError:
+        # we are in flask-managed thread, which is nice.
+        # create a new connection & save it for reuse
+        conn = flask.g.conn = _make_connection()
+    
+    return conn
 
 class Table(object):
-    def __init__(self, name, cols=[], indices=[], key=[]):
+    """represents a Table
+
+    """
+    def __init__(self, name, cols=None, indices=None, key=None):
+        cols = cols if cols is not None else []
+        indices = indices if indices is not None else []
+        key = key if key is not None else []
+         
         self.name = name
         self.colTups = []
         self.addCols(cols)
@@ -62,6 +109,7 @@ class Table(object):
 
 TABLES = dict()
 
+# datastructs.UserInfo
 TABLES['users'] =     Table(name='users',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -75,6 +123,7 @@ TABLES['users'] =     Table(name='users',
                             ],
                             key=['fbid'])
 
+# datastructs.Tokens
 TABLES['tokens'] =    Table(name='tokens',
                             cols=[
                                 ('fbid', 'BIGINT'),
@@ -86,6 +135,7 @@ TABLES['tokens'] =    Table(name='tokens',
                             ],
                             key=['fbid', 'appid', 'ownerid'])
 
+# raw data behind datastructs.Edge*
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('fbid_source', 'BIGINT'),
@@ -104,9 +154,12 @@ TABLES['edges'] =     Table(name='edges',
                             ],
                             key=['fbid_source', 'fbid_target'])
 
+# user activity tracking
 TABLES['events'] =    Table(name='events',
                             cols=[
                                 ('session_id', 'VARCHAR(128)'),
+                                ('campaign_id', 'INT'),
+                                ('content_id', 'INT'),
                                 ('ip', 'VARCHAR(32)'),
                                 ('fbid', 'BIGINT'),
                                 ('friend_fbid', 'BIGINT'),
@@ -116,11 +169,13 @@ TABLES['events'] =    Table(name='events',
                                 ('activity_id', 'BIGINT'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            indices=['session_id', 'fbid', 'friend_fbid', 'activity_id'])
+                            indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
 # Reset the DB by dropping and recreating tables
-def dbSetup(connP=None, tableKeys=None):
-    conn = connP if (connP is not None) else getConn()
+def dbSetup(tableKeys=None):
+    """creates tables"""
+
+    conn = getConn()
     curs = conn.cursor()
     if (tableKeys is None):
         tableKeys = TABLES.keys()
@@ -133,19 +188,22 @@ def dbSetup(connP=None, tableKeys=None):
         sys.stderr.write(sql + "\n")
         curs.execute(sql)
     conn.commit()
-    if (connP is None):
-        conn.close()
 
 def dbMigrate():
+    """migrate from old (pre token_table) schema
+    
+    
+    XXX I can probably die!
+    """
     conn = getConn()
     curs = conn.cursor()
 
     # create the new token table
-    dbSetup(conn, tableKeys=["tokens"])
+    dbSetup(tableKeys=["tokens"])
 
     # rename users table, create new
     curs.execute("RENAME TABLE users TO users_OLD")
-    dbSetup(conn, tableKeys=["users"])
+    dbSetup(tableKeys=["users"])
 
     #copy existing tokens from the old users table to the new tokens table
     curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
@@ -175,92 +233,98 @@ def dbMigrate():
 
     # rename edges table, create new
     curs.execute("RENAME TABLE edges TO edges_OLD")
-    dbSetup(conn, tableKeys=["edges"])
+    dbSetup(tableKeys=["edges"])
 
     # rename events table, create new
     curs.execute("RENAME TABLE events TO events_OLD")
-    dbSetup(conn, tableKeys=["events"])
+    dbSetup(tableKeys=["events"])
 
     return
 
 
 
 
-def getUserTokenDb(connP, userId, appId):
+def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table
 
     For now, it simply grabs all non-expired tokens and orders them by
     primary status (whether owner matches user), followed by updated date.
+
+    :rtype: datastructs.TokenInfo
     """
-    conn = connP if (connP is not None) else getConn()
+    conn = getConn()
     curs = conn.cursor()
     ts = time.time()
-    sql = "SELECT token, ownerid, unix_timestamp(expiration) FROM tokens WHERE fbid=%s AND expiration<%s AND appid=%s"
+    sql = "SELECT token, ownerid, unix_timestamp(expires) FROM tokens WHERE fbid=%s AND unix_timestamp(expires)>%s AND appid=%s "
     params = (userId, ts, appId)
-    sql += "ORDER BY CASE WHEN userid=ownerid THEN 0 ELSE 1 END, updated DESC"
+    sql += "ORDER BY (CASE WHEN fbid=ownerid THEN 0 ELSE 1 END), updated DESC"
     curs.execute(sql, params)
     rec = curs.fetchone()
     if (rec is None):
         ret = None
     else:
-        expDate = datetime.utcfromtimestamp(rec[2])
+        expDate = datetime.datetime.utcfromtimestamp(rec[2])
         ret = datastructs.TokenInfo(rec[0], rec[1], appId, expDate)
-    if (connP is None):
-        conn.close()
     return ret
 
 
-def getUserDb(connP, userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
-    conn = connP if (connP is not None) else getConn()
+def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
+    """
+    :rtype: datastructs.UserInfo
 
-    freshnessDate = datetime.datetime.now() - datetime.timedelta(days=freshnessDays)
-    logger.debug("getting user %s, freshness date is %s" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, updated FROM users WHERE fbid=%s""" % userId
+    freshness - how recent does data need to be? returns None if not fresh enough
+    """
+
+    conn = getConn()
+
+    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
     curs = conn.cursor()
-    curs.execute(sql)
+    curs.execute(sql, (userId,))
     rec = curs.fetchone()
     if (rec is None):
         ret = None
     else:
         fbid, fname, lname, gender, birthday, city, state, updated = rec
-        logger.debug("getting user %s, update date is %s" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
+        updated = datetime.datetime.utcfromtimestamp(updated)
+        logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
             ret = None
         else:
             if (freshnessIncludeEdge):
-                # zzz I think this is meant to be fbid_source & fbid_target rather than prim_id & sec_id? -- Kit
-                curs.execute("SELECT max(updated) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
-                updatedEdge = rec[0]
-                # zzz updated is now coming back as a datetime.datetime(), no longer a float.
-                #     Used to be datetime.date.fromtimestamp(updatedEdge)
+                updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
                     ret = None
                 else:
                     ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
             else:
                 ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-    if (connP is None):
-        conn.close()
     return ret
 
 
-def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
-    conn = connP if (connP is not None) else getConn()
+def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
+    """return list of datastructs.Edge objects for primaryId user
+
+    """
+
+    conn = getConn()
 
     edges = []  # list of edges to be returned
-    primary = getUserDb(conn, primId)
+    primary = getUserDb(primId)
 
     curs = conn.cursor()
     sqlSelect = """
             SELECT fbid_source, fbid_target,
                     post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
-                    tags, photos_target, photos_other, mut_friends, updated
+                    tags, photos_target, photos_other, mut_friends, unix_timestamp(updated)
             FROM edges
-            WHERE updated>%s
+            WHERE unix_timestamp(updated)>%s
     """
 
     sql = sqlSelect + " AND fbid_target=%s"
@@ -276,7 +340,7 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
 
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
-            secondary = getUserDb(conn, secId)
+            secondary = getUserDb(secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
 
     else:
@@ -289,31 +353,39 @@ def getFriendEdgesDb(connP, primId, requireOutgoing=False, newerThan=0):
                                                    oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                    oTags, oPhOwn, oPhOth, oMuts)
             edgeCountsIn = secId_edgeCountsIn[secId]
-            secondary = getUserDb(conn, secId)
+            secondary = getUserDb(secId)
             edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
-
-    if (connP is None):
-        conn.close()
     return edges
 
 # helper function that may get run in a background thread
 def _updateDb(user, token, edges):
+    """takes datastructs.* and writes to database
+    """
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
-    updateUsersDb(curs, [user])
-    updateTokensDb(curs, [user], token)
-    fCount = updateUsersDb(curs, [e.secondary for e in edges])
-    tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
-    eCount = updateFriendEdgesDb(curs, edges)
-    conn.commit()
-    logger.debug("updateFriendEdgesDb() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
+    
+    try:
+        updateUsersDb(curs, [user])
+        updateTokensDb(curs, [user], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        eCount = updateFriendEdgesDb(curs, edges)
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+    
+    logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
-    conn.close()
     return eCount
 
 
 def updateDb(user, token, edges, background=False):
+    """calls _updateDb maybe in thread
+
+    """
+
     if (background):
         t = threading.Thread(target=_updateDb, args=(user, token, edges))
         t.daemon = False
@@ -325,6 +397,10 @@ def updateDb(user, token, edges, background=False):
         return _updateDb(user, token, edges)
 
 def updateFriendEdgesDb(curs, edges):
+    """update edges table
+
+    """
+
     writeCount = 0
     for e in edges:
         for counts in [e.countsIn, e.countsOut]:
@@ -341,21 +417,42 @@ def updateFriendEdgesDb(curs, edges):
                     'tags': counts.tags,
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
-                    'mut_friends': counts.mutuals
+                    'mut_friends': counts.mutuals,
+                    'updated': None     # Force DB to change updated to current_timestamp 
+                                        # even if rest of record is identical. Depends on
+                                        # MySQL handling of NULLs in timestamps and feels
+                                        # a bit ugly...
                 }
                 writeCount += upsert(curs, "edges", col_val)
     return writeCount
 
 
 def updateUsersDb(curs, users):
+    """update users table
+
+    """
+
     updateCount = 0
     for u in users:
-        col_val = { 'fbid': u.id, 'fname': u.fname, 'lname': u.lname, 'gender': u.gender, 'birthday': u.birthday,
-                    'city': u.city, 'state': u.state, 'updated': None }
+        col_val = { 
+            'fbid': u.id, 
+            'fname': u.fname, 
+            'lname': u.lname, 
+            'gender': u.gender, 
+            'birthday': u.birthday,
+            'city': u.city, 
+            'state': u.state, 
+            'updated' : None    # Force DB to change updated to current_timestamp 
+                                # even if rest of record is identical. Depends on
+                                # MySQL handling of NULLs in timestamps and feels
+                                # a bit ugly...
+        }
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
 def updateTokensDb(curs, users, token):
+    """update tokens table"""
+
     insertedTokens = 0
     for user in users:
         col_val = {
@@ -364,7 +461,10 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated': None
+            'updated' : None    # Force DB to change updated to current_timestamp 
+                                # even if rest of record is identical. Depends on
+                                # MySQL handling of NULLs in timestamps and feels
+                                # a bit ugly...
         }
         insertedTokens += upsert(curs, "tokens", col_val)
     return insertedTokens
@@ -389,60 +489,36 @@ def upsert(curs, table, col_val, coalesceCols=None):
     keyColWilds = [ '%s' for c in keyColNames ]
     valColWilds = [ '%s' for c in valColNames ]
 
+    # SQLi
     sql = "INSERT INTO " + table + " (" + ", ".join(keyColNames + valColNames) + ") "
     sql += "VALUES (" + ", ".join(keyColWilds + valColWilds) + ") "
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
     curs.execute(sql, params)
-    return curs.rowcount
-
-# # keeping this around just in case we want to go back to a two-step process... if we do, we MUST use
-# # transactions to avoid race conditions.
-# def insert_update(curs, updateTable, coalesceCols, overwriteCols, keyCols, vals):
-#     """Helper class to update records in a table."""
-#     allCols = keyCols + overwriteCols + coalesceCols
-#     keySQL = ' AND '.join([ c + ' = %('+c+')s' for c in keyCols ])
-#
-#     selectSQL = "SELECT %s FROM %s WHERE %s" % ( ', '.join(keyCols), updateTable, keySQL )
-#
-#     coalesceSQL  = [ '%s = COALESCE(%s, %s)' % (c, '%('+c+')s', c) for c in coalesceCols ]
-#     overwriteSQL = [ '%s = %s' % (c, '%('+c+')s') for c in overwriteCols ]
-#     upColsSQL = ', '.join(overwriteSQL + coalesceSQL)
-#     updateSQL = "UPDATE %s SET %s WHERE %s" % (updateTable, upColsSQL, keySQL)
-#
-#     insertSQL = "INSERT INTO %s (%s) VALUES (%s)" % (
-#         updateTable, ', '.join(allCols), ', '.join(['%('+c+')s' for c in allCols]) )
-#
-#     insertCount = 0
-#     for row in vals:
-#
-#         curs.execute(selectSQL, row)
-#
-#         sql = updateSQL if ( curs.fetchone() ) else insertSQL
-#         curs.execute(sql, row)
-#
-#         curs.execute("COMMIT")
-#         insertCount += 1
-#
-#     return insertCount
-
-
+    # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
+    #     but we only want to count either case as a single affected row...
+    #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)
+    return 1 if curs.rowcount else 0
 
 
 
 # helper function that may get run in a background thread
-def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId):
+def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId):
+    """update events table
+
+    """
+
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
 
-    rows = [{'sessionId': sessionId, 'ip': ip, 'userId': userId, 'friendId': friendId,
-             'eventType': eventType, 'appId': appId, 'content': content,
-             'activityId': activityId, 'createDt': time.strftime("%Y-%m-%d %H:%M:%S")
+    rows = [{'sessionId': sessionId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'ip': ip, 'userId': userId, 'friendId': friendId,
+             'eventType': eventType, 'appId': appId, 'content': content, 'activityId': activityId
             } for friendId in friendIds]
-    sql = """INSERT INTO events (session_id, ip, fbid, friend_fbid, type, appid, content, activity_id, updated)
-                VALUES (%(sessionId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s, %(createDt)s) """
+    sql = """INSERT INTO events (session_id, campaign_id, content_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
+                VALUES (%(sessionId)s, %(campaignId)s, %(contentId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
 
     insertCount = 0
     for row in rows:
@@ -451,19 +527,21 @@ def _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, 
         insertCount += 1
 
     logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
-    conn.close()
 
     return insertCount
 
-def writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
+def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
+    """calls _writeEventsDb maybe in a thread
+
+    """
     # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
     if (background):
         t = threading.Thread(target=_writeEventsDb,
-                             args=(sessionId, ip, userId, friendIds, eventType, appId, content, activityId))
+                             args=(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId))
         t.daemon = False
         t.start()
         logger.debug("writeEventsDb() spawning background thread %d for %s event from session %s", t.ident, eventType, sessionId)
         return 0
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
-        return _writeEventsDb(sessionId, ip, userId, friendIds, eventType, appId, content, activityId)
+        return _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId)
