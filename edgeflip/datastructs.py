@@ -112,6 +112,7 @@ class EdgeCounts(object):
         self.photoOther = photoOth    # count of photos not owned by target in which source & target are both tagged
         self.mutuals = muts
 
+
 class Edge(object):
     def __init__(self, primInfo, secInfo, edgeCountsIn, edgeCountsOut=None):
         self.primary = primInfo

@@ -107,9 +107,9 @@ def faces():
         edgesRanked = ranking.getFriendRankingBestAvailDb(conn, fbid, threshold=0.5)
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
+        user = facebook.getUserFb(fbid, token.tok)
+        edgesUnranked = facebook.getFriendEdgesFb(user, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
         database.updateDb(user, token, edgesRanked, background=True)
     conn.close()
 
