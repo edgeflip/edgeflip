@@ -102,12 +102,22 @@ def faces():
     if (user is not None):  # it's fresh
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(fbid, threshold=0.5)
+        # zzz Even if we got the user from the DB, will still want to at least write
+        #     the token for two reasons: (1) we can update its expiration date since
+        #     it will have been extended because they came back, and (2) it's possible
+        #     we got this user associated with a different Facebook app id, so want to
+        #     be sure the new association is stored!
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
+
+    # Outside the if block because we want to do this regardless of whether we got
+    # user data from the DB (since they could be connecting with a new client even
+    # though we already have them in the DB associated with someone else)
+    cdb.dbWriteUserClient(fbid, clientId, background=config.database.use_threads)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
