@@ -64,10 +64,11 @@ class UserInfo(object):
 
     """
 
-    def __init__(self, uid, first_name, last_name, sex, birthday, city, state):
+    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state):
         self.id = uid
         self.fname = first_name
         self.lname = last_name
+        self.email = email
         self.gender = sex
         self.birthday = birthday
         self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
@@ -89,8 +90,8 @@ class FriendInfo(UserInfo):
     target user = idPrimary
     """
 
-    def __init__(self, primId, friendId, first_name, last_name, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
-        super(FriendInfo, self).__init__(friendId, first_name, last_name, sex, birthday, city, state)
+    def __init__(self, primId, friendId, first_name, last_name, email, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
+        super(FriendInfo, self).__init__(friendId, first_name, last_name, email, sex, birthday, city, state)
         self.idPrimary = primId
         self.primPhotoTags = primPhotoTags
         self.otherPhotoTags = otherPhotoTags

@@ -115,6 +115,7 @@ TABLES['users'] =     Table(name='users',
                                 ('fbid', 'BIGINT'),
                                 ('fname', 'VARCHAR(128)'),
                                 ('lname', 'VARCHAR(128)'),
+                                ('email', 'VARCHAR(256)'),
                                 ('gender', 'VARCHAR(8)'),
                                 ('birthday', 'DATE'),
                                 ('city', 'VARCHAR(32)'),
@@ -210,7 +211,7 @@ def dbMigrate():
     tok_fbid = {}
     for fbid, tok in curs.fetchall():
         token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-        user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+        user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
         updateTokensDb(curs, [user], token)
         tok_fbid[tok] = fbid
     curs.execute("SELECT fbid, friend_token FROM users_OLD WHERE (friend_token IS NOT NULL)")
@@ -218,7 +219,7 @@ def dbMigrate():
         if (tokFriend in tok_fbid):
             owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
             token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-            user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+            user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
             updateTokensDb(curs, [user], token)
 
     # insert old user rows into new table
@@ -279,7 +280,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
+    sql = """SELECT fbid, fname, lname, email, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
     curs = conn.cursor()
     curs.execute(sql, (userId,))
@@ -287,7 +288,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
     if (rec is None):
         ret = None
     else:
-        fbid, fname, lname, gender, birthday, city, state, updated = rec
+        fbid, fname, lname, email, gender, birthday, city, state, updated = rec
         updated = datetime.datetime.utcfromtimestamp(updated)
         logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
@@ -301,10 +302,9 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
                 updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
                     ret = None
-                else:
-                    ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-            else:
-                ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
+        # if we made it here, we're fresh
+        ret = datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
+
     return ret
 
 
@@ -437,7 +437,8 @@ def updateUsersDb(curs, users):
         col_val = { 
             'fbid': u.id, 
             'fname': u.fname, 
-            'lname': u.lname, 
+            'lname': u.lname,
+            'email': u.email,
             'gender': u.gender, 
             'birthday': u.birthday,
             'city': u.city, 
