@@ -286,14 +286,14 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
     curs.execute(sql, (userId,))
     rec = curs.fetchone()
     if (rec is None):
-        ret = None
+        return None
     else:
         fbid, fname, lname, email, gender, birthday, city, state, updated = rec
         updated = datetime.datetime.utcfromtimestamp(updated)
         logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
-            ret = None
+            return None
         else:
             if (freshnessIncludeEdge):
                 curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
@@ -301,11 +301,10 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
                 updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
-                    ret = None
-        # if we made it here, we're fresh
-        ret = datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
+                    return None
 
-    return ret
+        # if we made it here, we're fresh
+        return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
 def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
