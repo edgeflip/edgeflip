@@ -10,6 +10,7 @@ import datetime
 from .utils import ajaxResponse, generateSessionId, getIP
 
 from .. import facebook
+from .. import mock_facebook
 from .. import ranking
 from .. import database
 from .. import datastructs
@@ -75,7 +76,14 @@ def faces():
     sessionId = flask.request.json['sessionid']
     campaignId = flask.request.json['campaignid']
     contentId = flask.request.json['contentid']
+    mockMode = True if flask.request.json.get('mockmode') else False
     ip = getIP(req = flask.request)
+
+    if (mockMode):
+        logger.info('Running in mock mode')
+        fbmodule = mock_facebook
+    else:
+        fbmodule = facebook
 
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
@@ -94,19 +102,21 @@ def faces():
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = facebook.extendTokenFb(fbid, token) or token
+    token = fbmodule.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
-    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
+    user = None
+    if (not mockMode):
+        user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
 
     if (user is not None):  # it's fresh
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingBestAvailDb(fbid, threshold=0.5)
     else:
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
+        edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
+        user = edgesRanked[0].primary if edgesRanked else fbmodule.getUserFb(fbid, token.tok)
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
