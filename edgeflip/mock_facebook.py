@@ -281,7 +281,6 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
-        logger.debug('px3: %s  %s  %s', type(e.countsIn.mutuals), type(e.countsIn.photoTarget), type(e.countsIn.photoOther))
         logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method... 
                                          #     not important enough to fix for mayors, but maybe should one day?
 
