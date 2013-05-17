@@ -74,7 +74,7 @@ def getUrlFb(url):
     timeout should be parameter, etc.
     """
     try:
-        with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
             responseJson = json.load(responseFile)
     except (urllib2.URLError, urllib2.HTTPError) as e: 
         logger.info("error opening url %s: %s", url, e.reason)
@@ -96,7 +96,7 @@ def extendTokenFb(user, token):
     # even if you try passing &format=json in the URL.
     ts = time.time()
     try:
-        with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
             tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
@@ -439,7 +439,9 @@ class ReadStreamCounts(StreamCounts):
 
     i need to be refactored
     """
-    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60, loopTimeout=10, loopSleep=0.1):
+    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=config.facebook.api_timeout, loopTimeout=10, loopSleep=0.1):
+        # zzz Is the "timeout" param even getting used here? Appears to be leftover from an earlier version...
+
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
         tim = datastructs.Timer()
         self.id = userId
@@ -555,7 +557,7 @@ class ThreadStreamReader(threading.Thread):
 
             req = urllib2.Request(url)
             try:
-                responseFile = urllib2.urlopen(req, timeout=60)
+                responseFile = urllib2.urlopen(req, timeout=config.facebook.api_timeout)
             except Exception as e:
                 logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
 
