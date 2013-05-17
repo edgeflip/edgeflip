@@ -112,7 +112,7 @@ def extendTokenFb(user, token):
 
 def fakeUserInfo(fbid, friend=False, numFriends=0):
     fakeInfo = {}
-    fakeInfo['uid'] = str(fbid)
+    fakeInfo['uid'] = fbid
     fakeInfo['sex'] = u'male' if random.random() < 0.5 else u'female'
     fakeInfo['first_name'] = unicode(random.choice(FIRST_NAMES))
     fakeInfo['last_name'] = unicode(random.choice(LAST_NAMES))
@@ -130,7 +130,7 @@ def fakeUserInfo(fbid, friend=False, numFriends=0):
 
     if (friend):
         # Only have a mutual friend count for friends
-        fakeInfo['mutual_friend_count'] = str(random.randint(0, numFriends))
+        fakeInfo['mutual_friend_count'] = random.randint(0, numFriends)
     else:
         # Only get an email for primaries
         fakeInfo['email'] = u'fake@fake.com'
@@ -281,6 +281,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
+        logger.debug('px3: %s  %s  %s', type(e.countsIn.mutuals), type(e.countsIn.photoTarget), type(e.countsIn.photoOther))
         logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method... 
                                          #     not important enough to fix for mayors, but maybe should one day?
 
