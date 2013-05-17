@@ -93,6 +93,10 @@ def faces():
     except ValueError as e:
         return "Content not found", 404     # Better fallback here or something?
 
+    # Want to ensure mock mode can only be run in staging or local development
+    if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
+        return "Mock mode only allowed for the mock client.", 403
+
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
 
     if (not sessionId):
