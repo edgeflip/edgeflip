@@ -40,7 +40,7 @@
         function recordEvent(eventType, fbid, redirect) {
 
             var appid = {{ fbParams.fb_app_id }};
-            var content = '{{ fbParams.fb_app_name }}:button {{ goto }}';
+            var content = '{{ fbParams.fb_app_name }}:button {{ goto | safe }}';
 
             var params = JSON.stringify({
                 userid: fbid,
