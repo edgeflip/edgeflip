@@ -97,16 +97,20 @@ def faces():
     token = facebook.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
-    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
 
-    if (user is not None):  # it's fresh
-        logger.debug("user %s is fresh, getting data from db", fbid)
-        edgesRanked = ranking.getFriendRankingBestAvailDb(fbid, threshold=0.5)
-    else:
+    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
+    edgesRanked = None
+    if (user is None):  # not fresh or nonexistent
         logger.debug("user %s is not fresh, retrieving data from fb", fbid)
+        user = facebook.getUserFb(fbid, token.tok)
+    else:  # user is there, but may have come in as a secondary (and therefore have no edges)
+        logger.debug("user %s is fresh, getting data from db", fbid)
+        edgesRanked = ranking.getFriendRankingDb(user.id, requireOutgoing=False)
+
+    if (not edgesRanked):
+        logger.debug("edges for user %s is not fresh, retrieving data from fb", fbid)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        user = edgesRanked[0].primary if edgesRanked else facebook.getUserFb(fbid, token.tok)
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)

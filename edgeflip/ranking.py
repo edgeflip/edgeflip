@@ -140,7 +140,7 @@ def getFriendRankingDb(userId, requireOutgoing=True):
     """
 
     edgesDb = database.getFriendEdgesDb(userId, requireOutgoing)
-    return getFriendRanking(edgesDb, requireOutgoing)
+    return getFriendRanking(edgesDb, requireOutgoing=requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
     """conditionally call getFriendRanking

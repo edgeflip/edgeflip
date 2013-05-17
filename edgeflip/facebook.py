@@ -56,7 +56,7 @@ FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT objec
 FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
-FQL_USER_INFO   = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s"""
+FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
 FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 def dateFromFb(dateStr):
@@ -168,11 +168,12 @@ def getFriendsFb(userId, token):
         state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
         primPhotoTags = primPhotoCounts[friendId]
         otherPhotoTags = otherPhotoCounts[friendId]
+        email = None # FB won't give you the friends' emails
 
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
-        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
+        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
         friends.append(f)
     logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
     return friends
@@ -188,7 +189,9 @@ def getUserFb(userId, token):
     rec = responseJson['data'][0]
     city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
     state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
-    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
+    email = rec.get('email')
+    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']),
+                                city, state)
     return user
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):
