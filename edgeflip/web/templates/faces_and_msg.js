@@ -348,7 +348,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
@@ -436,7 +436,7 @@ function doShare() {
 		'/me/{{ fbParams.fb_app_name }}:{{ fbParams.fb_action_type }}',
 		'post',
 		{ 
-		  {{ fbParams.fb_object_type }}: '{{ fbParams.fb_object_url }}',
+		  {{ fbParams.fb_object_type }}: '{{ fbParams.fb_object_url | safe }}',
 		  message: msg
 		},
 		function(response) {
@@ -460,7 +460,7 @@ function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
@@ -500,7 +500,7 @@ function recordEvent(eventType) {
 
     var userid = myfbid;
     var appid = {{ fbParams.fb_app_id }};
-    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
     var params = JSON.stringify({
         userid: userid,
