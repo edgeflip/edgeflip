@@ -284,7 +284,9 @@ function useSuggested(msgID) {
 /* selects all friends */
 function checkAll() {
 
-	var divs = $("input[id*='box-']:not(:checked)");
+    // Have to filter for visible because a friend div might be hidden
+    // while awaiting response of an ajax suppression call...
+	var divs = $("input[id*='box-']:not(:checked)").filter(":visible");
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
 		selectFriend(fbid);
@@ -315,6 +317,10 @@ function doReplace(old_fbid) {
 
 	// Remove the friend from the messages
 	unselectFriend(old_fbid);
+
+    // Hide the suppressed div immediately, because the response to
+    // the ajax call can be a little sluggish...
+    $(div_id).hide();
 
 	if (nextidx < friends.length) {
 		// Figure out the new friend
@@ -380,7 +386,10 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 			if (id) {
 				new_html = data;
 				$(div_id).replaceWith(new_html);
+                $(div_id).show();
 			} else {
+                // We hid it above, but still need to actually remove it if there's
+                // no new friend coming in (otherwise, a select all will still add this friend...)
 				$(div_id).remove();
 			}
 			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
