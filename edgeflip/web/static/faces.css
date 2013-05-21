@@ -27,9 +27,25 @@
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
-	background-color: #07304e;
 	width: 172px;
 	position: relative;
+	cursor: pointer;
+}
+
+.selected_friend {
+	background-color: #AAAAAA;
+}
+
+.selected_friend:hover {
+	background-color: #777777;
+}
+
+.unselected_friend {
+	background-color: #07304e;
+}
+
+.unselected_friend:hover {
+	background-color: #0270A0;
 }
 
 .friend_pic {
@@ -68,12 +84,14 @@
 }
 
 .xout {
-	background-color: #CC0000; 
+/*	background-color: #CC0000; */
+	background-color: black;
 	color: white; 
 	width: 12px; 
 	height: 12px; 
 	line-height: 11px;
-	border: thin solid maroon; 
+/*	border: thin solid maroon; */
+	border: thin solid white;
 	border-radius: 6px; 
 	font-size: 10px; 
 	font-weight: bold; 
@@ -82,11 +100,12 @@
 	font-family: arial,sans-serif; 
 	cursor: pointer;
 	position: absolute;
-	top: -3px;
-	left: -3px;
+	top: -4px;
+	right: -4px;
 	z-index: 10;
 }
 
 .xout:hover {
-	background-color: red;
+/*	background-color: red; */
+	background-color: #CC0000;
 }

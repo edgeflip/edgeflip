@@ -207,10 +207,60 @@ editable.on('keyup', function(event) {
 
     // Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
     if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
-        alert("Please limit your message to fewer than 1000 character.");
+        alert("Please limit your message to fewer than "+max_msg_length+" characters.");
     }
 
 });
+
+
+// var friendHover = $(".friend_name, .friend_pic, input[id*='box-']");
+
+// friendHover.mouseenter(function(event) {
+//     var thisid = $(this).parents('.friend_box')[0].id.split('-')[1];
+//     if ($('#box-'+thisid).is(':checked')) {
+//         $('#friend-'+thisid).css('background-color', '#777777');
+//     } else {
+//         $('#friend-'+thisid).css('background-color', '#0270A0');
+//     }
+// });
+
+// friendHover.mouseleave(function(event) {
+//     var thisid = $(this).parents('.friend_box')[0].id.split('-')[1];
+//     if ($('#box-'+thisid).is(':checked')) {
+//         $('#friend-'+thisid).css('background-color', '#AAAAAA');
+//     } else {
+//         $('#friend-'+thisid).css('background-color', '#07304e');
+//     }
+// });
+
+$('.xout').click(function(event) {
+    event.stopPropagation();
+    event.cancelBubble = true;
+    var thisid = parseInt($(this).parents('.friend_box')[0].id.split('-')[1]);
+    doReplace(thisid);
+    return false;
+});
+
+$("input[id*='box-']").click(function(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    event.cancelBubble = true;
+    var thisid = parseInt($(this)[0].id.split('-')[1]);
+    // tricky javascript... the 'checked' property of the checkbox is
+    // set to True in this event loop, even though we're doing a
+    // preventDefault(). Here, the setTimeout() just forces us into
+    // a different event loop, with 'checked' actually false!
+    // (http://www.rqgg.net/topic/vkvv-aftering-using-preventdefault-why-cant-i-check-a-box-with-jquery.html)
+    setTimeout(function() { faceClick(thisid); }, 1);
+    return false;
+});
+
+$('.friend_box').click(function(event) {
+    var thisid = parseInt($(this)[0].id.split('-')[1]);
+    faceClick(thisid);
+});
+
+
 
 </script>
 
