@@ -212,6 +212,19 @@ editable.on('keyup', function(event) {
 
 });
 
+$('.xout').hover(
+    function(event) {
+        var thisid = parseInt($(this).parents('.friend_box')[0].id.split('-')[1]);
+        if ($('#box-'+thisid).is(':checked')) {
+            $(this).parents('.friend_box').css('background-color', '#AAAAAA');
+        } else {
+            $(this).parents('.friend_box').css('background-color', '#07304e');
+        }
+    },
+    function(event) {
+        $(this).parents('.friend_box').css('background-color', '');
+    }
+);
 
 $('.xout').click(function(event) {
     event.stopPropagation();
