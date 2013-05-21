@@ -171,8 +171,9 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
-    faceFriends = friendDicts[:numFace]
-    allFriends = friendDicts[:25]
+    faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
+    allFriends = friendDicts[:25]           # Anyone who we might show as a face. 25 is totally arbitrary to avoid going too far down the list, but maybe just send them all?
+    pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
@@ -223,7 +224,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
     return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
-                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")
