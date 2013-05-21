@@ -27,29 +27,63 @@
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
-	background-color: #07304e;
+	/*background-color: #07304e;*/
+    background-color: #81b8d0;
+
 	width: 172px;
 	position: relative;
+
+    color: white;
+
+
+    height: 55px;
 }
 
+.highlight {
+    border: 1px solid greenyellow;
+    background-color: #0270A0;
+    color: greenyellow;
+}
+
+
+/*ul{*/
+    /*margin: 0 auto;*/
+    /*padding: 0;*/
+    /*width: 100%;*/
+/*}*/
+/*ul.horizontal_list li {*/
+    /*text-align: left;*/
+    /*float: left;*/
+    /*list-style: none;*/
+    /*padding: 0;*/
+    /*margin: 0px 2px;*/
+    /*border: 1px solid green;*/
+/*}*/
+
+
+
 .friend_pic {
-	width: 60px;
-	text-align: center;
-	vertical-align: middle;
-	display: inline-block;
+	/*width: 60px;*/
+	text-align: right;
+	/*vertical-align: middle;*/
+	/*display: inline-block;*/
+    /*padding: 0;*/
+
+    /*float: right;*/
 }
 
 .friend_txt {
-	width: 100px;
+	/*width: 100px;*/
 	text-align: left;
 	vertical-align: top;
 	display: inline-block;
+    margin-left: 7px;
 }
 
 .friend_name {
-	color: white;
+	/*color: white;*/
 	text-decoration: none;
-	width: 100%; 
+	/*width: 100%; */
 	overflow: hidden; 
 	white-space: nowrap; 
 	text-overflow: ellipsis;
@@ -58,8 +92,8 @@
 }
 
 .friend_checkbox {
-	width: 100px;
-	text-align: right;
+	/*width: 100px;*/
+	/*text-align: left;*/
 }
 
 .dojoxEllipsis,
@@ -68,12 +102,14 @@
 }
 
 .xout {
-	background-color: #CC0000; 
-	color: white; 
-	width: 12px; 
+	/*background-color: #CC0000; */
+    background-color: #CCCCCC;
+	/*color: white;*/
+	color: black;
+	width: 12px;
 	height: 12px; 
 	line-height: 11px;
-	border: thin solid maroon; 
+	border: thin solid #666666;
 	border-radius: 6px; 
 	font-size: 10px; 
 	font-weight: bold; 
@@ -83,10 +119,14 @@
 	cursor: pointer;
 	position: absolute;
 	top: -3px;
-	left: -3px;
-	z-index: 10;
+	/*left: -3px;*/
+	right: -3px;
+    z-index: 10;
 }
 
 .xout:hover {
 	background-color: red;
 }
+
+
+

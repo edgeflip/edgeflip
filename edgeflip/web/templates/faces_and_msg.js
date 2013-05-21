@@ -99,6 +99,8 @@ function selectFriend(fbid) {
 		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
   		if ($('#box-'+fbid).length > 0) {
 	  		$('#box-'+fbid).prop('checked', true);
+
+            $('#friend-'+fbid).addClass('highlight'); // add the hightlight styling
 	  	} else {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
@@ -124,6 +126,8 @@ function unselectFriend(fbid) {
 		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
 		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
 		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
+
+        $('#friend-'+fbid).removeClass('highlight'); // get rid of the highlight styling
 
 		return true;
 	} else {
