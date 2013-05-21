@@ -309,6 +309,15 @@ function toggleFriend(fbid) {
 
 }
 
+// Quick function to allow for clicking name or image to toggle friend
+// selected state in addition to clicking on the checkbox directly.
+// Just need to toggle the checkbox first, then proceed as if it had
+// been clicked directly.
+function faceClick(fbid) {
+    $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
+    toggleFriend(fbid);
+}
+
 /* called when some suppress friend (X in faces list) */
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
