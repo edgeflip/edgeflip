@@ -332,8 +332,6 @@ function doReplace(old_fbid) {
 		// Update the friends shown
 		friendHTML(old_fbid, id, fname, lname, div_id);
 
-		// Add the new friend to the list of message tags (since they'll start off pre-checked)
-		selectFriend(id);
 		nextidx++;
 	} else {
 		// No new friends to add, so just remove this one
