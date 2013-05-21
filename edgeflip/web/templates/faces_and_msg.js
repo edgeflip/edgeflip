@@ -324,10 +324,15 @@ function doReplace(old_fbid) {
 
 	if (nextidx < friends.length) {
 		// Figure out the new friend
+        // Note that we're HTML-unescaping the first and last name to send back
+        // to the server for templating -- the template is going to escape these
+        // and we don't want them getting escaped twice! Hockey & ugly, I know,
+        // but this will work until we move to a smarter system of front-end
+        // templating...
 		var friend = friends[nextidx];
 		var id = friend['id'];
-		var fname = friend['fname'];
-		var lname = friend['lname'];
+		var fname = $("<div/>").html(friend['fname']).text();
+		var lname = $("<div/>").html(friend['lname']).text();
 
 		// Update the friends shown
 		friendHTML(old_fbid, id, fname, lname, div_id);
