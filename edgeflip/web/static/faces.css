@@ -28,21 +28,22 @@
 	border-radius: 10px;
 	-moz-border-radius: 10px;
 	/*background-color: #07304e;*/
-    background-color: #81b8d0;
-
+    background-color: #6C6C6C;
+    background-color: #0270A0;
 	width: 172px;
 	position: relative;
 
-    color: white;
 
+    color: #c0dbe7;
 
     height: 55px;
 }
 
 .highlight {
-    border: 1px solid greenyellow;
-    background-color: #0270A0;
-    color: greenyellow;
+    border: 1px solid #0270A0;
+    background-color: #192c4f;
+    color: white;
+
 }
 
 
