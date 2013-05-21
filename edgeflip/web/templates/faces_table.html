@@ -213,26 +213,6 @@ editable.on('keyup', function(event) {
 });
 
 
-// var friendHover = $(".friend_name, .friend_pic, input[id*='box-']");
-
-// friendHover.mouseenter(function(event) {
-//     var thisid = $(this).parents('.friend_box')[0].id.split('-')[1];
-//     if ($('#box-'+thisid).is(':checked')) {
-//         $('#friend-'+thisid).css('background-color', '#777777');
-//     } else {
-//         $('#friend-'+thisid).css('background-color', '#0270A0');
-//     }
-// });
-
-// friendHover.mouseleave(function(event) {
-//     var thisid = $(this).parents('.friend_box')[0].id.split('-')[1];
-//     if ($('#box-'+thisid).is(':checked')) {
-//         $('#friend-'+thisid).css('background-color', '#AAAAAA');
-//     } else {
-//         $('#friend-'+thisid).css('background-color', '#07304e');
-//     }
-// });
-
 $('.xout').click(function(event) {
     event.stopPropagation();
     event.cancelBubble = true;
