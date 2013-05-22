@@ -27,12 +27,9 @@ h2 {
 	height: 30px;
 	font-weight:200;
 	color: white;
-	background-color: #0270A0;
 	cursor: pointer;
 	text-align: center;
 	padding: 4px;
-	border: 2px solid #4E9BBD;
-	box-shadow: 3px 3px 5px #094163;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
 	text-decoration: none;
@@ -45,10 +42,28 @@ h2 {
 	margin: 5px;
 }
 
-.button:hover {
+.active_button {
+	background-color: orangered;
+	border: 2px solid maroon;
+	box-shadow: 3px 3px 5px black;
+}
+
+.active_button:hover {
+	background-color: #CC0000;
+	border: 2px solid red;	
+	box-shadow: 2px 2px 3px black;
+}
+
+.inactive_button {
+	background-color: #0270A0;
+	border: 2px solid #4E9BBD;
+	box-shadow: 3px 3px 5px #094163;
+}
+
+.inactive_button:hover {
 	background-color: #094163;
+	border: 2px solid #0270A0;	
 	box-shadow: 2px 2px 3px #094163;
-	border: 2px solid #0270A0;
 }
 
 .small_button {
