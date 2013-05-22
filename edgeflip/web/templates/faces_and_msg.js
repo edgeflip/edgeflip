@@ -474,9 +474,9 @@ function doShare() {
 			if (!response || response.error) {
 				// alert('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
+                recordEvent('share_fail');
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
-                recordEvent('share_fail');
 			} else {
                 // thank you page redirect happens in recordShare()
 				recordShare(response.id);
