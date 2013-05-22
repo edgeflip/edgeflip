@@ -25,7 +25,8 @@ def seedClientData():
 
 def createMockClient():
     """Creates the mock clients and default filter and choice set"""
-    clientDict = cdb.createClient('mockclient', 'sharing-social-good', '471727162864364', config.web['edgeflip_domain'], config.web['mock_subdomain'], True)
+    #clientDict = cdb.createClient('mockclient', 'sharing-social-good', '471727162864364', config.web['edgeflip_domain'], config.web['mock_subdomain'], True)
+    clientDict = cdb.createClient('mockclient', 'staging-social-good', '417233888375210', config.web['edgeflip_domain'], config.web['mock_subdomain'], True)
     clientId = clientDict.get('client_id')
     allFilterId = clientDict.get('filter_id')
     allChoiceSetId = clientDict.get('choice_set_id')
