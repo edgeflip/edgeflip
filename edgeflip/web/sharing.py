@@ -100,15 +100,13 @@ def faces():
 
     user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
     edgesRanked = None
-    if (user is None):  # not fresh or nonexistent
-        logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        user = facebook.getUserFb(fbid, token.tok)
-    else:  # user is there, but may have come in as a secondary (and therefore have no edges)
+    if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
         edgesRanked = ranking.getFriendRankingDb(user.id, requireOutgoing=False)
 
     if (not edgesRanked):
-        logger.debug("edges for user %s is not fresh, retrieving data from fb", fbid)
+        logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
+        user = facebook.getUserFb(fbid, token.tok)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
