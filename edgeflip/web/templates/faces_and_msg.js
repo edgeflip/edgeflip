@@ -274,6 +274,9 @@ function handleUndo() {
 
 /* populates message div w/ suggested text*/
 function useSuggested(msgID) {
+    $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
+    $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+
 	$('#other_msg').html($(msgID).html());
 
 	// If they don't have anyone checked, using the suggested message adds everyone
@@ -287,6 +290,9 @@ function useSuggested(msgID) {
 
 /* selects all friends */
 function checkAll() {
+
+    $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+    $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
 
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
