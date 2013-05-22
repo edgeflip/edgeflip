@@ -11,9 +11,10 @@
 #manual_add {
 	padding-top: 5px;
 	text-align: left;
-	margin: 0px auto;
+	margin: 0px auto 30px auto;
 	display: table;
 	position: relative;
+
 }
 
 #manual_input_container {

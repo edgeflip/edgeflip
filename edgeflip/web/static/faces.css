@@ -2,11 +2,17 @@
 
 .faces_container,
 #manual_add {
-	width: 405px;
+	width: 650px;
 }
 
+#manual_add {
+	padding-left: 50px;
+}
+
+
+
 .left_container {
-	width: 420px;
+	width: 200px;
 	float: left;
 }
 
@@ -14,7 +20,7 @@
 	background-color: #f7f7f7;
 	border: 2px solid lightgrey;
 	border-radius: 10px;
-	padding: 5px;
+	padding: 15px;
 }
 
 .friends_table {
@@ -23,14 +29,14 @@
 }
 
 .friend_box {
-	padding: 6px;
+	padding: 3px;
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
 	/*background-color: #07304e;*/
     background-color: #6C6C6C;
     background-color: #0270A0;
-	width: 172px;
+	width: 160px;
 	position: relative;
 
 
