@@ -434,19 +434,22 @@ def updateUsersDb(curs, users):
     updateCount = 0
     for u in users:
         col_val = { 
-            'fbid': u.id, 
             'fname': u.fname, 
             'lname': u.lname,
             'email': u.email,
             'gender': u.gender, 
             'birthday': u.birthday,
             'city': u.city, 
-            'state': u.state, 
-            'updated' : None    # Force DB to change updated to current_timestamp 
-                                # even if rest of record is identical. Depends on
-                                # MySQL handling of NULLs in timestamps and feels
-                                # a bit ugly...
+            'state': u.state    
         }
+        # Only include columns with non-null (or empty/zero) values
+        # to ensure a NULL can never overwrite a non-null
+        col_val = { k : v for k,v in col_val.items() if v }
+        col_val['fbid'] = u.id
+        col_val['updated'] = None   # Force DB to change updated to current_timestamp 
+                                    # even if rest of record is identical. Depends on
+                                    # MySQL handling of NULLs in timestamps and feels
+                                    # a bit ugly...
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
