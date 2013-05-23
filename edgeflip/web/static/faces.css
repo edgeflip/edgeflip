@@ -2,7 +2,7 @@
 
 .faces_container,
 #manual_add {
-	width: 650px;
+	width: 600px;
 }
 
 #manual_add {
@@ -14,6 +14,7 @@
 .left_container {
 	width: 200px;
 	float: left;
+    margin: 50px;
 }
 
 .faces_container {
@@ -34,7 +35,7 @@
 	border-radius: 10px;
 	-moz-border-radius: 10px;
 	/*background-color: #07304e;*/
-    background-color: #6C6C6C;
+    /*background-color: #6C6C6C;*/
     background-color: #0270A0;
 	width: 160px;
 	position: relative;
@@ -45,7 +46,7 @@
     height: 55px;
 }
 
-.highlight {
+.highlight, .friend_box:hover {
     border: 1px solid #0270A0;
     background-color: #192c4f;
     color: white;

@@ -67,7 +67,16 @@ h2 {
 	font-weight: 200;
 	letter-spacing: 1px;
 	cursor: pointer;
+
+    width: 100px;
 }
+
+.small_button:hover {
+    border: 1px solid #0270A0;
+    background-color: #192c4f;
+    color: white;
+}
+
 
 #your-friends-here {
 	display: none;
