@@ -7,8 +7,8 @@ $(function() {
 	$( "#manual_input" ).autocomplete({
 		minLength: 0,
 		source: function(request, response) {
+			var patt = new RegExp('\\b'+request.term, 'i');
 			var filteredArray = $.map(pick_friends, function(item) {
-	        	var patt = new RegExp('\\b'+request.term, 'i');
 	        	if( patt.test(item.label) ){
 	            	return item;
 	        	} else {
