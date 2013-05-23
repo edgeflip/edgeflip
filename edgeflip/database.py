@@ -296,7 +296,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
             return None
         else:
             if (freshnessIncludeEdge):
-                curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                curs.execute("SELECT min(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
                 updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
