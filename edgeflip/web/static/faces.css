@@ -2,7 +2,7 @@
 
 .faces_container,
 #manual_add {
-	width: 600px;
+	width: 650px;
 }
 
 #manual_add {
@@ -43,7 +43,7 @@
 
     color: #c0dbe7;
 
-    height: 55px;
+    /*height: 55px;*/
 }
 
 .highlight, .friend_box:hover {
