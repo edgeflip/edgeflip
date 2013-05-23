@@ -6,7 +6,17 @@ $(function() {
 
 	$( "#manual_input" ).autocomplete({
 		minLength: 0,
-		source: pick_friends,
+		source: function(request, response) {
+			var filteredArray = $.map(pick_friends, function(item) {
+	        	var patt = new RegExp('\\b'+request.term, 'i');
+	        	if( patt.test(item.label) ){
+	            	return item;
+	        	} else {
+	            	return null;
+	        	}
+    		});
+    		response(filteredArray);
+		},
 		focus: function( event, ui ) {
 			$( "#manual_input" ).val( ui.item.label );
 			return false;
