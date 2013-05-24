@@ -33,26 +33,39 @@
 }
 
 .selected_friend {
-	background-color: #AAAAAA;
+	/*background-color: #AAAAAA;*/
+	background-color: #07304E;
+	color: white;
 }
 
 .selected_friend:hover {
-	background-color: #777777;
+	/*background-color: #777777;*/
+	background-color: #0270A0;
+	color: white;
 }
 
 .unselected_friend {
-	background-color: #07304e;
+	/*background-color: #07304e;*/
+	background-color: #E6F2FF;
+	color: black;
 }
 
 .unselected_friend:hover {
-	background-color: #0270A0;
+	/*background-color: #0270A0;*/
+	background-color: #96C2F0;
+	color: black;
 }
 
 .friend_pic {
-	width: 60px;
 	text-align: center;
 	vertical-align: middle;
 	display: inline-block;
+}
+
+.friend_pic, .friend_box img {
+	width: 40px;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
 }
 
 .friend_txt {
@@ -63,7 +76,7 @@
 }
 
 .friend_name {
-	color: white;
+	color: inherit;
 	text-decoration: none;
 	width: 100%; 
 	overflow: hidden; 
@@ -74,13 +87,14 @@
 }
 
 .friend_checkbox {
+	display: none;
 	width: 100px;
 	text-align: right;
 }
 
 .dojoxEllipsis,
 .dojoxEllipsisShown {
-	color: white;
+	color: inherit;
 }
 
 .xout {
