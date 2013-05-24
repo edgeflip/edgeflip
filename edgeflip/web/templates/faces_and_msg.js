@@ -101,6 +101,7 @@ function selectFriend(fbid) {
 	  		$('#box-'+fbid).prop('checked', true);
             $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
             $('#wrapper-'+fbid+' .xout').hide();
+            $('#wrapper-'+fbid+' .checkmark').show();
 	  	} else {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
@@ -128,6 +129,7 @@ function unselectFriend(fbid) {
 		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
         $('#friend-'+fbid).removeClass('selected_friend').addClass('unselected_friend');
         $('#wrapper-'+fbid+' .xout').show();
+        $('#wrapper-'+fbid+' .checkmark').hide();
 
 		return true;
 	} else {

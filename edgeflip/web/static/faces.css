@@ -92,6 +92,15 @@
 	text-align: right;
 }
 
+.checkmark {
+	display: none;
+	position: absolute; 
+	bottom: 2px; 
+	right: 6px; 
+	z-index: 10;
+}
+
+
 .dojoxEllipsis,
 .dojoxEllipsisShown {
 	color: inherit;
