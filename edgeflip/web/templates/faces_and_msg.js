@@ -330,6 +330,12 @@ function toggleFriend(fbid) {
 // Just need to toggle the checkbox first, then proceed as if it had
 // been clicked directly.
 function faceClick(fbid) {
+
+    if (recips.length >= 10 && !$('#box-'+fbid).prop('checked')) {
+        alert("Sorry: only ten friends can be tagged.");
+        return false;
+    }
+
     $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
     toggleFriend(fbid);
 }
