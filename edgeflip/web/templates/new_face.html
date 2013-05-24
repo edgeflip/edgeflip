@@ -1,22 +1,27 @@
 
 <!-- DOC: jinja macro for a face widget -->
 {% macro face(fbid, firstname, lastname) %}
-<div class="friend_box" id="friend-{{fbid}}">
+<div style="position: relative" id="wrapper-{{fbid}}">
     <div class="xout" onClick="doReplace({{fbid}});">
         x
     </div>
-    <div class="friend_pic" onClick="faceClick({{fbid}});">
-        <img src="http://graph.facebook.com/{{fbid}}/picture" border=0 />
-    </div>
-    <div class="friend_txt">
-        <div class="friend_name dojoxEllipsis" onClick="faceClick({{fbid}});">
-            {{firstname}}
+    <div class="friend_box unselected_friend" id="friend-{{fbid}}" onClick="faceClick({{fbid}});">
+        <div class="checkmark">
+            <img src="{{ url_for('static', filename='checkmark-sm.png') }}">
         </div>
-        <div class="friend_name dojoxEllipsis" onClick="faceClick({{fbid}});">
-            {{lastname}}
+        <div class="friend_pic">
+            <img src="http://graph.facebook.com/{{fbid}}/picture" border=0 />
         </div>
-        <div class="friend_checkbox">
-            <input type="checkbox" id="box-{{fbid}}" onClick="toggleFriend({{fbid}});">
+        <div class="friend_txt">
+            <div class="friend_name dojoxEllipsis">
+                {{firstname}}
+            </div>
+            <div class="friend_name dojoxEllipsis">
+                {{lastname}}
+            </div>
+            <div class="friend_checkbox">
+                <input type="checkbox" id="box-{{fbid}}">
+            </div>
         </div>
     </div>
 </div>

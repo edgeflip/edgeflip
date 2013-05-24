@@ -5,9 +5,21 @@
 	vertical-align: top;
 	padding-left: 15px;
 	white-space: normal;
-	min-width: 300px;
-	max-width: 650px;
-	display: inline-block;
+	width: 685px;
+	display: table;
+	margin: 0px auto;
+}
+
+.share_prompt {
+	display: table;
+	width: 70%;
+	margin: 0px auto 15px auto;
+	padding-bottom: 2px;
+	color: #07304e;
+	font-size: 22px;
+	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+	text-align: center;
+	border-bottom: thin dashed gray;
 }
 
 .msg_friend_name {
@@ -59,8 +71,6 @@
 }
 
 .msg_picker {
-/*	border: 1px solid #07304e; */
-/*	border: 2px solid #e4e6e0; */
 	border: 2px solid lightgrey;
 	border-radius: 10px;
 /*	background-color: #E6F2FF; */
@@ -98,7 +108,7 @@
 	display: none;
 }
 
-#other_msg_container {
+#other_msg {
 	display: block;
 	border: solid thin gray;
 	border-radius: 5px;
@@ -106,10 +116,7 @@
 	padding: 5px;
 	width: 93%;
 	margin-left: 2%;
-}
-
-#other_msg {
-	min-height: 75px;
+	min-height: 90px;
 }
 
 #do_share_container {

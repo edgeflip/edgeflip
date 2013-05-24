@@ -1,12 +1,16 @@
 /* CSS FOR THE FACES */
 
-.faces_container,
+.faces_container {
+	width: 650px;
+}
+
 #manual_add {
-	width: 405px;
+	padding-left: 50px;
 }
 
 .left_container {
-	width: 420px;
+	width: 200px;
+	margin: 50px;
 	float: left;
 }
 
@@ -14,7 +18,7 @@
 	background-color: #f7f7f7;
 	border: 2px solid lightgrey;
 	border-radius: 10px;
-	padding: 5px;
+	padding: 15px;
 }
 
 .friends_table {
@@ -23,31 +27,62 @@
 }
 
 .friend_box {
-	padding: 6px;
+	padding: 7px 3px 3px 7px;
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
-	background-color: #07304e;
-	width: 172px;
+	width: 160px;
 	position: relative;
+	cursor: pointer;
+}
+
+.selected_friend {
+	/*background-color: #AAAAAA;*/
+	background-color: #07304E;
+	color: white;
+}
+
+.selected_friend:hover {
+	/*background-color: #777777;*/
+	background-color: #0270A0;
+	color: white;
+}
+
+.unselected_friend {
+	/*background-color: #07304e;*/
+	background-color: #E6F2FF;
+	color: black;
+}
+
+.unselected_friend:hover {
+	/*background-color: #0270A0;*/
+	background-color: #96C2F0;
+	color: black;
 }
 
 .friend_pic {
-	width: 60px;
 	text-align: center;
 	vertical-align: middle;
 	display: inline-block;
 }
 
+.friend_pic, .friend_box img {
+	width: 40px;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
+}
+
 .friend_txt {
-	width: 100px;
+	/* Have to specify width here to make ellipsis work */
+	width: 110px;
 	text-align: left;
 	vertical-align: top;
 	display: inline-block;
 }
 
 .friend_name {
-	color: white;
+	/* Have to specify width 100% here to make ellipsis work */
+	color: inherit;
 	text-decoration: none;
 	width: 100%; 
 	overflow: hidden; 
@@ -58,22 +93,32 @@
 }
 
 .friend_checkbox {
+	display: none;
 	width: 100px;
 	text-align: right;
 }
 
+.checkmark {
+	display: none;
+	position: absolute; 
+	bottom: 2px; 
+	right: 6px; 
+	z-index: 10;
+}
+
+
 .dojoxEllipsis,
 .dojoxEllipsisShown {
-	color: white;
+	color: inherit;
 }
 
 .xout {
-	background-color: #CC0000; 
+	background-color: black;
 	color: white; 
 	width: 12px; 
 	height: 12px; 
 	line-height: 11px;
-	border: thin solid maroon; 
+	border: thin solid white;
 	border-radius: 6px; 
 	font-size: 10px; 
 	font-weight: bold; 
@@ -82,11 +127,11 @@
 	font-family: arial,sans-serif; 
 	cursor: pointer;
 	position: absolute;
-	top: -3px;
-	left: -3px;
+	top: -4px;
+	right: -4px;
 	z-index: 10;
 }
 
 .xout:hover {
-	background-color: red;
+	background-color: #CC0000;
 }

@@ -99,9 +99,15 @@ function selectFriend(fbid) {
 		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
   		if ($('#box-'+fbid).length > 0) {
 	  		$('#box-'+fbid).prop('checked', true);
+            $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
+            $('#wrapper-'+fbid+' .xout').hide();
+            $('#wrapper-'+fbid+' .checkmark').show();
 	  	} else {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
+
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
 
   		return true;
   	} else {
@@ -124,6 +130,9 @@ function unselectFriend(fbid) {
 		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
 		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
 		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
+        $('#friend-'+fbid).removeClass('selected_friend').addClass('unselected_friend');
+        $('#wrapper-'+fbid+' .xout').show();
+        $('#wrapper-'+fbid+' .checkmark').hide();
 
 		return true;
 	} else {
@@ -270,6 +279,7 @@ function handleUndo() {
 
 /* populates message div w/ suggested text*/
 function useSuggested(msgID) {
+
 	$('#other_msg').html($(msgID).html());
 
 	// If they don't have anyone checked, using the suggested message adds everyone
@@ -278,15 +288,21 @@ function useSuggested(msgID) {
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
+    $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
+    $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+
 	msgFocusEnd();
 }
 
 /* selects all friends */
 function checkAll() {
 
+    $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+    $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
-	var divs = $("input[id*='box-']:not(:checked)").filter(":visible");
+	var divs = $(".friend_box:visible input[id*='box-']:not(:checked)");
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
 		selectFriend(fbid);
@@ -314,6 +330,12 @@ function toggleFriend(fbid) {
 // Just need to toggle the checkbox first, then proceed as if it had
 // been clicked directly.
 function faceClick(fbid) {
+
+    if (recips.length >= 10 && !$('#box-'+fbid).prop('checked')) {
+        alert("Sorry: only ten friends can be tagged.");
+        return false;
+    }
+
     $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
     toggleFriend(fbid);
 }
@@ -322,7 +344,7 @@ function faceClick(fbid) {
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
 
-	var div_id = '#friend-'+old_fbid;
+	var div_id = '#wrapper-'+old_fbid;
 
 	// Remove the friend from the messages
 	unselectFriend(old_fbid);
