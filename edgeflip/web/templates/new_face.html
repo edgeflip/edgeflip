@@ -5,10 +5,10 @@
     <div class="xout" onClick="doReplace({{fbid}});">
         x
     </div>
-    <div class="checkmark">
-        <img src="{{ url_for('static', filename='checkmark-sm.png') }}">
-    </div>
     <div class="friend_box unselected_friend" id="friend-{{fbid}}" onClick="faceClick({{fbid}});">
+        <div class="checkmark">
+            <img src="{{ url_for('static', filename='checkmark-sm.png') }}">
+        </div>
         <div class="friend_pic">
             <img src="http://graph.facebook.com/{{fbid}}/picture" border=0 />
         </div>

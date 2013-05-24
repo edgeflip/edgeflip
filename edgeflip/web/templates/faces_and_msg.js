@@ -106,6 +106,9 @@ function selectFriend(fbid) {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
 
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+
   		return true;
   	} else {
 		return false;

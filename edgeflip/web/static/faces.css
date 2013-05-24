@@ -1,12 +1,18 @@
 /* CSS FOR THE FACES */
 
-.faces_container,
+.faces_container {
+	/*width: 405px;*/
+	width: 650px;
+}
+
 #manual_add {
-	width: 405px;
+	padding-left: 50px;
 }
 
 .left_container {
-	width: 420px;
+	/*width: 420px;*/
+	width: 200px;
+	margin: 50px;
 	float: left;
 }
 
@@ -14,7 +20,8 @@
 	background-color: #f7f7f7;
 	border: 2px solid lightgrey;
 	border-radius: 10px;
-	padding: 5px;
+	/*padding: 5px;*/
+	padding: 15px;
 }
 
 .friends_table {
@@ -23,11 +30,13 @@
 }
 
 .friend_box {
-	padding: 6px;
+	/*padding: 6px;*/
+	padding: 7px 3px 3px 7px;
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
-	width: 172px;
+	/*width: 172px;*/
+	width: 160px;
 	position: relative;
 	cursor: pointer;
 }
@@ -69,13 +78,15 @@
 }
 
 .friend_txt {
-	width: 100px;
+	/* Have to specify width here to make ellipsis work */
+	width: 110px;
 	text-align: left;
 	vertical-align: top;
 	display: inline-block;
 }
 
 .friend_name {
+	/* Have to specify width 100% here to make ellipsis work */
 	color: inherit;
 	text-decoration: none;
 	width: 100%; 
