@@ -108,7 +108,7 @@
 	display: none;
 }
 
-#other_msg_container {
+#other_msg {
 	display: block;
 	border: solid thin gray;
 	border-radius: 5px;
@@ -116,9 +116,7 @@
 	padding: 5px;
 	width: 93%;
 	margin-left: 2%;
-}
 
-#other_msg {
 	min-height: 75px;
 }
 
