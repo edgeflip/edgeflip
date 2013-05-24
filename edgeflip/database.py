@@ -295,6 +295,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         if (updated <= freshnessDate):
             return None
         else:
+            """We want freshnessIncludeEdge to go away! (should just get the edges & check them separately)"""
             if (freshnessIncludeEdge):
                 curs.execute("SELECT min(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
