@@ -1,7 +1,6 @@
 /* CSS FOR THE FACES */
 
 .faces_container {
-	/*width: 405px;*/
 	width: 650px;
 }
 
@@ -10,7 +9,6 @@
 }
 
 .left_container {
-	/*width: 420px;*/
 	width: 200px;
 	margin: 50px;
 	float: left;
@@ -20,7 +18,6 @@
 	background-color: #f7f7f7;
 	border: 2px solid lightgrey;
 	border-radius: 10px;
-	/*padding: 5px;*/
 	padding: 15px;
 }
 
@@ -30,12 +27,10 @@
 }
 
 .friend_box {
-	/*padding: 6px;*/
 	padding: 7px 3px 3px 7px;
 	border: thin solid gray;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
-	/*width: 172px;*/
 	width: 160px;
 	position: relative;
 	cursor: pointer;
@@ -118,13 +113,11 @@
 }
 
 .xout {
-/*	background-color: #CC0000; */
 	background-color: black;
 	color: white; 
 	width: 12px; 
 	height: 12px; 
 	line-height: 11px;
-/*	border: thin solid maroon; */
 	border: thin solid white;
 	border-radius: 6px; 
 	font-size: 10px; 
@@ -140,6 +133,5 @@
 }
 
 .xout:hover {
-/*	background-color: red; */
 	background-color: #CC0000;
 }

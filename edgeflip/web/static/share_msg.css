@@ -5,12 +5,7 @@
 	vertical-align: top;
 	padding-left: 15px;
 	white-space: normal;
-/*	min-width: 300px;
-	max-width: 650px; */
-/*	min-width: 685px;
-	max-width: 685px; */
 	width: 685px;
-	/*display: inline-block;*/
 	display: table;
 	margin: 0px auto;
 }
@@ -76,8 +71,6 @@
 }
 
 .msg_picker {
-/*	border: 1px solid #07304e; */
-/*	border: 2px solid #e4e6e0; */
 	border: 2px solid lightgrey;
 	border-radius: 10px;
 /*	background-color: #E6F2FF; */
