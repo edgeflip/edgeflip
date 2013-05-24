@@ -72,9 +72,7 @@ h2 {
 	margin-left: 3px;
 	margin-right: 3px;
 	padding: 3px;
-	background-color: #0270A0;
 	color: white;
-	border: thin solid gray;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
 	font-size: 14px;
@@ -82,6 +80,32 @@ h2 {
 	font-weight: 200;
 	letter-spacing: 1px;
 	cursor: pointer;
+	width: 140px;
+}
+
+.active_small {
+	background-color: orangered;
+	border: thin solid maroon;
+/* I still feel like the drop shadows are too much on small buttons... */
+/*	box-shadow: 1px 1px 3px black; */
+}
+
+.active_small:hover {
+	background-color: #CC0000;
+	border: thin solid maroon;
+/*	box-shadow: 1px 1px 1px black; */
+}
+
+.inactive_small {
+	background-color: #0270A0;
+	border: thin solid gray;
+/*	box-shadow: 1px 1px 3px black; */
+}
+
+.inactive_small:hover {
+	background-color: #094163;
+	border: thin solid gray;
+/*	box-shadow: 1px 1px 1px black; */
 }
 
 #your-friends-here {

@@ -42,7 +42,7 @@ function doFBLogin() {
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
 function login(fbid, accessToken, response){
 	if (response.authResponse) {
-		var num = 6;
+		var num = 9;
 		myfbid = fbid; // set the global variable for use elsewhere
 
 		var friends_div = $('#friends_div');
