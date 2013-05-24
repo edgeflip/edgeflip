@@ -6,6 +6,7 @@
 import logging
 import flask
 import datetime
+import time
 
 from .utils import ajaxResponse, generateSessionId, getIP
 
@@ -98,18 +99,27 @@ def faces():
 
     """next 60 lines or so get pulled out"""
 
-    user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
-    edgesRanked = None
+    user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
+    edgesUnranked = None
     if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
-        edgesRanked = ranking.getFriendRankingDb(user.id, requireOutgoing=False)
+        newerThan = time.time() - config.freshness*24*60*60 # newerThan is a unix timestamp to restict edges pulled from DB
+        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
 
-    if (not edgesRanked):
+    # zzz This logic depends heavily on the fact that we're using soley px3 right now
+    #     (and requireOutgoing is always False above). Otherwise, the edges may have
+    #     various updated dates and we could only have a small subset of them here.
+    #     (I kinda at least want to know the number of friends to compare to...)
+    #     We really need a better way of doing this!!!
+    edgesRanked = None
+    if (not edgesUnranked):
         logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
         user = facebook.getUserFb(fbid, token.tok)
         edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
+    else:
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
