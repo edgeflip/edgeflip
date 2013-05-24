@@ -180,7 +180,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
     faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
-    allFriends = friendDicts[:25]           # Anyone who we might show as a face. 25 is totally arbitrary to avoid going too far down the list, but maybe just send them all?
+    allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
     pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
