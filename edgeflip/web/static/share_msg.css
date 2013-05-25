@@ -13,13 +13,13 @@
 .share_prompt {
 	display: table;
 	width: 70%;
-	margin: 0px auto 15px auto;
+	margin: 0px auto 18px auto;
 	padding-bottom: 2px;
 	color: #07304e;
 	font-size: 22px;
 	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 	text-align: center;
-	border-bottom: thin dashed gray;
+	/*border-bottom: thin dashed gray;*/
 }
 
 .msg_friend_name {
