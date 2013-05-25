@@ -106,8 +106,10 @@ function selectFriend(fbid) {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
 
-        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+        if (!$('#do_share_button').hasClass('active_button')) {
+            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+        }
 
   		return true;
   	} else {
@@ -288,8 +290,10 @@ function useSuggested(msgID) {
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
-    $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
-    $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
+        $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+    }
 
 	msgFocusEnd();
 }
@@ -297,8 +301,10 @@ function useSuggested(msgID) {
 /* selects all friends */
 function checkAll() {
 
-    $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-    $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+    }
 
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
