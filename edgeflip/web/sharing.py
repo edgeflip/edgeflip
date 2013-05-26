@@ -156,16 +156,17 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     try:
         bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
     except cdb.TooFewFriendsError as e:
-        logger.debug("Too few friends found for %s with campaign %s. Checking for fallback." % (fbid, campaignId))
+        logger.info("Too few friends found for %s with campaign %s. Checking for fallback." % (fbid, campaignId))
 
         # Get fallback campaign_id and content_id from DB
         cmpgPropsId, fallbackCampaignId, fallbackContentId = cdb.dbGetObjectAttributes('campaign_properties', ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id'], 'campaign_id', campaignId)[0]
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if (fallbackCampaignId is None):
             # zzz Obviously, do something smarter here...
-            return ajaxResponse('No friends identified for you.', 200, sessionId)
-
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
+            logger.info("No fallback for %s with campaign %s. Returning error to user." % (fbid, campaignId))
+            thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
+            database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [None], 'no_friends_error', int(paramsDB[1]), thisContent, None, background=config.database.use_threads)
+            return ajaxResponse('No friends identified for you.', 500, sessionId)
 
         # if fallback content_id IS NULL, defer to current content_id
         if (fallbackContentId is None):
@@ -350,6 +351,12 @@ def recordEvent():
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
+
+    errorMsg = flask.request.json.get('errorMsg')
+    if (errorMsg):
+        # may want to push these to the DB at some point, but at least for now,
+        # dump them to the logs to ensure we keep the data.
+        logger.error('Front-end error encountered for user %s in session %s: %s', userId, sessionId, errorMsg)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)

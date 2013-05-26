@@ -106,8 +106,10 @@ function selectFriend(fbid) {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
 
-        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+        if (!$('#do_share_button').hasClass('active_button')) {
+            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+        }
 
   		return true;
   	} else {
@@ -288,8 +290,10 @@ function useSuggested(msgID) {
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
-    $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
-    $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
+        $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+    }
 
 	msgFocusEnd();
 }
@@ -297,8 +301,10 @@ function useSuggested(msgID) {
 /* selects all friends */
 function checkAll() {
 
-    $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-    $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+    }
 
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
@@ -486,7 +492,7 @@ function doShare() {
 			if (!response || response.error) {
 				// alert('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
-                recordEvent('share_fail');
+                recordEvent('share_fail', response.error);
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
 			} else {
@@ -539,7 +545,7 @@ function recordShare(actionid) {
 // record events other than the share (so, no redirect).
 // should obviously combine with above at some point, but
 // just want to have something working now...
-function recordEvent(eventType) {
+function recordEvent(eventType, errorMsg) {
 
     var userid = myfbid;
     var appid = {{ fbParams.fb_app_id }};
@@ -552,7 +558,8 @@ function recordEvent(eventType) {
         eventType: eventType,
         sessionid: sessionid,   // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid
+        contentid: contentid,
+        errorMsg: errorMsg
     });
 
     $.ajax({
