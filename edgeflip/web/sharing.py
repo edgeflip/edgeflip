@@ -163,7 +163,9 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if (fallbackCampaignId is None):
             # zzz Obviously, do something smarter here...
-            return ajaxResponse('No friends identified for you.', 200, sessionId)
+            thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
+            database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [None], 'no_friends_error', int(paramsDB[1]), thisContent, None, background=config.database.use_threads)
+            return ajaxResponse('No friends identified for you.', 500, sessionId)
 
         cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
