@@ -29,6 +29,7 @@ h2 {
 	color: white;
 	cursor: pointer;
 	text-align: center;
+	white-space: nowrap;
 	padding: 4px;
 	border-radius: 10px;
 	-moz-border-radius: 10px;
