@@ -354,6 +354,12 @@ def recordEvent():
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
+    errorMsg = flask.request.json.get('errorMsg')
+    if (errorMsg):
+        # may want to push these to the DB at some point, but at least for now,
+        # dump them to the logs to ensure we keep the data.
+        logger.error('Front-end error encountered for user %s in session %s: %s', userId, sessionId, errorMsg)
+
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 

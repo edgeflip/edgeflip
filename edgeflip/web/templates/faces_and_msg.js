@@ -492,7 +492,7 @@ function doShare() {
 			if (!response || response.error) {
 				// alert('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
-                recordEvent('share_fail');
+                recordEvent('share_fail', response.error);
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
 			} else {
@@ -545,7 +545,7 @@ function recordShare(actionid) {
 // record events other than the share (so, no redirect).
 // should obviously combine with above at some point, but
 // just want to have something working now...
-function recordEvent(eventType) {
+function recordEvent(eventType, errorMsg) {
 
     var userid = myfbid;
     var appid = {{ fbParams.fb_app_id }};
@@ -558,7 +558,8 @@ function recordEvent(eventType) {
         eventType: eventType,
         sessionid: sessionid,   // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid
+        contentid: contentid,
+        errorMsg: errorMsg
     });
 
     $.ajax({
