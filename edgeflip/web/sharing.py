@@ -168,8 +168,6 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
             database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [None], 'no_friends_error', int(paramsDB[1]), thisContent, None, background=config.database.use_threads)
             return ajaxResponse('No friends identified for you.', 500, sessionId)
 
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
-
         # if fallback content_id IS NULL, defer to current content_id
         if (fallbackContentId is None):
             fallbackContentId = contentId
