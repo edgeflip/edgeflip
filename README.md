@@ -44,3 +44,8 @@ To run the server use `bin/devel_server.py`. If you need a barebones server (for
 Mock Client
 -----------
 The default configuration is written against a mock client site. You'll need to run this server as well; see the instructions in the [mockclient repo](https://github.com/edgeflip/mockclient)
+
+Nginx + uWSGI
+-------------
+1. Copy `uwsgi.ini` to `/etc/uwsgi/apps-available/edgeflip` and symlink into `apps-enabled`. Kick uWSGI: '/etc/ini.d/uwsgi reload`
+2. Copy `nginx` to `/etc/nginx/sites-available/edgeflip` and symlink to `sites-enabled`. Edit to set `server_name` to the fully-qualified domain name of the client subdomain.
