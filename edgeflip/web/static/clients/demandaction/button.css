@@ -1,0 +1,121 @@
+body {
+	margin: 0px;
+	padding: 0px;
+}
+
+h2 {
+	text-transform: uppercase;
+	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+	font-weight: bold; 
+	font-size: 32px;
+	margin: 2px; 
+	color: #313131;
+}
+
+.h2_container {
+	border: none;
+	white-space: normal; 
+	text-align: center;
+	padding: 5px;
+	background-color: #f7f7f7;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	box-shadow: 2px 2px 5px black;
+}
+
+.button {
+	display: block;
+	width:200px;
+	height: 30px;
+	cursor: pointer;
+	text-align: center;
+	white-space: nowrap;
+	padding: 4px;
+	border-bottom: 5px solid #a3a3a3;
+	text-decoration: none;
+	text-transform: uppercase;
+	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+	font-weight: bold;
+	vertical-align: middle;
+	text-shadow: 1px 1px #ffffff;
+	line-height: 30px;
+	font-size: 24px;
+	margin: 5px;
+
+}
+
+.active_button {
+	background-color: orangered;
+}
+
+.active_button:hover {
+	background-color: #CC0000;
+}
+
+.inactive_button {
+	background-color: #fff147;
+	color: #313131;
+}
+
+.inactive_button:hover {
+	background-color: #474747;
+	color: #FFFFFF;
+}
+
+.small_button {
+	float: right;
+	margin-top: 3px;
+	margin-left: 3px;
+	margin-right: 3px;
+	padding: 3px;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+/*	font-size: 14px;
+	font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif;
+	font-weight: 200;
+	letter-spacing: 1px;*/
+	cursor: pointer;
+	width: 140px;
+
+    color: #ffffff;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 5px solid #a3a3a3;
+    font-size: 16px;
+    font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: none;
+}
+
+.active_small {
+	background-color: orangered;
+}
+
+.active_small:hover {
+	background-color: #CC0000;
+}
+
+.inactive_small {
+	background-color: black;
+}
+
+.inactive_small:hover {
+	background-color: #474747;
+}
+
+#your-friends-here {
+	display: none;
+	margin: 0px auto;
+	white-space: nowrap;
+}
+
+#friends_div {
+	display: none;
+	margin: 0px auto;
+	white-space: nowrap;
+	padding-left: 10px;
+	padding-right: 10px;
+}

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+
+<HTML>
+<HEAD>
+    <!-- DOC served in iframe for button itself -->
+    <!--
+    <TITLE>Button Man Goes to the Mattresses (because he's em_bed_dable... stop rolling your eyes.)</TITLE>
+    -->
+    <TITLE>Sharing for Social Good Button</TITLE>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <!-- MAIG FONTS!!! -->
+    <link rel="stylesheet" type="text/css" href="https://s3.amazonaws.com/s3.mayorsagainstillegalguns.org/css/fonts.css" />
+    <!-- MAIG FONTS!!! -->
+
+    <!-- edgeflip stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/demandaction/button.css') }}" />
+    <!-- edgeflip stylesheets -->
+
+    <!-- Document-specific style -->
+    <STYLE>
+        html {
+            overflow: hidden;
+        }
+
+        body {
+            background-color: transparent;
+            /* May also need ALLOWTRANSPARENCY="true" in the iframe tag... */
+        }
+    </STYLE>
+    <!-- Document-specific style -->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+
+    <!-- edgeflip javascript -->
+    <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
+    <SCRIPT>
+
+        var sessionid = '';
+        var campaignid = {{ campaignId }};
+        var contentid = {{ contentId }};
+
+        function recordEvent(eventType, fbid, redirect) {
+
+            var appid = {{ fbParams.fb_app_id }};
+            var content = '{{ fbParams.fb_app_name }}:button {{ goto | safe }}';
+
+            var params = JSON.stringify({
+                userid: fbid,
+                appid: appid,
+                content: content,
+                eventType: eventType,
+                sessionid: sessionid,
+                campaignid: campaignid,
+                contentid: contentid
+            });
+
+            $.ajax({
+                type: "POST",
+                url: '/record_event',
+                contentType: "application/json",
+                dataType: 'html',
+                data: params,
+                error: function(jqXHR, textStatus, errorThrown) {
+                    // Even if the event writing failed, still send the user on their way...
+                    if (redirect) {
+                        top.location = redirect;
+                    }
+                },
+                success: function(data, textStatus, jqXHR) {
+                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                    sessionid = header_efsid || sessionid;
+                    if (redirect) {
+                        top.location = redirect;
+                    }
+                }
+            });
+
+        }
+
+        // Initial call on page load
+        recordEvent('button_load', '');
+
+        // Called upon clicking the "share" button
+        function doFBLogin() {
+
+            recordEvent('button_click', '');
+
+            var button_div = $('#share_button');
+            button_div.hide();
+
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    // User authorized, so write event and jump to page that will contain the faces...
+                    var gotoURL = "{{ goto | safe }}";
+                    if (sessionid) {
+                        gotoURL = gotoURL + '&efsid=' + sessionid;
+                    }
+                    recordEvent('authorized', response.authResponse.userID, gotoURL);
+
+                } else {
+                    recordEvent('auth_fail', '');
+                    // zzz Figure out what to actually do here!
+                    button_div.show();
+                    // alert("Rocco, sit on the other side. You block the rearview mirror. "+JSON.stringify(response));
+                    alert("Please login to facebook and authorize the app to share with your friends.");
+                }
+            }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
+
+        }
+
+    </SCRIPT>
+    <!-- edgeflip javascript -->
+
+</HEAD>
+<BODY>
+
+<div id="share_button" class="button inactive_button" style="width: 250px;" onclick="doFBLogin();">Support us on Facebook</div>
+
+<div id="fb-root"></div>
+<script type="text/javascript">
+    
+    window.fbAsyncInit = function() {
+
+
+        FB.init({ appId: '{{ fbParams.fb_app_id }}', //change the appId to your appId
+            status: true, 
+            cookie: true,
+            xfbml: true,
+            oauth: true});
+
+    }; // fbAsyncInit
+
+    (function() {
+        var e = document.createElement('script'); e.async = true;
+        e.src = document.location.protocol 
+            + '//connect.facebook.net/en_US/all.js';
+        document.getElementById('fb-root').appendChild(e);
+    }());
+        
+</script>
+
+</BODY>
+</HTML>
