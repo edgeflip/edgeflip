@@ -25,6 +25,7 @@ app = flask.Flask(__name__)
 MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
 
 # Serves just a button, to be displayed in an iframe
+# This can safely be cached?
 @app.route("/button/<int:campaignId>/<int:contentId>")
 def button(campaignId, contentId):
     """serves the button in iframe on client site"""
@@ -46,6 +47,7 @@ def button(campaignId, contentId):
 
 
 # Serves the actual faces & share message
+# This can safely be cached?
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """

@@ -4,3 +4,7 @@ build-essential
 virtualenvwrapper
 graphviz
 mysql-server
+nginx
+uwsgi
+uwsgi-infrastructure-plugins
+uwsgi-plugin-python
