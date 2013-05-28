@@ -1,8 +1,6 @@
-uwsgi_cache_path /var/www/edgeflip/CACHE keys_zone=CACHE:10m;
-
 server {
     listen 80;
-    server_name $CLIENT_SUBDOMAIN;
+    server_name local.edgeflip.com;
 
     location /static {
         alias /var/www/edgeflip/edgeflip/web/static;
