@@ -171,9 +171,12 @@ def getFriendsFb(userId, token):
     # zzz Should this also wait for a couple of seconds to mock out
     #     tying up the thread while we wait for a resonse from the
     #     Facebook API??
+    time.sleep(random.random()*4+0.5)
 
     # generate fake id's for between 1 and 1,000 fake friends
-    fakeFriendIds = set([random.randint(1,10000000) for i in range(random.randint(1,1000))])
+    # note - adding 100000000000 because this appears to fall into a gap in read fbid's
+    # (just an extra bit of security against accidently overwriting real data...)
+    fakeFriendIds = set([100000000000+random.randint(1,10000000) for i in range(random.randint(1,1000))])
     fakeFriendIds = list(fakeFriendIds)
     numFakeFriends = len(fakeFriendIds)
 
@@ -181,11 +184,11 @@ def getFriendsFb(userId, token):
       [
         {
             'name' : 'primPhotoTags',
-            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 10))]
+            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 500))]
         },
         {
             'name' : 'otherPhotoTags',
-            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25))]
+            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25000))]
         },
         {
             'name' : 'friendInfo',
