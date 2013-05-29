@@ -11,6 +11,7 @@ import time
 from .utils import ajaxResponse, generateSessionId, getIP
 
 from .. import facebook
+from .. import mock_facebook
 from .. import ranking
 from .. import database
 from .. import datastructs
@@ -78,7 +79,15 @@ def faces():
     sessionId = flask.request.json['sessionid']
     campaignId = flask.request.json['campaignid']
     contentId = flask.request.json['contentid']
+    mockMode = True if flask.request.json.get('mockmode') else False
     ip = getIP(req = flask.request)
+
+    fbmodule = None
+    if (mockMode):
+        logger.info('Running in mock mode')
+        fbmodule = mock_facebook
+    else:
+        fbmodule = facebook
 
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
@@ -86,6 +95,10 @@ def faces():
         clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
     except ValueError as e:
         return "Content not found", 404     # Better fallback here or something?
+
+    # Want to ensure mock mode can only be run in staging or local development
+    if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
+        return "Mock mode only allowed for the mock client.", 403
 
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
 
@@ -97,11 +110,14 @@ def faces():
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = facebook.extendTokenFb(fbid, token) or token
+    token = fbmodule.extendTokenFb(fbid, token) or token
 
     """next 60 lines or so get pulled out"""
 
-    user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
+    user = None
+    if (not mockMode):
+        user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
+
     edgesUnranked = None
     if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
@@ -116,9 +132,14 @@ def faces():
     edgesRanked = None
     if (not edgesUnranked):
         logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
-        user = facebook.getUserFb(fbid, token.tok)
-        edgesUnranked = facebook.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
+        user = fbmodule.getUserFb(fbid, token.tok)
+        edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
+
+        # zzz I'm a bit torn here... doing the database writes is definitely an
+        #     important part of our load testing, but doing these writes risks
+        #     overwriting any real users we have in the database that happen to
+        #     collide with our generated fbid's. Any ideas???
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
     else:
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
