@@ -45,11 +45,13 @@ h2 {
 }
 
 .active_button {
-	background-color: orangered;
+	background-color: #fff147;
+	color: #313131;
 }
 
 .active_button:hover {
-	background-color: #CC0000;
+	background-color: #474747;
+	color: #FFFFFF;
 }
 
 .inactive_button {
@@ -91,11 +93,11 @@ h2 {
 }
 
 .active_small {
-	background-color: orangered;
+	background-color: black;
 }
 
 .active_small:hover {
-	background-color: #CC0000;
+	background-color: #474747;
 }
 
 .inactive_small {
