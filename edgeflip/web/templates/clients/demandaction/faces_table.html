@@ -56,7 +56,7 @@ this is the message div and the faces themselves
 
     <div class="faces_container">
         <div class="share_prompt">{{ msgParams.sharing_prompt }}</div>
-        <div class="msg_title" style="padding: 0px;">Step 1. Click on the friends you want to share with:</div>
+        <div class="msg_title" style="padding: 0px;"><img src="{{ url_for('static', filename='clients/demandaction/step-one.png') }}" class="step_icon" /> Click on the friends you want to share with:</div>
         <input type="button" id="check_em_all" class="small_button active_small" onClick="checkAll();" value="Select All &gt;&gt;" />
         <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: both;">
             <tr>
@@ -78,14 +78,14 @@ this is the message div and the faces themselves
 
         <div id="manual_add">
             <div id="manual_input_container">
-                <div>You can add extra friends by typing their names here:&nbsp;
+                <div id="manual_add_prompt">You can add extra friends by typing their names here:&nbsp;
                 <input id="manual_input" onLoad="adjust_manual_width();" /></div>
             </div>
             <div id="picked_friends_container"></div>
         </div> <!-- manual_add -->
 
-        <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
-        <div style="height: 30px;"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
+        <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ url_for('static', filename='clients/demandaction/step-two.png') }}" class="step_icon" /> Write a message to post on Facebook:</div>
+        <div style="height: 30px;"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggested Message" /></div>
 
         <div class="msg_block">
             <div class="msg_txt">

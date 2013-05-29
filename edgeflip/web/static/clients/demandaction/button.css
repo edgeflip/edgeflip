@@ -4,10 +4,12 @@ body {
 }
 
 h2 {
-	font-family: "Gill Sans", Helvetica, sans-serif; 
-	font-weight: 200; 
+	text-transform: uppercase;
+	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+	font-weight: bold; 
+	font-size: 32px;
 	margin: 2px; 
-	color: #094163;
+	color: #313131;
 }
 
 .h2_container {
@@ -25,46 +27,39 @@ h2 {
 	display: block;
 	width:200px;
 	height: 30px;
-	font-weight:200;
-	color: white;
 	cursor: pointer;
 	text-align: center;
 	white-space: nowrap;
 	padding: 4px;
-	border-radius: 10px;
-	-moz-border-radius: 10px;
+	border-bottom: 5px solid #a3a3a3;
 	text-decoration: none;
-	text-transform: lowercase;
-	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+	text-transform: uppercase;
+	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+	font-weight: bold;
 	vertical-align: middle;
+	text-shadow: 1px 1px #ffffff;
 	line-height: 30px;
-	font-size: 20px;
-	letter-spacing: 1.5px;
+	font-size: 24px;
 	margin: 5px;
+
 }
 
 .active_button {
 	background-color: orangered;
-	border: 2px solid maroon;
-	box-shadow: 3px 3px 5px black;
 }
 
 .active_button:hover {
 	background-color: #CC0000;
-	border: 2px solid red;	
-	box-shadow: 2px 2px 3px black;
 }
 
 .inactive_button {
-	background-color: #0270A0;
-	border: 2px solid #4E9BBD;
-	box-shadow: 3px 3px 5px #094163;
+	background-color: #fff147;
+	color: #313131;
 }
 
 .inactive_button:hover {
-	background-color: #094163;
-	border: 2px solid #0270A0;	
-	box-shadow: 2px 2px 3px #094163;
+	background-color: #474747;
+	color: #FFFFFF;
 }
 
 .small_button {
@@ -73,40 +68,42 @@ h2 {
 	margin-left: 3px;
 	margin-right: 3px;
 	padding: 3px;
-	color: white;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
-	font-size: 14px;
+/*	font-size: 14px;
 	font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif;
 	font-weight: 200;
-	letter-spacing: 1px;
+	letter-spacing: 1px;*/
 	cursor: pointer;
 	width: 140px;
+
+    color: #ffffff;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    border-bottom: 5px solid #a3a3a3;
+    font-size: 16px;
+    font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+    font-weight: bold;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    text-shadow: none;
 }
 
 .active_small {
 	background-color: orangered;
-	border: thin solid maroon;
-/* I still feel like the drop shadows are too much on small buttons... */
-/*	box-shadow: 1px 1px 3px black; */
 }
 
 .active_small:hover {
 	background-color: #CC0000;
-	border: thin solid maroon;
-/*	box-shadow: 1px 1px 1px black; */
 }
 
 .inactive_small {
-	background-color: #0270A0;
-	border: thin solid gray;
-/*	box-shadow: 1px 1px 3px black; */
+	background-color: black;
 }
 
 .inactive_small:hover {
-	background-color: #094163;
-	border: thin solid gray;
-/*	box-shadow: 1px 1px 1px black; */
+	background-color: #474747;
 }
 
 #your-friends-here {

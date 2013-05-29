@@ -11,24 +11,24 @@
 }
 
 .share_prompt {
-	display: table;
-	width: 70%;
-	margin: 0px auto 18px auto;
-	padding-bottom: 2px;
-	color: #07304e;
-	font-size: 22px;
-	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-	text-align: center;
-	/*border-bottom: thin dashed gray;*/
+	display: block;
+	margin-bottom: 20px;
+	color: #2a2a2a;
+	font-size: 36px;
+	font-style: normal;
+	font-weight: 700;
+	text-transform: uppercase;
+	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
 }
 
 .msg_friend_name {
 	font-family: sans-serif;
 	font-weight: 200;
 	color: black;
-	border: thin solid #89A8BD;
+	border: thin solid black;
 	padding: 1px 2px 1px 2px;
-	background-color: #E6F2FF;
+	/*background-color: #fff147;*/
+	background-color: #fff89A;
 	border-radius: 4px;
 	-moz-border-radius: 4px;
 	vertical-align: middle;
@@ -47,13 +47,13 @@
 
 .msg_x {
 	font-weight: 900;
-	color: #89A8BD;
+	color: black;
 	margin-left: 3px;
 	cursor: pointer;
 }
 
 .msg_x:hover {
-	color: #0270A0;
+	color: #CC0000;
 }
 
 .msg_picker,
@@ -62,12 +62,21 @@
 }
 
 .msg_title {
-	font-size: 22px;
 	text-align: left;
-	color: #07304e;
-	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-	font-weight: 200;
 	float: left;
+    font-weight: normal;
+    font-size: 16pt;
+    line-height: 1.2;
+    font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+    color: #2a2a2a;
+	line-height: 30px;
+	vertical-align: middle;
+}
+
+.step_icon {
+	height: 25px;
+	vertical-align: middle;
+	margin-top: -4px;
 }
 
 .msg_picker {
@@ -128,6 +137,5 @@
 	display: block;
 	position: absolute;
 	right: 0px;
-	color: white; 
 	cursor: pointer; 
 }

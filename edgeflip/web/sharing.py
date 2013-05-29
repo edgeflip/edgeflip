@@ -6,6 +6,7 @@
 import logging
 import flask
 import datetime
+import time
 
 from .utils import ajaxResponse, generateSessionId, getIP
 
@@ -42,7 +43,8 @@ def button(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return flask.render_template('clients/demandaction/button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
@@ -61,7 +63,8 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('frame_faces.html', fbParams=paramsDict, 
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return flask.render_template('clients/demandaction/frame_faces.html', fbParams=paramsDict, 
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
 
@@ -113,18 +116,23 @@ def faces():
 
     user = None
     if (not mockMode):
-        user = database.getUserDb(fbid, config['freshness'], freshnessIncludeEdge=True)
+        user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
 
-    edgesRanked = None
-    if (user is None):  # not fresh or nonexistent
-        logger.debug("user %s is not fresh, retrieving data from fb", fbid)
-        user = fbmodule.getUserFb(fbid, token.tok)
-    else:  # user is there, but may have come in as a secondary (and therefore have no edges)
+    edgesUnranked = None
+    if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
-        edgesRanked = ranking.getFriendRankingDb(user.id, requireOutgoing=False)
+        newerThan = time.time() - config.freshness*24*60*60 # newerThan is a unix timestamp to restict edges pulled from DB
+        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
 
-    if (not edgesRanked):
-        logger.debug("edges for user %s is not fresh, retrieving data from fb", fbid)
+    # zzz This logic depends heavily on the fact that we're using soley px3 right now
+    #     (and requireOutgoing is always False above). Otherwise, the edges may have
+    #     various updated dates and we could only have a small subset of them here.
+    #     (I kinda at least want to know the number of friends to compare to...)
+    #     We really need a better way of doing this!!!
+    edgesRanked = None
+    if (not edgesUnranked):
+        logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
+        user = fbmodule.getUserFb(fbid, token.tok)
         edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
 
@@ -133,6 +141,8 @@ def faces():
         #     overwriting any real users we have in the database that happen to
         #     collide with our generated fbid's. Any ideas???
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
+    else:
+        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
 
     return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
@@ -169,16 +179,17 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     try:
         bestCSFilter = choiceSet.chooseBestFilter(filteredEdges, useGeneric=allowGeneric[0], minFriends=1, eligibleProportion=1.0)
     except cdb.TooFewFriendsError as e:
-        logger.debug("Too few friends found for %s with campaign %s. Checking for fallback." % (fbid, campaignId))
+        logger.info("Too few friends found for %s with campaign %s. Checking for fallback." % (fbid, campaignId))
 
         # Get fallback campaign_id and content_id from DB
         cmpgPropsId, fallbackCampaignId, fallbackContentId = cdb.dbGetObjectAttributes('campaign_properties', ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id'], 'campaign_id', campaignId)[0]
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if (fallbackCampaignId is None):
             # zzz Obviously, do something smarter here...
-            return ajaxResponse('No friends identified for you.', 200, sessionId)
-
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback campaign', fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
+            logger.info("No fallback for %s with campaign %s. Returning error to user." % (fbid, campaignId))
+            thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
+            database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [None], 'no_friends_error', int(paramsDB[1]), thisContent, None, background=config.database.use_threads)
+            return ajaxResponse('No friends identified for you.', 500, sessionId)
 
         # if fallback content_id IS NULL, defer to current content_id
         if (fallbackContentId is None):
@@ -192,8 +203,9 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
-    faceFriends = friendDicts[:numFace]
-    allFriends = friendDicts[:25]
+    faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
+    allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
+    pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
@@ -243,8 +255,10 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         sessionId = generateSessionId(ip, content)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
-    return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
-                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=friendDicts, numFriends=numFace), 200, sessionId)
+
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return ajaxResponse(flask.render_template('clients/demandaction/faces_table.html', fbParams=actionParams, msgParams=msgParams,
+                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")
@@ -362,6 +376,12 @@ def recordEvent():
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
+
+    errorMsg = flask.request.json.get('errorMsg')
+    if (errorMsg):
+        # may want to push these to the DB at some point, but at least for now,
+        # dump them to the logs to ensure we keep the data.
+        logger.error('Front-end error encountered for user %s in session %s: %s', userId, sessionId, errorMsg)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)

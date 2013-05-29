@@ -8,7 +8,7 @@
 }
 
 #manual_add {
-    width: 500px;
+    width: 600px;
 	padding-top: 5px;
 	text-align: left;
     margin: 0px auto 30px auto;
@@ -23,6 +23,14 @@
 #manual_input {
 	width: 100%;
 	max-width: 180px;
+}
+
+#manual_add_prompt {
+    font-size: 13px;
+    font-family: Arial, Helvetica, sans-serif;
+    font-style: normal;
+    font-weight: normal;
+    color: #595959;
 }
 
 #picked_friends_container {
@@ -44,18 +52,18 @@
 
 .added_friend {
 	font-size: smaller;
-    color: #f0f0f8;
+    color: black;
     border: thin solid gray;
     border-radius: 5px;
     padding: 2px;
     margin: 2px;
-    background-color: #003F77;
+    background-color: #fff147;
     display: inline-block;
     white-space: nowrap;
 }
 
 .added_x {
-    border-left: thin solid #f0f0f8;
+    border-left: thin solid black;
     margin-left: 3px;
     padding-left: 2px;
     padding-right: 1px;
@@ -65,5 +73,5 @@
 }
 
 .added_x:hover {
-	color: #00A3DD;
+	color: #CC0000;
 }
