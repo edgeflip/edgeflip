@@ -42,7 +42,8 @@ def button(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return flask.render_template('clients/demandaction/button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
@@ -61,7 +62,8 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template('frame_faces.html', fbParams=paramsDict, 
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return flask.render_template('clients/demandaction/frame_faces.html', fbParams=paramsDict, 
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
 
@@ -232,7 +234,9 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         sessionId = generateSessionId(ip, content)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
-    return ajaxResponse(flask.render_template('faces_table.html', fbParams=actionParams, msgParams=msgParams,
+
+    # zzz Making this mayors-specific for now. Will need to fix for future clients!
+    return ajaxResponse(flask.render_template('clients/demandaction/faces_table.html', fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
 
 

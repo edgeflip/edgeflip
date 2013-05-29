@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+
+<HTML>
+<HEAD>
+    <!-- served in iframe on client - container for faces & mesg div -->
+    <TITLE>Sharing for Social Good</TITLE>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+
+    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
+    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
+
+    <!-- MAIG FONTS!!! -->
+    <link rel="stylesheet" type="text/css" href="https://s3.amazonaws.com/s3.mayorsagainstillegalguns.org/css/fonts.css" />
+    <!-- MAIG FONTS!!! -->
+
+    <!-- edgeflip stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/demandaction/button.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/demandaction/faces.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/demandaction/share_msg.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/demandaction/manual_add.css') }}" />
+    <!-- edgeflip stylesheets -->
+
+    <!-- Document-specific style -->
+    <STYLE>
+        /* May eventually want to template these style rules and pass from Flask */
+        body {
+            background-color: transparent;
+            /* May also need ALLOWTRANSPARENCY="true" in the iframe tag... */
+        }
+
+    </STYLE>
+    <!-- Document-specific style -->
+
+    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
+    <script>
+        dojo.require("dojox.html.ellipsis");
+    </script>
+
+    <!-- edgeflip javascript -->
+    <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
+    <script src="{{ url_for('static', filename='url_params.js') }}"></script>
+    <script src="{{ url_for('static', filename='load_and_login.js') }}"></script>
+    <SCRIPT>
+//        imgsToLoad = [    "{{ url_for('static', filename='aniprogress.gif') }}" ];
+//        preload(imgsToLoad);
+
+        // Read the session id from the query string if it exists
+        var sessionid = '';
+        var urlparams = read_url_params();
+        var efsid = urlparams['efsid'];
+        if (efsid) {
+            sessionid = efsid;
+        }
+
+        var campaignid = {{ campaignId }};
+        var contentid = {{ contentId }};
+
+        //zzz Passing these through "safe" probably isn't ideal since it came
+        //    from something a client entered in the control panel, but right
+        //    now we're setting these parameters in the DB by hand and I don't
+        //    want Jinja trying to escape URL characters. Let's find a better
+        //    solution going forward...
+        var thanksURL = '{{ thanksURL | safe }}';
+        var errorURL = '{{ errorURL | safe }}';
+
+    </SCRIPT>
+    <!-- edgeflip javascript -->
+
+</HEAD>
+<BODY>
+
+<div style="display: table; position: relative; margin: 0px auto;">
+
+    <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
+        <h2 style="margin: 10px;">L o a d i n g . . .</h2>
+        <img src="{{url_for('static', filename='aniprogress.gif')}}">
+    </div>
+
+</div>
+
+<div id="friends_div" style="display:none;">
+    
+    <div id="your-friends-here"></div> <!-- your-friends-here -->
+
+</div> <!-- friends_div -->
+
+
+<div id="fb-root"></div>
+<script type="text/javascript">
+    
+    /* standard facebook workflow */
+
+    window.fbAsyncInit = function() {
+
+
+        FB.init({ appId: '{{ fbParams.fb_app_id }}', //change the appId to your appId
+            status: true, 
+            cookie: true,
+            xfbml: true,
+            oauth: true});
+
+        FB.Event.subscribe('auth.statusChange', function(response) {
+            if (response.status === 'connected') {
+                var uid = response.authResponse.userID;
+                var tok = response.authResponse.accessToken;
+                login(uid, tok, response);
+            } else {
+                // User isn't logged in or hasn't authed, so try doing the login directly
+                // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
+                doFBLogin();
+            }
+        });
+
+    }; // fbAsyncInit
+
+    (function() {
+        var e = document.createElement('script'); e.async = true;
+        e.src = document.location.protocol 
+            + '//connect.facebook.net/en_US/all.js';
+        document.getElementById('fb-root').appendChild(e);
+    }());
+        
+</script>
+
+</BODY>
+</HTML>
