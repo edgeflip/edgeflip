@@ -23,7 +23,14 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-app.config.from_object(config.s3)
+# XXX it'd be nice if config.from_object() worked here...
+app.config['S3_BUCKET_NAME'] = config.s3.S3_BUCKET_NAME
+app.config['USE_S3'] = config.s3.USE_S3
+
+if 'AWS_ACCESS_KEY_ID' in config.s3:
+    app.config['AWS_ACCESS_KEY_ID'] = config.s3.AWS_ACCESS_KEY_ID
+    app.config['AWS_SECRET_ACCESS_KEY'] = config.s3.AWS_SECRET_ACCESS_KEY
+
 s3 = flask_s3.FlaskS3(app)
 
 

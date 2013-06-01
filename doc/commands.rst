@@ -27,3 +27,8 @@ Commandline utility for manipulating RabbitMQ queues.
 Script to drop tables and recreate database.
 
 
+:program: `s3_upload.py`
+--------------------------
+.. program:: s3_upload.py
+
+Uploads static assets to S3 bucket as specified in configuration.

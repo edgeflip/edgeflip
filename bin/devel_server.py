@@ -7,6 +7,8 @@ app = edgeflip.web.getApp()
 
 app.debug = True
 
+app.config['USE_S3_DEBUG'] = True
+
 run_simple('localhost', 8080, app,
            use_reloader=True,
            use_debugger=True,
