@@ -4,3 +4,4 @@ build-essential
 virtualenvwrapper
 graphviz
 mysql-server
+s3cmd
