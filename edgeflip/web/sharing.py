@@ -5,6 +5,7 @@
 
 import logging
 import flask
+import flask_s3
 import datetime
 import time
 
@@ -21,6 +22,10 @@ from ..settings import config
 
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
+
+app.config.from_object(config.s3)
+s3 = flask_s3.FlaskS3(app)
+
 
 MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
 
