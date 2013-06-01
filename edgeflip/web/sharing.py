@@ -57,6 +57,12 @@ def button(campaignId, contentId):
     return flask.render_template('button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
+# Static JS for creating frame. Served here instead of from statics to support S3
+@app.route("/create_frame.js")
+def create_frame_js():
+    return flask.render_template('create_frame.js')
+
+
 # Serves the actual faces & share message
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
