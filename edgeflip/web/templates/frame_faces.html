@@ -10,12 +10,14 @@
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
+    {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
     <!-- edgeflip stylesheets -->
+    {% endblock edgeflip_style %}
 
     <!-- Document-specific style -->
     <STYLE>
