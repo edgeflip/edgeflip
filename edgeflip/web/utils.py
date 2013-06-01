@@ -3,6 +3,7 @@
 import flask
 import hashlib
 import time
+import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -36,3 +37,10 @@ def generateSessionId(ip, content, timestr=None):
     sessionId = hashlib.md5(ip+content+timestr).hexdigest()
     logger.debug('Generated session id %s for IP %s with content %s at time %s', sessionId, ip, content, timestr)
     return sessionId
+
+def locateTemplate(templateName, clientSubdomain, app):
+    fullPath = os.path.join(app.root_path, app.template_folder, 'clients', clientSubdomain, templateName)
+    if (os.path.exists(fullPath)):
+        return 'clients/%s/%s' % (clientSubdomain, templateName)
+    else:
+        return templateName

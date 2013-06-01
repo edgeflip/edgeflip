@@ -9,7 +9,7 @@ import datetime
 import time
 import random
 
-from .utils import ajaxResponse, generateSessionId, getIP
+from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate
 
 from .. import facebook
 from .. import mock_facebook
@@ -45,7 +45,7 @@ def button(campaignId, contentId):
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
     # zzz Making this mayors-specific for now. Will need to fix for future clients!
-    return flask.render_template('clients/demandaction/button.html', fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
+    return flask.render_template(locateTemplate('button.html', clientSubdomain, app), fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
 # Serves the actual faces & share message
@@ -65,7 +65,7 @@ def frame_faces(campaignId, contentId):
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
     # zzz Making this mayors-specific for now. Will need to fix for future clients!
-    return flask.render_template('clients/demandaction/frame_faces.html', fbParams=paramsDict, 
+    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict, 
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
 
@@ -147,10 +147,10 @@ def faces():
     else:
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
 
-    return applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
+    return applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
 
-def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount=0):
+def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount=0):
     """Do the work of applying campaign properties to a set of edges.
     May recursively call itself upon falling back, up to MAX_FALLBACK_COUNT times.
 
@@ -203,7 +203,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
         cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fallback content', fallbackContentId, False, 'campaign_properties', [cmpgPropsId], background=config.database.use_threads)
 
         # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
-        return applyCampaign(edgesRanked, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
+        return applyCampaign(edgesRanked, clientSubdomain, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
     faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
@@ -260,7 +260,7 @@ def applyCampaign(edgesRanked, campaignId, contentId, sessionId, ip, fbid, numFa
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
 
     # zzz Making this mayors-specific for now. Will need to fix for future clients!
-    return ajaxResponse(flask.render_template('clients/demandaction/faces_table.html', fbParams=actionParams, msgParams=msgParams,
+    return ajaxResponse(flask.render_template(locateTemplate('faces_table.html', clientSubdomain, app), fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
 
 
@@ -428,4 +428,4 @@ def health_check():
         raise
     
     return flask.jsonify(components)
-    
+
