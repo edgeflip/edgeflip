@@ -7,6 +7,7 @@ import logging
 import flask
 import datetime
 import time
+import random
 
 from .utils import ajaxResponse, generateSessionId, getIP
 
@@ -86,6 +87,8 @@ def faces():
     if (mockMode):
         logger.info('Running in mock mode')
         fbmodule = mock_facebook
+        # Generate a random fake ID for our primary to avoid collisions in DB
+        fbid = 100000000000+random.randint(1,10000000)
     else:
         fbmodule = facebook
 

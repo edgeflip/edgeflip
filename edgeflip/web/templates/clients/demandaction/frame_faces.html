@@ -7,8 +7,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
 
-    <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
-    <link rel="stylesheet" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
+    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
+    <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- MAIG FONTS!!! -->
     <link rel="stylesheet" type="text/css" href="https://s3.amazonaws.com/s3.mayorsagainstillegalguns.org/css/fonts.css" />
@@ -32,8 +32,20 @@
     </STYLE>
     <!-- Document-specific style -->
 
-    <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-    <script src="http://ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
+
+    <script> 
+        // Force dojo to come in via https and load dojo.require() via https as well.
+        dojoConfig = {
+            baseUrl: 'https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/',
+            modulePaths: {
+                "dojo": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo",
+                "dijit": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dijit",
+                "dojox": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojox"
+            }
+        }; 
+    </script> 
     <script src="https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
     <script>
         dojo.require("dojox.html.ellipsis");
