@@ -234,7 +234,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     # Find template params, return faces
     fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
                     ['og_action', 'og_type', 'sharing_prompt', 
-                    'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post'], 
+                    'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post', 'og_title', 'og_image', 'og_description'],
                     'fb_object_id', fbObjectId)[0]
 
     msgParams = {
@@ -249,7 +249,10 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
         'fb_object_type' : fbObjectInfo[1],
         'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
         'fb_app_name' : paramsDB[0],
-        'fb_app_id' : int(paramsDB[1])
+        'fb_app_id' : int(paramsDB[1]),
+        'fb_object_title' : fbObjectInfo[7],
+        'fb_object_image' : fbObjectInfo[8],
+        'fb_object_description' : fbObjectInfo[9]
     }
     logger.debug('fb_object_url: ' + actionParams['fb_object_url'])
 
