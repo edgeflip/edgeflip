@@ -366,10 +366,10 @@ def _updateDb(user, token, edges):
     curs = conn.cursor()
     
     try:
-        updateUsersDb(curs, [user])
         updateTokensDb(curs, [user], token)
-        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        updateUsersDb(curs, [user])
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
         eCount = updateFriendEdgesDb(curs, edges)
         conn.commit()
     except:
@@ -499,7 +499,14 @@ def upsert(curs, table, col_val, coalesceCols=None):
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
-    curs.execute(sql, params)
+
+    try:
+        curs.execute(sql, params)
+        curs.connection.commit() #zzz if we're going to commit, we should prob be passing the connection around
+    except mysql.Error as e:
+        logger.error("error upserting: " + str(e))
+        return 0
+
     # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
     #     but we only want to count either case as a single affected row...
     #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)
