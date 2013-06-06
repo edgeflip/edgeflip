@@ -4,6 +4,8 @@
 {% endblock faces_prompt -%}
 {% block msg_prompt %}
     <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ url_for('static', filename='clients/demandaction/step-two.png') }}" class="step_icon" /> Share a personalized message on Facebook:
+
+<!--
         <div style='font-size: 0.8em; margin: 0px 50px; line-height: 1.0'>
             <span style='font-weight: bold'>Suggested Message:</span><br>
             {{ msgParams.msg1_pre }}[Name], [Name], [Name]{{ msgParams.msg1_post }}
@@ -18,9 +20,21 @@
         <div style='margin-left: 30px; margin-top: 5px; font-size: 0.9em'>
         <a id='clickhere' onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt'); return false;" href='#'>Click here to copy and edit the suggested message</a>, or write a message of your own:
         </div>
+-->
+
     </div>
 
-    <div style="height: 30px; display: none"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggested Message" /></div>
+<!--
+    <div style="height: 100px">
+        <input type="button" id="sugg_msg" class="button inactive_button" style="margin: 0px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggested Message" />
+    </div>
+-->
+    <div style="height: 50px">
+        <div id="sugg_msg" class="button inactive_button" style="float: right" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');">Suggest A Message</div>
+    </div>
+
+
+
 {% endblock msg_prompt %}
 
 {% block button %}
@@ -32,6 +46,7 @@
         }
     </style>
 
+<!--
     <div style="font-size: 0.75em; padding-left: 80px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
         <div>
             Sample Facebook post:
@@ -52,7 +67,7 @@
             </tr>
         </table>
     </div>
-
+-->
 
     <div id="do_share_container">
         <div id="do_share_button" class="button inactive_button" onclick="doShare();">Post to Facebook</div>
