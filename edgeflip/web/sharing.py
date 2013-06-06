@@ -393,6 +393,12 @@ def recordEvent():
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
+@app.route("/canvas")
+def canvas():
+    """Quick splash page for Facebook Canvas"""
+
+    return flask.render_template('canvas.html')
+
 
 @app.route("/health_check")
 def health_check():
