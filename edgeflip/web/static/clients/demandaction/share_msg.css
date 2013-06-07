@@ -138,7 +138,7 @@
 }
 
 span#helper_txt:empty:before {
-    content:"Hi There... I'm some helper text";
+    content:"Click the button above to use a suggested message, or write your own here.";
 }
 
 #do_share_container {
