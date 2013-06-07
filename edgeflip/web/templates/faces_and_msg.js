@@ -107,8 +107,8 @@ function selectFriend(fbid) {
 	  	}
 
         if (!$('#do_share_button').hasClass('active_button')) {
-            $('#check_em_all').removeClass('active_button').addClass('inactive_button');
-            $('#sugg_msg').removeClass('active_button').addClass('active_button');
+            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+            $('#sugg_msg').removeClass('active_small').addClass('active_small');
         }
 
   		return true;
@@ -293,7 +293,7 @@ function useSuggested(msgID) {
 	$('#other_msg .preset_names').html(friendNames(true));
 
     if (!$('#do_share_button').hasClass('active_button')) {
-        $('#sugg_msg').removeClass('active_button').addClass('inactive_button');
+        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
         $('#do_share_button').removeClass('inactive_button').addClass('active_button');
     }
 
@@ -308,8 +308,8 @@ function checkAll(skipRecord) {
     }
 
     if (!$('#do_share_button').hasClass('active_button')) {
-        $('#check_em_all').removeClass('active_button').addClass('inactive_button');
-        $('#sugg_msg').removeClass('active_button').addClass('active_button');
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
     }
 
     // Have to filter for visible because a friend div might be hidden

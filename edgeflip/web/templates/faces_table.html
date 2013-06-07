@@ -63,7 +63,7 @@ this is the message div and the faces themselves
 <!--
         <input type="button" id="check_em_all" class="small_button active_small" onClick="checkAll();" value="Select All &gt;&gt;" />
 -->
-        <div type="button" id="check_em_all" class="button active_button button_smaller" style="float: right;" onClick="checkAll();">Select All &gt;&gt;</div>
+        <div type="button" id="check_em_all" class="small_button active_small" onClick="checkAll();">Select All &gt;&gt;</div>
 
 
         <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: both;">
@@ -94,7 +94,7 @@ this is the message div and the faces themselves
 
         {% block msg_prompt %}
         <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
-        <div style="height: 30px;"><input type="button" id="sugg_msg" class="button button_inactive" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
+        <div style="height: 30px;"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
         {% endblock msg_prompt %}
 
         <div class="msg_block">
