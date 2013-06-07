@@ -60,10 +60,7 @@ this is the message div and the faces themselves
         <div class="msg_title" style="padding: 0px;">Step 1. Click on the friends you want to share with:</div>
         {% endblock faces_prompt %}
 
-<!--
-        <input type="button" id="check_em_all" class="small_button active_small" onClick="checkAll();" value="Select All &gt;&gt;" />
--->
-        <div type="button" id="check_em_all" class="small_button active_small" onClick="checkAll();">Select All &gt;&gt;</div>
+        <div id="check_em_all" class="small_button active_small" onClick="checkAll();">Select All &gt;&gt;</div>
 
 
         <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: both;">
@@ -94,7 +91,7 @@ this is the message div and the faces themselves
 
         {% block msg_prompt %}
         <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
-        <div style="height: 30px;"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
+        <div style="height: 30px;"><input id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest Message" /></div>
         {% endblock msg_prompt %}
 
         <div class="msg_block">
@@ -105,13 +102,10 @@ this is the message div and the faces themselves
 
 
                 <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
-                    <div>
-                        Sample Facebook post:
-                    </div>
-                    <table class='fbheight' style='width: 321px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
+                    <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
                         <tr>
                             <td>
-                                <img class='fbheight' src='{{ fbParams.fb_object_image }}' style='margin-right: 7px'>
+                                <img src='{{ fbParams.fb_object_image }}' style='margin-right: 7px; height: 60px'>
                             </td>
                             <td
                                 <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px'>
