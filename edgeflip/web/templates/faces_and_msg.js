@@ -464,6 +464,7 @@ function doShare() {
 
     recordEvent('share_click');
 
+    helperTextDisappear();
     $('#friends_div').hide();
     $('#progress h2').html('S e n d i n g . . .');
     $('#progress').show();
@@ -585,4 +586,6 @@ function recordEvent(eventType, errorMsg) {
 
 }
 
-
+function helperTextDisappear() {
+    $('#helper_txt').remove();
+}
