@@ -135,7 +135,13 @@
 	/*margin-left: 2%;*/
 	min-height: 90px;
 	line-height: 25px;
+
 }
+
+#other_msg:focus {
+    outline: none;
+}
+
 
 span#helper_txt:empty:before {
     content:"Click the button above to use a suggested message, or write your own here.";
