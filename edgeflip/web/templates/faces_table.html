@@ -96,7 +96,7 @@ this is the message div and the faces themselves
 
         <div class="msg_block">
             <div class="msg_txt">
-                <div id="other_msg" contentEditable="True"">
+                <div id="other_msg" contentEditable="True">
                     <span id='helper_txt' style='color: gray;'></span>
                 </div>
 
@@ -189,8 +189,6 @@ editable.on('dragover drop', function(event) {
 // have to catch return key presses on the keydown (to use preventDefault)
 editable.on('keydown', function(event) {  
 
-    helperTextDisappear(); // get this in before any returns
-
     var code = (event.keyCode ? event.keyCode : event.which);
     // return (13) or enter (108) key pressed
     if(code == 13 || code == 108) {
@@ -205,6 +203,7 @@ editable.on('keydown', function(event) {
 
     } else {
 
+        helperTextDisappear();
         msg_length = $('#other_msg').text().length;
 
     }
