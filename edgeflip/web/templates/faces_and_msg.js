@@ -108,7 +108,7 @@ function selectFriend(fbid) {
 
         if (!$('#do_share_button').hasClass('active_button')) {
             $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-            $('#sugg_msg').removeClass('active_small').addClass('active_small');
+            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
         }
 
   		return true;
