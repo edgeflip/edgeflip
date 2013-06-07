@@ -391,6 +391,14 @@ def recordEvent():
                         ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
+    # For authorized events, write the user-client connection
+    # (can't just do in the faces endpoint because we'll run auth-only campaigns, too)
+    if (eventType == 'authorized'):
+        clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)
+        if (clientId):
+            clientId = clientId[0][0]
+            cdb.dbWriteUserClient(userId, clientId, background=config.database.use_threads)
+
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
