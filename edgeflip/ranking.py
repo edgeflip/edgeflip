@@ -139,8 +139,10 @@ def getFriendRankingDb(userId, requireOutgoing=True):
 
     """
 
+    # zzz Doesn't this function need a requireIncoming parameter to
+    #     pass along to getFriendRanking?
     edgesDb = database.getFriendEdgesDb(userId, requireOutgoing)
-    return getFriendRanking(edgesDb, requireOutgoing)
+    return getFriendRanking(edgesDb, requireOutgoing=requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
     """conditionally call getFriendRanking

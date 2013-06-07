@@ -56,7 +56,7 @@ FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT objec
 FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
-FQL_USER_INFO   = """SELECT uid, first_name, last_name, sex, birthday_date, current_location FROM user WHERE uid=%s"""
+FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
 FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 def dateFromFb(dateStr):
@@ -74,7 +74,7 @@ def getUrlFb(url):
     timeout should be parameter, etc.
     """
     try:
-        with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
             responseJson = json.load(responseFile)
     except (urllib2.URLError, urllib2.HTTPError) as e: 
         logger.info("error opening url %s: %s", url, e.reason)
@@ -96,7 +96,7 @@ def extendTokenFb(user, token):
     # even if you try passing &format=json in the URL.
     ts = time.time()
     try:
-        with closing(urllib2.urlopen(url, timeout=60)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
             tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
@@ -168,11 +168,12 @@ def getFriendsFb(userId, token):
         state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
         primPhotoTags = primPhotoCounts[friendId]
         otherPhotoTags = otherPhotoCounts[friendId]
+        email = None # FB won't give you the friends' emails
 
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
-        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
+        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
         friends.append(f)
     logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
     return friends
@@ -188,7 +189,9 @@ def getUserFb(userId, token):
     rec = responseJson['data'][0]
     city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
     state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
-    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], rec['sex'], dateFromFb(rec['birthday_date']), city, state)
+    email = rec.get('email')
+    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']),
+                                city, state)
     return user
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):
@@ -436,7 +439,9 @@ class ReadStreamCounts(StreamCounts):
 
     i need to be refactored
     """
-    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=60, loopTimeout=10, loopSleep=0.1):
+    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=config.facebook.api_timeout, loopTimeout=10, loopSleep=0.1):
+        # zzz Is the "timeout" param even getting used here? Appears to be leftover from an earlier version...
+
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
         tim = datastructs.Timer()
         self.id = userId
@@ -552,7 +557,7 @@ class ThreadStreamReader(threading.Thread):
 
             req = urllib2.Request(url)
             try:
-                responseFile = urllib2.urlopen(req, timeout=60)
+                responseFile = urllib2.urlopen(req, timeout=config.facebook.api_timeout)
             except Exception as e:
                 logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
 

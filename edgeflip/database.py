@@ -115,6 +115,7 @@ TABLES['users'] =     Table(name='users',
                                 ('fbid', 'BIGINT'),
                                 ('fname', 'VARCHAR(128)'),
                                 ('lname', 'VARCHAR(128)'),
+                                ('email', 'VARCHAR(256)'),
                                 ('gender', 'VARCHAR(8)'),
                                 ('birthday', 'DATE'),
                                 ('city', 'VARCHAR(32)'),
@@ -210,7 +211,7 @@ def dbMigrate():
     tok_fbid = {}
     for fbid, tok in curs.fetchall():
         token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-        user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+        user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
         updateTokensDb(curs, [user], token)
         tok_fbid[tok] = fbid
     curs.execute("SELECT fbid, friend_token FROM users_OLD WHERE (friend_token IS NOT NULL)")
@@ -218,7 +219,7 @@ def dbMigrate():
         if (tokFriend in tok_fbid):
             owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
             token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
-            user = datastructs.UserInfo(fbid, None, None, None, None, None, None)
+            user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
             updateTokensDb(curs, [user], token)
 
     # insert old user rows into new table
@@ -279,33 +280,32 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
-    sql = """SELECT fbid, fname, lname, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
+    sql = """SELECT fbid, fname, lname, email, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
     curs = conn.cursor()
     curs.execute(sql, (userId,))
     rec = curs.fetchone()
     if (rec is None):
-        ret = None
+        return None
     else:
-        fbid, fname, lname, gender, birthday, city, state, updated = rec
+        fbid, fname, lname, email, gender, birthday, city, state, updated = rec
         updated = datetime.datetime.utcfromtimestamp(updated)
         logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
 
         if (updated <= freshnessDate):
-            ret = None
+            return None
         else:
+            """We want freshnessIncludeEdge to go away! (should just get the edges & check them separately)"""
             if (freshnessIncludeEdge):
-                curs.execute("SELECT max(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                curs.execute("SELECT min(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
                 rec = curs.fetchone()
 
                 updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
                 if (updatedEdge is None) or (updatedEdge < freshnessDate):
-                    ret = None
-                else:
-                    ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-            else:
-                ret = datastructs.UserInfo(fbid, fname, lname, gender, birthday, city, state)
-    return ret
+                    return None
+
+        # if we made it here, we're fresh
+        return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
 def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
@@ -366,10 +366,10 @@ def _updateDb(user, token, edges):
     curs = conn.cursor()
     
     try:
-        updateUsersDb(curs, [user])
         updateTokensDb(curs, [user], token)
-        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        updateUsersDb(curs, [user])
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
         eCount = updateFriendEdgesDb(curs, edges)
         conn.commit()
     except:
@@ -435,18 +435,22 @@ def updateUsersDb(curs, users):
     updateCount = 0
     for u in users:
         col_val = { 
-            'fbid': u.id, 
             'fname': u.fname, 
-            'lname': u.lname, 
+            'lname': u.lname,
+            'email': u.email,
             'gender': u.gender, 
             'birthday': u.birthday,
             'city': u.city, 
-            'state': u.state, 
-            'updated' : None    # Force DB to change updated to current_timestamp 
-                                # even if rest of record is identical. Depends on
-                                # MySQL handling of NULLs in timestamps and feels
-                                # a bit ugly...
+            'state': u.state    
         }
+        # Only include columns with non-null (or empty/zero) values
+        # to ensure a NULL can never overwrite a non-null
+        col_val = { k : v for k,v in col_val.items() if v }
+        col_val['fbid'] = u.id
+        col_val['updated'] = None   # Force DB to change updated to current_timestamp 
+                                    # even if rest of record is identical. Depends on
+                                    # MySQL handling of NULLs in timestamps and feels
+                                    # a bit ugly...
         updateCount += upsert(curs, 'users', col_val)
     return updateCount
 
@@ -495,7 +499,14 @@ def upsert(curs, table, col_val, coalesceCols=None):
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
-    curs.execute(sql, params)
+
+    try:
+        curs.execute(sql, params)
+        curs.connection.commit() #zzz if we're going to commit, we should prob be passing the connection around
+    except mysql.Error as e:
+        logger.error("error upserting: " + str(e))
+        return 0
+
     # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
     #     but we only want to count either case as a single affected row...
     #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)

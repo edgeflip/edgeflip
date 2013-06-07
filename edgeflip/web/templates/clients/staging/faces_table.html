@@ -1,0 +1,14 @@
+{% extends 'faces_table.html' %}
+{% block faces_prompt -%}
+    <div class="msg_title" style="padding: 0px;"><img src="{{ url_for('static', filename='clients/demandaction/step-one.png') }}" class="step_icon" /> Click on the friends you want to share with:</div>
+{% endblock faces_prompt -%}
+{% block msg_prompt %}
+    <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ url_for('static', filename='clients/demandaction/step-two.png') }}" class="step_icon" /> Write a message to post on Facebook:</div>
+    <div style="height: 30px;"><input type="button" id="sugg_msg" class="small_button inactive_small" style="margin: 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggested Message" /></div>
+{% endblock msg_prompt %}
+
+{% block button %}
+    <div id="do_share_container">
+        <div id="do_share_button" class="button inactive_button" onclick="doShare();">Support Gun Reform</div>
+    </div>
+{% endblock button %}

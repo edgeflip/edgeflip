@@ -6,7 +6,17 @@ $(function() {
 
 	$( "#manual_input" ).autocomplete({
 		minLength: 0,
-		source: pick_friends,
+		source: function(request, response) {
+			var patt = new RegExp('\\b'+request.term, 'i');
+			var filteredArray = $.map(pick_friends, function(item) {
+	        	if( patt.test(item.label) ){
+	            	return item;
+	        	} else {
+	            	return null;
+	        	}
+    		});
+    		response(filteredArray);
+		},
 		focus: function( event, ui ) {
 			$( "#manual_input" ).val( ui.item.label );
 			return false;
@@ -16,8 +26,8 @@ $(function() {
 			// Only add a friend if they haven't already been added (and aren't already provided)
 			if (!( $("#added-"+ui.item.value).length > 0 || $("#friend-"+ui.item.value).length > 0 ) ) {
 
-				if ($(".added_friend").length >= 3) {
-					alert("Sorry: only three friends can be added manually.");
+				if (recips.length >= 10) {
+					alert("Sorry: only ten friends can be tagged.");
 				} else {
 					selectFriend(ui.item.value);
 					msgNamesUpdate(false);

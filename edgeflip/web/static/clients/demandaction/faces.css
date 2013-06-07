@@ -15,49 +15,49 @@
 }
 
 .faces_container {
-	background-color: #f7f7f7;
-	border: 2px solid lightgrey;
+	background-color: #f0efe8;
+	/*border: 2px solid lightgrey;*/
 	border-radius: 10px;
 	padding: 15px;
 }
 
 .friends_table {
-	border: 5px solid #f7f7f7;
-	background-color: #f7f7f7;
+	border: 5px solid #f0efe8;
+	background-color: #f0efe8;
 }
 
 .friend_box {
 	padding: 7px 3px 3px 7px;
-	border: thin solid gray;
-	border-radius: 10px;
-	-moz-border-radius: 10px;
+	border: thin solid black;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
 	width: 160px;
 	position: relative;
 	cursor: pointer;
+    font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    color: black;
 }
 
 .selected_friend {
-	/*background-color: #AAAAAA;*/
-	background-color: #07304E;
-	color: white;
+	/*background-color: #07304E;*/
+	background-color: #fff147;
 }
 
 .selected_friend:hover {
-	/*background-color: #777777;*/
-	background-color: #0270A0;
-	color: white;
+	/*background-color: #0270A0;*/
+	background-color: #fff147;
 }
 
 .unselected_friend {
-	/*background-color: #07304e;*/
-	background-color: #E6F2FF;
-	color: black;
+	/*background-color: #E6F2FF;*/
+	background-color: white;
 }
 
 .unselected_friend:hover {
-	/*background-color: #0270A0;*/
-	background-color: #96C2F0;
-	color: black;
+	/*background-color: #96C2F0;*/
+	background-color: #fff147;
 }
 
 .friend_pic {
@@ -104,6 +104,11 @@
 	bottom: 2px; 
 	right: 6px; 
 	z-index: 10;
+}
+
+/* Hide the checkmarks for Mayors */
+.checkmark img {
+	display: none;
 }
 
 

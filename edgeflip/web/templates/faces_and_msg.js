@@ -99,9 +99,17 @@ function selectFriend(fbid) {
 		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
   		if ($('#box-'+fbid).length > 0) {
 	  		$('#box-'+fbid).prop('checked', true);
+            $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
+            $('#wrapper-'+fbid+' .xout').hide();
+            $('#wrapper-'+fbid+' .checkmark').show();
 	  	} else {
 	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 	  	}
+
+        if (!$('#do_share_button').hasClass('active_button')) {
+            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+        }
 
   		return true;
   	} else {
@@ -124,6 +132,9 @@ function unselectFriend(fbid) {
 		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
 		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
 		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
+        $('#friend-'+fbid).removeClass('selected_friend').addClass('unselected_friend');
+        $('#wrapper-'+fbid+' .xout').show();
+        $('#wrapper-'+fbid+' .checkmark').hide();
 
 		return true;
 	} else {
@@ -270,21 +281,40 @@ function handleUndo() {
 
 /* populates message div w/ suggested text*/
 function useSuggested(msgID) {
+
+    recordEvent('suggest_message_click');
+
 	$('#other_msg').html($(msgID).html());
 
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
-		checkAll();
+		checkAll(true);
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
+
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
+        $('#do_share_button').removeClass('inactive_button').addClass('active_button');
+    }
 
 	msgFocusEnd();
 }
 
 /* selects all friends */
-function checkAll() {
+function checkAll(skipRecord) {
 
-	var divs = $("input[id*='box-']:not(:checked)");
+    if (!skipRecord) {
+        recordEvent('select_all_click');
+    }
+
+    if (!$('#do_share_button').hasClass('active_button')) {
+        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+    }
+
+    // Have to filter for visible because a friend div might be hidden
+    // while awaiting response of an ajax suppression call...
+	var divs = $(".friend_box:visible input[id*='box-']:not(:checked)");
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
 		selectFriend(fbid);
@@ -307,27 +337,49 @@ function toggleFriend(fbid) {
 
 }
 
+// Quick function to allow for clicking name or image to toggle friend
+// selected state in addition to clicking on the checkbox directly.
+// Just need to toggle the checkbox first, then proceed as if it had
+// been clicked directly.
+function faceClick(fbid) {
+
+    if (recips.length >= 10 && !$('#box-'+fbid).prop('checked')) {
+        alert("Sorry: only ten friends can be tagged.");
+        return false;
+    }
+
+    $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
+    toggleFriend(fbid);
+}
+
 /* called when some suppress friend (X in faces list) */
 // Called when someone suppresses a friend by clicking the 'x'
 function doReplace(old_fbid) {
 
-	var div_id = '#friend-'+old_fbid;
+	var div_id = '#wrapper-'+old_fbid;
 
 	// Remove the friend from the messages
 	unselectFriend(old_fbid);
 
+    // Hide the suppressed div immediately, because the response to
+    // the ajax call can be a little sluggish...
+    $(div_id).hide();
+
 	if (nextidx < friends.length) {
 		// Figure out the new friend
+        // Note that we're HTML-unescaping the first and last name to send back
+        // to the server for templating -- the template is going to escape these
+        // and we don't want them getting escaped twice! Hockey & ugly, I know,
+        // but this will work until we move to a smarter system of front-end
+        // templating...
 		var friend = friends[nextidx];
 		var id = friend['id'];
-		var fname = friend['fname'];
-		var lname = friend['lname'];
+		var fname = $("<div/>").html(friend['fname']).text();
+		var lname = $("<div/>").html(friend['lname']).text();
 
 		// Update the friends shown
 		friendHTML(old_fbid, id, fname, lname, div_id);
 
-		// Add the new friend to the list of message tags (since they'll start off pre-checked)
-		selectFriend(id);
 		nextidx++;
 	} else {
 		// No new friends to add, so just remove this one
@@ -348,7 +400,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
@@ -380,7 +432,10 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 			if (id) {
 				new_html = data;
 				$(div_id).replaceWith(new_html);
+                $(div_id).show();
 			} else {
+                // We hid it above, but still need to actually remove it if there's
+                // no new friend coming in (otherwise, a select all will still add this friend...)
 				$(div_id).remove();
 			}
 			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
@@ -401,7 +456,7 @@ function doShare() {
 		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick Ok to share with all suggested friends or cancel to return to the page.");
 
 		if (use_all == true) {
-			checkAll();
+			checkAll(true);
 		} else {
 			return;
 		}
@@ -436,16 +491,16 @@ function doShare() {
 		'/me/{{ fbParams.fb_app_name }}:{{ fbParams.fb_action_type }}',
 		'post',
 		{ 
-		  {{ fbParams.fb_object_type }}: '{{ fbParams.fb_object_url }}',
+		  {{ fbParams.fb_object_type }}: '{{ fbParams.fb_object_url | safe }}',
 		  message: msg
 		},
 		function(response) {
 			if (!response || response.error) {
 				// alert('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
+                recordEvent('share_fail', response.error);
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
-                recordEvent('share_fail');
 			} else {
                 // thank you page redirect happens in recordShare()
 				recordShare(response.id);
@@ -460,7 +515,7 @@ function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
@@ -496,11 +551,11 @@ function recordShare(actionid) {
 // record events other than the share (so, no redirect).
 // should obviously combine with above at some point, but
 // just want to have something working now...
-function recordEvent(eventType) {
+function recordEvent(eventType, errorMsg) {
 
     var userid = myfbid;
     var appid = {{ fbParams.fb_app_id }};
-    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url }}';
+    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
     var params = JSON.stringify({
         userid: userid,
@@ -509,7 +564,8 @@ function recordEvent(eventType) {
         eventType: eventType,
         sessionid: sessionid,   // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid
+        contentid: contentid,
+        errorMsg: errorMsg
     });
 
     $.ajax({
