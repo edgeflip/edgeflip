@@ -4,33 +4,10 @@
 {% endblock faces_prompt -%}
 {% block msg_prompt %}
     <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ url_for('static', filename='clients/demandaction/step-two.png') }}" class="step_icon" /> Share a personalized message on Facebook:
-
-<!--
-        <div style='font-size: 0.8em; margin: 0px 50px; line-height: 1.0'>
-            <span style='font-weight: bold'>Suggested Message:</span><br>
-            {{ msgParams.msg1_pre }}[Name], [Name], [Name]{{ msgParams.msg1_post }}
-        </div>
-
-        <style type='text/css'>
-            a#clickhere, a#clickhere:visited, a#clickhere:active {
-                font-weight: bold;
-                color: black;
-            }
-        </style>
-        <div style='margin-left: 30px; margin-top: 5px; font-size: 0.9em'>
-        <a id='clickhere' onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt'); return false;" href='#'>Click here to copy and edit the suggested message</a>, or write a message of your own:
-        </div>
--->
-
     </div>
 
-<!--
-    <div style="height: 100px">
-        <input type="button" id="sugg_msg" class="button inactive_button" style="margin: 0px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggested Message" />
-    </div>
--->
     <div style="height: 50px">
-        <div id="sugg_msg" class="button inactive_button button_smaller" style="float: right" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');">Suggest A Message</div>
+        <div id="sugg_msg" class="small_button inactive_small" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');">Suggest A Message</div>
     </div>
 
 
@@ -38,36 +15,6 @@
 {% endblock msg_prompt %}
 
 {% block button %}
-
-
-    <style type='text/css'>
-        .fbheight {
-            height: 60px;
-        }
-    </style>
-
-<!--
-    <div style="font-size: 0.75em; padding-left: 80px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
-        <div>
-            Sample Facebook post:
-        </div>
-        <table class='fbheight' style='width: 321px; background: white; border: solid gray 1px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
-            <tr>
-                <td>
-                    <img class='fbheight' src='{{ fbParams.fb_object_image }}' style='margin-right: 7px'>
-                </td>
-                <td
-                    <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px'>
-                        {{ fbParams.fb_object_title }}
-                    </div>
-                    <div style='font-size: 9px; color: gray; font-weight: normal'>
-                        {{ fbParams.fb_object_description }}
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
--->
 
     <div id="do_share_container">
         <div id="do_share_button" class="button inactive_button" onclick="doShare();">Post to Facebook</div>
