@@ -682,6 +682,60 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
     return 1
 
 
+def dbWriteUserClient(fbid, clientId, background=False):
+    """Record an association between a primary user and a client.
+
+    This function simply passes parameters through to _dbWriteUserClient()
+    either in the current thread or a background one, depending on the
+    background parameter's value"""
+    if (background):
+        t = threading.Thread(target=_dbWriteUserClient, args=(fbid, clientId))
+        t.daemon = False
+        t.start()
+        logger.debug("dbWriteUserClient() spawning background thread %d for fbid %s and client_id %s", t.ident, fbid, clientId)
+        return 0
+    else:
+        logger.debug("dbWriteUserClient() foreground thread %d for fbid %s and client_id %s", threading.current_thread().ident, fbid, clientId)
+        return _dbWriteUserClient(fbid, clientId)
+
+
+# helper function that may get run in a background thread
+def _dbWriteUserClient(fbid, clientId):
+    """Function that actually records a user-client association.
+    Note that this is doing an "upsert" since we want to avoid
+    duplicating entries if the user has connected with this
+    client previously. 
+    """
+    tim = datastructs.Timer()
+    conn = db.getConn()
+    curs = conn.cursor()
+
+    row = {
+            'fbid' : fbid, 
+            'client_id' : clientId
+          }
+
+    # Note -- the ON DUPLICATE KEY UPDATE here is basically just
+    #         being used to ignore a duplicate row. Doing this
+    #         rather than INSERT IGNORE since the latter will
+    #         ignore any and all errors (not just duplicate keys)
+    sql = """INSERT INTO user_clients (fbid, client_id) 
+                VALUES (%(fbid)s, %(client_id)s)
+                ON DUPLICATE KEY UPDATE fbid=fbid """
+
+    try:
+        curs.execute(sql, row)
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+    
+    logger.debug("_dbWriteUserClient() thread %d wrote association between fbid %s and client %s", threading.current_thread().ident, fbid, clientId)
+    
+    return 1
+
+
+
 def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False):
     """Update the metadata table for a given object."""
 

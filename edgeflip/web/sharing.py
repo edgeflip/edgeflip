@@ -126,6 +126,11 @@ def faces():
         logger.debug("user %s is fresh, getting data from db", fbid)
         newerThan = time.time() - config.freshness*24*60*60 # newerThan is a unix timestamp to restict edges pulled from DB
         edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
+        # zzz Even if we got the user from the DB, we'll still want to at least write
+        #     the token for two reasons: (1) we can update its expiration date since
+        #     it will have been extended because they came back, and (2) it's possible
+        #     we got this user associated with a different Facebook app id, so want to
+        #     be sure the new association is stored!
 
     # zzz This logic depends heavily on the fact that we're using soley px3 right now
     #     (and requireOutgoing is always False above). Otherwise, the edges may have
@@ -146,6 +151,11 @@ def faces():
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
     else:
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
+
+    # Outside the if block because we want to do this regardless of whether we got
+    # user data from the DB (since they could be connecting with a new client even
+    # though we already have them in the DB associated with someone else)
+    cdb.dbWriteUserClient(fbid, clientId, background=config.database.use_threads)
 
     return applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId, ip, fbid, numFace, paramsDB)
 
@@ -380,6 +390,14 @@ def recordEvent():
                             'share_click', 'share_fail', 'shared', 'clickback'
                         ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
+
+    # For authorized events, write the user-client connection
+    # (can't just do in the faces endpoint because we'll run auth-only campaigns, too)
+    if (eventType == 'authorized'):
+        clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)
+        if (clientId):
+            clientId = clientId[0][0]
+            cdb.dbWriteUserClient(userId, clientId, background=config.database.use_threads)
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
