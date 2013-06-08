@@ -414,7 +414,7 @@ def recordEvent():
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
-@app.route("/canvas/")
+@app.route("/canvas/", methods=['GET', 'POST'])
 def canvas():
     """Quick splash page for Facebook Canvas"""
 
