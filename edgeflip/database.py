@@ -199,6 +199,13 @@ def dbMigrate():
     conn = getConn()
     curs = conn.cursor()
 
+    # Terrible to hard-code this in here, but this method is only refering to
+    # records that would have been generated in the past with this app id anyway
+    # and I'm trying to move to supporting different app id's in the database.
+    # At some point, it should probably be moved to a separate migration script
+    # and archived...
+    fbAppId = 471727162864364
+
     # create the new token table
     dbSetup(tableKeys=["tokens"])
 
@@ -210,7 +217,7 @@ def dbMigrate():
     curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
     tok_fbid = {}
     for fbid, tok in curs.fetchall():
-        token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+        token = datastructs.TokenInfo(tok, fbid, fbAppId, datetime.datetime(2013, 6, 1))
         user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
         updateTokensDb(curs, [user], token)
         tok_fbid[tok] = fbid
@@ -218,7 +225,7 @@ def dbMigrate():
     for fbid, tokFriend in curs.fetchall():
         if (tokFriend in tok_fbid):
             owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
-            token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+            token = datastructs.TokenInfo(tokFriend, owner, fbAppId, datetime.datetime(2013, 6, 1))
             user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
             updateTokensDb(curs, [user], token)
 

@@ -44,7 +44,6 @@ def button(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    # zzz Making this mayors-specific for now. Will need to fix for future clients!
     return flask.render_template(locateTemplate('button.html', clientSubdomain, app), fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
 
 
@@ -64,7 +63,6 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    # zzz Making this mayors-specific for now. Will need to fix for future clients!
     return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict, 
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
@@ -113,7 +111,7 @@ def faces():
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = fbmodule.extendTokenFb(fbid, token) or token
+    token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
 
     """next 60 lines or so get pulled out"""
 
@@ -272,7 +270,6 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
 
-    # zzz Making this mayors-specific for now. Will need to fix for future clients!
     return ajaxResponse(flask.render_template(locateTemplate('faces_table.html', clientSubdomain, app), fbParams=actionParams, msgParams=msgParams,
                                  face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
 
