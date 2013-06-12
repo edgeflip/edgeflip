@@ -168,6 +168,10 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     if (fallbackCount > MAX_FALLBACK_COUNT):
         raise RuntimeError("Exceeded maximum fallback count")
     
+    # Check if any friends should be excluded for this campaign/content combination
+    excludeFriends = getFaceExclusionsDb(fbid, campaignId, contentId)
+    edgesEligible = [e for e in edgesRanked if e.secondary.id not in excludeFriends]
+
     # Get filter experiments, do assignment (and write DB)
     filterRecs = cdb.dbGetExperimentTupes('campaign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', campaignId)])
     filterExpTupes = [(r[1], r[2]) for r in filterRecs]
@@ -176,7 +180,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
 
     # apply filter
     globalFilter = cdb.getFilter(globalFilterId)
-    filteredEdges = globalFilter.filterEdgesBySec(edgesRanked)
+    filteredEdges = globalFilter.filterEdgesBySec(edgesEligible)
 
     # Get choice set experiments, do assignment (and write DB)
     choiceSetRecs = cdb.dbGetExperimentTupes('campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id', [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug'])
@@ -216,7 +220,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
     faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
     allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
+    pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
@@ -357,6 +361,7 @@ def suppress():
         sessionId = generateSessionId(ip, content)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [oldid], 'suppressed', appid, content, None, background=config.database.use_threads)
+    database.writeFaceExclusionsDb(userid, campaignId, contentId, [oldid], 'suppressed', background=config.database.use_threads)
 
     if (newid != ''):
         database.writeEventsDb(sessionId, campaignId, contentId, ip, userid, [newid], 'shown', appid, content, None, background=config.database.use_threads)
@@ -398,6 +403,10 @@ def recordEvent():
         if (clientId):
             clientId = clientId[0][0]
             cdb.dbWriteUserClient(userId, clientId, background=config.database.use_threads)
+
+    if (eventType == 'shared'):
+        # If this was a share, write these friends to the exclusions table so we don't show them for the same content/campaign again
+        database.writeFaceExclusionsDb(userId, campaignId, contentId, friends, 'shared', background=config.database.use_threads)
 
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
