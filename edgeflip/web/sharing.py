@@ -141,11 +141,6 @@ def faces():
         user = fbmodule.getUserFb(fbid, token.tok)
         edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-
-        # zzz I'm a bit torn here... doing the database writes is definitely an
-        #     important part of our load testing, but doing these writes risks
-        #     overwriting any real users we have in the database that happen to
-        #     collide with our generated fbid's. Any ideas???
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
     else:
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
