@@ -172,6 +172,20 @@ TABLES['events'] =    Table(name='events',
                             ],
                             indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
+
+TABLES['share_messages'] =  Table(name='share_messages',
+                                  cols = [
+                                        ('activity_id', 'BIGINT'),
+                                        ('fbid', 'BIGINT'),
+                                        ('campaign_id', 'INT'),
+                                        ('content_id', 'INT'),
+                                        ('message', 'VARCHAR(4096)'),
+                                        ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
+                                  ],
+                                  indices=['fbid', 'campaign_id', 'content_id'],
+                                  key=['activity_id'])
+
+
 # Reset the DB by dropping and recreating tables
 def dbSetup(tableKeys=None):
     """creates tables"""
@@ -563,3 +577,47 @@ def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, event
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
         return _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId)
+
+
+
+# helper function that may get run in a background thread
+def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
+    """update share_messages table
+
+    """
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    row = {
+            'activityId': activityId, 'userId': userId, 
+            'campaignId': campaignId, 'contentId': contentId,
+            'shareMsg': shareMsg
+          }
+    sql = """INSERT IGNORE INTO share_messages (activity_id, fbid, campaign_id, content_id, message)
+                VALUES (%(activityId)s, %(userId)s, %(campaignId)s, %(contentId)s, %(shareMsg)s) """
+
+    curs.execute(sql, row)
+    conn.commit()
+    insertCount = 1
+
+    logger.debug("_writeShareMsgDb() thread %d wrote share message for FB action %s", threading.current_thread().ident, activityId)
+
+    return insertCount
+
+def writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg, background=False):
+    """calls _writeShareMsgDb maybe in a thread
+
+    """
+
+    if (background):
+        t = threading.Thread(target=_writeShareMsgDb,
+                             args=(activityId, userId, campaignId, contentId, shareMsg))
+        t.daemon = False
+        t.start()
+        logger.debug("writeShareMsgDb() spawning background thread %d for FB action %s", t.ident, activityId)
+        return 0
+    else:
+        logger.debug("writeShareMsgDb() foreground thread %d for FB action %s", threading.current_thread().ident, activityId)
+        return _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg)
+

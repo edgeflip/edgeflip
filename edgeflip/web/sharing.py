@@ -403,6 +403,10 @@ def recordEvent():
         # dump them to the logs to ensure we keep the data.
         logger.error('Front-end error encountered for user %s in session %s: %s', userId, sessionId, errorMsg)
 
+    shareMsg = flask.request.json.get('shareMsg')
+    if (shareMsg):
+        database.writeShareMsgDb(actionId, userId, campaignId, contentId, shareMsg, background=config.database.use_threads)
+
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
