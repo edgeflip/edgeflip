@@ -169,7 +169,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
         raise RuntimeError("Exceeded maximum fallback count")
     
     # Check if any friends should be excluded for this campaign/content combination
-    excludeFriends = getFaceExclusionsDb(fbid, campaignId, contentId)
+    excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
     edgesEligible = [e for e in edgesRanked if e.secondary.id not in excludeFriends]
 
     # Get filter experiments, do assignment (and write DB)

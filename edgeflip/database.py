@@ -587,9 +587,9 @@ def getFaceExclusionsDb(userId, campaignId, contentId):
     curs = conn.cursor()
 
     sql = "SELECT friend_fbid FROM face_exclusions WHERE fbid=%s AND campaign_id=%s AND content_id=%s"
-    row = [userId, campaignId, contentId]
+    vals = [userId, campaignId, contentId]
 
-    curs.execute(sql, row)
+    curs.execute(sql, vals)
     res = curs.fetchall()
     conn.commit()
 
