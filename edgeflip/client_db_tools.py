@@ -81,7 +81,7 @@ def validateClientSubdomain(campaignId, contentId, clientSubdomain):
     sub = dbGetClient(cmpgClientId, ['subdomain'])[0][0]
 
     if (sub != clientSubdomain):
-        logging.error("Subdomain must match campaign's client_id")
+        logging.error("Subdomain must match campaign's client_id (client: %s, campaign: %s)" % (clientSubdomain, sub))
         raise ValueError("Subdomain must match campaign's client_id")
 
     return cmpgClientId
