@@ -53,10 +53,11 @@ def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
-    try:
-        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    except ValueError as e:
-        return "Content not found", 404     # Better fallback here or something?
+    # try:
+    #     clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    # except ValueError as e:
+    #     return "Content not found", 404     # Better fallback here or something?
+    clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
 
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
@@ -92,10 +93,14 @@ def faces():
 
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
-    try:
-        clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    except ValueError as e:
-        return "Content not found", 404     # Better fallback here or something?
+    # try:
+    #     clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
+    # except ValueError as e:
+    #     return "Content not found", 404     # Better fallback here or something?
+    clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
+
+
+
 
     # Want to ensure mock mode can only be run in staging or local development
     if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
@@ -411,11 +416,41 @@ def recordEvent():
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
+
+
+import sys
+def debugTable(tabName, outstream=sys.stderr):
+    conn = database.getConn()
+    curs = conn.cursor()
+    outstream.write("SELECT * FROM " + tabName + "\n")
+    #curs.execute("SELECT * FROM ?", (tabName,))
+    curs.execute("SELECT * FROM " + tabName)
+    for i, row in enumerate(curs):
+        outstream.write("\trow %d: %s\n" % (i, str(row)))
+
 @app.route("/canvas/", methods=['GET', 'POST'])
 def canvas():
-    """Quick splash page for Facebook Canvas"""
 
-    return flask.render_template('canvas.html')
+    debugTable('campaigns')
+    debugTable('client_content')
+
+    #return flask.render_template('canvas.html')
+    campaignId = 1
+    contentId = 1
+
+    # scout
+    # import sys
+    # cmpgClientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)
+    # for thing in cmpgClientId:
+    #     sys.stderr.write("row: " + str(thing) + "\n")
+    # cntClientId = cdb.dbGetObject('client_content', ['client_id'], 'content_id', contentId)
+    # for thing in cntClientId:
+    #     sys.stderr.write("row: " + str(thing) + "\n")
+
+
+    return frame_faces(campaignId, contentId)
+
+
 
 
 @app.route("/health_check")
