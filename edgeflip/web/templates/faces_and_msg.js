@@ -282,11 +282,13 @@ function handleUndo() {
 /* populates message div w/ suggested text*/
 function useSuggested(msgID) {
 
+    recordEvent('suggest_message_click');
+
 	$('#other_msg').html($(msgID).html());
 
 	// If they don't have anyone checked, using the suggested message adds everyone
 	if (recips.length === 0) {
-		checkAll();
+		checkAll(true);
 	}
 	$('#other_msg .preset_names').html(friendNames(true));
 
@@ -299,7 +301,11 @@ function useSuggested(msgID) {
 }
 
 /* selects all friends */
-function checkAll() {
+function checkAll(skipRecord) {
+
+    if (!skipRecord) {
+        recordEvent('select_all_click');
+    }
 
     if (!$('#do_share_button').hasClass('active_button')) {
         $('#check_em_all').removeClass('active_small').addClass('inactive_small');
@@ -450,7 +456,7 @@ function doShare() {
 		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick Ok to share with all suggested friends or cancel to return to the page.");
 
 		if (use_all == true) {
-			checkAll();
+			checkAll(true);
 		} else {
 			return;
 		}
@@ -458,6 +464,7 @@ function doShare() {
 
     recordEvent('share_click');
 
+    helperTextDisappear();
     $('#friends_div').hide();
     $('#progress h2').html('S e n d i n g . . .');
     $('#progress').show();
@@ -497,7 +504,7 @@ function doShare() {
                 top.location = errorURL; // set in frame_faces.html via Jinja
 			} else {
                 // thank you page redirect happens in recordShare()
-				recordShare(response.id);
+				recordShare(response.id, msg);
 				// alert('Post was successful! Action ID: ' + response.id);
 			}
 	  	}
@@ -505,7 +512,7 @@ function doShare() {
 }
 
 /* records share event on edgeflip servers; redirects user to thank you page */
-function recordShare(actionid) {
+function recordShare(actionid, shareMsg) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
@@ -520,7 +527,8 @@ function recordShare(actionid) {
         eventType: 'shared',
 		sessionid: sessionid,	// global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid
+        contentid: contentid,
+        shareMsg: shareMsg
 	});
 
 	$.ajax({
@@ -579,4 +587,6 @@ function recordEvent(eventType, errorMsg) {
 
 }
 
-
+function helperTextDisappear() {
+    $('#helper_txt').remove();
+}

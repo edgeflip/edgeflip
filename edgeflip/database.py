@@ -172,6 +172,33 @@ TABLES['events'] =    Table(name='events',
                             ],
                             indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
+# The actual messages shared on facebook
+TABLES['share_messages'] =  Table(name='share_messages',
+                                  cols = [
+                                        ('activity_id', 'BIGINT'),
+                                        ('fbid', 'BIGINT'),
+                                        ('campaign_id', 'INT'),
+                                        ('content_id', 'INT'),
+                                        ('message', 'VARCHAR(4096)'),
+                                        ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
+                                  ],
+                                  indices=['fbid', 'campaign_id', 'content_id'],
+                                  key=['activity_id'])
+
+# Secondaries who should be excluded from future share suggestions
+TABLES['face_exclusions'] =     Table(name='face_exclusions',
+                                      cols=[
+                                            ('fbid', 'BIGINT'),
+                                            ('campaign_id', 'INT'),
+                                            ('content_id', 'INT'),
+                                            ('friend_fbid', 'BIGINT'),
+                                            ('reason', 'VARCHAR(512)'),
+                                            ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
+                                      ],
+                                      key=['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
+                                      # zzz can I do a multi-column index with this table class? Ideally want fbid/campaign_id/content_id here, but the primary key may suffice...
+
+
 # Reset the DB by dropping and recreating tables
 def dbSetup(tableKeys=None):
     """creates tables"""
@@ -199,6 +226,13 @@ def dbMigrate():
     conn = getConn()
     curs = conn.cursor()
 
+    # Terrible to hard-code this in here, but this method is only refering to
+    # records that would have been generated in the past with this app id anyway
+    # and I'm trying to move to supporting different app id's in the database.
+    # At some point, it should probably be moved to a separate migration script
+    # and archived...
+    fbAppId = 471727162864364
+
     # create the new token table
     dbSetup(tableKeys=["tokens"])
 
@@ -210,7 +244,7 @@ def dbMigrate():
     curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
     tok_fbid = {}
     for fbid, tok in curs.fetchall():
-        token = datastructs.TokenInfo(tok, fbid, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+        token = datastructs.TokenInfo(tok, fbid, fbAppId, datetime.datetime(2013, 6, 1))
         user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
         updateTokensDb(curs, [user], token)
         tok_fbid[tok] = fbid
@@ -218,7 +252,7 @@ def dbMigrate():
     for fbid, tokFriend in curs.fetchall():
         if (tokFriend in tok_fbid):
             owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
-            token = datastructs.TokenInfo(tokFriend, owner, config["fb_app_id"], datetime.datetime(2013, 6, 1))
+            token = datastructs.TokenInfo(tokFriend, owner, fbAppId, datetime.datetime(2013, 6, 1))
             user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
             updateTokensDb(curs, [user], token)
 
@@ -366,10 +400,10 @@ def _updateDb(user, token, edges):
     curs = conn.cursor()
     
     try:
-        updateUsersDb(curs, [user])
         updateTokensDb(curs, [user], token)
-        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        updateUsersDb(curs, [user])
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
         eCount = updateFriendEdgesDb(curs, edges)
         conn.commit()
     except:
@@ -499,7 +533,14 @@ def upsert(curs, table, col_val, coalesceCols=None):
     sql += "ON DUPLICATE KEY UPDATE " + ", ".join([ c + "=%s" for c in valColNames])
     params = keyColVals + valColVals + valColVals
     logger.debug("upsert sql: " + sql + " " + str(params))
-    curs.execute(sql, params)
+
+    try:
+        curs.execute(sql, params)
+        curs.connection.commit() #zzz if we're going to commit, we should prob be passing the connection around
+    except mysql.Error as e:
+        logger.error("error upserting: " + str(e))
+        return 0
+
     # zzz curs.rowcount returns 2 for a single "upsert" if it updates, 1 if it inserts
     #     but we only want to count either case as a single affected row...
     #     (see: http://dev.mysql.com/doc/refman/5.5/en/insert-on-duplicate.html)
@@ -549,3 +590,115 @@ def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, event
     else:
         logger.debug("writeEventsDb() foreground thread %d for %s event from session %s", threading.current_thread().ident, eventType, sessionId)
         return _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId)
+
+
+# helper function that may get run in a background thread
+def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
+    """update share_messages table
+
+    """
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    row = {
+            'activityId': activityId, 'userId': userId, 
+            'campaignId': campaignId, 'contentId': contentId,
+            'shareMsg': shareMsg
+          }
+    sql = """INSERT IGNORE INTO share_messages (activity_id, fbid, campaign_id, content_id, message)
+                VALUES (%(activityId)s, %(userId)s, %(campaignId)s, %(contentId)s, %(shareMsg)s) """
+
+    curs.execute(sql, row)
+    conn.commit()
+    insertCount = 1
+
+    logger.debug("_writeShareMsgDb() thread %d wrote share message for FB action %s", threading.current_thread().ident, activityId)
+
+    return insertCount
+
+def writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg, background=False):
+    """calls _writeShareMsgDb maybe in a thread
+
+    """
+
+    if (background):
+        t = threading.Thread(target=_writeShareMsgDb,
+                             args=(activityId, userId, campaignId, contentId, shareMsg))
+        t.daemon = False
+        t.start()
+        logger.debug("writeShareMsgDb() spawning background thread %d for FB action %s", t.ident, activityId)
+        return 0
+    else:
+        logger.debug("writeShareMsgDb() foreground thread %d for FB action %s", threading.current_thread().ident, activityId)
+        return _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg)
+
+
+def getFaceExclusionsDb(userId, campaignId, contentId):
+    """returns the set of friends to not show as faces for a given primary user
+        sharing a certain piece of content under a certain campaign"""
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    sql = "SELECT friend_fbid FROM face_exclusions WHERE fbid=%s AND campaign_id=%s AND content_id=%s"
+    vals = [userId, campaignId, contentId]
+
+    curs.execute(sql, vals)
+    res = curs.fetchall()
+    conn.commit()
+
+    excludeFriends = set([rec[0] for rec in res])
+    return excludeFriends
+
+# helper function that may get run in a background thread
+def _writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason):
+    """update events table
+
+    """
+
+    # zzz Could run into trouble here with the insert-ignores in the case where
+    #     someone suppressed a friend, but then later added them manually. The
+    #     front-end behavior will still be correct, but we'll only show the initial
+    #     reason why they should be excluded in this table. Probably not a big deal,
+    #     but worth keeping in mind that this table is NOT a complete record of all
+    #     the shares and suppressions -- that lives in the events table.
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    rows = [{
+             'userId': userId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'friendId': friendId, 'reason': reason
+            } for friendId in friendIds]
+    sql = """INSERT IGNORE INTO face_exclusions (fbid, campaign_id, content_id, friend_fbid, reason)
+                VALUES (%(userId)s, %(campaignId)s, %(contentId)s, %(friendId)s, %(reason)s) """
+
+    insertCount = 0
+    for row in rows:
+        curs.execute(sql, row)
+        conn.commit()
+        insertCount += 1
+
+    logger.debug("_writeFaceExclusionsDb() thread %d updated %d %s exclusions from user %s", threading.current_thread().ident, insertCount, reason, userId)
+
+    return insertCount
+
+def writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason, background=False):
+    """calls _writeFaceExclusionsDb maybe in a thread
+
+    """
+    # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
+    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared' 
+    #       (though this would take a lot more juggling with who is being shown in the current session!)
+    if (background):
+        t = threading.Thread(target=_writeFaceExclusionsDb,
+                             args=(userId, campaignId, contentId, friendIds, reason))
+        t.daemon = False
+        t.start()
+        logger.debug("writeFaceExclusionsDb() spawning background thread %d for %s exclusions from user %s", t.ident, reason, userId)
+        return 0
+    else:
+        logger.debug("writeFaceExclusionsDb() foreground thread %d for %s exclusions from user %s", threading.current_thread().ident, reason, userId)
+        return _writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason)
+
