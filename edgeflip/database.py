@@ -172,7 +172,7 @@ TABLES['events'] =    Table(name='events',
                             ],
                             indices=['session_id', 'campaign_id', 'content_id', 'fbid', 'friend_fbid', 'activity_id'])
 
-
+# The actual messages shared on facebook
 TABLES['share_messages'] =  Table(name='share_messages',
                                   cols = [
                                         ('activity_id', 'BIGINT'),
@@ -184,6 +184,19 @@ TABLES['share_messages'] =  Table(name='share_messages',
                                   ],
                                   indices=['fbid', 'campaign_id', 'content_id'],
                                   key=['activity_id'])
+
+# Secondaries who should be excluded from future share suggestions
+TABLES['face_exclusions'] =     Table(name='face_exclusions',
+                                      cols=[
+                                            ('fbid', 'BIGINT'),
+                                            ('campaign_id', 'INT'),
+                                            ('content_id', 'INT'),
+                                            ('friend_fbid', 'BIGINT'),
+                                            ('reason', 'VARCHAR(512)'),
+                                            ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
+                                      ],
+                                      key=['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
+                                      # zzz can I do a multi-column index with this table class? Ideally want fbid/campaign_id/content_id here, but the primary key may suffice...
 
 
 # Reset the DB by dropping and recreating tables
@@ -579,7 +592,6 @@ def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, event
         return _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId)
 
 
-
 # helper function that may get run in a background thread
 def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
     """update share_messages table
@@ -620,4 +632,73 @@ def writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg, backgro
     else:
         logger.debug("writeShareMsgDb() foreground thread %d for FB action %s", threading.current_thread().ident, activityId)
         return _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg)
+
+
+def getFaceExclusionsDb(userId, campaignId, contentId):
+    """returns the set of friends to not show as faces for a given primary user
+        sharing a certain piece of content under a certain campaign"""
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    sql = "SELECT friend_fbid FROM face_exclusions WHERE fbid=%s AND campaign_id=%s AND content_id=%s"
+    vals = [userId, campaignId, contentId]
+
+    curs.execute(sql, vals)
+    res = curs.fetchall()
+    conn.commit()
+
+    excludeFriends = set([rec[0] for rec in res])
+    return excludeFriends
+
+# helper function that may get run in a background thread
+def _writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason):
+    """update events table
+
+    """
+
+    # zzz Could run into trouble here with the insert-ignores in the case where
+    #     someone suppressed a friend, but then later added them manually. The
+    #     front-end behavior will still be correct, but we'll only show the initial
+    #     reason why they should be excluded in this table. Probably not a big deal,
+    #     but worth keeping in mind that this table is NOT a complete record of all
+    #     the shares and suppressions -- that lives in the events table.
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    rows = [{
+             'userId': userId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'friendId': friendId, 'reason': reason
+            } for friendId in friendIds]
+    sql = """INSERT IGNORE INTO face_exclusions (fbid, campaign_id, content_id, friend_fbid, reason)
+                VALUES (%(userId)s, %(campaignId)s, %(contentId)s, %(friendId)s, %(reason)s) """
+
+    insertCount = 0
+    for row in rows:
+        curs.execute(sql, row)
+        conn.commit()
+        insertCount += 1
+
+    logger.debug("_writeFaceExclusionsDb() thread %d updated %d %s exclusions from user %s", threading.current_thread().ident, insertCount, reason, userId)
+
+    return insertCount
+
+def writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason, background=False):
+    """calls _writeFaceExclusionsDb maybe in a thread
+
+    """
+    # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
+    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared' 
+    #       (though this would take a lot more juggling with who is being shown in the current session!)
+    if (background):
+        t = threading.Thread(target=_writeFaceExclusionsDb,
+                             args=(userId, campaignId, contentId, friendIds, reason))
+        t.daemon = False
+        t.start()
+        logger.debug("writeFaceExclusionsDb() spawning background thread %d for %s exclusions from user %s", t.ident, reason, userId)
+        return 0
+    else:
+        logger.debug("writeFaceExclusionsDb() foreground thread %d for %s exclusions from user %s", threading.current_thread().ident, reason, userId)
+        return _writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason)
 
