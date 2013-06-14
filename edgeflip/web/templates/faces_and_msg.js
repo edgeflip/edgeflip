@@ -504,7 +504,7 @@ function doShare() {
                 top.location = errorURL; // set in frame_faces.html via Jinja
 			} else {
                 // thank you page redirect happens in recordShare()
-				recordShare(response.id);
+				recordShare(response.id, msg);
 				// alert('Post was successful! Action ID: ' + response.id);
 			}
 	  	}
@@ -512,7 +512,7 @@ function doShare() {
 }
 
 /* records share event on edgeflip servers; redirects user to thank you page */
-function recordShare(actionid) {
+function recordShare(actionid, shareMsg) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 	var appid = {{ fbParams.fb_app_id }};
@@ -527,7 +527,8 @@ function recordShare(actionid) {
         eventType: 'shared',
 		sessionid: sessionid,	// global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid
+        contentid: contentid,
+        shareMsg: shareMsg
 	});
 
 	$.ajax({

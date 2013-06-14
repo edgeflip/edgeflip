@@ -141,11 +141,6 @@ def faces():
         user = fbmodule.getUserFb(fbid, token.tok)
         edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-
-        # zzz I'm a bit torn here... doing the database writes is definitely an
-        #     important part of our load testing, but doing these writes risks
-        #     overwriting any real users we have in the database that happen to
-        #     collide with our generated fbid's. Any ideas???
         database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
     else:
         edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
@@ -416,6 +411,10 @@ def recordEvent():
         # may want to push these to the DB at some point, but at least for now,
         # dump them to the logs to ensure we keep the data.
         logger.error('Front-end error encountered for user %s in session %s: %s', userId, sessionId, errorMsg)
+
+    shareMsg = flask.request.json.get('shareMsg')
+    if (shareMsg):
+        database.writeShareMsgDb(actionId, userId, campaignId, contentId, shareMsg, background=config.database.use_threads)
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
