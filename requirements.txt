@@ -18,3 +18,4 @@ pika==0.9.12
 pythoscope==0.4.3
 snakefood==1.4
 wsgiref==0.1.2
+pyOpenSSL==0.13
