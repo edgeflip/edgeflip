@@ -48,6 +48,7 @@ def button(campaignId, contentId):
 
 
 # Serves the actual faces & share message
+@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
@@ -427,6 +428,10 @@ def debugTable(tabName, outstream=sys.stderr):
     curs.execute("SELECT * FROM " + tabName)
     for i, row in enumerate(curs):
         outstream.write("\trow %d: %s\n" % (i, str(row)))
+
+
+
+
 
 @app.route("/canvas/", methods=['GET', 'POST'])
 def canvas():

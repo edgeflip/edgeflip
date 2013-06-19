@@ -1,10 +1,69 @@
 /* ALL TEH CODES */
 
+
+
+
+
+
+
+
+
 /* who user has selected to share with
 
 this should probably turn to a parameter instead of global
 */
-var recips = []; // List to hold currently selected mention tag recipients
+var recips = []; // List to hold currently selected mention tag recipient fb ids
+function selectedIdx(fbid) { // do this the hard way since some versions of IE don't play indexOf()
+  for(var i=0; i<recips.length; i++) {
+    if (recips[i] == fbid) return i;
+  }
+  return -1;
+}
+function isSelected(fbid) {
+  return (selectedIdx(fbid) != -1);
+}
+
+function htmlFriendManual(fbid, name) {
+  var html = "<div class='added_friend' id='added-"+ fbid + "'>" + name;
+  html += "<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>";
+  return html;
+}
+
+
+/* advances the active button (if current active is already ahead of index param, it does nothing */
+function activateButton(buttons, requestIdx) {
+  var classOn = 'button_active';
+  var classOff = 'button_inactive';
+
+  var currentIdx = 0;
+  for (var i=1; i<buttons.length; i++) {
+    if (buttons[i].hasClass(classOn)) {
+      currentIdx = i;
+    }
+  }
+  var activateIdx = (currentIdx > requestIdx) ? currentIdx : requestIdx;
+  for (var i=1; i<buttons.length; i++) {
+    if (i == activateIdx) {
+        buttons[i].removeClass(classOff).addClass(classOn);
+    } else {
+        buttons[i].removeClass(classOn).addClass(classOff);
+    }
+  }
+  return activateIdx;
+}
+var buttons = [ null, $('#button_select_all'), $('#button_sugg_msg'), $('#button_do_share') ];
+function activateSelectButton() {
+    return activateButton(buttons, 1);
+}
+function activateSuggestButton() {
+    return activateButton(buttons, 2);
+}
+function activateShareButton() {
+    return activateButton(buttons, 3);
+}
+
+
+
 
 /* makes an HTML snippet - used to create message to share with friends
 
@@ -84,32 +143,58 @@ activated by click a friend to share with or from manual drop
 // refactor function to do any work necessary to select a friend
 // returns true if recipient was added; false otherwise
 function selectFriend(fbid) {
+    alert("selectFriend(" + fbid + ")");
 
 	// check if the friend is already in the recips list, in which case do nothing
-	if (recips.indexOf(fbid) === -1) {
-		recips.push(fbid);
+	if (! isSelected(fbid)) {
+        alert("hi 0");
+
+	   	recips.push(fbid);
+
+
+        alert("hi 0.5");
 
 		// Append name to text area if user is writing their own message.
 		// Otherwise, adding to recipients will take care of this.
 		// Also, avoid appending if this div already exists -- might have been re-created by a user hitting undo after a manual delete.
 		if ( ($('#other_msg .preset_names').length === 0) && ($('#msg-txt-friend-'+fbid).length === 0) ) {
+            alert("hi 0.7");
+
 	    	insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
+            alert("hi 0.8");
+
 		}
 
 		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
-  		if ($('#box-'+fbid).length > 0) {
-	  		$('#box-'+fbid).prop('checked', true);
-            $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
+//  		if ($('#box-'+fbid).length > 0) {
+//	  		  $('#box-'+fbid).prop('checked', true);
+//            $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
+//            $('#wrapper-'+fbid+' .xout').hide();
+//            $('#wrapper-'+fbid+' .checkmark').show();
+//	  	} else {
+//	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
+//	  	}
+
+        alert("hi 1");
+
+  		if ($('#wrapper-'+fbid).length > 0) {
+            $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
             $('#wrapper-'+fbid+' .xout').hide();
             $('#wrapper-'+fbid+' .checkmark').show();
 	  	} else {
-	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
+	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
 	  	}
 
-        if (!$('#do_share_button').hasClass('active_button')) {
-            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
-        }
+        alert("hi 2");
+
+
+
+
+//        if (!$('#do_share_button').hasClass('button_active')) {
+//            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
+//            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
+//        }
+        activateSuggestButton();
 
   		return true;
   	} else {
@@ -125,17 +210,18 @@ activated by unclick a friend to share with or from manual drop or in edit messa
 // refactor function to do any work necessary to unselect a friend
 // returns true if recipient was removed; false otherwise
 function unselectFriend(fbid) {
-	var idx = recips.indexOf(fbid);
-	if (idx !== -1) {
+    alert("unselectFriend(" + fbid + ")");
 
+//	var idx = recips.indexOf(fbid);
+    var idx = selectedIdx(fbid);
+    if (idx !== -1) {
 		recips.splice(idx, 1);
-		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
+//		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
 		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
 		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
-        $('#friend-'+fbid).removeClass('selected_friend').addClass('unselected_friend');
+        $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
         $('#wrapper-'+fbid+' .xout').show();
         $('#wrapper-'+fbid+' .checkmark').hide();
-
 		return true;
 	} else {
 		return false;
@@ -151,10 +237,10 @@ function msgRemove(id) {
 
 /* focuses & moves cursor to end of content-editable div */
 function msgFocusEnd() {
-	$('#other_msg').focus();
+	$('#message_form_editable').focus();
 
 	// grabbed from stackoverflow (http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity)
-	var contentEditableElement = document.getElementById('other_msg');
+	var contentEditableElement = document.getElementById('message_form_editable');
 	var range,selection;
 	if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
 	{
@@ -180,7 +266,7 @@ function msgFocusEnd() {
 // Thank you stackoverflow! http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
 function insertAtCursor(html) {
     var sel, range;
-    if ( elementContainsSelection($('#other_msg').get(0)) ) {
+    if ( elementContainsSelection($('#message_form_editable').get(0)) ) {
 	    if (window.getSelection) {
 	        // IE9 and non-IE
 	        sel = window.getSelection();
@@ -218,7 +304,7 @@ function insertAtCursor(html) {
 	    }
 
 	} else {
-		$('#other_msg').append(html);
+		$('#message_form_editable').append(html);
 		msgFocusEnd();
 	}
 }
@@ -326,17 +412,26 @@ function checkAll(skipRecord) {
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
+//  alert("toggleFriend(" + fbid + ")");
 
-  if ($('#box-'+fbid).is(':checked')) {
-  	selectFriend(fbid);
-  } else {
+  if (isSelected(fbid)) {
   	unselectFriend(fbid);
   }
+  else {
+  	selectFriend(fbid);
+  }
+
+//  if ($('#box-'+fbid).is(':checked')) {
+//  	selectFriend(fbid);
+//  } else {
+//  	unselectFriend(fbid);
+//  }
 
   msgNamesUpdate(true);
-
 }
 
+/*
+zzz
 // Quick function to allow for clicking name or image to toggle friend
 // selected state in addition to clicking on the checkbox directly.
 // Just need to toggle the checkbox first, then proceed as if it had
@@ -351,6 +446,7 @@ function faceClick(fbid) {
     $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
     toggleFriend(fbid);
 }
+*/
 
 /* called when some suppress friend (X in faces list) */
 // Called when someone suppresses a friend by clicking the 'x'
