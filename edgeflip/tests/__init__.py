@@ -10,7 +10,7 @@ REPO_ROOT = os.path.join(os.path.dirname(__file__), '../', '../')
 
 
 class EdgeFlipTestCase(unittest.TestCase):
-    ''' Likely need to move this into the actual edgeflip python package '''
+    ''' The start of our base testing class '''
 
     def setUp(self):
         ''' This is a bit on the crazy side, using popen to construct and
