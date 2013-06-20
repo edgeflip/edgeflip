@@ -116,7 +116,7 @@
             if (response.status === 'connected') {
                 var uid = response.authResponse.userID;
                 var tok = response.authResponse.accessToken;
-                login(uid, tok, response);
+                login(uid, tok, response, null);
             } else {
                 // User isn't logged in or hasn't authed, so try doing the login directly
                 // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
