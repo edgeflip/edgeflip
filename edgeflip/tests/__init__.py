@@ -20,7 +20,6 @@ class EdgeFlipTestCase(unittest.TestCase):
         '''
         APP.config['TESTING'] = True
         config.dbname = 'edgeflip_test'
-        config.logging.handlers.console.level = 'CRITICAL'
         config.unit_testing = True
         self.app = APP.test_client()
         # Let's drop the test database, just in case the last run failed

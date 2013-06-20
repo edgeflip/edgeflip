@@ -1,13 +1,14 @@
 from __future__ import absolute_import
 import logging
 
-from edgeflip.celery import celery
 from edgeflip import (
     database,
     facebook,
     mock_facebook,
     ranking,
 )
+from edgeflip.celery import celery
+from edgeflip.settings import config
 
 MAX_FALLBACK_COUNT = 3 # TODO: Move to config?
 logger = logging.getLogger(__name__)
@@ -29,5 +30,6 @@ def retrieve_fb_user_info(mock_mode, fbid, token):
     )
     edgesRanked = ranking.getFriendRanking(
         edgesUnranked, requireIncoming=False, requireOutgoing=False)
-    database.updateDb(user, token, edgesRanked)
+    database.updateDb(user, token, edgesRanked,
+                      background=config.database.use_threads)
     return edgesRanked

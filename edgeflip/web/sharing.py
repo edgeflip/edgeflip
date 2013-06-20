@@ -83,10 +83,14 @@ def faces():
     mockMode = True if flask.request.json.get('mockmode') else False
     task_id = flask.request.json.get('task_id')
     ip = getIP(req = flask.request)
+    fbmodule = None
+    user = edgesRanked = edgesUnranked = None
 
     if task_id:
         result = celery.celery.AsyncResult(task_id)
-        if not result.ready():
+        if result.ready():
+            edgesUnranked = result.result
+        else:
             return ajaxResponse(
                 json.dumps({'status': 'waiting', 'task_id': task_id}),
                 200,
@@ -127,11 +131,9 @@ def faces():
 
     """next 60 lines or so get pulled out"""
 
-    user = None
     if (not mockMode):
         user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
 
-    edgesUnranked = None
     if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
         newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
@@ -147,7 +149,6 @@ def faces():
     #     various updated dates and we could only have a small subset of them here.
     #     (I kinda at least want to know the number of friends to compare to...)
     #     We really need a better way of doing this!!!
-    edgesRanked = None
     if not edgesUnranked:
         logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
         result = tasks.retrieve_fb_user_info.delay(mockMode, fbid, token)

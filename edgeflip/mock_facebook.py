@@ -174,7 +174,7 @@ def getFriendsFb(userId, token):
     # TODO: Stop using this mock_facebook lib for unit tests, and instead
     # use the Mock lib. Then we can drop this config.unit_testing check, and
     # stick with using this library for its other real purposes.
-    if config.unit_testing:
+    if not config.unit_testing:
         time.sleep(random.random()*4+0.5)
 
     # generate fake id's for between 1 and 1,000 fake friends
