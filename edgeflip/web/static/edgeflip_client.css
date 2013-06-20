@@ -96,7 +96,9 @@
 }
 .friend_box:hover {
 	/*border: thin #96C2F0 solid ;*/
-    color: #96C2F0;
+    /*color: #96C2F0;*/
+	border: thin #0270A0 solid;
+    color: #0270A0;
 }
 .friend_box_selected {
 	background-color: #07304E;
@@ -133,8 +135,8 @@
 
 /* styles the check mark image that appears on select */
 .checkmark {
-    display: block;
-    background-image: url('/static/checkmark-sm.png');
+    display: none;
+    /*background-image: url('/static/checkmark-sm.png');*/
     background-repeat: no-repeat;
     width: 50px;
     height: 50px;
@@ -260,6 +262,7 @@
 	min-height: 90px;
 	line-height: 25px;
     border-bottom: dashed thin gray;
+    outline: 0;
 }
 
 #message_helper_txt:empty:before {
@@ -289,6 +292,20 @@
     font-size: 9px;
     color: gray;
     font-weight: normal;
+}
+
+.message_friend_name {
+	display: inline-block;
+	font-family: sans-serif;
+	font-weight: 200;
+	color: black;
+	border: thin solid #89A8BD;
+	padding: 1px 2px 1px 2px;
+	background-color: #E6F2FF;
+	border-radius: 4px;
+	-moz-border-radius: 4px;
+	vertical-align: middle;
+	white-space: nowrap;
 }
 
 

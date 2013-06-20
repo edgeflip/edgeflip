@@ -13,6 +13,7 @@ this is the message div and the faces themselves
 </SCRIPT>
 
 <SCRIPT>
+
     // different sets of friends returned from algorithm
     var nextidx = {{ face_friends | length }};
 
@@ -22,6 +23,9 @@ this is the message div and the faces themselves
             {'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },
         {% endfor %}
         ];
+
+
+
 
       // This needs to the dictionary of all names, not just those initially shown...
     var fbnames = {
@@ -53,6 +57,12 @@ this is the message div and the faces themselves
         top.location = errorURL; // set in frame_faces.html via Jinja
     }
 
+    // suggested messages
+    var suggested_messages = [];
+    suggested_messages.push(['{{ msgParams.msg1_pre }}', '{{ msgParams.msg1_post }}']);
+    suggested_messages.push(['{{ msgParams.msg2_pre }}', '{{ msgParams.msg2_post }}']);
+
+
 </SCRIPT>
 
 {#<div class="right_container">#}
@@ -65,7 +75,7 @@ this is the message div and the faces themselves
     <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
     {% endblock faces_prompt %}
 
-    <div id="button_select_all" class="button_small button_active" onClick="checkAll();">Select All &gt;&gt;</div>
+    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
 
     <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
         <tr>
@@ -88,11 +98,12 @@ this is the message div and the faces themselves
     <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
-    <div id="button_suggest_msg" class="button_small button_inactive" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');">Suggest Message</div>
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest Message</div>
 
     <div id="message_form">
         <div id="message_form_editable" contentEditable="True">
             <span id='message_helper_txt' style='color: gray;'></span>
+            <span id="message_form_names"></span>
         </div>
         <div id='message_preview' valign='middle'>
             <img src='{{ fbParams.fb_object_image }}'>
@@ -105,16 +116,16 @@ this is the message div and the faces themselves
         </div>
     </div>
 
-    <div style="display: none;"> <!-- hide the suggestions -->
-        <div id="suggested_msg_title">Suggested Messages:</div>
-        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-            <div class="msg_txt suggested_msg" id="msg1_txt">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>
-        </div>
-
-        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-            <div class="msg_txt suggested_msg" id="msg2_txt">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>
-        </div>
-    </div>
+{#    <div style="display: none;"> <!-- hide the suggestions -->#}
+{#        <div id="suggested_msg_title">Suggested Messages:</div>#}
+{#        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">#}
+{#            <div class="msg_txt suggested_msg" id="msg1_txt">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>#}
+{#        </div>#}
+{##}
+{#        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">#}
+{#            <div class="msg_txt suggested_msg" id="msg2_txt">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>#}
+{#        </div>#}
+{#    </div>#}
 
 
     {% block button %}
