@@ -1,0 +1,121 @@
+body {
+	margin: 0px;
+	padding: 0px;
+}
+
+h2 {
+	font-family: "Gill Sans", Helvetica, sans-serif; 
+	font-weight: 200; 
+	margin: 2px; 
+	color: #094163;
+}
+
+.h2_container {
+	border: none;
+	white-space: normal; 
+	text-align: center;
+	padding: 5px;
+	background-color: #f7f7f7;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	box-shadow: 2px 2px 5px black;
+}
+
+.button {
+	display: block;
+	width:200px;
+	height: 30px;
+	color: white;
+	cursor: pointer;
+	text-align: center;
+	white-space: nowrap;
+	padding: 4px;
+	border-radius: 10px;
+	-moz-border-radius: 10px;
+	text-decoration: none;
+	font-family: "Open Sans", Helvetica, sans-serif;
+	vertical-align: middle;
+	line-height: 30px;
+	font-size: 20px;
+	margin: 5px;
+}
+
+.active_button {
+	background-color: orangered;
+	border: 2px solid maroon;
+	box-shadow: 3px 3px 5px black;
+}
+
+.active_button:hover {
+	background-color: #CC0000;
+	border: 2px solid red;	
+	box-shadow: 2px 2px 3px black;
+}
+
+.inactive_button {
+	background-color: #0f2446;
+	border: 2px solid #0270A0;
+	box-shadow: 3px 3px 5px #0f2446;
+}
+
+.inactive_button:hover {
+	background-color: #0270A0;
+	border: 2px solid #4E9BBD;	
+	box-shadow: 2px 2px 3px #0f2446;
+}
+
+.small_button {
+	float: right;
+	margin-top: 3px;
+	margin-left: 3px;
+	margin-right: 3px;
+	padding: 3px;
+	color: white;
+	border-radius: 5px;
+	-moz-border-radius: 5px;
+	font-size: 14px;
+	font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif;
+	font-weight: 200;
+	letter-spacing: 1px;
+	cursor: pointer;
+	width: 140px;
+}
+
+.active_small {
+	background-color: orangered;
+	border: thin solid maroon;
+/* I still feel like the drop shadows are too much on small buttons... */
+/*	box-shadow: 1px 1px 3px black; */
+}
+
+.active_small:hover {
+	background-color: #CC0000;
+	border: thin solid maroon;
+/*	box-shadow: 1px 1px 1px black; */
+}
+
+.inactive_small {
+	background-color: #0270A0;
+	border: thin solid gray;
+/*	box-shadow: 1px 1px 3px black; */
+}
+
+.inactive_small:hover {
+	background-color: #094163;
+	border: thin solid gray;
+/*	box-shadow: 1px 1px 1px black; */
+}
+
+#your-friends-here {
+	display: none;
+	margin: 0px auto;
+	white-space: nowrap;
+}
+
+#friends_div {
+	display: none;
+	margin: 0px auto;
+	white-space: nowrap;
+	padding-left: 10px;
+	padding-right: 10px;
+}
