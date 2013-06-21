@@ -4,57 +4,12 @@ this is the message div and the faces themselves
  -->
 
 <link rel="stylesheet" type="text/css" href="/static/edgeflip_client.css" />
-
-
 {% from 'new_face.html' import face %}
-
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
-
-<SCRIPT>
-
-
-    {% include 'faces_and_msg.js' %}
-</SCRIPT>
+<script>{% include 'faces_and_msg.js' %}</script>
 
 
-<SCRIPT>
-
-
-
-
-
-    // different sets of friends returned from algorithm
-{#    var nextidx = {{ face_friends | length }};#}
-
-
-    //faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
-    //allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    //pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
-
-
-    // Just the friends who can come in as faces
-{#    var friends = [#}
-{#        {% for friend in all_friends %}#}
-{#            {'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },#}
-{#        {% endfor %}#}
-{#        ];#}
-
-
-
-
-
-      // Needs to be ALL of the user's friends since they could type in anyone,
-      // regardless of whether they meet our targeting criteria.
-{#    var pick_friends = [#}
-{##}
-{#    {% for pickFriend in pickFriends %}#}
-{#        {#}
-{#            value: {{pickFriend.id}},#}
-{#            label: "{{pickFriend.name}}"#}
-{#        },#}
-{#    {% endfor %}#}
-{##}
-{#    ];#}
+<script>
 
     if ({{ faceFriends | length }} === 0) {
         // Should never, ever get here unless something went very wrong in Flask land
@@ -69,10 +24,8 @@ this is the message div and the faces themselves
     suggested_messages.push(['{{ msgParams.msg1_pre }}', '{{ msgParams.msg1_post }}']);
     suggested_messages.push(['{{ msgParams.msg2_pre }}', '{{ msgParams.msg2_post }}']);
 
+</script>
 
-</SCRIPT>
-
-{#<div class="right_container">#}
 
 <div id="faces_form_container">
 
@@ -122,18 +75,6 @@ this is the message div and the faces themselves
         </div>
     </div>
 
-{#    <div style="display: none;"> <!-- hide the suggestions -->#}
-{#        <div id="suggested_msg_title">Suggested Messages:</div>#}
-{#        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">#}
-{#            <div class="msg_txt suggested_msg" id="msg1_txt">{{ msgParams.msg1_pre }}<span class="preset_names"></span>{{ msgParams.msg1_post }}</div>#}
-{#        </div>#}
-{##}
-{#        <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">#}
-{#            <div class="msg_txt suggested_msg" id="msg2_txt">{{ msgParams.msg2_pre }}<span class="preset_names"></span>{{ msgParams.msg2_post }}</div>#}
-{#        </div>#}
-{#    </div>#}
-
-
     {% block button %}
     <div id="button_share_container">
         <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">Show Your Support</div>
@@ -141,8 +82,6 @@ this is the message div and the faces themselves
     {% endblock button %}
 
 </div> <!-- faces_container -->
-
-{#</div> <!-- right_container -->#}
 
 
 

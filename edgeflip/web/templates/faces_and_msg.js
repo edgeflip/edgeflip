@@ -8,15 +8,14 @@ var FB_OBJ_URL = '{{ fbParams.fb_object_url | safe }}';
 
 var RECIPS_LIST_CONTAINER = "recips_list";
 
-//// all the friend data here
-
+// all the friend data here
 var friendFromFbid = {
     {% for friend in allFriends %}
         {{friend.id}}: { 'fbid':{{friend.id}}, 'name':"{{friend.name}}", 'fname':"{{friend.fname}}", 'lname':"{{friend.lname}}" },
     {% endfor %}
 };
 
-// this is the on deck circle for friends who will get slotted in
+// on deck circle for friends who will get slotted in, we shift them off as we go
 var faceFriends = [
     {% for friend in faceFriends %}
         {{friend.id}},
@@ -39,7 +38,6 @@ function getRecipFbids() {
 }
 
 function isRecip(fbid) {
-//    console.log("isRecip(" + fbid + "): recips " + getRecipFbids().toString() + ", index" + getRecipFbids().indexOf(fbid))
     return (getRecipFbids().indexOf(fbid) > -1);
 }
 
@@ -356,19 +354,12 @@ function doReplace(old_fbid) {
     // the ajax call can be a little sluggish...
     $(div_id).hide();
 
-//	if (nextidx < friends.length) {
     if (faceFriends.length > 0) {
-		// Figure out the new friend
         // Note that we're HTML-unescaping the first and last name to send back
         // to the server for templating -- the template is going to escape these
         // and we don't want them getting escaped twice! Hockey & ugly, I know,
         // but this will work until we move to a smarter system of front-end
         // templating...
-//		var friend = friends[nextidx];
-//		var id = friend['id'];
-//		var fname = $("<div/>").html(friend['fname']).text();
-//		var lname = $("<div/>").html(friend['lname']).text();
-
         var fbid = faceFriends.shift();
         var fname = $("<div/>").html(friendFromFbid[fbid].fname).text();
 		var lname = $("<div/>").html(friendFromFbid[fbid].lname).text();
@@ -376,7 +367,6 @@ function doReplace(old_fbid) {
 		// Update the friends shown
 		friendHTML(old_fbid, fbid, fname, lname, div_id);
 
-//		nextidx++;
 	} else {
 		// No new friends to add, so just remove this one
 		// (note that we have to remove rather than hide the element to avoid avoid accidentally
@@ -618,6 +608,9 @@ function helperTextDisappear() {
 
 
 /////////////////////////////////
+
+// on load stuff
+
 $(document).ready(function() {
     /* event binding & key handling for editable msg div*/
 
