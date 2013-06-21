@@ -220,9 +220,9 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
         return applyCampaign(edgesRanked, clientSubdomain, fallbackCampaignId, fallbackContentId, sessionId, ip, fbid, numFace, paramsDB, fallbackCount+1)
 
     friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
-    faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
-    allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
+    # faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
+    faceFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
+    allFriends = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
@@ -274,10 +274,10 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends[:numFace]], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
 
     return ajaxResponse(flask.render_template(locateTemplate('faces_table.html', clientSubdomain, app), fbParams=actionParams, msgParams=msgParams,
-                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
+                                 faceFriends=faceFriends, allFriends=allFriends, numFace=numFace), 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")

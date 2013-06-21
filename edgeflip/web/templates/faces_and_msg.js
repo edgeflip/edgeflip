@@ -1,12 +1,27 @@
 /* ALL TEH CODES */
 
-var FB_APP_ID = {{ fbParams.fb_app_id }};
+var FB_APP_ID = '{{ fbParams.fb_app_id }}';
 var FB_APP_NAME = '{{ fbParams.fb_app_name }}';
+var FB_ACTION_TYPE = '{{ fbParams.fb_action_type }}';
 var FB_OBJ_TYPE = '{{ fbParams.fb_object_type }}';
 var FB_OBJ_URL = '{{ fbParams.fb_object_url | safe }}';
 
 var RECIPS_LIST_CONTAINER = "recips_list";
 
+//// all the friend data here
+
+var friendFromFbid = {
+    {% for friend in allFriends %}
+        {{friend.id}}: { 'fbid':{{friend.id}}, 'name':"{{friend.name}}", 'fname':"{{friend.fname}}", 'lname':"{{friend.lname}}" },
+    {% endfor %}
+};
+
+// this is the on deck circle for friends who will get slotted in
+var faceFriends = [
+    {% for friend in faceFriends %}
+        {{friend.id}},
+    {% endfor %}
+].slice({{ numFace }});
 
 
 function getRecipElts() {
@@ -17,19 +32,20 @@ function getRecipFbids() {
     var fbids = [];
     var recipElts = getRecipElts();
     for (var i=0; i<recipElts.length; i++) {
-        var recipIdPieces = recipElts[i].id.split('-');
-        fbids.push(recipIdPieces[1]);
+        var fbid = parseInt(recipElts[i].id.split('-')[1]);
+        fbids.push(fbid);
     }
     return fbids;
 }
 
 function isRecip(fbid) {
+//    console.log("isRecip(" + fbid + "): recips " + getRecipFbids().toString() + ", index" + getRecipFbids().indexOf(fbid))
     return (getRecipFbids().indexOf(fbid) > -1);
 }
 
 function htmlRecip(fbid) {
 	var html = "<span class='recipient message_friend_name' id='recipient-"+fbid+"' contentEditable='False'>";
-    html += fbnames[fbid] + "<span class='msg_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
+    html += friendFromFbid[fbid].name + "<span class='msg_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
     return html;
 }
 
@@ -38,7 +54,6 @@ function htmlRecipsList() {
     getRecipElts().each(function() {
         var outerHtml = $(this).clone().wrap('<p>').parent().html();
         recipHtmls.push(outerHtml);
-        console.log(outerHtml);
     });
     return commafy(recipHtmls);
 }
@@ -117,8 +132,7 @@ function selectFriend(fbid) {
             reformatRecipsList();
         }
         else {  // otherwise, insert at cursor
-            console.log("inserting at cursor");
-            insertRecipAtCursor(fbid);
+            insertRecipAtCursor(htmlRecip(fbid));
         }
 
         syncFriendBoxes();  // update the appearance of the friend box
@@ -148,7 +162,7 @@ function syncFriendBoxes() {
     // check the friend boxes upstairs first
     var friendBoxes = $('.friend_box');
     for (var i=0; i<friendBoxes.length; i++) {
-        var fbid = friendBoxes[i].id.split('-')[1];
+        var fbid = parseInt(friendBoxes[i].id.split('-')[1]);
         if (isRecip(fbid)) {
             $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
             $('#wrapper-'+fbid+' .xout').hide();
@@ -165,7 +179,7 @@ function syncFriendBoxes() {
     // go through the manual add friends and make sure they should be there
     var friendBoxesAdded = $('.added_friend');
     for (var i=0; i<friendBoxesAdded.length; i++) {
-        var fbid = friendBoxesAdded[i].id.split('-')[1];
+        var fbid = parseInt(friendBoxesAdded[i].id.split('-')[1]);
         if (!isRecip(fbid)) {
             friendBoxesAdded[i].remove();
         }
@@ -176,7 +190,7 @@ function syncFriendBoxes() {
     for (var i=0; i<recipIds.length; i++) {
         var fbid = recipIds[i];
         if (($('#added-'+fbid).length == 0) && ($('#friend-'+fbid).length == 0)) {
-	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
+	  		$('#picked_friends_container').append(htmlFriendManual(fbid, friendFromFbid[fbid].name))
         }
     }
 }
@@ -211,14 +225,10 @@ function msgFocusEnd() {
 /* if cursor in editable div, & user selects a friend, at add insertion point */
 // Thank you stackoverflow!
 // http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
-function insertRecipAtCursor(fbid) {
-    var html = htmlRecip(fbid);
+function insertRecipAtCursor(html) {
 
     var sel, range;
     if ( elementContainsSelection($('#message_form_editable').get(0)) ) {
-
-        console.log("el contains");
-
 	    if (window.getSelection) {
 	        // IE9 and non-IE
 	        sel = window.getSelection();
@@ -251,7 +261,6 @@ function insertRecipAtCursor(fbid) {
 	    }
 
 	} else {
-        console.log("el does not contain, inserting at end");
 		$('#message_form_editable').append(html);
 		msgFocusEnd();
 	}
@@ -272,29 +281,18 @@ function isOrContains(node, container) {
 function elementContainsSelection(el) {
     var sel;
     if (window.getSelection) {
-        console.log("deb 1");
-
         sel = window.getSelection();
         if (sel.rangeCount > 0) {
-            console.log("deb 2");
-
             for (var i=0; i<sel.rangeCount; ++i) {
                 if (!isOrContains(sel.getRangeAt(i).commonAncestorContainer, el)) {
-                    console.log("deb 2.3");
-
                     return false;
                 }
             }
-            console.log("deb 2.8");
-
             return true;
         }
     } else if ( (sel = document.selection) && sel.type != "Control") {
-        console.log("caling is or contains");
         return isOrContains(sel.createRange().parentElement(), el);
     }
-    console.log("deb 3");
-
     return false;
 }
 
@@ -358,22 +356,27 @@ function doReplace(old_fbid) {
     // the ajax call can be a little sluggish...
     $(div_id).hide();
 
-	if (nextidx < friends.length) {
+//	if (nextidx < friends.length) {
+    if (faceFriends.length > 0) {
 		// Figure out the new friend
         // Note that we're HTML-unescaping the first and last name to send back
         // to the server for templating -- the template is going to escape these
         // and we don't want them getting escaped twice! Hockey & ugly, I know,
         // but this will work until we move to a smarter system of front-end
         // templating...
-		var friend = friends[nextidx];
-		var id = friend['id'];
-		var fname = $("<div/>").html(friend['fname']).text();
-		var lname = $("<div/>").html(friend['lname']).text();
+//		var friend = friends[nextidx];
+//		var id = friend['id'];
+//		var fname = $("<div/>").html(friend['fname']).text();
+//		var lname = $("<div/>").html(friend['lname']).text();
+
+        var fbid = faceFriends.shift();
+        var fname = $("<div/>").html(friendFromFbid[fbid].fname).text();
+		var lname = $("<div/>").html(friendFromFbid[fbid].lname).text();
 
 		// Update the friends shown
-		friendHTML(old_fbid, id, fname, lname, div_id);
+		friendHTML(old_fbid, fbid, fname, lname, div_id);
 
-		nextidx++;
+//		nextidx++;
 	} else {
 		// No new friends to add, so just remove this one
 		// (note that we have to remove rather than hide the element to avoid avoid accidentally
@@ -383,10 +386,6 @@ function doReplace(old_fbid) {
 	}
 }
 
-
-//var FB_APP_NAME = '{{ fbParams.fb_app_name }}';
-//var FB_OBJ_TYPE = '{{ fbParams.fb_object_type }}';
-//var FB_OBJ_URL = '{{ fbParams.fb_object_url | safe }}';
 
 // Ajax call to tell our server the friend has been suppressed and get the HTML for the next one
 function friendHTML(oldid, id, fname, lname, div_id) {
@@ -434,22 +433,17 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 	});
 }
 
+
+
+
 /* hits facebook API */
 // Called when someone actually shares a message
 function doShare() {
     recordEvent('share_click');
 
-    var fb_app_name = '{{ fbParams.fb_app_name }}';
-    var fb_action_type = '{{ fbParams.fb_action_type }}';
-    var fb_object_type = '{{ fbParams.fb_object_type }}';
-    var fb_object_url = '{{ fbParams.fb_object_url | safe }}';
-
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
-	var msg = "";
-
 	if (getRecipFbids().length == 0) {
-		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.");
-		if (use_all) {
+		if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
 			selectAll(true);
 		} else {
 			return;
@@ -461,29 +455,31 @@ function doShare() {
     $('#progress h2').html('S e n d i n g . . .');
     $('#progress').show();
 
-
-    alert($('#message_form_editable').html());
-
+    var recips = getRecipFbids();
 	for (var i=0; i < recips.length; i++) {
-		// FB format for mention tags: @[fbid]
-		$('#msg-txt-friend-'+recips[i]).replaceWith("@[" + recips[i] + "]");
-	}
-	if ($('#message_form_editable .preset_names').length > 0) {
-		$('#message_form_editable .preset_names').replaceWith($('#message_form_editable .preset_names').text());
+		$('#recipient-'+recips[i]).replaceWith("@[" + recips[i] + "]"); // FB format for mention tags: @[fbid]
+ 	}
+
+    var recipsList = $('#message_form_editable .'+RECIPS_LIST_CONTAINER);
+	if (recipsList.length > 0) {
+		recipsList.replaceWith(recipsList.text());
 	}
 
+	var msg = "";
 	msg = $('#message_form_editable').text();
 	msg = msg.replace(/[\n\r]/g, ' ');
 	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
 
-    alert("sharing msg: " + msg);
+    var debugStr = "sharing: \n" + msg + "\n\nrecips: " + recips.toString();
+    alert(debugStr);
+    console.log(debugStr);
     return;
 
 	// The actual call to do the sharing
 	FB.api(
-		'/me/' + fb_app_name + ':' + fb_action_type,
+		'/me/' + FB_APP_NAME + ':' + FB_ACTION_TYPE,
 		'post',
-		{ fb_object_type: fb_object_url, message: msg },
+		{ FB_OBJ_TYPE: FB_OBJ_URL, message: msg },
 		function(response) {
 			if (!response || response.error) {
 				// alert('Error occured ' + response.error.message);
@@ -504,14 +500,13 @@ function doShare() {
 function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
 		actionid: actionid,
 		appid: FB_APP_ID,
-		content: content,
-		friends: recips,
+		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+		friends: getRecipFbids(),
         eventType: 'shared',
 		sessionid: sessionid,	// global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
@@ -541,14 +536,12 @@ function recordShare(actionid) {
 // should obviously combine with above at some point, but
 // just want to have something working now...
 function recordEvent(eventType, errorMsg) {
-
     var userid = myfbid;
-    var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
     var params = JSON.stringify({
         userid: userid,
         appid: FB_APP_ID,
-        content: content,
+        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
         eventType: eventType,
         sessionid: sessionid,   // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
@@ -622,5 +615,85 @@ function helperTextDisappear() {
 //        errorMsg: errorMsg
 //    });
 
+
+
+/////////////////////////////////
+$(document).ready(function() {
+    /* event binding & key handling for editable msg div*/
+
+    var editable = $('#message_form_editable');
+    var msg_length = $('#message_form_editable').text().length;
+    var max_msg_length = 1000;
+
+    // key presses that we'll let through in the event the message has gotten too long
+    var allow_keys = [
+                        8,  // Backspace
+                        46, // Delete
+                        20, // Caps Lock
+                        91, // Command
+                        93, // Right Command
+                        17, // Control
+                        18, // Alt
+                        40, // Down
+                        35, // End
+                        27, // Escape
+                        36, // Home
+                        37, // Left
+                        34, // Page Down
+                        33, // Page Up
+                        39, // Right
+                        38  // Up
+                     ];
+
+
+    // disable pasting to avoid introducing marked-up text
+    editable.on('paste', function(event) {
+        event.preventDefault();
+        return false;
+    });
+
+    // disable drag-and-drop to avoid introducing marked-up text
+    editable.on('dragover drop', function(event) {
+        event.preventDefault();
+        return false;
+    });
+
+    // have to catch return key presses on the keydown (to use preventDefault)
+    editable.on('keydown', function(event) {
+        var code = (event.keyCode ? event.keyCode : event.which);
+        // return (13) or enter (108) key pressed
+        if(code == 13 || code == 108) {
+            event.preventDefault();
+            return false;
+        } else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
+            event.preventDefault();
+            return false;
+        } else {
+            helperTextDisappear();
+            msg_length = $('#message_form_editable').text().length;
+        }
+    });
+
+    // catch deletes and undos on keyup (after text has been edited)
+    editable.on('keyup', function(event) {
+        syncFriendBoxes();
+        var code = (event.keyCode ? event.keyCode : event.which);
+
+        // Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
+        if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
+            alert("Please limit your message to fewer than "+max_msg_length+" characters.");
+        }
+    });
+
+
+    // now set up the manual add dropdown
+    var pickFriends = [];
+    for (fbid in friendFromFbid) {
+        friend = friendFromFbid[fbid];
+        pickFriends.push({ 'value':friend.fbid, 'label':friend.name });
+    }
+    setDropdown(pickFriends);
+
+}); // document ready
 
 

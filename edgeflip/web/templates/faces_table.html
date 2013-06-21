@@ -8,48 +8,55 @@ this is the message div and the faces themselves
 
 {% from 'new_face.html' import face %}
 
+<script src="{{ url_for('static', filename='manual_add.js') }}"></script>
+
 <SCRIPT>
+
+
     {% include 'faces_and_msg.js' %}
 </SCRIPT>
 
+
 <SCRIPT>
 
+
+
+
+
     // different sets of friends returned from algorithm
-    var nextidx = {{ face_friends | length }};
+{#    var nextidx = {{ face_friends | length }};#}
+
+
+    //faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
+    //allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
+    //pickDicts = [ e.toDict() for e in edgesRanked ] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria!
+
 
     // Just the friends who can come in as faces
-    var friends = [
-        {% for friend in all_friends %}
-            {'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },
-        {% endfor %}
-        ];
+{#    var friends = [#}
+{#        {% for friend in all_friends %}#}
+{#            {'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },#}
+{#        {% endfor %}#}
+{#        ];#}
 
 
 
 
-      // This needs to the dictionary of all names, not just those initially shown...
-    var fbnames = {
-
-        {% for friend in pickFriends %}
-            {{friend.id}}: '{{friend.name}}',
-        {% endfor %}
-
-                  };
 
       // Needs to be ALL of the user's friends since they could type in anyone,
       // regardless of whether they meet our targeting criteria.
-    var pick_friends = [
+{#    var pick_friends = [#}
+{##}
+{#    {% for pickFriend in pickFriends %}#}
+{#        {#}
+{#            value: {{pickFriend.id}},#}
+{#            label: "{{pickFriend.name}}"#}
+{#        },#}
+{#    {% endfor %}#}
+{##}
+{#    ];#}
 
-    {% for pickFriend in pickFriends %}
-        {
-            value: {{pickFriend.id}},
-            label: "{{pickFriend.name}}"
-        },
-    {% endfor %}
-
-    ];
-
-    if (nextidx === 0 || friends.length === 0) {
+    if ({{ faceFriends | length }} === 0) {
         // Should never, ever get here unless something went very wrong in Flask land
         // Even so, let's be sure to send the user somewhere reasonable rather than 
         // land them on a page with nothing to do...
@@ -79,9 +86,9 @@ this is the message div and the faces themselves
 
     <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
         <tr>
-            {% for face_friend in face_friends %}
-                <td>{{ face(face_friend.id, face_friend.fname, face_friend.lname) }}</td>
-                {% if ( (loop.index0 == 2) and (numFriends > 3) ) or ( (loop.index0 == 5) and (numFriends > 6) ) %}
+            {% for faceFriend in faceFriends[:numFace] %}
+                <td>{{ face(faceFriend.id, faceFriend.fname, faceFriend.lname) }}</td>
+                {% if ( (loop.index0 == 2) and (numFace > 3) ) or ( (loop.index0 == 5) and (numFace > 6) ) %}
                     </tr><tr>
                 {% endif %}
             {% endfor %}
@@ -137,94 +144,6 @@ this is the message div and the faces themselves
 
 {#</div> <!-- right_container -->#}
 
-<script>
-// Adding listeners in script block to ensure necessary divs already exist...
 
-/* event binding & key handling for editable msg div*/
-
-var editable = $('#message_form_editable');
-var msg_length = $('#message_form_editable').text().length;
-var max_msg_length = 1000;
-
-// key presses that we'll let through in the event the message has gotten too long
-var allow_keys = [
-                    8,  // Backspace
-                    46, // Delete
-                    20, // Caps Lock
-                    91, // Command
-                    93, // Right Command
-                    17, // Control
-                    18, // Alt
-                    40, // Down
-                    35, // End
-                    27, // Escape
-                    36, // Home
-                    37, // Left
-                    34, // Page Down
-                    33, // Page Up
-                    39, // Right
-                    38  // Up
-                 ];
-
-
-// disable pasting to avoid introducing marked-up text
-editable.on('paste', function(event) {
-    event.preventDefault();
-    return false;
-});
-
-// disable drag-and-drop to avoid introducing marked-up text
-editable.on('dragover drop', function(event) {
-    event.preventDefault();
-    return false;
-});
-
-// have to catch return key presses on the keydown (to use preventDefault)
-editable.on('keydown', function(event) {
-    var code = (event.keyCode ? event.keyCode : event.which);
-    // return (13) or enter (108) key pressed
-    if(code == 13 || code == 108) {
-        event.preventDefault();
-        return false;
-    } else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
-        event.preventDefault();
-        return false;
-    } else {
-        helperTextDisappear();
-        msg_length = $('#message_form_editable').text().length;
-    }
-});
-
-// catch deletes and undos on keyup (after text has been edited)
-editable.on('keyup', function(event) {
-
-    var code = (event.keyCode ? event.keyCode : event.which);
-
-    // check if user has manually deleted a friend
-{#    var recips_removed = handleDeleted();#}
-{#    if (recips_removed) { #}
-{#        $('.suggested_msg .preset_names').html(friendNames(false));#}
-{#    }#}
-    syncFriendBoxes();
-
-    // in the event of an "undo" could actually add back a friend!
-{#    var recips_added = handleUndo();#}
-{#    if (recips_added || $(".msg-txt-friend").length > recips.length) { #}
-{#        $('.suggested_msg .preset_names').html(friendNames(false));#}
-{#        $('#other_msg .preset_names').html(friendNames(true));#}
-{#    }#}
-
-    // Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
-    if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
-        alert("Please limit your message to fewer than "+max_msg_length+" characters.");
-    }
-
-});
-
-
-</script>
-
-
-<script src="{{ url_for('static', filename='manual_add.js') }}"></script>
 
 
