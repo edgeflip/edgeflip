@@ -30,7 +30,7 @@ $(function() {
 					alert("Sorry: only ten friends can be tagged.");
 				} else {
 					selectFriend(ui.item.value);
-					msgNamesUpdate(false);
+//					msgNamesUpdate(false);
 				}
 
 			}
@@ -49,5 +49,5 @@ $(function() {
 // Called when the user removes a manually added friend
 function removeFriend(fbid) {
 	unselectFriend(fbid);
-	msgNamesUpdate(false);
+//	msgNamesUpdate(false);
 }

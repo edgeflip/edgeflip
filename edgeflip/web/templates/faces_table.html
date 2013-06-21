@@ -103,7 +103,6 @@ this is the message div and the faces themselves
     <div id="message_form">
         <div id="message_form_editable" contentEditable="True">
             <span id='message_helper_txt' style='color: gray;'></span>
-            <span id="message_form_names"></span>
         </div>
         <div id='message_preview' valign='middle'>
             <img src='{{ fbParams.fb_object_image }}'>
@@ -143,15 +142,15 @@ this is the message div and the faces themselves
 
 /* event binding & key handling for editable msg div*/
 
-var editable = $('#other_msg');
-var msg_length = $('#other_msg').text().length;
+var editable = $('#message_form_editable');
+var msg_length = $('#message_form_editable').text().length;
 var max_msg_length = 1000;
 
 // key presses that we'll let through in the event the message has gotten too long
 var allow_keys = [
                     8,         // Backspace
                     46,        // Delete
-                    20,     // Caps Lock
+                    20,        // Caps Lock
                     91,        // Command
                     93,        // Right Command
                     17,        // Control
@@ -164,7 +163,7 @@ var allow_keys = [
                     34,        // Page Down
                     33,        // Page Up
                     39,        // Right
-                    38        // Up
+                    38         // Up
                  ];
 
 
@@ -198,7 +197,7 @@ editable.on('keydown', function(event) {
     } else {
 
         helperTextDisappear();
-        msg_length = $('#other_msg').text().length;
+        msg_length = $('#message_form_editable').text().length;
 
     }
 });
@@ -209,17 +208,18 @@ editable.on('keyup', function(event) {
     var code = (event.keyCode ? event.keyCode : event.which);
 
     // check if user has manually deleted a friend
-    var recips_removed = handleDeleted();
-    if (recips_removed) { 
-        $('.suggested_msg .preset_names').html(friendNames(false));
-    }
+{#    var recips_removed = handleDeleted();#}
+{#    if (recips_removed) { #}
+{#        $('.suggested_msg .preset_names').html(friendNames(false));#}
+{#    }#}
+    syncFriendBoxes();
 
     // in the event of an "undo" could actually add back a friend!
-    var recips_added = handleUndo();
-    if (recips_added || $(".msg-txt-friend").length > recips.length) { 
-        $('.suggested_msg .preset_names').html(friendNames(false));
-        $('#other_msg .preset_names').html(friendNames(true));
-    }
+{#    var recips_added = handleUndo();#}
+{#    if (recips_added || $(".msg-txt-friend").length > recips.length) { #}
+{#        $('.suggested_msg .preset_names').html(friendNames(false));#}
+{#        $('#other_msg .preset_names').html(friendNames(true));#}
+{#    }#}
 
     // Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
     if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {

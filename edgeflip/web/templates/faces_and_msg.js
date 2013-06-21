@@ -13,27 +13,62 @@
 this should probably turn to a parameter instead of global
 */
 var recips = []; // List to hold currently selected mention tag recipient fb ids
-function selectedIdx(fbid) { // do this the hard way since some versions of IE don't play indexOf()
-  for(var i=0; i<recips.length; i++) {
-    if (recips[i] == fbid) return i;
-  }
-  return -1;
-}
-function isSelected(fbid) {
-  return (selectedIdx(fbid) != -1);
-}
+//function selectedIdx(fbid) { // do this the hard way since some versions of IE don't play indexOf()
+//  for(var i=0; i<recips.length; i++) {
+//    if (recips[i] == fbid) return i;
+//  }
+//  return -1;
+//}
+//function isSelected(fbid) {
+//  return (selectedIdx(fbid) != -1);
+//}
+
+
+var RECIPS_LIST_CONTAINER = "recips_list";
 
 function getRecipElts() {
-    return $('#message_form_editable .message_friend_name');
+    return $('#message_form_editable .recipient');
 }
-function getRecipIds() {
+function getRecipFbids() {
+    var fbids = [];
     var recipElts = getRecipElts();
     for (var i=0; i<recipElts.length; i++) {
-        var recipId = recipElts[i].id;
-
+        var recipIdPieces = recipElts[i].id.split('-');
+        fbids.push(recipIdPieces[1]);
     }
-
+    return fbids;
 }
+function isRecip(fbid) {
+    var fbids = getRecipFbids();
+    for(var i=0; i<fbids.length; i++) {
+        if (fbids[i] == fbid) return true;
+    }
+    return false;
+}
+
+function htmlRecip(fbid) {
+	var html = "<span class='recipient message_friend_name' id='recipient-"+fbid+"' contentEditable='False'>";
+    html += fbnames[fbid] + "<span class='msg_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
+    return html;
+}
+
+function htmlRecipsList() {
+    var recipHtmls = [];
+    getRecipElts().each(function() {
+        var outerHtml = $(this).clone().wrap('<p>').parent().html();
+        recipHtmls.push(outerHtml);
+        console.log(outerHtml);
+    });
+    return commafy(recipHtmls);
+}
+
+function reformatRecipsList() {
+    var recipsHtml = htmlRecipsList();
+    $('#'+RECIPS_LIST_CONTAINER).empty().append(recipsHtml);
+}
+
+
+
 
 
 
@@ -100,9 +135,9 @@ XXX may never be called w/ forMsg=false?
 //	}
 //	return ret
 //}
-function spanStr(id) {
-	return "<span class='msg_friend_name' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
-}
+//function spanStr(id) {
+//	return "<span class='msg_friend_name' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
+//}
 
 
 /* return a human-friendly string from friends
@@ -144,22 +179,44 @@ list of friends from global recips
 //}
 
 function friendNames() {
-    switch (recips.length) {
+//    switch (recips.length) {
+//        case 0:
+//            return "";
+//        case 1:
+//            return spanStr(recips[0]);
+//        case 2:
+//            return spanStr(recips[0]) + " and "+ spanStr(recips[1]);
+//        default:
+//            var recip_str = "";
+//            for (var i=0; i < (recips.length-1); i++) {
+//                recip_str += spanStr(recips[i]) + ", ";
+//            }
+//            recip_str += " and " + spanStr(recips[recips.length-1]);
+//            return recip_str;
+//    }
+    return false;
+}
+
+function commafy(things) {
+    switch (things.length) {
         case 0:
             return "";
         case 1:
-            return spanStr(recips[0]);
+            return things[0];
         case 2:
-            return spanStr(recips[0]) + " and "+ spanStr(recips[1]);
+            return things[0] + " and "+ things[1];
         default:
-            var recip_str = "";
-            for (var i=0; i < (recips.length-1); i++) {
-                recip_str += spanStr(recips[i]) + ", ";
+            var ret = "";
+            for (var i=0; i < (things.length-1); i++) {
+                ret += things[i] + ", ";
             }
-            recip_str += " and " + spanStr(recips[recips.length-1]);
-            return recip_str;
+            ret += " and " + things[things.length-1];
+            return ret;
     }
 }
+
+
+
 
 
 
@@ -182,9 +239,42 @@ activated by click a friend to share with or from manual drop
 function selectFriend(fbid) {
 //    alert("selectFriend(" + fbid + ")");
 
-	// check if the friend is already in the recips list, in which case do nothing
-	if (! isSelected(fbid)) {
-	   	recips.push(fbid);
+    if (isRecip(fbid)) {  // if the friend is already in the recips list, do nothing
+        return false;
+    }
+    else {
+        // if we've used the suggest button, we should have a recips list container, so stick
+        // it in there and reformat
+        if ($('#'+RECIPS_LIST_CONTAINER).length > 0) {
+            $('#'+RECIPS_LIST_CONTAINER).append(htmlRecip(fbid));
+            reformatRecipsList();
+        }
+        else {  // otherwise, insert at cursor
+            console.log("inserting at cursor");
+            insertRecipAtCursor(fbid);
+        }
+
+        // update the appearance of the friend box
+        syncFriendBoxes();
+
+//  		if ($('#wrapper-'+fbid).length > 0) {
+//            $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
+//            $('#wrapper-'+fbid+' .xout').hide();
+//            $('#wrapper-'+fbid+' .checkmark').show();
+//	  	} else {
+//	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
+//	  	}
+
+        // advance the button highlight
+        activateSuggestButton();
+
+        return true;
+    }
+
+
+
+//	if (! isSelected(fbid)) {
+//	   	recips.push(fbid);
 
 //		// Append name to text area if user is writing their own message.
 //		// Otherwise, adding to recipients will take care of this.
@@ -193,7 +283,6 @@ function selectFriend(fbid) {
 //	    	insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
 //		}
 
-        insertAtCursor('&nbsp;' + spanStr(fbid) + '&nbsp;');
 
 
 
@@ -207,13 +296,6 @@ function selectFriend(fbid) {
 //	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
 //	  	}
 
-  		if ($('#wrapper-'+fbid).length > 0) {
-            $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
-            $('#wrapper-'+fbid+' .xout').hide();
-            $('#wrapper-'+fbid+' .checkmark').show();
-	  	} else {
-	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
-	  	}
 
 //        alert("hi 2");
 
@@ -224,12 +306,12 @@ function selectFriend(fbid) {
 //            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
 //            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
 //        }
-        activateSuggestButton();
+//        activateSuggestButton();
 
-  		return true;
-  	} else {
-		return false;
-	}
+//  		return true;
+//  	} else {
+//		return false;
+//	}
 }
 
 /* runs when user deselects a friend 
@@ -243,33 +325,75 @@ function unselectFriend(fbid) {
 //    alert("unselectFriend(" + fbid + ")");
 
 //	var idx = recips.indexOf(fbid);
-    var idx = selectedIdx(fbid);
-    if (idx !== -1) {
-		recips.splice(idx, 1);
-//		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
+//    var idx = selectedIdx(fbid);
+    if (isRecip(fbid)) {
+////		recips.splice(idx, 1);
+////		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
 		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
-		$('#msg-txt-friend-'+fbid).remove();	// remove the friend from the message
-        $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
-        $('#wrapper-'+fbid+' .xout').show();
-        $('#wrapper-'+fbid+' .checkmark').hide();
+		$('#recipient-'+fbid).remove();	// remove the friend from the message
+//        $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
+//        $('#wrapper-'+fbid+' .xout').show();
+//        $('#wrapper-'+fbid+' .checkmark').hide();
+        syncFriendBoxes();
+        reformatRecipsList();
 		return true;
 	} else {
 		return false;
 	}
 }
 
+function syncFriendBoxes() {
+    // check the friend boxes upstairs first
+    var friendBoxes = $('.friend_box');
+    for (var i=0; i<friendBoxes.length; i++) {
+        var fbid = friendBoxes[i].id.split('-')[1];
+        if (isRecip(fbid)) {
+            $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
+            $('#wrapper-'+fbid+' .xout').hide();
+            $('#wrapper-'+fbid+' .checkmark').show();
+	  	}
+        else {
+            $('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
+            $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
+            $('#wrapper-'+fbid+' .xout').show();
+            $('#wrapper-'+fbid+' .checkmark').hide();
+        }
+    }
 
-// When the user clicks the 'x' on a name in the message textarea
-function msgRemove(id) {
-	unselectFriend(id);
-	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
+    // go through the manual add friends and make sure they should be there
+    var friendBoxesAdded = $('.added_friend');
+    for (var i=0; i<friendBoxesAdded.length; i++) {
+        var fbid = friendBoxesAdded[i].id.split('-')[1];
+        if (!isRecip(fbid)) {
+            friendBoxesAdded[i].remove();
+        }
+    }
+
+    // conversely, if there are any recips without a box, add one
+    var recipIds = getRecipFbids();
+    for (var i=0; i<recipIds.length; i++) {
+        var fbid = recipIds[i];
+        if (($('#added-'+fbid).length == 0) && ($('#friend-'+fbid).length == 0)) {
+	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
+        }
+    }
 }
 
+
+
+
+// When the user clicks the 'x' on a name in the message textarea
+//function msgRemove(id) {
+//	unselectFriend(id);
+////	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
+//}
+
 /* focuses & moves cursor to end of content-editable div */
+// grabbed from stackoverflow:
+// http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
 function msgFocusEnd() {
 	$('#message_form_editable').focus();
 
-	// grabbed from stackoverflow (http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity)
 	var contentEditableElement = document.getElementById('message_form_editable');
 	var range,selection;
 	if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
@@ -291,12 +415,17 @@ function msgFocusEnd() {
 
 }
 
-
 /* if cursor in editable div, & user selects a friend, at add insertion point */
-// Thank you stackoverflow! http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
-function insertAtCursor(html) {
+// Thank you stackoverflow!
+// http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
+function insertRecipAtCursor(fbid) {
+    var html = htmlRecip(fbid);
+
     var sel, range;
     if ( elementContainsSelection($('#message_form_editable').get(0)) ) {
+
+        console.log("el contains");
+
 	    if (window.getSelection) {
 	        // IE9 and non-IE
 	        sel = window.getSelection();
@@ -328,19 +457,21 @@ function insertAtCursor(html) {
 	        document.selection.createRange().pasteHTML(html);
 	    }
 
-	    var recips_removed = handleDeleted();
-	    if (recips_removed) {
-	    	$('.suggested_msg .preset_names').html(friendNames(false));
-	    }
+        //zzz is this necessary any more?
+//	    var recips_removed = handleDeleted();
+//	    if (recips_removed) {
+//	    	$('.suggested_msg .preset_names').html(friendNames(false));
+//	    }
 
 	} else {
+        console.log("el does not contain, inserting at end");
 		$('#message_form_editable').append(html);
 		msgFocusEnd();
 	}
 }
 
-/* */
-// more stackoverflow... http://stackoverflow.com/questions/8339857/how-to-know-if-selected-text-is-inside-a-specific-div/8340432#8340432
+// more stackoverflow:
+// http://stackoverflow.com/questions/8339857/how-to-know-if-selected-text-is-inside-a-specific-div/8340432#8340432
 function isOrContains(node, container) {
     while (node) {
         if (node === container) {
@@ -354,18 +485,29 @@ function isOrContains(node, container) {
 function elementContainsSelection(el) {
     var sel;
     if (window.getSelection) {
+        console.log("deb 1");
+
         sel = window.getSelection();
         if (sel.rangeCount > 0) {
-            for (var i = 0; i < sel.rangeCount; ++i) {
+            console.log("deb 2");
+
+            for (var i=0; i<sel.rangeCount; ++i) {
                 if (!isOrContains(sel.getRangeAt(i).commonAncestorContainer, el)) {
+                    console.log("deb 2.3");
+
                     return false;
                 }
             }
+            console.log("deb 2.8");
+
             return true;
         }
     } else if ( (sel = document.selection) && sel.type != "Control") {
+        console.log("caling is or contains");
         return isOrContains(sel.createRange().parentElement(), el);
     }
+    console.log("deb 3");
+
     return false;
 }
 
@@ -404,19 +546,28 @@ function useSuggested(msgs) {
     //	$('#other_msg').html($(msgID).html());
 
     // If they don't have anyone checked, using the suggested message adds everyone
-	if (recips.length === 0) {
+//	if (recips.length === 0) {
+    if (getRecipFbids().length == 0) {
 		selectAll(true);
 	}
+
 	//$('#other_msg .preset_names').html(friendNames(true));
 
     // grab the pre and post off the front of the queue and stick 'em back on the end
     var msgPair = msgs.shift();
     msgs.push(msgPair);
-
     var msgPre = msgPair[0];
     var msgPost = msgPair[1];
-    var msg = msgPre + '<span class="preset_names">' + friendNames(true) + '</span>' + msgPost;
-    $('#message_form_editable').html(msg);
+    var msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>";
+    var recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+//    console.log(msgPre);
+//    console.log(msgPost);
+    $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
+//    console.log($('#message_form_editable').html());
+    $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
+//    console.log($('#message_form_editable').html());
+//    console.log($('#message_form_names').html());
+
 
 //    if (!$('#do_share_button').hasClass('active_button')) {
 //        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
@@ -453,7 +604,7 @@ function selectAll(skipRecord) {
 		selectFriend(fbid);
 	}
 
-	msgNamesUpdate(true);
+//	msgNamesUpdate(true);
 
 }
 
@@ -461,7 +612,7 @@ function selectAll(skipRecord) {
 function toggleFriend(fbid) {
 //  alert("toggleFriend(" + fbid + ")");
 
-  if (isSelected(fbid)) {
+  if (isRecip(fbid)) {
   	unselectFriend(fbid);
   }
   else {
@@ -474,7 +625,7 @@ function toggleFriend(fbid) {
 //  	unselectFriend(fbid);
 //  }
 
-  msgNamesUpdate(true);
+//  msgNamesUpdate(true);
 }
 
 /*
