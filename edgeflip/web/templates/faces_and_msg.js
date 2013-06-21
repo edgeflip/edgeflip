@@ -1,34 +1,18 @@
 /* ALL TEH CODES */
 
-
-
-
-
-
-
-
-
-/* who user has selected to share with
-
-this should probably turn to a parameter instead of global
-*/
-var recips = []; // List to hold currently selected mention tag recipient fb ids
-//function selectedIdx(fbid) { // do this the hard way since some versions of IE don't play indexOf()
-//  for(var i=0; i<recips.length; i++) {
-//    if (recips[i] == fbid) return i;
-//  }
-//  return -1;
-//}
-//function isSelected(fbid) {
-//  return (selectedIdx(fbid) != -1);
-//}
-
+var FB_APP_ID = {{ fbParams.fb_app_id }};
+var FB_APP_NAME = '{{ fbParams.fb_app_name }}';
+var FB_OBJ_TYPE = '{{ fbParams.fb_object_type }}';
+var FB_OBJ_URL = '{{ fbParams.fb_object_url | safe }}';
 
 var RECIPS_LIST_CONTAINER = "recips_list";
+
+
 
 function getRecipElts() {
     return $('#message_form_editable .recipient');
 }
+
 function getRecipFbids() {
     var fbids = [];
     var recipElts = getRecipElts();
@@ -38,12 +22,9 @@ function getRecipFbids() {
     }
     return fbids;
 }
+
 function isRecip(fbid) {
-    var fbids = getRecipFbids();
-    for(var i=0; i<fbids.length; i++) {
-        if (fbids[i] == fbid) return true;
-    }
-    return false;
+    return (getRecipFbids().indexOf(fbid) > -1);
 }
 
 function htmlRecip(fbid) {
@@ -67,134 +48,42 @@ function reformatRecipsList() {
     $('#'+RECIPS_LIST_CONTAINER).empty().append(recipsHtml);
 }
 
-
-
-
-
-
-
 function htmlFriendManual(fbid, name) {
   var html = "<div class='added_friend' id='added-"+ fbid + "'>" + name;
   html += "<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>";
   return html;
 }
 
-
-
-
-
 /* advances the active button (if current active is already ahead of index param, it does nothing) */
 function activateButton(buttons, requestIdx) {
-  var classOn = 'button_active';
-  var classOff = 'button_inactive';
+    var classOn = 'button_active';
+    var classOff = 'button_inactive';
 
-  var currentIdx = 0;
-  for (var i=1; i<buttons.length; i++) {
-    if (buttons[i].hasClass(classOn)) {
-      currentIdx = i;
+    var currentIdx = 0;
+    for (var i=1; i<buttons.length; i++) {
+        if (buttons[i].hasClass(classOn)) {
+            currentIdx = i;
+        }
     }
-  }
-  var activateIdx = (currentIdx > requestIdx) ? currentIdx : requestIdx;
-  for (var i=1; i<buttons.length; i++) {
-    if (i == activateIdx) {
-        buttons[i].removeClass(classOff).addClass(classOn);
-    } else {
-        buttons[i].removeClass(classOn).addClass(classOff);
+    var activateIdx = (currentIdx > requestIdx) ? currentIdx : requestIdx;
+    for (var i=1; i<buttons.length; i++) {
+        if (i == activateIdx) {
+            buttons[i].removeClass(classOff).addClass(classOn);
+        } else {
+            buttons[i].removeClass(classOn).addClass(classOff);
+        }
     }
-  }
-  return activateIdx;
+    return activateIdx;
 }
 var buttons = [ null, $('#button_select_all'), $('#button_sugg_msg'), $('#button_do_share') ];
-function activateSelectButton() {
-    return activateButton(buttons, 1);
-}
+//function activateSelectButton() {
+//    return activateButton(buttons, 1);
+//}
 function activateSuggestButton() {
     return activateButton(buttons, 2);
 }
 function activateShareButton() {
     return activateButton(buttons, 3);
-}
-
-
-
-
-/* makes an HTML snippet - used to create message to share with friends
-
-XXX may never be called w/ forMsg=false?
-
- */
-//function spanStr(id, forMsg) {
-//	// forMsg should be true to return code for the message textarea and false for suggested messages
-//
-//	// Yeah, I know there's a "right" way to do this, but then, I wasn't even supposed to be here today...
-//	var ret;
-//	if (forMsg) {
-//		ret = "<span class='msg_friend_name msg-txt-friend' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
-//	} else {
-//		ret = "<span class='msg_friend_name msg-sugg-friend'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
-//	}
-//	return ret
-//}
-//function spanStr(id) {
-//	return "<span class='msg_friend_name' id='msg-txt-friend-"+id+"' contentEditable='False'>"+fbnames[id]+"<span class='msg_x' onClick='msgRemove("+id+");'>x</span></span>"
-//}
-
-
-/* return a human-friendly string from friends
-
-list of friends from global recips
-*/
-// Return a string with correctly formatted names of current recipients (eg, "Larry, Darryl, and Darryl")
-//function friendNames(forMsg) {
-//  // forMsg should be true to return code for the message textarea and false for suggested messages
-//  forMsg = typeof forMsg !== 'undefined' ? forMsg : false;
-//  var recip_str = "";
-//
-//  var txt_recips = [];
-//  if (recips.length === 0) {
-//  	if (forMsg) { return ""; }
-//
-//  	var divs = $("input[id*='box-']");
-//  	for (var i=0; i < divs.length; i++) {
-//  		txt_recips.push( parseInt(divs[i].id.split('-')[1]) );
-//  	}
-//
-//  } else {
-//  	txt_recips = recips.slice(0);
-//  }
-//
-//  for (var i=0; i < (txt_recips.length-1); i++) {
-//    recip_str += spanStr(txt_recips[i], forMsg) + ", ";
-//  }
-//
-//  if (txt_recips.length > 2) {
-//    recip_str += 'and ' + spanStr(txt_recips[txt_recips.length-1], forMsg);
-//  } else if (txt_recips.length == 2) {
-//    recip_str = spanStr(txt_recips[0], forMsg) + " and "+ spanStr(txt_recips[1], forMsg);
-//  } else {
-//    recip_str = spanStr(txt_recips[0], forMsg);
-//  }
-//
-//  return recip_str;
-//}
-
-function friendNames() {
-//    switch (recips.length) {
-//        case 0:
-//            return "";
-//        case 1:
-//            return spanStr(recips[0]);
-//        case 2:
-//            return spanStr(recips[0]) + " and "+ spanStr(recips[1]);
-//        default:
-//            var recip_str = "";
-//            for (var i=0; i < (recips.length-1); i++) {
-//                recip_str += spanStr(recips[i]) + ", ";
-//            }
-//            recip_str += " and " + spanStr(recips[recips.length-1]);
-//            return recip_str;
-//    }
-    return false;
 }
 
 function commafy(things) {
@@ -215,36 +104,14 @@ function commafy(things) {
     }
 }
 
-
-
-
-
-
-/* formats the current recips list into a blob of html for the editable message box */
-function msgNamesUpdate(doFocus) {
-    $('#message_form_names').html(friendNames());		// reword message in textbox
-	if ( doFocus && ($('#message_form_names').length !== 0) ) {
-		msgFocusEnd();
-	}
-}
-
-/* runs when user picks a friend 
-
-activated by click a friend to share with or from manual drop
-
-*/
-
-// refactor function to do any work necessary to select a friend
-// returns true if recipient was added; false otherwise
 function selectFriend(fbid) {
-//    alert("selectFriend(" + fbid + ")");
-
+    //alert("selectFriend(" + fbid + ")");
     if (isRecip(fbid)) {  // if the friend is already in the recips list, do nothing
         return false;
     }
     else {
-        // if we've used the suggest button, we should have a recips list container, so stick
-        // it in there and reformat
+        // if we've used the suggest button, we should have a recips list container,
+        // so stick it in there and reformat
         if ($('#'+RECIPS_LIST_CONTAINER).length > 0) {
             $('#'+RECIPS_LIST_CONTAINER).append(htmlRecip(fbid));
             reformatRecipsList();
@@ -254,64 +121,10 @@ function selectFriend(fbid) {
             insertRecipAtCursor(fbid);
         }
 
-        // update the appearance of the friend box
-        syncFriendBoxes();
-
-//  		if ($('#wrapper-'+fbid).length > 0) {
-//            $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
-//            $('#wrapper-'+fbid+' .xout').hide();
-//            $('#wrapper-'+fbid+' .checkmark').show();
-//	  	} else {
-//	  		$('#picked_friends_container').append(htmlFriendManual(fbid, fbnames[fbid]))
-//	  	}
-
-        // advance the button highlight
-        activateSuggestButton();
-
+        syncFriendBoxes();  // update the appearance of the friend box
+        activateSuggestButton();  // advance the button highlight
         return true;
     }
-
-
-
-//	if (! isSelected(fbid)) {
-//	   	recips.push(fbid);
-
-//		// Append name to text area if user is writing their own message.
-//		// Otherwise, adding to recipients will take care of this.
-//		// Also, avoid appending if this div already exists -- might have been re-created by a user hitting undo after a manual delete.
-//		if ( ($('#other_msg .preset_names').length === 0) && ($('#msg-txt-friend-'+fbid).length === 0) ) {
-//	    	insertAtCursor('&nbsp;'+spanStr(fbid, true)+'&nbsp;');
-//		}
-
-
-
-
-		// if we're showing a face for the friend, check their checkbox. Otherwise, create an "added_friend" div for them
-//  		if ($('#box-'+fbid).length > 0) {
-//	  		  $('#box-'+fbid).prop('checked', true);
-//            $('#friend-'+fbid).removeClass('unselected_friend').addClass('selected_friend');
-//            $('#wrapper-'+fbid+' .xout').hide();
-//            $('#wrapper-'+fbid+' .checkmark').show();
-//	  	} else {
-//	  		$("#picked_friends_container").append("<div class='added_friend' id='added-"+fbid+"'>"+fbnames[fbid]+"<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>");
-//	  	}
-
-
-//        alert("hi 2");
-
-
-
-
-//        if (!$('#do_share_button').hasClass('button_active')) {
-//            $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-//            $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
-//        }
-//        activateSuggestButton();
-
-//  		return true;
-//  	} else {
-//		return false;
-//	}
 }
 
 /* runs when user deselects a friend 
@@ -319,21 +132,10 @@ function selectFriend(fbid) {
 activated by unclick a friend to share with or from manual drop or in edit message
 
 */
-// refactor function to do any work necessary to unselect a friend
-// returns true if recipient was removed; false otherwise
 function unselectFriend(fbid) {
-//    alert("unselectFriend(" + fbid + ")");
-
-//	var idx = recips.indexOf(fbid);
-//    var idx = selectedIdx(fbid);
+    //alert("unselectFriend(" + fbid + ")");
     if (isRecip(fbid)) {
-////		recips.splice(idx, 1);
-////		$('#box-'+fbid).prop('checked', false); // uncheck the box (if it exists)
-		$('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
 		$('#recipient-'+fbid).remove();	// remove the friend from the message
-//        $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
-//        $('#wrapper-'+fbid+' .xout').show();
-//        $('#wrapper-'+fbid+' .checkmark').hide();
         syncFriendBoxes();
         reformatRecipsList();
 		return true;
@@ -369,7 +171,7 @@ function syncFriendBoxes() {
         }
     }
 
-    // conversely, if there are any recips without a box, add one
+    // finally, if there are any recips without a box, add a manual one
     var recipIds = getRecipFbids();
     for (var i=0; i<recipIds.length; i++) {
         var fbid = recipIds[i];
@@ -378,15 +180,6 @@ function syncFriendBoxes() {
         }
     }
 }
-
-
-
-
-// When the user clicks the 'x' on a name in the message textarea
-//function msgRemove(id) {
-//	unselectFriend(id);
-////	msgNamesUpdate(false); // don't move cursor to end because use is working in text area
-//}
 
 /* focuses & moves cursor to end of content-editable div */
 // grabbed from stackoverflow:
@@ -457,12 +250,6 @@ function insertRecipAtCursor(fbid) {
 	        document.selection.createRange().pasteHTML(html);
 	    }
 
-        //zzz is this necessary any more?
-//	    var recips_removed = handleDeleted();
-//	    if (recips_removed) {
-//	    	$('.suggested_msg .preset_names').html(friendNames(false));
-//	    }
-
 	} else {
         console.log("el does not contain, inserting at end");
 		$('#message_form_editable').append(html);
@@ -511,47 +298,14 @@ function elementContainsSelection(el) {
     return false;
 }
 
-// If the user happens to manually delete a recipient while editing the message
-function handleDeleted() {
-  var recips_removed = false;
-  var curr_recips = recips.slice(0);
-  for (var i = 0; i < curr_recips.length; i++) {
-  	var fbid = curr_recips[i];
-  	if ($('#msg-txt-friend-'+fbid).length === 0 ) {
-  		unselectFriend(fbid);
-  		recips_removed = true;
-  	}
-  }
-  return recips_removed;
-}
-
-// If the user hits "undo" and manages to add back a deleted recipient
-function handleUndo() {
-  var recips_added = false;
-  var divs = $(".msg-txt-friend");
-  for (var i = 0; i < divs.length; i++) {
-  	var fbid = parseInt(divs[i].id.split('-')[3]);
-  	var id_added = selectFriend(fbid);
-  	recips_added = id_added || recips_added;	// might be able to do this in one line, but not clear selectFriend() will always get called once recips_added set to true...
-  }
-  return recips_added;
-}
-
 /* populates message div w/ suggested text */
-
-
 function useSuggested(msgs) {
     recordEvent('suggest_message_click');
 
-    //	$('#other_msg').html($(msgID).html());
-
     // If they don't have anyone checked, using the suggested message adds everyone
-//	if (recips.length === 0) {
     if (getRecipFbids().length == 0) {
 		selectAll(true);
 	}
-
-	//$('#other_msg .preset_names').html(friendNames(true));
 
     // grab the pre and post off the front of the queue and stick 'em back on the end
     var msgPair = msgs.shift();
@@ -560,96 +314,41 @@ function useSuggested(msgs) {
     var msgPost = msgPair[1];
     var msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>";
     var recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
-//    console.log(msgPre);
-//    console.log(msgPost);
     $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
-//    console.log($('#message_form_editable').html());
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
-//    console.log($('#message_form_editable').html());
-//    console.log($('#message_form_names').html());
 
-
-//    if (!$('#do_share_button').hasClass('active_button')) {
-//        $('#sugg_msg').removeClass('active_small').addClass('inactive_small');
-//        $('#do_share_button').removeClass('inactive_button').addClass('active_button');
-//    }
     activateShareButton();
-
 	msgFocusEnd();
 }
 
-
-
 /* selects all friends */
 function selectAll(skipRecord) {
-
     if (!skipRecord) {
         recordEvent('select_all_click');
     }
-
-//    if (!$('#do_share_button').hasClass('active_button')) {
-//        $('#check_em_all').removeClass('active_small').addClass('inactive_small');
-//        $('#sugg_msg').removeClass('inactive_small').addClass('active_small');
-//    }
     activateSuggestButton();
 
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
-
-//	var divs = $(".friend_box:visible input[id*='box-']:not(:checked)");
 	var divs = $(".friend_box:visible");
-
   	for (var i=0; i < divs.length; i++) {
   		var fbid = parseInt(divs[i].id.split('-')[1]);
 		selectFriend(fbid);
 	}
-
-//	msgNamesUpdate(true);
-
 }
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
-//  alert("toggleFriend(" + fbid + ")");
-
-  if (isRecip(fbid)) {
-  	unselectFriend(fbid);
-  }
-  else {
-  	selectFriend(fbid);
-  }
-
-//  if ($('#box-'+fbid).is(':checked')) {
-//  	selectFriend(fbid);
-//  } else {
-//  	unselectFriend(fbid);
-//  }
-
-//  msgNamesUpdate(true);
-}
-
-/*
-zzz
-// Quick function to allow for clicking name or image to toggle friend
-// selected state in addition to clicking on the checkbox directly.
-// Just need to toggle the checkbox first, then proceed as if it had
-// been clicked directly.
-function faceClick(fbid) {
-
-    if (recips.length >= 10 && !$('#box-'+fbid).prop('checked')) {
-        alert("Sorry: only ten friends can be tagged.");
-        return false;
+    if (isRecip(fbid)) {
+  	    unselectFriend(fbid);
     }
-
-    $('#box-'+fbid).prop('checked', !$('#box-'+fbid).prop('checked'));
-    toggleFriend(fbid);
+    else {
+  	    selectFriend(fbid);
+    }
 }
-*/
 
-/* called when some suppress friend (X in faces list) */
-// Called when someone suppresses a friend by clicking the 'x'
+/* called when someone suppresses a friend (X in faces list) */
 function doReplace(old_fbid) {
-
 	var div_id = '#wrapper-'+old_fbid;
 
 	// Remove the friend from the messages
@@ -682,24 +381,22 @@ function doReplace(old_fbid) {
 		friendHTML(old_fbid, '', '', '', div_id);
 		// $(div_id).remove();
 	}
-
-	// Update the message text with the new names
-	msgNamesUpdate(true);
 }
 
 
+//var FB_APP_NAME = '{{ fbParams.fb_app_name }}';
+//var FB_OBJ_TYPE = '{{ fbParams.fb_object_type }}';
+//var FB_OBJ_URL = '{{ fbParams.fb_object_url | safe }}';
+
 // Ajax call to tell our server the friend has been suppressed and get the HTML for the next one
 function friendHTML(oldid, id, fname, lname, div_id) {
-
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
-	var appid = {{ fbParams.fb_app_id }};
-	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
-		appid: appid,
-		content: content,
+		appid: FB_APP_ID,
+		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
 		oldid: oldid,
 		newid: id,
 		fname: fname,
@@ -718,7 +415,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		error: function(jqXHR, textStatus, errorThrown) {
 			//new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
 			//$(div_id).replaceWith(new_html);
-
             // Something went wrong, so just remove the div as though no friend was returned
             $(div_id).remove();
 		},
@@ -736,7 +432,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 			sessionid = header_efsid || sessionid;
 		}
 	});
-
 }
 
 /* hits facebook API */
@@ -752,7 +447,7 @@ function doShare() {
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
 	var msg = "";
 
-	if (recips.length == 0) {
+	if (getRecipFbids().length == 0) {
 		var use_all = confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.");
 		if (use_all) {
 			selectAll(true);
@@ -766,11 +461,6 @@ function doShare() {
     $('#progress h2').html('S e n d i n g . . .');
     $('#progress').show();
 
-	// The message text will just be whatever is in #other_msg when the user hits send
-	// but we need to clean it up a little bit first...
-	handleDeleted();
-	handleUndo();
-	msgNamesUpdate(false);
 
     alert($('#message_form_editable').html());
 
@@ -810,18 +500,16 @@ function doShare() {
 	);
 }
 
-
 /* records share event on edgeflip servers; redirects user to thank you page */
 function recordShare(actionid) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
-	var appid = {{ fbParams.fb_app_id }};
 	var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
 	var params = JSON.stringify({
 		userid: userid,
 		actionid: actionid,
-		appid: appid,
+		appid: FB_APP_ID,
 		content: content,
 		friends: recips,
         eventType: 'shared',
@@ -855,12 +543,11 @@ function recordShare(actionid) {
 function recordEvent(eventType, errorMsg) {
 
     var userid = myfbid;
-    var appid = {{ fbParams.fb_app_id }};
     var content = '{{ fbParams.fb_app_name }}:{{ fbParams.fb_object_type }} {{ fbParams.fb_object_url | safe }}';
 
     var params = JSON.stringify({
         userid: userid,
-        appid: appid,
+        appid: FB_APP_ID,
         content: content,
         eventType: eventType,
         sessionid: sessionid,   // global session id was pulled in from query string above
@@ -887,6 +574,53 @@ function recordEvent(eventType, errorMsg) {
 }
 
 function helperTextDisappear() {
-    $('#helper_txt').remove();
+    $('#message_helper_txt').remove();
 }
+
+
+
+
+
+//
+//	var params = JSON.stringify({
+//		userid: userid,
+//		appid: FB_APP_ID,
+//		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+//		sessionid: sessionid,	// global session id was pulled in from query string above
+//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+//        contentid: contentid
+//
+//		oldid: oldid,
+//		newid: id,
+//		fname: fname,
+//		lname: lname,
+//	});
+//	var params = JSON.stringify({
+//		userid: userid,
+//		appid: FB_APP_ID,
+//		content: content,
+//		sessionid: sessionid,	// global session id was pulled in from query string above
+//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+//        contentid: contentid
+//
+//
+//		actionid: actionid,
+//		friends: recips,
+//        eventType: 'shared',
+//	});
+//
+//    var params = JSON.stringify({
+//        userid: userid,
+//        appid: FB_APP_ID,
+//        content: content,
+//        sessionid: sessionid,   // global session id was pulled in from query string above
+//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+//        contentid: contentid,
+//
+//
+//        eventType: eventType,
+//        errorMsg: errorMsg
+//    });
+
+
 

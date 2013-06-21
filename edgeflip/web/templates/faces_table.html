@@ -148,22 +148,22 @@ var max_msg_length = 1000;
 
 // key presses that we'll let through in the event the message has gotten too long
 var allow_keys = [
-                    8,         // Backspace
-                    46,        // Delete
-                    20,        // Caps Lock
-                    91,        // Command
-                    93,        // Right Command
-                    17,        // Control
-                    18,        // Alt
-                    40,        // Down
-                    35,        // End
-                    27,        // Escape
-                    36,        // Home
-                    37,        // Left
-                    34,        // Page Down
-                    33,        // Page Up
-                    39,        // Right
-                    38         // Up
+                    8,  // Backspace
+                    46, // Delete
+                    20, // Caps Lock
+                    91, // Command
+                    93, // Right Command
+                    17, // Control
+                    18, // Alt
+                    40, // Down
+                    35, // End
+                    27, // Escape
+                    36, // Home
+                    37, // Left
+                    34, // Page Down
+                    33, // Page Up
+                    39, // Right
+                    38  // Up
                  ];
 
 
@@ -180,25 +180,18 @@ editable.on('dragover drop', function(event) {
 });
 
 // have to catch return key presses on the keydown (to use preventDefault)
-editable.on('keydown', function(event) {  
-
+editable.on('keydown', function(event) {
     var code = (event.keyCode ? event.keyCode : event.which);
     // return (13) or enter (108) key pressed
     if(code == 13 || code == 108) {
-
         event.preventDefault();
         return false;
-
     } else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
-
         event.preventDefault();
         return false;
-
     } else {
-
         helperTextDisappear();
         msg_length = $('#message_form_editable').text().length;
-
     }
 });
 
@@ -231,18 +224,6 @@ editable.on('keyup', function(event) {
 
 </script>
 
-<script>
-    /* this whole thing can probably die - boxes should already be unchecked */
-
-    // Quick code to pre-load messages for testing...
-    
-    $("input[id*='box-']").prop('checked', false)
-
-    $('.suggested_msg .preset_names').html(friendNames(false));
-
-    $('#other_msg').focus();
-
-</script>
 
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
 
