@@ -1,4 +1,5 @@
 import os
+import mock
 import unittest
 
 from edgeflip.web import getApp
@@ -33,10 +34,18 @@ class EdgeFlipTestCase(unittest.TestCase):
         database.dbSetup()
         cdbr.client_db_reset()
         self.conn = database.getConn()
+        self.conn.begin()
+        self.conn.commit = mock.Mock()
+        db_mock = mock.Mock(return_value=self.conn)
+        self.getConn = database.getConn
+        database.getConn = db_mock
 
     def tearDown(self):
         ''' Be a good neighbor, clean up after yourself. '''
+        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
+        self.conn.rollback()
         self.conn.close()
+        database.getConn = self.getConn
         os.popen(
             'mysqladmin -uroot -proot drop edgeflip_test -f'
         ).read()

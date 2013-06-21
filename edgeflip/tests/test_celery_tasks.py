@@ -21,6 +21,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((isinstance(x, datastructs.Edge) for x in result))
 
         # Make sure some edges were created.
+        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         curs = self.conn.cursor()
         sql = 'SELECT * FROM edges WHERE fbid_target=%s'
         row_count = curs.execute(sql, 1)
