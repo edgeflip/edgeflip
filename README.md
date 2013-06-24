@@ -57,45 +57,35 @@ Facebook Canvas App
 -------------------
 
 1. Make sure you have the following line in /etc/hosts:
-        127.0.0.1	app.edgeflip.com
+	127.0.0.1	app.edgeflip.com
 
 
 2. Now, you need to patch werkzeug (or install a version > 0.8.3).  For me, I edited the file:
 	/Users/matthew/.virtualenvs/edgeflip/lib/python2.7/site-packages/werkzeug/serving.py
 
 Add the following function to the _SSLConnectionFix class (line 302):
-        def shutdown(self, args=None):
-            return self._con.shutdown()
+	def shutdown(self, args=None):
+	    return self._con.shutdown()
 
-For more info, see: https://github.com/mitsuhiko/werkzeug/issues/249
+	For more info, see: https://github.com/mitsuhiko/werkzeug/issues/249
 
-Note that this will get blown away if you reset your virtual environment, so we should figure out the grownup way to handle this.
+	Note that this will get blown away if you reset your virtual environment, so we should figure out the grownup way to handle this.
 
 
 3. [OPTIONAL] generate a self-signed key/certificate using a terminal, and stick them somewhere
-        $ openssl genrsa 1024 > ssl.key
-        $ openssl req -new -x509 -nodes -sha1 -days 365 -key ssl.key > ssl.cert
+	$ openssl genrsa 1024 > ssl.key
+	$ openssl req -new -x509 -nodes -sha1 -days 365 -key ssl.key > ssl.cert
 
-For more info, see: http://werkzeug.pocoo.org/docs/serving/#generating-certificates
+	For more info, see: http://werkzeug.pocoo.org/docs/serving/#generating-certificates
 
-If you skip this step, you will be limited to "ad hoc mode" as described below
+	If you skip this step, you will be limited to "ad hoc mode" as described below
 
 
 4. If it's not there already, install SSL for python:
-        $ pip install pyOpenSSL
+	$ pip install pyOpenSSL
 
 5.  When you start the devel server, pass it the --canvas or --canvas-adhoc flag.  This will start the server on port 443 and configure it to use SSL.  If you use the former, you can specify the name/location of the key and cert files you made in step 3 (run devel_server.py -h for details).  Alternatively, using "ad hoc mode" will generate one on the fly; if you do this, you must hit the server directly (via https://app.edgeflip.com/canvas/) and accept the cert before loading it up in canvas (https://apps.facebook.com/sharing-social-good/).  Also, I had to use sudo to get things to work on port 443.
 
-        $ sudo bin/devel_server.py --canvas --cert-dir ~/edgeflip/gits/shaycrk/ssl/
+	$ sudo bin/devel_server.py --canvas --cert-dir ~/edgeflip/gits/shaycrk/ssl/
 
 
-
-On Jun 11, 2013, at 11:10 AM, Kit Rodolfa <shaycrk@gmail.com> wrote:
-
-Oh, yikes... ugh. Because then you have to deal with certificates and all that terrible stuff, too, right? There must be a way to develop/test locally for FB canvas apps? Maybe JP or Pete have an idea here? As a last-ditch thing, we could certainly go back to the ssh tunnel, right?
-
-
-On Tue, Jun 11, 2013 at 8:48 AM, Matthew J. H. Rattigan <mattratt@gmail.com> wrote:
-Have you been able to get devel_server.py running on localhost?  FB requires SSL for canvas apps, but when I try to configure werkzeug to use ssl (http://werkzeug.pocoo.org/docs/serving/#ssl), but once I try and hit the server (say, https://app.edgeflip.com:8080/health_check) everything barfs.
-
-Matt
