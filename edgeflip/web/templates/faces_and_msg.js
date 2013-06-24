@@ -61,7 +61,8 @@ function reformatRecipsList() {
     $('#'+RECIPS_LIST_CONTAINER).empty().append(recipsHtml);
 }
 
-function htmlFriendManual(fbid, name) {
+function htmlRecipAdded(fbid) {
+  var name = friendFromFbid[fbid].name;
   var html = "<div class='added_friend' id='added-"+ fbid + "'>" + name;
   html += "<div class='added_x' onClick='removeFriend("+fbid+");'>x</div></div>";
   return html;
@@ -188,7 +189,7 @@ function syncFriendBoxes() {
     for (var i=0; i<recipIds.length; i++) {
         var fbid = recipIds[i];
         if (($('#added-'+fbid).length == 0) && ($('#friend-'+fbid).length == 0)) {
-	  		$('#picked_friends_container').append(htmlFriendManual(fbid, friendFromFbid[fbid].name))
+	  		$('#picked_friends_container').append(htmlRecipAdded(fbid))
         }
     }
 }
@@ -442,7 +443,7 @@ function doShare() {
 
     helperTextDisappear();
     $('#friends_div').hide();
-    $('#progress h2').html('S e n d i n g . . .');
+    $('#progress div').html('S e n d i n g . . .');
     $('#progress').show();
 
     var recips = getRecipFbids();

@@ -12,11 +12,15 @@
 
     {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />#}
     <!-- edgeflip stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client.css')}}" />
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client_simp.css')}}" />
+
+
     {% endblock edgeflip_style %}
 
     <!-- Document-specific style -->
@@ -83,9 +87,8 @@
 <BODY>
 
 <div style="display: table; position: relative; margin: 0px auto;">
-
-    <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
-        <h2 style="margin: 10px;">L o a d i n g . . .</h2>
+    <div id="progress">
+        <div style="margin-bottom: 10px">L o a d i n g . . .</div>
         <img src="{{url_for('static', filename='aniprogress.gif')}}">
     </div>
 

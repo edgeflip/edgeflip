@@ -3,7 +3,6 @@
 this is the message div and the faces themselves
  -->
 
-<link rel="stylesheet" type="text/css" href="/static/edgeflip_client.css" />
 {% from 'new_face.html' import face %}
 <script src="{{ url_for('static', filename='manual_add.js') }}"></script>
 <script>{% include 'faces_and_msg.js' %}</script>
@@ -55,7 +54,7 @@ this is the message div and the faces themselves
     </div> <!-- manual_add -->
 
     {% block msg_prompt %}
-    <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
+    <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
     <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest Message</div>

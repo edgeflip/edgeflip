@@ -418,41 +418,10 @@ def recordEvent():
     return ajaxResponse('', 200, sessionId)
 
 
-
-import sys
-def debugTable(tabName, outstream=sys.stderr):
-    conn = database.getConn()
-    curs = conn.cursor()
-    outstream.write("SELECT * FROM " + tabName + "\n")
-    #curs.execute("SELECT * FROM ?", (tabName,))
-    curs.execute("SELECT * FROM " + tabName)
-    for i, row in enumerate(curs):
-        outstream.write("\trow %d: %s\n" % (i, str(row)))
-
-
-
-
-
-@app.route("/canvas/", methods=['GET', 'POST'])
-def canvas():
-
-    debugTable('campaigns')
-    debugTable('client_content')
-
-    #return flask.render_template('canvas.html')
-    campaignId = 1
-    contentId = 1
-
-    # scout
-    # import sys
-    # cmpgClientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)
-    # for thing in cmpgClientId:
-    #     sys.stderr.write("row: " + str(thing) + "\n")
-    # cntClientId = cdb.dbGetObject('client_content', ['client_id'], 'content_id', contentId)
-    # for thing in cntClientId:
-    #     sys.stderr.write("row: " + str(thing) + "\n")
-
-
+# @app.route("/canvas/", methods=['GET', 'POST'])
+# def canvas():
+@app.route("/canvas/<campaignId>/<contentId>")
+def canvas(campaignId, contentId):
     return frame_faces(campaignId, contentId)
 
 
