@@ -63,14 +63,14 @@ Facebook Canvas App
 2. Now, you need to patch werkzeug (or install a version > 0.8.3).  For me, I edited the file:
 	/Users/matthew/.virtualenvs/edgeflip/lib/python2.7/site-packages/werkzeug/serving.py
 
-Add the following function to the _SSLConnectionFix class (line 302):
-	def shutdown(self, args=None):
-	    return self._con.shutdown()
+	Add the following function to the _SSLConnectionFix class (line 302):
+	    def shutdown(self, args=None):
+	        return self._con.shutdown()
 
 	For more info, see: https://github.com/mitsuhiko/werkzeug/issues/249
 
-	Note that this will get blown away if you reset your virtual environment, so we should figure out the grownup way to handle this.
-
+	Note that this will get blown away if you reset your virtual environment, so we should figure 
+	out the grownup way to handle this.
 
 3. [OPTIONAL] generate a self-signed key/certificate using a terminal, and stick them somewhere
 	$ openssl genrsa 1024 > ssl.key
@@ -84,7 +84,8 @@ Add the following function to the _SSLConnectionFix class (line 302):
 4. If it's not there already, install SSL for python:
 	$ pip install pyOpenSSL
 
-5.  When you start the devel server, pass it the --canvas or --canvas-adhoc flag.  This will start the server on port 443 and configure it to use SSL.  If you use the former, you can specify the name/location of the key and cert files you made in step 3 (run devel_server.py -h for details).  Alternatively, using "ad hoc mode" will generate one on the fly; if you do this, you must hit the server directly (via https://app.edgeflip.com/canvas/) and accept the cert before loading it up in canvas (https://apps.facebook.com/sharing-social-good/).  Also, I had to use sudo to get things to work on port 443.
+5.  When you start the devel server, pass it the --canvas or --canvas-adhoc flag.  This will start the 
+	server on port 443 and configure it to use SSL.  If you use the former, you can specify the name/location of the key and cert files you made in step 3 (run devel_server.py -h for details).  Alternatively, using "ad hoc mode" will generate one on the fly; if you do this, you must hit the server directly (via https://app.edgeflip.com/canvas/) and accept the cert before loading it up in canvas (https://apps.facebook.com/sharing-social-good/).  Also, I had to use sudo to get things to work on port 443.
 
 	$ sudo bin/devel_server.py --canvas --cert-dir ~/edgeflip/gits/shaycrk/ssl/
 
