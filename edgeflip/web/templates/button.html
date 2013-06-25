@@ -88,14 +88,35 @@
             var button_div = $('#share_button');
             button_div.hide();
 
-            FB.login(function(response) {
-                if (response.authResponse) {
-                    // User authorized, so write event and jump to page that will contain the faces...
+            // super-hokey work-around to make redirect work on iPhone
+            // (iOS 6 doesn't seem to return control to asynchronous code
+            //  upon returning from FB login. For more info, see:
+            //  http://stackoverflow.com/questions/14406692/fb-login-on-ios-6-doesnt-return-control-to-scripts-with-asynchronous-executio)
+            var hasAuthed = false;
+            var authedResponse = null;
+            var intervalId = setInterval(function() {
+                if( hasAuthed ) {
+                    clearInterval(intervalId);
+
                     var gotoURL = "{{ goto | safe }}";
                     if (sessionid) {
                         gotoURL = gotoURL + '&efsid=' + sessionid;
                     }
-                    recordEvent('authorized', response.authResponse.userID, gotoURL);
+                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL);
+                
+                }
+            }, 200 );
+
+            FB.login(function(response) {
+                if (response.authResponse) {
+                    // User authorized, so write event and jump to page that will contain the faces...
+                    // var gotoURL = "{{ goto | safe }}";
+                    // if (sessionid) {
+                    //     gotoURL = gotoURL + '&efsid=' + sessionid;
+                    // }
+                    // recordEvent('authorized', response.authResponse.userID, gotoURL);
+                    authedResponse = response;
+                    hasAuthed = true;
 
                 } else {
                     recordEvent('auth_fail', '');
