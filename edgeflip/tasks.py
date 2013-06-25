@@ -1,5 +1,4 @@
 from __future__ import absolute_import
-import logging
 
 from edgeflip import (
     database,
@@ -9,9 +8,6 @@ from edgeflip import (
 )
 from edgeflip.celery import celery
 from edgeflip.settings import config
-
-MAX_FALLBACK_COUNT = 3 # TODO: Move to config?
-logger = logging.getLogger(__name__)
 
 
 @celery.task
