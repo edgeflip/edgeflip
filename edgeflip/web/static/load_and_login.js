@@ -79,15 +79,15 @@ function login(fbid, accessToken, response, task_id){
                 data = $.parseJSON(data);
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
-                        if (pollingCount > 3) {
+                        if (pollingCount > 24) {
                             clearTimeout(pollingTimer);
                             commError();
                         } else {
                             pollingCount += 1;
-                            pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 3000);
+                            pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
                         }
                     } else {
-                        pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 3000);
+                        pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
                     }
                 } else {
                     displayFriendDiv(data.html, jqXHR);

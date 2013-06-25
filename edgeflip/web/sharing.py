@@ -82,7 +82,7 @@ def faces():
     contentId = flask.request.json['contentid']
     mockMode = True if flask.request.json.get('mockmode') else False
     task_id = flask.request.json.get('task_id')
-    ip = getIP(req = flask.request)
+    ip = getIP(req=flask.request)
     fbmodule = None
     user = edgesRanked = edgesUnranked = None
 
@@ -102,7 +102,7 @@ def faces():
         logger.info('Running in mock mode')
         fbmodule = mock_facebook
         # Generate a random fake ID for our primary to avoid collisions in DB
-        fbid = 100000000000+random.randint(1,10000000)
+        fbid = 100000000000 + random.randint(1,10000000)
     else:
         fbmodule = facebook
 
@@ -110,14 +110,14 @@ def faces():
     clientSubdomain = flask.request.host.split('.')[0]
     try:
         clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    except ValueError as e:
+    except ValueError:
         return "Content not found", 404     # Better fallback here or something?
 
     # Want to ensure mock mode can only be run in staging or local development
     if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
         return "Mock mode only allowed for the mock client.", 403
 
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
 
     if (not sessionId):
         # If we don't have a sessionId, generate one with "content" as the button that would have pointed to this page...
@@ -134,7 +134,7 @@ def faces():
     if (not mockMode):
         user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
 
-    if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
+    if not user and not edgesUnranked: # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
         newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
         edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
