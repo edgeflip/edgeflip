@@ -130,7 +130,7 @@ def faces():
     token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
 
     """next 60 lines or so get pulled out"""
-    if not (user and edgesRanked):
+    if not user and edgesRanked is None:
         if not mockMode:
             user = database.getUserDb(fbid, config.freshness,
                                       freshnessIncludeEdge=False)
