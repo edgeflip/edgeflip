@@ -16,9 +16,9 @@ class TestCeleryTasks(EdgeFlipTestCase):
         get back a lengthy list of Edges.
         '''
         token = datastructs.TokenInfo('1', '1', '1', '1')
-        result = tasks.retrieve_fb_user_info(True, 1, token)
-        assert result
-        assert all((isinstance(x, datastructs.Edge) for x in result))
+        user, ranked_edges = tasks.retrieve_fb_user_info(True, 1, token)
+        assert isinstance(user, datastructs.UserInfo)
+        assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
 
         # Make sure some edges were created.
         curs = self.conn.cursor()

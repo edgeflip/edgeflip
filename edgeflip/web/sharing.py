@@ -89,7 +89,7 @@ def faces():
     if task_id:
         result = celery.celery.AsyncResult(task_id)
         if result.ready():
-            edgesUnranked = result.result
+            user, edgesRanked = result.result
         else:
             return ajaxResponse(
                 json.dumps({'status': 'waiting', 'task_id': task_id}),
@@ -130,36 +130,43 @@ def faces():
     token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
 
     """next 60 lines or so get pulled out"""
+    if not (user and edgesRanked):
+        if not mockMode:
+            user = database.getUserDb(fbid, config.freshness,
+                                      freshnessIncludeEdge=False)
 
-    if (not mockMode):
-        user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
+        if user: # user is there, but may have come in as a secondary (and therefore have no edges)
+            logger.debug("user %s is fresh, getting data from db", fbid)
+            newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
+            edgesUnranked = database.getFriendEdgesDb(fbid,
+                                                      requireOutgoing=False,
+                                                      newerThan=newerThan)
+            # zzz Even if we got the user from the DB, we'll still want to at least write
+            #     the token for two reasons: (1) we can update its expiration date since
+            #     it will have been extended because they came back, and (2) it's possible
+            #     we got this user associated with a different Facebook app id, so want to
+            #     be sure the new association is stored!
 
-    if not user and not edgesUnranked: # user is there, but may have come in as a secondary (and therefore have no edges)
-        logger.debug("user %s is fresh, getting data from db", fbid)
-        newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
-        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
-        # zzz Even if we got the user from the DB, we'll still want to at least write
-        #     the token for two reasons: (1) we can update its expiration date since
-        #     it will have been extended because they came back, and (2) it's possible
-        #     we got this user associated with a different Facebook app id, so want to
-        #     be sure the new association is stored!
-
-    # zzz This logic depends heavily on the fact that we're using soley px3 right now
-    #     (and requireOutgoing is always False above). Otherwise, the edges may have
-    #     various updated dates and we could only have a small subset of them here.
-    #     (I kinda at least want to know the number of friends to compare to...)
-    #     We really need a better way of doing this!!!
-    if not edgesUnranked:
-        logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
-        result = tasks.retrieve_fb_user_info.delay(mockMode, fbid, token)
-        return ajaxResponse(
-            json.dumps({'status': 'waiting', 'task_id': result.id}),
-            200,
-            sessionId
-        )
-    else:
-        logger.debug('Getting info from the db for %s', fbid)
-        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
+        # zzz This logic depends heavily on the fact that we're using soley px3 right now
+        #     (and requireOutgoing is always False above). Otherwise, the edges may have
+        #     various updated dates and we could only have a small subset of them here.
+        #     (I kinda at least want to know the number of friends to compare to...)
+        #     We really need a better way of doing this!!!
+        if not edgesUnranked:
+            logger.debug(
+                "edges or user info for user %s is not fresh, retrieving data from fb",
+                fbid
+            )
+            result = tasks.retrieve_fb_user_info.delay(mockMode, fbid, token)
+            return ajaxResponse(
+                json.dumps({'status': 'waiting', 'task_id': result.id}),
+                200,
+                sessionId
+            )
+        else:
+            edgesRanked = ranking.getFriendRanking(edgesUnranked,
+                                                   requireIncoming=False,
+                                                   requireOutgoing=False)
 
     # Outside the if block because we want to do this regardless of whether we got
     # user data from the DB (since they could be connecting with a new client even

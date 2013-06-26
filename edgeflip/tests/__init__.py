@@ -14,12 +14,15 @@ class EdgeFlipTestCase(unittest.TestCase):
 
     def setUp(self):
         ''' This is a bit on the crazy side, using popen to construct and
-        destroy out database. Hopefully can find something better, but
+        destroy our database. Hopefully can find something better, but
         currently flask and our database are very separated which makes testing
         a bit on the interesting side.
         '''
         APP.config['TESTING'] = True
+        self.orig_dbname = config.dbname
+        self.orig_dbuser = config.dbuser
         config.dbname = 'edgeflip_test'
+        config.dbuser = 'edgeflip_test'
         config.unit_testing = True
         self.app = APP.test_client()
         # Let's drop the test database, just in case the last run failed
@@ -40,4 +43,5 @@ class EdgeFlipTestCase(unittest.TestCase):
         os.popen(
             'mysqladmin -uroot -proot drop edgeflip_test -f'
         ).read()
-        config.dbname = 'edgeflip'
+        config.dbname = self.orig_dbname
+        config.dbuser = self.orig_dbuser

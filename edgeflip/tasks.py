@@ -28,4 +28,7 @@ def retrieve_fb_user_info(mock_mode, fbid, token):
         edgesUnranked, requireIncoming=False, requireOutgoing=False)
     database.updateDb(user, token, edgesRanked,
                       background=config.database.use_threads)
-    return edgesRanked
+    try:
+        return (edgesRanked[0].primary, edgesRanked)
+    except IndexError:
+        return (None, edgesRanked)
