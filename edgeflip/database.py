@@ -349,6 +349,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
+# zzz should probably be able to pass this either a user object or an id...
 def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     """return list of datastructs.Edge objects for primaryId user
 
@@ -371,8 +372,8 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
             JOIN users u
     """
 
-    sql = sqlSelect + 
-        " ON e.fbid_source = u.fbid" +
+    sql = sqlSelect + \
+        " ON e.fbid_source = u.fbid" + \
         " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
     params = (newerThan, primId)
     secId_edgeCountsIn = {}
@@ -380,7 +381,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     curs.execute(sql, params)
     for rec in curs: # here, the secondary is the source, primary is the target
         secId, primId, iPstLk, iPstCm, iStLk, iStCm, \
-            iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated \
+            iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated, \
             fname, lname, email, gender, birthday, city, state = rec
         edgeCountsIn = datastructs.EdgeCounts(secId, primId,
                                               iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
@@ -392,18 +393,19 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
 
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
+            logger.debug("Got secondary info & incoming edge for %s----%s from the database.", primary.id, secId)
             edges.append(datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
 
     else:
-        sql = sqlSelect + 
-            " ON e.fbid_target = u.fbid" +
+        sql = sqlSelect + \
+            " ON e.fbid_target = u.fbid" + \
             " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
         params = (newerThan, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target
             primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
-            oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated \
-            fname, lname, email, gender, birthday, city, state = rec
+                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+                fname, lname, email, gender, birthday, city, state = rec
             edgeCountsOut = datastructs.EdgeCounts(primId, secId,
                                                    oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                    oTags, oPhOwn, oPhOth, oMuts)
@@ -415,7 +417,10 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
             #     friend who came in as a primary after friending the current primary.
             edgeCountsIn = secId_edgeCountsIn.get(secId)
             if edgeCountsIn is not None:
+                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
                 edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            else:
+                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
     return edges
 
 # helper function that may get run in a background thread
