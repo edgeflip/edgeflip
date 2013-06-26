@@ -349,7 +349,6 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
-# zzz should probably be able to pass this either a user object or an id...
 def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     """return list of datastructs.Edge objects for primaryId user
 
