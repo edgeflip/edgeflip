@@ -41,7 +41,7 @@ function doFBLogin() {
 var pollingTimer;
 var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
-function login(fbid, accessToken, response, task_id){
+function login(fbid, accessToken, response, px3_task_id, px4_task_id){
     if (response.authResponse) {
         var num = 9;
         myfbid = fbid; // set the global variable for use elsewhere
@@ -57,7 +57,8 @@ function login(fbid, accessToken, response, task_id){
             sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,
             contentid: contentid,
-            task_id: task_id
+            px3_task_id: px3_task_id,
+            px4_task_id: px4_task_id
         });
 
         $.ajax({
@@ -84,10 +85,14 @@ function login(fbid, accessToken, response, task_id){
                             commError();
                         } else {
                             pollingCount += 1;
-                            pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
+                            pollingTimer = setTimeout(function() {
+                                login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                            }, 500);
                         }
                     } else {
-                        pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
+                        pollingTimer = setTimeout(function() {
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                        }, 500);
                     }
                 } else {
                     displayFriendDiv(data.html, jqXHR);
