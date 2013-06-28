@@ -22,6 +22,7 @@ celery.conf.update(
         config.dbhost,
         config.dbname,
     ),
+    CELERY_ALWAYS_EAGER=config.always_eager,
     CELERY_ROUTES={
         'edgeflip.tasks.retrieve_fb_user_info': {'queue': 'user_info'},
     }

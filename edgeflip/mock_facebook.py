@@ -258,7 +258,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     makes multiple calls to FB! separate calcs & FB calls
     """
-    if (requireIncoming or requireOutgoing):
+    if requireOutgoing:
         raise NotImplementedError("Stream reading not available for mock facebook module")
 
     skipFriends = skipFriends if skipFriends is not None else set()
@@ -279,11 +279,26 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
 
-        ecIn = datastructs.EdgeCounts(friend.id,
-              user.id,
-              photoTarg=friend.primPhotoTags,
-              photoOth=friend.otherPhotoTags,
-              muts=friend.mutuals)
+        kwargs = {}
+        if requireIncoming:
+            kwargs = {
+                'postLikes': random.randint(0, 50),
+                'postComms': random.randint(0, 50),
+                'statLikes': random.randint(0, 50),
+                'statComms': random.randint(0, 50),
+                'wallPosts': random.randint(0, 50),
+                'wallComms': random.randint(0, 50),
+                'tags': 1,
+            }
+
+        ecIn = datastructs.EdgeCounts(
+            friend.id,
+            user.id,
+            photoTarg=friend.primPhotoTags,
+            photoOth=friend.otherPhotoTags,
+            muts=friend.mutuals,
+            **kwargs
+        )
         e = datastructs.Edge(user, friend, ecIn, None)
 
         edges.append(e)

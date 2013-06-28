@@ -41,7 +41,7 @@ function doFBLogin() {
 var pollingTimer;
 var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
-function login(fbid, accessToken, response, px3_task_id, px4_task_id){
+function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
     if (response.authResponse) {
         var num = 9;
         myfbid = fbid; // set the global variable for use elsewhere
@@ -58,7 +58,8 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id){
             campaignid: campaignid,
             contentid: contentid,
             px3_task_id: px3_task_id,
-            px4_task_id: px4_task_id
+            px4_task_id: px4_task_id,
+            skip_px4: skip_px4
         });
 
         $.ajax({
@@ -82,7 +83,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id){
                     if (pollingTimer) {
                         if (pollingCount > 24) {
                             clearTimeout(pollingTimer);
-                            commError();
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                         } else {
                             pollingCount += 1;
                             pollingTimer = setTimeout(function() {

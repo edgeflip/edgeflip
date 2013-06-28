@@ -81,6 +81,7 @@ def faces():
     mockMode = True if flask.request.json.get('mockmode') else False
     px3_task_id = flask.request.json.get('px3_task_id')
     px4_task_id = flask.request.json.get('px4_task_id')
+    skip_px4 = True if flask.request.json.get('skip_px4') else False
     ip = getIP(req=flask.request)
     fbmodule = None
     edgesRanked = None
@@ -117,20 +118,27 @@ def faces():
     token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
     token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
 
-    if px3_task_id:
-        result = celery.celery.AsyncResult(px3_task_id)
-        if result.ready():
-            edgesRanked, bestCSFilter, choiceSet, allowGeneric = result.result
+    if px3_task_id and px4_task_id:
+        px3_result = celery.celery.AsyncResult(px3_task_id)
+        px4_result = celery.celery.AsyncResult(px4_task_id)
+        if (px3_result.ready() and (px4_result.ready() or skip_px4)):
+            px4_edges = px4_result.result if px4_result.ready() else []
+            edgesRanked, bestCSFilter, choiceSet, allowGeneric = px3_result.result
+            if not all([edgesRanked, bestCSFilter, choiceSet, allowGeneric]):
+                return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
-            return ajaxResponse(
-                json.dumps({
-                    'status': 'waiting',
-                    'px3_task_id': px3_task_id,
-                    'px4_task_id': px4_task_id
-                }),
-                200,
-                sessionId
-            )
+            if skip_px4 and not px3_result.ready():
+                return ajaxResponse('No friends identified for you.', 500, sessionId)
+            else:
+                return ajaxResponse(
+                    json.dumps({
+                        'status': 'waiting',
+                        'px3_task_id': px3_task_id,
+                        'px4_task_id': px4_task_id
+                    }),
+                    200,
+                    sessionId
+                )
     else:
         px3_task_id = tasks.proximity_rank_three(
             mockMode=mockMode,
@@ -156,59 +164,19 @@ def faces():
             sessionId
         )
 
-    """next 60 lines or so get pulled out
-    if not user and edgesRanked is None:
-        if not mockMode:
-            user = database.getUserDb(fbid, config.freshness,
-                                      freshnessIncludeEdge=False)
-
-        if user: # user is there, but may have come in as a secondary (and therefore have no edges)
-            logger.debug("user %s is fresh, getting data from db", fbid)
-            newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
-            edgesUnranked = database.getFriendEdgesDb(fbid,
-                                                      requireOutgoing=False,
-                                                      newerThan=newerThan)
-            # zzz Even if we got the user from the DB, we'll still want to at least write
-            #     the token for two reasons: (1) we can update its expiration date since
-            #     it will have been extended because they came back, and (2) it's possible
-            #     we got this user associated with a different Facebook app id, so want to
-            #     be sure the new association is stored!
-
-        # zzz This logic depends heavily on the fact that we're using soley px3 right now
-        #     (and requireOutgoing is always False above). Otherwise, the edges may have
-        #     various updated dates and we could only have a small subset of them here.
-        #     (I kinda at least want to know the number of friends to compare to...)
-        #     We really need a better way of doing this!!!
-        if not edgesUnranked:
-            logger.debug(
-                "edges or user info for user %s is not fresh, retrieving data from fb",
-                fbid
-            )
-            px3_task = tasks.retrieve_fb_user_info.delay(
-                mockMode, fbid, token)
-            px4_task = tasks.retrieve_fb_user_info.delay(
-                mockMode, fbid, token, True)
-            return ajaxResponse(
-                json.dumps({
-                    'status': 'waiting',
-                    'px3_task_id': px3_task.id,
-                    'px4_task_id': px4_task.id,
-                }),
-                200,
-                sessionId
-            )
-        else:
-            edgesRanked = ranking.getFriendRanking(edgesUnranked,
-                                                   requireIncoming=False,
-                                                   requireOutgoing=False)
-
-    """
     # Outside the if block because we want to do this regardless of whether we got
     # user data from the DB (since they could be connecting with a new client even
     # though we already have them in the DB associated with someone else)
     cdb.dbWriteUserClient(fbid, clientId, background=config.database.use_threads)
+    if px4_edges:
+        filtered_px4_edges = []
+        filtered_px3_edge_ids = [x.secondary.id for x in bestCSFilter[1]]
+        for edge in px4_edges:
+            if edge.secondary.id in filtered_px3_edge_ids:
+                filtered_px4_edges.append(edge)
 
-    import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
+        bestCSFilter = (bestCSFilter[0], filtered_px4_edges)
+
     return applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
                          clientSubdomain, campaignId, contentId,
                          sessionId, ip, fbid, numFace, paramsDB)

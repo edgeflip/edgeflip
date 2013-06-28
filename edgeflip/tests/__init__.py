@@ -3,7 +3,7 @@ import unittest
 
 from edgeflip.web import getApp
 from edgeflip.settings import config
-from edgeflip import database, client_db_reset as cdbr
+from edgeflip import database
 
 APP = getApp()
 REPO_ROOT = os.path.join(os.path.dirname(__file__), '../', '../')
@@ -21,6 +21,8 @@ class EdgeFlipTestCase(unittest.TestCase):
         APP.config['TESTING'] = True
         self.orig_dbname = config.dbname
         self.orig_dbuser = config.dbuser
+        self.orig_eager = config.always_eager
+        config.always_eager = True
         config.dbname = 'edgeflip_test'
         config.dbuser = 'edgeflip_test'
         config.unit_testing = True
@@ -33,15 +35,14 @@ class EdgeFlipTestCase(unittest.TestCase):
         os.popen(
             'mysql -uroot -proot < %s/sql/initial_test.sql' % REPO_ROOT
         ).read()
-        database.dbSetup()
-        cdbr.client_db_reset()
+        os.popen(
+            'mysql -uroot -proot edgeflip_test < %s/sql/test_database.sql' % REPO_ROOT
+        ).read()
         self.conn = database.getConn()
 
     def tearDown(self):
         ''' Be a good neighbor, clean up after yourself. '''
         self.conn.close()
-        os.popen(
-            'mysqladmin -uroot -proot drop edgeflip_test -f'
-        ).read()
+        config.always_eager = self.orig_eager
         config.dbname = self.orig_dbname
         config.dbuser = self.orig_dbuser
