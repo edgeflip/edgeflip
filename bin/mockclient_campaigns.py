@@ -22,6 +22,10 @@ def seedClientData():
     # in a fresh build. (/ofa endpoint)
     createEnviroCampaign(clientId, allFilterId, allChoiceSetId)
 
+    # The McAuliffe campaign. Will be campaign_id = content_id = 4
+    # in a fresh build. (/mcauliffe endpoint)
+    createMcAuliffeCampaign(clientId, allFilterId, allChoiceSetId)
+
 
 def createMockClient():
     """Creates the mock clients and default filter and choice set"""
@@ -161,6 +165,44 @@ def createEnviroCampaign(clientId, allFilterId, allChoiceSetId):
                             filterNY : [(objectNY,1.0)]
                         }, 
         genericTupes=[(objectGen,1.0)])
+
+
+def createMcAuliffeCampaign(clientId, allFilterId, allChoiceSetId):
+    """Creates the content and campaign records associated with the mockclient mcauliffe campaign"""
+    statesFilterId = cdb.createFilter(clientId, 'In Virginia', None, [('state', 'eq', 'Virginia')]).get('filter_id')
+    statesChoiceSetId = cdb.createChoiceSet(clientId, 'In Virginia', None, [(statesFilterId, 'all', None)]).get('choice_set_id')
+    vaCntId = cdb.createClientContent(clientId, 'Support Terry McAuliffe', None, 'http://%s/mcauliffe' % config.web['mock_host']).get('content_id')
+    vaStyleId = cdb.createButtonStyle(clientId, 'VA Share Button', None, htmlFile='clients/terrymcauliffe/share_button.html').get('button_style_id')
+
+    va_attr = {
+        'og_action' : 'support',
+        'og_type' : 'cause', 
+        'og_title' : 'Terry McAuliffe for Governor',
+        'og_image' : 'http://action.terrymcauliffe.com/page/-/targetedsharing/targetedsharign_thumb.png',
+        'og_description' : """Terry McAuliffe supports access to safe and legal abortion, while the Washington Post writes that Ken Cuccinelli is waging a "War on Abortion." Learn more about your choices for Governor.""",
+        'page_title' : "Support Terry McAuliffe for Governor",
+        'sharing_prompt' : "There's a Clear Choice in this Election. If You Want a Governor who Stands Up for Women's Rights, Spread the Word to Your Friends on Facebook:",
+        'msg1_pre' : "Hey, ",
+        'msg1_post' : ", do you know about the candidates running for Governor in Virginia? Learn more about their positions on women's rights and decide for yourself.",
+        'msg2_pre' : "Did you hear the latest from the Virginia Governor's Race ",
+        'msg2_post' : "? There's a clear choice when it comes to their positions on women's right: Terry McAuliffe"
+    }
+
+    vaObjId = cdb.createFacebookObject(clientId, 'McAuliffe Infographic', None, va_attr).get('fb_object_id')
+
+    vaCmpgId = cdb.createCampaign(clientId, 'McAuliffe for Governor', None, 
+        "http://%s/mcauliffe_share" % config.web['mock_host'], 
+        "https://donate.terrymcauliffe.com/page/contribute/thanks-donate", 
+        "https://donate.terrymcauliffe.com/page/contribute/thanks-donate").get('campaign_id')
+
+    cdb.updateCampaignGlobalFilters(vaCmpgId, [(allFilterId, 1.0)])
+    cdb.updateCampaignChoiceSets(vaCmpgId, [(statesChoiceSetId, 1.0, True, 'all')])
+    cdb.updateCampaignButtonStyles(vaCmpgId, [(vaStyleId, 1.0)])
+
+    cdb.updateCampaignFacebookObjects(vaCmpgId, 
+        filter_fbObjTupes={statesFilterId: [(vaObjId, 1.0)]}, 
+        genericTupes=[(vaObjId, 1.0)])
+
 
 
 if (__name__ == '__main__'):
