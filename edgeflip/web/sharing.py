@@ -44,7 +44,26 @@ def button(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template(locateTemplate('button.html', clientSubdomain, app), fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId)
+    ip = getIP(req = flask.request)
+    sessionId = generateSessionId(ip, '%s:button %s' % (paramsDict['fb_app_name'], facesURL))
+
+    # Get button style experiments (if any), do assignment (and write DB)
+    styleTemplate = None
+    try:
+        styleRecs = cdb.dbGetExperimentTupes('campaign_button_styles', 'campaign_button_style_id', 'button_style_id', [('campaign_id', campaignId)])
+        styleExpTupes = [(r[1], r[2]) for r in styleRecs]
+        styleId = int(cdb.doRandAssign(styleExpTupes))
+        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'button_style_id', styleId, True, 'campaign_button_styles', [r[0] for r in styleRecs], background=config.database.use_threads)
+
+        # Find template location
+        styleTemplate = cdb.dbGetObjectAttributes('button_style_files', 
+                        ['html_template'], 'button_style_id', styleId)[0][0]
+    except Exception as e:
+        # Weren't able to get a style from the DB, so fall back to default
+        # zzz (mostly a quick hack to account for existing clients without specific button style in in the DB...)
+        styleTemplate = locateTemplate('button.html', clientSubdomain, app)
+
+    return flask.render_template(styleTemplate, fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId, sessionId=sessionId)
 
 
 # Serves the actual faces & share message
