@@ -66,7 +66,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
             type: "POST",
             url: '/faces',
             contentType: "application/json",
-            dataType: 'html',
+            dataType: 'json',
             data: params,
             error: function(jqXHR, textStatus, errorThrown) {
                 // your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
@@ -78,7 +78,6 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
             success: function(data, textStatus, jqXHR) {
                 // Probably need to set the mimetype better on web.utils.ajaxResponse
                 // so that we don't have to parse out JSON ourselves. 
-                data = $.parseJSON(data);
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
                         if (pollingCount > 24) {

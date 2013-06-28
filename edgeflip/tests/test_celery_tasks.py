@@ -1,5 +1,3 @@
-from mock import Mock
-
 from edgeflip.tests import EdgeFlipTestCase
 from edgeflip import (
     client_db_tools as cdb,
@@ -17,7 +15,8 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = tasks.proximity_rank_three(None, None, None)
+        token = datastructs.TokenInfo('1', '1', '1', '1')
+        task_id = tasks.proximity_rank_three(True, 1, token)
         assert task_id
         assert celery.AsyncResult(task_id)
 

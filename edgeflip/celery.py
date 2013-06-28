@@ -12,7 +12,6 @@ celery = Celery('edgeflip.celery',
                 ),
                 include=['edgeflip.tasks'])
 
-# Optional configuration, see the application user guide.
 celery.conf.update(
     CELERY_TASK_RESULT_EXPIRES=3600,
     CELERY_RESULT_BACKEND='database',
