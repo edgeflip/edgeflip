@@ -90,6 +90,13 @@
 	overflow-x: auto;
 	overflow-y: visible;
 	padding-bottom: 3px;
+
+    background: white;
+    border: solid thin gray;
+	border-radius: 5px;
+
+    margin: 0px 60px;
+
 }
 
 #suggested_msg_title {
@@ -111,14 +118,23 @@
 
 #other_msg {
 	display: block;
-	border: solid thin gray;
-	border-radius: 5px;
+	/*border: solid thin gray;*/
+	/*border-radius: 5px;*/
 	background-color: white;
 	padding: 5px;
-	width: 93%;
-	margin-left: 2%;
+	/*width: 80%;*/
+	/*margin-left: 2%;*/
 	min-height: 90px;
 	line-height: 25px;
+
+}
+
+#other_msg:focus {
+    outline: none;
+}
+
+span#helper_txt:empty:before {
+    content:"Click the button above to use a suggested message, or write your own here.";
 }
 
 #do_share_container {
