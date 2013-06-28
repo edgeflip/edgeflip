@@ -6,7 +6,7 @@ from edgeflip.settings import config
 from edgeflip import database
 
 APP = getApp()
-REPO_ROOT = os.path.join(os.path.dirname(__file__), '../', '../')
+FILE_ROOT = os.path.dirname(__file__)
 
 
 class EdgeFlipTestCase(unittest.TestCase):
@@ -33,10 +33,10 @@ class EdgeFlipTestCase(unittest.TestCase):
         ).read()
         # Now let's create the database
         os.popen(
-            'mysql -uroot -proot < %s/sql/initial_test.sql' % REPO_ROOT
+            'mysql -uroot -proot < %s/test_data/initial_test.sql' % FILE_ROOT
         ).read()
         os.popen(
-            'mysql -uroot -proot edgeflip_test < %s/sql/test_database.sql' % REPO_ROOT
+            'mysql -uroot -proot edgeflip_test < %s/test_data/test_database.sql' % FILE_ROOT
         ).read()
         self.conn = database.getConn()
 
