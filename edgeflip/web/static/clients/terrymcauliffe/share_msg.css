@@ -11,14 +11,17 @@
 }
 
 .share_prompt {
+/*
 	display: table;
 	width: 70%;
+	text-align: center;
 	margin: 0px auto 18px auto;
+*/
+	margin-bottom: 18px;
 	padding-bottom: 2px;
 	color: #0f2446;
 	font-size: 22px;
 	font-family: "Open Sans", Helvetica, sans-serif;
-	text-align: center;
 	font-weight: 600;
 }
 

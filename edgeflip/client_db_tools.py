@@ -111,6 +111,8 @@ def createButtonStyle(clientId, name, description, htmlFile=None, cssFile=None, 
     updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True)
     updateMetadata('button_style_meta', 'button_style_meta_id', 'button_style_id', styleId, metadata, replaceAll=True)
 
+    return {'button_style_id' : styleId}
+
 def updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True):
     """Update the files associated with a button style"""
 
