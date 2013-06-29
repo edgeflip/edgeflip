@@ -39,7 +39,7 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
-        function recordEvent(eventType, fbid, redirect) {
+        function recordEvent(eventType, fbid, redirect, accessToken) {
 
             var appid = {{ fbParams.fb_app_id }};
             var content = '{{ fbParams.fb_app_name }}:button {{ goto | safe }}';
@@ -51,7 +51,8 @@
                 eventType: eventType,
                 sessionid: sessionid,
                 campaignid: campaignid,
-                contentid: contentid
+                contentid: contentid,
+                token: accessToken
             });
 
             $.ajax({
@@ -102,7 +103,7 @@
                     if (sessionid) {
                         gotoURL = gotoURL + '&efsid=' + sessionid;
                     }
-                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL);
+                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL, authedResponse.authResponse.accessToken);
                 
                 }
             }, 200 );
