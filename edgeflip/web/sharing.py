@@ -334,7 +334,7 @@ def objects(fbObjectId, contentId):
     'fb_action_type': fbObjectInfo[0],
     'fb_object_type': fbObjectInfo[1],
     'fb_object_title': fbObjectInfo[2],
-    'fb_object_image': fbObjectInfo[3],     # zzz need to figure out if these will all be hosted locally or full URL's in DB
+    'fb_object_image': fbObjectInfo[3],
     'fb_object_desc': fbObjectInfo[4],
     'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
     'fb_app_name' : paramsDB[0],
@@ -347,8 +347,13 @@ def objects(fbObjectId, contentId):
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    # record the clickback event to the DB
-    database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
+    userAgent = flask.request.user_agent.string
+    if (userAgent.find('facebookexternalhit') != -1):
+        # It's just the FB crawler! Note it in the logs, but don't write the event
+        logger.info("Facebook crawled object %s with content %s from IP %s", fbObjectId, contentId, ip)
+    else:
+        # record the clickback event to the DB
+        database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 
     return flask.render_template('fb_object.html', fbParams=objParams, redirectURL=redirectURL, contentId=contentId)
 
@@ -410,20 +415,44 @@ def recordEvent():
                         ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
-    # For authorized events, write the user-client connection
+    if (not sessionId):
+        sessionId = generateSessionId(ip, content)
+
+    # Write the event itself (do this first, so at least we record it even if there's an error below!)
+    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
+
+    # For authorized events, write the user-client connection & token
     # (can't just do in the faces endpoint because we'll run auth-only campaigns, too)
     if (eventType == 'authorized'):
+        tok = flask.request.json.get('token')
         clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)
         if (clientId):
+
+            # associate the user with this client
             clientId = clientId[0][0]
             cdb.dbWriteUserClient(userId, clientId, background=config.database.use_threads)
+
+            # extend & record their access token (creating a 'fake' user info object to avoid the FB call)
+            user = datastructs.UserInfo(userId, None, None, None, None, None, None, None)
+            token = datastructs.TokenInfo(tok, userId, int(appId), datetime.datetime.now())
+            token = facebook.extendTokenFb(userId, token, int(appId)) or token
+            conn = database.getConn()
+            curs = conn.cursor()
+            try:
+                # zzz feels hokey since updateTokensDb() needs as cursor object,
+                #     but I also don't want to do an updateDb() call since I don't
+                #     have real user info or edges...
+                database.updateTokensDb(curs, [user], token)
+                conn.commit
+            except:
+                conn.rollback()
+                raise
+        else:
+            logger.error("Trying to write an authorization for fbid %s with token %s for non-existent client", userId, tok)
 
     if (eventType == 'shared'):
         # If this was a share, write these friends to the exclusions table so we don't show them for the same content/campaign again
         database.writeFaceExclusionsDb(userId, campaignId, contentId, friends, 'shared', background=config.database.use_threads)
-
-    if (not sessionId):
-        sessionId = generateSessionId(ip, content)
 
     errorMsg = flask.request.json.get('errorMsg')
     if (errorMsg):
@@ -435,7 +464,6 @@ def recordEvent():
     if (shareMsg):
         database.writeShareMsgDb(actionId, userId, campaignId, contentId, shareMsg, background=config.database.use_threads)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, userId, friends, eventType, appId, content, actionId, background=config.database.use_threads)
     return ajaxResponse('', 200, sessionId)
 
 @app.route("/canvas/", methods=['GET', 'POST'])
