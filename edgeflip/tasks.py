@@ -24,6 +24,7 @@ def add(x, y):
 
 
 def proximity_rank_three(mockMode, fbid, token, **kwargs):
+    ''' Builds the px3 crawl and filtering chain '''
     chain = (
         px3_crawl.s(mockMode, fbid, token) |
         perform_filtering.s(fbid=fbid, **kwargs)
@@ -34,6 +35,7 @@ def proximity_rank_three(mockMode, fbid, token, **kwargs):
 
 @celery.task
 def px3_crawl(mockMode, fbid, token):
+    ''' Performs the standard px3 crawl '''
     fbmodule = mock_facebook if mockMode else facebook
     user = fbmodule.getUserFb(fbid, token.tok)
     edgesUnranked = fbmodule.getFriendEdgesFb(
@@ -56,6 +58,9 @@ def px3_crawl(mockMode, fbid, token):
 def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                       sessionId, ip, fbid, numFace, paramsDB,
                       fallbackCount=0):
+    ''' Performs the filtering that web.sharing.applyCampaign formerly handled
+    in the past.
+    '''
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         raise RuntimeError("Exceeded maximum fallback count")
@@ -170,6 +175,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
 @celery.task
 def proximity_rank_four(mockMode, fbid, token):
+    ''' Performs the px4 crawling '''
     fbmodule = mock_facebook if mockMode else facebook
     user = fbmodule.getUserFb(fbid, token.tok)
     newerThan = time.time() - config.freshness * 24 * 60 * 60
