@@ -34,7 +34,7 @@ To set up your RabbitMQ instance:
 1. Start by installing RabbitMQ: `sudo apt-get install rabbitmq-server` (If this is your first setup, `install-dependencies.sh` will have done this for you)
 2. Create a user: `sudo rabbitmqctl add_user edgeflip edgeflip`
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
-4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgeresults edgeflip ".*" ".*" ".*"`
+4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
 
 Celery
 --------------

@@ -41,7 +41,7 @@ function doFBLogin() {
 var pollingTimer;
 var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
-function login(fbid, accessToken, response, task_id){
+function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
     if (response.authResponse) {
         var num = 9;
         myfbid = fbid; // set the global variable for use elsewhere
@@ -57,14 +57,16 @@ function login(fbid, accessToken, response, task_id){
             sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,
             contentid: contentid,
-            task_id: task_id
+            px3_task_id: px3_task_id,
+            px4_task_id: px4_task_id,
+            skip_px4: skip_px4
         });
 
         $.ajax({
             type: "POST",
             url: '/faces',
             contentType: "application/json",
-            dataType: 'html',
+            dataType: 'json',
             data: params,
             error: function(jqXHR, textStatus, errorThrown) {
                 // your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
@@ -76,18 +78,21 @@ function login(fbid, accessToken, response, task_id){
             success: function(data, textStatus, jqXHR) {
                 // Probably need to set the mimetype better on web.utils.ajaxResponse
                 // so that we don't have to parse out JSON ourselves. 
-                data = $.parseJSON(data);
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
-                        if (pollingCount > 3) {
+                        if (pollingCount > 24) {
                             clearTimeout(pollingTimer);
-                            commError();
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                         } else {
                             pollingCount += 1;
-                            pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 3000);
+                            pollingTimer = setTimeout(function() {
+                                login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                            }, 500);
                         }
                     } else {
-                        pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 3000);
+                        pollingTimer = setTimeout(function() {
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                        }, 500);
                     }
                 } else {
                     displayFriendDiv(data.html, jqXHR);
