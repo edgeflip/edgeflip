@@ -52,7 +52,8 @@ class TestWebSharing(EdgeFlipTestCase):
         )
         self.test_cs = cdb.ChoiceSet(1, [self.test_filter])
 
-    def _make_request(self, url='/faces', params=None):
+    def _make_request(self, url='/faces', status_code=200, params=None):
+        ''' Helper function for making HTTP requests to our various urls '''
         params = params if params else self.params
         headers = [
             ('Content-Type', 'application/json; charset=utf-8'),
@@ -65,6 +66,7 @@ class TestWebSharing(EdgeFlipTestCase):
             base_url='http://local/',
             data=json.dumps(params)
         )
+        self.assertStatusCode(response, status_code)
         return response
 
     def test_faces_get(self):
@@ -78,8 +80,6 @@ class TestWebSharing(EdgeFlipTestCase):
         tasks IDs of the Celery jobs we started
         '''
         response = self._make_request()
-        self.assertStatusCode(response, 200)
-
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
         assert data['px3_task_id']
@@ -103,8 +103,6 @@ class TestWebSharing(EdgeFlipTestCase):
             'px4_task_id': 'dummypx4taskid'
         })
         response = self._make_request()
-        self.assertStatusCode(response, 200)
-
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
 
@@ -128,8 +126,6 @@ class TestWebSharing(EdgeFlipTestCase):
             'px4_task_id': 'dummypx4taskid'
         })
         response = self._make_request()
-        self.assertStatusCode(response, 200)
-
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
 
@@ -160,8 +156,6 @@ class TestWebSharing(EdgeFlipTestCase):
             'skip_px4': True,
         })
         response = self._make_request()
-        self.assertStatusCode(response, 200)
-
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'success')
         assert data['html']
@@ -192,8 +186,6 @@ class TestWebSharing(EdgeFlipTestCase):
             'skip_px4': True,
         })
         response = self._make_request()
-        self.assertStatusCode(response, 200)
-
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'success')
         assert data['html']
