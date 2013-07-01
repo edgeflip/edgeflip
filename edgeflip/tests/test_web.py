@@ -67,12 +67,12 @@ class TestWebSharing(EdgeFlipTestCase):
         )
         return response
 
-    def test_sharing_get(self):
+    def test_faces_get(self):
         ''' Faces endpoint requires POST, so we expect a 405 here '''
         response = self.app.get('/faces')
         self.assertStatusCode(response, 405)
 
-    def test_sharing_initial_entry(self):
+    def test_faces_initial_entry(self):
         ''' Tests a users first request to the Faces endpoint. We expect to
         receive a JSON response with a status of waiting along with the
         tasks IDs of the Celery jobs we started
@@ -86,7 +86,7 @@ class TestWebSharing(EdgeFlipTestCase):
         assert data['px4_task_id']
 
     @patch('edgeflip.web.sharing.celery')
-    def test_sharing_px3_wait(self, celery_mock):
+    def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
         task isn't yet complete
         '''
@@ -109,7 +109,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.assertEqual(data['status'], 'waiting')
 
     @patch('edgeflip.web.sharing.celery')
-    def test_sharing_px4_wait(self, celery_mock):
+    def test_faces_px4_wait(self, celery_mock):
         ''' Test that even if px3 is done, we'll wait on px4 if we're not
         ready to give up on it yet
         '''
@@ -134,7 +134,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.assertEqual(data['status'], 'waiting')
 
     @patch('edgeflip.web.sharing.celery')
-    def test_sharing_skip_px4(self, celery_mock):
+    def test_faces_skip_px4(self, celery_mock):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
         '''
@@ -167,7 +167,7 @@ class TestWebSharing(EdgeFlipTestCase):
         assert data['html']
 
     @patch('edgeflip.web.sharing.celery')
-    def test_sharing_complete_crawl(self, celery_mock):
+    def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
         px3_result_mock = Mock()
         px3_result_mock.ready.return_value = True
