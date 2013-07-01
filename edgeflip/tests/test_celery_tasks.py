@@ -65,7 +65,6 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         curs = self.conn.cursor()
         sql = 'SELECT * FROM edges WHERE fbid_target=%s'
         row_count = curs.execute(sql, 1)
