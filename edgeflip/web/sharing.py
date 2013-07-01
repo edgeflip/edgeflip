@@ -203,12 +203,10 @@ def faces():
 
 def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
                   clientSubdomain, campaignId, contentId, sessionId,
-                  ip, fbid, numFace, paramsDB, fallbackCount=0):
-    """Do the work of applying campaign properties to a set of edges.
-    May recursively call itself upon falling back, up to MAX_FALLBACK_COUNT times.
-
-    Should move out of the flask app soon...
-    """
+                  ip, fbid, numFace, paramsDB):
+    ''' Receives the filtered edges, the filters used, and all the necessary
+    information needed to record the campaign assignment.
+    '''
     friendDicts = [e.toDict() for e in bestCSFilter[1]]
     faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
     allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
