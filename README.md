@@ -55,14 +55,14 @@ curl -X POST --data '{"mockmode" : "true", "fbid" : 100011235813, "token" : "Iam
 
 Note that although you supply a fbid in the request, what will actually be used is a randomly-generated fbid (to avoid all your requests stacking up in the DB trying to update the same records). The set of fbid's used by the load test were chosen to fall into what appears to be a gap in actual id's assigned by Facebook.
 
-*Using Siege*
-Load tests can be performed using the [Siege utility](http://www.joedog.org/siege-home/), however [some modification](http://www.skybert.net/bytes/2011/05/16/using-siege-to-test-the-write-performance-of-couchdb/) is required to send JSON requests. To so, *as root*:
+### Using Siege ###
+Load tests can be performed using the [Siege utility](http://www.joedog.org/siege-home/), however [some modification](http://www.skybert.net/bytes/2011/05/16/using-siege-to-test-the-write-performance-of-couchdb/) is required to send JSON requests. To so:
 
-1. Remove siege if it's already installed: `apt-get remove siege`
-2. Install siege source: `apt-src install siege` (may need to run `apt-get install apt-src` first)
-3. Locate and edit the file `load.c` (likely in `/usr/src/siege-2.70/src/`) by adding a line `{"json", TRUE, "application/json"},` immediately following the line `{"js", FALSE, "application/x-javascript"},` (*this defines the headers that Siege will send with different types of requests*)
-4. Package up your edited code: `dpkg-buildpackage -rfakeroot -uc -b`
-5. And install the package: `dpkg -i ../siege*.deb`
+1. Remove siege if it's already installed: `sudo apt-get remove siege`
+2. Install siege source: `sudo apt-src install siege` (may need to run `apt-get install apt-src` first)
+3. Locate and edit (as root) the file `load.c` (likely in `/usr/src/siege-2.70/src/`) by adding a line `{"json", TRUE, "application/json"},` immediately following the line `{"js", FALSE, "application/x-javascript"},` ( *this defines the headers that Siege will send with different types of requests* )
+4. Package up your edited code: `sudo dpkg-buildpackage -rfakeroot -uc -b`
+5. And install the package: `sudo dpkg -i ../siege*.deb`
 
 Once you've patched and installed Siege, you can run load tests by creating a few files and telling Siege to use them at the command line:
 
