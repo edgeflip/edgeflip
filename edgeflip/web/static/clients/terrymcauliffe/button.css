@@ -4,10 +4,10 @@ body {
 }
 
 h2 {
-	font-family: "Gill Sans", Helvetica, sans-serif; 
+	font-family: "Open Sans", Helvetica, sans-serif; 
 	font-weight: 200; 
 	margin: 2px; 
-	color: #094163;
+	color: #0f2446;
 }
 
 .h2_container {
@@ -41,14 +41,14 @@ h2 {
 }
 
 .active_button {
-	background-color: orangered;
-	border: 2px solid maroon;
+	background-color: #01a652;
+	border: 2px solid #016431;
 	box-shadow: 3px 3px 5px black;
 }
 
 .active_button:hover {
-	background-color: #CC0000;
-	border: 2px solid red;	
+	background-color: #4DC186;
+	border: 2px solid #016431;	
 	box-shadow: 2px 2px 3px black;
 }
 
@@ -73,35 +73,35 @@ h2 {
 	color: white;
 	border-radius: 5px;
 	-moz-border-radius: 5px;
-	font-size: 14px;
-	font-family: 'Gill Sans', 'Trebuchet MS', Helvetica, sans-serif;
-	font-weight: 200;
+	font-size: 12px;
+	font-family: "Open Sans", Helvetica, sans-serif;
 	letter-spacing: 1px;
+	text-align: center;
 	cursor: pointer;
 	width: 140px;
 }
 
 .active_small {
-	background-color: orangered;
-	border: thin solid maroon;
+	background-color: #01a652;
+	border: thin solid #016431;
 /* I still feel like the drop shadows are too much on small buttons... */
 /*	box-shadow: 1px 1px 3px black; */
 }
 
 .active_small:hover {
-	background-color: #CC0000;
-	border: thin solid maroon;
+	background-color: #4DC186;
+	border: thin solid #016431;
 /*	box-shadow: 1px 1px 1px black; */
 }
 
 .inactive_small {
-	background-color: #0270A0;
+	background-color: #0f2446;
 	border: thin solid gray;
 /*	box-shadow: 1px 1px 3px black; */
 }
 
 .inactive_small:hover {
-	background-color: #094163;
+	background-color: #0270A0;
 	border: thin solid gray;
 /*	box-shadow: 1px 1px 1px black; */
 }

@@ -62,10 +62,11 @@ class Table(object):
     """represents a Table
 
     """
-    def __init__(self, name, cols=None, indices=None, key=None):
+    def __init__(self, name, cols=None, indices=None, key=None, otherStmts=None):
         cols = cols if cols is not None else []
         indices = indices if indices is not None else []
         key = key if key is not None else []
+        otherStmts = otherStmts if otherStmts is not None else []
 
         self.name = name
         self.colTups = []
@@ -74,6 +75,7 @@ class Table(object):
         for col in indices:
             self.addIndex(col)
         self.keyCols = key
+        self.otherStmts = otherStmts
     def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for cTup in cTups:
             if (len(cTup) == 2):
@@ -137,6 +139,9 @@ TABLES['tokens'] =    Table(name='tokens',
                             key=['fbid', 'appid', 'ownerid'])
 
 # raw data behind datastructs.Edge*
+# Given how we pull data from this table, it's really very helpful to have unique keys with both column orders
+# (ideally, (fbid_target, fbid_source) would be the primary given that we'll more often specify fbid_target in
+# a where clause in real time (eg if only grabbing px3 or 4), but probably not a huge deal)
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('fbid_source', 'BIGINT'),
@@ -153,7 +158,8 @@ TABLES['edges'] =     Table(name='edges',
                                 ('mut_friends', 'INTEGER'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            key=['fbid_source', 'fbid_target'])
+                            key=['fbid_source', 'fbid_target'],
+                            otherStmts=["CREATE UNIQUE INDEX targ_source ON edges (fbid_target, fbid_source)"])
 
 # user activity tracking
 TABLES['events'] =    Table(name='events',
@@ -196,7 +202,6 @@ TABLES['face_exclusions'] =     Table(name='face_exclusions',
                                             ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
                                       ],
                                       key=['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
-                                      # zzz can I do a multi-column index with this table class? Ideally want fbid/campaign_id/content_id here, but the primary key may suffice...
 
 
 # Reset the DB by dropping and recreating tables
@@ -215,6 +220,8 @@ def dbSetup(tableKeys=None):
         sql = tab.sqlCreate()
         sys.stderr.write(sql + "\n")
         curs.execute(sql)
+        for stmt in tab.otherStmts:
+            curs.execute(stmt)
     conn.commit()
 
 def dbMigrate():
@@ -354,41 +361,65 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
 
     curs = conn.cursor()
     sqlSelect = """
-            SELECT fbid_source, fbid_target,
-                    post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
-                    tags, photos_target, photos_other, mut_friends, unix_timestamp(updated)
-            FROM edges
-            WHERE unix_timestamp(updated)>%s
+            SELECT e.fbid_source, e.fbid_target,
+                    e.post_likes, e.post_comms, e.stat_likes, e.stat_comms,
+                    e.wall_posts, e.wall_comms, e.tags,
+                    e.photos_target, e.photos_other, e.mut_friends,
+                    unix_timestamp(e.updated),
+                    u.fname, u.lname, u.email, u.gender, u.birthday, u.city, u.state
+            FROM edges e
+            JOIN users u
     """
 
-    sql = sqlSelect + " AND fbid_target=%s"
+    sql = sqlSelect + \
+        " ON e.fbid_source = u.fbid" + \
+        " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
     params = (newerThan, primId)
     secId_edgeCountsIn = {}
+    secId_userInfo = {}
     curs.execute(sql, params)
     for rec in curs: # here, the secondary is the source, primary is the target
-        secId, primId, iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated = rec
+        secId, primId, iPstLk, iPstCm, iStLk, iStCm, \
+            iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated, \
+            fname, lname, email, gender, birthday, city, state = rec
         edgeCountsIn = datastructs.EdgeCounts(secId, primId,
                                               iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
                                               iTags, iPhOwn, iPhOth, iMuts)
+        secInfo = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
         secId_edgeCountsIn[secId] = edgeCountsIn
+        secId_userInfo[secId] = secInfo
 
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
-            secondary = getUserDb(secId)
-            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
+            logger.debug("Got secondary info & incoming edge for %s----%s from the database.", primary.id, secId)
+            edges.append(datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
 
     else:
-        sql = sqlSelect + " AND fbid_source=%s"
+        sql = sqlSelect + \
+            " ON e.fbid_target = u.fbid" + \
+            " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
         params = (newerThan, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target
-            primId, secId, oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated = rec
+            primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
+                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+                fname, lname, email, gender, birthday, city, state = rec
             edgeCountsOut = datastructs.EdgeCounts(primId, secId,
                                                    oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                    oTags, oPhOwn, oPhOth, oMuts)
-            edgeCountsIn = secId_edgeCountsIn[secId]
-            secondary = getUserDb(secId)
-            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+            #     the incoming one (eg, with the current primary as someone else's secondary)
+            #     That could happen either if this primary is totally new OR if it's a new
+            #     friend who came in as a primary after friending the current primary.
+            edgeCountsIn = secId_edgeCountsIn.get(secId)
+            if edgeCountsIn is not None:
+                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
+                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            else:
+                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
     return edges
 
 # helper function that may get run in a background thread
