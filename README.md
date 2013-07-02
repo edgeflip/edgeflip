@@ -73,9 +73,6 @@ Locally Testing a Facebook Canvas App
         	https://apps.facebook.com/edgeflip-local/18/19
 
 4. Point your browser to the link you got from step 3, and be a local hero!*
-1. Make sure you have the following line in /etc/hosts:
-        127.0.0.1	app.edgeflip.com
-
     *http://www.buylocalfood.org/
 
 
