@@ -57,17 +57,21 @@ Locally Testing a Facebook Canvas App
 -------------------------------------
 
 0. First, install the Forward client (https://forwardhq.com/in-use/facebook)
+
         $ gem install forward
 
 1. Run the devel server locally (pick your favorite port or default to 8080)
+
         bin/devel_server.py --port 8765
 
 2. Now, forward the the port from step 1
+
         $ forward 8765
         Forwarding port 8765 to https://edgeflip.fwd.wf
         Ctrl-C to stop forwarding
 
 3. Create (or retrieve) a client in your local database that's associated with the "edgeflip local" app
+
         $ python bin/create_local_client.py --client-name jerkface
         client #16 jerkface:
         	https://apps.facebook.com/edgeflip-local/18/19
