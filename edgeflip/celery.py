@@ -23,7 +23,9 @@ celery.conf.update(
     ),
     CELERY_ALWAYS_EAGER=config.always_eager,
     CELERY_ROUTES={
-        'edgeflip.tasks.retrieve_fb_user_info': {'queue': 'user_info'},
+        'edgeflip.tasks.px3_crawl': {'queue': 'px3'},
+        'edgeflip.tasks.perform_filtering': {'queue': 'px3_filter'},
+        'edgeflip.tasks.proximity_rank_four': {'queue': 'px4'},
     }
 )
 

@@ -378,7 +378,7 @@ def getFriendEdgesDb(primId, requireIncoming=False,
         " ON e.fbid_source = u.fbid" + \
         " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
     if requireIncoming:
-        sql = sql + " AND post_likes IS NOT NULL"
+        sql = sql + " AND e.post_likes IS NOT NULL"
     params = (newerThan, primId)
     secId_edgeCountsIn = {}
     secId_userInfo = {}
@@ -404,6 +404,8 @@ def getFriendEdgesDb(primId, requireIncoming=False,
         sql = sqlSelect + \
             " ON e.fbid_target = u.fbid" + \
             " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
+        if requireIncoming:
+            sql = sql + " AND e.post_likes IS NOT NULL"
         params = (newerThan, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target

@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 @celery.task
 def add(x, y):
+    ''' Not really used, but helpful if you're testing out some of the
+    zanier Celery tools.
+    '''
     return x + y
 
 
@@ -37,7 +40,6 @@ def proximity_rank_three(mockMode, fbid, token, **kwargs):
 def px3_crawl(mockMode, fbid, token):
     ''' Performs the standard px3 crawl '''
     fbmodule = mock_facebook if mockMode else facebook
-    user = fbmodule.getUserFb(fbid, token.tok)
     edgesUnranked = fbmodule.getFriendEdgesFb(
         fbid,
         token.tok,
@@ -49,8 +51,6 @@ def px3_crawl(mockMode, fbid, token):
         requireIncoming=False,
         requireOutgoing=False,
     )
-    database.updateDb(user, token, edgesRanked,
-                      background=config.database.use_threads)
     return edgesRanked
 
 
@@ -160,7 +160,8 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             background=config.database.use_threads
         )
 
-        # Recursive call with new fallbackCampaignId & fallbackContentId, incrementing fallbackCount
+        # Recursive call with new fallbackCampaignId & fallbackContentId,
+        # incrementing fallbackCount
         return perform_filtering(
             edgesRanked, clientSubdomain, fallbackCampaignId,
             fallbackContentId, sessionId, ip, fbid, numFace,

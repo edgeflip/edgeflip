@@ -32,12 +32,6 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ranked_edges = tasks.px3_crawl(True, 1, token)
         assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
 
-        # Make sure some edges were created.
-        curs = self.conn.cursor()
-        sql = 'SELECT * FROM edges WHERE fbid_target=%s'
-        row_count = curs.execute(sql, 1)
-        assert row_count
-
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
         token = datastructs.TokenInfo('1', '1', '1', '1')
