@@ -19,6 +19,7 @@ parser.add_argument('--cert-dir', default=pathCertDefault, help='location of ssl
 parser.add_argument('--ssl-key', default='ssl.key', help='name of ssl key file, defaults to ssl.key')
 parser.add_argument('--ssl-cert', default='ssl.cert', help='name of ssl cert file, defaults to ssl.cert')
 parser.add_argument('--canvas-adhoc', action='store_true', help='fb canvas mode with adhoc cert (no key/cert files)')
+parser.add_argument('--port', default=0, type=int, help='force server to run on given port')
 args = parser.parse_args()
 
 app = edgeflip.web.getApp()
@@ -51,6 +52,9 @@ if (args.canvas) or (args.canvas_adhoc):
 else:
     port = 8080
     ctx = None
+
+if (args.port):  # overwrite default port with whatever we got passed in
+    port = args.port
 
 run_simple('localhost', port, app,
            use_reloader=True,
