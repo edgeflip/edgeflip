@@ -43,7 +43,7 @@ function isRecip(fbid) {
 
 function htmlRecip(fbid) {
 	var html = "<span class='recipient message_friend_name' id='recipient-"+fbid+"' contentEditable='False'>";
-    html += friendFromFbid[fbid].name + "<span class='msg_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
+    html += friendFromFbid[fbid].name + "<span class='message_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
     return html;
 }
 
@@ -305,6 +305,10 @@ function useSuggested(msgs) {
 	}
 
     // grab the pre and post off the front of the queue and stick 'em back on the end
+
+    //zzz
+    console.log(msgs.toString());
+
     var msgPair = msgs.shift();
     msgs.push(msgPair);
     var msgPre = msgPair[0];
@@ -327,11 +331,15 @@ function selectAll(skipRecord) {
 
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call...
-	var divs = $(".friend_box:visible");
-  	for (var i=0; i < divs.length; i++) {
-  		var fbid = parseInt(divs[i].id.split('-')[1]);
-		selectFriend(fbid);
-	}
+    var divs = $(".friend_box:visible");
+    for (var i=0; i < divs.length; i++) {
+        if (getRecipFbids().length >= 10) {
+            alert("Sorry: only ten friends can be tagged.");
+            return;
+        }
+        var fbid = parseInt(divs[i].id.split('-')[1]);
+        selectFriend(fbid);
+    }
 }
 
 // Toggle the recipient state of a friend upon checking or unchecking

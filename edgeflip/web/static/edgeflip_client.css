@@ -153,7 +153,7 @@ body {
 /* styles the check mark image that appears on select */
 .checkmark {
     display: none;
-    /*background-image: url('/static/checkmark-sm.png');*/
+    background-image: url('/static/checkmark-sm.png');
     background-repeat: no-repeat;
     width: 50px;
     height: 50px;
@@ -327,6 +327,19 @@ body {
 	white-space: nowrap;
 
 }
+
+.message_x {
+	font-weight: 900;
+	color: #89A8BD;
+	margin-left: 3px;
+	cursor: pointer;
+}
+
+.message_x:hover {
+	color: #0270A0;
+}
+
+
 
 
 /***************************************************

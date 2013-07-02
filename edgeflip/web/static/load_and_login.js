@@ -32,8 +32,9 @@ function doFBLogin() {
 			// alert("Rocco, sit on the other side. You block the rearview mirror.");
 
 			// zzz Probably not the right thing to do in this case, but better than nothing...
-			alert("Sorry - an error occured communicating with Facebook.");
-			top.location = errorURL; // set in frame_faces.html via Jinja
+			alert("Sorry - an error occured communicating with Facebook.   1");
+
+            top.location = errorURL; // set in frame_faces.html via Jinja
 		}
 	}, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
@@ -68,8 +69,11 @@ function login(fbid, accessToken, response){
 				// your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
 				your_friends_div.show();
 				progress.hide();
-				alert("Sorry - an error occured communicating with Facebook.");
-				top.location = errorURL; // set in frame_faces.html via Jinja
+				alert("Sorry - an error occured communicating with Facebook.   2");
+
+                console.log(params.toString());
+
+				//zzztop.location = errorURL; // set in frame_faces.html via Jinja
 			},
 			success: function(data, textStatus, jqXHR) {
 				your_friends_div.html(data);

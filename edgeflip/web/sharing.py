@@ -48,7 +48,7 @@ def button(campaignId, contentId):
 
 
 # Serves the actual faces & share message
-@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
+#@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
@@ -63,7 +63,16 @@ def frame_faces(campaignId, contentId):
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+    #zzz
+    #paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : 417233888375210}
+
+    logger.info("fb params: " + str(paramsDict))
+
+
+
+
 
     return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict, 
                                 campaignId=campaignId, contentId=contentId,
@@ -420,7 +429,8 @@ def recordEvent():
 
 # @app.route("/canvas/", methods=['GET', 'POST'])
 # def canvas():
-@app.route("/canvas/<campaignId>/<contentId>")
+#@app.route("/canvas/<campaignId>/<contentId>")
+@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
 def canvas(campaignId, contentId):
     return frame_faces(campaignId, contentId)
 
@@ -439,7 +449,8 @@ def health_check():
         return "It's Alive!", 200
 
     components = {'database': False,
-                  'facebook': False}
+                  'facebook': False,
+                  'bourbon': 'JTS Brown'}
 
     # Make sure we can connect and return results from DB
     conn = database.getConn()
