@@ -57,7 +57,7 @@ Facebook Canvas App
 -------------------
 
 1. Make sure you have the following line in /etc/hosts:
-        127.0.0.1	app.edgeflip.com
+    127.0.0.1	app.edgeflip.com
 
 
 2. Now, you need to patch werkzeug (or install a version > 0.8.3).  For me, I edited the file:
