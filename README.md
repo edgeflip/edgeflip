@@ -73,6 +73,7 @@ Locally Testing a Facebook Canvas App
         	https://apps.facebook.com/edgeflip-local/18/19
 
 4. Point your browser to the link you got from step 3, and be a local hero!*
+
     *http://www.buylocalfood.org/
 
 
