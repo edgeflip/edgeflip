@@ -52,3 +52,39 @@ For the purposes of load testing, a POST request can be made against the /faces 
 ```
 curl -X POST --data '{"mockmode" : "true", "fbid" : 100011235813, "token" : "IamAfakeTOKEN", "num" : 6, "sessionid" : "i-am-a-fake-session", "campaignid" : 1, "contentid" : 1}' http://local.edgeflip.com:8080/faces --header "Content-Type:application/json"
 ```
+
+Note that although you supply a fbid in the request, what will actually be used is a randomly-generated fbid (to avoid all your requests stacking up in the DB trying to update the same records). The set of fbid's used by the load test were chosen to fall into what appears to be a gap in actual id's assigned by Facebook.
+
+### Using Siege ###
+Load tests can be performed using the [Siege utility](http://www.joedog.org/siege-home/), however [some modification](http://www.skybert.net/bytes/2011/05/16/using-siege-to-test-the-write-performance-of-couchdb/) is required to send JSON requests. To so:
+
+1. Remove siege if it's already installed: `sudo apt-get remove siege`
+2. Install siege source: `sudo apt-src install siege` (may need to run `apt-get install apt-src` first)
+3. Locate and edit (as root) the file `load.c` (likely in `/usr/src/siege-2.70/src/`) by adding a line `{"json", TRUE, "application/json"},` (being sure to include the final comma) immediately following the line `{"js", FALSE, "application/x-javascript"},`. *This defines the headers that Siege will send with different types of requests.*
+4. Package up your edited code: `sudo dpkg-buildpackage -rfakeroot -uc -b`
+5. And install the package: `sudo dpkg -i ../siege*.deb`
+
+Once you've patched and installed Siege, you can run load tests by creating a few files and telling Siege to use them at the command line:
+
+1. A JSON file with the request parameters, such as:
+```
+    {
+        "mockmode" : "true", 
+        "fbid" : 100011235813, 
+        "token" : "IamAfakeTOKEN", 
+        "num" : 9, 
+        "sessionid" : "i-am-a-fake-session", 
+        "campaignid" : 2, 
+        "contentid" : 2
+     }
+```
+
+2. A one-line siege file that specifies the request itself, such as:
+```
+http://local.edgeflip.com:8080/faces POST < test_data.json
+```
+3. Finally, at the command line, invoke Siege:
+```
+sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
+```
+(Here, with 20 repeats of 5 concurrent requests with a maximum (random) delay of 1 sec. between repeats. More on parameters can be found on the [Siege homepage](http://www.joedog.org/siege-home/).)
