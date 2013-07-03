@@ -87,9 +87,71 @@ def validateClientSubdomain(campaignId, contentId, clientSubdomain):
     return cmpgClientId
 
 
-def createButtonStyle(clientId, name, description, htmlFile, cssFile):
-    """Right now, button styles are hard-coded in the app."""
-    raise NotImplementedError
+def createButtonStyle(clientId, name, description, htmlFile=None, cssFile=None, metadata=None):
+    """Creates a new button style record, which may specify either an HTML template
+    or a CSS file to use. At present, however, only HTML templates are supported.
+
+    htmlFile and cssFile should each be a path to a file specifying button styling to use.
+    """
+
+    if not htmlFile and not cssFile:
+        raise ValueError("Must specify either an HTML File or CSS File")
+
+    if cssFile:
+        raise NotImplementedError("Sorry. Custom CSS not yet supported.")
+
+    row = {
+            'client_id' : clientId,
+            'name' : name,
+            'description' : description
+          }
+
+    styleId = dbInsert('button_styles', 'button_style_id', row.keys(), [row])
+
+    updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True)
+    updateMetadata('button_style_meta', 'button_style_meta_id', 'button_style_id', styleId, metadata, replaceAll=True)
+
+    return {'button_style_id' : styleId}
+
+def updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True):
+    """Update the files associated with a button style"""
+
+    row = {
+            'button_style_id' : styleId,
+            'html_template' : htmlFile,
+            'css_file' : cssFile 
+          }
+
+    dbInsert('button_style_files', 'button_style_file_id', row.keys(), [row], 'button_style_id', styleId, replaceAll=True)
+
+    return 1
+
+def updateCampaignButtonStyles(campaignId, styleTupes):
+    """Associate button styles with a campaign.
+    Will always replace all rows associated with this campaign in the table,
+    since any change affects ALL probabilities.
+
+    styleTupes should be (button_style_id, CDF probability)
+    """
+
+    # Ensure the CDF described by these tuples is well-defined
+    # before trying to insert them (this will raise an exception if not)
+    checkCDF(styleTupes)
+
+    rows = []
+    for styleId, prob in styleTupes:
+        rows.append({
+                    'campaign_id' : campaignId,
+                    'button_style_id' : styleId,
+                    'rand_cdf' : prob
+                    })
+
+    insCols = ['campaign_id', 'button_style_id', 'rand_cdf']
+
+    dbInsert('campaign_button_styles', 'campaign_button_style_id', insCols, rows, 'campaign_id', campaignId, replaceAll=True)
+
+    return len(rows)
+
 
 def createFacesStyle(clientId, name, description, htmlFile, cssFile):
     """Right now, faces styles are hard-coded in the app."""

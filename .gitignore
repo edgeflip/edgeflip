@@ -4,6 +4,7 @@ edgeflip/old
 *.sqlite
 /edgeflip/logs/*
 edgeflip/edgeflip.config
+edgeflip/web/templates/clients/local
 edgeflip/web/templates/clients/local/*
 *.wpr
 *.wpu
@@ -15,3 +16,5 @@ edgeflip/web/templates/clients/local/*
 *~
 *.sublime-project
 *.sublime-workspace
+*.idea
+ssl
