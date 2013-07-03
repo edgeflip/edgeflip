@@ -15,3 +15,5 @@ edgeflip/web/templates/clients/local/*
 *~
 *.sublime-project
 *.sublime-workspace
+*.idea
+ssl
