@@ -14,6 +14,7 @@ from MySQLdb import IntegrityError
 from . import database as db
 from . import datastructs
 from .settings import config 
+from .web import utils
 
 logger = logging.getLogger(__name__)
 
@@ -496,8 +497,10 @@ def getFacesURL(campaignId, contentId):
         url += '?'
     else:
         url += '&'
+
+    slug = utils.encodeDES('%s/%s' % (campaignId, contentId))
     
-    return url + 'efcmpg=' + str(campaignId) + '&efcnt=' + str(contentId)
+    return url + 'efcmpgslug=' + str(slug)
 
 
 def checkRequiredFbObjAttributes(attributes):
