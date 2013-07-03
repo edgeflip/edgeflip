@@ -85,7 +85,7 @@ def frame_faces_encoded(campaignSlug):
     """Endpoint to serve buttons with obfuscated URL"""
 
     try:
-        decoded = DecodeDES(campaignSlug)
+        decoded = decodeDES(campaignSlug)
         campaignId, contentId = [int(i) for i in decoded.split('/')]
     except Exception as e:
         logger.error("Exception on decrypting frame_faces: %s", str(e))
