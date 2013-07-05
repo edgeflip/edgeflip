@@ -67,7 +67,9 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
     # Check if any friends should be excluded for this campaign/content combination
     excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
-    edgesEligible = [e for e in edgesRanked if e.secondary.id not in excludeFriends]
+    edgesEligible = [
+        e for e in edgesRanked if e.secondary.id not in excludeFriends
+    ]
 
     # Get filter experiments, do assignment (and write DB)
     filterRecs = cdb.dbGetExperimentTupes(

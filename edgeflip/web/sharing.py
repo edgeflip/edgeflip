@@ -219,25 +219,51 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
     fbObjectKeys = [('campaign_id', campaignId)]
     if (bestCSFilter[0] is None):
         # We got generic...
-        logger.debug("Generic returned for %s with campaign %s." % (fbid, campaignId))
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'generic choice set filter', None, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
+        logger.debug("Generic returned for %s with campaign %s." % (
+            fbid, campaignId
+        ))
+        cdb.dbWriteAssignment(
+            sessionId, campaignId, contentId,
+            'generic choice set filter', None, False,
+            'choice_set_filters',
+            [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
+            background=config.database.use_threads
+        )
         fbObjectTable = 'campaign_fb_objects'
         fbObjectIdx = 'campaign_fb_object_id'
     else:
-        cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'filter_id', bestCSFilter[0].filterId, False, 'choice_set_filters', [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters], background=config.database.use_threads)
-        fbObjectKeys = [('campaign_id', campaignId), ('filter_id', bestCSFilter[0].filterId)]
+        cdb.dbWriteAssignment(
+            sessionId, campaignId, contentId, 'filter_id',
+            bestCSFilter[0].filterId, False, 'choice_set_filters',
+            [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
+            background=config.database.use_threads
+        )
+        fbObjectKeys = [
+            ('campaign_id', campaignId),
+            ('filter_id', bestCSFilter[0].filterId)
+        ]
 
     # Get FB Object experiments, do assignment (and write DB)
-    fbObjectRecs = cdb.dbGetExperimentTupes(fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys)
+    fbObjectRecs = cdb.dbGetExperimentTupes(
+        fbObjectTable, fbObjectIdx, 'fb_object_id', fbObjectKeys
+    )
     fbObjExpTupes = [(r[1], r[2]) for r in fbObjectRecs]
     fbObjectId = int(cdb.doRandAssign(fbObjExpTupes))
-    cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=config.database.use_threads)
+    cdb.dbWriteAssignment(
+        sessionId, campaignId, contentId, 'fb_object_id', fbObjectId,
+        True, fbObjectTable, [r[0] for r in fbObjectRecs],
+        background=config.database.use_threads
+    )
 
     # Find template params, return faces
-    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes',
-                    ['og_action', 'og_type', 'sharing_prompt',
-                    'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post', 'og_title', 'og_image', 'og_description'],
-                    'fb_object_id', fbObjectId)[0]
+    fbObjectInfo = cdb.dbGetObjectAttributes(
+        'fb_object_attributes',
+        [
+            'og_action', 'og_type', 'sharing_prompt',
+            'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post',
+            'og_title', 'og_image', 'og_description'
+        ],
+        'fb_object_id', fbObjectId)[0]
 
     msgParams = {
         'sharing_prompt': fbObjectInfo[2],
@@ -249,7 +275,11 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
     actionParams = {
         'fb_action_type': fbObjectInfo[0],
         'fb_object_type': fbObjectInfo[1],
-        'fb_object_url': flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+        'fb_object_url': flask.url_for(
+            'objects', fbObjectId=fbObjectId,
+            contentId=contentId, _external=True) + (
+                '?csslug=%s' % choiceSetSlug if choiceSetSlug else ''
+            ),
         'fb_app_name': paramsDB[0],
         'fb_app_id': int(paramsDB[1]),
         'fb_object_title': fbObjectInfo[7],
