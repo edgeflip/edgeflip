@@ -42,6 +42,14 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`dynamo` Module
+-------------------------
+
+.. automodule:: edgeflip.dynamo
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`facebook` Module
 ----------------------
 
