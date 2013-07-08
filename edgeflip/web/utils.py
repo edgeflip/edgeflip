@@ -2,12 +2,42 @@
 
 import flask
 import hashlib
+from Crypto.Cipher import DES
+import base64
+import urllib
 import time
 import os
 import logging
 
+from ..settings import config
+
 logger = logging.getLogger(__name__)
 
+
+PADDING = ' '
+BLOCK_SIZE = 8
+
+pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE)*PADDING
+
+# DES appears to be limited to 8-character secret, so truncate if too long
+secret = pad(config.crypto.des_secret)[:8]
+cipher = DES.new(secret)
+
+def encodeDES(message):
+    """Encrypt a message with DES cipher, returning a URL-safe, quoted string"""
+    message = str(message)
+    encrypted = cipher.encrypt(pad(message))
+    b64encoded = base64.urlsafe_b64encode(encrypted)
+    encoded = urllib.quote(b64encoded)
+    return encoded
+
+def decodeDES(encoded):
+    """Decrypt a message with DES cipher, assuming a URL-safe, quoted string"""
+    encoded = str(encoded)
+    unquoted = urllib.unquote(encoded)
+    b64decoded = base64.urlsafe_b64decode(unquoted)
+    message = cipher.decrypt(b64decoded).rstrip(PADDING)
+    return message
 
 def ajaxResponse(content, code, sessionId):
     """return a response with custom session ID header set"""
