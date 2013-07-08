@@ -3,7 +3,7 @@
 tools & classes for data stored in AWS DynamoDB
 
 
-.. envvar:: dynamodb.prefix
+.. envvar:: dynamo.prefix
 
     String prefix to prepend to table names. A `.` is used as a separtor
 
@@ -69,4 +69,4 @@ def get_table(name):
     :rtype: `boto.dynamodb2.table.Table`
     """
     
-    return Table(".".join(config.dynamodb.prefix), connection=get_dynamo())
+    return Table(".".join(config.dynamo.prefix), connection=get_dynamo())
