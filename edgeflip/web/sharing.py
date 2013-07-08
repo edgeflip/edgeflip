@@ -24,7 +24,7 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
+MAX_FALLBACK_COUNT = 5      # move to config (or do we want it hard-coded)??
 
 @app.route("/button/<campaignSlug>")
 def button_encoded(campaignSlug):
