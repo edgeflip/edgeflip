@@ -2,7 +2,11 @@ from __future__ import absolute_import
 import time
 import logging
 
+import us
+
 import flask
+
+from civis_matcher import matcher
 
 from edgeflip import (
     client_db_tools as cdb,
@@ -203,3 +207,31 @@ def proximity_rank_four(mockMode, fbid, token):
     database.updateDb(user, token, edgesRanked,
                       background=config.database.use_threads)
     return edgesRanked
+
+
+@celery.task
+def civis_matching(user, feature, value):
+    ''' Performs a match against the Civis API and retrieves the score for a
+    given user
+    '''
+    cm = matcher.CivisMatcher()
+    kwargs = {}
+    if user.birthday:
+        kwargs['birth_month'] = user.birthday.month
+        kwargs['birth_year'] = user.birthday.year
+        kwargs['birth_day'] = user.birthday.day
+
+    if user.state:
+        state = us.states.lookup(user.state)
+        kwargs['state'] = state.abbr if state else None
+    else:
+        kwargs['state'] = None
+
+    result = cm.match(
+        first_name=user.fname,
+        last_name=user.lname,
+        city=user.city,
+        **kwargs
+    )
+    score = getattr(result, feature, None)
+    return user if score >= value else None

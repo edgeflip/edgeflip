@@ -3,13 +3,16 @@
 
 # Will generally need to work out some auth, probably at the API level
 # (including a check that requests are always consistent with the authed user)
+from __future__ import absolute_import
 import random
 import logging
 import threading
 from MySQLdb import IntegrityError
+from celery import group
 
-from . import database as db
-from . import datastructs
+from edgeflip import (
+    database as db,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -968,7 +971,20 @@ class Filter(object):
     def filterEdgesBySec(self, edges):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
-        edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
+        if not self.features:
+            return edges
+        for feature, operator, value in self.features:
+            if feature in ('score_max', 'score_min', 'score_mean', 'score_std'):
+                # This module is caught in two minds between being a pseudo-ORM
+                # and being a place where core logic happens. As a result, we
+                # have circular import issues, hence the import here.
+                from edgeflip.tasks import civis_matching
+                civis_group = group(
+                    civis_matching.s(e.secondary, feature, value) for e in edges
+                ).apply_async()
+                edgesgood = [x for x in civis_group.get() if x]
+            else:
+                edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
         return edgesgood
 
 

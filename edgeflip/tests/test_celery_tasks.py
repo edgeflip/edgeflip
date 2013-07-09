@@ -1,3 +1,7 @@
+from datetime import date
+
+from mock import Mock, patch
+
 from edgeflip.tests import EdgeFlipTestCase
 from edgeflip import (
     client_db_tools as cdb,
@@ -63,3 +67,29 @@ class TestCeleryTasks(EdgeFlipTestCase):
         sql = 'SELECT * FROM edges WHERE fbid_target=%s'
         row_count = curs.execute(sql, 1)
         assert row_count
+
+    @patch('edgeflip.tasks.matcher')
+    def test_civis_matching_match_found(self, civis_mock):
+        ''' Test the civis matching task where a match is found '''
+        matcher_mock = Mock()
+        matcher_mock.match.return_value = Mock(score_max=100)
+        civis_mock.CivisMatcher.return_value = matcher_mock
+        user = datastructs.UserInfo(
+            1, 'Test', 'User', 'test@example.com', 'Male',
+            date(1984, 1, 1), 'Chicago', 'Illinois'
+        )
+        result = tasks.civis_matching(user, 'score_max', 100)
+        self.assertEqual(user, result)
+
+    @patch('edgeflip.tasks.matcher')
+    def test_civis_matching_no_match(self, civis_mock):
+        ''' Test the civis matching task where a match is not found '''
+        matcher_mock = Mock()
+        matcher_mock.match.return_value = Mock(score_max=10)
+        civis_mock.CivisMatcher.return_value = matcher_mock
+        user = datastructs.UserInfo(
+            1, 'Test', 'User', 'test@example.com', 'Male',
+            date(1984, 1, 1), 'Chicago', 'Illinois'
+        )
+        result = tasks.civis_matching(user, 'score_max', 100)
+        self.assertEqual(result, None)
