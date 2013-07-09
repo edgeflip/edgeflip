@@ -167,15 +167,25 @@ def fetch_user(fbid):
     x = table.get_item(fbid=fbid)
     if x['fbid'] is None: return None
 
-    return datastructs.UserInfo(uid=x['fbid'],
+    return datastructs.UserInfo(id=x['fbid'],
                                 first_name=x['fname'],
                                 last_name=x['lname'],
                                 email=x['email'],
-                                sex=x['sex'],
+                                sex=x['gender'], # XXX aaah!
                                 birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
                                 city=x['city'],
                                 state=x['state'],
                                 updated=epoch_to_datetime(x['updated']))
+
+def updateUsersDb(users):
+    """update users table
+
+    :arg users: a list of `datastruct.UserInfo`
+    """
+
+    for u in users:
+        save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
+        
 
 tokens_schema = {
     'table_name': 'tokens',
