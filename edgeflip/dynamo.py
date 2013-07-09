@@ -218,6 +218,15 @@ def fetch_token(fbid, appid):
                                  app = x['appid'],
                                  expires=epoch_to_datetime(x['expires']))
 
+def updateTokensDb(token):
+    """update tokens table
+
+    :arg token: a list of `datastruct.TokenInfo`
+    """
+    
+    save_token(token.ownerId, token.appId, token.tok, token.expires)
+
+
 
 edges_schema = {
     'table_name': 'edges',
