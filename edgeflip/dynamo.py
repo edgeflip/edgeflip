@@ -83,7 +83,7 @@ def get_table(name):
 
     :rtype: `boto.dynamodb2.table.Table`
     """
-
+    # xxx might be desirable to cache these objects like in get_dynamo()
     table = Table(_table_name(name), connection=get_dynamo())
     table.describe()
     return table
@@ -129,7 +129,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     # XXX this should perhaps do a get_item()/update/partial_save() instead?
     # XXX also need to filter out None's
     table = get_table('users')
-    u = Item(table, data = dict(
+    x = Item(table, data = dict(
         fbid = fbid,
         fname = fname,
         lname = lname,
@@ -141,26 +141,25 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
         updated = epoch_now()
         ))
 
-    u.save()
+    x.save()
 
 def fetch_user(fbid):
     table = get_table('users')
-    u = table.get_item(fbid=fbid)
-    if u['fbid'] is None: return None
+    x = table.get_item(fbid=fbid)
+    if x['fbid'] is None: return None
 
-    return datastructs.UserInfo(uid=u['fbid'],
-                                first_name=u['fname'],
-                                last_name=u['lname'],
-                                email=u['email'],
-                                sex=u['sex'],
-                                birthday=epoch_to_date(u['birthday']) if u['birthday'] is not None else None,
-                                city=u['city'],
-                                state=u['state'],
-                                updated=epoch_to_datetime(u['updated']))
-
+    return datastructs.UserInfo(uid=x['fbid'],
+                                first_name=x['fname'],
+                                last_name=x['lname'],
+                                email=x['email'],
+                                sex=x['sex'],
+                                birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
+                                city=x['city'],
+                                state=x['state'],
+                                updated=epoch_to_datetime(x['updated']))
 
 tokens_schema = {
-    'table_name': 'users',
+    'table_name': 'tokens',
     'schema': [
         HashKey('fbid_appid', data_type=STRING),
         ],
@@ -169,7 +168,7 @@ tokens_schema = {
 
 def save_token(fbid, appid, token, expires):
     table = get_table('tokens')
-    u = Item(table, data = dict(
+    x = Item(table, data = dict(
         fbid_appid = ".".join((fbid, appid)),
         fbid = fbid,
         appid = appid,
@@ -178,16 +177,64 @@ def save_token(fbid, appid, token, expires):
         updated = epoch_now()
         ))
 
-    u.save()
+    x.save()
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
-    u = table.get_item(fbid_appid=".".join((fbid, appid)))
-    if u['fbid_appid'] is None: return None
+    x = table.get_item(fbid_appid=".".join((fbid, appid)))
+    if x['fbid_appid'] is None: return None
 
-    return datastructs.TokenInfo(tok = u['token'],
-                                 own = u['fbid'],
-                                 app = u['appid'],
-                                 expires=epoch_to_datetime(u['expires']))
+    return datastructs.TokenInfo(tok = x['token'],
+                                 own = x['fbid'],
+                                 app = x['appid'],
+                                 expires=epoch_to_datetime(x['expires']))
 
 
+edges_schema = {
+    'table_name': 'edges',
+    'schema': [
+        HashKey('source_target', data_type=STRING),
+        ],
+    'indexes': None,
+    }
+
+def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
+    table = get_table('edges')
+    x = Item(table, data = dict(
+        source_target = ".".join((fbid_source, fbid_target)),
+        fbid_source = fbid_source,
+        fbid_target = fbid_target,
+        post_likes = post_likes,
+        post_comms = post_comms,
+        stat_likes = stat_likes,
+        stat_comms = stat_comms,
+        wall_posts = wall_posts,
+        wall_comms = wall_comms,
+        tags = tags,
+        photos_target = photos_target,
+        photos_other = photos_other,
+        mut_friends = mut_friends,
+        updated = epoch_now()
+        ))
+
+    x.save()
+
+def fetch_edge(fbid_source, fbid_target):
+    table = get_table('edges')
+    x = table.get_item(source_target=".".join((fbid_source, fbid_target)))
+    if x['source_target'] is None: return None
+
+    return datastructs.EdgeCounts(
+        sourceId = x['fbid_source'],
+        targetId = x['fbid_target'],
+        postLikes = x['post_likes'],
+        postComms = x['post_comms'],
+        statLikes = x['stat_likes'],
+        statComms = x['stat_comms'],
+        wallPosts = x['wall_posts'],
+        wallComms = x['wall_comms'],
+        tags = x['tags'],
+        photoTarg = x['photos_target'],
+        photoOth = x['photos_other'],
+        muts = x['mut_friends']
+        )
