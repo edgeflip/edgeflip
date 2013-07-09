@@ -12,8 +12,15 @@ tools & classes for data stored in AWS DynamoDB
 import logging
 import threading
 import flask
-from boto import connect_dynamodb
 import pymlconf
+import time
+import datetime
+
+
+from boto import connect_dynamodb
+from boto.dynamodb2.table import Table
+from boto.dynamodb2.fields import HashKey, AllIndex, IncludeIndex
+from boto.dynamodb2.types import NUMBER, STRING, A
 
 from . import datastructs
 from .settings import config
@@ -27,7 +34,7 @@ def _make_dynamo():
     """makes a connection to dynamo, based on configuration. For internal use.
 
     :rtype: mysql connection object
-    
+
     """
     try:
         access_id = config.aws.AWS_ACCESS_KEY_ID
@@ -39,12 +46,12 @@ def _make_dynamo():
 
 def get_dynamo():
     """return a connection for this thread.
-    
+
     All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
     """
     try:
         dynamo = flask.g.dynamo
-    except RuntimeError as err:        
+    except RuntimeError as err:
         # xxx gross, le sigh
         if err.message != "working outside of request context":
             raise
@@ -54,19 +61,35 @@ def get_dynamo():
             logger.debug("You made a Dynamo connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
             try:
                 return _non_flask_threadlocal.dynamo
-            except AttributeError:                
+            except AttributeError:
                 dynamo = _non_flask_threadlocal.dynamo = _make_dynamo()
     except AttributeError:
         # we are in flask-managed thread, which is nice.
         # create a new connection & save it for reuse
         dynamo = flask.g.dynamo= _make_dynamo()
-    
+
     return dynamo
 
 def get_table(name):
     """Return a boto table for the given name
-    
+
     :rtype: `boto.dynamodb2.table.Table`
     """
-    
+
     return Table(".".join(config.dynamo.prefix), connection=get_dynamo())
+
+def datetime_to_epoch(dt):
+    """given a datetime, return seconds since the epoch"""
+    return time.mktime(dt.utctimetuple())
+
+def epoch_to_datetime(epoch):
+    """given seconds since the epoch, return a datetime"""
+    return datetime.datetime.fromtimestamp(epoch)
+
+def date_to_epoch(d):
+    """given a date, return seconds since the epoch"""
+    return time.mktime(d.timetuple)
+
+def epoch_to_date(epoch):
+    """given seconds since the epoch, return a date"""
+    return datetime.date.fromtimestamp(epoch)
