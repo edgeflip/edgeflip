@@ -64,7 +64,7 @@ class UserInfo(object):
 
     """
 
-    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state):
+    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state, updated):
         self.id = uid
         self.fname = first_name
         self.lname = last_name
@@ -74,6 +74,7 @@ class UserInfo(object):
         self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
         self.city = city
         self.state = state
+        self.updated = updated
     def __str__(self):
         rets = [ str(self.id),
                  unidecodeSafe(self.fname),
@@ -117,7 +118,7 @@ class TokenInfo(object):
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
         the actions of the source user on the target's feed.
-    
+
 
 
     """

@@ -19,8 +19,9 @@ import datetime
 
 from boto import connect_dynamodb
 from boto.dynamodb2.table import Table
+from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, AllIndex, IncludeIndex
-from boto.dynamodb2.types import NUMBER, STRING, A
+from boto.dynamodb2.types import NUMBER, STRING
 
 from . import datastructs
 from .settings import config
@@ -70,13 +71,20 @@ def get_dynamo():
 
     return dynamo
 
+def _table_name(name):
+    """return a table name using the prefix specified in config.
+
+    For internal use.
+    """
+    return ".".join((config.dynamo.prefix, name))
+
 def get_table(name):
     """Return a boto table for the given name
 
     :rtype: `boto.dynamodb2.table.Table`
     """
 
-    return Table(".".join(config.dynamo.prefix), connection=get_dynamo())
+    return Table(_table_name(name), connection=get_dynamo())
 
 def datetime_to_epoch(dt):
     """given a datetime, return seconds since the epoch"""
@@ -93,3 +101,57 @@ def date_to_epoch(d):
 def epoch_to_date(epoch):
     """given seconds since the epoch, return a date"""
     return datetime.date.fromtimestamp(epoch)
+
+def epoch_now():
+    """return the current UTC time as seconds since the epoch"""
+    return time.mktime(time.gmtime())
+
+def create_table(**schema):
+    """create a new table in Dynamo
+
+    :arg dict schema: keyword args for `boto.dynamodb2.Table.create`
+    """
+    schema['table_name'] = _table_name['table_name']
+    return Table.create(connection=get_dynamo(), **schema)
+
+users_schema = {
+    'table_name': 'users',
+    'schema': [
+        HashKey('fbid', data_type=STRING),
+        ],
+    'indexes': None,
+    }
+
+
+def save_user(fbid, fname, lname, email, gender, birthday, city, state, partial=True):
+    table = get_table('users')
+    u = Item(table, data = dict(
+        fbid = fbid,
+        fname = fname,
+        lname = lname,
+        email = email,
+        gender = gender,
+        city = city,
+        state = state,
+        birthday = date_to_epoch(birthday),
+        updated = epoch_now()
+        ))
+
+    if partial:
+        u.partial_save()
+    else:
+        u.save()
+
+def fetch_user(fbid):
+    table = get_table('users')
+    u = table.get_item(fbid=fbid)
+    return datastructs.UserInfo(uid=u['fbid'],
+                                first_name=u.get('fname'),
+                                last_name=u.get('lname'),
+                                email=u.get('email'),
+                                sex=u.get('sex'),
+                                birthday=epoch_to_date(u['birthday']) if 'birthday' in u else None,
+                                city=u.get('city'),
+                                state=u.get('state'),
+                                updated=epoch_to_datetime(u['updated']))
+
