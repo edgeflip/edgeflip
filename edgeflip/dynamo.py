@@ -108,6 +108,12 @@ def epoch_now():
     """return the current UTC time as seconds since the epoch"""
     return time.mktime(time.gmtime())
 
+def remove_none_values(d):
+    """Modify a dict in place by deleting items having None for value"""
+    for k, v in d.iteritems():
+        if v is None:
+            del d[k]
+
 def create_table(**schema):
     """create a new table in Dynamo
 
@@ -126,22 +132,19 @@ users_schema = {
 
 
 def save_user(fbid, fname, lname, email, gender, birthday, city, state):
-    # XXX this should perhaps do a get_item()/update/partial_save() instead?
-    # XXX also need to filter out None's
+    updated = epoch_now()    
+    birthday = date_to_epoch(birthday) if birthday is not None else None
+         
+    data = locals()
+    remove_none_values(data)
+    
     table = get_table('users')
-    x = Item(table, data = dict(
-        fbid = fbid,
-        fname = fname,
-        lname = lname,
-        email = email,
-        gender = gender,
-        city = city,
-        state = state,
-        birthday = date_to_epoch(birthday),
-        updated = epoch_now()
-        ))
+    user = table.get_item(fbid=fbid)
+    
+    for k, v in data.iteritems():
+        user[k] = v
 
-    x.save()
+    user.partial_save()
 
 def fetch_user(fbid):
     table = get_table('users')
