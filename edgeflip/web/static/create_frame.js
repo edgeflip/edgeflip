@@ -12,10 +12,19 @@
 		// Note -- if our param appears multiple times in the URL, this will only take the last one!
 	});
 
-	var efCampaignId = urlparams['efcmpg'];
-	var efContentId = urlparams['efcnt'];
+	if (urlparams['efcmpgslug']) {
 
-	efFrameURL = efFrameURL + '/' + efCampaignId + '/' + efContentId
+		var efSlug = urlparams['efcmpgslug'];
+		efFrameURL = efFrameURL + '/' + efSlug;
+
+	} else {
+
+		var efCampaignId = urlparams['efcmpg'];
+		var efContentId = urlparams['efcnt'];
+
+		efFrameURL = efFrameURL + '/' + efCampaignId + '/' + efContentId
+
+	}
 
 	// session id's will eventually migrate to cookies...
 	var efSessionId = urlparams['efsid'];

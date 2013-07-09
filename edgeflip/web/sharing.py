@@ -10,7 +10,7 @@ import time
 import random
 import json
 
-from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate
+from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, decodeDES
 
 from .. import facebook
 from .. import mock_facebook
@@ -26,7 +26,21 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
+MAX_FALLBACK_COUNT = 5      # move to config (or do we want it hard-coded)??
+
+@app.route("/button/<campaignSlug>")
+def button_encoded(campaignSlug):
+    """Endpoint to serve buttons with obfuscated URL"""
+
+    try:
+        decoded = decodeDES(campaignSlug)
+        campaignId, contentId = [int(i) for i in decoded.split('/')]
+    except Exception as e:
+        logger.error("Exception on decrypting button: %s", str(e))
+        return "Content not found", 404
+
+    return button(campaignId, contentId)
+
 
 # Serves just a button, to be displayed in an iframe
 @app.route("/button/<int:campaignId>/<int:contentId>")
@@ -66,6 +80,20 @@ def button(campaignId, contentId):
         styleTemplate = locateTemplate('button.html', clientSubdomain, app)
 
     return flask.render_template(styleTemplate, fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId, sessionId=sessionId)
+
+
+@app.route("/frame_faces/<campaignSlug>")
+def frame_faces_encoded(campaignSlug):
+    """Endpoint to serve buttons with obfuscated URL"""
+
+    try:
+        decoded = decodeDES(campaignSlug)
+        campaignId, contentId = [int(i) for i in decoded.split('/')]
+    except Exception as e:
+        logger.error("Exception on decrypting frame_faces: %s", str(e))
+        return "Content not found", 404
+
+    return frame_faces(campaignId, contentId)
 
 
 # Serves the actual faces & share message
