@@ -84,7 +84,9 @@ def get_table(name):
     :rtype: `boto.dynamodb2.table.Table`
     """
 
-    return Table(_table_name(name), connection=get_dynamo())
+    table = Table(_table_name(name), connection=get_dynamo())
+    table.describe()
+    return table
 
 def datetime_to_epoch(dt):
     """given a datetime, return seconds since the epoch"""
@@ -123,7 +125,9 @@ users_schema = {
     }
 
 
-def save_user(fbid, fname, lname, email, gender, birthday, city, state, partial=True):
+def save_user(fbid, fname, lname, email, gender, birthday, city, state):
+    # XXX this should perhaps do a get_item()/update/partial_save() instead?
+    # XXX also need to filter out None's
     table = get_table('users')
     u = Item(table, data = dict(
         fbid = fbid,
@@ -137,21 +141,53 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, partial=
         updated = epoch_now()
         ))
 
-    if partial:
-        u.partial_save()
-    else:
-        u.save()
+    u.save()
 
 def fetch_user(fbid):
     table = get_table('users')
     u = table.get_item(fbid=fbid)
+    if u['fbid'] is None: return None
+
     return datastructs.UserInfo(uid=u['fbid'],
-                                first_name=u.get('fname'),
-                                last_name=u.get('lname'),
-                                email=u.get('email'),
-                                sex=u.get('sex'),
-                                birthday=epoch_to_date(u['birthday']) if 'birthday' in u else None,
-                                city=u.get('city'),
-                                state=u.get('state'),
+                                first_name=u['fname'],
+                                last_name=u['lname'],
+                                email=u['email'],
+                                sex=u['sex'],
+                                birthday=epoch_to_date(u['birthday']) if u['birthday'] is not None else None,
+                                city=u['city'],
+                                state=u['state'],
                                 updated=epoch_to_datetime(u['updated']))
+
+
+tokens_schema = {
+    'table_name': 'users',
+    'schema': [
+        HashKey('fbid_appid', data_type=STRING),
+        ],
+    'indexes': None,
+    }
+
+def save_token(fbid, appid, token, expires):
+    table = get_table('tokens')
+    u = Item(table, data = dict(
+        fbid_appid = ".".join((fbid, appid)),
+        fbid = fbid,
+        appid = appid,
+        token = token,
+        expires = datetime_to_epoch(expires),
+        updated = epoch_now()
+        ))
+
+    u.save()
+
+def fetch_token(fbid, appid):
+    table = get_table('tokens')
+    u = table.get_item(fbid_appid=".".join((fbid, appid)))
+    if u['fbid_appid'] is None: return None
+
+    return datastructs.TokenInfo(tok = u['token'],
+                                 own = u['fbid'],
+                                 app = u['appid'],
+                                 expires=epoch_to_datetime(u['expires']))
+
 
