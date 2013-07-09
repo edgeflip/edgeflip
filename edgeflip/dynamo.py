@@ -122,6 +122,22 @@ def create_table(**schema):
     schema['table_name'] = _table_name['table_name']
     return Table.create(connection=get_dynamo(), **schema)
 
+def create_all_tables():
+    """Create all tables in Dynamo.
+    
+    You should only call this method once.
+    """
+    dynamo = get_dynamo()
+    create_table(**users_schema)
+    create_table(**tokens_schema)
+    create_table(**edges_schema)
+
+def drop_all_tables():
+    """Delete all tables in Dynamo"""
+    for t in ('users', 'tokens', 'edges'):
+        get_table(t).delete()
+
+
 users_schema = {
     'table_name': 'users',
     'schema': [
