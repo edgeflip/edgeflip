@@ -221,12 +221,10 @@ def fetch_token(fbid, appid):
 def updateTokensDb(token):
     """update tokens table
 
-    :arg token: a list of `datastruct.TokenInfo`
+    :arg token: a `datastruct.TokenInfo`
     """
     
     save_token(token.ownerId, token.appId, token.tok, token.expires)
-
-
 
 edges_schema = {
     'table_name': 'edges',
@@ -270,3 +268,26 @@ def fetch_edge(fbid_source, fbid_target):
         photoOth = x['photos_other'],
         muts = x['mut_friends']
         )
+
+def updateFriendEdgesDb(edges):
+    """update edges table
+
+    :arg edges: a list of `datastruct.Edge`
+    """
+    # pick out all the non-None EdgeCounts from all the edges
+    counts = (c for e in edges for c in (e.countsIn, e.countsOut) if c is not None)
+    
+    for c in counts:
+        save_edge(
+            fbid_source=c.sourceId,
+            fbid_target=c.targetId,
+            post_likes=c.postLikes,
+            post_comms=c.postComms,
+            stat_likes=c.statLikes,
+            stat_comms=c.statComms,
+            wall_posts=c.wallPosts,
+            wall_comms=c.wallComms,
+            tags=c.tags,
+            photos_target=c.photoTarget,
+            photos_other=c.photoOther,
+            mut_friends=c.mutuals)
