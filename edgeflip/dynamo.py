@@ -144,7 +144,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     for k, v in data.iteritems():
         user[k] = v
 
-    user.partial_save()
+    return user.partial_save()
 
 def fetch_user(fbid):
     table = get_table('users')
@@ -180,7 +180,7 @@ def save_token(fbid, appid, token, expires):
         updated = epoch_now()
         ))
 
-    x.save()
+    return x.save()
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
@@ -202,25 +202,19 @@ edges_schema = {
     }
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
+    source_target = ".".join((fbid_source, fbid_target)),    
+    updated = epoch_now()
+    
+    data = locals()
+    remove_none_values(data)
+    
     table = get_table('edges')
-    x = Item(table, data = dict(
-        source_target = ".".join((fbid_source, fbid_target)),
-        fbid_source = fbid_source,
-        fbid_target = fbid_target,
-        post_likes = post_likes,
-        post_comms = post_comms,
-        stat_likes = stat_likes,
-        stat_comms = stat_comms,
-        wall_posts = wall_posts,
-        wall_comms = wall_comms,
-        tags = tags,
-        photos_target = photos_target,
-        photos_other = photos_other,
-        mut_friends = mut_friends,
-        updated = epoch_now()
-        ))
+    edge = table.get_item(source_target=source_target)
+    
+    for k, v in data.iteritems():
+        edge[k] = v
 
-    x.save()
+    return edge.partial_save()
 
 def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges')
