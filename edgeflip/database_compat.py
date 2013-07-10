@@ -25,27 +25,6 @@ def updateUsersDb(users):
     for u in users:
         save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
 
-
-def updateTokensDb(users, token):
-    """update tokens table"""
-    raise NotImplementedError()
-
-def updateTokensDb2(token):
-    """update tokens table
-
-    :arg token: a `datastruct.TokenInfo`
-    """
-
-    save_token(token.ownerId, token.appId, token.tok, token.expires)
-
-def getUserTokenDb(userId, appId):
-    """grab the "best" token from the tokens table
-
-    :rtype: datastructs.TokenInfo
-    """
-    return dynamo.fetch_token(userId, appId)
-
-
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
     :rtype: datastructs.UserInfo
@@ -66,6 +45,24 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         logger.debug("getting user %s, update date is %s (GMT)" % (userId, user.updated.strftime("%Y-%m-%d %H:%M:%S")))
         return user
 
+def updateTokensDb(users, token):
+    """update tokens table"""
+    raise NotImplementedError()
+
+def updateTokensDb2(token):
+    """update tokens table
+
+    :arg token: a `datastruct.TokenInfo`
+    """
+
+    save_token(token.ownerId, token.appId, token.tok, token.expires)
+
+def getUserTokenDb(userId, appId):
+    """grab the "best" token from the tokens table
+
+    :rtype: datastructs.TokenInfo
+    """
+    return dynamo.fetch_token(userId, appId)
 
 def updateFriendEdgesDb(edges):
     """update edges table
