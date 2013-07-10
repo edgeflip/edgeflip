@@ -8,7 +8,6 @@ tools & classes for data stored in AWS DynamoDB
     String prefix to prepend to table names. A `.` is used as a separtor
 
 """
-
 import logging
 import threading
 import flask
@@ -177,16 +176,6 @@ def fetch_user(fbid):
                                 state=x['state'],
                                 updated=epoch_to_datetime(x['updated']))
 
-def updateUsersDb(users):
-    """update users table
-
-    :arg users: a list of `datastruct.UserInfo`
-    """
-    # XXX it'd be nice to use boto's batch_write here, but it doesn't support partial updates
-    for u in users:
-        save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
-
-
 tokens_schema = {
     'table_name': 'tokens',
     'schema': [
@@ -217,14 +206,6 @@ def fetch_token(fbid, appid):
                                  own = x['fbid'],
                                  app = x['appid'],
                                  expires=epoch_to_datetime(x['expires']))
-
-def updateTokensDb(token):
-    """update tokens table
-
-    :arg token: a `datastruct.TokenInfo`
-    """
-
-    save_token(token.ownerId, token.appId, token.tok, token.expires)
 
 edges_schema = {
     'table_name': 'edges',
@@ -284,27 +265,3 @@ def _make_edge(x):
         photoOth = x['photos_other'],
         muts = x['mut_friends']
         )
-
-
-def updateFriendEdgesDb(edges):
-    """update edges table
-
-    :arg edges: a list of `datastruct.Edge`
-    """
-    # pick out all the non-None EdgeCounts from all the edges
-    counts = (c for e in edges for c in (e.countsIn, e.countsOut) if c is not None)
-
-    for c in counts:
-        save_edge(
-            fbid_source=c.sourceId,
-            fbid_target=c.targetId,
-            post_likes=c.postLikes,
-            post_comms=c.postComms,
-            stat_likes=c.statLikes,
-            stat_comms=c.statComms,
-            wall_posts=c.wallPosts,
-            wall_comms=c.wallComms,
-            tags=c.tags,
-            photos_target=c.photoTarget,
-            photos_other=c.photoOther,
-            mut_friends=c.mutuals)
