@@ -19,7 +19,7 @@ import datetime
 from boto import connect_dynamodb
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
-from boto.dynamodb2.fields import HashKey, AllIndex, IncludeIndex
+from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
 from . import datastructs
@@ -136,6 +136,7 @@ def drop_all_tables():
     for t in ('users', 'tokens', 'edges'):
         get_table(t).delete()
 
+##### USERS #####
 
 users_schema = {
     'table_name': 'users',
@@ -162,10 +163,28 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     return user.partial_save()
 
 def fetch_user(fbid):
+    """Fetch a user. Returns None if user not found.
+
+    :arg str fbid: the users' Facebook ID
+    :rtype: `datastructs.UserInfo`
+    """
     table = get_table('users')
     x = table.get_item(fbid=fbid)
     if x['fbid'] is None: return None
 
+    return _make_user(x)
+
+def fetch_many_users(fbids):
+    """Retrieve many users.
+
+    :arg ids: list of facebook ID's
+    """
+    table = get_table('edges')
+    results = table.batch_get([{'fbid': i} for i in fbids])
+    return [_make_user(x) for x in results if x['fbid'] is not None]
+
+def _make_user(x):
+    """make a user from a boto Item. for internal use"""
     return datastructs.UserInfo(id=x['fbid'],
                                 first_name=x['fname'],
                                 last_name=x['lname'],
@@ -175,6 +194,8 @@ def fetch_user(fbid):
                                 city=x['city'],
                                 state=x['state'],
                                 updated=epoch_to_datetime(x['updated']))
+
+##### TOKENS #####
 
 tokens_schema = {
     'table_name': 'tokens',
@@ -207,14 +228,16 @@ def fetch_token(fbid, appid):
                                  app = x['appid'],
                                  expires=epoch_to_datetime(x['expires']))
 
+##### EDGES #####
+
 edges_schema = {
     'table_name': 'edges',
     'schema': [
         HashKey('source_target', data_type=STRING),
         ],
     'indexes': [
-        AllIndex('fbid_source', parts=[HashKey('fbid_source')]),
-        AllIndex('fbid_target', parts=[HashKey('fbid_target')])
+        AllIndex('fbid_source', parts=[HashKey('fbid_source'), RangeKey('updated')]),
+        AllIndex('fbid_target', parts=[HashKey('fbid_target', RangeKey('updated'))])
     ]
 }
 
@@ -248,6 +271,18 @@ def fetch_many_edges(ids):
     table = get_table('edges')
     results = table.batch_get([{'source_target':".".join(i)} for i in ids])
     return [_make_edge(x) for x in results if x['source_target'] is not None]
+
+def fetch_many_incoming_edges(fbid, newer_than):
+    """secondary -> primary"""
+    table = get_table('edges')
+    results = table.query(index = 'fbid_target', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
+    return map(_make_edge, results)
+
+def fetch_many_outgoing_edges(fbid, newer_than):
+    """primary -> secondary"""
+    table = get_table('edges')
+    results = table.query(index = 'fbid_source', fbid_source = fbid, updated__gt = datetime_to_epoch(newer_than))
+    return map(_make_edge, results)
 
 def _make_edge(x):
     """make an edge from a boto Item. for internal use"""
