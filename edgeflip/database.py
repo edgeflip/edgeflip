@@ -23,23 +23,23 @@ _non_flask_threadlocal = threading.local()
 
 def _make_connection():
     """makes a connection to mysql, based on configuration. For internal use.
-    
+
     :rtype: mysql connection object
-    
+
     """
-    
+
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
 
 def getConn():
     """return a connection for this thread.
-    
+
     All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
-    
+
     You are responsible for managing the state of your connection; it may be cleaned up (rollback()'d , etc.) on thread destruction, but you shouldn't rely on such things.
     """
     try:
         conn = flask.g.conn
-    except RuntimeError as err:        
+    except RuntimeError as err:
         # xxx gross, le sigh
         if err.message != "working outside of request context":
             raise
@@ -49,13 +49,13 @@ def getConn():
             logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
             try:
                 return _non_flask_threadlocal.conn
-            except AttributeError:                
+            except AttributeError:
                 conn = _non_flask_threadlocal.conn = _make_connection()
     except AttributeError:
         # we are in flask-managed thread, which is nice.
         # create a new connection & save it for reuse
         conn = flask.g.conn = _make_connection()
-    
+
     return conn
 
 class Table(object):
@@ -67,7 +67,7 @@ class Table(object):
         indices = indices if indices is not None else []
         key = key if key is not None else []
         otherStmts = otherStmts if otherStmts is not None else []
-         
+
         self.name = name
         self.colTups = []
         self.addCols(cols)
@@ -226,8 +226,8 @@ def dbSetup(tableKeys=None):
 
 def dbMigrate():
     """migrate from old (pre token_table) schema
-    
-    
+
+
     XXX I can probably die!
     """
     conn = getConn()
@@ -362,9 +362,9 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     curs = conn.cursor()
     sqlSelect = """
             SELECT e.fbid_source, e.fbid_target,
-                    e.post_likes, e.post_comms, e.stat_likes, e.stat_comms, 
-                    e.wall_posts, e.wall_comms, e.tags, 
-                    e.photos_target, e.photos_other, e.mut_friends, 
+                    e.post_likes, e.post_comms, e.stat_likes, e.stat_comms,
+                    e.wall_posts, e.wall_comms, e.tags,
+                    e.photos_target, e.photos_other, e.mut_friends,
                     unix_timestamp(e.updated),
                     u.fname, u.lname, u.email, u.gender, u.birthday, u.city, u.state
             FROM edges e
@@ -410,9 +410,9 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
                                                    oTags, oPhOwn, oPhOth, oMuts)
             secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
 
-            # zzz This will simply ignore edges where we've crawled the outgoing edge but not 
-            #     the incoming one (eg, with the current primary as someone else's secondary) 
-            #     That could happen either if this primary is totally new OR if it's a new 
+            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+            #     the incoming one (eg, with the current primary as someone else's secondary)
+            #     That could happen either if this primary is totally new OR if it's a new
             #     friend who came in as a primary after friending the current primary.
             edgeCountsIn = secId_edgeCountsIn.get(secId)
             if edgeCountsIn is not None:
@@ -429,7 +429,7 @@ def _updateDb(user, token, edges):
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
-    
+
     try:
         updateTokensDb(curs, [user], token)
         updateUsersDb(curs, [user])
@@ -440,7 +440,7 @@ def _updateDb(user, token, edges):
     except:
         conn.rollback()
         raise
-    
+
     logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     return eCount
@@ -483,7 +483,7 @@ def updateFriendEdgesDb(curs, edges):
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
                     'mut_friends': counts.mutuals,
-                    'updated': None     # Force DB to change updated to current_timestamp 
+                    'updated': None     # Force DB to change updated to current_timestamp
                                         # even if rest of record is identical. Depends on
                                         # MySQL handling of NULLs in timestamps and feels
                                         # a bit ugly...
@@ -499,20 +499,20 @@ def updateUsersDb(curs, users):
 
     updateCount = 0
     for u in users:
-        col_val = { 
-            'fname': u.fname, 
+        col_val = {
+            'fname': u.fname,
             'lname': u.lname,
             'email': u.email,
-            'gender': u.gender, 
+            'gender': u.gender,
             'birthday': u.birthday,
-            'city': u.city, 
-            'state': u.state    
+            'city': u.city,
+            'state': u.state
         }
         # Only include columns with non-null (or empty/zero) values
         # to ensure a NULL can never overwrite a non-null
         col_val = { k : v for k,v in col_val.items() if v }
         col_val['fbid'] = u.id
-        col_val['updated'] = None   # Force DB to change updated to current_timestamp 
+        col_val['updated'] = None   # Force DB to change updated to current_timestamp
                                     # even if rest of record is identical. Depends on
                                     # MySQL handling of NULLs in timestamps and feels
                                     # a bit ugly...
@@ -530,7 +530,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : None    # Force DB to change updated to current_timestamp 
+            'updated' : None    # Force DB to change updated to current_timestamp
                                 # even if rest of record is identical. Depends on
                                 # MySQL handling of NULLs in timestamps and feels
                                 # a bit ugly...
@@ -633,7 +633,7 @@ def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
     curs = conn.cursor()
 
     row = {
-            'activityId': activityId, 'userId': userId, 
+            'activityId': activityId, 'userId': userId,
             'campaignId': campaignId, 'contentId': contentId,
             'shareMsg': shareMsg
           }
@@ -720,7 +720,7 @@ def writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason, back
 
     """
     # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
-    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared' 
+    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared'
     #       (though this would take a lot more juggling with who is being shown in the current session!)
     if (background):
         t = threading.Thread(target=_writeFaceExclusionsDb,

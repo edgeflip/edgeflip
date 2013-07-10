@@ -8,6 +8,7 @@ import flask
 import datetime
 import time
 import random
+import json
 
 from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, decodeDES
 
@@ -18,6 +19,7 @@ from .. import database
 from .. import datastructs
 from .. import client_db_tools as cdb
 from .. import filtering
+from edgeflip import tasks, celery
 
 from ..settings import config
 
@@ -110,7 +112,7 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict, 
+    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict,
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
 
@@ -126,14 +128,28 @@ def faces():
     campaignId = flask.request.json['campaignid']
     contentId = flask.request.json['contentid']
     mockMode = True if flask.request.json.get('mockmode') else False
-    ip = getIP(req = flask.request)
+    task_id = flask.request.json.get('task_id')
+    ip = getIP(req=flask.request)
+    fbmodule = None
+    user = edgesRanked = edgesUnranked = None
+
+    if task_id:
+        result = celery.celery.AsyncResult(task_id)
+        if result.ready():
+            user, edgesRanked = result.result
+        else:
+            return ajaxResponse(
+                json.dumps({'status': 'waiting', 'task_id': task_id}),
+                200,
+                sessionId
+            )
 
     fbmodule = None
     if (mockMode):
         logger.info('Running in mock mode')
         fbmodule = mock_facebook
         # Generate a random fake ID for our primary to avoid collisions in DB
-        fbid = 100000000000+random.randint(1,10000000)
+        fbid = 100000000000 + random.randint(1,10000000)
     else:
         fbmodule = facebook
 
@@ -141,14 +157,14 @@ def faces():
     clientSubdomain = flask.request.host.split('.')[0]
     try:
         clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    except ValueError as e:
+    except ValueError:
         return "Content not found", 404     # Better fallback here or something?
 
     # Want to ensure mock mode can only be run in staging or local development
     if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
         return "Mock mode only allowed for the mock client.", 403
 
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
 
     if (not sessionId):
         # If we don't have a sessionId, generate one with "content" as the button that would have pointed to this page...
@@ -161,36 +177,43 @@ def faces():
     token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
 
     """next 60 lines or so get pulled out"""
+    if not user and edgesRanked is None:
+        if not mockMode:
+            user = database.getUserDb(fbid, config.freshness,
+                                      freshnessIncludeEdge=False)
 
-    user = None
-    if (not mockMode):
-        user = database.getUserDb(fbid, config.freshness, freshnessIncludeEdge=False)
+        if user: # user is there, but may have come in as a secondary (and therefore have no edges)
+            logger.debug("user %s is fresh, getting data from db", fbid)
+            newerThan = time.time() - config.freshness * 24 * 60 * 60 # newerThan is a unix timestamp to restict edges pulled from DB
+            edgesUnranked = database.getFriendEdgesDb(fbid,
+                                                      requireOutgoing=False,
+                                                      newerThan=newerThan)
+            # zzz Even if we got the user from the DB, we'll still want to at least write
+            #     the token for two reasons: (1) we can update its expiration date since
+            #     it will have been extended because they came back, and (2) it's possible
+            #     we got this user associated with a different Facebook app id, so want to
+            #     be sure the new association is stored!
 
-    edgesUnranked = None
-    if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
-        logger.debug("user %s is fresh, getting data from db", fbid)
-        newerThan = time.time() - config.freshness*24*60*60 # newerThan is a unix timestamp to restict edges pulled from DB
-        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
-        # zzz Even if we got the user from the DB, we'll still want to at least write
-        #     the token for two reasons: (1) we can update its expiration date since
-        #     it will have been extended because they came back, and (2) it's possible
-        #     we got this user associated with a different Facebook app id, so want to
-        #     be sure the new association is stored!
-
-    # zzz This logic depends heavily on the fact that we're using soley px3 right now
-    #     (and requireOutgoing is always False above). Otherwise, the edges may have
-    #     various updated dates and we could only have a small subset of them here.
-    #     (I kinda at least want to know the number of friends to compare to...)
-    #     We really need a better way of doing this!!!
-    edgesRanked = None
-    if (not edgesUnranked):
-        logger.debug("edges or user info for user %s is not fresh, retrieving data from fb", fbid)
-        user = fbmodule.getUserFb(fbid, token.tok)
-        edgesUnranked = fbmodule.getFriendEdgesFb(fbid, token.tok, requireIncoming=False, requireOutgoing=False)
-        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
-        database.updateDb(user, token, edgesRanked, background=config.database.use_threads)
-    else:
-        edgesRanked = ranking.getFriendRanking(edgesUnranked, requireIncoming=False, requireOutgoing=False)
+        # zzz This logic depends heavily on the fact that we're using soley px3 right now
+        #     (and requireOutgoing is always False above). Otherwise, the edges may have
+        #     various updated dates and we could only have a small subset of them here.
+        #     (I kinda at least want to know the number of friends to compare to...)
+        #     We really need a better way of doing this!!!
+        if not edgesUnranked:
+            logger.debug(
+                "edges or user info for user %s is not fresh, retrieving data from fb",
+                fbid
+            )
+            result = tasks.retrieve_fb_user_info.delay(mockMode, fbid, token)
+            return ajaxResponse(
+                json.dumps({'status': 'waiting', 'task_id': result.id}),
+                200,
+                sessionId
+            )
+        else:
+            edgesRanked = ranking.getFriendRanking(edgesUnranked,
+                                                   requireIncoming=False,
+                                                   requireOutgoing=False)
 
     # Outside the if block because we want to do this regardless of whether we got
     # user data from the DB (since they could be connecting with a new client even
@@ -209,7 +232,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         raise RuntimeError("Exceeded maximum fallback count")
-    
+
     # Check if any friends should be excluded for this campaign/content combination
     excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
     edgesEligible = [e for e in edgesRanked if e.secondary.id not in excludeFriends]
@@ -286,8 +309,8 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=config.database.use_threads)
 
     # Find template params, return faces
-    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
-                    ['og_action', 'og_type', 'sharing_prompt', 
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes',
+                    ['og_action', 'og_type', 'sharing_prompt',
                     'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post', 'og_title', 'og_image', 'og_description'],
                     'fb_object_id', fbObjectId)[0]
 
@@ -316,8 +339,13 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
 
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
 
-    return ajaxResponse(flask.render_template(locateTemplate('faces_table.html', clientSubdomain, app), fbParams=actionParams, msgParams=msgParams,
-                                 face_friends=faceFriends, all_friends=allFriends, pickFriends=pickDicts, numFriends=numFace), 200, sessionId)
+    return ajaxResponse(
+        json.dumps({'status': 'success', 'html': flask.render_template(
+            locateTemplate('faces_table.html', clientSubdomain, app),
+            fbParams=actionParams, msgParams=msgParams,
+            face_friends=faceFriends, all_friends=allFriends,
+            pickFriends=pickDicts, numFriends=numFace
+        )}), 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")
@@ -332,9 +360,9 @@ def objects(fbObjectId, contentId):
     else:
         clientId = clientId[0][0]
 
-    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes',
                     ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
-                    'page_title', 'url_slug'], 
+                    'page_title', 'url_slug'],
                     'fb_object_id', fbObjectId)
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])
 
@@ -436,9 +464,9 @@ def recordEvent():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in [  'button_load', 'button_click', 
-                            'authorized', 'auth_fail', 
-                            'select_all_click', 'suggest_message_click', 
+    if (eventType not in [  'button_load', 'button_click',
+                            'authorized', 'auth_fail',
+                            'select_all_click', 'suggest_message_click',
                             'share_click', 'share_fail', 'shared', 'clickback'
                         ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
@@ -504,10 +532,10 @@ def canvas():
 @app.route("/health_check")
 def health_check():
     """ELB status
-    
+
     - if called as `/health_check?elb` just return 200
     - if called as `/health_check` return a JSON dict with status of various component
-    
+
     """
     if 'elb' in flask.request.args:
         return "It's Alive!", 200
@@ -533,6 +561,6 @@ def health_check():
     except:
         # xxx do something more intelligent here?
         raise
-    
+
     return flask.jsonify(components)
 
