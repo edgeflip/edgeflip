@@ -38,6 +38,34 @@ def updateTokensDb2(token):
 
     save_token(token.ownerId, token.appId, token.tok, token.expires)
 
+def getUserTokenDb(userId, appId):
+    """grab the "best" token from the tokens table
+
+    :rtype: datastructs.TokenInfo
+    """
+    return dynamo.fetch_token(userId, appId)
+
+
+def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
+    """
+    :rtype: datastructs.UserInfo
+
+    freshness - how recent does data need to be? returns None if not fresh enough
+    """
+    if freshnessIncludeEdge:
+        raise NotImplementedError("freshnessIncludeEdge must be False!")
+
+    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+
+    user = dynamo.fetch_user(userId)
+
+    if user is None or user.updated <= freshnessDate:
+        return None
+    else:
+        logger.debug("getting user %s, update date is %s (GMT)" % (userId, user.updated.strftime("%Y-%m-%d %H:%M:%S")))
+        return user
+
 
 def updateFriendEdgesDb(edges):
     """update edges table
