@@ -124,7 +124,7 @@ def create_table(**schema):
 
 def create_all_tables():
     """Create all tables in Dynamo.
-    
+
     You should only call this method once.
     """
     dynamo = get_dynamo()
@@ -143,20 +143,20 @@ users_schema = {
     'schema': [
         HashKey('fbid', data_type=STRING),
         ],
-    'indexes': None,
-    }
+    'indexes': [],
+}
 
 
 def save_user(fbid, fname, lname, email, gender, birthday, city, state):
-    updated = epoch_now()    
+    updated = epoch_now()
     birthday = date_to_epoch(birthday) if birthday is not None else None
-         
+
     data = locals()
     remove_none_values(data)
-    
+
     table = get_table('users')
     user = table.get_item(fbid=fbid)
-    
+
     for k, v in data.iteritems():
         user[k] = v
 
@@ -182,18 +182,18 @@ def updateUsersDb(users):
 
     :arg users: a list of `datastruct.UserInfo`
     """
-
+    # XXX it'd be nice to use boto's batch_write here, but it doesn't support partial updates
     for u in users:
         save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
-        
+
 
 tokens_schema = {
     'table_name': 'tokens',
     'schema': [
         HashKey('fbid_appid', data_type=STRING),
         ],
-    'indexes': None,
-    }
+    'indexes': AllIndex('fbid', parts=[HashKey('fbid')]),
+}
 
 def save_token(fbid, appid, token, expires):
     table = get_table('tokens')
@@ -223,7 +223,7 @@ def updateTokensDb(token):
 
     :arg token: a `datastruct.TokenInfo`
     """
-    
+
     save_token(token.ownerId, token.appId, token.tok, token.expires)
 
 edges_schema = {
@@ -231,19 +231,22 @@ edges_schema = {
     'schema': [
         HashKey('source_target', data_type=STRING),
         ],
-    'indexes': None,
-    }
+    'indexes': [
+        AllIndex('fbid_source', parts=[HashKey('fbid_source')]),
+        AllIndex('fbid_target', parts=[HashKey('fbid_target')])
+    ]
+}
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
-    source_target = ".".join((fbid_source, fbid_target)),    
+    source_target = ".".join((fbid_source, fbid_target)),
     updated = epoch_now()
-    
+
     data = locals()
     remove_none_values(data)
-    
+
     table = get_table('edges')
     edge = table.get_item(source_target=source_target)
-    
+
     for k, v in data.iteritems():
         edge[k] = v
 
@@ -253,7 +256,20 @@ def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges')
     x = table.get_item(source_target=".".join((fbid_source, fbid_target)))
     if x['source_target'] is None: return None
+    return _make_edge(x)
 
+
+def fetch_many_edges(ids):
+    """Retrieve many edges.
+
+    :arg ids: list of 2-tuples of (fbid_source, fbid_target)
+    """
+    table = get_table('edges')
+    results = table.batch_get([{'source_target':".".join(i)} for i in ids])
+    return [_make_edge(x) for x in results if x['source_target'] is not None]
+
+def _make_edge(x):
+    """make an edge from a boto Item. for internal use"""
     return datastructs.EdgeCounts(
         sourceId = x['fbid_source'],
         targetId = x['fbid_target'],
@@ -269,6 +285,7 @@ def fetch_edge(fbid_source, fbid_target):
         muts = x['mut_friends']
         )
 
+
 def updateFriendEdgesDb(edges):
     """update edges table
 
@@ -276,7 +293,7 @@ def updateFriendEdgesDb(edges):
     """
     # pick out all the non-None EdgeCounts from all the edges
     counts = (c for e in edges for c in (e.countsIn, e.countsOut) if c is not None)
-    
+
     for c in counts:
         save_edge(
             fbid_source=c.sourceId,
