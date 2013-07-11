@@ -272,16 +272,32 @@ def fetch_many_edges(ids):
     results = table.batch_get([{'source_target':".".join(i)} for i in ids])
     return [_make_edge(x) for x in results if x['source_target'] is not None]
 
-def fetch_many_incoming_edges(fbid, newer_than):
-    """secondary -> primary"""
+def fetch_many_incoming_edges(fbid, newer_than=None):
+    """Fetch many edges from secondary -> primary
+
+    :arg str fbid: primary's facebook id
+    :arg `datetime.datetime` newer_than: only include edges newer than this
+    :rtype: list of `datastructs.EdgeCounts`
+    """
     table = get_table('edges')
-    results = table.query(index = 'fbid_target', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
+    if newer_than is None:
+        results = table.query(index = 'fbid_target', fbid_target = fbid)
+    else:
+        results = table.query(index = 'fbid_target', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
     return map(_make_edge, results)
 
-def fetch_many_outgoing_edges(fbid, newer_than):
-    """primary -> secondary"""
+def fetch_many_outgoing_edges(fbid, newer_than=None):
+    """Fetch many edges from primary -> secondary
+
+    :arg str fbid: primary's facebook id
+    :arg `datetime.datetime` newer_than: only include edges newer than this
+    :rtype: list of `datastructs.EdgeCounts`
+    """
     table = get_table('edges')
-    results = table.query(index = 'fbid_source', fbid_source = fbid, updated__gt = datetime_to_epoch(newer_than))
+    if newer_than is None:
+        results = table.query(index = 'fbid_source', fbid_source = fbid)
+    else:
+        results = table.query(index = 'fbid_source', fbid_source = fbid, updated__gt = datetime_to_epoch(newer_than))
     return map(_make_edge, results)
 
 def _make_edge(x):

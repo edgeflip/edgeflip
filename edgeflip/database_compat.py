@@ -10,6 +10,8 @@ from .database import *
 
 import logging
 import threading
+import datetime
+import types
 
 from . import dynamo
 from . import datastructs
@@ -86,6 +88,61 @@ def updateFriendEdgesDb(edges):
             photos_target=c.photoTarget,
             photos_other=c.photoOther,
             mut_friends=c.mutuals)
+
+def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
+    """return list of datastructs.Edge objects for primaryId user
+
+    """
+    assert isinstance(newerThan, (datetime.timedelta, types.NoneType))
+    newer_than_date = datetime.datetime.now() - newerThan if newerThan is not None else None
+
+    edges = []  # list of edges to be returned
+    primary = getUserDb(primId)
+
+    # build dict of secondary id -> EdgeCounts
+    secId_edgeCountsIn = dict((e.targetId, e) for e in
+                              dynamo.fetch_many_incoming_edges(primId, newer_than_date))
+
+
+
+    # build dict of secondary id -> UserInfo
+    secId_userInfo = dict((u.id, u) for u in
+                          dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
+
+    if not requireOutgoing:
+        edges.extend(datastructs.Edge(primary, secId_userInfo[sec_id], ec, None)
+                     for sec_id, ec in secId_edgeCountsIn.iteritems())
+
+    ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
+
+    # outgoing edges
+    else:
+        sql = sqlSelect + \
+            " ON e.fbid_target = u.fbid" + \
+            " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
+        params = (newerThan, primId)
+        curs.execute(sql, params)
+        for rec in curs: # here, primary is the source, secondary is target
+            primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
+                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+                fname, lname, email, gender, birthday, city, state = rec
+            edgeCountsOut = datastructs.EdgeCounts(primId, secId,
+                                                   oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
+                                                   oTags, oPhOwn, oPhOth, oMuts)
+            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+            #     the incoming one (eg, with the current primary as someone else's secondary)
+            #     That could happen either if this primary is totally new OR if it's a new
+            #     friend who came in as a primary after friending the current primary.
+            edgeCountsIn = secId_edgeCountsIn.get(secId)
+            if edgeCountsIn is not None:
+                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
+                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            else:
+                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
+    return edges
+
 
 
 # helper function that may get run in a background thread
