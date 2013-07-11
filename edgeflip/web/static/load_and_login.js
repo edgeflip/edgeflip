@@ -79,7 +79,7 @@ function login(fbid, accessToken, response, task_id){
                 data = $.parseJSON(data);
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
-                        if (pollingCount > 24) {
+                        if (pollingCount > 40) {
                             clearTimeout(pollingTimer);
                             commError();
                         } else {
