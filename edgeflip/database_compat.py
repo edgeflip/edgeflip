@@ -116,10 +116,27 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
         return [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
                 for fbid, ec in secondary_EdgeCounts_in.iteritems()]
 
+    # Below here is for outgoing edges
+    EdgeCounts_out = dynamo.fetch_outgoing_edges(primId, newer_than_date)
+
+    # drop outgoing edges that don't have a corresponding incoming for whatever reason
+    # xxx this is probably relatively rare (I think?)
+
+    # we can't delete from the list in-place, so build a list of indexes, and
+    # the delete all at once
+    bad_indexes = (i for i, ec in enumerate(EdgeCounts_out)
+                   if ec.targetId not in secondary_EdgeCounts_in)
+
+    for i in bad_indexes:
+        ec = EdgeCounts_out.pop(i)
+        logger.debug("Dropped outgoing edge %s -> %s because no corresponding incoming edge",
+                     ec.targetId, ec.sourceId)
+
+    for ec in EdgeCounts_out:
+        if ec.targetId not in secondary_EdgeCounts_in:
+            delete_from(EdgeCounts_out)
+
     ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
-
-
-
     edges = []
     sql = sqlSelect + \
         " ON e.fbid_target = u.fbid" + \
