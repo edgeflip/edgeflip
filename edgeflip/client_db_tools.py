@@ -12,6 +12,7 @@ from celery import group
 
 from edgeflip import (
     database as db,
+    datastructs,
 )
 
 logger = logging.getLogger(__name__)
@@ -955,25 +956,13 @@ class Filter(object):
         elif operator == 'in':
             return user_val in value
 
-    def filterFriend(self, user):
-        """Determine if the given user object passes the current filter object.
-
-        Note that we implicitly assume an "AND" relationship between all the
-        feature/operator sets that define the filter. Will likely want more
-        complex logic in the future.
-        """
-        for feature, operator, value in self.features:
-            if not self._filter(user, feature, operator, value):
-                return False
-
-        return True    # user made it through all the filters
-
     def filterEdgesBySec(self, edges):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
         if not self.features:
             return edges
         for feature, operator, value in self.features:
+            # FIXME: The following tuple may not encompass all possibilities.
             if feature in ('score_max', 'score_min', 'score_mean', 'score_std'):
                 # This module is caught in two minds between being a pseudo-ORM
                 # and being a place where core logic happens. As a result, we
@@ -982,10 +971,15 @@ class Filter(object):
                 civis_group = group(
                     civis_matching.s(e.secondary, feature, value) for e in edges
                 ).apply_async()
-                edgesgood = [x for x in civis_group.get() if x]
+                edges = []
+                for x in civis_group.get(propagate=False):
+                    if isinstance(x, datastructs.UserInfo):
+                        edges.append(x)
+            # Standard min/max/eq/in filters below
             else:
-                edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
-        return edgesgood
+                edges = [x for x in edges if self._filter(
+                    x.secondary, feature, operator, value)]
+        return edges
 
 
 class ChoiceSetFilter(Filter):

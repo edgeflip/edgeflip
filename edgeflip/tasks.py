@@ -1,10 +1,11 @@
 from __future__ import absolute_import
 import time
-import logging
 
 import us
-
 import flask
+import requests
+from unidecode import unidecode
+from celery.utils.log import get_task_logger
 
 from civis_matcher import matcher
 
@@ -19,7 +20,7 @@ from edgeflip.celery import celery
 from edgeflip.settings import config
 
 MAX_FALLBACK_COUNT = 3
-logger = logging.getLogger(__name__)
+logger = get_task_logger(__name__)
 
 
 @celery.task
@@ -227,11 +228,26 @@ def civis_matching(user, feature, value):
     else:
         kwargs['state'] = None
 
-    result = cm.match(
-        first_name=user.fname,
-        last_name=user.lname,
-        city=user.city,
-        **kwargs
-    )
+    try:
+        start_time = time.time()
+        result = cm.match(
+            first_name=unidecode(user.fname),
+            last_name=unidecode(user.lname),
+            city=unidecode(user.city) if user.city else None,
+            **kwargs
+        )
+        end_time = time.time()
+        logger.info(
+            'Request time: %s, url: %s',
+            (end_time - start_time),
+            result.url
+        )
+    except requests.RequestException:
+        civis_matching.retry()
+    except matcher.MatchException:
+        # This means there was an issue with the Civis API. Likely means no
+        # match, but it's hard to say in the current state of their API.
+        return None
+
     score = getattr(result, feature, None)
     return user if score >= value else None
