@@ -72,7 +72,7 @@ def prox(e, eMax):
 
     e: a single datastructs.Edge
     eMax: EdgeAggregator
-    rtype: score, float 
+    rtype: score, float
 
     """
     countMaxWeightTups = []
@@ -116,7 +116,11 @@ def prox(e, eMax):
         if (countMax):
             pxTotal += float(count)/countMax*weight
             weightTotal += weight
-    return pxTotal / weightTotal                
+
+    try:
+        return pxTotal / weightTotal
+    except ZeroDivisionError:
+        return 0
 
 def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
     """returns sorted list of edges by score
