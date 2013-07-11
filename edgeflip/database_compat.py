@@ -117,32 +117,31 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
 
     ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
 
-    # outgoing edges
-    else:
-        sql = sqlSelect + \
-            " ON e.fbid_target = u.fbid" + \
-            " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
-        params = (newerThan, primId)
-        curs.execute(sql, params)
-        for rec in curs: # here, primary is the source, secondary is target
-            primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
-                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
-                fname, lname, email, gender, birthday, city, state = rec
-            edgeCountsOut = datastructs.EdgeCounts(primId, secId,
-                                                   oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
-                                                   oTags, oPhOwn, oPhOth, oMuts)
-            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+    edges = []
+    sql = sqlSelect + \
+        " ON e.fbid_target = u.fbid" + \
+        " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
+    params = (newerThan, primId)
+    curs.execute(sql, params)
+    for rec in curs: # here, primary is the source, secondary is target
+        primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
+            oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+            fname, lname, email, gender, birthday, city, state = rec
+        edgeCountsOut = datastructs.EdgeCounts(primId, secId,
+                                               oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
+                                               oTags, oPhOwn, oPhOth, oMuts)
+        secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
 
-            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
-            #     the incoming one (eg, with the current primary as someone else's secondary)
-            #     That could happen either if this primary is totally new OR if it's a new
-            #     friend who came in as a primary after friending the current primary.
-            edgeCountsIn = secId_edgeCountsIn.get(secId)
-            if edgeCountsIn is not None:
-                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
-                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
-            else:
-                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
+        # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+        #     the incoming one (eg, with the current primary as someone else's secondary)
+        #     That could happen either if this primary is totally new OR if it's a new
+        #     friend who came in as a primary after friending the current primary.
+        edgeCountsIn = secId_edgeCountsIn.get(secId)
+        if edgeCountsIn is not None:
+            logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
+            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+        else:
+            logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
     return edges
 
 
