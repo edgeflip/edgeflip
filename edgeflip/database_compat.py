@@ -102,20 +102,23 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
     primary = getUserDb(primId)
 
     # build dict of secondary id -> EdgeCounts
-    secondary_edgeCounts = dict((e.targetId, e) for e in
+    # XXX this is the ugliest variable name I have ever written in my life.
+    secondary_EdgeCounts_in = dict((e.targetId, e) for e in
                               dynamo.fetch_incoming_edges(primId, newer_than_date))
 
 
 
     # build dict of secondary id -> UserInfo
-    secondary_userInfo = dict((u.id, u) for u in
+    secondary_UserInfo = dict((u.id, u) for u in
                           dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
 
     if not requireOutgoing:
-        return [datastructs.Edge(primary, secondary_userInfo[fbid], ec, None)
-                for fbid, ec in secondary_edgeCounts.iteritems()]
+        return [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
+                for fbid, ec in secondary_EdgeCounts_in.iteritems()]
 
     ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
+
+
 
     edges = []
     sql = sqlSelect + \
@@ -131,6 +134,9 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
                                                oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                oTags, oPhOwn, oPhOth, oMuts)
         secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+
+        # xxx drop outgoing edges that don't have a corresponding incoming for whatever reason
 
         # zzz This will simply ignore edges where we've crawled the outgoing edge but not
         #     the incoming one (eg, with the current primary as someone else's secondary)
