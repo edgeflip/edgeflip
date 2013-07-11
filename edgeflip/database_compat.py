@@ -112,9 +112,12 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
     secondary_UserInfo = dict((u.id, u) for u in
                           dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
 
+
+    edges = [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
+             for fbid, ec in secondary_EdgeCounts_in.iteritems()]
+
     if not requireOutgoing:
-        return [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
-                for fbid, ec in secondary_EdgeCounts_in.iteritems()]
+        return edges
 
     # Below here is for outgoing edges
     EdgeCounts_out = dynamo.fetch_outgoing_edges(primId, newer_than_date)
@@ -135,6 +138,8 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
     for ec in EdgeCounts_out:
         if ec.targetId not in secondary_EdgeCounts_in:
             delete_from(EdgeCounts_out)
+
+
 
     ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
     edges = []
