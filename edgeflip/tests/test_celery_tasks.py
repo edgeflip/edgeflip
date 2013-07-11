@@ -75,8 +75,8 @@ class TestCeleryTasks(EdgeFlipTestCase):
         matcher_mock.match.return_value = Mock(score_max=100)
         civis_mock.CivisMatcher.return_value = matcher_mock
         user = datastructs.UserInfo(
-            1, 'Test', 'User', 'test@example.com', 'Male',
-            date(1984, 1, 1), 'Chicago', 'Illinois'
+            1, u'Test', u'User', 'test@example.com', 'Male',
+            date(1984, 1, 1), u'Chicago', 'Illinois'
         )
         result = tasks.civis_matching(user, 'score_max', 100)
         self.assertEqual(user, result)
@@ -88,8 +88,8 @@ class TestCeleryTasks(EdgeFlipTestCase):
         matcher_mock.match.return_value = Mock(score_max=10)
         civis_mock.CivisMatcher.return_value = matcher_mock
         user = datastructs.UserInfo(
-            1, 'Test', 'User', 'test@example.com', 'Male',
-            date(1984, 1, 1), 'Chicago', 'Illinois'
+            1, u'Test', u'User', 'test@example.com', 'Male',
+            date(1984, 1, 1), u'Chicago', 'Illinois'
         )
         result = tasks.civis_matching(user, 'score_max', 100)
         self.assertEqual(result, None)
