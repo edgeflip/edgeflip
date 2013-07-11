@@ -286,7 +286,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
         results = table.query(index = 'fbid_target', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
     return map(_make_edge, results)
 
-def fetch_many_edges(fbid, newer_than=None):
+def fetch_outgoing_edges(fbid, newer_than=None):
     """Fetch many edges from primary -> secondary
 
     :arg str fbid: primary's facebook id
