@@ -112,65 +112,22 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
     secondary_UserInfo = dict((u.id, u) for u in
                               dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
 
-
-    edges = [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
-             for fbid, ec in secondary_EdgeCounts_in.iteritems()]
-
+    # early return if we don't need outgoing
     if not requireOutgoing:
-        return edges
+        return [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
+                for fbid, ec in secondary_EdgeCounts_in.iteritems()]
 
-    # Below here is for outgoing edges
-    EdgeCounts_out = dynamo.fetch_outgoing_edges(primId, newer_than_date)
+    # build iterator of (secondary's UserInfo, incoming edge, outgoing edge),
+    # fetching from outgoings from Dynamo. Then turn those into Edge objects,
+    # while dropping outgoings that don't have a corresponding incoming for
+    # whatever reason.
+    args = ((primary,
+             secondary_UserInfo[ec.targetId],
+             secondary_EdgeCounts_in.get(ec.targetId),
+             ec)
+            for ec in dynamo.fetch_outgoing_edges(primId, newer_than_date))
 
-    # drop outgoing edges that don't have a corresponding incoming for whatever reason
-    # xxx this is probably relatively rare (I think?)
-
-    # we can't delete from the list in-place, so build a list of indexes, and
-    # the delete all at once
-    bad_indexes = (i for i, ec in enumerate(EdgeCounts_out)
-                   if ec.targetId not in secondary_EdgeCounts_in)
-
-    for i in bad_indexes:
-        ec = EdgeCounts_out.pop(i)
-        logger.debug("Dropped outgoing edge %s -> %s because no corresponding incoming edge",
-                     ec.targetId, ec.sourceId)
-
-    for ec in EdgeCounts_out:
-        if ec.targetId not in secondary_EdgeCounts_in:
-            delete_from(EdgeCounts_out)
-
-
-
-    ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
-    edges = []
-    sql = sqlSelect + \
-        " ON e.fbid_target = u.fbid" + \
-        " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
-    params = (newerThan, primId)
-    curs.execute(sql, params)
-    for rec in curs: # here, primary is the source, secondary is target
-        primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
-            oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
-            fname, lname, email, gender, birthday, city, state = rec
-        edgeCountsOut = datastructs.EdgeCounts(primId, secId,
-                                               oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
-                                               oTags, oPhOwn, oPhOth, oMuts)
-        secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
-
-
-        # xxx drop outgoing edges that don't have a corresponding incoming for whatever reason
-
-        # zzz This will simply ignore edges where we've crawled the outgoing edge but not
-        #     the incoming one (eg, with the current primary as someone else's secondary)
-        #     That could happen either if this primary is totally new OR if it's a new
-        #     friend who came in as a primary after friending the current primary.
-        edgeCountsIn = secId_edgeCountsIn.get(secId)
-        if edgeCountsIn is not None:
-            logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
-            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
-        else:
-            logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
-    return edges
+    return [datastructs.Edge(*a) for a in args if a[2] is not None]
 
 
 
