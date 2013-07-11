@@ -272,7 +272,7 @@ def fetch_many_edges(ids):
     results = table.batch_get([{'source_target':".".join(i)} for i in ids])
     return [_make_edge(x) for x in results if x['source_target'] is not None]
 
-def fetch_many_incoming_edges(fbid, newer_than=None):
+def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many edges from secondary -> primary
 
     :arg str fbid: primary's facebook id

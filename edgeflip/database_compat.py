@@ -101,7 +101,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
 
     # build dict of secondary id -> EdgeCounts
     secId_edgeCountsIn = dict((e.targetId, e) for e in
-                              dynamo.fetch_many_incoming_edges(primId, newer_than_date))
+                              dynamo.fetch_incoming_edges(primId, newer_than_date))
 
 
 
