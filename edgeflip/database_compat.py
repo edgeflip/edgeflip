@@ -110,7 +110,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
 
     # build dict of secondary id -> UserInfo
     secondary_UserInfo = dict((u.id, u) for u in
-                          dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
+                              dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
 
 
     edges = [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
