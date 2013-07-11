@@ -93,25 +93,27 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
     """return list of datastructs.Edge objects for primaryId user
 
     """
+    # xxx with support from dynamo.fetch_* returning iterators instead of
+    # lists, this could all be made to stream from Dynoamo in parallel (may
+    # require threads)
     assert isinstance(newerThan, (datetime.timedelta, types.NoneType))
     newer_than_date = datetime.datetime.now() - newerThan if newerThan is not None else None
 
-    edges = []  # list of edges to be returned
     primary = getUserDb(primId)
 
     # build dict of secondary id -> EdgeCounts
-    secId_edgeCountsIn = dict((e.targetId, e) for e in
+    secondary_edgeCounts = dict((e.targetId, e) for e in
                               dynamo.fetch_incoming_edges(primId, newer_than_date))
 
 
 
     # build dict of secondary id -> UserInfo
-    secId_userInfo = dict((u.id, u) for u in
+    secondary_userInfo = dict((u.id, u) for u in
                           dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
 
     if not requireOutgoing:
-        edges.extend(datastructs.Edge(primary, secId_userInfo[sec_id], ec, None)
-                     for sec_id, ec in secId_edgeCountsIn.iteritems())
+        return [datastructs.Edge(primary, secondary_userInfo[fbid], ec, None)
+                for fbid, ec in secondary_edgeCounts.iteritems()]
 
     ### EVERYTHING FROM HERE DOWN IS COPYPASTA AND STILL NEEDS REWRITING ###
 
