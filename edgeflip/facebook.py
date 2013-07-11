@@ -63,27 +63,27 @@ def dateFromFb(dateStr):
     """we would like this to die"""
     if (dateStr):
         dateElts = dateStr.split('/')
-        if (len(dateElts) == 3): 
+        if (len(dateElts) == 3):
             m, d, y = dateElts
             return datetime.date(int(y), int(m), int(d))
     return None
 
 def getUrlFb(url):
     """load JSON blob from facebook. facebook is flakey, this deals with that.
-    
+
     timeout should be parameter, etc.
     """
     try:
         with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
             responseJson = json.load(responseFile)
-    except (urllib2.URLError, urllib2.HTTPError) as e: 
+    except (urllib2.URLError, urllib2.HTTPError) as e:
         logger.info("error opening url %s: %s", url, e.reason)
         try:
             # If we actually got an error back from a server, should be able to read the message here
             logger.error("returned error was: %s", e.read())
         except:
             pass
-        raise
+        raise e
 
     return responseJson
 
@@ -92,7 +92,7 @@ def extendTokenFb(user, token, appid):
     """
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
     url += '&client_id=' + str(appid) + '&client_secret=' + config.facebook.secrets[appid]
-    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
+    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
     ts = time.time()
     try:
@@ -140,7 +140,7 @@ def getFriendsFb(userId, token):
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
 
     queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token    
+    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
 
     responseJson = getUrlFb(url)
 
@@ -184,7 +184,7 @@ def getUserFb(userId, token):
 
     """
     fql = FQL_USER_INFO % (userId)
-    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token    
+    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token
     responseJson = getUrlFb(url)
     rec = responseJson['data'][0]
     city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
@@ -200,12 +200,12 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     makes multiple calls to FB! separate calcs & FB calls
     """
     skipFriends = skipFriends if skipFriends is not None else set()
-    
+
     logger.debug("getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     friends = getFriendsFb(userId, tok)
     logger.debug("got %d friends total", len(friends))
-    
+
     friendQueue = [f for f in friends if f.id not in skipFriends]
     if (requireIncoming):
         logger.info('reading stream for user %s, %s', userId, tok)
@@ -278,7 +278,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method... 
+        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
                                          #     not important enough to fix for mayors, but maybe should one day?
 
         # Throttling for Facebook limits
@@ -351,7 +351,7 @@ class StreamCounts(object):
             self.friendId_wallCommCount[fId] += cnt
         for fId, cnt in other.friendId_tagCount.items():
             self.friendId_tagCount[fId] += cnt
-        return self        
+        return self
     def __add__(self, other):
         """XXX wrong Exception"""
         if (self.id != other.id):
@@ -360,7 +360,7 @@ class StreamCounts(object):
         sc += self
         sc += other
         return sc
-    def __str__(self):        
+    def __str__(self):
         ret = "%d entries" % (len(self.stream))
         ret += ", %d post likes" % (sum(self.friendId_postLikeCount.values()))
         ret += ", %d post comments" % (sum(self.friendId_postCommCount.values()))
@@ -369,8 +369,8 @@ class StreamCounts(object):
         ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
         ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
         ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
-        return ret            
-            
+        return ret
+
     def addPostLikers(self, friendIds):
         for friendId in friendIds:
             self.friendId_postLikeCount[friendId] += 1
@@ -417,7 +417,7 @@ class StreamCounts(object):
         fIds.update(self.friendId_wallPostCount.keys())
         fIds.update(self.friendId_wallCommCount.keys())
         fIds.update(self.friendId_tagCount.keys())
-        return fIds        
+        return fIds
     def getFriendRanking(self):
         """preliminary ranking used to decide which friends to crawl
 
@@ -433,7 +433,7 @@ class StreamCounts(object):
             friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0)*4 # guessed weight
             friendId_total[fId] += self.friendId_tagCount.get(fId, 0)*1         # guessed weight
         return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
-    
+
 class ReadStreamCounts(StreamCounts):
     """does work of reading a single user's stream
 
@@ -532,7 +532,7 @@ class ThreadStreamReader(threading.Thread):
                 ts1, ts2, qcount = self.queue.get_nowait()
             except Queue.Empty as e:
                 break
-        
+
             tim = datastructs.Timer()
 
             logger.debug("reading stream for %s, interval (%s - %s)", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
@@ -553,7 +553,7 @@ class ThreadStreamReader(threading.Thread):
             queryJson = '{' + ','.join(queryJsons) + '}'
 
 
-            url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token    
+            url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token
 
             req = urllib2.Request(url)
             try:
@@ -600,7 +600,7 @@ class ThreadStreamReader(threading.Thread):
 
             self.results.append(sc)
             self.queue.task_done()
-        
+
         else: # we've reached the stop limit
             logger.debug("thread %s reached lifespan, exiting", self.name)
 

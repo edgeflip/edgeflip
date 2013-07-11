@@ -11,7 +11,7 @@ from edgeflip.celery import celery
 from edgeflip.settings import config
 
 
-@celery.task
+@celery.task(default_retry_delay=1, max_retries=3)
 def retrieve_fb_user_info(mock_mode, fbid, token):
     ''' Retrieves FB user info and performs px3 edge ranking '''
     try:
@@ -30,7 +30,7 @@ def retrieve_fb_user_info(mock_mode, fbid, token):
             edgesUnranked, requireIncoming=False, requireOutgoing=False)
         database.updateDb(user, token, edgesRanked,
                         background=config.database.use_threads)
-    except HTTPError:
-        retrieve_fb_user_info.retry()
+    except IOError as exc:
+        retrieve_fb_user_info.retry(exc=exc)
 
     return (user, edgesRanked)
