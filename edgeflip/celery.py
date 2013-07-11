@@ -16,6 +16,7 @@ celery = Celery('edgeflip.celery',
                 include=['edgeflip.tasks'])
 
 celery.conf.update(
+    BROKER_HEARTBEAT=30,
     CELERY_TASK_RESULT_EXPIRES=3600,
     CELERY_RESULT_BACKEND='database',
     CELERY_RESULT_DBURI="mysql://%s:%s@%s/%s" % (

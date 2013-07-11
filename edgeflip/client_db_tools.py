@@ -14,6 +14,7 @@ from MySQLdb import IntegrityError
 from . import database as db
 from . import datastructs
 from .settings import config
+from .web import utils
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ def updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True):
     row = {
             'button_style_id' : styleId,
             'html_template' : htmlFile,
-            'css_file' : cssFile 
+            'css_file' : cssFile
           }
 
     dbInsert('button_style_files', 'button_style_file_id', row.keys(), [row], 'button_style_id', styleId, replaceAll=True)
@@ -497,7 +498,9 @@ def getFacesURL(campaignId, contentId):
     else:
         url += '&'
 
-    return url + 'efcmpg=' + str(campaignId) + '&efcnt=' + str(contentId)
+    slug = utils.encodeDES('%s/%s' % (campaignId, contentId))
+
+    return url + 'efcmpgslug=' + str(slug)
 
 
 def checkRequiredFbObjAttributes(attributes):
