@@ -23,11 +23,36 @@
 
     </script>
 
+    <style>
+        a, a:active, a:visited {
+            text-decoration: none; 
+            color: dodgerblue;
+        }
+    </style>
+
 </HEAD>
 <BODY>
-<h2>L o a d i n g...</h2>
-<p>You should be redirected to your content shortly.</p>
+<h2 style="margin: 0px auto; display: table;">L o a d i n g...</h2>
 
-<h3><a href="{{ redirectURL }}">Click here</a> if you're not sent to your content immediately.</h3>
+<div style="display: table; height: 90px; margin: 15px auto; border: thin solid lightgray; padding: 2px; border-radius: 2px;">
+    <table style='width: 490px; height: 90px; background: white; padding-left: 5px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left; cursor: pointer;' valign='middle' onClick="window.location = '{{ redirectURL | safe }}';">
+        <tr>
+            <td>
+                <img src='{{ fbParams.fb_object_image }}' style='margin-right: 7px; height: 90px; border: none;'>
+            </td>
+            <td>
+                <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 14px'>
+                    {{ fbParams.fb_object_title }}
+                </div>
+                <div style='font-size: 11px; color: gray; font-weight: normal; line-height: 14px;'>
+                    {{ fbParams.fb_object_desc }}
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<p>You should be redirected to your content shortly. <a href="{{ redirectURL }}">Click here</a> if you're not redirected immediately.</p>
+
 </BODY>
 </HTML>

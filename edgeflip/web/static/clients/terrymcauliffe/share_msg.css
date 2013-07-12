@@ -11,15 +11,18 @@
 }
 
 .share_prompt {
+/*
 	display: table;
 	width: 70%;
-	margin: 0px auto 18px auto;
-	padding-bottom: 2px;
-	color: #07304e;
-	font-size: 22px;
-	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 	text-align: center;
-	/*border-bottom: thin dashed gray;*/
+	margin: 0px auto 18px auto;
+*/
+	margin-bottom: 18px;
+	padding-bottom: 2px;
+	color: #0f2446;
+	font-size: 22px;
+	font-family: "Open Sans", Helvetica, sans-serif;
+	font-weight: 600;
 }
 
 .msg_friend_name {
@@ -63,11 +66,11 @@
 }
 
 .msg_title {
-	font-size: 22px;
+	font-size: 18px;
 	text-align: left;
-	color: #07304e;
-	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-	font-weight: 200;
+	color: #0f2446;
+	font-family: "Open Sans", Helvetica, sans-serif;
+	font-weight: 400;
 	float: left;
 }
 

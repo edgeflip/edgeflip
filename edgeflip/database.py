@@ -23,23 +23,23 @@ _non_flask_threadlocal = threading.local()
 
 def _make_connection():
     """makes a connection to mysql, based on configuration. For internal use.
-    
+
     :rtype: mysql connection object
-    
+
     """
-    
+
     return mysql.connect(config['dbhost'], config['dbuser'], config['dbpass'], config['dbname'], charset="utf8", use_unicode=True)
 
 def getConn():
     """return a connection for this thread.
-    
+
     All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
-    
+
     You are responsible for managing the state of your connection; it may be cleaned up (rollback()'d , etc.) on thread destruction, but you shouldn't rely on such things.
     """
     try:
         conn = flask.g.conn
-    except RuntimeError as err:        
+    except RuntimeError as err:
         # xxx gross, le sigh
         if err.message != "working outside of request context":
             raise
@@ -49,24 +49,25 @@ def getConn():
             logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
             try:
                 return _non_flask_threadlocal.conn
-            except AttributeError:                
+            except AttributeError:
                 conn = _non_flask_threadlocal.conn = _make_connection()
     except AttributeError:
         # we are in flask-managed thread, which is nice.
         # create a new connection & save it for reuse
         conn = flask.g.conn = _make_connection()
-    
+
     return conn
 
 class Table(object):
     """represents a Table
 
     """
-    def __init__(self, name, cols=None, indices=None, key=None):
+    def __init__(self, name, cols=None, indices=None, key=None, otherStmts=None):
         cols = cols if cols is not None else []
         indices = indices if indices is not None else []
         key = key if key is not None else []
-         
+        otherStmts = otherStmts if otherStmts is not None else []
+
         self.name = name
         self.colTups = []
         self.addCols(cols)
@@ -74,6 +75,7 @@ class Table(object):
         for col in indices:
             self.addIndex(col)
         self.keyCols = key
+        self.otherStmts = otherStmts
     def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for cTup in cTups:
             if (len(cTup) == 2):
@@ -137,6 +139,9 @@ TABLES['tokens'] =    Table(name='tokens',
                             key=['fbid', 'appid', 'ownerid'])
 
 # raw data behind datastructs.Edge*
+# Given how we pull data from this table, it's really very helpful to have unique keys with both column orders
+# (ideally, (fbid_target, fbid_source) would be the primary given that we'll more often specify fbid_target in
+# a where clause in real time (eg if only grabbing px3 or 4), but probably not a huge deal)
 TABLES['edges'] =     Table(name='edges',
                             cols=[
                                 ('fbid_source', 'BIGINT'),
@@ -153,7 +158,8 @@ TABLES['edges'] =     Table(name='edges',
                                 ('mut_friends', 'INTEGER'),
                                 ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP')
                             ],
-                            key=['fbid_source', 'fbid_target'])
+                            key=['fbid_source', 'fbid_target'],
+                            otherStmts=["CREATE UNIQUE INDEX targ_source ON edges (fbid_target, fbid_source)"])
 
 # user activity tracking
 TABLES['events'] =    Table(name='events',
@@ -196,7 +202,6 @@ TABLES['face_exclusions'] =     Table(name='face_exclusions',
                                             ('updated', 'TIMESTAMP', 'CURRENT_TIMESTAMP')
                                       ],
                                       key=['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
-                                      # zzz can I do a multi-column index with this table class? Ideally want fbid/campaign_id/content_id here, but the primary key may suffice...
 
 
 # Reset the DB by dropping and recreating tables
@@ -215,12 +220,14 @@ def dbSetup(tableKeys=None):
         sql = tab.sqlCreate()
         sys.stderr.write(sql + "\n")
         curs.execute(sql)
+        for stmt in tab.otherStmts:
+            curs.execute(stmt)
     conn.commit()
 
 def dbMigrate():
     """migrate from old (pre token_table) schema
-    
-    
+
+
     XXX I can probably die!
     """
     conn = getConn()
@@ -354,41 +361,65 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
 
     curs = conn.cursor()
     sqlSelect = """
-            SELECT fbid_source, fbid_target,
-                    post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms,
-                    tags, photos_target, photos_other, mut_friends, unix_timestamp(updated)
-            FROM edges
-            WHERE unix_timestamp(updated)>%s
+            SELECT e.fbid_source, e.fbid_target,
+                    e.post_likes, e.post_comms, e.stat_likes, e.stat_comms,
+                    e.wall_posts, e.wall_comms, e.tags,
+                    e.photos_target, e.photos_other, e.mut_friends,
+                    unix_timestamp(e.updated),
+                    u.fname, u.lname, u.email, u.gender, u.birthday, u.city, u.state
+            FROM edges e
+            JOIN users u
     """
 
-    sql = sqlSelect + " AND fbid_target=%s"
+    sql = sqlSelect + \
+        " ON e.fbid_source = u.fbid" + \
+        " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
     params = (newerThan, primId)
     secId_edgeCountsIn = {}
+    secId_userInfo = {}
     curs.execute(sql, params)
     for rec in curs: # here, the secondary is the source, primary is the target
-        secId, primId, iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated = rec
+        secId, primId, iPstLk, iPstCm, iStLk, iStCm, \
+            iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated, \
+            fname, lname, email, gender, birthday, city, state = rec
         edgeCountsIn = datastructs.EdgeCounts(secId, primId,
                                               iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
                                               iTags, iPhOwn, iPhOth, iMuts)
+        secInfo = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
         secId_edgeCountsIn[secId] = edgeCountsIn
+        secId_userInfo[secId] = secInfo
 
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
-            secondary = getUserDb(secId)
-            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, None))
+            logger.debug("Got secondary info & incoming edge for %s----%s from the database.", primary.id, secId)
+            edges.append(datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
 
     else:
-        sql = sqlSelect + " AND fbid_source=%s"
+        sql = sqlSelect + \
+            " ON e.fbid_target = u.fbid" + \
+            " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
         params = (newerThan, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target
-            primId, secId, oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated = rec
+            primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
+                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+                fname, lname, email, gender, birthday, city, state = rec
             edgeCountsOut = datastructs.EdgeCounts(primId, secId,
                                                    oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
                                                    oTags, oPhOwn, oPhOth, oMuts)
-            edgeCountsIn = secId_edgeCountsIn[secId]
-            secondary = getUserDb(secId)
-            edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+            #     the incoming one (eg, with the current primary as someone else's secondary)
+            #     That could happen either if this primary is totally new OR if it's a new
+            #     friend who came in as a primary after friending the current primary.
+            edgeCountsIn = secId_edgeCountsIn.get(secId)
+            if edgeCountsIn is not None:
+                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
+                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            else:
+                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
     return edges
 
 # helper function that may get run in a background thread
@@ -398,7 +429,7 @@ def _updateDb(user, token, edges):
     tim = datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
-    
+
     try:
         updateTokensDb(curs, [user], token)
         updateUsersDb(curs, [user])
@@ -409,7 +440,7 @@ def _updateDb(user, token, edges):
     except:
         conn.rollback()
         raise
-    
+
     logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     return eCount
@@ -452,7 +483,7 @@ def updateFriendEdgesDb(curs, edges):
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
                     'mut_friends': counts.mutuals,
-                    'updated': None     # Force DB to change updated to current_timestamp 
+                    'updated': None     # Force DB to change updated to current_timestamp
                                         # even if rest of record is identical. Depends on
                                         # MySQL handling of NULLs in timestamps and feels
                                         # a bit ugly...
@@ -468,20 +499,20 @@ def updateUsersDb(curs, users):
 
     updateCount = 0
     for u in users:
-        col_val = { 
-            'fname': u.fname, 
+        col_val = {
+            'fname': u.fname,
             'lname': u.lname,
             'email': u.email,
-            'gender': u.gender, 
+            'gender': u.gender,
             'birthday': u.birthday,
-            'city': u.city, 
-            'state': u.state    
+            'city': u.city,
+            'state': u.state
         }
         # Only include columns with non-null (or empty/zero) values
         # to ensure a NULL can never overwrite a non-null
         col_val = { k : v for k,v in col_val.items() if v }
         col_val['fbid'] = u.id
-        col_val['updated'] = None   # Force DB to change updated to current_timestamp 
+        col_val['updated'] = None   # Force DB to change updated to current_timestamp
                                     # even if rest of record is identical. Depends on
                                     # MySQL handling of NULLs in timestamps and feels
                                     # a bit ugly...
@@ -499,7 +530,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : None    # Force DB to change updated to current_timestamp 
+            'updated' : None    # Force DB to change updated to current_timestamp
                                 # even if rest of record is identical. Depends on
                                 # MySQL handling of NULLs in timestamps and feels
                                 # a bit ugly...
@@ -602,7 +633,7 @@ def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
     curs = conn.cursor()
 
     row = {
-            'activityId': activityId, 'userId': userId, 
+            'activityId': activityId, 'userId': userId,
             'campaignId': campaignId, 'contentId': contentId,
             'shareMsg': shareMsg
           }
@@ -689,7 +720,7 @@ def writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason, back
 
     """
     # friendIds should be a list (as we may want to write multiple shares or suppressions at the same time)
-    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared' 
+    # reason should be 'shared' or 'suppressed'. In principle, could be something like 'shown X times but never shared'
     #       (though this would take a lot more juggling with who is being shown in the current session!)
     if (background):
         t = threading.Thread(target=_writeFaceExclusionsDb,

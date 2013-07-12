@@ -19,6 +19,7 @@ parser.add_argument('--cert-dir', default=pathCertDefault, help='location of ssl
 parser.add_argument('--ssl-key', default='ssl.key', help='name of ssl key file, defaults to ssl.key')
 parser.add_argument('--ssl-cert', default='ssl.cert', help='name of ssl cert file, defaults to ssl.cert')
 parser.add_argument('--canvas-adhoc', action='store_true', help='fb canvas mode with adhoc cert (no key/cert files)')
+parser.add_argument('--host', default='localhost', help='Host IP to bind to')
 args = parser.parse_args()
 
 app = edgeflip.web.getApp()
@@ -52,11 +53,12 @@ else:
     port = 8080
     ctx = None
 
-run_simple('localhost', port, app,
-           use_reloader=True,
-           use_debugger=True,
-           passthrough_errors=False,
-           extra_files=config.list_files(), # config files, etc..
-           static_files={},
-           ssl_context=ctx
-          )
+run_simple(
+    args.host, port, app,
+    use_reloader=True,
+    use_debugger=True,
+    passthrough_errors=False,
+    extra_files=config.list_files(), # config files, etc..
+    static_files={},
+    ssl_context=ctx
+)
