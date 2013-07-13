@@ -27,6 +27,13 @@ To set up a local mysql database:
 2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
 3. To seed the database with values for the mockclient, use `bin/mockclient_campaigns.py`. This uses the edgeflip and mockclient host data in your configuration.
 
+Dynamo
+------
+To set up Dynamo on AWS, run the following. This will use your configuration values.
+
+1. If necessary, drop tables with `bin/drop_dynamo.py`
+2. Create tables with `bin/create_dynamo.py`.
+
 Hostname Alias
 --------------
 Facebook requires a URL to use as a callback after auth. To point this to your local development server, add the following entry to `/etc/hosts`
