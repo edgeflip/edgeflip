@@ -103,14 +103,14 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
 
     # build dict of secondary id -> EdgeCounts
     # XXX this is the ugliest variable name I have ever written in my life.
-    secondary_EdgeCounts_in = dict((e.targetId, e) for e in
-                              dynamo.fetch_incoming_edges(primId, newer_than_date))
+    secondary_EdgeCounts_in = {e.targetId : e for e in
+                               dynamo.fetch_incoming_edges(primId, newer_than_date)}
 
 
 
     # build dict of secondary id -> UserInfo
-    secondary_UserInfo = dict((u.id, u) for u in
-                              dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts]))
+    secondary_UserInfo = {u.id : u for u in
+                          dynamo.fetch_many_users([e.targetId for e in incoming_edge_counts])}
 
     # early return if we don't need outgoing
     if not requireOutgoing:
