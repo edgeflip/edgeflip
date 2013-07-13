@@ -8,7 +8,7 @@
 
 import logging
 
-from . import database as db
+from . import database_compat as db
 from .settings import config 
 
 logger = logging.getLogger(__name__)

@@ -47,11 +47,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         logger.debug("getting user %s, update date is %s (GMT)" % (userId, user.updated.strftime("%Y-%m-%d %H:%M:%S")))
         return user
 
-def updateTokensDb(users, token):
-    """update tokens table"""
-    raise NotImplementedError()
-
-def updateTokensDb2(token):
+def updateTokensDb(token):
     """update tokens table
 
     :arg token: a `datastruct.TokenInfo`
@@ -89,15 +85,15 @@ def updateFriendEdgesDb(edges):
             photos_other=c.photoOther,
             mut_friends=c.mutuals)
 
-def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=None):
+def getFriendEdgesDb(primId, requireOutgoing=False, maxAge=None):
     """return list of datastructs.Edge objects for primaryId user
 
     """
     # xxx with support from dynamo.fetch_* returning iterators instead of
     # lists, this could all be made to stream from Dynoamo in parallel (may
     # require threads)
-    assert isinstance(newerThan, (datetime.timedelta, types.NoneType))
-    newer_than_date = datetime.datetime.now() - newerThan if newerThan is not None else None
+    assert isinstance(maxAge, (datetime.timedelta, types.NoneType))
+    newer_than_date = datetime.datetime.now() - maxAge if maxAge is not None else None
 
     primary = getUserDb(primId)
 
@@ -138,7 +134,7 @@ def _updateDb(user, token, edges):
     tim = datastructs.Timer()
 
     # update token for primary
-    updateTokensDb([user], token)
+    updateTokensDb(user, token)
     updateUsersDb([user])
     updateUsersDb([e.secondary for e in edges])
     updateFriendEdgesDb(edges)

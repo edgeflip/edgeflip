@@ -11,7 +11,7 @@ import logging
 import threading
 from MySQLdb import IntegrityError
 
-from . import database as db
+from . import database_compat as db
 from . import datastructs
 from .settings import config 
 from .web import utils

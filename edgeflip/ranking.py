@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import sys
 
-from . import database
+from . import database_compat as database
 from . import datastructs
 
 import logging

@@ -8,7 +8,7 @@ import argparse
 import logging
 
 from . import facebook
-from . import database
+from . import database_compat as database
 from . import datastructs
 
 import time

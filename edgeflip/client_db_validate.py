@@ -1,7 +1,7 @@
 
 import logging
 
-from . import database as db
+from . import database_compat as db
 from . import client_db_tools as cdb
 from .settings import config 
 

@@ -14,7 +14,7 @@ from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, decod
 from .. import facebook
 from .. import mock_facebook
 from .. import ranking
-from .. import database
+from .. import database_compat as database
 from .. import datastructs
 from .. import client_db_tools as cdb
 from .. import filtering
@@ -169,8 +169,7 @@ def faces():
     edgesUnranked = None
     if (user is not None): # user is there, but may have come in as a secondary (and therefore have no edges)
         logger.debug("user %s is fresh, getting data from db", fbid)
-        newerThan = time.time() - config.freshness*24*60*60 # newerThan is a unix timestamp to restict edges pulled from DB
-        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, newerThan=newerThan)
+        edgesUnranked = database.getFriendEdgesDb(fbid, requireOutgoing=False, maxAge=datetime.timedelta(days=config.freshness))
         # zzz Even if we got the user from the DB, we'll still want to at least write
         #     the token for two reasons: (1) we can update its expiration date since
         #     it will have been extended because they came back, and (2) it's possible
@@ -464,17 +463,7 @@ def recordEvent():
             user = datastructs.UserInfo(userId, None, None, None, None, None, None, None)
             token = datastructs.TokenInfo(tok, userId, int(appId), datetime.datetime.now())
             token = facebook.extendTokenFb(userId, token, int(appId)) or token
-            conn = database.getConn()
-            curs = conn.cursor()
-            try:
-                # zzz feels hokey since updateTokensDb() needs as cursor object,
-                #     but I also don't want to do an updateDb() call since I don't
-                #     have real user info or edges...
-                database.updateTokensDb(curs, [user], token)
-                conn.commit
-            except:
-                conn.rollback()
-                raise
+            database.updateTokensDb(token)
         else:
             logger.error("Trying to write an authorization for fbid %s with token %s for non-existent client", userId, tok)
 

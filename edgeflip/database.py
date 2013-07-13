@@ -349,10 +349,13 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
-def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
+def getFriendEdgesDb(primId, requireOutgoing=False, maxAge=None):
     """return list of datastructs.Edge objects for primaryId user
 
     """
+    assert isinstance(maxAge, (datetime.timedelta, types.NoneType))
+    dt = datetime.datetime.now() - maxAge if maxAge is not None else datetime.datetime.now()
+    minEpoch = time.mktime(dt.utctimetuple())
 
     conn = getConn()
 
@@ -374,7 +377,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     sql = sqlSelect + \
         " ON e.fbid_source = u.fbid" + \
         " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
-    params = (newerThan, primId)
+    params = (minEpoch, primId)
     secId_edgeCountsIn = {}
     secId_userInfo = {}
     curs.execute(sql, params)
@@ -399,7 +402,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
         sql = sqlSelect + \
             " ON e.fbid_target = u.fbid" + \
             " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
-        params = (newerThan, primId)
+        params = (minEpoch, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target
             primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
