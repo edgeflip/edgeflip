@@ -224,68 +224,6 @@ def dbSetup(tableKeys=None):
             curs.execute(stmt)
     conn.commit()
 
-def dbMigrate():
-    """migrate from old (pre token_table) schema
-    
-    
-    XXX I can probably die!
-    """
-    conn = getConn()
-    curs = conn.cursor()
-
-    # Terrible to hard-code this in here, but this method is only refering to
-    # records that would have been generated in the past with this app id anyway
-    # and I'm trying to move to supporting different app id's in the database.
-    # At some point, it should probably be moved to a separate migration script
-    # and archived...
-    fbAppId = 471727162864364
-
-    # create the new token table
-    dbSetup(tableKeys=["tokens"])
-
-    # rename users table, create new
-    curs.execute("RENAME TABLE users TO users_OLD")
-    dbSetup(tableKeys=["users"])
-
-    #copy existing tokens from the old users table to the new tokens table
-    curs.execute("SELECT fbid, token FROM users_OLD WHERE (token IS NOT NULL)")
-    tok_fbid = {}
-    for fbid, tok in curs.fetchall():
-        token = datastructs.TokenInfo(tok, fbid, fbAppId, datetime.datetime(2013, 6, 1))
-        user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
-        updateTokensDb(curs, [user], token)
-        tok_fbid[tok] = fbid
-    curs.execute("SELECT fbid, friend_token FROM users_OLD WHERE (friend_token IS NOT NULL)")
-    for fbid, tokFriend in curs.fetchall():
-        if (tokFriend in tok_fbid):
-            owner = tok_fbid[tokFriend] # I think this is meant to be tok_fbid[tokFriend] not tok_fbid[token]...
-            token = datastructs.TokenInfo(tokFriend, owner, fbAppId, datetime.datetime(2013, 6, 1))
-            user = datastructs.UserInfo(fbid, None, None, None, None, None, None, None)
-            updateTokensDb(curs, [user], token)
-
-    # insert old user rows into new table
-    sql = """
-        INSERT INTO users (fbid, fname, lname, gender, birthday, city, state)
-            SELECT fbid, fname, lname, gender, CASE WHEN birthday='None' THEN NULL ELSE birthday END, city, state
-            FROM users_OLD
-    """
-    curs.execute(sql)
-
-    """Not migrating the actual edge and event records?"""
-
-    # rename edges table, create new
-    curs.execute("RENAME TABLE edges TO edges_OLD")
-    dbSetup(tableKeys=["edges"])
-
-    # rename events table, create new
-    curs.execute("RENAME TABLE events TO events_OLD")
-    dbSetup(tableKeys=["events"])
-
-    return
-
-
-
-
 def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table
 
