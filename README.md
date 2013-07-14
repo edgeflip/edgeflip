@@ -18,7 +18,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 8. Install python packages: `pip install -r requirements.txt`
 9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 10. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
- 
+
 Local Database
 --------------
 To set up a local mysql database:
@@ -33,6 +33,8 @@ To set up Dynamo on AWS, run the following. This will use your configuration val
 
 1. If necessary, drop tables with `bin/drop_dynamo.py`
 2. Create tables with `bin/create_dynamo.py`.
+
+To run a local mock dynamo server instead, use `pserve ddbmock.ini`
 
 Hostname Alias
 --------------
@@ -76,12 +78,12 @@ Once you've patched and installed Siege, you can run load tests by creating a fe
 1. A JSON file with the request parameters, such as:
 ```
     {
-        "mockmode" : "true", 
-        "fbid" : 100011235813, 
-        "token" : "IamAfakeTOKEN", 
-        "num" : 9, 
-        "sessionid" : "i-am-a-fake-session", 
-        "campaignid" : 2, 
+        "mockmode" : "true",
+        "fbid" : 100011235813,
+        "token" : "IamAfakeTOKEN",
+        "num" : 9,
+        "sessionid" : "i-am-a-fake-session",
+        "campaignid" : 2,
         "contentid" : 2
      }
 ```
