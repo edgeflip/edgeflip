@@ -7,6 +7,10 @@ tools & classes for data stored in AWS DynamoDB
 
     String prefix to prepend to table names. A `.` is used as a separtor
 
+.. envvar:: dynamo.engine
+
+    Which engine to use. One of 'aws', 'mock-server', 'mock-inline'. *Note*: you almost certainly should set `use_threads` to false when using mock-inline.
+
 """
 import logging
 import threading
@@ -15,12 +19,12 @@ import pymlconf
 import time
 import datetime
 
-
 from boto import connect_dynamodb
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
+import ddbmock
 
 from . import datastructs
 from .settings import config
@@ -30,7 +34,7 @@ logger = logging.getLogger(__name__)
 # `threading.local` for Dynamo connections created outside of flask. gross.
 _non_flask_threadlocal = threading.local()
 
-def _make_dynamo():
+def _make_dynamo_aws():
     """makes a connection to dynamo, based on configuration. For internal use.
 
     :rtype: mysql connection object
@@ -43,6 +47,34 @@ def _make_dynamo():
         access_id = None
         secret = None
     return connect_dynamodb(access_id, secret)
+
+def _make_dynamo_mock_server():
+    """makes a connection to ddbmock server, based on configuration. For internal use.
+
+    :rtype: mysql connection object
+
+    """
+    return ddbmock.connect_boto_network()
+
+
+def _make_dynamo_mock_inline():
+    """makes a connection to ddbmock inline, based on configuration. For internal use.
+
+    :rtype: mysql connection object
+
+    """
+    return ddbmock.connect_boto_patch()
+
+if config.dynamo.engine == 'aws':
+    _make_dynamo = _make_dynamo_aws
+elif config.dynamo.engine == 'mock-server':
+    _make_dynamo = _make_dynamo_mock_server
+elif config.dynamo.engine == 'mock-inline':
+    _make_dynamo = _make_dynamo_mock_inline
+else:
+    raise RuntimeError("Bad value {} for config.dynamo.engine".format(config.dynamo.engine))
+
+logger.debug("Installed engine %s", config.dynamo.engine)
 
 def get_dynamo():
     """return a connection for this thread.
