@@ -20,6 +20,7 @@ import time
 import datetime
 
 from boto import connect_dynamodb
+from boto.regioninfo import RegionInfo
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
@@ -54,8 +55,12 @@ def _make_dynamo_mock_server():
     :rtype: mysql connection object
 
     """
-    return ddbmock.connect_boto_network()
-
+    # based on https://ddbmock.readthedocs.org/en/v0.4.1/pages/getting_started.html#run-as-regular-client-server
+    host='localhost'
+    port=6543
+    endpoint = '{}:{}'.format(host, port)
+    region = RegionInfo(name='ddbmock', endpoint=endpoint)
+    return connect_dynamodb(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
 
 def _make_dynamo_mock_inline():
     """makes a connection to ddbmock inline, based on configuration. For internal use.
@@ -150,7 +155,7 @@ def create_table(**schema):
 
     :arg dict schema: keyword args for `boto.dynamodb2.Table.create`
     """
-    schema['table_name'] = _table_name['table_name']
+    schema['table_name'] = _table_name(schema['table_name'])
     return Table.create(connection=get_dynamo(), **schema)
 
 def create_all_tables():
