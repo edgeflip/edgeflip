@@ -57,7 +57,7 @@ FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT obj
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
 FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
+FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
 
 def dateFromFb(dateStr):
     """we would like this to die"""
@@ -86,6 +86,17 @@ def getUrlFb(url):
         raise e
 
     return responseJson
+
+def _threadFbURL(url, results):
+    """Used to read JSON from Facebook in a thread and append output to a list of results"""
+    tim = datastructs.Timer()
+
+    responseJson = getUrlFb(url)
+    for entry in responseJson['data']:
+        results.append(entry)
+
+    logger.debug('Thread %s read %s records from FB in %s', threading.current_thread().name, len(responseJson['data']), tim.elapsedPr())
+    return len(responseJson['data'])
 
 def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
@@ -121,6 +132,27 @@ def getFriendsFb(userId, token):
     tim = datastructs.Timer()
     logger.debug("getting friends for %d", userId)
 
+    loopTimeout = config.facebook.friendLoop.timeout
+    loopSleep = config.facebook.friendLoop.sleep
+    maxFriends = config.facebook.friendLoop.numFriends
+    limit = config.facebook.friendLoop.fqlLimit
+
+    chunks = maxFriends / limit
+
+    # Set up the threads for reading the friend info
+    threads = []
+    friendChunks = []
+    for i in range(chunks):
+        offset = limit*i
+        url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (userId, limit, offset))
+        url = url + '&format=json&access_token=' + token
+
+        t = threading.Thread(target=_threadFbURL, args=(url, friendChunks))
+        t.setDaemon(True)
+        t.name = "%s-px3-%d" % (userId, i)
+        threads.append(t)
+        t.start()
+
     # Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
 
     queryJsons = []
@@ -128,11 +160,10 @@ def getFriendsFb(userId, token):
     tagPhotosLabel   = "tag_photos"
     primPhotosLabel  = "prim_photos"
     otherPhotosLabel = "other_photos"
-    tagPhotosRef      = "#" + tagPhotosLabel
-    primPhotosRef      = "#" + primPhotosLabel
-    otherPhotosRef      = "#" + otherPhotosLabel
+    tagPhotosRef     = "#" + tagPhotosLabel
+    primPhotosRef    = "#" + primPhotosLabel
+    otherPhotosRef   = "#" + otherPhotosLabel
 
-    queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (userId))))
     queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (userId))))
     queryJsons.append('"%s":"%s"' % (primPhotosLabel, urllib.quote_plus(FQL_PRIM_PHOTOS % (tagPhotosRef, userId))))
     queryJsons.append('"primPhotoTags":"%s"' % (urllib.quote_plus(FQL_PRIM_TAGS % (primPhotosRef, userId))))
@@ -140,12 +171,32 @@ def getFriendsFb(userId, token):
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
 
     queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
+    photoURL = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
 
-    responseJson = getUrlFb(url)
+    photoResults = []
+    photoThread = threading.Thread(target=_threadFbURL, args=(photoURL, photoResults))
+    photoThread.setDaemon(True)
+    photoThread.name = "%s-px3-photos" % userId
+    threads.append(photoThread)
+    photoThread.start()
 
+    # Loop until all the threads are done
+    # or we've run out of time waiting
+    timeStop = time.time() + loopTimeout
+    while (time.time() < timeStop):
+        threadsAlive = []
+        for t in threads:
+            if t.isAlive():
+                threadsAlive.append(t)
+        threads = threadsAlive
+        if (threadsAlive):
+            time.sleep(loopSleep)
+        else:
+            break
+
+    # Read out the photo data
     lab_recs = {}
-    for entry in responseJson['data']:
+    for entry in photoResults:
         label = entry['name']
         records = entry['fql_result_set']
         lab_recs[label] = records
@@ -153,30 +204,39 @@ def getFriendsFb(userId, token):
     primPhotoCounts = defaultdict(int)
     otherPhotoCounts = defaultdict(int)
 
-    for rec in lab_recs['primPhotoTags']:
+    for rec in lab_recs.get('primPhotoTags', []):
         if (rec['subject']):
             primPhotoCounts[int(rec['subject'])] += 1
 
-    for rec in lab_recs['otherPhotoTags']:
+    for rec in lab_recs.get('otherPhotoTags', []):
         if (rec['subject']):
             otherPhotoCounts[int(rec['subject'])] += 1
 
-    friends = []
-    for rec in lab_recs['friendInfo']:
-        friendId = rec['uid']
+    # A bit of a hack, but using a dictionary to avoid possible duplicates
+    # in cases where pagination changes during the query or other FB barf
+    # (set() won't work because different instances of FriendInfo with the
+    # same friendId are different objects)
+    friends = {}
+    for rec in friendChunks:
+        friendId = int(rec['uid'])
         city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
         state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
         primPhotoTags = primPhotoCounts[friendId]
         otherPhotoTags = otherPhotoCounts[friendId]
-        email = None # FB won't give you the friends' emails
+        email = None    # FB won't give you the friends' emails
 
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
-        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
-        friends.append(f)
-    logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
-    return friends
+        f = datastructs.FriendInfo(
+                userId, friendId, rec['first_name'], rec['last_name'],
+                email, rec['sex'], dateFromFb(rec['birthday_date']),
+                city, state,
+                primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
+            )
+        friends[friendId] = f
+    logger.debug("returning %d friends for %d (%s)", len(friends.values()), userId, tim.elapsedPr())
+    return friends.values()
 
 
 def getUserFb(userId, token):
