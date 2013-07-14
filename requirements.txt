@@ -30,6 +30,7 @@ repoze.lru==0.6
 snakefood==1.4
 translationstring==1.1
 venusian==1.0a8
+waitress==0.8.5
 wsgiref==0.1.2
 zope.deprecation==4.0.2
 zope.interface==4.0.5
