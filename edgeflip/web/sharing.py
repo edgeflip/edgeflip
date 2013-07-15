@@ -23,7 +23,6 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-MAX_FALLBACK_COUNT = 5      # move to config (or do we want it hard-coded)??
 
 @app.route("/button/<campaignSlug>")
 def button_encoded(campaignSlug):
@@ -37,7 +36,6 @@ def button_encoded(campaignSlug):
         return "Content not found", 404
 
     return button(campaignId, contentId)
-
 
 
 # Serves just a button, to be displayed in an iframe
@@ -110,9 +108,15 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
     paramsDict = {'fb_app_name': paramsDB[0], 'fb_app_id': int(paramsDB[1])}
 
-    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict,
-                                campaignId=campaignId, contentId=contentId,
-                                thanksURL=thanksURL, errorURL=errorURL)
+    return flask.render_template(
+        locateTemplate('frame_faces.html', clientSubdomain, app),
+        fbParams=paramsDict,
+        campaignId=campaignId,
+        contentId=contentId,
+        thanksURL=thanksURL,
+        errorURL=errorURL,
+        app_version=config.app_version,
+    )
 
 
 @app.route("/faces", methods=['POST'])
@@ -170,8 +174,8 @@ def faces():
         px4_result = celery.celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or skip_px4)):
             px4_edges = px4_result.result if px4_result.ready() else []
-            edgesRanked, bestCSFilter, choiceSet, allowGeneric = px3_result.result
-            if not all([edgesRanked, bestCSFilter, choiceSet, allowGeneric]):
+            edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
+            if not all([edgesRanked, bestCSFilter, choiceSet]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
             if skip_px4 and not px3_result.ready():
@@ -181,7 +185,9 @@ def faces():
                     json.dumps({
                         'status': 'waiting',
                         'px3_task_id': px3_task_id,
-                        'px4_task_id': px4_task_id
+                        'px4_task_id': px4_task_id,
+                        'campaignId': campaignId,
+                        'contentId': contentId,
                     }),
                     200,
                     sessionId
@@ -206,6 +212,8 @@ def faces():
                 'status': 'waiting',
                 'px3_task_id': px3_task_id,
                 'px4_task_id': px4_task.id,
+                'campaignId': campaignId,
+                'contentId': contentId,
             }),
             200,
             sessionId

@@ -36,7 +36,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ''' Runs the filtering celery task '''
         token = datastructs.TokenInfo('1', '1', '1', '1')
         ranked_edges = tasks.px3_crawl(True, 1, token)
-        edges, cs_filter, cs, generic = tasks.perform_filtering(
+        edges, cs_filter, cs, generic, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
             'local',
             1,

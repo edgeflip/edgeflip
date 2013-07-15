@@ -79,6 +79,8 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
                 // Probably need to set the mimetype better on web.utils.ajaxResponse
                 // so that we don't have to parse out JSON ourselves. 
                 if (data.status === 'waiting') {
+                    campaignId = data.campaignId;
+                    contentId = data.contentId;
                     if (pollingTimer) {
                         if (pollingCount > 40) {
                             clearTimeout(pollingTimer);

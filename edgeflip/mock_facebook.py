@@ -288,7 +288,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
                 'statComms': random.randint(0, 50),
                 'wallPosts': random.randint(0, 50),
                 'wallComms': random.randint(0, 50),
-                'tags': 1,
+                'tags': random.randint(0, 50),
             }
 
         ecIn = datastructs.EdgeCounts(

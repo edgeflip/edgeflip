@@ -36,7 +36,6 @@ def proximity_rank_three(mockMode, fbid, token, **kwargs):
     return task.id
 
 
-@celery.task
 @celery.task(default_retry_delay=1, max_retries=3)
 def px3_crawl(mockMode, fbid, token):
     ''' Performs the standard px3 crawl '''
@@ -178,7 +177,10 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     # Can't pickle lambdas and we don't need them anymore anyways
     bestCSFilter[0].str_func = None
     choiceSet.sortFunc = None
-    return edgesRanked, bestCSFilter, choiceSet, allowGeneric
+    return (
+        edgesRanked, bestCSFilter, choiceSet,
+        allowGeneric, campaignId, contentId
+    )
 
 
 @celery.task(default_retry_delay=1, max_retries=3)
