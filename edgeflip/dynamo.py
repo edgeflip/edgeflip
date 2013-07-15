@@ -19,8 +19,8 @@ import pymlconf
 import time
 import datetime
 
-from boto import connect_dynamodb
 from boto.regioninfo import RegionInfo
+from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
@@ -47,7 +47,8 @@ def _make_dynamo_aws():
     except (KeyError, pymlconf.ConfigurationError):
         access_id = None
         secret = None
-    return connect_dynamodb(access_id, secret)
+    return DynamoDBConnection(aws_access_key_id=access_id,
+                              aws_secret_access_key=secret)
 
 def _make_dynamo_mock_server():
     """makes a connection to ddbmock server, based on configuration. For internal use.
@@ -60,7 +61,7 @@ def _make_dynamo_mock_server():
     port=6543
     endpoint = '{}:{}'.format(host, port)
     region = RegionInfo(name='ddbmock', endpoint=endpoint)
-    return connect_dynamodb(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
+    return DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
 
 def _make_dynamo_mock_inline():
     """makes a connection to ddbmock inline, based on configuration. For internal use.
@@ -155,7 +156,9 @@ def create_table(**schema):
 
     :arg dict schema: keyword args for `boto.dynamodb2.Table.create`
     """
-    schema['table_name'] = _table_name(schema['table_name'])
+    name = _table_name(schema['table_name'])
+    logger.info("Creating table %s", name)
+    schema['table_name'] = name
     return Table.create(connection=get_dynamo(), **schema)
 
 def create_all_tables():
@@ -239,7 +242,7 @@ tokens_schema = {
     'schema': [
         HashKey('fbid_appid', data_type=STRING),
         ],
-    'indexes': AllIndex('fbid', parts=[HashKey('fbid')]),
+    'indexes': [AllIndex('fbid', parts=[HashKey('fbid')])],
 }
 
 def save_token(fbid, appid, token, expires):
