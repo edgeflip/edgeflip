@@ -80,7 +80,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, skip_px4){
                 // so that we don't have to parse out JSON ourselves. 
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
-                        if (pollingCount > 24) {
+                        if (pollingCount > 40) {
                             clearTimeout(pollingTimer);
                             login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                         } else {

@@ -86,7 +86,7 @@ def getUrlFb(url):
             logger.error("returned error was: %s", e.read())
         except:
             pass
-        raise
+        raise e
 
     return responseJson
 
