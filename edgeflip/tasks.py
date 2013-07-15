@@ -190,6 +190,9 @@ def proximity_rank_four(mockMode, fbid, token):
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
         newerThan = time.time() - config.freshness * 24 * 60 * 60
+        # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
+        # insufficient results from the px5 crawls. We'll need to check the
+        # length of the edges list against a friends count from FB.
         edgesUnranked = database.getFriendEdgesDb(
             fbid,
             requireIncoming=True,
