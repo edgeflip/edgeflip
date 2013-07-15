@@ -11,6 +11,7 @@ import threading
 import Queue
 from collections import defaultdict
 from contextlib import closing
+from math import ceil
 
 from . import datastructs
 from .settings import config
@@ -134,10 +135,16 @@ def getFriendsFb(userId, token):
 
     loopTimeout = config.facebook.friendLoop.timeout
     loopSleep = config.facebook.friendLoop.sleep
-    maxFriends = config.facebook.friendLoop.numFriends
     limit = config.facebook.friendLoop.fqlLimit
 
-    chunks = maxFriends / limit
+    # Get the number of friends from FB to determine how many chunks to run
+    numFriendsFQL = urllib.quote_plus("SELECT friend_count FROM user WHERE uid = %s" % userId)
+    numFriendsURL = 'https://graph.facebook.com/fql?q=' + numFriendsFQL
+    numFriendsURL = numFriendsURL + '&format=json&access_token=' + token
+    numFriendsJson = getUrlFb(numFriendsURL)
+
+    numFriends = float(numFriendsJson['data'][0]['friend_count'])
+    chunks = int(ceil(numFriends / limit)) + 1  # one extra just to be safe
 
     # Set up the threads for reading the friend info
     threads = []
