@@ -210,7 +210,7 @@ def proximity_rank_four(mockMode, fbid, token):
     return edgesRanked
 
 
-@celery.task
+@celery.task(default_retry_delay=1, max_retries=3)
 def civis_matching(user, feature, value):
     ''' Performs a match against the Civis API and retrieves the score for a
     given user
