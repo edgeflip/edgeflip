@@ -60,8 +60,10 @@ def _make_dynamo_mock_server():
     host='localhost'
     port=6543
     endpoint = '{}:{}'.format(host, port)
-    region = RegionInfo(name='ddbmock', endpoint=endpoint)
-    return DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
+    region = RegionInfo(name='mock', endpoint=endpoint)
+    conn = DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
+    conn._auth_handler.region_name = "us-mock-1"
+    return conn
 
 def _make_dynamo_mock_inline():
     """makes a connection to ddbmock inline, based on configuration. For internal use.
