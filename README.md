@@ -34,7 +34,7 @@ To set up Dynamo on AWS, run the following. This will use your configuration val
 1. If necessary, drop tables with `bin/drop_dynamo.py`
 2. Create tables with `bin/create_dynamo.py`.
 
-To run a local mock dynamo server instead, use `pserve ddbmock.ini`
+To run a local mock dynamo server instead, install  [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo): `gem install fake_dynamo --version 0.2.3`. Then run `fake_dynamo -d /path/to/your/checkout/fake_dynamo.fdb`.
 
 Hostname Alias
 --------------

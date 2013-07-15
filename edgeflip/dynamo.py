@@ -9,7 +9,7 @@ tools & classes for data stored in AWS DynamoDB
 
 .. envvar:: dynamo.engine
 
-    Which engine to use. One of 'aws', 'mock-server', 'mock-inline'. *Note*: you almost certainly should set `use_threads` to false when using mock-inline.
+    Which engine to use. One of 'aws', 'mock'.
 
 """
 import logging
@@ -25,7 +25,6 @@ from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
 from boto.dynamodb2.types import NUMBER, STRING
-import ddbmock
 
 from . import datastructs
 from .settings import config
@@ -50,35 +49,27 @@ def _make_dynamo_aws():
     return DynamoDBConnection(aws_access_key_id=access_id,
                               aws_secret_access_key=secret)
 
-def _make_dynamo_mock_server():
-    """makes a connection to ddbmock server, based on configuration. For internal use.
+def _make_dynamo_mock():
+    """makes a connection to mock server, based on configuration. For internal use.
 
     :rtype: mysql connection object
 
     """
     # based on https://ddbmock.readthedocs.org/en/v0.4.1/pages/getting_started.html#run-as-regular-client-server
     host='localhost'
-    port=6543
+    port=4567
     endpoint = '{}:{}'.format(host, port)
     region = RegionInfo(name='mock', endpoint=endpoint)
     conn = DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
+    
+    # patch the region_name so boto doesn't explode
     conn._auth_handler.region_name = "us-mock-1"
     return conn
 
-def _make_dynamo_mock_inline():
-    """makes a connection to ddbmock inline, based on configuration. For internal use.
-
-    :rtype: mysql connection object
-
-    """
-    return ddbmock.connect_boto_patch()
-
 if config.dynamo.engine == 'aws':
     _make_dynamo = _make_dynamo_aws
-elif config.dynamo.engine == 'mock-server':
-    _make_dynamo = _make_dynamo_mock_server
-elif config.dynamo.engine == 'mock-inline':
-    _make_dynamo = _make_dynamo_mock_inline
+elif config.dynamo.engine == 'mock':
+    _make_dynamo = _make_dynamo_mock
 else:
     raise RuntimeError("Bad value {} for config.dynamo.engine".format(config.dynamo.engine))
 
