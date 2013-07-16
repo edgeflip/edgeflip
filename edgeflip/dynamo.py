@@ -191,10 +191,14 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     table = get_table('users')
     user = table.get_item(fbid=fbid)
 
-    for k, v in data.iteritems():
-        user[k] = v
-
-    return user.partial_save()
+    if user['fbid'] is None:
+        # new user
+        table.put_item(data)
+    else:
+        # update existing user
+        for k, v in data.iteritems():
+            user[k] = v
+        return user.partial_save()
 
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
@@ -219,7 +223,7 @@ def fetch_many_users(fbids):
 
 def _make_user(x):
     """make a user from a boto Item. for internal use"""
-    return datastructs.UserInfo(id=x['fbid'],
+    return datastructs.UserInfo(uid=x['fbid'],
                                 first_name=x['fname'],
                                 last_name=x['lname'],
                                 email=x['email'],
@@ -253,7 +257,7 @@ def save_token(fbid, appid, token, expires):
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
-    x = table.get_item(fbid, appid)
+    x = table.get_item(fbid=fbid, appid=appid)
     if x['fbid_appid'] is None: return None
 
     return datastructs.TokenInfo(tok = x['token'],
@@ -293,7 +297,7 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     remove_none_values(data)
 
     table = get_table('edges_data')
-    edge = table.get_item(fbid_source, fbid_target)
+    edge = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
 
     for k, v in data.iteritems():
         edge[k] = v
