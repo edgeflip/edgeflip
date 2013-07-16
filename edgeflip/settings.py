@@ -68,7 +68,13 @@ config = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=F
 # load environment
 config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 
-config.app_version = sh.git.describe().strip()
+try:
+    config.app_version = sh.git.describe().strip()
+except:
+    # This exception comes when celery starts up outside of the app's repo.
+    # Catching that exception and setting a dummy value. Celery doesn't need
+    # to know the version number
+    config.app_version = '0.1'
 
 # set up singletons
 
