@@ -128,7 +128,7 @@ def epoch_to_datetime(epoch):
 
 def date_to_epoch(d):
     """given a date, return seconds since the epoch"""
-    return time.mktime(d.timetuple)
+    return time.mktime(d.timetuple())
 
 def epoch_to_date(epoch):
     """given seconds since the epoch, return a date"""
@@ -140,7 +140,7 @@ def epoch_now():
 
 def remove_none_values(d):
     """Modify a dict in place by deleting items having None for value"""
-    for k, v in d.iteritems():
+    for k, v in d.items():
         if v is None:
             del d[k]
 
@@ -249,7 +249,7 @@ def save_token(fbid, appid, token, expires):
         updated = epoch_now()
         ))
 
-    return x.save()
+    return x.save(overwrite=True)
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
