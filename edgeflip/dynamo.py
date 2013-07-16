@@ -262,10 +262,11 @@ def fetch_token(fbid, appid):
 
 ##### EDGES #####
 
-edges_schema = {
-    'table_name': 'edges',
+edges_data_schema = {
+    'table_name': 'edges_data',
     'schema': [
-        HashKey('source_target', data_type=STRING),
+        HashKey('fbid_source', data_type=STRING),
+        RangeKey('fbid_target', data_type=STRING)
         ],
     'indexes': [
         AllIndex('fbid_source', parts=[HashKey('fbid_source'), RangeKey('updated')]),
@@ -274,14 +275,13 @@ edges_schema = {
 }
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
-    source_target = ".".join((fbid_source, fbid_target)),
     updated = epoch_now()
 
     data = locals()
     remove_none_values(data)
 
-    table = get_table('edges')
-    edge = table.get_item(source_target=source_target)
+    table = get_table('edges_data')
+    edge = table.get_item(fbid_source, fbid_target)
 
     for k, v in data.iteritems():
         edge[k] = v
@@ -289,8 +289,8 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     return edge.partial_save()
 
 def fetch_edge(fbid_source, fbid_target):
-    table = get_table('edges')
-    x = table.get_item(source_target=".".join((fbid_source, fbid_target)))
+    table = get_table('edges_data')
+    x = table.get_item(fbid_source, fbid_target)
     if x['source_target'] is None: return None
     return _make_edge(x)
 
@@ -300,8 +300,8 @@ def fetch_many_edges(ids):
 
     :arg ids: list of 2-tuples of (fbid_source, fbid_target)
     """
-    table = get_table('edges')
-    results = table.batch_get([{'source_target':".".join(i)} for i in ids])
+    table = get_table('edges_data')
+    results = table.batch_get([{'fbid_source':s, 'fbid_target':t} for s, t in ids])
     return [_make_edge(x) for x in results if x['source_target'] is not None]
 
 def fetch_incoming_edges(fbid, newer_than=None):
