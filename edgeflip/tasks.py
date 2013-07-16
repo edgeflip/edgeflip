@@ -1,13 +1,8 @@
 from __future__ import absolute_import
 import time
 
-import us
 import flask
-import requests
-from unidecode import unidecode
 from celery.utils.log import get_task_logger
-
-from civis_matcher import matcher
 
 from edgeflip import (
     client_db_tools as cdb,
@@ -208,46 +203,3 @@ def proximity_rank_four(mockMode, fbid, token):
     database.updateDb(user, token, edgesRanked,
                       background=config.database.use_threads)
     return edgesRanked
-
-
-@celery.task(default_retry_delay=1, max_retries=3)
-def civis_matching(user, feature, value):
-    ''' Performs a match against the Civis API and retrieves the score for a
-    given user
-    '''
-    cm = matcher.CivisMatcher()
-    kwargs = {}
-    if user.birthday:
-        kwargs['birth_month'] = user.birthday.month
-        kwargs['birth_year'] = user.birthday.year
-        kwargs['birth_day'] = user.birthday.day
-
-    if user.state:
-        state = us.states.lookup(user.state)
-        kwargs['state'] = state.abbr if state else None
-    else:
-        kwargs['state'] = None
-
-    try:
-        start_time = time.time()
-        result = cm.match(
-            first_name=unidecode(user.fname),
-            last_name=unidecode(user.lname),
-            city=unidecode(user.city) if user.city else None,
-            **kwargs
-        )
-        end_time = time.time()
-        logger.info(
-            'Request time: %s, url: %s',
-            (end_time - start_time),
-            result.url
-        )
-    except requests.RequestException:
-        civis_matching.retry()
-    except matcher.MatchException:
-        # This means there was an issue with the Civis API. Likely means no
-        # match, but it's hard to say in the current state of their API.
-        return None
-
-    score = getattr(result, feature, None)
-    return user if score >= value else None

@@ -4,11 +4,17 @@
 # Will generally need to work out some auth, probably at the API level
 # (including a check that requests are always consistent with the authed user)
 from __future__ import absolute_import
+import time
 import random
 import logging
 import threading
+
+import us
+import requests
+from unidecode import unidecode
 from MySQLdb import IntegrityError
-from celery import group
+
+from civis_matcher import matcher
 
 from edgeflip import (
     database as db,
@@ -928,6 +934,61 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         return newId
 
 
+def civisFilter(user, feature, value, matches):
+    ''' Performs a match against the Civis API and retrieves the score for a
+    given user
+    '''
+    start_time = time.time()
+    logger.info('Thread %s started' % threading.current_thread().name)
+    cm = matcher.CivisMatcher()
+    kwargs = {}
+    if user.birthday:
+        kwargs['birth_month'] = user.birthday.month
+        kwargs['birth_year'] = user.birthday.year
+        kwargs['birth_day'] = user.birthday.day
+
+    if not user.state or not user.city:
+        return
+
+    if user.state:
+        state = us.states.lookup(user.state)
+        kwargs['state'] = state.abbr if state else None
+    else:
+        kwargs['state'] = None
+
+    try:
+        start_time = time.time()
+        result = cm.match(
+            first_name=unidecode(user.fname),
+            last_name=unidecode(user.lname),
+            city=unidecode(user.city) if user.city else None,
+            **kwargs
+        )
+        end_time = time.time()
+        logger.debug(
+            'Request time: %s, url: %s',
+            (end_time - start_time),
+            result.url
+        )
+    except requests.RequestException:
+        return None
+    except matcher.MatchException as exc:
+        # This means there was an issue with the Civis API. Likely means no
+        # match, but it's hard to say in the current state of their API.
+        logger.debug('Exception: %s' % exc.message)
+        return None
+
+    score = getattr(result, feature, None)
+    if score >= value:
+        matches.append(user)
+    logger.debug(
+        'Thread %s ended: %s' % (
+            threading.current_thread().name, time.time() - start_time
+        )
+    )
+    return
+
+
 class Filter(object):
     def __init__(self, filterId, features):
         """A class to hold filters and associated functionality
@@ -938,7 +999,7 @@ class Filter(object):
         self.filterId = int(filterId)
         self.features = features
 
-    def _filter(self, user, feature, operator, value):
+    def _standard_filter(self, user, feature, operator, value):
         if not hasattr(user, feature):
             return False
 
@@ -964,20 +1025,43 @@ class Filter(object):
         for feature, operator, value in self.features:
             # FIXME: The following tuple may not encompass all possibilities.
             if feature in ('score_max', 'score_min', 'score_mean', 'score_std'):
-                # This module is caught in two minds between being a pseudo-ORM
-                # and being a place where core logic happens. As a result, we
-                # have circular import issues, hence the import here.
-                from edgeflip.tasks import civis_matching
-                civis_group = group(
-                    civis_matching.s(e.secondary, feature, value) for e in edges
-                ).apply_async()
-                edges = []
-                for x in civis_group.get(propagate=False):
-                    if isinstance(x, datastructs.UserInfo):
-                        edges.append(x)
+                start_time = time.time()
+                threads = []
+                loopTimeout = 10
+                loopSleep = 0.1
+                matches = []
+                for count, edge in enumerate(edges):
+                    t = threading.Thread(
+                        target=civisFilter,
+                        args=(edge.secondary, feature, value, matches)
+                    )
+                    t.setDaemon(True)
+                    t.name = 'civis-%d' % count
+                    threads.append(t)
+                    t.start()
+
+                timeStop = time.time() + loopTimeout
+                while (time.time() < timeStop):
+                    threadsAlive = []
+                    for t in threads:
+                        if t.isAlive():
+                            threadsAlive.append(t)
+
+                    threads = threadsAlive
+                    if (threadsAlive):
+                        time.sleep(loopSleep)
+                    else:
+                        break
+                logger.debug(
+                    "Civis matching complete in %s" % (time.time() - start_time)
+                )
+                edges = [
+                    x for x in matches if isinstance(x, datastructs.UserInfo)
+                ]
+
             # Standard min/max/eq/in filters below
             else:
-                edges = [x for x in edges if self._filter(
+                edges = [x for x in edges if self._standard_filter(
                     x.secondary, feature, operator, value)]
         return edges
 
