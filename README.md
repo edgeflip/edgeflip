@@ -127,4 +127,10 @@ New tests and the start of a test framework have been added to edgeflip/tests.
 This tests can be ran with `nosetests edgeflip/tests/ --config=nose.cfg`. 
 
 They build up a new test database and destroy it upon completion, so you shouldn't
-have to worry about them trampling your current database.
+have to worry about them trampling your current database. This does require a minor
+bit of setup on your machine however. You'll need to create a file at ~/.my.cnf. 
+The contents of that file should look like so:
+
+    [client]
+    user=ROOT_USER
+    password=ROOT_PASSWORD

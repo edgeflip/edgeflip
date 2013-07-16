@@ -18,15 +18,24 @@ def setUp(self):
     simply creates the database.
 
     This method is ran *once* per test suite run
+
+    In order for these tests to work, you will need to create a file named:
+        ~/.my.cnf
+
+    In there you'll want the following:
+
+        [client]
+        user=ROOT_USERNAME
+        password=ROOT_PASSWORD
     '''
     # Let's drop the test database, just in case the last run failed
     call(
-        '/usr/bin/mysqladmin -uroot -proot -f drop edgeflip_test',
+        '/usr/bin/mysqladmin -f drop edgeflip_test',
         shell=True, stderr=PIPE, stdout=PIPE
     )
     # Now let's create the database
-    call('/usr/bin/mysql -uroot -proot < edgeflip/tests/test_data/initial_test.sql', shell=True)
-    call('/usr/bin/mysql -uroot -proot edgeflip_test < %s/test_data/test_database.sql' % (
+    call('/usr/bin/mysql < edgeflip/tests/test_data/initial_test.sql', shell=True)
+    call('/usr/bin/mysql edgeflip_test < %s/test_data/test_database.sql' % (
         FILE_ROOT
     ), shell=True)
 
@@ -36,7 +45,7 @@ def tearDown(self):
     in the given suite have ran.
     '''
     call(
-        '/usr/bin/mysqladmin -uroot -proot -f drop edgeflip_test',
+        '/usr/bin/mysqladmin -f drop edgeflip_test',
         shell=True, stderr=PIPE, stdout=PIPE
     )
 
