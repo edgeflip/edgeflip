@@ -1,8 +1,8 @@
 from __future__ import absolute_import
 import time
-import logging
 
 import flask
+from celery.utils.log import get_task_logger
 
 from edgeflip import (
     client_db_tools as cdb,
@@ -15,7 +15,7 @@ from edgeflip.celery import celery
 from edgeflip.settings import config
 
 MAX_FALLBACK_COUNT = 5
-logger = logging.getLogger(__name__)
+logger = get_task_logger(__name__)
 
 
 @celery.task
