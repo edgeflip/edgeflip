@@ -24,7 +24,7 @@ from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex, KeysOnlyIndex
-from boto.dynamodb2.types import NUMBER, STRING
+from boto.dynamodb2.types import NUMBER
 
 from . import datastructs
 from .settings import config
@@ -175,7 +175,7 @@ def drop_all_tables():
 users_schema = {
     'table_name': 'users',
     'schema': [
-        HashKey('fbid', data_type=STRING),
+        HashKey('fbid', data_type=NUMBER),
         ],
     'indexes': [],
 }
@@ -234,8 +234,8 @@ def _make_user(x):
 tokens_schema = {
     'table_name': 'tokens',
     'schema': [
-        HashKey('fbid', data_type=STRING),
-        RangeKey('appid', data_type=STRING)
+        HashKey('fbid', data_type=NUMBER),
+        RangeKey('appid', data_type=NUMBER)
     ]
 }
 
@@ -266,12 +266,12 @@ def fetch_token(fbid, appid):
 edges_data_schema = {
     'table_name': 'edges_data',
     'schema': [
-        HashKey('fbid_source', data_type=STRING),
-        RangeKey('fbid_target', data_type=STRING)
+        HashKey('fbid_source', data_type=NUMBER),
+        RangeKey('fbid_target', data_type=NUMBER)
         ],
     'indexes': [
         IncludeIndex('edges_outgoing',
-                     parts=[HashKey('fbid_source', data_type=STRING),
+                     parts=[HashKey('fbid_source', data_type=NUMBER),
                             RangeKey('updated', data_type=NUMBER)],
                      includes=['fbid_source', 'fbid_target']),
     ]
@@ -280,7 +280,7 @@ edges_data_schema = {
 edges_incoming_schema = {
     'table_name': 'edges_incoming',
         'schema': [
-            HashKey('fbid_target', data_type=STRING),
+            HashKey('fbid_target', data_type=NUMBER),
             RangeKey('updated', data_type=NUMBER)
             # fbid_source is saved as a field            
             ],        
