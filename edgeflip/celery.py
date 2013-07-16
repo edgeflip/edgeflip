@@ -1,7 +1,10 @@
 from __future__ import absolute_import
+from kombu import Queue
 
 from celery import Celery
 from edgeflip.settings import config
+
+QUEUE_ARGS = {'x-ha-policy': 'all'}
 
 celery = Celery('edgeflip.celery',
                 broker='amqp://%s:%s@%s:5672/%s' % (
@@ -12,9 +15,9 @@ celery = Celery('edgeflip.celery',
                 ),
                 include=['edgeflip.tasks'])
 
-# Optional configuration, see the application user guide.
 celery.conf.update(
     BROKER_HEARTBEAT=30,
+    CELERYD_PREFETCH_MULTIPLIER=1,
     CELERY_TASK_RESULT_EXPIRES=3600,
     CELERY_RESULT_BACKEND='database',
     CELERY_RESULT_DBURI="mysql://%s:%s@%s/%s" % (
@@ -23,8 +26,25 @@ celery.conf.update(
         config.dbhost,
         config.dbname,
     ),
+    CELERY_ALWAYS_EAGER=config.always_eager,
+    CELERY_QUEUES=(
+        Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
+        Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
+        Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    ),
     CELERY_ROUTES={
-        'edgeflip.tasks.retrieve_fb_user_info': {'queue': 'user_info'},
+        'edgeflip.tasks.px3_crawl': {
+            'queue': 'px3',
+            'routing_key': 'px3.crawl'
+        },
+        'edgeflip.tasks.perform_filtering': {
+            'queue': 'px3_filter',
+            'routing_key': 'px3.filter'
+        },
+        'edgeflip.tasks.proximity_rank_four': {
+            'queue': 'px4',
+            'routing_key': 'px4.crawl'
+        },
     }
 )
 

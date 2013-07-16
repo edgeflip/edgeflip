@@ -95,7 +95,7 @@ def dateFromFb(dateStr):
 def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=%s' % token.tok
     url += '&client_id=' + str(appid) + '&client_secret=' + config.facebook.secrets[appid]
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
@@ -165,7 +165,7 @@ def getFriendsFb(userId, token):
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
 
     queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
+    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=%s' % token
 
 
     # zzz Should this also wait for a couple of seconds to mock out
@@ -241,7 +241,7 @@ def getUserFb(userId, token):
 
     """
     fql = FQL_USER_INFO % (userId)
-    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token
+    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=%s' % token
 
     # mock response from FB API
     responseJson = {'data' : [fakeUserInfo(userId)] }
@@ -258,7 +258,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     makes multiple calls to FB! separate calcs & FB calls
     """
-    if (requireIncoming or requireOutgoing):
+    if requireOutgoing:
         raise NotImplementedError("Stream reading not available for mock facebook module")
 
     skipFriends = skipFriends if skipFriends is not None else set()
@@ -279,11 +279,26 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
 
-        ecIn = datastructs.EdgeCounts(friend.id,
-              user.id,
-              photoTarg=friend.primPhotoTags,
-              photoOth=friend.otherPhotoTags,
-              muts=friend.mutuals)
+        kwargs = {}
+        if requireIncoming:
+            kwargs = {
+                'postLikes': random.randint(0, 50),
+                'postComms': random.randint(0, 50),
+                'statLikes': random.randint(0, 50),
+                'statComms': random.randint(0, 50),
+                'wallPosts': random.randint(0, 50),
+                'wallComms': random.randint(0, 50),
+                'tags': random.randint(0, 50),
+            }
+
+        ecIn = datastructs.EdgeCounts(
+            friend.id,
+            user.id,
+            photoTarg=friend.primPhotoTags,
+            photoOth=friend.otherPhotoTags,
+            muts=friend.mutuals,
+            **kwargs
+        )
         e = datastructs.Edge(user, friend, ecIn, None)
 
         edges.append(e)
