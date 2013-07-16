@@ -948,9 +948,9 @@ def civisFilter(edge, feature, operator, value, matches):
     cm = matcher.CivisMatcher()
     kwargs = {}
     if user.birthday:
-        kwargs['birth_month'] = user.birthday.month
+        kwargs['birth_month'] = '%02d' % user.birthday.month
         kwargs['birth_year'] = user.birthday.year
-        kwargs['birth_day'] = user.birthday.day
+        kwargs['birth_day'] = '%02d' % user.birthday.day
 
     if not user.state or not user.city:
         return
