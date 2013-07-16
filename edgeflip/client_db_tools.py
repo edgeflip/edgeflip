@@ -938,11 +938,12 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         return newId
 
 
-def civisFilter(user, feature, value, matches):
+def civisFilter(edge, feature, operator, value, matches):
     ''' Performs a match against the Civis API and retrieves the score for a
     given user
     '''
     start_time = time.time()
+    user = edge.secondary
     logger.debug('Thread %s started' % threading.current_thread().name)
     cm = matcher.CivisMatcher()
     kwargs = {}
@@ -983,8 +984,8 @@ def civisFilter(user, feature, value, matches):
         return None
 
     scores = getattr(result, 'scores', None)
-    if scores and scores[feature]['min'] >= value:
-        matches.append(user)
+    if scores and float(scores[feature][operator]) >= float(value):
+        matches.append(edge)
     logger.debug(
         'Thread %s ended: %s' % (
             threading.current_thread().name, time.time() - start_time
@@ -1027,7 +1028,6 @@ class Filter(object):
         if not self.features:
             return edges
         for feature, operator, value in self.features:
-            # FIXME: The following tuple may not encompass all possibilities.
             if feature in config.filtering.civis_filters:
                 start_time = time.time()
                 threads = []
@@ -1037,7 +1037,7 @@ class Filter(object):
                 for count, edge in enumerate(edges):
                     t = threading.Thread(
                         target=civisFilter,
-                        args=(edge.secondary, feature, value, matches)
+                        args=(edge, feature, operator, value, matches)
                     )
                     t.setDaemon(True)
                     t.name = 'civis-%d' % count
@@ -1060,7 +1060,7 @@ class Filter(object):
                     "Civis matching complete in %s" % (time.time() - start_time)
                 )
                 edges = [
-                    x for x in matches if isinstance(x, datastructs.UserInfo)
+                    x for x in matches if isinstance(x, datastructs.Edge)
                 ]
 
             # Standard min/max/eq/in filters below
