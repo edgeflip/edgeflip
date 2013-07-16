@@ -86,7 +86,7 @@ def getUrlFb(url):
             logger.error("returned error was: %s", e.read())
         except:
             pass
-        raise
+        raise e
 
     return responseJson
 
@@ -242,7 +242,7 @@ def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
             postComms=sc.getPostComms(friend.id),
             statLikes=sc.getStatLikes(friend.id),
             statComms=sc.getStatComms(friend.id),
-            wallPosts=sc.getWallComms(friend.id),
+            wallPosts=sc.getWallPosts(friend.id),
             wallComms=sc.getWallComms(friend.id),
             tags=sc.getTags(friend.id),
             photoTarg=friend.primPhotoTags,
@@ -276,7 +276,7 @@ def getFriendEdgesOutGoing(friend, user, tok):
         postComms=scFriend.getPostComms(friend.id),
         statLikes=scFriend.getStatLikes(friend.id),
         statComms=scFriend.getStatComms(friend.id),
-        wallPosts=scFriend.getWallComms(friend.id),
+        wallPosts=scFriend.getWallPosts(friend.id),
         wallComms=scFriend.getWallComms(friend.id),
         tags=scFriend.getTags(friend.id),
         photoTarg=None,
@@ -314,8 +314,6 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     else:
         edges = getFriendEdges(userId, tok, friendQueue)
 
-    # Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
-    # relative to the number of calls we're making (the number of chunks) to 1 call / sec.
     logger.debug("got %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
 

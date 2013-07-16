@@ -14,7 +14,7 @@ from edgeflip import (
 from edgeflip.celery import celery
 from edgeflip.settings import config
 
-MAX_FALLBACK_COUNT = 3
+MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
 
 
@@ -36,16 +36,20 @@ def proximity_rank_three(mockMode, fbid, token, **kwargs):
     return task.id
 
 
-@celery.task
+@celery.task(default_retry_delay=1, max_retries=3)
 def px3_crawl(mockMode, fbid, token):
     ''' Performs the standard px3 crawl '''
     fbmodule = mock_facebook if mockMode else facebook
-    edgesUnranked = fbmodule.getFriendEdgesFb(
-        fbid,
-        token.tok,
-        requireIncoming=False,
-        requireOutgoing=False
-    )
+    try:
+        edgesUnranked = fbmodule.getFriendEdgesFb(
+            fbid,
+            token.tok,
+            requireIncoming=False,
+            requireOutgoing=False
+        )
+    except IOError as exc:
+        px3_crawl.retry(exc=exc)
+
     edgesRanked = ranking.getFriendRanking(
         edgesUnranked,
         requireIncoming=False,
@@ -173,28 +177,38 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     # Can't pickle lambdas and we don't need them anymore anyways
     bestCSFilter[0].str_func = None
     choiceSet.sortFunc = None
-    return edgesRanked, bestCSFilter, choiceSet, allowGeneric
+    return (
+        edgesRanked, bestCSFilter, choiceSet,
+        allowGeneric, campaignId, contentId
+    )
 
 
-@celery.task
+@celery.task(default_retry_delay=1, max_retries=3)
 def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
     fbmodule = mock_facebook if mockMode else facebook
-    user = fbmodule.getUserFb(fbid, token.tok)
-    newerThan = time.time() - config.freshness * 24 * 60 * 60
-    edgesUnranked = database.getFriendEdgesDb(
-        fbid,
-        requireIncoming=True,
-        requireOutgoing=False,
-        newerThan=newerThan
-    )
-    if not edgesUnranked:
-        edgesUnranked = fbmodule.getFriendEdgesFb(
+    try:
+        user = fbmodule.getUserFb(fbid, token.tok)
+        newerThan = time.time() - config.freshness * 24 * 60 * 60
+        # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
+        # insufficient results from the px5 crawls. We'll need to check the
+        # length of the edges list against a friends count from FB.
+        edgesUnranked = database.getFriendEdgesDb(
             fbid,
-            token.tok,
             requireIncoming=True,
-            requireOutgoing=False
+            requireOutgoing=False,
+            newerThan=newerThan
         )
+        if not edgesUnranked:
+            edgesUnranked = fbmodule.getFriendEdgesFb(
+                fbid,
+                token.tok,
+                requireIncoming=True,
+                requireOutgoing=False
+            )
+    except IOError as exc:
+        proximity_rank_four.retry(exc=exc)
+
     edgesRanked = ranking.getFriendRanking(
         edgesUnranked,
         requireIncoming=True,

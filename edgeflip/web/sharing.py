@@ -9,7 +9,7 @@ import datetime
 import random
 import json
 
-from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate
+from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, decodeDES
 
 from .. import facebook
 from .. import mock_facebook
@@ -23,7 +23,19 @@ from ..settings import config
 logger = logging.getLogger(__name__)
 app = flask.Flask(__name__)
 
-MAX_FALLBACK_COUNT = 3      # move to config (or do we want it hard-coded)??
+
+@app.route("/button/<campaignSlug>")
+def button_encoded(campaignSlug):
+    """Endpoint to serve buttons with obfuscated URL"""
+
+    try:
+        decoded = decodeDES(campaignSlug)
+        campaignId, contentId = [int(i) for i in decoded.split('/')]
+    except Exception as e:
+        logger.error("Exception on decrypting button: %s", str(e))
+        return "Content not found", 404
+
+    return button(campaignId, contentId)
 
 
 # Serves just a button, to be displayed in an iframe
@@ -66,6 +78,20 @@ def button(campaignId, contentId):
     return flask.render_template(styleTemplate, fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId, sessionId=sessionId)
 
 
+@app.route("/frame_faces/<campaignSlug>")
+def frame_faces_encoded(campaignSlug):
+    """Endpoint to serve buttons with obfuscated URL"""
+
+    try:
+        decoded = decodeDES(campaignSlug)
+        campaignId, contentId = [int(i) for i in decoded.split('/')]
+    except Exception as e:
+        logger.error("Exception on decrypting frame_faces: %s", str(e))
+        return "Content not found", 404
+
+    return frame_faces(campaignId, contentId)
+
+
 # Serves the actual faces & share message
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
@@ -82,9 +108,15 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
     paramsDict = {'fb_app_name': paramsDB[0], 'fb_app_id': int(paramsDB[1])}
 
-    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict,
-                                campaignId=campaignId, contentId=contentId,
-                                thanksURL=thanksURL, errorURL=errorURL)
+    return flask.render_template(
+        locateTemplate('frame_faces.html', clientSubdomain, app),
+        fbParams=paramsDict,
+        campaignId=campaignId,
+        contentId=contentId,
+        thanksURL=thanksURL,
+        errorURL=errorURL,
+        app_version=config.app_version,
+    )
 
 
 @app.route("/faces", methods=['POST'])
@@ -100,7 +132,7 @@ def faces():
     mockMode = True if flask.request.json.get('mockmode') else False
     px3_task_id = flask.request.json.get('px3_task_id')
     px4_task_id = flask.request.json.get('px4_task_id')
-    skip_px4 = True if flask.request.json.get('skip_px4') else False
+    last_call = True if flask.request.json.get('last_call') else False
     ip = getIP(req=flask.request)
     fbmodule = None
     edgesRanked = None
@@ -140,20 +172,22 @@ def faces():
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
-        if (px3_result.ready() and (px4_result.ready() or skip_px4)):
+        if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.ready() else []
-            edgesRanked, bestCSFilter, choiceSet, allowGeneric = px3_result.result
-            if not all([edgesRanked, bestCSFilter, choiceSet, allowGeneric]):
+            edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
+            if not all([edgesRanked, bestCSFilter, choiceSet]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
-            if skip_px4 and not px3_result.ready():
+            if last_call and not px3_result.ready():
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
             else:
                 return ajaxResponse(
                     json.dumps({
                         'status': 'waiting',
                         'px3_task_id': px3_task_id,
-                        'px4_task_id': px4_task_id
+                        'px4_task_id': px4_task_id,
+                        'campaignid': campaignId,
+                        'contentid': contentId,
                     }),
                     200,
                     sessionId
@@ -178,6 +212,8 @@ def faces():
                 'status': 'waiting',
                 'px3_task_id': px3_task_id,
                 'px4_task_id': px4_task.id,
+                'campaignid': campaignId,
+                'contentid': contentId,
             }),
             200,
             sessionId
@@ -295,12 +331,17 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
     database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
 
     return ajaxResponse(
-        json.dumps({'status': 'success', 'html': flask.render_template(
-            locateTemplate('faces_table.html', clientSubdomain, app),
-            fbParams=actionParams, msgParams=msgParams,
-            face_friends=faceFriends, all_friends=allFriends,
-            pickFriends=pickDicts, numFriends=numFace
-        )}), 200, sessionId)
+        json.dumps({
+            'status': 'success',
+            'html': flask.render_template(
+                locateTemplate('faces_table.html', clientSubdomain, app),
+                fbParams=actionParams, msgParams=msgParams,
+                face_friends=faceFriends, all_friends=allFriends,
+                pickFriends=pickDicts, numFriends=numFace
+            ),
+            'campaignid': campaignId,
+            'contentid': contentId,
+        }), 200, sessionId)
 
 
 @app.route("/objects/<fbObjectId>/<contentId>")

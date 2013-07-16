@@ -130,7 +130,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.assertEqual(data['status'], 'waiting')
 
     @patch('edgeflip.web.sharing.celery')
-    def test_faces_skip_px4(self, celery_mock):
+    def test_faces_last_call(self, celery_mock):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
         '''
@@ -140,7 +140,9 @@ class TestWebSharing(EdgeFlipTestCase):
             [self.test_edge],
             (self.test_filter, [self.test_edge]),
             self.test_cs,
-            [1, 'all']
+            [1, 'all'],
+            1,
+            1
         )
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
@@ -153,7 +155,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
-            'skip_px4': True,
+            'last_call': True,
         })
         response = self._make_request()
         data = json.loads(response.data)
@@ -169,7 +171,9 @@ class TestWebSharing(EdgeFlipTestCase):
             [self.test_edge],
             (self.test_filter, [self.test_edge]),
             self.test_cs,
-            [1, 'all']
+            [1, 'all'],
+            1,
+            1,
         )
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = True
@@ -183,7 +187,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
-            'skip_px4': True,
+            'last_call': True,
         })
         response = self._make_request()
         data = json.loads(response.data)

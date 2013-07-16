@@ -21,6 +21,7 @@ from edgeflip import (
     datastructs,
 )
 from edgeflip.settings import config
+from .web import utils
 
 logger = logging.getLogger(__name__)
 
@@ -508,7 +509,9 @@ def getFacesURL(campaignId, contentId):
     else:
         url += '&'
 
-    return url + 'efcmpg=' + str(campaignId) + '&efcnt=' + str(contentId)
+    slug = utils.encodeDES('%s/%s' % (campaignId, contentId))
+
+    return url + 'efcmpgslug=' + str(slug)
 
 
 def checkRequiredFbObjAttributes(attributes):
