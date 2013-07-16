@@ -23,7 +23,7 @@ from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
-from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex
+from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex, KeysOnlyIndex
 from boto.dynamodb2.types import NUMBER, STRING
 
 from . import datastructs
@@ -162,11 +162,12 @@ def create_all_tables():
     dynamo = get_dynamo()
     create_table(**users_schema)
     create_table(**tokens_schema)
-    create_table(**edges_schema)
+    create_table(**edges_data_schema)
+    create_table(**edges_incoming_schema)
 
 def drop_all_tables():
     """Delete all tables in Dynamo"""
-    for t in ('users', 'tokens', 'edges'):
+    for t in ('users', 'tokens', 'edges_data', 'edges_incoming'):
         get_table(t).delete()
 
 ##### USERS #####
@@ -269,9 +270,20 @@ edges_data_schema = {
         RangeKey('fbid_target', data_type=STRING)
         ],
     'indexes': [
-        AllIndex('fbid_source', parts=[HashKey('fbid_source'), RangeKey('updated')]),
-        AllIndex('fbid_target', parts=[HashKey('fbid_target', RangeKey('updated'))])
+        IncludeIndex('edges_outgoing',
+                     parts=[HashKey('fbid_source', data_type=STRING),
+                            RangeKey('updated', data_type=NUMBER)],
+                     includes=['fbid_source', 'fbid_target']),
     ]
+}
+
+edges_incoming_schema = {
+    'table_name': 'edges_incoming',
+        'schema': [
+            HashKey('fbid_target', data_type=STRING),
+            RangeKey('updated', data_type=NUMBER)
+            # fbid_source is saved as a field            
+            ],        
 }
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
@@ -311,11 +323,12 @@ def fetch_incoming_edges(fbid, newer_than=None):
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: list of `datastructs.EdgeCounts`
     """
-    table = get_table('edges')
+    table = get_table('edges_incoming')
     if newer_than is None:
-        results = table.query(index = 'fbid_target', fbid_target = fbid)
+        results = table.query(fbid_target = fbid)
     else:
-        results = table.query(index = 'fbid_target', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
+        keys = table.query(index = 'edges_incoming', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
+        results = fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
     return map(_make_edge, results)
 
 def fetch_outgoing_edges(fbid, newer_than=None):
@@ -325,11 +338,15 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: list of `datastructs.EdgeCounts`
     """
-    table = get_table('edges')
+    table = get_table('edges_data')
     if newer_than is None:
-        results = table.query(index = 'fbid_source', fbid_source = fbid)
+        results = table.query(fbid_source = fbid)
     else:
-        results = table.query(index = 'fbid_source', fbid_source = fbid, updated__gt = datetime_to_epoch(newer_than))
+        keys = table.query(index = 'edges_outgoing',
+                           fbid_source = fbid,
+                           updated__gt = datetime_to_epoch(newer_than),
+                           attributes_to_get = ['fbid_source', 'fbid_target'])
+        results = fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys) 
     return map(_make_edge, results)
 
 def _make_edge(x):
