@@ -20,6 +20,7 @@ from edgeflip import (
     database as db,
     datastructs,
 )
+from edgeflip.settings import config
 
 logger = logging.getLogger(__name__)
 
@@ -1024,7 +1025,7 @@ class Filter(object):
             return edges
         for feature, operator, value in self.features:
             # FIXME: The following tuple may not encompass all possibilities.
-            if feature in ('score_max', 'score_min', 'score_mean', 'score_std'):
+            if feature in config.filtering.civis_filters:
                 start_time = time.time()
                 threads = []
                 loopTimeout = 10
