@@ -233,15 +233,14 @@ def _make_user(x):
 tokens_schema = {
     'table_name': 'tokens',
     'schema': [
-        HashKey('fbid_appid', data_type=STRING),
-        ],
-    'indexes': [AllIndex('fbid', parts=[HashKey('fbid')])],
+        HashKey('fbid', data_type=STRING),
+        RangeKey('appid', data_type=STRING)
+    ]
 }
 
 def save_token(fbid, appid, token, expires):
     table = get_table('tokens')
     x = Item(table, data = dict(
-        fbid_appid = ".".join((fbid, appid)),
         fbid = fbid,
         appid = appid,
         token = token,
@@ -253,7 +252,7 @@ def save_token(fbid, appid, token, expires):
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
-    x = table.get_item(fbid_appid=".".join((fbid, appid)))
+    x = table.get_item(fbid, appid)
     if x['fbid_appid'] is None: return None
 
     return datastructs.TokenInfo(tok = x['token'],
