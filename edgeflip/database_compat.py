@@ -25,7 +25,7 @@ def updateUsersDb(users):
     """
     # XXX it'd be nice to use boto's batch_write here, but it doesn't support partial updates
     for u in users:
-        save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
+        dynamo.save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
 
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
@@ -53,7 +53,7 @@ def updateTokensDb(token):
     :arg token: a `datastruct.TokenInfo`
     """
 
-    save_token(token.ownerId, token.appId, token.tok, token.expires)
+    dynamo.save_token(token.ownerId, token.appId, token.tok, token.expires)
 
 def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table
@@ -134,7 +134,7 @@ def _updateDb(user, token, edges):
     tim = datastructs.Timer()
 
     # update token for primary
-    updateTokensDb(user, token)
+    updateTokensDb(token)
     updateUsersDb([user])
     updateUsersDb([e.secondary for e in edges])
     updateFriendEdgesDb(edges)
