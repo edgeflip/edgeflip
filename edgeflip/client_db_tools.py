@@ -975,11 +975,11 @@ def civisFilter(user, feature, value, matches):
     except matcher.MatchException as exc:
         # This means there was an issue with the Civis API. Likely means no
         # match, but it's hard to say in the current state of their API.
-        logger.debug('Exception: %s' % exc.message)
+        logger.info('Exception: %s' % exc.message)
         return None
 
-    score = getattr(result, feature, None)
-    if score >= value:
+    scores = getattr(result, 'scores', None)
+    if scores and scores[feature]['min'] >= value:
         matches.append(user)
     logger.debug(
         'Thread %s ended: %s' % (
