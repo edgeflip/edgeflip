@@ -939,7 +939,7 @@ def civisFilter(user, feature, value, matches):
     given user
     '''
     start_time = time.time()
-    logger.info('Thread %s started' % threading.current_thread().name)
+    logger.debug('Thread %s started' % threading.current_thread().name)
     cm = matcher.CivisMatcher()
     kwargs = {}
     if user.birthday:

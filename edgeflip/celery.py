@@ -29,7 +29,6 @@ celery.conf.update(
         Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
         Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
         Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
-        Queue('civis', routing_key='civis.match', queue_arguments=QUEUE_ARGS),
     ),
     CELERY_ROUTES={
         'edgeflip.tasks.px3_crawl': {
@@ -44,10 +43,6 @@ celery.conf.update(
             'queue': 'px4',
             'routing_key': 'px4.crawl'
         },
-        'edgeflip.tasks.civis_matching': {
-            'queue': 'civis',
-            'routing_key': 'civis.match'
-        }
     }
 )
 

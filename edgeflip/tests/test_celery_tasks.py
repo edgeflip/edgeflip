@@ -1,5 +1,3 @@
-from datetime import date
-
 from edgeflip.tests import EdgeFlipTestCase
 from edgeflip import (
     client_db_tools as cdb,
