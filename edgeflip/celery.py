@@ -16,7 +16,8 @@ celery = Celery('edgeflip.celery',
                 include=['edgeflip.tasks'])
 
 celery.conf.update(
-    BROKER_HEARTBEAT=30,
+    BROKER_HEARTBEAT=10,
+    BROKER_POOL_LIMIT=0, # ELB makes pooling problematic
     CELERYD_PREFETCH_MULTIPLIER=1,
     CELERY_TASK_RESULT_EXPIRES=3600,
     CELERY_RESULT_BACKEND='database',
