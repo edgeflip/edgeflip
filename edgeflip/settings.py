@@ -54,7 +54,9 @@ import pymlconf
 import sh
 
 # base configuration - source tree only
-DEFAULT_CONF_DIR = os.path.join(os.path.dirname(__file__), 'conf.d')
+CURRENT_PATH = os.path.dirname(__file__)
+REPO_ROOT = os.path.join(CURRENT_PATH, '../')
+DEFAULT_CONF_DIR = os.path.join(CURRENT_PATH, 'conf.d')
 
 # system install location
 SYSTEM_CONV_DIR = '/var/www/edgeflip/conf.d'
@@ -69,7 +71,8 @@ config = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=F
 config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 
 try:
-    config.app_version = sh.git.describe().strip()
+    git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
+    config.app_version = git_repo.describe()
 except:
     # This exception comes when celery starts up outside of the app's repo.
     # Catching that exception and setting a dummy value. Celery doesn't need
