@@ -257,7 +257,7 @@ def save_token(fbid, appid, token, expires):
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
-    x = table.get_item(fbid=fbid, appid=appid)
+    x = table.query(fbid__eq=fbid, appid__eq=appid)
     if x['fbid_appid'] is None: return None
 
     return datastructs.TokenInfo(tok = x['token'],
@@ -306,7 +306,7 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
 
 def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges_data')
-    x = table.get_item(fbid_source, fbid_target)
+    x = table.query(fbid_source__eq = s, fbid_target_eq = t)[0]
     if x['source_target'] is None: return None
     return _make_edge(x)
 
@@ -316,9 +316,7 @@ def fetch_many_edges(ids):
 
     :arg ids: list of 2-tuples of (fbid_source, fbid_target)
     """
-    table = get_table('edges_data')
-    results = table.batch_get([{'fbid_source':s, 'fbid_target':t} for s, t in ids])
-    return [_make_edge(x) for x in results if x['source_target'] is not None]
+    return filter(None, (fetch_edge(s, t) for s, t in ids))
 
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many edges from secondary -> primary
