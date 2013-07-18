@@ -168,8 +168,13 @@ def create_all_tables():
 
 def drop_all_tables():
     """Delete all tables in Dynamo"""
-    for t in ('users', 'tokens', 'edges_data', 'edges_incoming'):
-        get_table(t).delete()
+    for t in ('users', 'tokens', 'edges_outgoing', 'edges_incoming'):
+        try: 
+            get_table(t).delete()
+        except StandardError as e:
+            logger.warn("Error deleting table %s: %s", t, e)
+        else:
+            logger.debug("Deleted table %s", t)
 
 ##### USERS #####
 
