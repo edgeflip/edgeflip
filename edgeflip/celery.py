@@ -27,6 +27,9 @@ celery.conf.update(
         config.dbhost,
         config.dbname,
     ),
+    # FIXME: Short lived sessions won't be needed once we have more consistent
+    # traffic levels. Then MySQL won't kill our connections.
+    CELERY_RESULT_DB_SHORT_LIVED_SESSIONS=True,
     CELERY_ALWAYS_EAGER=config.always_eager,
     CELERY_QUEUES=(
         Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
