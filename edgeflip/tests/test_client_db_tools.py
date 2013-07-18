@@ -48,10 +48,6 @@ class TestClientDBTools(EdgeFlipTestCase):
             1, u'Test', u'User', 'test@example.com', 'Male',
             date(1984, 1, 1), u'Chicago', 'Illinois'
         )
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            date(1984, 1, 1), u'Chicago', 'Illinois'
-        )
         edge = datastructs.Edge(user, user, None)
         matches = []
         cdb.civisFilter(edge, 'persuasion_score', 'min', 100, matches)
