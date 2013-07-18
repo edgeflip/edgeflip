@@ -18,6 +18,7 @@ import flask
 import pymlconf
 import time
 import datetime
+from itertools import imap
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -267,28 +268,34 @@ def fetch_token(fbid, appid):
 
 ##### EDGES #####
 
-edges_data_schema = {
-    'table_name': 'edges_data',
+edges_outgoing_schema = {
+    'table_name': 'edges_outgoing',
     'schema': [
         HashKey('fbid_source', data_type=NUMBER),
         RangeKey('fbid_target', data_type=NUMBER)
         ],
     'indexes': [
-        IncludeIndex('edges_outgoing',
+        IncludeIndex('updated',
                      parts=[HashKey('fbid_source', data_type=NUMBER),
                             RangeKey('updated', data_type=NUMBER)],
-                     includes=['fbid_source', 'fbid_target']),
+                     includes=['fbid_target', 'fbid_source']),
     ]
 }
 
 edges_incoming_schema = {
     'table_name': 'edges_incoming',
-        'schema': [
-            HashKey('fbid_target', data_type=NUMBER),
-            RangeKey('updated', data_type=NUMBER)
-            # fbid_source is saved as a field            
-            ],        
+    'schema': [
+        HashKey('fbid_target', data_type=NUMBER),
+        RangeKey('fbid_source', data_type=NUMBER)
+        ],
+    'indexes': [
+        IncludeIndex('updated',
+                     parts=[HashKey('fbid_target', data_type=NUMBER),
+                            RangeKey('updated', data_type=NUMBER)],
+                     includes=['fbid_target', 'fbid_source']),
+    ]
 }
+
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
     updated = epoch_now()
@@ -296,61 +303,67 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     data = locals()
     remove_none_values(data)
 
-    table = get_table('edges_data')
-    edge = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
-
-    for k, v in data.iteritems():
-        edge[k] = v
-
-    return edge.partial_save()
+    for t in 'edges_incoming', 'edges_outgoing':
+        table = get_table(t)
+        results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
+        if results:
+            # update existing edge
+            edge = results[0]            
+            for k, v in data.iteritems():
+                edge[k] = v
+            return edge.partial_save()
+        else:
+            # new edge
+            return table.put_item(data)
 
 def fetch_edge(fbid_source, fbid_target):
-    table = get_table('edges_data')
-    x = table.query(fbid_source__eq = s, fbid_target_eq = t)[0]
-    if x['source_target'] is None: return None
-    return _make_edge(x)
-
-
-def fetch_many_edges(ids):
-    """Retrieve many edges.
-
-    :arg ids: list of 2-tuples of (fbid_source, fbid_target)
-    """
-    return filter(None, (fetch_edge(s, t) for s, t in ids))
+    table = get_table('edges_incoming')
+    results = table.query(fbid_source__eq = s, fbid_target_eq = t)
+    return _make_edge(results[0]) if results else None
 
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many edges from secondary -> primary
 
+    select all edges where target == fbid
+    (and optionally) where updated > now() - newer_than
+    
+
     :arg str fbid: primary's facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
-    :rtype: list of `datastructs.EdgeCounts`
+    :rtype: iter of `datastructs.EdgeCounts`
     """
     table = get_table('edges_incoming')
     if newer_than is None:
         results = table.query(fbid_target = fbid)
+        imap(_make_edge, results)    
     else:
-        keys = table.query(index = 'edges_incoming', fbid_target = fbid, updated__gt = datetime_to_epoch(newer_than))
-        results = fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
-    return map(_make_edge, results)
+        keys = table.query(index = 'updated',
+                           fbid_target__eq = fbid,
+                           updated__gt = datetime_to_epoch(newer_than),
+                           attributes_to_get = ['fbid_source', 'fbid_target'])
+        return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
 
 def fetch_outgoing_edges(fbid, newer_than=None):
     """Fetch many edges from primary -> secondary
 
+    select all edges where source == fbid
+    (and optionally) where updated > now() - newer_than
+    
     :arg str fbid: primary's facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
-    :rtype: list of `datastructs.EdgeCounts`
+    :rtype: iter of `datastructs.EdgeCounts`
     """
-    table = get_table('edges_data')
+    table = get_table('edges_outgoing')
     if newer_than is None:
         results = table.query(fbid_source = fbid)
+        imap(_make_edge, results)    
     else:
-        keys = table.query(index = 'edges_outgoing',
-                           fbid_source = fbid,
+        keys = table.query(index = 'updated',
+                           fbid_source__eq = fbid,
                            updated__gt = datetime_to_epoch(newer_than),
                            attributes_to_get = ['fbid_source', 'fbid_target'])
-        results = fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys) 
-    return map(_make_edge, results)
-
+        return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
+    
 def _make_edge(x):
     """make an edge from a boto Item. for internal use"""
     return datastructs.EdgeCounts(
