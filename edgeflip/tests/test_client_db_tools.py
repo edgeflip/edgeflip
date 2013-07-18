@@ -27,9 +27,10 @@ class TestClientDBTools(EdgeFlipTestCase):
             1, u'Test', u'User', 'test@example.com', 'Male',
             date(1984, 1, 1), u'Chicago', 'Illinois'
         )
+        edge = datastructs.Edge(user, user, None)
         matches = []
-        cdb.civisFilter(user, 'persuasion_score', 100, matches)
-        self.assertEqual([user], matches)
+        cdb.civisFilter(edge, 'persuasion_score', 'min', 100, matches)
+        self.assertEqual([edge], matches)
 
     @patch('edgeflip.client_db_tools.matcher')
     def test_civis_matching_no_match(self, civis_mock):
@@ -47,6 +48,11 @@ class TestClientDBTools(EdgeFlipTestCase):
             1, u'Test', u'User', 'test@example.com', 'Male',
             date(1984, 1, 1), u'Chicago', 'Illinois'
         )
+        user = datastructs.UserInfo(
+            1, u'Test', u'User', 'test@example.com', 'Male',
+            date(1984, 1, 1), u'Chicago', 'Illinois'
+        )
+        edge = datastructs.Edge(user, user, None)
         matches = []
-        cdb.civisFilter(user, 'persuasion_score', 100, matches)
+        cdb.civisFilter(edge, 'persuasion_score', 'min', 100, matches)
         self.assertEqual(matches, [])
