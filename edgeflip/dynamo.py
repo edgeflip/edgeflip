@@ -163,7 +163,7 @@ def create_all_tables():
     dynamo = get_dynamo()
     create_table(**users_schema)
     create_table(**tokens_schema)
-    create_table(**edges_data_schema)
+    create_table(**edges_outgoing_schema)
     create_table(**edges_incoming_schema)
 
 def drop_all_tables():
