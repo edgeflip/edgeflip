@@ -29,12 +29,16 @@ To set up a local mysql database:
 
 Dynamo
 ------
-To set up Dynamo on AWS, run the following. This will use your configuration values.
+Set the config option `dynamo.engine` to either `mock` (default) or `aws`. The later requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
+
+To run a local mock dynamo server, install  [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo): `gem install fake_dynamo --version 0.2.3`. Then run `fake_dynamo -d /path/to/your/checkout/fake_dynamo.fdb`.
+
+Set up & create tables. This can be quite slow on live AWS:
 
 1. If necessary, drop tables with `bin/drop_dynamo.py`
 2. Create tables with `bin/create_dynamo.py`.
 
-To run a local mock dynamo server instead, install  [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo): `gem install fake_dynamo --version 0.2.3`. Then run `fake_dynamo -d /path/to/your/checkout/fake_dynamo.fdb`.
+
 
 Hostname Alias
 --------------
