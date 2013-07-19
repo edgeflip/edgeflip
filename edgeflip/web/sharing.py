@@ -70,7 +70,7 @@ def button(campaignId, contentId):
         cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'button_style_id', styleId, True, 'campaign_button_styles', [r[0] for r in styleRecs], background=config.database.use_threads)
 
         # Find template location
-        styleTemplate = cdb.dbGetObjectAttributes('button_style_files', 
+        styleTemplate = cdb.dbGetObjectAttributes('button_style_files',
                         ['html_template'], 'button_style_id', styleId)[0][0]
     except Exception as e:
         # Weren't able to get a style from the DB, so fall back to default
@@ -110,7 +110,7 @@ def frame_faces(campaignId, contentId):
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
 
-    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict, 
+    return flask.render_template(locateTemplate('frame_faces.html', clientSubdomain, app), fbParams=paramsDict,
                                 campaignId=campaignId, contentId=contentId,
                                 thanksURL=thanksURL, errorURL=errorURL)
 
@@ -208,7 +208,7 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         raise RuntimeError("Exceeded maximum fallback count")
-    
+
     # Check if any friends should be excluded for this campaign/content combination
     excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
     edgesEligible = [e for e in edgesRanked if e.secondary.id not in excludeFriends]
@@ -285,8 +285,8 @@ def applyCampaign(edgesRanked, clientSubdomain, campaignId, contentId, sessionId
     cdb.dbWriteAssignment(sessionId, campaignId, contentId, 'fb_object_id', fbObjectId, True, fbObjectTable, [r[0] for r in fbObjectRecs], background=config.database.use_threads)
 
     # Find template params, return faces
-    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
-                    ['og_action', 'og_type', 'sharing_prompt', 
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes',
+                    ['og_action', 'og_type', 'sharing_prompt',
                     'msg1_pre', 'msg1_post', 'msg2_pre', 'msg2_post', 'og_title', 'og_image', 'og_description'],
                     'fb_object_id', fbObjectId)[0]
 
@@ -331,9 +331,9 @@ def objects(fbObjectId, contentId):
     else:
         clientId = clientId[0][0]
 
-    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes', 
+    fbObjectInfo = cdb.dbGetObjectAttributes('fb_object_attributes',
                     ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
-                    'page_title', 'url_slug'], 
+                    'page_title', 'url_slug'],
                     'fb_object_id', fbObjectId)
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])
 
@@ -435,9 +435,9 @@ def recordEvent():
     sessionId = flask.request.json['sessionid']
     ip = getIP(req = flask.request)
 
-    if (eventType not in [  'button_load', 'button_click', 
-                            'authorized', 'auth_fail', 
-                            'select_all_click', 'suggest_message_click', 
+    if (eventType not in [  'button_load', 'button_click',
+                            'authorized', 'auth_fail',
+                            'select_all_click', 'suggest_message_click',
                             'share_click', 'share_fail', 'shared', 'clickback'
                         ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
@@ -493,10 +493,10 @@ def canvas():
 @app.route("/health_check")
 def health_check():
     """ELB status
-    
+
     - if called as `/health_check?elb` just return 200
     - if called as `/health_check` return a JSON dict with status of various component
-    
+
     """
     if 'elb' in flask.request.args:
         return "It's Alive!", 200
@@ -522,6 +522,6 @@ def health_check():
     except:
         # xxx do something more intelligent here?
         raise
-    
+
     return flask.jsonify(components)
 

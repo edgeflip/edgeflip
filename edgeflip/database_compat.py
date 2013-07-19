@@ -57,8 +57,12 @@ def updateTokensDb(token):
 
     :arg token: a `datastruct.TokenInfo`
     """
-    assert isinstance(token.ownerId, (int, long, decimal.Decimal))
-    dynamo.save_token(int(token.ownerId), int(token.appId), token.tok, token.expires)
+    try:
+        ownerId = int(token.ownerId)
+    except (ValueError, TypeError):
+        logger.warn("Bad ownerId %r, token %s not updated", token.ownerId, token.tok)
+    else:
+        dynamo.save_token(ownerId, int(token.appId), token.tok, token.expires)
 
 def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table

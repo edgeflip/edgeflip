@@ -227,7 +227,6 @@ def fetch_many_users(fbids):
     :arg ids: list of facebook ID's
     """
     table = get_table('users')
-    #results = chain(table.batch_get([{'fbid': i} for i in c]) for c in chunked(fbids, 100))
     results = table.batch_get(keys=[{'fbid': i} for i in fbids])
     users = (_make_user(x) for x in results if x['fbid'] is not None)
     return list(users)
@@ -381,19 +380,23 @@ def fetch_outgoing_edges(fbid, newer_than=None):
                            updated__gt = datetime_to_epoch(newer_than))
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
 
+_int_or_none = lambda x: int(x) if x is not None else None
+"""internal helper to convert from dynamo's decimal"""
+
+
 def _make_edge(x):
     """make an edge from a boto Item. for internal use"""
     return datastructs.EdgeCounts(
         sourceId = int(x['fbid_source']),
         targetId = int(x['fbid_target']),
-        postLikes = int(x['post_likes']),
-        postComms = int(x['post_comms']),
-        statLikes = int(x['stat_likes']),
-        statComms = int(x['stat_comms']),
-        wallPosts = int(x['wall_posts']),
-        wallComms = int(x['wall_comms']),
-        tags = int(x['tags']),
-        photoTarg = int(x['photos_target']),
-        photoOth = int(x['photos_other']),
-        muts = int(x['mut_friends'])
+        postLikes = _int_or_none(x['post_likes']),
+        postComms = _int_or_none(x['post_comms']),
+        statLikes = _int_or_none(x['stat_likes']),
+        statComms = _int_or_none(x['stat_comms']),
+        wallPosts = _int_or_none(x['wall_posts']),
+        wallComms = _int_or_none(x['wall_comms']),
+        tags = _int_or_none(x['tags']),
+        photoTarg = _int_or_none(x['photos_target']),
+        photoOth = _int_or_none(x['photos_other']),
+        muts = _int_or_none(x['mut_friends'])
         )
