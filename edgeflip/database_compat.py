@@ -12,6 +12,7 @@ import logging
 import threading
 import datetime
 import types
+import decimal
 
 from . import dynamo
 from . import datastructs
@@ -56,8 +57,8 @@ def updateTokensDb(token):
 
     :arg token: a `datastruct.TokenInfo`
     """
-    assert isinstance(token.ownerId, (int, long))
-    dynamo.save_token(token.ownerId, token.appId, token.tok, token.expires)
+    assert isinstance(token.ownerId, (int, long, decimal.Decimal))
+    dynamo.save_token(int(token.ownerId), int(token.appId), token.tok, token.expires)
 
 def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table

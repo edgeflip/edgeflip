@@ -63,7 +63,7 @@ def _make_dynamo_mock():
     endpoint = '{}:{}'.format(host, port)
     region = RegionInfo(name='mock', endpoint=endpoint)
     conn = DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
-    
+
     # patch the region_name so boto doesn't explode
     conn._auth_handler.region_name = "us-mock-1"
     return conn
@@ -170,7 +170,7 @@ def create_all_tables():
 def drop_all_tables():
     """Delete all tables in Dynamo"""
     for t in ('users', 'tokens', 'edges_outgoing', 'edges_incoming'):
-        try: 
+        try:
             get_table(t).delete()
         except StandardError as e:
             logger.warn("Error deleting table %s: %s", t, e)
@@ -227,13 +227,14 @@ def fetch_many_users(fbids):
     :arg ids: list of facebook ID's
     """
     table = get_table('users')
-    results = chain(table.batch_get([{'fbid': i} for i in c]) for c in chunked(fbids, 100))
+    #results = chain(table.batch_get([{'fbid': i} for i in c]) for c in chunked(fbids, 100))
+    results = table.batch_get(keys=[{'fbid': i} for i in fbids])
     users = (_make_user(x) for x in results if x['fbid'] is not None)
     return list(users)
 
 def _make_user(x):
     """make a user from a boto Item. for internal use"""
-    u = datastructs.UserInfo(uid=x['fbid'],
+    u = datastructs.UserInfo(uid=int(x['fbid']),
                              first_name=x['fname'],
                              last_name=x['lname'],
                              email=x['email'],
@@ -241,7 +242,7 @@ def _make_user(x):
                              birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
                              city=x['city'],
                              state=x['state'])
-    
+
     # just stuff updated on there as an attr b/c we got nowhere else to put
     # it & we don't want to change fragile constructor above. :-|
     u.updated = epoch_to_datetime(x['updated'])
@@ -274,11 +275,11 @@ def fetch_token(fbid, appid):
     results = table.query(fbid__eq=fbid, appid__eq=appid)
     if not results:
         return None
-    
+
     x = results.next()
     return datastructs.TokenInfo(tok = x['token'],
-                                 own = x['fbid'],
-                                 app = x['appid'],
+                                 own = int(x['fbid']),
+                                 app = int(x['appid']),
                                  expires=epoch_to_datetime(x['expires']))
 
 ##### EDGES #####
@@ -322,7 +323,7 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
         table = get_table(t)
         results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
         try:
-            edge = results.next()       
+            edge = results.next()
         except StopIteration:
             # new edge
             return table.put_item(data)
@@ -333,10 +334,10 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
                 if k not in ('fbid_source', 'fbid_target'):
                     edge[k] = v
             return edge.partial_save()
-            
+
 def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges_incoming')
-    results = table.query(fbid_source__eq = s, fbid_target_eq = t)
+    results = table.query(fbid_source__eq = fbid_source, fbid_target__eq = fbid_target)
     return _make_edge(results.next()) if results else None
 
 def fetch_incoming_edges(fbid, newer_than=None):
@@ -344,7 +345,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
 
     select all edges where target == fbid
     (and optionally) where updated > now() - newer_than
-    
+
 
     :arg str fbid: primary's facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
@@ -353,7 +354,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
     table = get_table('edges_incoming')
     if newer_than is None:
         results = table.query(fbid_target = fbid)
-        imap(_make_edge, results)    
+        imap(_make_edge, results)
     else:
         keys = table.query(index = 'updated',
                            fbid_target__eq = fbid,
@@ -365,7 +366,7 @@ def fetch_outgoing_edges(fbid, newer_than=None):
 
     select all edges where source == fbid
     (and optionally) where updated > now() - newer_than
-    
+
     :arg str fbid: primary's facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: iter of `datastructs.EdgeCounts`
@@ -373,26 +374,26 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     table = get_table('edges_outgoing')
     if newer_than is None:
         results = table.query(fbid_source = fbid)
-        imap(_make_edge, results)    
+        imap(_make_edge, results)
     else:
         keys = table.query(index = 'updated',
                            fbid_source__eq = fbid,
                            updated__gt = datetime_to_epoch(newer_than))
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
-    
+
 def _make_edge(x):
     """make an edge from a boto Item. for internal use"""
     return datastructs.EdgeCounts(
-        sourceId = x['fbid_source'],
-        targetId = x['fbid_target'],
-        postLikes = x['post_likes'],
-        postComms = x['post_comms'],
-        statLikes = x['stat_likes'],
-        statComms = x['stat_comms'],
-        wallPosts = x['wall_posts'],
-        wallComms = x['wall_comms'],
-        tags = x['tags'],
-        photoTarg = x['photos_target'],
-        photoOth = x['photos_other'],
-        muts = x['mut_friends']
+        sourceId = int(x['fbid_source']),
+        targetId = int(x['fbid_target']),
+        postLikes = int(x['post_likes']),
+        postComms = int(x['post_comms']),
+        statLikes = int(x['stat_likes']),
+        statComms = int(x['stat_comms']),
+        wallPosts = int(x['wall_posts']),
+        wallComms = int(x['wall_comms']),
+        tags = int(x['tags']),
+        photoTarg = int(x['photos_target']),
+        photoOth = int(x['photos_other']),
+        muts = int(x['mut_friends'])
         )
