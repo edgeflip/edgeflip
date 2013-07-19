@@ -901,7 +901,7 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
     curs = conn.cursor()
 
     #SQLi
-    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join([' % (' + c + ')s' for c in insCols]) + ")"
+    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join([' %(' + c + ')s' for c in insCols]) + ")"
 
     try:
         replaceIds = []
