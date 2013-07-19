@@ -2,7 +2,6 @@
 """
 tools & classes for data stored in AWS DynamoDB
 
-
 .. envvar:: dynamo.prefix
 
     String prefix to prepend to table names. A `.` is used as a separtor
@@ -11,6 +10,8 @@ tools & classes for data stored in AWS DynamoDB
 
     Which engine to use. One of 'aws', 'mock'.
 
+The fetch_* methods return iterators yielding objects from `datastructs`.
+They could easily be converted to yield raw boto Items or another object
 """
 import logging
 import threading
@@ -39,7 +40,7 @@ _non_flask_threadlocal = threading.local()
 def _make_dynamo_aws():
     """makes a connection to dynamo, based on configuration. For internal use.
 
-    :rtype: mysql connection object
+    :rtype: dynamo connection object
 
     """
     try:
@@ -54,7 +55,7 @@ def _make_dynamo_aws():
 def _make_dynamo_mock():
     """makes a connection to mock server, based on configuration. For internal use.
 
-    :rtype: mysql connection object
+    :rtype: dynamo connection object
 
     """
     # based on https://ddbmock.readthedocs.org/en/v0.4.1/pages/getting_started.html#run-as-regular-client-server
@@ -78,10 +79,11 @@ else:
 logger.debug("Installed engine %s", config.dynamo.engine)
 
 def get_dynamo():
-    """return a connection for this thread.
+    """return a dynamo connection for this thread.
 
     All calls from the same thread return the same connection object. Do not save these or pass them around (esp. b/w threads!).
     """
+    # largely copied from similar code in database.py
     try:
         dynamo = flask.g.dynamo
     except RuntimeError as err:
@@ -189,6 +191,13 @@ users_schema = {
 
 
 def save_user(fbid, fname, lname, email, gender, birthday, city, state):
+    """save a user to Dynamo. If user exists, update with new, non-None attrs.
+
+    :arg int fbid: the user's facebook id
+
+    Other args are string or None
+    """
+
     updated = epoch_now()
     birthday = date_to_epoch(birthday) if birthday is not None else None
 
@@ -225,14 +234,15 @@ def fetch_many_users(fbids):
     """Retrieve many users.
 
     :arg ids: list of facebook ID's
+    :rtype: iterator of `datastructs.UserInfo`
     """
     table = get_table('users')
     results = table.batch_get(keys=[{'fbid': i} for i in fbids])
     users = (_make_user(x) for x in results if x['fbid'] is not None)
-    return list(users)
+    return users
 
 def _make_user(x):
-    """make a user from a boto Item. for internal use"""
+    """make a `datastructs.UserInfo` from a boto Item. for internal use"""
     u = datastructs.UserInfo(uid=int(x['fbid']),
                              first_name=x['fname'],
                              last_name=x['lname'],
@@ -258,6 +268,13 @@ tokens_schema = {
 }
 
 def save_token(fbid, appid, token, expires):
+    """save a token to dynamo, overwriting.
+
+    :arg int fbid: the facebook id
+    :arg int appid: the app's id
+    :arg str token: the auth token from facebook
+    :arg datetime expires: when the token expires, in GMT
+    """
     table = get_table('tokens')
     x = Item(table, data = dict(
         fbid = fbid,
@@ -270,6 +287,12 @@ def save_token(fbid, appid, token, expires):
     return x.save(overwrite=True)
 
 def fetch_token(fbid, appid):
+    """retrieve a token from facebook
+
+    :arg int fbid: the facebook id
+    :arg int appid: the app's id
+    :rtype: `datastructs.TokenInfo` or None if not found
+    """
     table = get_table('tokens')
     results = table.query(fbid__eq=fbid, appid__eq=appid)
     if not results:
@@ -313,11 +336,19 @@ edges_incoming_schema = {
 
 
 def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
+    """save an edge to dynamo
+
+    :arg int fbid_source: the source's -> facebook id
+    :arg int fbid_target: the -> target's facebook id
+
+    Other args int or None
+    """
     updated = epoch_now()
 
     data = locals()
     remove_none_values(data)
 
+    # write to both tables
     for t in ('edges_incoming', 'edges_outgoing'):
         table = get_table(t)
         results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
@@ -337,18 +368,49 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
             edge.partial_save()
 
 def fetch_edge(fbid_source, fbid_target):
+    """retrieve an edge from facebook
+
+    :arg int fbid_source: the source's -> facebook id
+    :arg int fbid_target: the -> target's facebook id
+    :rtype: `datastructs.EdgeCount` or None if not found
+    """
+    # which table we retrieve off is arbitrary
     table = get_table('edges_incoming')
     results = table.query(fbid_source__eq = fbid_source, fbid_target__eq = fbid_target)
-    return _make_edge(results.next()) if results else None
+    try:
+        e = results.next()
+    except StopIteration:
+        return None
+    else:
+        return _make_edge(e)
+
+def fetch_all_incoming_edges():
+    """Retrieve all incoming edges from dynamo
+
+    WARNING: this does a full scan and is SLOW & EXPENSIVE
+
+    :rtype: iter of `datastructs.EdgeCounts`
+    """
+    return imap(_make_edge, get_table('edges_incoming').scan())
+
+def fetch_all_outgoing_edges():
+    """Retrieve all outgoing edges from dynamo
+
+    WARNING: this does a full scan and is SLOW & EXPENSIVE
+
+    :rtype: iter of `datastructs.EdgeCounts`
+    """
+    return imap(_make_edge, get_table('edges_outgoing').scan())
+
 
 def fetch_incoming_edges(fbid, newer_than=None):
-    """Fetch many edges from secondary -> primary
+    """Fetch many incoming edges
 
-    select all edges where target == fbid
-    (and optionally) where updated > now() - newer_than
+    select all edges where target == $fbid
+    (and optionally) where updated > now() - $newer_than
 
 
-    :arg str fbid: primary's facebook id
+    :arg int fbid: target facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: iter of `datastructs.EdgeCounts`
     """
@@ -363,12 +425,12 @@ def fetch_incoming_edges(fbid, newer_than=None):
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
 
 def fetch_outgoing_edges(fbid, newer_than=None):
-    """Fetch many edges from primary -> secondary
+    """Fetch many outgoing edges
 
-    select all edges where source == fbid
-    (and optionally) where updated > now() - newer_than
+    select all edges where source == $fbid
+    (and optionally) where updated > now() - $newer_than
 
-    :arg str fbid: primary's facebook id
+    :arg int fbid: source facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: iter of `datastructs.EdgeCounts`
     """
@@ -382,12 +444,11 @@ def fetch_outgoing_edges(fbid, newer_than=None):
                            updated__gt = datetime_to_epoch(newer_than))
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
 
+# internal helper to convert from dynamo's decimal
 _int_or_none = lambda x: int(x) if x is not None else None
-"""internal helper to convert from dynamo's decimal"""
-
 
 def _make_edge(x):
-    """make an edge from a boto Item. for internal use"""
+    """make an `datastructs.EdgeCount` from a boto Item. for internal use"""
     return datastructs.EdgeCounts(
         sourceId = int(x['fbid_source']),
         targetId = int(x['fbid_target']),
