@@ -123,7 +123,7 @@ def getFriendEdgesDb(primId, requireOutgoing=False, maxAge=None):
                 for fbid, ec in secondary_EdgeCounts_in.iteritems()]
 
     # build iterator of (secondary's UserInfo, incoming edge, outgoing edge),
-    # fetching from outgoings from Dynamo. Then turn those into Edge objects,
+    # fetching outgoing edges from Dynamo. Then turn those into Edge objects,
     # while dropping outgoings that don't have a corresponding incoming for
     # whatever reason.
     args = ((primary,

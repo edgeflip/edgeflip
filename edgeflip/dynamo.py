@@ -142,8 +142,8 @@ def epoch_now():
     """return the current UTC time as seconds since the epoch"""
     return time.mktime(time.gmtime())
 
-def remove_none_values(d):
-    """Modify a dict in place by deleting items having None for value"""
+def _remove_none_values(d):
+    """Modify a dict in place by deleting items having None for value. for internal use"""
     for k, v in d.items():
         if v is None:
             del d[k]
@@ -202,7 +202,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     birthday = date_to_epoch(birthday) if birthday is not None else None
 
     data = locals()
-    remove_none_values(data)
+    _remove_none_values(data)
 
     table = get_table('users')
     user = table.get_item(fbid=fbid)
@@ -346,7 +346,7 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     updated = epoch_now()
 
     data = locals()
-    remove_none_values(data)
+    _remove_none_values(data)
 
     # write to both tables
     for t in ('edges_incoming', 'edges_outgoing'):
