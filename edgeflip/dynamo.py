@@ -318,21 +318,23 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     data = locals()
     remove_none_values(data)
 
-    for t in 'edges_incoming', 'edges_outgoing':
+    for t in ('edges_incoming', 'edges_outgoing'):
         table = get_table(t)
         results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
         try:
             edge = results.next()
         except StopIteration:
             # new edge
-            return table.put_item(data)
+            logger.debug("Saving new edge %s -> %s to table %s", fbid_source, fbid_target, t)
+            table.put_item(data)
         else:
             # update existing edge. Don't even touch keys (which are
             # unchanged) because AWS/boto freak out
+            logger.debug("Updating edge %s -> %s in table %s", fbid_source, fbid_target, t)
             for k, v in data.iteritems():
                 if k not in ('fbid_source', 'fbid_target'):
                     edge[k] = v
-            return edge.partial_save()
+            edge.partial_save()
 
 def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges_incoming')
@@ -352,8 +354,8 @@ def fetch_incoming_edges(fbid, newer_than=None):
     """
     table = get_table('edges_incoming')
     if newer_than is None:
-        results = table.query(fbid_target = fbid)
-        imap(_make_edge, results)
+        results = table.query(fbid_target__eq = fbid)
+        return imap(_make_edge, results)
     else:
         keys = table.query(index = 'updated',
                            fbid_target__eq = fbid,
@@ -372,8 +374,8 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     """
     table = get_table('edges_outgoing')
     if newer_than is None:
-        results = table.query(fbid_source = fbid)
-        imap(_make_edge, results)
+        results = table.query(fbid_source__eq = fbid)
+        return imap(_make_edge, results)
     else:
         keys = table.query(index = 'updated',
                            fbid_source__eq = fbid,
