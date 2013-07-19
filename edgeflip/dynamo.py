@@ -18,7 +18,8 @@ import flask
 import pymlconf
 import time
 import datetime
-from itertools import imap
+from itertools import imap, chain
+from more_itertools import chunked
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -201,9 +202,11 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
         # new user
         table.put_item(data)
     else:
-        # update existing user
+        # update existing user. Don't even touch keys (which are unchanged)
+        # because AWS/boto freak out
         for k, v in data.iteritems():
-            user[k] = v
+            if k != 'fbid':
+                user[k] = v
         return user.partial_save()
 
 def fetch_user(fbid):
@@ -223,21 +226,26 @@ def fetch_many_users(fbids):
 
     :arg ids: list of facebook ID's
     """
-    table = get_table('edges')
-    results = table.batch_get([{'fbid': i} for i in fbids])
-    return [_make_user(x) for x in results if x['fbid'] is not None]
+    table = get_table('users')
+    results = chain(table.batch_get([{'fbid': i} for i in c]) for c in chunked(fbids, 100))
+    users = (_make_user(x) for x in results if x['fbid'] is not None)
+    return list(users)
 
 def _make_user(x):
     """make a user from a boto Item. for internal use"""
-    return datastructs.UserInfo(uid=x['fbid'],
-                                first_name=x['fname'],
-                                last_name=x['lname'],
-                                email=x['email'],
-                                sex=x['gender'], # XXX aaah!
-                                birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
-                                city=x['city'],
-                                state=x['state'],
-                                updated=epoch_to_datetime(x['updated']))
+    u = datastructs.UserInfo(uid=x['fbid'],
+                             first_name=x['fname'],
+                             last_name=x['lname'],
+                             email=x['email'],
+                             sex=x['gender'], # XXX aaah!
+                             birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
+                             city=x['city'],
+                             state=x['state'])
+    
+    # just stuff updated on there as an attr b/c we got nowhere else to put
+    # it & we don't want to change fragile constructor above. :-|
+    u.updated = epoch_to_datetime(x['updated'])
+    return u
 
 ##### TOKENS #####
 
@@ -263,9 +271,11 @@ def save_token(fbid, appid, token, expires):
 
 def fetch_token(fbid, appid):
     table = get_table('tokens')
-    x = table.query(fbid__eq=fbid, appid__eq=appid)
-    if x['fbid_appid'] is None: return None
-
+    results = table.query(fbid__eq=fbid, appid__eq=appid)
+    if not results:
+        return None
+    
+    x = results.next()
     return datastructs.TokenInfo(tok = x['token'],
                                  own = x['fbid'],
                                  app = x['appid'],
@@ -311,20 +321,23 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     for t in 'edges_incoming', 'edges_outgoing':
         table = get_table(t)
         results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
-        if results:
-            # update existing edge
-            edge = results[0]            
-            for k, v in data.iteritems():
-                edge[k] = v
-            return edge.partial_save()
-        else:
+        try:
+            edge = results.next()       
+        except StopIteration:
             # new edge
             return table.put_item(data)
-
+        else:
+            # update existing edge. Don't even touch keys (which are
+            # unchanged) because AWS/boto freak out
+            for k, v in data.iteritems():
+                if k not in ('fbid_source', 'fbid_target'):
+                    edge[k] = v
+            return edge.partial_save()
+            
 def fetch_edge(fbid_source, fbid_target):
     table = get_table('edges_incoming')
     results = table.query(fbid_source__eq = s, fbid_target_eq = t)
-    return _make_edge(results[0]) if results else None
+    return _make_edge(results.next()) if results else None
 
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many edges from secondary -> primary
@@ -344,8 +357,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
     else:
         keys = table.query(index = 'updated',
                            fbid_target__eq = fbid,
-                           updated__gt = datetime_to_epoch(newer_than),
-                           attributes_to_get = ['fbid_source', 'fbid_target'])
+                           updated__gt = datetime_to_epoch(newer_than))
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
 
 def fetch_outgoing_edges(fbid, newer_than=None):
@@ -365,8 +377,7 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     else:
         keys = table.query(index = 'updated',
                            fbid_source__eq = fbid,
-                           updated__gt = datetime_to_epoch(newer_than),
-                           attributes_to_get = ['fbid_source', 'fbid_target'])
+                           updated__gt = datetime_to_epoch(newer_than))
         return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
     
 def _make_edge(x):

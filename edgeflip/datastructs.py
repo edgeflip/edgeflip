@@ -64,7 +64,7 @@ class UserInfo(object):
 
     """
 
-    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state, updated):
+    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state):
         self.id = uid
         self.fname = first_name
         self.lname = last_name
@@ -74,7 +74,6 @@ class UserInfo(object):
         self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
         self.city = city
         self.state = state
-        self.updated = updated
     def __str__(self):
         rets = [ str(self.id),
                  unidecodeSafe(self.fname),
