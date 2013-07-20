@@ -11,7 +11,13 @@ tools & classes for data stored in AWS DynamoDB
     Which engine to use. One of 'aws', 'mock'.
 
 The fetch_* methods return iterators yielding objects from `datastructs`.
-They could easily be converted to yield raw boto Items or another object
+They could easily be converted to yield raw boto Items or another object.
+
+This module makes heavy use of iterators and generator comprehensions.
+Results are processed in Python as a stream from AWS. This makes things fast
+and keeps memory usage low. Many functions return generators instead of
+lists. Ideally, you should materialize these (i.e., iterate through/list()) as late
+as possible in your code.
 """
 import logging
 import threading
@@ -268,7 +274,7 @@ tokens_schema = {
 }
 
 def save_token(fbid, appid, token, expires):
-    """save a token to dynamo, overwriting.
+    """save a token to dynamo, overwriting existing.
 
     :arg int fbid: the facebook id
     :arg int appid: the app's id
@@ -294,11 +300,25 @@ def fetch_token(fbid, appid):
     :rtype: `datastructs.TokenInfo` or None if not found
     """
     table = get_table('tokens')
-    results = table.query(fbid__eq=fbid, appid__eq=appid)
-    if not results:
-        return None
+    x = table.get_item(fbid=fbid, appid=appid)
+    if x['fbid'] is None:  return None
+    return _make_token(x)
 
-    x = results.next()
+
+def fetch_many_tokens(ids):
+    """Retrieve many tokens.
+
+    :arg ids: list of (facebook ID, app ID)
+    :rtype: iterator of `datastructs.TokenInfo`
+    """
+    table = get_table('tokens')
+    results = table.batch_get(keys=[{'fbid': i, 'appid': a} for i, a in ids])
+    tokens = (_make_token(x) for x in results if x['fbid'] is not None)
+    return tokens
+
+
+def _make_token(x):
+    """make a `datastructs.TokenInfo` from a boto Item. for internal use"""
     return datastructs.TokenInfo(tok = x['token'],
                                  own = int(x['fbid']),
                                  app = int(x['appid']),
@@ -334,9 +354,20 @@ edges_incoming_schema = {
     ]
 }
 
+def save_edge(fbid_source, fbid_target, **kwargs):
+    """Save an edge to dynamo
 
-def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
-    """save an edge to dynamo
+    :arg int fbid_source: the source's -> facebook id
+    :arg int fbid_target: the -> target's facebook id
+
+    Keyword args int or None, as passed to `save_incoming_edge`
+    """
+    save_incoming_edge(fbid_source, fbid_target, **kwargs)
+    save_outgoing_edge(fbid_source, fbid_target)
+
+
+def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
+    """save an incoming edge and its attributes to dynamo, updating.
 
     :arg int fbid_source: the source's -> facebook id
     :arg int fbid_target: the -> target's facebook id
@@ -344,28 +375,38 @@ def save_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat
     Other args int or None
     """
     updated = epoch_now()
-
     data = locals()
     _remove_none_values(data)
 
-    # write to both tables
-    for t in ('edges_incoming', 'edges_outgoing'):
-        table = get_table(t)
-        results = table.query(fbid_source__eq=fbid_source, fbid_target__eq=fbid_target)
-        try:
-            edge = results.next()
-        except StopIteration:
-            # new edge
-            logger.debug("Saving new edge %s -> %s to table %s", fbid_source, fbid_target, t)
-            table.put_item(data)
-        else:
-            # update existing edge. Don't even touch keys (which are
-            # unchanged) because AWS/boto freak out
-            logger.debug("Updating edge %s -> %s in table %s", fbid_source, fbid_target, t)
-            for k, v in data.iteritems():
-                if k not in ('fbid_source', 'fbid_target'):
-                    edge[k] = v
-            edge.partial_save()
+    t = 'edges_incoming'
+    table = get_table(t)
+    x = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
+    if x['fbid_source'] is None:
+        # new edge
+        logger.debug("Saving new edge %s -> %s to table %s", fbid_source, fbid_target, t)
+        table.put_item(data)
+    else:
+        # update existing edge. Don't even touch keys (which are
+        # unchanged) because AWS/boto freak out
+        logger.debug("Updating edge %s -> %s in table %s", fbid_source, fbid_target, t)
+        for k, v in data.iteritems():
+            if k not in ('fbid_source', 'fbid_target'):
+                edge[k] = v
+        edge.partial_save()
+
+def save_outgoing_edge(fbid_source, fbid_target):
+    """save an outgoing edge to dynamo, overwrites
+
+    :arg int fbid_source: the source's -> facebook id
+    :arg int fbid_target: the -> target's facebook id
+    """
+    updated = epoch_now()
+    data = locals()
+
+    t = 'edges_outgoing'
+    table = get_table(t)
+    logger.debug("Saving edge %s -> %s to table %s", fbid_source, fbid_target, t)
+    table.put_item(data, overwrite=True)
 
 def fetch_edge(fbid_source, fbid_target):
     """retrieve an edge from facebook
@@ -374,15 +415,21 @@ def fetch_edge(fbid_source, fbid_target):
     :arg int fbid_target: the -> target's facebook id
     :rtype: `datastructs.EdgeCount` or None if not found
     """
-    # which table we retrieve off is arbitrary
+    t = 'edges_incoming'
+    table = get_table(t)
+    x = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
+    return _make_edge(x) if x['fbid_source'] is not None else None
+
+def fetch_many_edges(ids):
+    """Retrieve many edges.
+
+    :arg ids: list of (source ID, target ID)
+    :rtype: iterator of `datastructs.EdgeCounts`
+    """
     table = get_table('edges_incoming')
-    results = table.query(fbid_source__eq = fbid_source, fbid_target__eq = fbid_target)
-    try:
-        e = results.next()
-    except StopIteration:
-        return None
-    else:
-        return _make_edge(e)
+    results = table.batch_get(keys=[{'fbid_source': s, 'fbid_target': t} for s, t in ids])
+    edges = (_make_edge(x) for x in results if x['fbid_source'] is not None)
+    return edges
 
 def fetch_all_incoming_edges():
     """Retrieve all incoming edges from dynamo
@@ -392,16 +439,6 @@ def fetch_all_incoming_edges():
     :rtype: iter of `datastructs.EdgeCounts`
     """
     return imap(_make_edge, get_table('edges_incoming').scan())
-
-def fetch_all_outgoing_edges():
-    """Retrieve all outgoing edges from dynamo
-
-    WARNING: this does a full scan and is SLOW & EXPENSIVE
-
-    :rtype: iter of `datastructs.EdgeCounts`
-    """
-    return imap(_make_edge, get_table('edges_outgoing').scan())
-
 
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many incoming edges
@@ -422,7 +459,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
         keys = table.query(index = 'updated',
                            fbid_target__eq = fbid,
                            updated__gt = datetime_to_epoch(newer_than))
-        return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
+        return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 
 def fetch_outgoing_edges(fbid, newer_than=None):
     """Fetch many outgoing edges
@@ -436,13 +473,13 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     """
     table = get_table('edges_outgoing')
     if newer_than is None:
-        results = table.query(fbid_source__eq = fbid)
-        return imap(_make_edge, results)
+        keys = table.query(fbid_source__eq = fbid)
     else:
         keys = table.query(index = 'updated',
                            fbid_source__eq = fbid,
                            updated__gt = datetime_to_epoch(newer_than))
-        return (fetch_edge(k['fbid_source'], k['fbid_target']) for k in keys)
+
+    return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 
 # internal helper to convert from dynamo's decimal
 _int_or_none = lambda x: int(x) if x is not None else None
