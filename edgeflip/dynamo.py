@@ -243,7 +243,10 @@ def fetch_many_users(fbids):
     :rtype: iterator of `datastructs.UserInfo`
     """
     table = get_table('users')
-    results = table.batch_get(keys=[{'fbid': i} for i in fbids])
+    # boto's BatchGetResultSet requires keys to be a list
+    keys = [{'fbid': i} for i in fbids]
+    logger.debug("Retrieving %d users", len(keys))
+    results = table.batch_get(keys=keys)
     users = (_make_user(x) for x in results if x['fbid'] is not None)
     return users
 
@@ -312,7 +315,10 @@ def fetch_many_tokens(ids):
     :rtype: iterator of `datastructs.TokenInfo`
     """
     table = get_table('tokens')
-    results = table.batch_get(keys=[{'fbid': i, 'appid': a} for i, a in ids])
+    # boto's BatchGetResultSet requires a list for keys
+    keys = [{'fbid': i, 'appid': a} for i, a in ids]
+    logger.debug('Retrieving %d tokens', len(keys))
+    results = table.batch_get(keys=keys)
     tokens = (_make_token(x) for x in results if x['fbid'] is not None)
     return tokens
 
@@ -427,7 +433,10 @@ def fetch_many_edges(ids):
     :rtype: iterator of `datastructs.EdgeCounts`
     """
     table = get_table('edges_incoming')
-    results = table.batch_get(keys=[{'fbid_source': s, 'fbid_target': t} for s, t in ids])
+    # Boto's BatchGetResultSet requires a list for keys
+    keys = [{'fbid_source': s, 'fbid_target': t} for s, t in ids]
+    logger.debug('Retrieving %d edges', len(keys))
+    results = table.batch_get(keys=keys)
     edges = (_make_edge(x) for x in results if x['fbid_source'] is not None)
     return edges
 
