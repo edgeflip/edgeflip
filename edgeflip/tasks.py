@@ -187,7 +187,6 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
     fbmodule = mock_facebook if mockMode else facebook
-    1/0
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
         newerThan = time.time() - config.freshness * 24 * 60 * 60
