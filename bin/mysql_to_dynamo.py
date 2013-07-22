@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from more_itertools import chunked
-
 from edgeflip import database, dynamo
 
 
