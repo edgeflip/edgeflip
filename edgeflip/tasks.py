@@ -187,12 +187,11 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                 fbid,
                 campaignId
             )
+            # zzz ideally, want this to be the full URL with
+            #     flask.url_for(), but complicated with Celery...
             thisContent = '%s:button %s' % (
                 paramsDB[0],
-                flask.url_for(
-                    'frame_faces', campaignId=campaignId,
-                    contentId=contentId, _external=True
-                )
+                '/frame_faces/%s/%s' % (campaignId, contentId)
             )
             database.writeEventsDb(
                 sessionId, campaignId, contentId, ip, fbid, [None],
@@ -231,7 +230,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
         # dirty, I know, but the easiest way to ensure the cascaded
         # list gets passed back to the front-end
-        bestCSFilter[1] = alreadyPicked
+        bestCSFilter = (bestCSFilter[0], alreadyPicked)
 
         # Can't pickle lambdas and we don't need them anymore anyway
         bestCSFilter[0].str_func = None

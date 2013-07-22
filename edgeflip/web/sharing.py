@@ -265,8 +265,8 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
             [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
             background=config.database.use_threads
         )
-        fbObjectTable = 'campaign_fb_objects'
-        fbObjectIdx = 'campaign_fb_object_id'
+        fbObjectTable = 'campaign_generic_fb_objects'
+        fbObjectIdx = 'campaign_generic_fb_object_id'
     else:
         cdb.dbWriteAssignment(
             sessionId, campaignId, contentId, 'filter_id',
