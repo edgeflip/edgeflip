@@ -173,7 +173,7 @@ def faces():
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
-            px4_edges = px4_result.result if px4_result.ready() else []
+            px4_edges = px4_result.result if px4_result.successful() else []
             edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
             if not all([edgesRanked, bestCSFilter, choiceSet]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
