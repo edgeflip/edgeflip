@@ -449,7 +449,7 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
     return url
 
 
-def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
+def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=False, minFriends=1, metadata=None):
     """Create a new campaign associated with the given client.
 
     facesURL must be provided and specifies the page on the client's servers
@@ -473,13 +473,13 @@ def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, f
     except IntegrityError as e:
         return {'error': str(e)}
 
-    updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent)
+    updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent, fallbackCascading, minFriends)
     updateMetadata('campaign_meta', 'campaign_meta_id', 'campaign_id', campaignId, metadata, replaceAll=True)
 
     return {'campaign_id': campaignId}
 
 
-def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None):
+def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=False, minFriends=1):
     """Update the properties associated with a given campaign."""
     if (not facesURL or not thanksURL or not errorURL):
         raise ValueError("Must specify URLs for the faces, thank you, and error pages")
@@ -490,7 +490,9 @@ def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallback
         'client_thanks_url': thanksURL,
         'client_error_url': errorURL,
         'fallback_campaign_id': fallbackCampaign,
-        'fallback_content_id': fallbackContent
+        'fallback_content_id': fallbackContent,
+        'fallback_is_cascading': fallbackCascading,
+        'min_friends': minFriends
     }
 
     dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
