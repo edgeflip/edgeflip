@@ -162,7 +162,7 @@ def client_db_reset():
         client_error_url VARCHAR(2096),
         fallback_campaign_id INT,
         fallback_content_id INT,
-        fallback_is_cascading BOOLEAN NOT NULL DEFAULT False,
+        fallback_is_cascading BOOLEAN,
         min_friends INT NOT NULL DEFAULT 1,
         start_dt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         end_dt TIMESTAMP NULL DEFAULT NULL,

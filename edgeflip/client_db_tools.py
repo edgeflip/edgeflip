@@ -449,7 +449,7 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
     return url
 
 
-def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=False, minFriends=1, metadata=None):
+def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=None, minFriends=1, metadata=None):
     """Create a new campaign associated with the given client.
 
     facesURL must be provided and specifies the page on the client's servers
@@ -479,10 +479,13 @@ def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, f
     return {'campaign_id': campaignId}
 
 
-def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=False, minFriends=1):
+def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=None, minFriends=1):
     """Update the properties associated with a given campaign."""
     if (not facesURL or not thanksURL or not errorURL):
         raise ValueError("Must specify URLs for the faces, thank you, and error pages")
+
+    if (fallbackCascading is None) and (fallbackCampaign is not None):
+        fallbackCascading = False
 
     row = {
         'campaign_id': campaignId,

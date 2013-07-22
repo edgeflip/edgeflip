@@ -61,16 +61,44 @@ def px3_crawl(mockMode, fbid, token):
 @celery.task
 def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                       sessionId, ip, fbid, numFace, paramsDB,
-                      fallbackCount=0):
+                      fallbackCount=0, alreadyPicked=None):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
     '''
 
+    alreadyPicked = alreadyPicked if alreadyPicked else []
+
     if (fallbackCount > MAX_FALLBACK_COUNT):
+        # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
+
+    # Get fallback & threshold info about this campaign from the DB
+    cmpgPropsId, fallbackCampaignId, fallbackContentId, fallbackCascading, minFriends = cdb.dbGetObjectAttributes(
+        'campaign_properties',
+        ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id',
+         'fallback_is_cascading', 'min_friends'],
+        'campaign_id',
+        campaignId
+    )[0]
+
+    if fallbackCascading and (fallbackCampaignId is None):
+        logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.", campaignId)
+        fallbackCascading = None
+
+    # if fallback content_id IS NULL, defer to current content_id
+    if (fallbackContentId is None) and (fallbackCampaignId is not None):
+        fallbackContentId = contentId
+
+    # For a cascading fallback, take any friends at all for
+    # the current campaign to append to the list. Otherwise,
+    # use the minFriends parameter as the threshold for errors.
+    minFriends = 1 if fallbackCascading else minFriends
 
     # Check if any friends should be excluded for this campaign/content combination
     excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
+    excludeFriends = excludeFriends.union(
+        [e.secondary.id for e in alreadyPicked]
+    )    # avoid re-adding if already picked
     edgesEligible = [
         e for e in edgesRanked if e.secondary.id not in excludeFriends
     ]
@@ -111,24 +139,47 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     try:
         bestCSFilter = choiceSet.chooseBestFilter(
             filteredEdges, useGeneric=allowGeneric[0],
-            minFriends=1, eligibleProportion=1.0
+            minFriends=minFriends, eligibleProportion=1.0
         )
+        alreadyPicked.extend(bestCSFilter[1])
     except cdb.TooFewFriendsError as e:
         logger.info(
             "Too few friends found for %s with campaign %s. Checking for fallback.",
             fbid,
             campaignId
         )
+        pass
 
-        # Get fallback campaign_id and content_id from DB
-        cmpgPropsId, fallbackCampaignId, fallbackContentId = cdb.dbGetObjectAttributes(
-            'campaign_properties',
-            ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id'],
-            'campaign_id',
-            campaignId
-        )[0]
+    slotsLeft = numFace - len(alreadyPicked)
+
+    if slotsLeft > 0 and fallbackCascading:
+        # We still have slots to fill and can fallback to do so
+
+        # write "fallback" assignments to DB
+        cdb.dbWriteAssignment(
+            sessionId, campaignId, contentId, 'cascading fallback campaign',
+            fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId],
+            background=config.database.use_threads
+        )
+        cdb.dbWriteAssignment(
+            sessionId, campaignId, contentId, 'cascading fallback content',
+            fallbackContentId, False, 'campaign_properties', [cmpgPropsId],
+            background=config.database.use_threads
+        )
+
+        # Recursive call with new fallbackCampaignId & fallbackContentId,
+        # incrementing fallbackCount
+        return perform_filtering(
+            edgesRanked, clientSubdomain, fallbackCampaignId,
+            fallbackContentId, sessionId, ip, fbid, numFace,
+            paramsDB, fallbackCount + 1, alreadyPicked
+        )
+
+    elif len(alreadyPicked) < minFriends:
+        # We haven't found enough friends to satisfy the campaign's
+        # requirement, so need to fallback
+
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
-
         if (fallbackCampaignId is None):
             # zzz Obviously, do something smarter here...
             logger.info(
@@ -148,11 +199,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                 'no_friends_error', int(paramsDB[1]), thisContent, None,
                 background=config.database.use_threads
             )
-            return (None, None, None, None)
-
-        # if fallback content_id IS NULL, defer to current content_id
-        if (fallbackContentId is None):
-            fallbackContentId = contentId
+            return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
         cdb.dbWriteAssignment(
@@ -166,21 +213,33 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             background=config.database.use_threads
         )
 
+        # If we're not cascading, no one is already picked.
+        # If we're here, should probably always be the case that
+        # fallbackCascading is False, but do the check to be safe...
+        alreadyPicked = alreadyPicked if fallbackCascading else []
+
         # Recursive call with new fallbackCampaignId & fallbackContentId,
         # incrementing fallbackCount
         return perform_filtering(
             edgesRanked, clientSubdomain, fallbackCampaignId,
             fallbackContentId, sessionId, ip, fbid, numFace,
-            paramsDB, fallbackCount + 1
+            paramsDB, fallbackCount + 1, alreadyPicked
         )
 
-    # Can't pickle lambdas and we don't need them anymore anyways
-    bestCSFilter[0].str_func = None
-    choiceSet.sortFunc = None
-    return (
-        edgesRanked, bestCSFilter, choiceSet,
-        allowGeneric, campaignId, contentId
-    )
+    else:
+        # We're done cascading and have enough friends, so time to return!
+
+        # dirty, I know, but the easiest way to ensure the cascaded
+        # list gets passed back to the front-end
+        bestCSFilter[1] = alreadyPicked
+
+        # Can't pickle lambdas and we don't need them anymore anyway
+        bestCSFilter[0].str_func = None
+        choiceSet.sortFunc = None
+        return (
+            edgesRanked, bestCSFilter, choiceSet,
+            allowGeneric, campaignId, contentId
+        )
 
 
 @celery.task(default_retry_delay=1, max_retries=3)
