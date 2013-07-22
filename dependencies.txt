@@ -5,4 +5,4 @@ virtualenvwrapper
 graphviz
 mysql-server
 rabbitmq-server
-libssl-dev
+libmemcached-dev

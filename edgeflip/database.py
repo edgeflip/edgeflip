@@ -48,7 +48,9 @@ def getConn():
             # $DIETY knows where. Here, have a connection:
             logger.debug("You made a database connection from random thread %d, and should feel bad about it.", threading.current_thread().ident)
             try:
-                return _non_flask_threadlocal.conn
+                conn = _non_flask_threadlocal.conn
+                if not conn.open:
+                    conn = _non_flask_threadlocal.conn = _make_connection()
             except AttributeError:
                 conn = _non_flask_threadlocal.conn = _make_connection()
     except AttributeError:
@@ -349,7 +351,8 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
-def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
+def getFriendEdgesDb(primId, requireIncoming=False,
+        requireOutgoing=False, newerThan=0):
     """return list of datastructs.Edge objects for primaryId user
 
     """
@@ -374,6 +377,8 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
     sql = sqlSelect + \
         " ON e.fbid_source = u.fbid" + \
         " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
+    if requireIncoming:
+        sql = sql + " AND e.post_likes IS NOT NULL"
     params = (newerThan, primId)
     secId_edgeCountsIn = {}
     secId_userInfo = {}
@@ -399,6 +404,8 @@ def getFriendEdgesDb(primId, requireOutgoing=False, newerThan=0):
         sql = sqlSelect + \
             " ON e.fbid_target = u.fbid" + \
             " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
+        if requireIncoming:
+            sql = sql + " AND e.post_likes IS NOT NULL"
         params = (newerThan, primId)
         curs.execute(sql, params)
         for rec in curs: # here, primary is the source, secondary is target

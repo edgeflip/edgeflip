@@ -35,14 +35,14 @@ Conventions
 -----------
 By convention, each module should get its own config section. Try to avoid cluttering up the top level config namespace. So do this (in `60-crawler.conf`)::
 
-    --- 
+    ---
     crawler:
         retries: 42
         proxy: http://example.com
 
 instead of::
 
-    --- 
+    ---
     crawler_retries: 42
     crawler_proxy: http://example.com
 
@@ -51,8 +51,9 @@ Each module should document what options it takes, and provide defaults in this 
 import logging.config
 import os.path
 import pymlconf
+import sh
 
-# base configuration - source tree only 
+# base configuration - source tree only
 DEFAULT_CONF_DIR = os.path.join(os.path.dirname(__file__), 'conf.d')
 
 # system install location
@@ -67,10 +68,17 @@ config = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=F
 # load environment
 config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 
+try:
+    config.app_version = sh.git.describe().strip()
+except:
+    # This exception comes when celery starts up outside of the app's repo.
+    # Catching that exception and setting a dummy value. Celery doesn't need
+    # to know the version number
+    config.app_version = '0.1'
+
 # set up singletons
 
 logging.config.dictConfig(config.logging)
 logger = logging.getLogger(__name__)
 
 logger.info("Configured with %r", config.list_dirs())
-
