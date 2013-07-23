@@ -399,8 +399,8 @@ def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_li
         logger.debug("Updating edge %s -> %s in table %s", fbid_source, fbid_target, t)
         for k, v in data.iteritems():
             if k not in ('fbid_source', 'fbid_target'):
-                edge[k] = v
-        edge.partial_save()
+                x[k] = v
+        x.partial_save()
 
 def save_outgoing_edge(fbid_source, fbid_target):
     """save an outgoing edge to dynamo, overwrites

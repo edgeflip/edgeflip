@@ -2,7 +2,8 @@ from edgeflip.tests import EdgeFlipTestCase
 from edgeflip import (
     client_db_tools as cdb,
     datastructs,
-    tasks
+    tasks,
+    dynamo
 )
 from edgeflip.celery import celery
 
@@ -71,7 +72,5 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        curs = self.conn.cursor()
-        sql = 'SELECT * FROM edges WHERE fbid_target=%s'
-        row_count = curs.execute(sql, 1)
-        assert row_count
+        edges = list(dynamo.fetch_all_incoming_edges())
+        assert edges
