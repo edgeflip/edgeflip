@@ -495,7 +495,7 @@ def recordEvent():
                 # zzz feels hokey since updateTokensDb() needs as cursor object,
                 #     but I also don't want to do an updateDb() call since I don't
                 #     have real user info or edges...
-                database.updateTokensDb(curs, [user], token)
+                database.updateTokensDb(token)
                 conn.commit
             except:
                 conn.rollback()
