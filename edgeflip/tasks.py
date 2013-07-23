@@ -66,7 +66,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     in the past.
     '''
 
-    alreadyPicked = alreadyPicked if alreadyPicked else []
+    alreadyPicked = alreadyPicked if alreadyPicked else cdb.TieredEdges(tier_type='campaignId')
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
@@ -96,9 +96,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
     # Check if any friends should be excluded for this campaign/content combination
     excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
-    excludeFriends = excludeFriends.union(
-        [e.secondary.id for e in alreadyPicked]
-    )    # avoid re-adding if already picked
+    excludeFriends = excludeFriends.union(alreadyPicked.secondaryIds())    # avoid re-adding if already picked
     edgesEligible = [
         e for e in edgesRanked if e.secondary.id not in excludeFriends
     ]
@@ -136,12 +134,13 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
     # pick best choice set filter (and write DB)
     choiceSet = cdb.getChoiceSet(choiceSetId)
+    bestCSFilter = None
     try:
         bestCSFilter = choiceSet.chooseBestFilter(
             filteredEdges, useGeneric=allowGeneric[0],
             minFriends=minFriends, eligibleProportion=1.0
         )
-        alreadyPicked.extend(bestCSFilter[1])
+        alreadyPicked.appendTier(campaignId, bestCSFilter[1])
     except cdb.TooFewFriendsError as e:
         logger.info(
             "Too few friends found for %s with campaign %s. Checking for fallback.",
@@ -149,6 +148,27 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             campaignId
         )
         pass
+
+    if bestCSFilter:
+        if (bestCSFilter[0] is None):
+            # We got generic...
+            logger.debug("Generic returned for %s with campaign %s." % (
+                fbid, campaignId
+            ))
+            cdb.dbWriteAssignment(
+                sessionId, campaignId, contentId,
+                'generic choice set filter', None, False,
+                'choice_set_filters',
+                [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
+                background=config.database.use_threads
+            )
+        else:
+            cdb.dbWriteAssignment(
+                sessionId, campaignId, contentId, 'filter_id',
+                bestCSFilter[0].filterId, False, 'choice_set_filters',
+                [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
+                background=config.database.use_threads
+            )
 
     slotsLeft = numFace - len(alreadyPicked)
 
@@ -215,7 +235,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # If we're not cascading, no one is already picked.
         # If we're here, should probably always be the case that
         # fallbackCascading is False, but do the check to be safe...
-        alreadyPicked = alreadyPicked if fallbackCascading else []
+        alreadyPicked = alreadyPicked if fallbackCascading else None
 
         # Recursive call with new fallbackCampaignId & fallbackContentId,
         # incrementing fallbackCount
@@ -228,16 +248,12 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     else:
         # We're done cascading and have enough friends, so time to return!
 
-        # dirty, I know, but the easiest way to ensure the cascaded
-        # list gets passed back to the front-end
-        bestCSFilter = (bestCSFilter[0], alreadyPicked)
+        choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
-        # Can't pickle lambdas and we don't need them anymore anyway
-        bestCSFilter[0].str_func = None
-        choiceSet.sortFunc = None
         return (
-            edgesRanked, bestCSFilter, choiceSet,
-            allowGeneric, campaignId, contentId
+            edgesRanked, alreadyPicked,
+            bestCSFilter[0].filterId, choiceSetSlug,
+            campaignId, contentId
         )
 
 

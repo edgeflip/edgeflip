@@ -1143,6 +1143,70 @@ class ChoiceSet(object):
         return sortedFilters[0]
 
 
+class TieredEdges(object):
+    """Quick little class to hold tuples of edges in different tiers
+    and return useful things like a list of secondary Id's as well
+    as the ability to re-rank the edges within the tiers"""
+
+    def __init__(self, tier_type, tier_id=None, edges=None):
+        """Initialize the object with the top tier"""
+        self.tier_type = tier_type
+        self.tiers = []
+        if tier_id:
+            tup = (tier_id, edges)
+            self.tiers.append(tup)
+
+    def __len__(self):
+        return len([e for t, l in self.tiers for e in l])
+
+    def appendTier(self, tier_id, edges):
+        """Append a new tier to the end"""
+        tup = (tier_id, edges)
+        self.tiers.append(tup)
+        return None
+
+    def edges(self):
+        return [e for t, l in self.tiers for e in l]
+
+    def secondaries(self):
+        return [e.secondary for t, l in self.tiers for e in l]
+
+    def secondaryIds(self):
+        return [e.secondary.id for t, l in self.tiers for e in l]
+
+    def rerankEdges(self, new_edge_ranking):
+        """Re-ranks the edges within the tiers. For instance, if
+        the tiers were generated using px3 scores but px4 has now
+        become available, we can maintain the tiers while providing
+        a better order within them."""
+        new_tiers = []
+
+        for tier_id, edge_list in self.tiers:
+            tier_edge_ids = set([e.secondary.id for e in edge_list])
+            new_order = []
+
+            for e in new_edge_ranking:
+                if e.secondary.id in tier_edge_ids:
+                    new_order.append(e)
+                    tier_edge_ids.remove(e.secondary.id)
+
+            if tier_edge_ids:
+                # the new ranking was missing some edges. Note it in
+                # the logs, then iterate through the original order and
+                # append the remaining edges to the end of the list
+                logger.info("Edges missing from new edge rankings!")
+                for e in edge_list:
+                    if e.secondary.id in tier_edge_ids:
+                        new_order.append(e)
+                        tier_edge_ids.remove(e.secondary.id)
+
+            tup = (tier_id, new_order)
+            new_tiers.append(tup)
+
+        self.tiers = new_tiers
+        return None
+
+
 class TooFewFriendsError(Exception):
     """Too few friends found in picking best choice set filter"""
     pass
