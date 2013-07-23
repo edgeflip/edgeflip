@@ -6,8 +6,20 @@ from edgeflip import (
 )
 from edgeflip.celery import celery
 
+import datetime
+from freezegun import freeze_time
 
+@freeze_time('2013-01-01')
 class TestCeleryTasks(EdgeFlipTestCase):
+
+    def _token(self):
+        '''helper to return a token'''
+        return datastructs.TokenInfo(tok='1',
+                                     own=1,
+                                     app=1,
+                                     exp=datetime.datetime.now() +
+                                     datetime.timedelta(days=365))
+
 
     def test_proximity_rank_three(self):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
@@ -15,7 +27,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        token = datastructs.TokenInfo('1', '1', '1', '1')
+        token = self._token()
         task_id = tasks.proximity_rank_three(True, 1, token)
         assert task_id
         assert celery.AsyncResult(task_id)
@@ -28,13 +40,13 @@ class TestCeleryTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        token = datastructs.TokenInfo('1', '1', '1', '1')
+        token = self._token()
         ranked_edges = tasks.px3_crawl(True, 1, token)
         assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
-        token = datastructs.TokenInfo('1', '1', '1', '1')
+        token = self._token()
         ranked_edges = tasks.px3_crawl(True, 1, token)
         edges, cs_filter, cs, generic, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
@@ -53,7 +65,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         self.assertEqual(generic, [1, 'all'])
 
     def test_proximity_rank_four(self):
-        token = datastructs.TokenInfo('1', '1', '1', '1')
+        token = self._token()
         ranked_edges = tasks.proximity_rank_four(True, 1, token)
         assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))

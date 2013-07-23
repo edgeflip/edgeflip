@@ -245,6 +245,7 @@ def fetch_many_users(fbids):
     table = get_table('users')
     # boto's BatchGetResultSet requires keys to be a list
     keys = [{'fbid': i} for i in fbids]
+    if not keys: return ()
     logger.debug("Retrieving %d users", len(keys))
     results = table.batch_get(keys=keys)
     users = (_make_user(x) for x in results if x['fbid'] is not None)
@@ -317,6 +318,7 @@ def fetch_many_tokens(ids):
     table = get_table('tokens')
     # boto's BatchGetResultSet requires a list for keys
     keys = [{'fbid': i, 'appid': a} for i, a in ids]
+    if not keys: return ()
     logger.debug('Retrieving %d tokens', len(keys))
     results = table.batch_get(keys=keys)
     tokens = (_make_token(x) for x in results if x['fbid'] is not None)
@@ -435,6 +437,7 @@ def fetch_many_edges(ids):
     table = get_table('edges_incoming')
     # Boto's BatchGetResultSet requires a list for keys
     keys = [{'fbid_source': s, 'fbid_target': t} for s, t in ids]
+    if not keys: return ()
     logger.debug('Retrieving %d edges', len(keys))
     results = table.batch_get(keys=keys)
     edges = (_make_edge(x) for x in results if x['fbid_source'] is not None)

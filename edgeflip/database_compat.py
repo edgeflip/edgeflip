@@ -94,7 +94,7 @@ def updateFriendEdgesDb(edges):
             photos_other=c.photoOther,
             mut_friends=c.mutuals)
 
-def getFriendEdgesDb(primId, requireOutgoing=False, maxAge=None):
+def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAge=None):
     """return list of datastructs.Edge objects for primaryId user
 
     """
@@ -108,8 +108,14 @@ def getFriendEdgesDb(primId, requireOutgoing=False, maxAge=None):
 
     # build dict of secondary id -> EdgeCounts
     # XXX this is the ugliest variable name I have ever written in my life.
-    secondary_EdgeCounts_in = {e.targetId : e for e in
-                               dynamo.fetch_incoming_edges(primId, newer_than_date)}
+    if requireIncoming:
+        secondary_EdgeCounts_in = {e.targetId : e for e in
+                                   dynamo.fetch_incoming_edges(primId, newer_than_date)
+                                   if e.post_likes is not None}
+
+    else:
+        secondary_EdgeCounts_in = {e.targetId : e for e in
+                                   dynamo.fetch_incoming_edges(primId, newer_than_date)}
 
 
 

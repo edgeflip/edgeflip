@@ -7,7 +7,7 @@ from celery.utils.log import get_task_logger
 
 from edgeflip import (
     client_db_tools as cdb,
-    database,
+    database_compat as database,
     facebook,
     mock_facebook,
     ranking,
