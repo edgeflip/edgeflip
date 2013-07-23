@@ -36,7 +36,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ''' Runs the filtering celery task '''
         token = datastructs.TokenInfo('1', '1', '1', '1')
         ranked_edges = tasks.px3_crawl(True, 1, token)
-        edges, cs_filter, cs, generic, campaign_id, content_id = tasks.perform_filtering(
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
             'local',
             1,
@@ -47,10 +47,11 @@ class TestCeleryTasks(EdgeFlipTestCase):
             10,
             ('sharing-social-good', '471727162864364')
         )
-        assert all((isinstance(x, datastructs.Edge) for x in edges))
-        assert isinstance(cs_filter[0], cdb.ChoiceSetFilter)
-        assert isinstance(cs, cdb.ChoiceSet)
-        self.assertEqual(generic, [1, 'all'])
+        assert all((isinstance(x, datastructs.Edge) for x in edges_ranked))
+        assert isinstance(edges_filtered, cdb.TieredEdges)
+        assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
+        assert isinstance(filter_id, int)
+        assert (cs_slug is None) or (isinstance(cs_slug, str))
 
     def test_proximity_rank_four(self):
         token = datastructs.TokenInfo('1', '1', '1', '1')

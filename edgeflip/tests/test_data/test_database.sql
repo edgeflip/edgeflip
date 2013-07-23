@@ -451,6 +451,8 @@ CREATE TABLE `campaign_properties` (
   `client_error_url` varchar(2096) DEFAULT NULL,
   `fallback_campaign_id` int(11) DEFAULT NULL,
   `fallback_content_id` int(11) DEFAULT NULL,
+  `fallback_is_cascading` boolean DEFAULT NULL,
+  `min_friends` int(11) NOT NULL DEFAULT 1,
   `start_dt` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `end_dt` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`campaign_property_id`),
@@ -465,7 +467,7 @@ CREATE TABLE `campaign_properties` (
 
 LOCK TABLES `campaign_properties` WRITE;
 /*!40000 ALTER TABLE `campaign_properties` DISABLE KEYS */;
-INSERT INTO `campaign_properties` VALUES (1,1,'http://mockclient.edgeflip.com:5000/guncontrol_share','https://donate.demandaction.org/act/donate','https://donate.demandaction.org/act/donate',NULL,NULL,'2013-06-28 17:28:36',NULL),(2,2,'http://mockclient.edgeflip.com:5000/immigration_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,'2013-06-28 17:28:36',NULL),(3,3,'http://mockclient.edgeflip.com:5000/ofa_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,'2013-06-28 17:28:36',NULL);
+INSERT INTO `campaign_properties` VALUES (1,1,'http://mockclient.edgeflip.com:5000/guncontrol_share','https://donate.demandaction.org/act/donate','https://donate.demandaction.org/act/donate',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(2,2,'http://mockclient.edgeflip.com:5000/immigration_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(3,3,'http://mockclient.edgeflip.com:5000/ofa_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaign_properties` ENABLE KEYS */;
 UNLOCK TABLES;
 

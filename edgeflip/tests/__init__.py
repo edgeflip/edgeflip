@@ -34,7 +34,9 @@ def setUp(self):
         shell=True, stderr=PIPE, stdout=PIPE
     )
     # Now let's create the database
-    call('/usr/bin/mysql < edgeflip/tests/test_data/initial_test.sql', shell=True)
+    call('/usr/bin/mysql < %s/test_data/initial_test.sql' % (
+        FILE_ROOT
+    ), shell=True)
     call('/usr/bin/mysql edgeflip_test < %s/test_data/test_database.sql' % (
         FILE_ROOT
     ), shell=True)
