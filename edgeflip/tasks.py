@@ -249,10 +249,11 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # We're done cascading and have enough friends, so time to return!
 
         choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
+        bestCSFilterId = bestCSFilter[0].filterId if bestCSFilter[0] else None
 
         return (
             edgesRanked, alreadyPicked,
-            bestCSFilter[0].filterId, choiceSetSlug,
+            bestCSFilterId, choiceSetSlug,
             campaignId, contentId
         )
 
