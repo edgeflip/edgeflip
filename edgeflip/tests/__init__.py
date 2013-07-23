@@ -81,8 +81,10 @@ class EdgeFlipTestCase(unittest.TestCase):
         # Database Adjustments
         self.orig_dbname = config.dbname
         self.orig_dbuser = config.dbuser
+        self.orig_dbthreads = config.database.use_threads
         config.dbname = 'edgeflip_test'
         config.dbuser = 'edgeflip_test'
+        config.database.use_threads = False
 
         # Prevent commits to the database
         self.conn = database.getConn()
@@ -109,6 +111,7 @@ class EdgeFlipTestCase(unittest.TestCase):
         celery.conf['CELERY_ALWAYS_EAGER'] = self.orig_eager
         config.dbname = self.orig_dbname
         config.dbuser = self.orig_dbuser
+        config.database.use_threads = self.orig_dbthreads
 
         # Undo APP settings
         APP.config['TESTING'] = False

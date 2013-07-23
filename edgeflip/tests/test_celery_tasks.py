@@ -51,7 +51,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert isinstance(edges_filtered, cdb.TieredEdges)
         assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
         assert isinstance(filter_id, int)
-        assert (cs_slug is None) or (isinstance(cs_slug, str))
+        assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
         token = datastructs.TokenInfo('1', '1', '1', '1')
