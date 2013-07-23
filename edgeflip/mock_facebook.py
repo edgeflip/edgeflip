@@ -27,16 +27,16 @@ These will work for state-based filtes; not great for ethnicity-based.
 FIRST_NAMES = ['Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie', 'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa']
 LAST_NAMES = ['Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe']
 CITY_NAMES = ['Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City']
-STATE_NAMES = ['Alabama', 'Alaska', 'American Samoa', 'Arizona', 'Arkansas', 
-    'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia', 
-    'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 
-    'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 
-    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'National', 
-    'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 
-    'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio', 
-    'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island', 
-    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 
-    'Virgin Islands', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 
+STATE_NAMES = ['Alabama', 'Alaska', 'American Samoa', 'Arizona', 'Arkansas',
+    'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia',
+    'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana',
+    'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'National',
+    'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+    'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio',
+    'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island',
+    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+    'Virgin Islands', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin',
     'Wyoming']
 
 
@@ -86,7 +86,7 @@ def dateFromFb(dateStr):
     """we would like this to die"""
     if (dateStr):
         dateElts = dateStr.split('/')
-        if (len(dateElts) == 3): 
+        if (len(dateElts) == 3):
             m, d, y = dateElts
             return datetime.date(int(y), int(m), int(d))
     return None
@@ -95,9 +95,9 @@ def dateFromFb(dateStr):
 def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
+    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=%s' % token.tok
     url += '&client_id=' + str(appid) + '&client_secret=' + config.facebook.secrets[appid]
-    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens, 
+    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
     ts = time.time()
 
@@ -165,13 +165,17 @@ def getFriendsFb(userId, token):
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
 
     queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token    
+    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=%s' % token
 
 
     # zzz Should this also wait for a couple of seconds to mock out
     #     tying up the thread while we wait for a resonse from the
     #     Facebook API??
-    time.sleep(random.random()*4+0.5)
+    # TODO: Stop using this mock_facebook lib for unit tests, and instead
+    # use the Mock lib. Then we can drop this config.unit_testing check, and
+    # stick with using this library for its other real purposes.
+    if not config.unit_testing:
+        time.sleep(random.random()*4+0.5)
 
     # generate fake id's for between 1 and 1,000 fake friends
     # note - adding 100000000000 because this appears to fall into a gap in read fbid's
@@ -180,7 +184,7 @@ def getFriendsFb(userId, token):
     fakeFriendIds = list(fakeFriendIds)
     numFakeFriends = len(fakeFriendIds)
 
-    responseJson = { 'data' : 
+    responseJson = { 'data' :
       [
         {
             'name' : 'primPhotoTags',
@@ -193,7 +197,7 @@ def getFriendsFb(userId, token):
         {
             'name' : 'friendInfo',
             'fql_result_set' : [fakeUserInfo(fbid, friend=True, numFriends=numFakeFriends) for fbid in fakeFriendIds]
-        } 
+        }
       ]
     }
 
@@ -237,7 +241,7 @@ def getUserFb(userId, token):
 
     """
     fql = FQL_USER_INFO % (userId)
-    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token    
+    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=%s' % token
 
     # mock response from FB API
     responseJson = {'data' : [fakeUserInfo(userId)] }
@@ -254,16 +258,16 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     makes multiple calls to FB! separate calcs & FB calls
     """
-    if (requireIncoming or requireOutgoing):
+    if requireOutgoing:
         raise NotImplementedError("Stream reading not available for mock facebook module")
 
     skipFriends = skipFriends if skipFriends is not None else set()
-    
+
     logger.debug("mocking getting friend edges from FB for %d", userId)
     tim = datastructs.Timer()
     friends = getFriendsFb(userId, tok)
     logger.debug("mocked getting %d friends total", len(friends))
-    
+
     friendQueue = [f for f in friends if f.id not in skipFriends]
     friendQueue.sort(key=lambda x: x.mutuals, reverse=True)
 
@@ -275,16 +279,31 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
 
-        ecIn = datastructs.EdgeCounts(friend.id,
-              user.id,
-              photoTarg=friend.primPhotoTags,
-              photoOth=friend.otherPhotoTags,
-              muts=friend.mutuals)
+        kwargs = {}
+        if requireIncoming:
+            kwargs = {
+                'postLikes': random.randint(0, 50),
+                'postComms': random.randint(0, 50),
+                'statLikes': random.randint(0, 50),
+                'statComms': random.randint(0, 50),
+                'wallPosts': random.randint(0, 50),
+                'wallComms': random.randint(0, 50),
+                'tags': random.randint(0, 50),
+            }
+
+        ecIn = datastructs.EdgeCounts(
+            friend.id,
+            user.id,
+            photoTarg=friend.primPhotoTags,
+            photoOth=friend.otherPhotoTags,
+            muts=friend.mutuals,
+            **kwargs
+        )
         e = datastructs.Edge(user, friend, ecIn, None)
 
         edges.append(e)
         logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method... 
+        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
                                          #     not important enough to fix for mayors, but maybe should one day?
 
     logger.debug("mocked getting %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())

@@ -72,7 +72,7 @@ def prox(e, eMax):
 
     e: a single datastructs.Edge
     eMax: EdgeAggregator
-    rtype: score, float 
+    rtype: score, float
 
     """
     countMaxWeightTups = []
@@ -116,7 +116,11 @@ def prox(e, eMax):
         if (countMax):
             pxTotal += float(count)/countMax*weight
             weightTotal += weight
-    return pxTotal / weightTotal                
+    try:
+        return pxTotal / weightTotal
+    except ZeroDivisionError:
+        return 0
+
 
 def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
     """returns sorted list of edges by score
@@ -141,7 +145,7 @@ def getFriendRankingDb(userId, requireOutgoing=True):
 
     # zzz Doesn't this function need a requireIncoming parameter to
     #     pass along to getFriendRanking?
-    edgesDb = database.getFriendEdgesDb(userId, requireOutgoing)
+    edgesDb = database.getFriendEdgesDb(userId, requireOutgoing=requireOutgoing)
     return getFriendRanking(edgesDb, requireOutgoing=requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):

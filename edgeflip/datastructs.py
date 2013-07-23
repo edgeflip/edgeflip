@@ -1,8 +1,8 @@
 #!/usr/bin/python
-import sys
 import time
 import datetime
 from unidecode import unidecode
+
 
 class Timer(object):
     """used for inline profiling & debugging
@@ -12,19 +12,22 @@ class Timer(object):
     """
     def __init__(self):
         self.start = time.time()
+
     def reset(self):
         self.start = time.time()
+
     def elapsedSecs(self):
         return time.time() - self.start
+
     def elapsedPr(self, precision=2):
         delt = datetime.timedelta(seconds=time.time() - self.start)
-        hours = delt.days*24 + delt.seconds/3600
+        hours = delt.days * 24 + delt.seconds / 3600
         hoursStr = str(hours)
-        mins = (delt.seconds - hours*3600)/60
+        mins = (delt.seconds - hours * 3600) / 60
         minsStr = "%02d" % (mins)
-        secs = (delt.seconds - hours*3600 - mins*60)
+        secs = (delt.seconds - hours * 3600 - mins * 60)
         if (precision):
-            secsFloat = secs + delt.microseconds/1000000.0 # e.g., 2.345678
+            secsFloat = secs + delt.microseconds / 1000000.0 # e.g., 2.345678
             secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
         else:
             secsStr = "%02d" % (secs)
@@ -32,8 +35,10 @@ class Timer(object):
             return minsStr + ":" + secsStr
         else:
             return hoursStr + ":" + minsStr + ":" + secsStr
+
     def stderr(self, txt=""):
         raise NotImplementedError # what is this intended to do? No stderr please!
+
 
 def unidecodeSafe(s):
     """util func to deal with None, numbers, and unisuck
@@ -50,12 +55,13 @@ def unidecodeSafe(s):
     if (s is None):
         return "?"
     elif not isinstance(s, unicode):
-        raise TypeError("expected unicode, got %s"%type(s))
+        raise TypeError("expected unicode, got %s" % type(s))
     else:
         try:
             return str(s)
         except UnicodeEncodeError:
             return unidecode(s)
+
 
 class UserInfo(object):
     """basic facebook data from a user's profile
@@ -71,18 +77,21 @@ class UserInfo(object):
         self.email = email
         self.gender = sex
         self.birthday = birthday
-        self.age = int((datetime.date.today() - self.birthday).days/365.25) if (birthday) else None
+        self.age = int(
+            (datetime.date.today() - self.birthday).days / 365.25) if (birthday) else None
         self.city = city
         self.state = state
+
     def __str__(self):
-        rets = [ str(self.id),
+        rets = [str(self.id),
                  unidecodeSafe(self.fname),
                  unidecodeSafe(self.lname),
                  self.gender,
                  str(self.age),
                  unidecodeSafe(self.city),
-                 unidecodeSafe(self.state) ]
+                 unidecodeSafe(self.state)]
         return " ".join(rets)
+
 
 class FriendInfo(UserInfo):
     """same as a UserInfo w/ addtional fields relative to a target user
@@ -96,6 +105,7 @@ class FriendInfo(UserInfo):
         self.primPhotoTags = primPhotoTags
         self.otherPhotoTags = otherPhotoTags
         self.mutuals = mutual_friend_count
+
 
 class TokenInfo(object):
     """auth token for a user
@@ -111,8 +121,10 @@ class TokenInfo(object):
         self.ownerId = own
         self.appId = app
         self.expires = exp
+
     def __str__(self):
         return "%s:%s %s (exp %s)" % (self.appId, self.ownerId, self.tok, self.expires.strftime("%m/%d"))
+
 
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
@@ -139,6 +151,7 @@ class EdgeCounts(object):
         self.photoOther = photoOth    # count of photos not owned by target in which source & target are both tagged
         self.mutuals = muts
 
+
 class Edge(object):
     """relationship between two users
 
@@ -156,13 +169,13 @@ class Edge(object):
         self.countsIn = edgeCountsIn
         self.countsOut = edgeCountsOut
         self.score = None
+
     def toDict(self):
         u = self.secondary
-        d = { 'id': u.id, 'fname': u.fname, 'lname': u.lname, 'name': u.fname + " " + u.lname,
-                'gender': u.gender, 'age': u.age, 'city': u.city, 'state': u.state, 'score': self.score,
-                'desc': ''
+        d = {
+            'id': u.id, 'fname': u.fname, 'lname': u.lname,
+            'name': u.fname + " " + u.lname, 'gender': u.gender,
+            'age': u.age, 'city': u.city, 'state': u.state,
+            'score': self.score, 'desc': ''
         }
         return d
-
-
-
