@@ -1153,17 +1153,14 @@ class TieredEdges(object):
         self.tier_type = tier_type
         self.tiers = []
         if tier_id:
-            tup = (tier_id, edges)
-            self.tiers.append(tup)
+            self.tiers.append((tier_id, edges))
 
     def __len__(self):
         return len([e for t, l in self.tiers for e in l])
 
     def appendTier(self, tier_id, edges):
         """Append a new tier to the end"""
-        tup = (tier_id, edges)
-        self.tiers.append(tup)
-        return None
+        self.tiers.append((tier_id, edges))
 
     def edges(self):
         return [e for t, l in self.tiers for e in l]
@@ -1194,17 +1191,15 @@ class TieredEdges(object):
                 # the new ranking was missing some edges. Note it in
                 # the logs, then iterate through the original order and
                 # append the remaining edges to the end of the list
-                logger.info("Edges missing from new edge rankings!")
+                logger.info("%s edges missing from new edge rankings for user %s!", len(tier_edge_ids), edge_list[0].primary.id)
                 for e in edge_list:
                     if e.secondary.id in tier_edge_ids:
                         new_order.append(e)
                         tier_edge_ids.remove(e.secondary.id)
 
-            tup = (tier_id, new_order)
-            new_tiers.append(tup)
+            new_tiers.append((tier_id, new_order))
 
         self.tiers = new_tiers
-        return None
 
 
 class TooFewFriendsError(Exception):
