@@ -3,6 +3,7 @@ from django.db import models
 
 class Assignment(models.Model):
 
+    assignment_id = models.AutoField(primary_key=True)
     session_id = models.CharField(max_length=128)
     campaign = models.ForeignKey('Campaign')
     content = models.ForeignKey('ClientContent')
@@ -12,6 +13,9 @@ class Assignment(models.Model):
     assign_dt = models.DateTimeField(auto_now_add=True)
     chosen_from_table = models.CharField(max_length=128)
     chosen_from_rows = models.CharField(max_length=128)
+
+    class Meta:
+        db_table = 'assignments'
 
 
 class Client(models.Model):
@@ -23,6 +27,9 @@ class Client(models.Model):
     domain = models.CharField(max_length=256)
     subdomain = models.CharField(max_length=256)
     create_dt = models.DateTimeField(auto_now_add=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'clients'
@@ -38,6 +45,9 @@ class Campaign(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'campaigns'
 
@@ -52,13 +62,16 @@ class ButtonStyle(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'button_styles'
 
 
 class ButtonStyleFile(models.Model):
 
-    button_style_file_id = models.Autofield(primary_key=True)
+    button_style_file_id = models.AutoField(primary_key=True)
     button_style = models.ForeignKey('ButtonStyle')
     html_template = models.CharField(max_length=256)
     css_file = models.CharField(max_length=256)
@@ -105,6 +118,9 @@ class ChoiceSet(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'choice_sets'
 
@@ -118,6 +134,9 @@ class ChoiceSetAlgorithm(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'choice_set_algoritms'
 
@@ -126,7 +145,7 @@ class CampaignChoiceSetAlgorithm(models.Model):
 
     campaign_choice_set_algoritm_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign')
-    choice_set_algorithm = models.ForiegnKey(
+    choice_set_algorithm = models.ForeignKey(
         'ChoiceSetAlgorithm',
         db_column='choice_set_algoritm_id'
     )
@@ -215,6 +234,9 @@ class CampaignMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'campaign_meta'
 
@@ -252,7 +274,10 @@ class CampaignProperties(models.Model):
     client_faces_url = models.CharField(max_length=2096)
     client_thanks_url = models.CharField(max_length=2096)
     client_error_url = models.CharField(max_length=2096)
-    fallback_campaign = models.ForeignKey('Campaign')
+    fallback_campaign = models.ForeignKey(
+        'Campaign',
+        related_name='fallback_campaign'
+    )
     fallback_content = models.ForeignKey('ClientContent')
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
@@ -307,6 +332,9 @@ class ChoiceSetAlgorithmMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'choice_set_algoritm_meta'
 
@@ -334,6 +362,9 @@ class ChoiceSetMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'choice_set_meta'
 
@@ -348,6 +379,9 @@ class ClientContent(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'client_content'
@@ -374,6 +408,7 @@ class ClientDefault(models.Model):
 
 class Edge(models.Model):
 
+    edge_id = models.AutoField(primary_key=True)
     fbid_source = models.BigIntegerField()
     fbid_target = models.BigIntegerField()
     post_likes = models.IntegerField(null=True)
@@ -389,11 +424,13 @@ class Edge(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
+        unique_together = ('fbid_source', 'fbid_target')
         db_table = 'edges'
 
 
 class Event(models.Model):
 
+    event_id = models.AutoField(primary_key=True)
     session_id = models.CharField(max_length=128)
     campaign = models.ForeignKey('Campaign')
     content = models.ForeignKey('ClientContent')
@@ -407,19 +444,25 @@ class Event(models.Model):
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
+        unique_together = (
+            'session_id', 'campaign', 'content',
+            'fbid', 'friend_fbid', 'activity_id'
+        )
         db_table = 'events'
 
 
 class FaceExclusion(models.Model):
 
+    face_exclusion_id = models.AutoField(primary_key=True)
     fbid = models.BigIntegerField()
     campaign = models.ForeignKey('Campaign')
-    client = models.ForeignKey('ClientContent')
+    content = models.ForeignKey('ClientContent')
     friend_fbid = models.BigIntegerField()
     reason = models.CharField(max_length=512, null=True)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta:
+        unique_together = ('fbid', 'campaign', 'content', 'friend_fbid')
         db_table = 'face_exclusions'
 
 
@@ -432,6 +475,9 @@ class FacesStyle(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'faces_styles'
@@ -458,6 +504,9 @@ class FacesStyleMeta(models.Model):
     value = models.CharField(max_length=1024)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'faces_style_meta'
@@ -495,6 +544,9 @@ class FBObjectMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'fb_object_meta'
 
@@ -508,6 +560,9 @@ class FBObject(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'fb_objects'
@@ -537,6 +592,9 @@ class FilterMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'filter_meta'
 
@@ -551,6 +609,9 @@ class Filter(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'filters'
 
@@ -559,7 +620,7 @@ class MixModelDefinition(models.Model):
 
     mix_model_definition_id = models.AutoField(primary_key=True)
     mix_model = models.ForeignKey('MixModel')
-    model_definition = models.Textfield(null=True)
+    model_definition = models.TextField(null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -576,6 +637,9 @@ class MixModelMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'mix_model_meta'
 
@@ -589,6 +653,9 @@ class MixModel(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'mix_models'
 
@@ -598,7 +665,7 @@ class PropensityModelDefinition(models.Model):
     propensity_model_definition_id = models.AutoField(primary_key=True)
     propensity_model = models.ForeignKey('PropensityModel')
     propensity_model_type = models.CharField(max_length=64, null=True)
-    model_definition = models.Textfield(null=True)
+    model_definition = models.TextField(null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -615,6 +682,9 @@ class PropensityModelMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'propensity_model_meta'
 
@@ -628,6 +698,9 @@ class PropensityModel(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'propensity_models'
 
@@ -637,7 +710,7 @@ class ProximityModelDefinition(models.Model):
     proximity_model_definition_id = models.AutoField(primary_key=True)
     proximity_model = models.ForeignKey('ProximityModel')
     proximity_model_type = models.CharField(max_length=64, null=True)
-    model_definition = models.Textfield(null=True)
+    model_definition = models.TextField(null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -654,6 +727,9 @@ class ProximityModelMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    def __unicode__(self):
+        return u'%s' % self.name
+
     class Meta:
         db_table = 'proximity_model_meta'
 
@@ -666,6 +742,9 @@ class ProximityModel(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    def __unicode__(self):
+        return u'%s' % self.name
 
     class Meta:
         db_table = 'proximity_models'
@@ -686,7 +765,7 @@ class ShareMessage(models.Model):
 
 class Token(models.Model):
 
-    fbid = models.BigIntegerField()
+    fbid = models.BigIntegerField(primary_key=True)
     app_id = models.BigIntegerField(db_column='appid')
     owner_id = models.BigIntegerField(db_column='ownerid')
     token = models.CharField(max_length=512)
@@ -700,13 +779,14 @@ class Token(models.Model):
 
 class UserClient(models.Model):
 
+    user_client_id = models.AutoField(primary_key=True)
     fbid = models.BigIntegerField()
     client = models.ForeignKey('Client')
     create_dt = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         unique_together = ('fbid', 'client')
-        table = 'user_clients'
+        db_table = 'user_clients'
 
 
 class User(models.Model):
@@ -720,6 +800,9 @@ class User(models.Model):
     city = models.CharField(max_length=32)
     state = models.CharField(max_length=32)
     updated = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return u'%s %s' % (self.first_name, self.last_name)
 
     class Meta:
         db_table = 'users'
