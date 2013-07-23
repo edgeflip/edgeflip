@@ -26,7 +26,6 @@ import pymlconf
 import time
 import datetime
 from itertools import imap, chain
-from more_itertools import chunked
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
