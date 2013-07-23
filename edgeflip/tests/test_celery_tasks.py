@@ -66,3 +66,55 @@ class TestCeleryTasks(EdgeFlipTestCase):
         sql = 'SELECT * FROM edges WHERE fbid_target=%s'
         row_count = curs.execute(sql, 1)
         assert row_count
+
+    def test_fallback_cascade(self):
+        # Some test users and edges
+        test_user1 = datastructs.UserInfo(
+            uid=1,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=datetime.date(1984, 1, 1),
+            city='Chicago',
+            state='Illinois'
+        )
+        test_user2 = datastructs.UserInfo(
+            uid=2,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=datetime.date(1984, 1, 1),
+            city='Toledo',
+            state='Ohio'
+        )
+        test_edge1 = datastructs.Edge(
+            test_user1,
+            test_user1,
+            None
+        )
+        test_edge1.score = 0.5
+        test_edge2 = datastructs.Edge(
+            test_user1,
+            test_user2,
+            None
+        )
+        test_edge2.score = 0.4
+
+        ranked_edges = [test_edge2, test_edge1]
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
+            ranked_edges,
+            'local',
+            5,
+            1,
+            'fake-session-id',
+            '127.0.0.1',
+            1,
+            10,
+            ('sharing-social-good', '471727162864364')
+        )
+
+        self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
+        self.assertEquals(edges_filtered.tiers[0][0], 5)
+        self.assertEquals(edges_filtered.tiers[1][0], 4)

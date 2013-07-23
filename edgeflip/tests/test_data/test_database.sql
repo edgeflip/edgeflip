@@ -220,7 +220,7 @@ CREATE TABLE `campaign_choice_sets` (
 
 LOCK TABLES `campaign_choice_sets` WRITE;
 /*!40000 ALTER TABLE `campaign_choice_sets` DISABLE KEYS */;
-INSERT INTO `campaign_choice_sets` VALUES (1,1,2,1.000000000,1,'all','2013-06-28 17:28:36',NULL),(2,2,1,1.000000000,1,'all','2013-06-28 17:28:36',NULL),(3,3,3,1.000000000,1,'all','2013-06-28 17:28:36',NULL);
+INSERT INTO `campaign_choice_sets` VALUES (1,1,2,1.000000000,1,'all','2013-06-28 17:28:36',NULL),(2,2,1,1.000000000,1,'all','2013-06-28 17:28:36',NULL),(3,3,3,1.000000000,1,'all','2013-06-28 17:28:36',NULL),(4,4,1,1.000000000,0,NULL,'2013-06-28 17:28:36',NULL),(5,5,3,1.000000000,0,NULL,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaign_choice_sets` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -282,7 +282,7 @@ CREATE TABLE `campaign_fb_objects` (
 
 LOCK TABLES `campaign_fb_objects` WRITE;
 /*!40000 ALTER TABLE `campaign_fb_objects` DISABLE KEYS */;
-INSERT INTO `campaign_fb_objects` VALUES (1,1,2,1,1.000000000,'2013-06-28 17:28:36',NULL),(2,2,1,2,1.000000000,'2013-06-28 17:28:36',NULL),(3,3,3,3,1.000000000,'2013-06-28 17:28:36',NULL),(4,3,4,4,1.000000000,'2013-06-28 17:28:36',NULL),(5,3,5,5,1.000000000,'2013-06-28 17:28:36',NULL),(6,3,6,6,1.000000000,'2013-06-28 17:28:36',NULL);
+INSERT INTO `campaign_fb_objects` VALUES (1,1,2,1,1.000000000,'2013-06-28 17:28:36',NULL),(2,2,1,2,1.000000000,'2013-06-28 17:28:36',NULL),(3,3,3,3,1.000000000,'2013-06-28 17:28:36',NULL),(4,3,4,4,1.000000000,'2013-06-28 17:28:36',NULL),(5,3,5,5,1.000000000,'2013-06-28 17:28:36',NULL),(6,3,6,6,1.000000000,'2013-06-28 17:28:36',NULL),(7,4,1,1,1.000000000,'2013-06-28 17:28:36',NULL),(8,5,3,1,1.000000000,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaign_fb_objects` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -344,7 +344,7 @@ CREATE TABLE `campaign_global_filters` (
 
 LOCK TABLES `campaign_global_filters` WRITE;
 /*!40000 ALTER TABLE `campaign_global_filters` DISABLE KEYS */;
-INSERT INTO `campaign_global_filters` VALUES (1,1,1,1.000000000,'2013-06-28 17:28:36',NULL),(2,2,1,1.000000000,'2013-06-28 17:28:36',NULL),(3,3,1,1.000000000,'2013-06-28 17:28:36',NULL);
+INSERT INTO `campaign_global_filters` VALUES (1,1,1,1.000000000,'2013-06-28 17:28:36',NULL),(2,2,1,1.000000000,'2013-06-28 17:28:36',NULL),(3,3,1,1.000000000,'2013-06-28 17:28:36',NULL),(4,4,1,1.000000000,'2013-06-28 17:28:36',NULL),(5,5,1,1.000000000,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaign_global_filters` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -467,7 +467,7 @@ CREATE TABLE `campaign_properties` (
 
 LOCK TABLES `campaign_properties` WRITE;
 /*!40000 ALTER TABLE `campaign_properties` DISABLE KEYS */;
-INSERT INTO `campaign_properties` VALUES (1,1,'http://mockclient.edgeflip.com:5000/guncontrol_share','https://donate.demandaction.org/act/donate','https://donate.demandaction.org/act/donate',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(2,2,'http://mockclient.edgeflip.com:5000/immigration_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(3,3,'http://mockclient.edgeflip.com:5000/ofa_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL);
+INSERT INTO `campaign_properties` VALUES (1,1,'http://mockclient.edgeflip.com:5000/guncontrol_share','https://donate.demandaction.org/act/donate','https://donate.demandaction.org/act/donate',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(2,2,'http://mockclient.edgeflip.com:5000/immigration_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(3,3,'http://mockclient.edgeflip.com:5000/ofa_share','https://contribute.barackobama.com/donation/orgforaction/2/index.html','https://contribute.barackobama.com/donation/orgforaction/2/index.html',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(4,4,'http://fake.com/','http://fake.com/','http://fake.com/',NULL,NULL,NULL,1,'2013-06-28 17:28:36',NULL),(5,5,'http://fake.com/','http://fake.com/','http://fake.com/',4,NULL,1,1,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaign_properties` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -527,7 +527,7 @@ CREATE TABLE `campaigns` (
 
 LOCK TABLES `campaigns` WRITE;
 /*!40000 ALTER TABLE `campaigns` DISABLE KEYS */;
-INSERT INTO `campaigns` VALUES (1,1,'Gun Control',NULL,0,'2013-06-28 17:28:36',NULL),(2,1,'Immigration Reform',NULL,0,'2013-06-28 17:28:36',NULL),(3,1,'OFA Enviro Support',NULL,0,'2013-06-28 17:28:36',NULL);
+INSERT INTO `campaigns` VALUES (1,1,'Gun Control',NULL,0,'2013-06-28 17:28:36',NULL),(2,1,'Immigration Reform',NULL,0,'2013-06-28 17:28:36',NULL),(3,1,'OFA Enviro Support',NULL,0,'2013-06-28 17:28:36',NULL),(4,1,'cascade test fallback',NULL,0,'2013-06-28 17:28:36',NULL),(5,1,'cascade test real',NULL,0,'2013-06-28 17:28:36',NULL);
 /*!40000 ALTER TABLE `campaigns` ENABLE KEYS */;
 UNLOCK TABLES;
 
