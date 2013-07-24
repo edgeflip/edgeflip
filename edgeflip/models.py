@@ -1,5 +1,7 @@
 from django.db import models
 
+from edgeflip import utils
+
 
 class Assignment(models.Model):
 
@@ -222,7 +224,7 @@ class CampaignGlobalFilter(models.Model):
     end_dt = models.DateTimeField(null=True)
 
     class Meta:
-        db_table = 'campaign_global_filter'
+        db_table = 'campaign_global_filters'
 
 
 class CampaignMeta(models.Model):
@@ -281,6 +283,18 @@ class CampaignProperties(models.Model):
     fallback_content = models.ForeignKey('ClientContent')
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
+
+    @property
+    def faces_url(self):
+        url = self.client_faces_url
+        if (url.find('?') == -1):
+            url += '?'
+        else:
+            url += '&'
+
+        slug = utils.encodeDES('%s/%s' % (self.campaign_id, self.content_id))
+
+        return url + 'efcmpgslug=' + str(slug)
 
     class Meta:
         db_table = 'campaign_properties'
