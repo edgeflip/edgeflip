@@ -54,11 +54,11 @@ else:
     ctx = None
 
 run_simple(
-  args.host, port, app,
-  use_reloader=True,
-  use_debugger=True,
-  passthrough_errors=False,
-  extra_files=config.list_files(), # config files, etc..
-  static_files={},
-  ssl_context=ctx
+    args.host, port, app,
+    use_reloader=True,
+    use_debugger=True,
+    passthrough_errors=False,
+    extra_files=config.list_files(), # config files, etc..
+    static_files={},
+    ssl_context=ctx
 )

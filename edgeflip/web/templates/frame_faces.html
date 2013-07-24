@@ -52,7 +52,7 @@
     <!-- edgeflip javascript -->
     <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
     <script src="{{ url_for('static', filename='url_params.js') }}"></script>
-    <script src="{{ url_for('static', filename='load_and_login.js') }}"></script>
+    <script src="{{ url_for('static', filename='load_and_login.js') }}?version={{ app_version }}"></script>
     <SCRIPT>
 //        imgsToLoad = [    "{{ url_for('static', filename='aniprogress.gif') }}" ];
 //        preload(imgsToLoad);
@@ -116,7 +116,7 @@
             if (response.status === 'connected') {
                 var uid = response.authResponse.userID;
                 var tok = response.authResponse.accessToken;
-                login(uid, tok, response);
+                login(uid, tok, response, null);
             } else {
                 // User isn't logged in or hasn't authed, so try doing the login directly
                 // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')

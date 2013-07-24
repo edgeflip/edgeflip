@@ -3,17 +3,24 @@
 
 # Will generally need to work out some auth, probably at the API level
 # (including a check that requests are always consistent with the authed user)
-
-
+from __future__ import absolute_import
 import time
 import random
 import logging
 import threading
+
+import us
+import requests
+from unidecode import unidecode
 from MySQLdb import IntegrityError
 
-from . import database as db
-from . import datastructs
-from .settings import config 
+from civis_matcher import matcher
+
+from edgeflip import (
+    database as db,
+    datastructs,
+)
+from edgeflip.settings import config
 from .web import utils
 
 logger = logging.getLogger(__name__)
@@ -30,19 +37,19 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
     """
 
     row = {
-            'name' : name, 
-            'fb_app_name' : fbAppName, 
-            'fb_app_id' : fbAppId, 
-            'domain' : domain, 
-            'subdomain' : subdomain 
-          }
+        'name': name,
+        'fb_app_name': fbAppName,
+        'fb_app_id': fbAppId,
+        'domain': domain,
+        'subdomain': subdomain
+    }
 
     try:
         clientId = dbInsert('clients', 'client_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
-    ret = {'client_id' : clientId}
+    ret = {'client_id': clientId}
 
     if (generateDefaults):
         defaultName = 'edgeflip default'
@@ -54,10 +61,10 @@ def createClient(name, fbAppName, fbAppId, domain, subdomain, generateDefaults=F
         choiceSetId = createChoiceSet(clientId, defaultName, defaultDesc, [(filterId, 'all', None)]).get('choice_set_id')
 
         row = {
-                'client_id' : clientId, 
-                'filter_id' : filterId, 
-                'choice_set_id' : choiceSetId
-              }
+            'client_id': clientId,
+            'filter_id': filterId,
+            'choice_set_id': choiceSetId
+        }
 
         clientDefaultId = dbInsert('client_defaults', 'client_default_id', row.keys(), [row], 'client_id', clientId, replaceAll=True)
 
@@ -102,30 +109,32 @@ def createButtonStyle(clientId, name, description, htmlFile=None, cssFile=None, 
         raise NotImplementedError("Sorry. Custom CSS not yet supported.")
 
     row = {
-            'client_id' : clientId,
-            'name' : name,
-            'description' : description
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description
+    }
 
     styleId = dbInsert('button_styles', 'button_style_id', row.keys(), [row])
 
     updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True)
     updateMetadata('button_style_meta', 'button_style_meta_id', 'button_style_id', styleId, metadata, replaceAll=True)
 
-    return {'button_style_id' : styleId}
+    return {'button_style_id': styleId}
+
 
 def updateButtonStyleFiles(styleId, htmlFile, cssFile, replaceAll=True):
     """Update the files associated with a button style"""
 
     row = {
-            'button_style_id' : styleId,
-            'html_template' : htmlFile,
-            'css_file' : cssFile 
-          }
+        'button_style_id': styleId,
+        'html_template': htmlFile,
+        'css_file': cssFile
+    }
 
     dbInsert('button_style_files', 'button_style_file_id', row.keys(), [row], 'button_style_id', styleId, replaceAll=True)
 
     return 1
+
 
 def updateCampaignButtonStyles(campaignId, styleTupes):
     """Associate button styles with a campaign.
@@ -142,9 +151,9 @@ def updateCampaignButtonStyles(campaignId, styleTupes):
     rows = []
     for styleId, prob in styleTupes:
         rows.append({
-                    'campaign_id' : campaignId,
-                    'button_style_id' : styleId,
-                    'rand_cdf' : prob
+                    'campaign_id': campaignId,
+                    'button_style_id': styleId,
+                    'rand_cdf': prob
                     })
 
     insCols = ['campaign_id', 'button_style_id', 'rand_cdf']
@@ -158,6 +167,7 @@ def createFacesStyle(clientId, name, description, htmlFile, cssFile):
     """Right now, faces styles are hard-coded in the app."""
     raise NotImplementedError
 
+
 def createFilter(clientId, name, description, features=None, metadata=None):
     """Creates a new filter associated with the given client
 
@@ -168,22 +178,23 @@ def createFilter(clientId, name, description, features=None, metadata=None):
     metadata = metadata if (metadata is not None) else []
 
     row = {
-            'client_id' : clientId, 
-            'name' : name, 
-            'description' : description
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description
+    }
 
     # zzz This will create the filter record, commit, then load the features & meta data
     #     would we rather the commit only happen if everything gets in?
     try:
         filterId = dbInsert('filters', 'filter_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
     updateFilterFeatures(filterId, features, replaceAll=True)
     updateMetadata('filter_meta', 'filter_meta_id', 'filter_id', filterId, metadata, replaceAll=True)
 
-    return {'filter_id' : filterId}
+    return {'filter_id': filterId}
+
 
 def updateFilterFeatures(filterId, features, replaceAll=False):
     """Update features that define a filter
@@ -210,18 +221,18 @@ def updateFilterFeatures(filterId, features, replaceAll=False):
         else:
             raise ValueError("Can't filter on type of %s" % value)
 
-        # Check if we're trying to insert the same 
+        # Check if we're trying to insert the same
         # feature/operator combo more than once
         if ((feature, operator) in newFeatures):
             raise ValueError("Filter features must be unique on feature & operator. Duplicate found for (%s, %s)" % (feature, operator))
 
         newFeatures.append((feature, operator))
         rows.append({
-                    'filter_id' : filterId, 
-                    'feature' : feature, 
-                    'operator' : operator, 
-                    'value' : str(value), 
-                    'value_type' : value_type
+                    'filter_id': filterId,
+                    'feature': feature,
+                    'operator': operator,
+                    'value': str(value),
+                    'value_type': value_type
                     })
 
     insCols = ['filter_id', 'feature', 'operator', 'value', 'value_type']
@@ -247,9 +258,9 @@ def updateCampaignGlobalFilters(campaignId, filterTupes):
     rows = []
     for filterId, prob in filterTupes:
         rows.append({
-                    'campaign_id' : campaignId,
-                    'filter_id' : filterId,
-                    'rand_cdf' : prob
+                    'campaign_id': campaignId,
+                    'filter_id': filterId,
+                    'rand_cdf': prob
                     })
 
     insCols = ['campaign_id', 'filter_id', 'rand_cdf']
@@ -262,7 +273,7 @@ def updateCampaignGlobalFilters(campaignId, filterTupes):
 def getFilter(filterId):
     """Reads a filter from the database and returns a Filter object"""
 
-    rows = dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'], 
+    rows = dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'],
                                 'filter_id', filterId)
 
     features = []
@@ -294,27 +305,27 @@ def createChoiceSet(clientId, name, description, filters, metadata=None):
     metadata = metadata if (metadata is not None) else []
 
     row = {
-            'client_id' : clientId,
-            'name' : name,
-            'description' : description
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description
+    }
 
     try:
         choiceSetId = dbInsert('choice_sets', 'choice_set_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
     updateChoiceSetFilters(choiceSetId, filters, replaceAll=True)
     updateMetadata('choice_set_meta', 'choice_set_meta_id', 'choice_set_id', choiceSetId, metadata, replaceAll=True)
 
-    return {'choice_set_id' : choiceSetId}
+    return {'choice_set_id': choiceSetId}
 
 
 def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
     """Update the filters that make up a given choice set, Optionally
     replacing all of the current filters or adding to the existing
     definition (note that records for filters already associated with
-    the choice set and passed here in the filters list will be replaced 
+    the choice set and passed here in the filters list will be replaced
     in either case).
 
     filters should be a list of tuples of form: (filterId, urlSlug, modelType)
@@ -333,10 +344,10 @@ def updateChoiceSetFilters(choiceSetId, filters, replaceAll=False):
 
         newFilters.append(filterId)
         rows.append({
-                    'choice_set_id' : choiceSetId, 
-                    'filter_id' : filterId, 
-                    'url_slug' : urlSlug,
-                    'propensity_model_type' : modelType
+                    'choice_set_id': choiceSetId,
+                    'filter_id': filterId,
+                    'url_slug': urlSlug,
+                    'propensity_model_type': modelType
                     })
 
     insCols = ['choice_set_id', 'filter_id', 'url_slug', 'propensity_model_type']
@@ -357,18 +368,18 @@ def updateCampaignChoiceSets(campaignId, choiceSetTupes):
         allowGeneric is a boolean to specify whether the campaign should fall back to
           generic content if too few friends fall in a given choice set filter.
         genericSlug provides the url slug that should be passed through to the content URL
-          in that case. 
+          in that case.
     """
     checkCDF([t[:2] for t in choiceSetTupes])
 
     rows = []
     for choiceSetId, prob, allowGeneric, genericSlug in choiceSetTupes:
         rows.append({
-                    'campaign_id' : campaignId,
-                    'choice_set_id' : choiceSetId,
-                    'rand_cdf' : prob,
-                    'allow_generic' : allowGeneric,
-                    'generic_url_slug' : genericSlug
+                    'campaign_id': campaignId,
+                    'choice_set_id': choiceSetId,
+                    'rand_cdf': prob,
+                    'allow_generic': allowGeneric,
+                    'generic_url_slug': genericSlug
                     })
 
     insCols = ['campaign_id', 'choice_set_id', 'rand_cdf', 'allow_generic', 'generic_url_slug']
@@ -381,7 +392,7 @@ def updateCampaignChoiceSets(campaignId, choiceSetTupes):
 def getChoiceSet(choiceSetId):
     """Reads a choice set from database and returns a ChoiceSet object."""
 
-    rows = dbGetObjectAttributes('choice_set_filters', ['choice_set_filter_id', 'filter_id', 'url_slug', 'propensity_model_type'], 
+    rows = dbGetObjectAttributes('choice_set_filters', ['choice_set_filter_id', 'filter_id', 'url_slug', 'propensity_model_type'],
                                 'choice_set_id', choiceSetId)
     csFilters = [ChoiceSetFilter(r[0], r[1], r[2], r[3], filterObj=getFilter(r[1])) for r in rows]
     return ChoiceSet(choiceSetId, csFilters)
@@ -400,18 +411,18 @@ def createClientContent(clientId, name, description, url):
         raise ValueError("Must provide a URL")
 
     row = {
-            'client_id' : clientId,
-            'name' : name,
-            'description' : description,
-            'url' : url
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description,
+        'url': url
+    }
 
     try:
         contentId = dbInsert('client_content', 'content_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
-    return {'content_id' : contentId}
+    return {'content_id': contentId}
 
 
 def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
@@ -452,20 +463,20 @@ def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, f
     metadata = metadata if (metadata is not None) else []
 
     row = {
-            'client_id' : clientId,
-            'name' : name,
-            'description' : description
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description
+    }
 
     try:
         campaignId = dbInsert('campaigns', 'campaign_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
     updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent)
     updateMetadata('campaign_meta', 'campaign_meta_id', 'campaign_id', campaignId, metadata, replaceAll=True)
 
-    return {'campaign_id' : campaignId}
+    return {'campaign_id': campaignId}
 
 
 def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None):
@@ -474,13 +485,13 @@ def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallback
         raise ValueError("Must specify URLs for the faces, thank you, and error pages")
 
     row = {
-            'campaign_id' : campaignId,
-            'client_faces_url' : facesURL,
-            'client_thanks_url' : thanksURL,
-            'client_error_url' : errorURL,
-            'fallback_campaign_id' : fallbackCampaign,
-            'fallback_content_id' : fallbackContent
-          }
+        'campaign_id': campaignId,
+        'client_faces_url': facesURL,
+        'client_thanks_url': thanksURL,
+        'client_error_url': errorURL,
+        'fallback_campaign_id': fallbackCampaign,
+        'fallback_content_id': fallbackContent
+    }
 
     dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
 
@@ -499,7 +510,7 @@ def getFacesURL(campaignId, contentId):
         url += '&'
 
     slug = utils.encodeDES('%s/%s' % (campaignId, contentId))
-    
+
     return url + 'efcmpgslug=' + str(slug)
 
 
@@ -525,20 +536,20 @@ def createFacebookObject(clientId, name, description, attributes, metadata=None)
     metadata = metadata if (metadata is not None) else []
 
     row = {
-            'client_id' : clientId,
-            'name' : name,
-            'description' : description
-          }
+        'client_id': clientId,
+        'name': name,
+        'description': description
+    }
 
     try:
         fbObjectId = dbInsert('fb_objects', 'fb_object_id', row.keys(), [row])
     except IntegrityError as e:
-        return {'error' : str(e)}
+        return {'error': str(e)}
 
     updateFacebookObjectAttributes(fbObjectId, attributes)
     updateMetadata('fb_object_meta', 'fb_object_meta_id', 'fb_object_id', fbObjectId, metadata, replaceAll=True)
 
-    return {'fb_object_id' : fbObjectId}
+    return {'fb_object_id': fbObjectId}
 
 
 def updateFacebookObjectAttributes(fbObjectId, attributes):
@@ -559,9 +570,9 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
     since any change affects ALL probabilities
 
     filter_fbObjTupes should be a dictionary: {filter_id : [(fb_object_id, CDF Prob)]}
-    
-    TODO: Should probably include check against DB to ensure objects are provided for 
-          ALL choice set filters that have been associated with the campaign 
+
+    TODO: Should probably include check against DB to ensure objects are provided for
+          ALL choice set filters that have been associated with the campaign
           (otherwise, someone could come in, get assigned to a set of friends, but have
           no facebook object to share with them!)
     """
@@ -577,11 +588,11 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
         for filterId, tupes in filter_fbObjTupes.items():
             for fbObjectId, prob in tupes:
                 filter_rows.append({
-                            'campaign_id' : campaignId,
-                            'filter_id' : filterId,
-                            'fb_object_id' : fbObjectId,
-                            'rand_cdf' : prob
-                            })
+                    'campaign_id': campaignId,
+                    'filter_id': filterId,
+                    'fb_object_id': fbObjectId,
+                    'rand_cdf': prob
+                })
 
         filter_insCols = ['campaign_id', 'filter_id', 'fb_object_id', 'rand_cdf']
         dbInsert('campaign_fb_objects', 'campaign_fb_object_id', filter_insCols, filter_rows, 'campaign_id', campaignId, replaceAll=True)
@@ -591,10 +602,10 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
         generic_rows = []
         for fbObjectId, prob in genericTupes:
             generic_rows.append({
-                        'campaign_id' : campaignId,
-                        'fb_object_id' : fbObjectId,
-                        'rand_cdf' : prob
-                        })
+                'campaign_id': campaignId,
+                'fb_object_id': fbObjectId,
+                'rand_cdf': prob
+            })
 
         generic_insCols = ['campaign_id', 'fb_object_id', 'rand_cdf']
         dbInsert('campaign_generic_fb_objects', 'campaign_generic_fb_object_id', generic_insCols, generic_rows, 'campaign_id', campaignId, replaceAll=True)
@@ -604,9 +615,10 @@ def updateCampaignFacebookObjects(campaignId, filter_fbObjTupes=None, genericTup
 
 """
 NOTE:
-Will also need functions for models/algorithms, 
+Will also need functions for models/algorithms,
 but punting on those for now...
 """
+
 
 def dbGetClient(clientId, cols):
     """Get the specified columns associated with a client_id"""
@@ -627,12 +639,13 @@ def dbGetObject(table, cols, objectIndex, objectId):
     """Get the specified columns associated with a given current object.
     For instance, might call: dbGetObject('filters', ['name', 'description'], 'filter_id', 42)
     """
-    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND NOT is_deleted" #SQLi
+    #SQLi
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND NOT is_deleted"
     conn = db.getConn()
     curs = conn.cursor()
 
     try:
-        curs.execute(sql, (objectId,) )
+        curs.execute(sql, (objectId,))
         ret = curs.fetchall()
     finally:
         conn.rollback()
@@ -642,13 +655,14 @@ def dbGetObject(table, cols, objectIndex, objectId):
 
 def dbGetObjectAttributes(table, cols, objectIndex, objectId):
     """Get the specified columns associated with a given object's attributes.
-    This is mainly distinguished from above by referencing "end_dt" to determine that a 
+    This is mainly distinguished from above by referencing "end_dt" to determine that a
     row is current, rather than an object's "is_deleted" field. Could probably combine
     this with above with an extra param for that...
 
     Example call: dbGetObjectAttributes('filter_features', ['feature', 'operator', 'value', 'value_type'], 'filter_id', 23)
     """
-    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND end_dt IS NULL" #SQLi
+    #SQLi
+    sql = "SELECT " + ', '.join(cols) + " FROM " + table + " WHERE " + objectIndex + "= %s" + " AND end_dt IS NULL"
     conn = db.getConn()
     curs = conn.cursor()
 
@@ -664,15 +678,15 @@ def dbGetObjectAttributes(table, cols, objectIndex, objectId):
 def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
     """Get the rows that define an A/B test over a certain object type.
 
-    index is the column name for the table's index, used to track the 
+    index is the column name for the table's index, used to track the
       records that define the experiment in logging.
     objectKey is the column name for the object type that is being
       chosen experimentally.
-    keyTupes defines the scope of the experiment and can be 
+    keyTupes defines the scope of the experiment and can be
       [(campaign_id, id)] or [(campaign_id, id), (filter_id, id)]
       (the latter is in case of FB Object)
-    extraCols is optional and provided to allow for grabbing additional 
-      info that is specified at the level of the experiment (such as the 
+    extraCols is optional and provided to allow for grabbing additional
+      info that is specified at the level of the experiment (such as the
       'allow_generic' field for choice sets)
 
     Example call: dbGetExperimentTupes('camapign_global_filters', 'campaign_global_filter_id', 'filter_id', [('campaign_id', 16)])
@@ -680,8 +694,9 @@ def dbGetExperimentTupes(table, index, objectKey, keyTupes, extraCols=None):
     where = ' AND '.join(['='.join(map(str, t)) for t in keyTupes])
     ecsql = ''
     if (extraCols):
-        ecsql = ', '+', '.join(extraCols)
-    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf" + ecsql + " FROM " + table + " WHERE " + where + " AND end_dt IS NULL" #SQLi
+        ecsql = ', ' + ', '.join(extraCols)
+    #SQLi
+    sql = "SELECT " + index + ", " + objectKey + ", rand_cdf" + ecsql + " FROM " + table + " WHERE " + where + " AND end_dt IS NULL"
     conn = db.getConn()
     curs = conn.cursor()
 
@@ -718,21 +733,20 @@ def dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow,
 # helper function that may get run in a background thread
 def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow, randomAssign, chosenFromTable, chosenFromRows):
     """Function that actually records an assignment to the database."""
-    tim = datastructs.Timer()
     conn = db.getConn()
     curs = conn.cursor()
 
     row = {
-            'session_id' : sessionId, 
-            'campaign_id' : campaignId,
-            'content_id' : contentId,
-            'feature_type' : featureType,
-            'feature_row' : featureRow,
-            'random_assign' : randomAssign,
-            'chosen_from_table' : chosenFromTable,
-            'chosen_from_rows' : str(sorted([int(r) for r in chosenFromRows]))
-          }
-    sql = """INSERT INTO assignments (session_id, campaign_id, content_id, feature_type, feature_row, random_assign, chosen_from_table, chosen_from_rows) 
+        'session_id': sessionId,
+        'campaign_id': campaignId,
+        'content_id': contentId,
+        'feature_type': featureType,
+        'feature_row': featureRow,
+        'random_assign': randomAssign,
+        'chosen_from_table': chosenFromTable,
+        'chosen_from_rows': str(sorted([int(r) for r in chosenFromRows]))
+    }
+    sql = """INSERT INTO assignments (session_id, campaign_id, content_id, feature_type, feature_row, random_assign, chosen_from_table, chosen_from_rows)
                 VALUES (%(session_id)s, %(campaign_id)s, %(content_id)s, %(feature_type)s, %(feature_row)s, %(random_assign)s, %(chosen_from_table)s, %(chosen_from_rows)s) """
 
     try:
@@ -741,9 +755,9 @@ def _dbWriteAssignment(sessionId, campaignId, contentId, featureType, featureRow
     except:
         conn.rollback()
         raise
-    
+
     logger.debug("_dbWriteAssignment() thread %d wrote %s:%s assignment from session %s", threading.current_thread().ident, featureType, featureRow, sessionId)
-    
+
     return 1
 
 
@@ -769,22 +783,21 @@ def _dbWriteUserClient(fbid, clientId):
     """Function that actually records a user-client association.
     Note that this is doing an "upsert" since we want to avoid
     duplicating entries if the user has connected with this
-    client previously. 
+    client previously.
     """
-    tim = datastructs.Timer()
     conn = db.getConn()
     curs = conn.cursor()
 
     row = {
-            'fbid' : fbid, 
-            'client_id' : clientId
-          }
+        'fbid': fbid,
+        'client_id': clientId
+    }
 
     # Note -- the ON DUPLICATE KEY UPDATE here is basically just
     #         being used to ignore a duplicate row. Doing this
     #         rather than INSERT IGNORE since the latter will
     #         ignore any and all errors (not just duplicate keys)
-    sql = """INSERT INTO user_clients (fbid, client_id) 
+    sql = """INSERT INTO user_clients (fbid, client_id)
                 VALUES (%(fbid)s, %(client_id)s)
                 ON DUPLICATE KEY UPDATE fbid=fbid """
 
@@ -794,11 +807,10 @@ def _dbWriteUserClient(fbid, clientId):
     except:
         conn.rollback()
         raise
-    
-    logger.debug("_dbWriteUserClient() thread %d wrote association between fbid %s and client %s", threading.current_thread().ident, fbid, clientId)
-    
-    return 1
 
+    logger.debug("_dbWriteUserClient() thread %d wrote association between fbid %s and client %s", threading.current_thread().ident, fbid, clientId)
+
+    return 1
 
 
 def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False):
@@ -817,10 +829,10 @@ def updateMetadata(table, index, objectCol, objectId, metadata, replaceAll=False
 
         newNames.append(name)
         rows.append({
-                    objectCol : objectId, 
-                    'name' : name, 
-                    'value' : value
-                    })
+            objectCol: objectId,
+            'name': name,
+            'value': value
+        })
 
     insCols = [objectCol, 'name', 'value']
     uniqueCols = ['name']
@@ -888,13 +900,15 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
     conn = db.getConn()
     curs = conn.cursor()
 
-    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join(['%('+c+')s' for c in insCols]) + ")" # SQLi
+    #SQLi
+    insSQL = "INSERT INTO " + table + " (" + ', '.join(insCols) + ") VALUES (" + ', '.join([' %(' + c + ')s' for c in insCols]) + ")"
 
     try:
         replaceIds = []
         if (uniqueCols and not replaceAll):
-            curs.execute("SELECT " + index + ", " + ', '.join(uniqueCols) + " FROM " + table + " WHERE " + objectCol + " = %s" + " AND end_dt IS NULL FOR UPDATE", (objectId,) ) # SQLi
-            currRecs = { tuple(r[1:]) : int(r[0]) for r in curs }
+            #SQLi
+            curs.execute("SELECT " + index + ", " + ', '.join(uniqueCols) + " FROM " + table + " WHERE " + objectCol + " = %s" + " AND end_dt IS NULL FOR UPDATE", (objectId,))
+            currRecs = {tuple(r[1:]): int(r[0]) for r in curs}
 
             for row in rows:
                 repId = currRecs.get(tuple(row[u] for u in uniqueCols))
@@ -907,7 +921,7 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         else:
             prepsql = None
 
-        if (prepsql): 
+        if (prepsql):
             logging.debug(prepsql)
             curs.execute(prepsql)
         for row in rows:
@@ -924,6 +938,62 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         return newId
 
 
+def civisFilter(edge, feature, operator, value, matches):
+    ''' Performs a match against the Civis API and retrieves the score for a
+    given user
+    '''
+    start_time = time.time()
+    user = edge.secondary
+    logger.debug('Thread %s started' % threading.current_thread().name)
+    cm = matcher.CivisMatcher()
+    kwargs = {}
+    if user.birthday:
+        kwargs['birth_month'] = '%02d' % user.birthday.month
+        kwargs['birth_year'] = user.birthday.year
+        kwargs['birth_day'] = '%02d' % user.birthday.day
+
+    if not user.state or not user.city:
+        return
+
+    if user.state:
+        state = us.states.lookup(user.state)
+        kwargs['state'] = state.abbr if state else None
+    else:
+        kwargs['state'] = None
+
+    try:
+        start_time = time.time()
+        result = cm.match(
+            first_name=unidecode(user.fname),
+            last_name=unidecode(user.lname),
+            city=unidecode(user.city) if user.city else None,
+            **kwargs
+        )
+        end_time = time.time()
+        logger.debug(
+            'Request time: %s, url: %s',
+            (end_time - start_time),
+            result.url
+        )
+    except requests.RequestException:
+        return None
+    except matcher.MatchException as exc:
+        # This means there was an issue with the Civis API. Likely means no
+        # match, but it's hard to say in the current state of their API.
+        logger.info('Exception: %s' % exc.message)
+        return None
+
+    scores = getattr(result, 'scores', None)
+    if scores and float(scores[feature][operator]) >= float(value):
+        matches.append(edge)
+    logger.debug(
+        'Thread %s ended: %s' % (
+            threading.current_thread().name, time.time() - start_time
+        )
+    )
+    return
+
+
 class Filter(object):
     def __init__(self, filterId, features):
         """A class to hold filters and associated functionality
@@ -933,31 +1003,72 @@ class Filter(object):
         """
         self.filterId = int(filterId)
         self.features = features
-        self.str_func = {
-                            "min": lambda x, y: x >= y, 
-                            "max": lambda x, y: x <= y, 
-                            "eq": lambda x, y: x == y,
-                            "in": lambda x, l: x in l 
-                        }
 
-    def filterFriend(self, user):
-        """Determine if the given user object passes the current filter object.
+    def _standard_filter(self, user, feature, operator, value):
+        if not hasattr(user, feature):
+            return False
 
-        Note that we implicitly assume an "AND" relationship between all the
-        feature/operator sets that define the filter. Will likely want more
-        complex logic in the future.
-        """
-        for feature, operator, value in self.features:
-            if not (hasattr(user, feature) and self.str_func[operator](user.__dict__[feature], value)):
-                return False
+        user_val = getattr(user, feature)
 
-        return True    # user made it through all the filters
+        if operator == 'min':
+            return user_val >= value
+
+        elif operator == 'max':
+            return user_val <= value
+
+        elif operator == 'eq':
+            return user_val == value
+
+        elif operator == 'in':
+            return user_val in value
 
     def filterEdgesBySec(self, edges):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
-        edgesgood = [e for e in edges if self.filterFriend(e.secondary)]
-        return edgesgood
+        if not self.features:
+            return edges
+        for feature, operator, value in self.features:
+            if feature in config.filtering.civis_filters:
+                start_time = time.time()
+                threads = []
+                loopTimeout = 10
+                loopSleep = 0.1
+                matches = []
+                for count, edge in enumerate(edges):
+                    t = threading.Thread(
+                        target=civisFilter,
+                        args=(edge, feature, operator, value, matches)
+                    )
+                    t.setDaemon(True)
+                    t.name = 'civis-%d' % count
+                    threads.append(t)
+                    t.start()
+
+                timeStop = time.time() + loopTimeout
+                while (time.time() < timeStop):
+                    threadsAlive = []
+                    for t in threads:
+                        if t.isAlive():
+                            threadsAlive.append(t)
+
+                    threads = threadsAlive
+                    if (threadsAlive):
+                        time.sleep(loopSleep)
+                    else:
+                        break
+                logger.debug(
+                    "Civis matching complete in %s" % (time.time() - start_time)
+                )
+                edges = [
+                    x for x in matches if isinstance(x, datastructs.Edge)
+                ]
+
+            # Standard min/max/eq/in filters below
+            else:
+                edges = [x for x in edges if self._standard_filter(
+                    x.secondary, feature, operator, value)]
+        return edges
+
 
 class ChoiceSetFilter(Filter):
     def __init__(self, choiceSetFilterId, filterId, urlSlug, modelType=None, features=None, filterObj=None):
@@ -981,6 +1092,7 @@ class ChoiceSetFilter(Filter):
         self.urlSlug = urlSlug
         self.modelType = modelType
 
+
 class ChoiceSet(object):
     def __init__(self, choiceSetId, choiceSetFilters):
         """A class to represent choice sets and associated choice logic.
@@ -990,7 +1102,7 @@ class ChoiceSet(object):
         """
         self.choiceSetId = int(choiceSetId)
         self.choiceSetFilters = choiceSetFilters
-        self.sortFunc = lambda el: (len(el), sum([e.score for e in el])/len(el) if el else 0)
+        self.sortFunc = lambda el: (len(el), sum([e.score for e in el]) / len(el) if el else 0)
 
     def chooseBestFilter(self, edges, useGeneric=False, minFriends=2, eligibleProportion=0.5):
         """Determine the best choice set filter from a list of edges based on
@@ -1008,7 +1120,7 @@ class ChoiceSet(object):
         edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
         elgCount = int(len(edges) * eligibleProportion)
         edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
-        
+
         filteredEdges = [(f, f.filterEdgesBySec(edgesElg)) for f in self.choiceSetFilters]
         sortedFilters = sorted(filteredEdges, key=lambda t: self.sortFunc(t[1]), reverse=True)
 
@@ -1029,6 +1141,7 @@ class ChoiceSet(object):
 class TooFewFriendsError(Exception):
     """Too few friends found in picking best choice set filter"""
     pass
+
 
 class CDFProbsError(Exception):
     """CDF defined by provided experimental probabilities is not well-defined"""
