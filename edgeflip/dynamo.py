@@ -146,7 +146,7 @@ def epoch_to_date(epoch):
 
 def epoch_now():
     """return the current UTC time as seconds since the epoch"""
-    return time.mktime(time.gmtime())
+    return datetime_to_epoch(datetime.datetime.now())
 
 def _remove_none_values(d):
     """Modify a dict in place by deleting items having None for value. for internal use"""
@@ -223,6 +223,20 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
             if k != 'fbid':
                 user[k] = v
         return user.partial_save()
+
+def save_many_users(users):
+    """save many users to Dynamo as a batch, overwriting existing rows.
+
+    :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
+    """
+    updated = epoch_now()
+    table = get_table('users')
+    with table.batch_write() as batch:
+        for d in users:
+            d['birthday'] = date_to_epoch(d['birthday']) if d['birthday'] is not None else None
+            d['updated'] = updated
+            _remove_none_values(d)
+            batch.put_item(data = d)
 
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
@@ -373,6 +387,22 @@ def save_edge(fbid_source, fbid_target, **kwargs):
     save_incoming_edge(fbid_source, fbid_target, **kwargs)
     save_outgoing_edge(fbid_source, fbid_target)
 
+def save_many_edges(edges):
+    """save many edges to dynamo in a batch, overwriting.
+
+    YMMV for consistency
+
+    :arg dicts edges: iterable of dicts describing edges. Keys should be as for `save_edge`.
+    """
+    updated = epoch_now()
+    incoming = get_table('edges_incoming')
+    outgoing = get_table('edges_outgoing')
+
+    with incoming.batch_write() as inc, outgoing.batch_write() as out:
+        for e in edges:
+            e['updated'] = updated
+            inc.put_item(data = e)
+            out.put_item(data = {'fbid_source': e['fbid_source'], 'fbid_target': e['fbid_target'], 'updated': updated})
 
 def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
     """save an incoming edge and its attributes to dynamo, updating.
