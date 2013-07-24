@@ -22,13 +22,13 @@ def build_all(deps='1', env=None, schema=None):
     This step may be excluded, on platforms which don't require this or which
     don't provide APT, by supplying argument "deps":
 
-        build:deps=[0|no|n]
+        build:deps=[false|0|no|n]
 
     Otherwise, the following tasks are executed:
 
         virtualenv
         install
-        `pip install -U distribute` (upgrade distribute)
+        update-distribute
         requirements
         db
 
@@ -46,19 +46,17 @@ def build_all(deps='1', env=None, schema=None):
         fab.execute(install_deps)
 
     # virtualenv
-    result = fab.execute(make_virtualenv, name=env)
-    env, = result.values()
+    fab.execute(make_virtualenv, name=env)
 
     # install
-    fab.execute(install_project, env=env) # TODO: remove pending Django
+    fab.execute(install_project) # TODO: remove pending Django
 
-    # Needed as long as Ubuntu's version causes us trouble:
-    with workon(env):
-        with fab.lcd(BASEDIR):
-            l('pip install -U distribute')
+    # update-distribute
+    # (Needed as long as Flask requires a higher version than Ubuntu provides):
+    fab.execute(update_distribute)
 
     # requirements
-    fab.execute(install_reqs, env=env)
+    fab.execute(install_reqs)
 
     # db
     fab.execute(setup_db, schema=schema)
@@ -104,6 +102,13 @@ def make_virtualenv(name=None):
     '''.format(name), shell='/bin/bash')
     fab.env.virtualenv = name
     return name
+
+
+@fab.task(name='update-distribute')
+def update_distribute(env=None):
+    """Update an installation of distibute"""
+    with workon(env):
+        l('pip install -U distribute')
 
 
 @fab.task(name='install')

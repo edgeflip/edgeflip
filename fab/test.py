@@ -20,7 +20,7 @@ def test(*args, **kws):
     """
     flags = {'config': 'nose.cfg'}
     flags.update(kws)
-    with workon(fab.env.get('virtualenv')):
+    with workon():
         with fab.lcd(BASEDIR):
             l('nosetests edgeflip/tests {args} {flags}'.format(
                 args=' '.join('--' + arg for arg in args),
