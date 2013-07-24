@@ -12,11 +12,6 @@
 
     {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
-{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />#}
-{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />#}
-{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />#}
-{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />#}
-    <!-- edgeflip stylesheets -->
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client.css')}}" />
     <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client_simp.css')}}" />
 
@@ -56,7 +51,7 @@
     <!-- edgeflip javascript -->
     <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
     <script src="{{ url_for('static', filename='url_params.js') }}"></script>
-    <script src="{{ url_for('static', filename='load_and_login.js') }}"></script>
+    <script src="{{ url_for('static', filename='load_and_login.js') }}?version={{ app_version }}"></script>
     <SCRIPT>
 //        imgsToLoad = [    "{{ url_for('static', filename='aniprogress.gif') }}" ];
 //        preload(imgsToLoad);
@@ -103,14 +98,11 @@
 
 <div id="fb-root"></div>
 <script type="text/javascript">
-
-    console.log("zzz ehllo 1");
-
+    
     /* standard facebook workflow */
 
     window.fbAsyncInit = function() {
 
-        console.log("zzz ehllo 2.1");
 
         FB.init({ appId: '{{ fbParams.fb_app_id }}', //change the appId to your appId
             status: true, 
@@ -118,62 +110,27 @@
             xfbml: true,
             oauth: true});
 
-        console.log("zzz ehllo 2.2");
-
         FB.Event.subscribe('auth.statusChange', function(response) {
-
-            console.log("zzz ehllo 3");
-
             if (response.status === 'connected') {
                 var uid = response.authResponse.userID;
                 var tok = response.authResponse.accessToken;
-
-                console.log("zzz ehllo 3.11");
-
-                login(uid, tok, response);
-
-                console.log("zzz ehllo 3.12");
-
+                login(uid, tok, response, null);
             } else {
                 // User isn't logged in or hasn't authed, so try doing the login directly
                 // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-
-                console.log("zzz ehllo 3.21");
-
                 doFBLogin();
-
-                console.log("zzz ehllo 3.22");
-
             }
         });
 
-        console.log("zzz ehllo 4");
-
     }; // fbAsyncInit
 
-    console.log("zzz ehllo 5");
-
     (function() {
-        console.log("zzz ehllo 6");
-
         var e = document.createElement('script'); e.async = true;
-
-        console.log("zzz ehllo 6.1");
-
         e.src = document.location.protocol 
             + '//connect.facebook.net/en_US/all.js';
-
-        console.log("zzz ehllo 6.2");
-
         document.getElementById('fb-root').appendChild(e);
-
-        console.log("zzz ehllo 6.3");
-
     }());
-
-    console.log("zzz ehllo 7");
-
-
+        
 </script>
 
 </BODY>

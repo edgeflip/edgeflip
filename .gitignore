@@ -9,6 +9,7 @@ edgeflip/web/templates/clients/local/*
 *.wpr
 *.wpu
 *.pickle
+*.swp
 .coverage
 /htmlcov/*
 /doc/_build/*
@@ -18,3 +19,4 @@ edgeflip/web/templates/clients/local/*
 *.sublime-workspace
 *.idea
 ssl
+edgeflip.egg-info
