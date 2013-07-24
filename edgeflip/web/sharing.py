@@ -15,6 +15,7 @@ from .. import facebook
 from .. import mock_facebook
 from .. import database_compat as database
 from .. import datastructs
+from .. import dynamo
 from .. import client_db_tools as cdb
 from edgeflip import tasks, celery
 
@@ -558,6 +559,15 @@ def health_check():
             components['facebook'] = True
     except:
         # xxx do something more intelligent here?
+        raise
+
+    # make sure we can talk to dynamo
+    try:
+        users = dynamo.get_table('users')
+        if users.describe():
+            components['dynamo'] = True
+    else:
+        # xxx do something smarter?
         raise
 
     return flask.jsonify(components)
