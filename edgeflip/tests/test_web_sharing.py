@@ -85,13 +85,17 @@ class TestWebSharing(EdgeFlipTestCase):
         assert data['px3_task_id']
         assert data['px4_task_id']
 
-    def test_health_check(self):
+    @patch('edgeflip.facebook.getUrlFb')
+    def test_health_check(self, urlfb_mock):
         ''' Tests the health check endpoint, which returns a JSON dict of statuses.
         '''
+        urlfb_mock.return_value = {'id': 6963}
+
         response = self.app.get('/health_check')
         data = json.loads(response.data)
         self.assertDictEqual(data, {"dynamo": True, "facebook": True,
                                     "database": True })
+
     def test_health_check_elb(self):
         ''' Tests the health check endpoint like ELB for 200 return code '''
         response = self.app.get('/health_check?elb')
