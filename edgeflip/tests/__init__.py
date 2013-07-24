@@ -6,11 +6,11 @@ from subprocess import call, PIPE
 from edgeflip.web import getApp
 from edgeflip.settings import config
 from edgeflip import database
+from edgeflip import dynamo
 from edgeflip.celery import celery
 
 APP = getApp()
 FILE_ROOT = os.path.dirname(__file__)
-
 
 def setUp(self):
     ''' Package level setUp method. This should only handle items that need
@@ -39,7 +39,6 @@ def setUp(self):
         FILE_ROOT
     ), shell=True)
 
-
 def tearDown(self):
     ''' Package level tearDown method. This will run after all of the tests
     in the given suite have ran.
@@ -48,7 +47,6 @@ def tearDown(self):
         '/usr/bin/mysqladmin -f drop edgeflip_test',
         shell=True, stderr=PIPE, stdout=PIPE
     )
-
 
 class EdgeFlipTestCase(unittest.TestCase):
     ''' The start of our base testing class '''
@@ -93,8 +91,18 @@ class EdgeFlipTestCase(unittest.TestCase):
         self.getConn = database.getConn
         database.getConn = db_mock
 
+        # create dynamo tables
+        self.orig_dynamo_prefix = config.dynamo.prefix
+        config.dynamo.prefix = 'edgeflip_test'
+        dynamo.drop_all_tables() # drop if exist
+        dynamo.create_all_tables()
+
     def tearDown(self):
         ''' Be a good neighbor, clean up after yourself. '''
+        # drop dynamo tables
+        dynamo.drop_all_tables()
+        config.dynamo.prefix = self.orig_dynamo_prefix
+
         # Return the commit function and rollback our open transaction
         self.conn.commit = self.orig_commit
         self.conn.rollback()
