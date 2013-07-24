@@ -566,7 +566,7 @@ def health_check():
         users = dynamo.get_table('users')
         if users.describe():
             components['dynamo'] = True
-    else:
+    except:
         # xxx do something smarter?
         raise
 
