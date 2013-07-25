@@ -62,7 +62,6 @@ def button(campaignId, contentId):
     # Get button style experiments (if any), do assignment (and write DB)
     styleTemplate = None
     try:
-        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         styleRecs = cdb.dbGetExperimentTupes('campaign_button_styles', 'campaign_button_style_id', 'button_style_id', [('campaign_id', campaignId)])
         styleExpTupes = [(r[1], r[2]) for r in styleRecs]
         styleId = int(cdb.doRandAssign(styleExpTupes))

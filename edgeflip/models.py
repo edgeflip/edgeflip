@@ -446,8 +446,8 @@ class Event(models.Model):
 
     event_id = models.AutoField(primary_key=True)
     session_id = models.CharField(max_length=128)
-    campaign = models.ForeignKey('Campaign')
-    content = models.ForeignKey('ClientContent')
+    campaign = models.ForeignKey('Campaign', null=True)
+    client_content = models.ForeignKey('ClientContent', db_column='client_id')
     ip = models.CharField(max_length=32)
     fbid = models.BigIntegerField()
     friend_fbid = models.BigIntegerField()
