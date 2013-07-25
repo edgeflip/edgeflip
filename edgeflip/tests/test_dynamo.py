@@ -131,4 +131,45 @@ class DynamoUserTestCase(EdgeFlipTestCase):
                 self.assertEqual(v, getattr(u, k))
 
 
+@freeze_time('2013-01-01')
+class DynamoTokenTestCase(EdgeFlipTestCase):
 
+    expiry = datetime.datetime(2014, 01, 01)
+
+    def save_token(self):
+        """helper to save a single token, DECAFBAD"""
+        dynamo.save_token(1234, 666, 'DECAFBAD', self.expiry)
+
+    def test_save_token(self):
+        """Test saving a new token"""
+        self.save_token()
+
+        table = dynamo.get_table('tokens')
+        x = table.get_item(fbid=1234, appid=666)
+        self.assertEqual(x['fbid'], 1234)
+        self.assertEqual(x['appid'], 666)
+        self.assertEqual(x['token'], 'DECAFBAD')
+        self.assertEqual(x['expires'], dynamo.datetime_to_epoch(self.expiry))
+
+    def test_save_token_update(self):
+        """Test updating a token - overwrites"""
+        self.save_token()
+
+        # update token
+        dynamo.save_token(1234, 666, 'FADEDCAB', self.expiry)
+
+        table = dynamo.get_table('tokens')
+        x = table.get_item(fbid=1234, appid=666)
+        self.assertEqual(x['token'], 'FADEDCAB')
+
+    def test_fetch_token(self):
+        """Test fetching an existing token"""
+        self.save_token()
+
+        x = dynamo.fetch_token(1234, 666)
+        assert isinstance(x, datastructs.TokenInfo)
+
+        self.assertEqual(x.ownerId, 1234)
+        self.assertEqual(x.appId, 666)
+        self.assertEqual(x.tok, 'DECAFBAD')
+        self.assertEqual(x.expires, self.expiry)

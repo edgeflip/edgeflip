@@ -347,7 +347,7 @@ def _make_token(x):
     return datastructs.TokenInfo(tok = x['token'],
                                  own = int(x['fbid']),
                                  app = int(x['appid']),
-                                 expires=epoch_to_datetime(x['expires']))
+                                 exp=epoch_to_datetime(x['expires']))
 
 ##### EDGES #####
 
