@@ -206,7 +206,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     """
 
     updated = epoch_now()
-    birthday = date_to_epoch(birthday) if birthday is not None else None
+    birthday = date_to_epoch(birthday) if birthday else None
 
     data = locals()
     _remove_null_values(data)
@@ -234,7 +234,7 @@ def save_many_users(users):
     table = get_table('users')
     with table.batch_write() as batch:
         for d in users:
-            d['birthday'] = date_to_epoch(d['birthday']) if d['birthday'] is not None else None
+            d['birthday'] = date_to_epoch(d['birthday']) if d['birthday'] else None
             d['updated'] = updated
             _remove_null_values(d)
             batch.put_item(data = d)
