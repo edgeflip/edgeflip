@@ -11,7 +11,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
 2. Install minimal developer tools, git and Fabric:
 
-    $ `sudo apt-get install git python-pip`
+    $ `sudo apt-get install git python-pip`  
     $ `sudo pip install Fabric>=1.6`
 
 3. Check out the repo: `git clone https://github.com/edgeflip/edgeflip.git`
