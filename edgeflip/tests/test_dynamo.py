@@ -32,7 +32,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def save_alice(self):
         """helper to save a single user alice"""
-        dynamo.save_user(1234, 'Alice', 'Apples', 'alice@example.com', 'Female', datetime.date(1950, 1, 1), None, None)
+        dynamo.save_user(1234, 'Alice', 'Apples', 'alice@example.com', 'Female', datetime.date(1950, 1, 1), None, '')
 
     def test_save_user_new(self):
         """Test saving a new user"""
@@ -45,6 +45,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         self.assertEqual(x['birthday'], -631130400)
         self.assertEqual(x['updated'], 1357020000)
         self.assertIsNone(x['city'])
+        self.assertIsNone(x['state'])
 
     def test_save_user_update(self):
         """Test updating an existing user"""
@@ -57,7 +58,6 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         x = table.get_item(fbid=1234)
         self.assertEqual(x['fname'], 'Alice')
         self.assertEqual(x['fbid'], 1234)
-        self.assertEqual(x['birthday'], -631130400)
-        self.assertEqual(x['updated'], 1357020000)
         self.assertEqual(x['city'], 'Anchorage')
         self.assertEqual(x['state'], 'AK')
+

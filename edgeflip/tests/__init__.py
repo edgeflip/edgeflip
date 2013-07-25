@@ -79,6 +79,7 @@ class EdgeFlipTestCase(unittest.TestCase):
         self.orig_dbuser = config.dbuser
         config.dbname = 'edgeflip_test'
         config.dbuser = 'edgeflip_test'
+        config.dbpass = 'mysql'
 
         # Prevent commits to the database
         self.conn = database.getConn()
