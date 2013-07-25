@@ -138,14 +138,15 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            (self.test_filter, [self.test_edge]),
-            self.test_cs,
-            [1, 'all'],
+            cdb.TieredEdges('campaignId', 1, [self.test_edge]),
+            self.test_filter.filterId,
+            self.test_filter.urlSlug,
             1,
             1
         )
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
+        px4_result_mock.successful.return_value = False
         async_mock = Mock()
         async_mock.side_effect = [
             px3_result_mock,
@@ -169,14 +170,15 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            (self.test_filter, [self.test_edge]),
-            self.test_cs,
-            [1, 'all'],
+            cdb.TieredEdges('campaignId', 1, [self.test_edge]),
+            self.test_filter.filterId,
+            self.test_filter.urlSlug,
             1,
-            1,
+            1
         )
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = True
+        px4_result_mock.successful.return_value = True
         px4_result_mock.result = [self.test_edge]
         async_mock = Mock()
         async_mock.side_effect = [
