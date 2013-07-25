@@ -24,6 +24,7 @@ import threading
 import flask
 import pymlconf
 import time
+import types
 import datetime
 from itertools import imap, chain
 
@@ -147,10 +148,11 @@ def epoch_now():
     """return the current UTC time as seconds since the epoch"""
     return datetime_to_epoch(datetime.datetime.now())
 
-def _remove_none_values(d):
-    """Modify a dict in place by deleting items having None for value. for internal use"""
+def _remove_null_values(d):
+    """Modify a dict in place by deleting items having null-ish values. for internal use"""
     for k, v in d.items():
-        if v is None:
+        if isinstance(v, (basestring, set, tuple, list, dict,
+                          types.NoneType)) and not v:
             del d[k]
 
 def create_table(**schema):
@@ -207,7 +209,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     birthday = date_to_epoch(birthday) if birthday is not None else None
 
     data = locals()
-    _remove_none_values(data)
+    _remove_null_values(data)
 
     table = get_table('users')
     user = table.get_item(fbid=fbid)
@@ -234,7 +236,7 @@ def save_many_users(users):
         for d in users:
             d['birthday'] = date_to_epoch(d['birthday']) if d['birthday'] is not None else None
             d['updated'] = updated
-            _remove_none_values(d)
+            _remove_null_values(d)
             batch.put_item(data = d)
 
 def fetch_user(fbid):
@@ -413,7 +415,7 @@ def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_li
     """
     updated = epoch_now()
     data = locals()
-    _remove_none_values(data)
+    _remove_null_values(data)
 
     t = 'edges_incoming'
     table = get_table(t)
