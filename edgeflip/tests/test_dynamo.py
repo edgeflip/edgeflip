@@ -1,4 +1,5 @@
 import datetime
+import types
 from freezegun import freeze_time
 
 from edgeflip.tests import EdgeFlipTestCase
@@ -30,8 +31,9 @@ def test_remove_null_values():
 @freeze_time('2013-01-01')
 class DynamoUserTestCase(EdgeFlipTestCase):
 
-    # some user dicts. map of fbid => dict of user data
-    everyone = {u['fbid']: u for u in
+    def everyone(self):
+        # some user dicts. map of fbid => dict of user data
+        return {u['fbid']: u for u in
                 [
                     dict(fbid=1234, fname='Alice', lname='Apples', email='alice@example.com',
                          gender='Female', birthday=datetime.date(1950, 1, 1), city=None, state=''),
@@ -94,16 +96,39 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def test_save_many_users(self):
         """Test saving many users"""
-        dynamo.save_many_users(self.everyone.values())
+        dynamo.save_many_users(self.everyone().values())
         table = dynamo.get_table('users')
 
-        results = list(table.batch_get(keys=[{'fbid':k} for k in self.everyone.keys()]))
-        self.assertItemsEqual([x['fbid'] for x in results], self.everyone.keys())
+        results = list(table.batch_get(keys=[{'fbid':k} for k in self.everyone().keys()]))
+        self.assertItemsEqual([x['fbid'] for x in results], self.everyone().keys())
 
         for x in results:
             d = dict(x.items())
-            u = self.everyone.get(x['fbid']).copy()
-            dynamo._remove_null_values(u)
-            self.assertDictEqual(d, u)
+            user = self.everyone().get(x['fbid']).copy()
+            dynamo._remove_null_values(user)
+
+            # munge the raw dict from dynamo in a compatible way
+            assert 'updated' in d
+            del d['updated']
+            d['fbid'] = int(d['fbid'])
+            if 'birthday' in d:
+                d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+
+            self.assertDictEqual(user, d)
+
+    def test_fetch_many_users(self):
+        """Test fetching many users"""
+        dynamo.save_many_users(self.everyone().values())
+        users = list(dynamo.fetch_many_users(self.everyone().keys()))
+        for u in users:
+            self.assertIsInstance(u, datastructs.UserInfo)
+            d = self.everyone()[u.id].copy()
+            d['id'] = d.pop('fbid')
+            for k, v in d.iteritems():
+                if isinstance(v, (types.NoneType, basestring, set, list, tuple)) and not v:
+                    v = None
+
+                self.assertEqual(v, getattr(u, k))
+
 
 

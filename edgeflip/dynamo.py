@@ -130,19 +130,19 @@ def get_table(name):
 
 def datetime_to_epoch(dt):
     """given a datetime, return seconds since the epoch"""
-    return time.mktime(dt.utctimetuple())
+    return time.mktime(dt.utctimetuple()) if dt is not None else None
 
 def epoch_to_datetime(epoch):
     """given seconds since the epoch, return a datetime"""
-    return datetime.datetime.fromtimestamp(epoch)
+    return datetime.datetime.fromtimestamp(epoch) if epoch is not None else None
 
 def date_to_epoch(d):
     """given a date, return seconds since the epoch"""
-    return time.mktime(d.timetuple())
+    return time.mktime(d.timetuple()) if d is not None else None
 
 def epoch_to_date(epoch):
     """given seconds since the epoch, return a date"""
-    return datetime.date.fromtimestamp(epoch)
+    return datetime.date.fromtimestamp(epoch) if epoch is not None else None
 
 def epoch_now():
     """return the current UTC time as seconds since the epoch"""
@@ -206,7 +206,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
     """
 
     updated = epoch_now()
-    birthday = date_to_epoch(birthday) if birthday else None
+    birthday = date_to_epoch(birthday)
 
     data = locals()
     _remove_null_values(data)
@@ -228,13 +228,15 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state):
 def save_many_users(users):
     """save many users to Dynamo as a batch, overwriting existing rows.
 
+    This modifies dicts passed in.
+
     :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
     """
     updated = epoch_now()
     table = get_table('users')
     with table.batch_write() as batch:
         for d in users:
-            d['birthday'] = date_to_epoch(d['birthday']) if d['birthday'] else None
+            d['birthday'] = date_to_epoch(d.get('birthday'))
             d['updated'] = updated
             _remove_null_values(d)
             batch.put_item(data = d)
@@ -273,7 +275,7 @@ def _make_user(x):
                              last_name=x['lname'],
                              email=x['email'],
                              sex=x['gender'], # XXX aaah!
-                             birthday=epoch_to_date(x['birthday']) if x['birthday'] is not None else None,
+                             birthday=epoch_to_date(x['birthday']),
                              city=x['city'],
                              state=x['state'])
 
@@ -391,7 +393,7 @@ def save_edge(fbid_source, fbid_target, **kwargs):
 def save_many_edges(edges):
     """save many edges to dynamo in a batch, overwriting.
 
-    YMMV for consistency
+    YMMV for consistency. This modifies dicts passed in.
 
     :arg dicts edges: iterable of dicts describing edges. Keys should be as for `save_edge`.
     """
