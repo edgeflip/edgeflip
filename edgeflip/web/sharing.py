@@ -174,8 +174,8 @@ def faces():
         px4_result = celery.celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.successful() else []
-            edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
-            if not all([edgesRanked, bestCSFilter, choiceSet]):
+            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result
+            if not all([edgesRanked, edgesFiltered]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
             if last_call and not px3_result.ready():
@@ -224,59 +224,40 @@ def faces():
     # though we already have them in the DB associated with someone else)
     cdb.dbWriteUserClient(fbid, clientId, background=config.database.use_threads)
     if px4_edges:
-        filtered_px4_edges = []
-        filtered_px3_edge_ids = [x.secondary.id for x in bestCSFilter[1]]
-        for edge in px4_edges:
-            if edge.secondary.id in filtered_px3_edge_ids:
-                filtered_px4_edges.append(edge)
+        edgesFiltered.rerankEdges(px4_edges)
 
-        bestCSFilter = (bestCSFilter[0], filtered_px4_edges)
-
-    return applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
-                         clientSubdomain, campaignId, contentId,
-                         sessionId, ip, fbid, numFace, paramsDB)
+    return applyCampaign(
+        edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
+        clientSubdomain, campaignId, contentId, sessionId, ip,
+        fbid, numFace, paramsDB
+    )
 
 
-def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
+def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
                   clientSubdomain, campaignId, contentId, sessionId,
                   ip, fbid, numFace, paramsDB):
     ''' Receives the filtered edges, the filters used, and all the necessary
     information needed to record the campaign assignment.
     '''
-    friendDicts = [e.toDict() for e in bestCSFilter[1]]
-    faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
-    allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    pickDicts = [e.toDict() for e in edgesRanked] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
+    MAX_FACES = 50  # Totally arbitrary number to avoid going too far down the list.
 
-    choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
+    # FIXME: edgesRanked is actually just px3 ranked right now!
+    friendDicts = [e.toDict() for e in edgesFiltered.edges()]
+    faceFriends = friendDicts[:numFace]            # The first set to be shown as faces
+    allFriends = friendDicts[:MAX_FACES]           # Anyone who we might show as a face.
+    pickDicts = [e.toDict() for e in edgesRanked]  # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
 
     fbObjectTable = 'campaign_fb_objects'
     fbObjectIdx = 'campaign_fb_object_id'
     fbObjectKeys = [('campaign_id', campaignId)]
-    if (bestCSFilter[0] is None):
+    if (bestCSFilterId is None):
         # We got generic...
-        logger.debug("Generic returned for %s with campaign %s." % (
-            fbid, campaignId
-        ))
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId,
-            'generic choice set filter', None, False,
-            'choice_set_filters',
-            [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
-            background=config.database.use_threads
-        )
-        fbObjectTable = 'campaign_fb_objects'
-        fbObjectIdx = 'campaign_fb_object_id'
+        fbObjectTable = 'campaign_generic_fb_objects'
+        fbObjectIdx = 'campaign_generic_fb_object_id'
     else:
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId, 'filter_id',
-            bestCSFilter[0].filterId, False, 'choice_set_filters',
-            [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
-            background=config.database.use_threads
-        )
         fbObjectKeys = [
             ('campaign_id', campaignId),
-            ('filter_id', bestCSFilter[0].filterId)
+            ('filter_id', bestCSFilterId)
         ]
 
     # Get FB Object experiments, do assignment (and write DB)
@@ -328,7 +309,33 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
     if (not sessionId):
         sessionId = generateSessionId(ip, content)
 
-    database.writeEventsDb(sessionId, campaignId, contentId, ip, fbid, [f['id'] for f in faceFriends], 'shown', actionParams['fb_app_id'], content, None, background=config.database.use_threads)
+    # Write "generated" events to the DB for all the friends that
+    # could get shown to track which campaign they were generated
+    # under. In the case of cascading fallbacks, this could actually
+    # differ from the final campaign used for the shown/shared events.
+    numGen = MAX_FACES
+    for campaignId, edges_list in edgesFiltered.tiers:
+        if len(edges_list) > numGen:
+            edges_list = edges_list[:numGen]
+
+        if (edges_list):
+            database.writeEventsDb(
+                sessionId, campaignId, contentId, ip, fbid,
+                [e.secondary.id for e in edges_list], 'generated',
+                actionParams['fb_app_id'], content, None,
+                background=config.database.use_threads
+            )
+            numGen = numGen - len(edges_list)
+
+        if (numGen <= 0):
+            break
+
+    database.writeEventsDb(
+        sessionId, campaignId, contentId, ip, fbid,
+        [f['id'] for f in faceFriends], 'shown',
+        actionParams['fb_app_id'], content, None,
+        background=config.database.use_threads
+    )
 
     return ajaxResponse(
         json.dumps({
