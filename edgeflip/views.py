@@ -367,3 +367,44 @@ def objects(request, fb_object_id, content_id):
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, acvitiy_id=None
         )
+
+    return render(request, 'fb_object.html', {
+        'fb_params': obj_params,
+        'reidrect_url': redirect_url,
+        'content': content
+    })
+
+
+@require_POST()
+def suppress(request):
+    pass
+
+
+def canvas(request):
+
+    return render(request, 'canvas.html')
+
+
+def health_check(request):
+
+    if 'elb' in request.GET:
+        return HttpResponse("It's Alive!", status=200)
+
+    components = {
+        'database': False,
+        'facebook': False
+    }
+    try:
+        components['database'] = models.Client.objects.exists()
+    except:
+        raise
+
+    try:
+        fb_resp = facebook.getUrlFB("http://graph.facebook.com/6963")
+        components['facebook'] = int(fb_resp['id']) == 6963
+    except:
+        raise
+
+    return HttpResponse(
+        json.dumps(components), content_type='application/json'
+    )
