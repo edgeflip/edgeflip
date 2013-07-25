@@ -103,6 +103,15 @@ def frame_faces(campaignId, contentId):
     except ValueError:
         return "Content not found", 404     # Better fallback here or something?
 
+    test_mode = False
+    test_fbid = test_token = None
+    if 'test_mode' in flask.request.args:
+        test_mode = True
+        if 'fbid' not in flask.request.args or 'token' not in flask.request.args:
+            return "Test mode requires an ID and Token", 400
+        test_fbid = int(flask.request.args['fbid'])
+        test_token = flask.request.args['token']
+
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
@@ -116,6 +125,9 @@ def frame_faces(campaignId, contentId):
         thanksURL=thanksURL,
         errorURL=errorURL,
         app_version=config.app_version,
+        test_mode=test_mode,
+        test_fbid=test_fbid,
+        test_token=test_token
     )
 
 

@@ -52,7 +52,11 @@
     <!-- edgeflip javascript -->
     <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
     <script src="{{ url_for('static', filename='url_params.js') }}"></script>
+    {% if test_mode %}
+    <script src="{{ url_for('static', filename='load_and_login_test.js') }}?version={{ app_version }}"></script>
+    {% else %}
     <script src="{{ url_for('static', filename='load_and_login.js') }}?version={{ app_version }}"></script>
+    {% endif %}
     <SCRIPT>
 //        imgsToLoad = [    "{{ url_for('static', filename='aniprogress.gif') }}" ];
 //        preload(imgsToLoad);
@@ -67,6 +71,11 @@
 
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
+
+        {% if test_mode %}
+        var test_fbid = {{ test_fbid }};
+        var test_token = '{{ test_token }}';
+        {% endif %}
 
         //zzz Passing these through "safe" probably isn't ideal since it came
         //    from something a client entered in the control panel, but right
