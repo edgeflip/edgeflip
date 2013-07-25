@@ -32,7 +32,7 @@ def test_remove_null_values():
 class DynamoUserTestCase(EdgeFlipTestCase):
 
     def everyone(self):
-        # some user dicts. map of fbid => dict of user data
+        """helper that returns some user dicts. map of fbid => dict of user data"""
         return {u['fbid']: u for u in
                 [
                     dict(fbid=1234, fname='Alice', lname='Apples', email='alice@example.com',
@@ -104,7 +104,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
         for x in results:
             d = dict(x.items())
-            user = self.everyone().get(x['fbid']).copy()
+            user = self.everyone().get(x['fbid'])
             dynamo._remove_null_values(user)
 
             # munge the raw dict from dynamo in a compatible way
@@ -122,7 +122,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         users = list(dynamo.fetch_many_users(self.everyone().keys()))
         for u in users:
             self.assertIsInstance(u, datastructs.UserInfo)
-            d = self.everyone()[u.id].copy()
+            d = self.everyone()[u.id]
             d['id'] = d.pop('fbid')
             for k, v in d.iteritems():
                 if isinstance(v, (types.NoneType, basestring, set, list, tuple)) and not v:
@@ -135,6 +135,21 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 class DynamoTokenTestCase(EdgeFlipTestCase):
 
     expiry = datetime.datetime(2014, 01, 01)
+
+    def tokens(self):
+        """helper that returns some tokens data, keyed by (fbid, appid)"""
+        return {(x['fbid'], x['appid']): x for x in
+                [
+                    dict(fbid=1234, appid=666, token="FOOD1111",
+                         expires=datetime.datetime(2014, 01, 01)),
+
+                    dict(fbid=1234, appid=42, token="FOOD2222",
+                         expires=datetime.datetime(2014, 02, 02)),
+
+                    dict(fbid=5678, appid=666, token="FOOD5555",
+                         expires=datetime.datetime(2014, 02, 02)),
+
+                ]}
 
     def save_token(self):
         """helper to save a single token, DECAFBAD"""
@@ -150,6 +165,7 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         self.assertEqual(x['appid'], 666)
         self.assertEqual(x['token'], 'DECAFBAD')
         self.assertEqual(x['expires'], dynamo.datetime_to_epoch(self.expiry))
+        assert 'updated' in x
 
     def test_save_token_update(self):
         """Test updating a token - overwrites"""
@@ -173,3 +189,23 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         self.assertEqual(x.appId, 666)
         self.assertEqual(x.tok, 'DECAFBAD')
         self.assertEqual(x.expires, self.expiry)
+
+
+    def test_fetch_many_tokens(self):
+        """Test fetching many tokens"""
+
+        for d in self.tokens().values():
+            dynamo.save_token(**d)
+
+        tokens = list(dynamo.fetch_many_tokens(self.tokens().keys()))
+
+        for t in tokens:
+            assert isinstance(t, datastructs.TokenInfo)
+            # munge to attributes of a TokenInfo
+            d = self.tokens()[(t.ownerId, t.appId)]
+            d['ownerId'] = d.pop('fbid')
+            d['appId'] = d.pop('appid')
+            d['tok'] = d.pop('token')
+
+            for k, v in d.iteritems():
+                self.assertEqual(v, getattr(t, k))
