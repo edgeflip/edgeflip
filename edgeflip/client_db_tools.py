@@ -962,7 +962,7 @@ def civisFilter(edges, feature, operator, score_value):
         user_dict['city'] = unidecode(user.city)
         user_dict['first_name'] = user.fname
         user_dict['last_name'] = user.lname
-        people_dict[user.id] = user_dict
+        people_dict['people'][user.id] = user_dict
 
     try:
         cm = matcher.CivisMatcher()
