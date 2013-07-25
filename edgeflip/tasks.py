@@ -66,7 +66,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     in the past.
     '''
 
-    alreadyPicked = alreadyPicked if alreadyPicked else cdb.TieredEdges(tier_type='campaignId')
+    alreadyPicked = alreadyPicked if alreadyPicked else cdb.TieredEdges()
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
@@ -140,7 +140,17 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             filteredEdges, useGeneric=allowGeneric[0],
             minFriends=minFriends, eligibleProportion=1.0
         )
-        alreadyPicked.appendTier(campaignId, bestCSFilter[1])
+
+        choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
+        bestCSFilterId = bestCSFilter[0].filterId if bestCSFilter[0] else None
+
+        alreadyPicked.appendTier(
+            edges=bestCSFilter[1],
+            bestCSFilterId=bestCSFilterId,
+            choiceSetSlug=choiceSetSlug,
+            campaignId=campaignId,
+            contentId=contentId
+        )
     except cdb.TooFewFriendsError as e:
         logger.info(
             "Too few friends found for %s with campaign %s. Checking for fallback.",
@@ -248,13 +258,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     else:
         # We're done cascading and have enough friends, so time to return!
 
-        choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
-        bestCSFilterId = bestCSFilter[0].filterId if bestCSFilter[0] else None
+        # Might have cascaded beyond the point of having new friends to add,
+        # so pick up various return values from the last tier with friends.
+        last_tier = alreadyPicked.tiers[-1]
 
         return (
             edgesRanked, alreadyPicked,
-            bestCSFilterId, choiceSetSlug,
-            campaignId, contentId
+            last_tier['bestCSFilterId'], last_tier['choiceSetSlug'],
+            last_tier['campaignId'], last_tier['contentId']
         )
 
 

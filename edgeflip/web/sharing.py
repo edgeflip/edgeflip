@@ -314,13 +314,17 @@ def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
     # under. In the case of cascading fallbacks, this could actually
     # differ from the final campaign used for the shown/shared events.
     numGen = MAX_FACES
-    for campaignId, edges_list in edgesFiltered.tiers:
+    for tier in edgesFiltered.tiers:
+        edges_list = tier['edges'][:]
+        tier_campaignId = tier['campaignId']
+        tier_contentId = tier['contentId']
+
         if len(edges_list) > numGen:
             edges_list = edges_list[:numGen]
 
         if (edges_list):
             database.writeEventsDb(
-                sessionId, campaignId, contentId, ip, fbid,
+                sessionId, tier_campaignId, tier_contentId, ip, fbid,
                 [e.secondary.id for e in edges_list], 'generated',
                 actionParams['fb_app_id'], content, None,
                 background=config.database.use_threads
