@@ -52,11 +52,7 @@
     <!-- edgeflip javascript -->
     <script src="{{ url_for('static', filename='ie_fixes.js') }}"></script>
     <script src="{{ url_for('static', filename='url_params.js') }}"></script>
-    {% if test_mode %}
-    <script src="{{ url_for('static', filename='load_and_login_test.js') }}?version={{ app_version }}"></script>
-    {% else %}
     <script src="{{ url_for('static', filename='load_and_login.js') }}?version={{ app_version }}"></script>
-    {% endif %}
     <SCRIPT>
 //        imgsToLoad = [    "{{ url_for('static', filename='aniprogress.gif') }}" ];
 //        preload(imgsToLoad);
@@ -72,7 +68,9 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
+        var test_mode = false;
         {% if test_mode %}
+        test_mode = true;
         var test_fbid = {{ test_fbid }};
         var test_token = '{{ test_token }}';
         {% endif %}
