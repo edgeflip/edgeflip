@@ -72,7 +72,7 @@ config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
 
 try:
     git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
-    config.app_version = git_repo.describe()
+    config.app_version = git_repo.describe().strip()
 except:
     # This exception comes when celery starts up outside of the app's repo.
     # Catching that exception and setting a dummy value. Celery doesn't need
