@@ -116,5 +116,5 @@ class TestCeleryTasks(EdgeFlipTestCase):
         )
 
         self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
-        self.assertEquals(edges_filtered.tiers[0][0], 5)
-        self.assertEquals(edges_filtered.tiers[1][0], 4)
+        self.assertEquals(edges_filtered.tiers[0]['campaignId'], 5)
+        self.assertEquals(edges_filtered.tiers[1]['campaignId'], 4)
