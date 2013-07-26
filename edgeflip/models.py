@@ -284,15 +284,14 @@ class CampaignProperties(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
-    @property
-    def faces_url(self):
+    def faces_url(self, content_id):
         url = self.client_faces_url
         if (url.find('?') == -1):
             url += '?'
         else:
             url += '&'
 
-        slug = utils.encodeDES('%s/%s' % (self.campaign_id, self.content_id))
+        slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
 
         return url + 'efcmpgslug=' + str(slug)
 

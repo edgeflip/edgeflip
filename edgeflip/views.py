@@ -54,18 +54,22 @@ def button_encoded(request, campaign_slug):
 
 
 def button(request, campaign_id, content_id):
-    subdomain = 'fix this'
+    subdomain = request.get_host().split('.')[0]
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    client = campaign.client
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
     properties = campaign.campaignproperties_set.get()
-    faces_url = campaign.campaignproperties_set.get().faces_url
+    faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
     params_dict = {
-        'fb_app_name': properties.fb_app_name, 'fb_app_id': properties.fb_app_id
+        'fb_app_name': client.fb_app_name, 'fb_app_id': client.fb_app_id
     }
-    session_id = request.session.id
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+    session_id = request.session.session_key
 
     style_template = None
     try:
@@ -126,7 +130,7 @@ def frame_faces(request, campaign_id, content_id):
     })
 
 
-@require_POST()
+@require_POST
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
@@ -263,10 +267,6 @@ def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
             chosen_from_table='choice_set_filters',
             chosen_from_rows=[csf.choiceSetFilterId for csf in choice_set.choiceSetfilters]
         )
-        fb_object_keys = [
-            ('campaign_id', campaign.pk),
-            ('filter_id', best_cs_filter[0].filterId)
-        ]
 
     fb_object_recs = campaign.campaignfbobject_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
@@ -316,7 +316,14 @@ def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
     return HttpResponse(
         json.dumps({
             'status': 'success',
-            'html': '<h1>FIXME</h1>', # XXX: FIXME
+            'html': render(request, 'face_table.html', {
+                'all_friends': all_friends,
+                'msg_params': msg_params,
+                'action_params': action_params,
+                'face_friends': face_friends,
+                'pick_friends': pick_dicts,
+                'num_friends': num_face
+            }),
             'campaign': campaign,
             'content': content,
         }),
@@ -362,7 +369,7 @@ def objects(request, fb_object_id, content_id):
         )
     else:
         models.Event.objects.create(
-            session_id=session_id, campaign=None, content=content,
+            session_id=request.session.id, campaign=None, content=content,
             ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, acvitiy_id=None
@@ -375,9 +382,136 @@ def objects(request, fb_object_id, content_id):
     })
 
 
-@require_POST()
+@require_POST
 def suppress(request):
-    pass
+    user_id = request.POST.get('userid')
+    app_id = request.POST.get('appid')
+    campaign_id = request.POST.get('campaignid')
+    content_id = request.POST.get('contentid')
+    content = request.POST.get('content')
+    old_id = request.POST.get('oldid')
+    session_id = request.session.id
+    ip = 'fixme' # XXX: FIXME
+
+    new_id = request.POST.get('newid')
+    fname = request.POST.get('fname')
+    lname = request.POST.get('lname')
+
+    models.Event.objects.create(
+        session_id=session_id, campaign_id=campaign_id,
+        client_content_id=content_id, ip=ip, fbid=user_id,
+        friend_fbid=old_id, event_type='suppress',
+        app_id=app_id, content=content, activity_id=None
+    )
+    models.FaceExclusion.objects.create(
+        fbid=user_id, campaign_id=campaign_id,
+        content_id=content_id, friend_fbid=old_id,
+        reason='suppressed'
+    )
+
+    if new_id != '':
+        models.Event.objects.create(
+            session_id=session_id, campaign_id=campaign_id,
+            client_content_id=content_id, ip=ip, fbid=user_id,
+            friend_fbid=old_id, event_type="shown",
+            app_id=app_id, content=content, activity_id=None
+        )
+        return render(request, 'new_face.html', {
+            'id': new_id,
+            'fname': fname,
+            'lname': lname
+        })
+    else:
+        return HttpResponse()
+
+
+@require_POST
+def record_event(request):
+
+    user_id = request.POST.get('userid')
+    app_id = request.POST.get('appid')
+    campaign_id = request.POST.get('campaignid')
+    content_id = request.POST.get('contentid')
+    content = request.POST.get('content')
+    action_id = request.POST.get('actionid')
+    friends = [int(f) for f in request.POST.get('friends', [])]
+    event_type = request.POST.get('eventType')
+    session_id = request.session.id
+    ip = 'fixme' # XXX: FIXME
+
+    if (event_type not in [
+        'button_load', 'button_click', 'authorized', 'auth_fail',
+        'select_all_click', 'suggest_message_click',
+        'share_click', 'share_fail', 'shared', 'clickback'
+    ]):
+        return HttpResponseForbidden(
+            "Ah, ah, ah. You didn't say the magic word"
+        )
+
+    for friend in friends:
+        models.Event.objects.create(
+            session_id=session_id, campaign_id=campaign_id,
+            client_content_id=content_id, ip=ip, fbid=user_id,
+            friend_fbid=friend, event_type=event_type,
+            app_id=app_id, content=content, activity_id=action_id
+        )
+
+    if event_type == 'authorized':
+        tok = request.POST.get('token')
+        try:
+            client = models.Client.objects.get(
+                campaign__campaign_id=campaign_id)
+        except models.Client.DoesNotExist:
+            client = None
+
+        if client:
+            models.UserClient.objects.create(
+                fbid=user_id, client=client
+            )
+            user = datastructs.UserInfo(
+                user_id, None, None, None, None, None, None, None
+            )
+            token = datastructs.TokenInfo(
+                tok, user_id, int(app_id), datetime.datetime.now()
+            )
+            token = facebook.extendToken(user_id, token, int(app_id)) or token
+            models.Token.objects.filter(
+                fbid=user.id, app_id=token.appId, owner_id=token.ownerId,
+                token=token.tok
+            ).update(expires=token.expires)
+        else:
+            logger.error(
+                "Trying to write an authorization for fbid %s with "
+                "token %s for non-existent client", user_id, tok
+            )
+
+    if event_type == 'shared':
+        # If this was a share, write these friends to the exclusions table so
+        # we don't show them for the same content/campaign again
+        for friend in friends:
+            models.FaceExclusion.objects.create(
+                fbid=user_id, campaign_id=campaign_id,
+                content=content_id, friend_fbid=friend,
+                reason='shared'
+            )
+
+    error_msg = request.POST.get('errorMsg')
+    if error_msg:
+        # may want to push these to the DB at some point, but at least for now,
+        # dump them to the logs to ensure we keep the data.
+        logger.error(
+            'Front-end error encountered for user %s in session %s: %s',
+            user_id, request.session.id, error_msg
+        )
+
+    share_msg = request.POST.get('shareMsg')
+    if share_msg:
+        models.ShareMessage.objects.create(
+            activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
+            content_id=content_id, message=share_msg
+        )
+
+    return HttpResponse()
 
 
 def canvas(request):
@@ -400,7 +534,7 @@ def health_check(request):
         raise
 
     try:
-        fb_resp = facebook.getUrlFB("http://graph.facebook.com/6963")
+        fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
         components['facebook'] = int(fb_resp['id']) == 6963
     except:
         raise
