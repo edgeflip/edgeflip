@@ -16,7 +16,7 @@ newrelic==1.11.0.55
 pika==0.9.12
 pycrypto==2.6
 -e git+https://github.com/systemadev/pymlconf.git@c8447a5ef8a00ef5f450fc14f5d679d82c652ff5#egg=pymlconf-dev
--e git+https://github.com/edgeflip/civis_matcher.git#egg=civis_matcher-dev
+-e git+git@github.com:edgeflip/civis_matcher.git#egg=civis_matcher-dev
 pythoscope==0.4.3
 snakefood==1.4
 wsgiref==0.1.2
