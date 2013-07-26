@@ -41,7 +41,7 @@ function doFBLogin() {
 var pollingTimer;
 var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
-function login(fbid, accessToken, response, task_id){
+function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call){
     if (response.authResponse) {
         var num = 9;
         myfbid = fbid; // set the global variable for use elsewhere
@@ -50,21 +50,33 @@ function login(fbid, accessToken, response, task_id){
         var progress = $('#progress');
         var your_friends_div = $('#your-friends-here');
 
+        // In test mode, just use the provided test fbid & token for getting faces
+        // Note, however, that you're logged into facebook as you, so trying to
+        // share with someone else's friends is going to cause you trouble!
+        var ajax_fbid = fbid;
+        var ajax_token = accessToken;
+        if (test_mode) {
+            ajax_fbid = test_fbid;
+            ajax_token = test_token;
+        }
+
         var params = JSON.stringify({
-            fbid: fbid,
-            token: accessToken,
+            fbid: ajax_fbid,
+            token: ajax_token,
             num: num,
             sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,
             contentid: contentid,
-            task_id: task_id
+            px3_task_id: px3_task_id,
+            px4_task_id: px4_task_id,
+            last_call: last_call
         });
 
         $.ajax({
             type: "POST",
             url: '/faces',
             contentType: "application/json",
-            dataType: 'html',
+            dataType: 'json',
             data: params,
             error: function(jqXHR, textStatus, errorThrown) {
                 // your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
@@ -74,20 +86,25 @@ function login(fbid, accessToken, response, task_id){
                 commError();
             },
             success: function(data, textStatus, jqXHR) {
-                // Probably need to set the mimetype better on web.utils.ajaxResponse
-                // so that we don't have to parse out JSON ourselves. 
-                data = $.parseJSON(data);
+                campaignid = data.campaignid;
+                contentid = data.contentid;
+                var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                sessionid = header_efsid || sessionid;
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
                         if (pollingCount > 40) {
                             clearTimeout(pollingTimer);
-                            commError();
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                         } else {
                             pollingCount += 1;
-                            pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
+                            pollingTimer = setTimeout(function() {
+                                login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                            }, 500);
                         }
                     } else {
-                        pollingTimer = setTimeout(function() {login(fbid, accessToken, response, data.task_id)}, 500);
+                        pollingTimer = setTimeout(function() {
+                            login(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
+                        }, 500);
                     }
                 } else {
                     displayFriendDiv(data.html, jqXHR);
@@ -105,8 +122,6 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-    sessionid = header_efsid || sessionid;
 }
 
 function commError(){

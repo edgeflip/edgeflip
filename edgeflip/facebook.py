@@ -11,11 +11,13 @@ import threading
 import Queue
 from collections import defaultdict
 from contextlib import closing
+from math import ceil
 
 from . import datastructs
 from .settings import config
 
 logger = logging.getLogger(__name__)
+
 
 class STREAMTYPE:
     """bag of facebook codes"""
@@ -44,20 +46,21 @@ FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FR
 FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != "+str(STREAMTYPE.STATUS_UPDATE)+" AND actor_id != %s"
+FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + " AND actor_id != %s"
 FQL_WALL_COMMS = "SELECT actor_id FROM %s WHERE post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM %s) AND fromid = %s)"
-FQL_TAGS       = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != "+str(STREAMTYPE.PHOTO)
+FQL_TAGS = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != " + str(STREAMTYPE.PHOTO)
 #zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
 
-FQL_TAG_PHOTOS   = "SELECT object_id FROM photo_tag WHERE subject = %s"
-FQL_PRIM_PHOTOS  = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
-FQL_PRIM_TAGS    = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+FQL_TAG_PHOTOS = "SELECT object_id FROM photo_tag WHERE subject = %s"
+FQL_PRIM_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
+FQL_PRIM_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner != %s"
-FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+FQL_OTHER_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
-FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
+FQL_USER_INFO = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
+FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
+
 
 def dateFromFb(dateStr):
     """we would like this to die"""
@@ -67,6 +70,7 @@ def dateFromFb(dateStr):
             m, d, y = dateElts
             return datetime.date(int(y), int(m), int(d))
     return None
+
 
 def getUrlFb(url):
     """load JSON blob from facebook. facebook is flakey, this deals with that.
@@ -86,6 +90,17 @@ def getUrlFb(url):
         raise e
 
     return responseJson
+
+def _threadFbURL(url, results):
+    """Used to read JSON from Facebook in a thread and append output to a list of results"""
+    tim = datastructs.Timer()
+
+    responseJson = getUrlFb(url)
+    for entry in responseJson['data']:
+        results.append(entry)
+
+    logger.debug('Thread %s read %s records from FB in %s', threading.current_thread().name, len(responseJson['data']), tim.elapsedPr())
+    return len(responseJson['data'])
 
 def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
@@ -113,6 +128,7 @@ def extendTokenFb(user, token, appid):
             pass
         return None
 
+
 def getFriendsFb(userId, token):
     """retrieve basic info on user's FB friends in a single call,
 
@@ -121,18 +137,44 @@ def getFriendsFb(userId, token):
     tim = datastructs.Timer()
     logger.debug("getting friends for %d", userId)
 
+    loopTimeout = config.facebook.friendLoop.timeout
+    loopSleep = config.facebook.friendLoop.sleep
+    limit = config.facebook.friendLoop.fqlLimit
+
+    # Get the number of friends from FB to determine how many chunks to run
+    numFriendsFQL = urllib.quote_plus("SELECT friend_count FROM user WHERE uid = %s" % userId)
+    numFriendsURL = 'https://graph.facebook.com/fql?q=' + numFriendsFQL
+    numFriendsURL = numFriendsURL + '&format=json&access_token=' + token
+    numFriendsJson = getUrlFb(numFriendsURL)
+
+    numFriends = float(numFriendsJson['data'][0]['friend_count'])
+    chunks = int(ceil(numFriends / limit)) + 1  # one extra just to be safe
+
+    # Set up the threads for reading the friend info
+    threads = []
+    friendChunks = []
+    for i in range(chunks):
+        offset = limit*i
+        url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (userId, limit, offset))
+        url = url + '&format=json&access_token=' + token
+
+        t = threading.Thread(target=_threadFbURL, args=(url, friendChunks))
+        t.setDaemon(True)
+        t.name = "%s-px3-%d" % (userId, i)
+        threads.append(t)
+        t.start()
+
     # Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
 
     queryJsons = []
 
-    tagPhotosLabel   = "tag_photos"
-    primPhotosLabel  = "prim_photos"
+    tagPhotosLabel = "tag_photos"
+    primPhotosLabel = "prim_photos"
     otherPhotosLabel = "other_photos"
-    tagPhotosRef      = "#" + tagPhotosLabel
-    primPhotosRef      = "#" + primPhotosLabel
-    otherPhotosRef      = "#" + otherPhotosLabel
+    tagPhotosRef = "#" + tagPhotosLabel
+    primPhotosRef = "#" + primPhotosLabel
+    otherPhotosRef = "#" + otherPhotosLabel
 
-    queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (userId))))
     queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (userId))))
     queryJsons.append('"%s":"%s"' % (primPhotosLabel, urllib.quote_plus(FQL_PRIM_PHOTOS % (tagPhotosRef, userId))))
     queryJsons.append('"primPhotoTags":"%s"' % (urllib.quote_plus(FQL_PRIM_TAGS % (primPhotosRef, userId))))
@@ -140,12 +182,32 @@ def getFriendsFb(userId, token):
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
 
     queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
+    photoURL = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + token
 
-    responseJson = getUrlFb(url)
+    photoResults = []
+    photoThread = threading.Thread(target=_threadFbURL, args=(photoURL, photoResults))
+    photoThread.setDaemon(True)
+    photoThread.name = "%s-px3-photos" % userId
+    threads.append(photoThread)
+    photoThread.start()
 
+    # Loop until all the threads are done
+    # or we've run out of time waiting
+    timeStop = time.time() + loopTimeout
+    while (time.time() < timeStop):
+        threadsAlive = []
+        for t in threads:
+            if t.isAlive():
+                threadsAlive.append(t)
+        threads = threadsAlive
+        if (threadsAlive):
+            time.sleep(loopSleep)
+        else:
+            break
+
+    # Read out the photo data
     lab_recs = {}
-    for entry in responseJson['data']:
+    for entry in photoResults:
         label = entry['name']
         records = entry['fql_result_set']
         lab_recs[label] = records
@@ -153,30 +215,39 @@ def getFriendsFb(userId, token):
     primPhotoCounts = defaultdict(int)
     otherPhotoCounts = defaultdict(int)
 
-    for rec in lab_recs['primPhotoTags']:
+    for rec in lab_recs.get('primPhotoTags', []):
         if (rec['subject']):
             primPhotoCounts[int(rec['subject'])] += 1
 
-    for rec in lab_recs['otherPhotoTags']:
+    for rec in lab_recs.get('otherPhotoTags', []):
         if (rec['subject']):
             otherPhotoCounts[int(rec['subject'])] += 1
 
-    friends = []
-    for rec in lab_recs['friendInfo']:
-        friendId = rec['uid']
+    # A bit of a hack, but using a dictionary to avoid possible duplicates
+    # in cases where pagination changes during the query or other FB barf
+    # (set() won't work because different instances of FriendInfo with the
+    # same friendId are different objects)
+    friends = {}
+    for rec in friendChunks:
+        friendId = int(rec['uid'])
         city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
         state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
         primPhotoTags = primPhotoCounts[friendId]
         otherPhotoTags = otherPhotoCounts[friendId]
-        email = None # FB won't give you the friends' emails
+        email = None    # FB won't give you the friends' emails
 
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
-        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
-        friends.append(f)
-    logger.debug("returning %d friends for %d (%s)", len(friends), userId, tim.elapsedPr())
-    return friends
+        f = datastructs.FriendInfo(
+                userId, friendId, rec['first_name'], rec['last_name'],
+                email, rec['sex'], dateFromFb(rec['birthday_date']),
+                city, state,
+                primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
+            )
+        friends[friendId] = f
+    logger.debug("returning %d friends for %d (%s)", len(friends.values()), userId, tim.elapsedPr())
+    return friends.values()
 
 
 def getUserFb(userId, token):
@@ -194,6 +265,103 @@ def getUserFb(userId, token):
                                 city, state)
     return user
 
+
+def getFriendEdges(userId, tok, friendQueue):
+    friendQueue.sort(key=lambda x: x.mutuals, reverse=True)
+    edges = []
+    user = getUserFb(userId, tok)
+    for i, friend in enumerate(friendQueue):
+        ecIn = datastructs.EdgeCounts(friend.id,
+                user.id,
+                photoTarg=friend.primPhotoTags,
+                photoOth=friend.otherPhotoTags,
+                muts=friend.mutuals)
+        e = datastructs.Edge(user, friend, ecIn, None)
+
+        edges.append(e)
+        logger.debug('friend %s', str(e.secondary))
+        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
+                                         #     not important enough to fix for mayors, but maybe should one day?
+    return edges
+
+
+def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
+    logger.info('reading stream for user %s, %s', userId, tok)
+    sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
+    logging.debug('got %s', str(sc))
+    logger.debug('got %s', str(sc))
+
+    # sort all the friends by their stream rank (if any) and mutual friend count
+    friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
+    logger.debug("got %d friends ranked", len(friendId_streamrank))
+    friendQueue.sort(key=lambda x: (
+        friendId_streamrank.get(x.id, sys.maxint), -1 * x.mutuals
+    ))
+    edges = []
+    user = getUserFb(userId, tok)
+    for i, friend in enumerate(friendQueue):
+        ecOut = None
+        ecIn = datastructs.EdgeCounts(
+            friend.id,
+            user.id,
+            postLikes=sc.getPostLikes(friend.id),
+            postComms=sc.getPostComms(friend.id),
+            statLikes=sc.getStatLikes(friend.id),
+            statComms=sc.getStatComms(friend.id),
+            wallPosts=sc.getWallPosts(friend.id),
+            wallComms=sc.getWallComms(friend.id),
+            tags=sc.getTags(friend.id),
+            photoTarg=friend.primPhotoTags,
+            photoOth=friend.otherPhotoTags,
+            muts=friend.mutuals
+        )
+        if requireOutGoing:
+            logger.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
+            ecOut = getFriendEdgesOutGoing(friend, user, tok)
+        e = datastructs.Edge(user, friend, ecIn, ecOut)
+        edges.append(e)
+        logger.debug('friend %s', str(e.secondary))
+        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
+
+    return edges
+
+
+def getFriendEdgesOutGoing(friend, user, tok):
+    timFriend = datastructs.Timer()
+    try:
+        scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
+    except Exception as ex:
+        logger.warning("error reading stream for %d: %s", friend.id, str(ex))
+        return
+    logging.debug('got %s', str(scFriend))
+
+    ecOut = datastructs.EdgeCounts(
+        user.id,
+        friend.id,
+        postLikes=scFriend.getPostLikes(friend.id),
+        postComms=scFriend.getPostComms(friend.id),
+        statLikes=scFriend.getStatLikes(friend.id),
+        statComms=scFriend.getStatComms(friend.id),
+        wallPosts=scFriend.getWallPosts(friend.id),
+        wallComms=scFriend.getWallComms(friend.id),
+        tags=scFriend.getTags(friend.id),
+        photoTarg=None,
+        photoOth=None,
+        muts=None
+    )
+
+    # Throttling for Facebook limits
+    # If this friend took fewer seconds to crawl than the number of chunks, wait that
+    # additional time before proceeding to next friend to avoid getting shut out by FB.
+    # __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
+    friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
+    secsLeft = friendSecs - timFriend.elapsedSecs()
+    if (secsLeft > 0):
+        logger.debug("Nap time! Waiting %d seconds...", secsLeft)
+        time.sleep(secsLeft)
+    return ecOut
+
+
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):
     """retrieves user's FB stream and calcs edges b/w user and her friends.
 
@@ -207,89 +375,11 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     logger.debug("got %d friends total", len(friends))
 
     friendQueue = [f for f in friends if f.id not in skipFriends]
-    if (requireIncoming):
-        logger.info('reading stream for user %s, %s', userId, tok)
-        sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
-        logging.debug('got %s', str(sc))
-        logger.debug('got %s', str(sc))
-
-        # sort all the friends by their stream rank (if any) and mutual friend count
-        friendId_streamrank = dict(enumerate(sc.getFriendRanking()))
-        logger.debug("got %d friends ranked", len(friendId_streamrank))
-        friendQueue.sort(key=lambda x: (friendId_streamrank.get(x.id, sys.maxint), -1*x.mutuals))
+    if requireIncoming:
+        edges = getFriendEdgesIncoming(userId, tok, friendQueue, requireOutgoing)
     else:
-        friendQueue.sort(key=lambda x: x.mutuals, reverse=True)
+        edges = getFriendEdges(userId, tok, friendQueue)
 
-    # Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
-    # relative to the number of calls we're making (the number of chunks) to 1 call / sec.
-    friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
-
-    edges = []
-    user = getUserFb(userId, tok)
-    for i, friend in enumerate(friendQueue):
-        if (requireIncoming):
-            ecIn = datastructs.EdgeCounts(friend.id,
-                              user.id,
-                              postLikes=sc.getPostLikes(friend.id),
-                              postComms=sc.getPostComms(friend.id),
-                              statLikes=sc.getStatLikes(friend.id),
-                              statComms=sc.getStatComms(friend.id),
-                              wallPosts=sc.getWallPosts(friend.id),
-                              wallComms=sc.getWallComms(friend.id),
-                              tags=sc.getTags(friend.id),
-                              photoTarg=friend.primPhotoTags,
-                              photoOth=friend.otherPhotoTags,
-                              muts=friend.mutuals)
-
-            if (requireOutgoing):
-                timFriend = datastructs.Timer()
-                logger.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
-                try:
-                    scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
-                except Exception as ex:
-                    logger.warning("error reading stream for %d: %s", friend.id, str(ex))
-                    continue
-                logging.debug('got %s', str(scFriend))
-
-                ecOut = datastructs.EdgeCounts(user.id,
-                                               friend.id,
-                                               postLikes=scFriend.getPostLikes(friend.id),
-                                               postComms=scFriend.getPostComms(friend.id),
-                                               statLikes=scFriend.getStatLikes(friend.id),
-                                               statComms=scFriend.getStatComms(friend.id),
-                                               wallPosts=scFriend.getWallPosts(friend.id),
-                                               wallComms=scFriend.getWallComms(friend.id),
-                                               tags=scFriend.getTags(friend.id),
-                                               photoTarg=None,
-                                               photoOth=None,
-                                               muts=None)
-
-                e = datastructs.Edge(user, friend, ecIn, ecOut)
-
-            else:
-                e = datastructs.Edge(user, friend, ecIn, None)
-        else:
-            ecIn = datastructs.EdgeCounts(friend.id,
-                  user.id,
-                  photoTarg=friend.primPhotoTags,
-                  photoOth=friend.otherPhotoTags,
-                  muts=friend.mutuals)
-            e = datastructs.Edge(user, friend, ecIn, None)
-
-        edges.append(e)
-        logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
-                                         #     not important enough to fix for mayors, but maybe should one day?
-
-        # Throttling for Facebook limits
-        # If this friend took fewer seconds to crawl than the number of chunks, wait that
-        # additional time before proceeding to next friend to avoid getting shut out by FB.
-        # __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
-        if (requireOutgoing):
-            secsLeft = friendSecs - timFriend.elapsedSecs()
-            if (secsLeft > 0):
-                logger.debug("Nap time! Waiting %d seconds...", secsLeft)
-                time.sleep(secsLeft)
     logger.debug("got %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
 
@@ -320,12 +410,12 @@ class StreamCounts(object):
         self.friendId_statCommCount = defaultdict(int)
         self.friendId_wallPostCount = defaultdict(int)
         self.friendId_wallCommCount = defaultdict(int)
-        self.friendId_tagCount      = defaultdict(int)
+        self.friendId_tagCount = defaultdict(int)
         #sys.stderr.write("got post likers: %s\n" % (str(postLikers)))
         #sys.stderr.write("got post commers: %s\n" % (str(postCommers)))
         #sys.stderr.write("got stat likers: %s\n" % (str(statLikers)))
         #sys.stderr.write("got stat commers: %s\n" % (str(statCommers)))
-        self.friendId_tagCount        = defaultdict(int)
+        self.friendId_tagCount = defaultdict(int)
 
         self.stream.extend(stream)
         self.addPostLikers(postLikers)
@@ -335,6 +425,7 @@ class StreamCounts(object):
         self.addWallPosters(wallPosters)
         self.addWallCommeds(wallCommeds)
         self.addTaggeds(taggeds)
+
     def __iadd__(self, other):
         self.stream.extend(other.stream)
         for fId, cnt in other.friendId_postLikeCount.items():
@@ -352,6 +443,7 @@ class StreamCounts(object):
         for fId, cnt in other.friendId_tagCount.items():
             self.friendId_tagCount[fId] += cnt
         return self
+
     def __add__(self, other):
         """XXX wrong Exception"""
         if (self.id != other.id):
@@ -360,6 +452,7 @@ class StreamCounts(object):
         sc += self
         sc += other
         return sc
+
     def __str__(self):
         ret = "%d entries" % (len(self.stream))
         ret += ", %d post likes" % (sum(self.friendId_postLikeCount.values()))
@@ -374,37 +467,49 @@ class StreamCounts(object):
     def addPostLikers(self, friendIds):
         for friendId in friendIds:
             self.friendId_postLikeCount[friendId] += 1
+
     def addPostCommers(self, friendIds):
         for friendId in friendIds:
             self.friendId_postCommCount[friendId] += 1
+
     def addStatLikers(self, friendIds):
         for friendId in friendIds:
             self.friendId_statLikeCount[friendId] += 1
+
     def addStatCommers(self, friendIds):
         for friendId in friendIds:
             self.friendId_statCommCount[friendId] += 1
+
     def addWallPosters(self, friendIds):
         for friendId in friendIds:
             self.friendId_wallPostCount[friendId] += 1
+
     def addWallCommeds(self, friendIds):
         for friendId in friendIds:
             self.friendId_wallCommCount[friendId] += 1
+
     def addTaggeds(self, friendIds):
         for friendId in friendIds:
             self.friendId_tagCount[friendId] += 1
 
     def getPostLikes(self, friendId):
         return self.friendId_postLikeCount.get(friendId, 0)
+
     def getPostComms(self, friendId):
         return self.friendId_postCommCount.get(friendId, 0)
+
     def getStatLikes(self, friendId):
         return self.friendId_statLikeCount.get(friendId, 0)
+
     def getStatComms(self, friendId):
         return self.friendId_statCommCount.get(friendId, 0)
+
     def getWallPosts(self, friendId):
         return self.friendId_wallPostCount.get(friendId, 0)
+
     def getWallComms(self, friendId):
         return self.friendId_wallCommCount.get(friendId, 0)
+
     def getTags(self, friendId):
         return self.friendId_tagCount.get(friendId, 0)
 
@@ -418,6 +523,7 @@ class StreamCounts(object):
         fIds.update(self.friendId_wallCommCount.keys())
         fIds.update(self.friendId_tagCount.keys())
         return fIds
+
     def getFriendRanking(self):
         """preliminary ranking used to decide which friends to crawl
 
@@ -425,14 +531,15 @@ class StreamCounts(object):
         fIds = self.getFriendIds()
         friendId_total = defaultdict(int)
         for fId in fIds:
-            friendId_total[fId] += self.friendId_postLikeCount.get(fId, 0)*2
-            friendId_total[fId] += self.friendId_postCommCount.get(fId, 0)*4
-            friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0)*2
-            friendId_total[fId] += self.friendId_statCommCount.get(fId, 0)*4
-            friendId_total[fId] += self.friendId_wallPostCount.get(fId, 0)*2 # guessed weight
-            friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0)*4 # guessed weight
-            friendId_total[fId] += self.friendId_tagCount.get(fId, 0)*1         # guessed weight
+            friendId_total[fId] += self.friendId_postLikeCount.get(fId, 0) * 2
+            friendId_total[fId] += self.friendId_postCommCount.get(fId, 0) * 4
+            friendId_total[fId] += self.friendId_statLikeCount.get(fId, 0) * 2
+            friendId_total[fId] += self.friendId_statCommCount.get(fId, 0) * 4
+            friendId_total[fId] += self.friendId_wallPostCount.get(fId, 0) * 2 # guessed weight
+            friendId_total[fId] += self.friendId_wallCommCount.get(fId, 0) * 4 # guessed weight
+            friendId_total[fId] += self.friendId_tagCount.get(fId, 0) * 1         # guessed weight
         return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
+
 
 class ReadStreamCounts(StreamCounts):
     """does work of reading a single user's stream
@@ -452,7 +559,7 @@ class ReadStreamCounts(StreamCounts):
         self.friendId_statCommCount = defaultdict(int)
         self.friendId_wallPostCount = defaultdict(int)
         self.friendId_wallCommCount = defaultdict(int)
-        self.friendId_tagCount        = defaultdict(int)
+        self.friendId_tagCount = defaultdict(int)
 
         tsQueue = Queue.Queue() # fill with (t1, t2) pairs
         scChunks = [] # list of sc obects holding results
@@ -460,9 +567,9 @@ class ReadStreamCounts(StreamCounts):
         numChunks = numDays / chunkSizeDays # How many chunks should we get back?
 
         # load the queue
-        chunkSizeSecs = chunkSizeDays*24*60*60
+        chunkSizeSecs = chunkSizeDays * 24 * 60 * 60
         tsNow = int(time.time())
-        tsStart = tsNow-numDays*24*60*60
+        tsStart = tsNow - numDays * 24 * 60 * 60
         for ts1 in range(tsStart, tsNow, chunkSizeSecs):
             ts2 = min(ts1 + chunkSizeSecs, tsNow)
             tsQueue.put((ts1, ts2, 0))
@@ -493,21 +600,21 @@ class ReadStreamCounts(StreamCounts):
             logger.info("ctrl-c, kill 'em all")
             for t in threads:
                 t.kill_received = True
-            tc = len([ t for t in threads if t.isAlive() ])
+            tc = len([t for t in threads if t.isAlive()])
             logger.debug("now have %d threads", tc)
 
         logger.debug("%d threads still alive after loop", len(threads))
         logger.debug("%d chunk results for user %s", len(scChunks), userId)
 
-        badChunkRate = 1.0*(numChunks - len(scChunks)) / numChunks
+        badChunkRate = 1.0 * (numChunks - len(scChunks)) / numChunks
         if (badChunkRate >= config['bad_chunk_thresh']):
             raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %0.2f" % (userId, config['bad_chunk_thresh']))
 
-        sc = StreamCounts(userId) # is this left over from something? I don't think it's used... --Kit
         for i, scChunk in enumerate(scChunks):
             logger.debug("chunk %d %s", i, str(scChunk))
             self.__iadd__(scChunk)
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d) done %s", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount, tim.elapsedPr())
+
 
 class ThreadStreamReader(threading.Thread):
     """implements work of ReadStreamCounts
@@ -552,7 +659,6 @@ class ThreadStreamReader(threading.Thread):
             queryJsons.append('"tags":"%s"' % (urllib.quote_plus(FQL_TAGS % (streamRef, self.userId))))
             queryJson = '{' + ','.join(queryJsons) + '}'
 
-
             url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token
 
             req = urllib2.Request(url)
@@ -576,7 +682,6 @@ class ThreadStreamReader(threading.Thread):
             responseJson = json.load(responseFile)
             responseFile.close()
 
-
             lab_recs = {}
             for entry in responseJson['data']:
                 label = entry['name']
@@ -584,13 +689,13 @@ class ThreadStreamReader(threading.Thread):
 
                 lab_recs[label] = records
 
-            pLikeIds = [ r['user_id'] for r in lab_recs['postLikes'] ]
-            pCommIds = [ r['fromid'] for r in lab_recs['postComms'] ]
-            sLikeIds = [ r['user_id'] for r in lab_recs['statLikes'] ]
-            sCommIds = [ r['fromid'] for r in lab_recs['statComms'] ]
-            wPostIds = [ r['actor_id'] for r in lab_recs['wallPosts'] ]
-            wCommIds = [ r['actor_id'] for r in lab_recs['wallComms'] ]
-            tagIds   = [ i for r in lab_recs['tags'] for i in r['tagged_ids'] ]
+            pLikeIds = [r['user_id'] for r in lab_recs['postLikes']]
+            pCommIds = [r['fromid'] for r in lab_recs['postComms']]
+            sLikeIds = [r['user_id'] for r in lab_recs['statLikes']]
+            sCommIds = [r['fromid'] for r in lab_recs['statComms']]
+            wPostIds = [r['actor_id'] for r in lab_recs['wallPosts']]
+            wCommIds = [r['actor_id'] for r in lab_recs['wallComms']]
+            tagIds = [i for r in lab_recs['tags'] for i in r['tagged_ids']]
             sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
 
             logger.debug("stream counts for %s: %s", self.userId, str(sc))
@@ -606,9 +711,11 @@ class ThreadStreamReader(threading.Thread):
 
         logger.debug("thread %s finishing with %d/%d good (took %s)", self.name, goodCount, (goodCount + errCount), timThread.elapsedPr())
 
+
 class BadChunksError(Exception):
     """facebook returned garbage"""
     def __init__(self, msg):
         self.msg = msg
+
     def __str__(self):
         return self.msg
