@@ -68,6 +68,13 @@
         var campaignid = {{ campaignId }};
         var contentid = {{ contentId }};
 
+        var test_mode = false;
+        {% if test_mode %}
+        test_mode = true;
+        var test_fbid = {{ test_fbid }};
+        var test_token = '{{ test_token }}';
+        {% endif %}
+
         //zzz Passing these through "safe" probably isn't ideal since it came
         //    from something a client entered in the control panel, but right
         //    now we're setting these parameters in the DB by hand and I don't
