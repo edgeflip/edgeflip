@@ -19,3 +19,4 @@ edgeflip/web/templates/clients/local/*
 *.sublime-workspace
 /fake_dynamo.fdb
 edgeflip.egg-info
+/cover
