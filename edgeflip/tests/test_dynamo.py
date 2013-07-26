@@ -31,6 +31,8 @@ def test_remove_null_values():
 @freeze_time('2013-01-01')
 class DynamoUserTestCase(EdgeFlipTestCase):
 
+    updated = datetime.datetime(2013, 1, 1) + datetime.timedelta(days=-1)
+
     def everyone(self):
         """helper that returns some user dicts. map of fbid => dict of user data"""
         return {u['fbid']: u for u in
@@ -85,14 +87,14 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         self.save_alice()
 
         x = dynamo.fetch_user(1234)
-        assert isinstance(x, datastructs.UserInfo)
+        assert isinstance(x, dict)
 
-        self.assertEqual(x.id, 1234)
-        self.assertEqual(x.birthday, datetime.date(1950, 1, 1))
-        self.assertEqual(x.email, 'alice@example.com')
-        self.assertEqual(x.gender, 'Female')
-        self.assertIsNone(x.city)
-        self.assertIsNone(x.state)
+        self.assertEqual(x['fbid'], 1234)
+        self.assertEqual(x['birthday'], datetime.date(1950, 1, 1))
+        self.assertEqual(x['email'], 'alice@example.com')
+        self.assertEqual(x['gender'], 'Female')
+        self.assertNotIn('city', x)
+        self.assertNotIn('state', x)
 
     def test_save_many_users(self):
         """Test saving many users"""
@@ -121,14 +123,16 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         dynamo.save_many_users(self.everyone().values())
         users = list(dynamo.fetch_many_users(self.everyone().keys()))
         for u in users:
-            self.assertIsInstance(u, datastructs.UserInfo)
-            d = self.everyone()[u.id]
-            d['id'] = d.pop('fbid')
-            for k, v in d.iteritems():
-                if isinstance(v, (types.NoneType, basestring, set, list, tuple)) and not v:
-                    v = None
+            self.assertIsInstance(u, dict)
+            assert 'updated' in u
+            del u['updated']
 
-                self.assertEqual(v, getattr(u, k))
+            d = self.everyone()[u['fbid']]
+            for k, v in d.items():
+                if isinstance(v, (types.NoneType, basestring, set, list, tuple)) and not v:
+                    del d[k]
+
+            self.assertDictEqual(u, d)
 
 
 @freeze_time('2013-01-01')

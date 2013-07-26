@@ -10,9 +10,6 @@ tools & classes for data stored in AWS DynamoDB
 
     Which engine to use. One of 'aws', 'mock'.
 
-The fetch_* methods return iterators yielding objects from `datastructs`.
-They could easily be converted to yield raw boto Items or another object.
-
 This module makes heavy use of iterators and generator comprehensions.
 Results are processed in Python as a stream from AWS. This makes things fast
 and keeps memory usage low. Many functions return generators instead of
@@ -35,8 +32,8 @@ from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex, KeysOnlyIndex
 from boto.dynamodb2.types import NUMBER
 
-from . import datastructs
 from .settings import config
+from . import datastructs
 
 logger = logging.getLogger(__name__)
 
@@ -197,14 +194,13 @@ users_schema = {
 }
 
 
-def save_user(fbid, fname, lname, email, gender, birthday, city, state):
+def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=None):
     """save a user to Dynamo. If user exists, update with new, non-None attrs.
 
     :arg int fbid: the user's facebook id
 
-    Other args are string or None
+    Other args are string or None. You can pass a value for `updated` but it will be replaced with current timestamp.
     """
-
     updated = epoch_now()
     birthday = date_to_epoch(birthday)
 
@@ -245,19 +241,18 @@ def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
 
     :arg str fbid: the users' Facebook ID
-    :rtype: `datastructs.UserInfo`
+    :rtype: dict
     """
     table = get_table('users')
     x = table.get_item(fbid=fbid)
     if x['fbid'] is None: return None
-
     return _make_user(x)
 
 def fetch_many_users(fbids):
     """Retrieve many users.
 
     :arg ids: list of facebook ID's
-    :rtype: iterator of `datastructs.UserInfo`
+    :rtype: iterator of dict
     """
     table = get_table('users')
     # boto's BatchGetResultSet requires keys to be a list
@@ -269,20 +264,13 @@ def fetch_many_users(fbids):
     return users
 
 def _make_user(x):
-    """make a `datastructs.UserInfo` from a boto Item. for internal use"""
-    u = datastructs.UserInfo(uid=int(x['fbid']),
-                             first_name=x['fname'],
-                             last_name=x['lname'],
-                             email=x['email'],
-                             sex=x['gender'], # XXX aaah!
-                             birthday=epoch_to_date(x['birthday']),
-                             city=x['city'],
-                             state=x['state'])
-
-    # just stuff updated on there as an attr b/c we got nowhere else to put
-    # it & we don't want to change fragile constructor above. :-|
-    u.updated = epoch_to_datetime(x['updated'])
+    """make a dict from a boto Item. for internal use"""
+    u = dict(x.items())
+    if 'birthday' in x:
+        u['birthday'] = epoch_to_date(x['birthday'])
+    u['updated'] = epoch_to_datetime(x['updated'])
     return u
+
 
 ##### TOKENS #####
 
@@ -294,13 +282,15 @@ tokens_schema = {
     ]
 }
 
-def save_token(fbid, appid, token, expires):
+def save_token(fbid, appid, token, expires, updated=None):
     """save a token to dynamo, overwriting existing.
 
     :arg int fbid: the facebook id
     :arg int appid: the app's id
     :arg str token: the auth token from facebook
     :arg datetime expires: when the token expires, in GMT
+    :arg updated: you can pass a value you, but it will be
+                  replaced with current timestamp.
     """
     table = get_table('tokens')
     x = Item(table, data = dict(
@@ -318,7 +308,7 @@ def fetch_token(fbid, appid):
 
     :arg int fbid: the facebook id
     :arg int appid: the app's id
-    :rtype: `datastructs.TokenInfo` or None if not found
+    :rtype: dict or None if not found
     """
     table = get_table('tokens')
     x = table.get_item(fbid=fbid, appid=appid)
@@ -330,7 +320,7 @@ def fetch_many_tokens(ids):
     """Retrieve many tokens.
 
     :arg ids: list of (facebook ID, app ID)
-    :rtype: iterator of `datastructs.TokenInfo`
+    :rtype: iterator of dict
     """
     table = get_table('tokens')
     # boto's BatchGetResultSet requires a list for keys
@@ -385,10 +375,13 @@ def save_edge(fbid_source, fbid_target, **kwargs):
     :arg int fbid_source: the source's -> facebook id
     :arg int fbid_target: the -> target's facebook id
 
-    Keyword args int or None, as passed to `save_incoming_edge`
+    Keyword args int or None, as passed to `save_incoming_edge`. You can pass
+    a value for updated, but it will be replaced with a current timestamp.
     """
+
+    kwargs['updated'] = updated = epoch_now()
     save_incoming_edge(fbid_source, fbid_target, **kwargs)
-    save_outgoing_edge(fbid_source, fbid_target)
+    save_outgoing_edge(fbid_source, fbid_target, updated)
 
 def save_many_edges(edges):
     """save many edges to dynamo in a batch, overwriting.
@@ -407,15 +400,16 @@ def save_many_edges(edges):
             inc.put_item(data = e)
             out.put_item(data = {'fbid_source': e['fbid_source'], 'fbid_target': e['fbid_target'], 'updated': updated})
 
-def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends):
+def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends, updated):
     """save an incoming edge and its attributes to dynamo, updating.
+
+    You should probably use `save_edge` in your code instead.
 
     :arg int fbid_source: the source's -> facebook id
     :arg int fbid_target: the -> target's facebook id
 
-    Other args int or None
+    Other args int or None.
     """
-    updated = epoch_now()
     data = locals()
     _remove_null_values(data)
 
@@ -435,13 +429,15 @@ def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_li
                 x[k] = v
         x.partial_save()
 
-def save_outgoing_edge(fbid_source, fbid_target):
+def save_outgoing_edge(fbid_source, fbid_target, updated):
     """save an outgoing edge to dynamo, overwrites
+
+    You should probably use `save_edge` in your code instead.
 
     :arg int fbid_source: the source's -> facebook id
     :arg int fbid_target: the -> target's facebook id
+    :arg epoch updated: the timestamp
     """
-    updated = epoch_now()
     data = locals()
 
     t = 'edges_outgoing'
@@ -454,7 +450,7 @@ def fetch_edge(fbid_source, fbid_target):
 
     :arg int fbid_source: the source's -> facebook id
     :arg int fbid_target: the -> target's facebook id
-    :rtype: `datastructs.EdgeCount` or None if not found
+    :rtype: dict or None if not found
     """
     t = 'edges_incoming'
     table = get_table(t)
@@ -465,7 +461,7 @@ def fetch_many_edges(ids):
     """Retrieve many edges.
 
     :arg ids: list of (source ID, target ID)
-    :rtype: iterator of `datastructs.EdgeCounts`
+    :rtype: iterator of dict
     """
     table = get_table('edges_incoming')
     # Boto's BatchGetResultSet requires a list for keys
@@ -481,7 +477,7 @@ def fetch_all_incoming_edges():
 
     WARNING: this does a full scan and is SLOW & EXPENSIVE
 
-    :rtype: iter of `datastructs.EdgeCounts`
+    :rtype: iter of dict
     """
     return imap(_make_edge, get_table('edges_incoming').scan())
 
@@ -491,10 +487,9 @@ def fetch_incoming_edges(fbid, newer_than=None):
     select all edges where target == $fbid
     (and optionally) where updated > now() - $newer_than
 
-
     :arg int fbid: target facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
-    :rtype: iter of `datastructs.EdgeCounts`
+    :rtype: iter of dict
     """
     table = get_table('edges_incoming')
     if newer_than is None:
@@ -514,7 +509,7 @@ def fetch_outgoing_edges(fbid, newer_than=None):
 
     :arg int fbid: source facebook id
     :arg `datetime.datetime` newer_than: only include edges newer than this
-    :rtype: iter of `datastructs.EdgeCounts`
+    :rtype: iter of dict
     """
     table = get_table('edges_outgoing')
     if newer_than is None:

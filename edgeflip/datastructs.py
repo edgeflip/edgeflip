@@ -92,6 +92,17 @@ class UserInfo(object):
                  unidecodeSafe(self.state)]
         return " ".join(rets)
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make a `datastructs.UserInfo` from a `dynamo` dict."""
+        return cls(uid=int(x['fbid']),
+                   first_name=x.get('fname'),
+                   last_name=x.get('lname'),
+                   email=x.get('email'),
+                   sex=x.get('gender'), # XXX aaah!
+                   birthday=x.get('birthday'),
+                   city=x.get('city'),
+                   state=x.get('state'))
 
 class FriendInfo(UserInfo):
     """same as a UserInfo w/ addtional fields relative to a target user

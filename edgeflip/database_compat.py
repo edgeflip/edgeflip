@@ -49,12 +49,12 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
     if user is None:
         logger.debug("user %s not found", userId)
         return None
-    elif user.updated <= freshnessDate:
+    elif user['updated'] <= freshnessDate:
         logger.debug("user %s too old, dropped", userId)
         return None
     else:
-        logger.debug("got user %s, updated at %s (GMT)" % (userId, user.updated.strftime("%Y-%m-%d %H:%M:%S")))
-        return user
+        logger.debug("got user %s, updated at %s (GMT)" % (userId, user['updated'].strftime("%Y-%m-%d %H:%M:%S")))
+        return datastructs.UserInfo.from_dynamo(user)
 
 def updateTokensDb(token):
     """update tokens table
@@ -139,8 +139,8 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
 
 
     # build dict of secondary id -> UserInfo
-    secondary_UserInfo = {u.id : u for u in
-                          dynamo.fetch_many_users(fbid for fbid in secondary_EdgeCounts_in)}
+    secondary_UserInfo = {u['fbid'] : datastructs.UserInfo.from_dynamo(u) for
+                          u in dynamo.fetch_many_users(fbid for fbid in secondary_EdgeCounts_in)}
 
     # early return if we don't need outgoing
     if not requireOutgoing:
