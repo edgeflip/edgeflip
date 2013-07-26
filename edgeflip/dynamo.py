@@ -333,11 +333,11 @@ def fetch_many_tokens(ids):
 
 
 def _make_token(x):
-    """make a `datastructs.TokenInfo` from a boto Item. for internal use"""
-    return datastructs.TokenInfo(tok = x['token'],
-                                 own = int(x['fbid']),
-                                 app = int(x['appid']),
-                                 exp=epoch_to_datetime(x['expires']))
+    """make a dict from a boto Item. for internal use"""
+    t = dict(x.items())
+    t['expires'] = epoch_to_datetime(t['expires'])
+    t['updated'] = epoch_to_datetime(t['updated'])
+    return t
 
 ##### EDGES #####
 

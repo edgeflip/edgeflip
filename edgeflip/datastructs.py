@@ -137,6 +137,15 @@ class TokenInfo(object):
         return "%s:%s %s (exp %s)" % (self.appId, self.ownerId, self.tok, self.expires.strftime("%m/%d"))
 
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make a `datastructs.TokenInfo` from a `dynamo` dict"""
+        return datastructs.TokenInfo(tok = x['token'],
+                                     own = int(x['fbid']),
+                                     app = int(x['appid']),
+                                     exp=x['expires'])
+
+
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
         the actions of the source user on the target's feed.

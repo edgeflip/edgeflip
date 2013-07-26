@@ -73,7 +73,7 @@ def getUserTokenDb(userId, appId):
 
     :rtype: datastructs.TokenInfo
     """
-    return dynamo.fetch_token(userId, appId)
+    return datastructs.TokenInfo.from_dynamo(dynamo.fetch_token(userId, appId))
 
 def updateFriendEdgesDb(edges):
     """update edges table

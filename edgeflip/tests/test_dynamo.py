@@ -187,12 +187,14 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         self.save_token()
 
         x = dynamo.fetch_token(1234, 666)
-        assert isinstance(x, datastructs.TokenInfo)
+        assert isinstance(x, dict)
+        assert 'updated' in x
+        del x['updated']
 
-        self.assertEqual(x.ownerId, 1234)
-        self.assertEqual(x.appId, 666)
-        self.assertEqual(x.tok, 'DECAFBAD')
-        self.assertEqual(x.expires, self.expiry)
+        self.assertEqual(x['fbid'], 1234)
+        self.assertEqual(x['appid'], 666)
+        self.assertEqual(x['token'], 'DECAFBAD')
+        self.assertEqual(x['expires'], self.expiry)
 
 
     def test_fetch_many_tokens(self):
@@ -204,12 +206,8 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         tokens = list(dynamo.fetch_many_tokens(self.tokens().keys()))
 
         for t in tokens:
-            assert isinstance(t, datastructs.TokenInfo)
-            # munge to attributes of a TokenInfo
-            d = self.tokens()[(t.ownerId, t.appId)]
-            d['ownerId'] = d.pop('fbid')
-            d['appId'] = d.pop('appid')
-            d['tok'] = d.pop('token')
+            assert isinstance(t, dict)
+            del t['updated']
+            d = self.tokens()[(t['fbid'], t['appid'])]
 
-            for k, v in d.iteritems():
-                self.assertEqual(v, getattr(t, k))
+            self.assertDictEqual(t, d)
