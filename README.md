@@ -134,3 +134,5 @@ The contents of that file should look like so:
     [client]
     user=ROOT_USER
     password=ROOT_PASSWORD
+
+You can get [coverage](http://nedbatchelder.com/code/coverage/) reports by running `nosetests edgeflip/tests/ --config=nose.cfg --with-coverage`. A nice HTML summary and annotated source are generated at `cover/index.html` in your workdir.
