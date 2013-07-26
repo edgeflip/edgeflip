@@ -98,6 +98,9 @@ def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
+
+    logger.debug("host: " + flask.request.host + ", client subdomain: " + clientSubdomain)
+
     # try:
     #     clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
     # except ValueError as e:
@@ -181,6 +184,9 @@ def faces():
         px4_result = celery.celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.successful() else []
+
+            logger.debug(str(px3_result) + "\t" + str(px3_result.result))
+
             edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
             if not all([edgesRanked, bestCSFilter, choiceSet]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
@@ -250,10 +256,9 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
     ''' Receives the filtered edges, the filters used, and all the necessary
     information needed to record the campaign assignment.
     '''
-    friendDicts = [e.toDict() for e in bestCSFilter[1]]
-    faceFriends = friendDicts[:numFace]     # The first set to be shown as faces
-    allFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    pickDicts = [e.toDict() for e in edgesRanked] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
+    friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
+    faceFriends = friendDicts[:50]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
+    allFriends = [e.toDict() for e in edgesRanked] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
 
     choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
 
@@ -343,8 +348,7 @@ def applyCampaign(edgesRanked, bestCSFilter, choiceSet, allowGeneric,
             'html': flask.render_template(
                 locateTemplate('faces_table.html', clientSubdomain, app),
                 fbParams=actionParams, msgParams=msgParams,
-                face_friends=faceFriends, all_friends=allFriends,
-                pickFriends=pickDicts, numFriends=numFace
+                faceFriends=faceFriends, allFriends=allFriends, numFace=numFace
             ),
             'campaignid': campaignId,
             'contentid': contentId,
