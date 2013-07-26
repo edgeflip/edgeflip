@@ -2,18 +2,18 @@ from __future__ import absolute_import
 from kombu import Queue
 
 from celery import Celery
-from edgeflip.settings import config
+from targetshare.settings import config
 
 QUEUE_ARGS = {'x-ha-policy': 'all'}
 
-celery = Celery('edgeflip.celery',
+celery = Celery('targetshare.celery',
                 broker='amqp://%s:%s@%s:5672/%s' % (
                     config.rabbit_user,
                     config.rabbit_pass,
                     config.rabbit_host,
                     config.rabbit_vhost
                 ),
-                include=['edgeflip.tasks'])
+                include=['targetshare.tasks'])
 
 celery.conf.update(
     BROKER_HEARTBEAT=10,
@@ -37,15 +37,15 @@ celery.conf.update(
         Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     ),
     CELERY_ROUTES={
-        'edgeflip.tasks.px3_crawl': {
+        'targetshare.tasks.px3_crawl': {
             'queue': 'px3',
             'routing_key': 'px3.crawl'
         },
-        'edgeflip.tasks.perform_filtering': {
+        'targetshare.tasks.perform_filtering': {
             'queue': 'px3_filter',
             'routing_key': 'px3.filter'
         },
-        'edgeflip.tasks.proximity_rank_four': {
+        'targetshare.tasks.proximity_rank_four': {
             'queue': 'px4',
             'routing_key': 'px4.crawl'
         },

@@ -16,11 +16,11 @@ from MySQLdb import IntegrityError
 
 from civis_matcher import matcher
 
-from edgeflip import (
+from targetshare import (
     database as db,
     datastructs,
 )
-from edgeflip.settings import config
+from targetshare.settings import config
 from .web import utils
 
 logger = logging.getLogger(__name__)

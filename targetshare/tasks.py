@@ -4,15 +4,15 @@ import time
 import flask
 from celery.utils.log import get_task_logger
 
-from edgeflip import (
+from targetshare import (
     client_db_tools as cdb,
     database,
     facebook,
     mock_facebook,
     ranking,
 )
-from edgeflip.celery import celery
-from edgeflip.settings import config
+from targetshare.celery import celery
+from targetshare.settings import config
 
 MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)

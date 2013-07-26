@@ -1,10 +1,10 @@
-from edgeflip.tests import EdgeFlipTestCase
-from edgeflip import (
+from targetshare.tests import EdgeFlipTestCase
+from targetshare import (
     client_db_tools as cdb,
     datastructs,
     tasks
 )
-from edgeflip.celery import celery
+from targetshare.celery import celery
 import datetime
 
 

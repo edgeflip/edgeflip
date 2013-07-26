@@ -1,87 +1,158 @@
-#!/usr/bin/python
-"""Configuration for Edgeflip app
+# Django settings for edgeflip project.
+import os
 
-Using configuration in your code
---------------------------------
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
-Code using configuration should import the `config` object from this module, like so::
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
 
-    >>> from .settings import config
-    >>> for i in config.crawler.retries:
-    ...     <do whatever>
-    >>> print("Vote for", config.skin["first_name"], config.skin["last_name"])
+ADMINS = (
+    # ('Your Name', 'your_email@example.com'),
+)
 
-`config` is a :mod:`pymlconf` dict-object; config items can be accessed as properties or by item lookup.
+MANAGERS = ADMINS
 
-Configuring the app
--------------------
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
+        'NAME': 'edgeflip_django',                      # Or path to database file if using sqlite3.
+        # The following settings are not used with sqlite3:
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
+        'PORT': '',                      # Set to empty string for default.
+    }
+}
 
-Configuration uses `conf.d/` style configuration directories. A directory should contain `YAML <http://en.wikipedia.org/wiki/YAML#Examples>`__ files ending in `.conf`. These are loaded in sorted order. Filenames are usually prefixed with a 2-digit number to control loading order::
+# Hosts/domain names that are valid for this site; required if DEBUG is False
+# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = []
 
-    00-base.conf     10-database.conf  20-stream.conf
-    05-logging.conf  10-queue.conf     40-facebook.conf
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# In a Windows environment this must be set to your system time zone.
+TIME_ZONE = 'America/Chicago'
 
+# Language code for this installation. All choices can be found here:
+# http://www.i18nguy.com/unicode/language-identifiers.html
+LANGUAGE_CODE = 'en-us'
 
-Base configuration is batteries-included in this package's `conf.d` directory. It is loaded automatically.
+SITE_ID = 1
 
-Custom configuration will be read from `/var/www/edgeflip/conf.d`. This is merged *on top* of the base package config. You can override the location of your custom config by setting the `EDGEFLIP_CONF_DIR` environment variable.
+# If you set this to False, Django will make some optimizations so as not
+# to load the internationalization machinery.
+USE_I18N = True
 
-Logging
--------
+# If you set this to False, Django will not format dates, numbers and
+# calendars according to the current locale.
+USE_L10N = True
 
-This module will set up stdlib :mod:`logging` using `config.logging`. By default, all log messages go to the console. There is a syslog handler ready for use; just set `logging.root = [syslog]`  somewhere in your custom config instead.
+# If you set this to False, Django will not use timezone-aware datetimes.
+USE_TZ = True
 
-Conventions
------------
-By convention, each module should get its own config section. Try to avoid cluttering up the top level config namespace. So do this (in `60-crawler.conf`)::
+# Absolute filesystem path to the directory that will hold user-uploaded files.
+# Example: "/var/www/example.com/media/"
+MEDIA_ROOT = ''
 
-    ---
-    crawler:
-        retries: 42
-        proxy: http://example.com
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a
+# trailing slash.
+# Examples: "http://example.com/media/", "http://media.example.com/"
+MEDIA_URL = '/media/'
 
-instead of::
+# Absolute path to the directory static files should be collected to.
+# Don't put anything in this directory yourself; store your static files
+# in apps' "static/" subdirectories and in STATICFILES_DIRS.
+# Example: "/var/www/example.com/static/"
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
 
-    ---
-    crawler_retries: 42
-    crawler_proxy: http://example.com
+# URL prefix for static files.
+# Example: "http://example.com/static/", "http://static.example.com/"
+STATIC_URL = '/static/'
 
-Each module should document what options it takes, and provide defaults in this package's `conf.d/`
-"""
-import logging.config
-import os.path
-import pymlconf
-import sh
+# Additional locations of static files
+STATICFILES_DIRS = (
+    # Put strings here, like "/home/html/static" or "C:/www/django/static".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
 
-# base configuration - source tree only
-CURRENT_PATH = os.path.dirname(__file__)
-REPO_ROOT = os.path.join(CURRENT_PATH, '../')
-DEFAULT_CONF_DIR = os.path.join(CURRENT_PATH, 'conf.d')
+# List of finder classes that know how to find static files in
+# various locations.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+)
 
-# system install location
-SYSTEM_CONV_DIR = '/var/www/edgeflip/conf.d'
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = 'zgoi_vwcwps&13gu&=*zpm-alto_g(bapb31rob(onr(gmg1c_'
 
-# set in envvar, overrides system
-ENV_CONF_DIR = os.path.abspath(os.path.expanduser(os.getenv('EDGEFLIP_CONF_DIR', SYSTEM_CONV_DIR)))
+# List of callables that know how to import templates from various sources.
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+#     'django.template.loaders.eggs.Loader',
+)
 
-# make a config object, for external use
-config = pymlconf.ConfigManager(dirs=[DEFAULT_CONF_DIR], filename_as_namespace=False)
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    # Uncomment the next line for simple clickjacking protection:
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+)
 
-# load environment
-config.load_dirs([ENV_CONF_DIR], filename_as_namespace=False)
+ROOT_URLCONF = 'edgeflip.urls'
 
-try:
-    git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
-    config.app_version = git_repo.describe().strip()
-except:
-    # This exception comes when celery starts up outside of the app's repo.
-    # Catching that exception and setting a dummy value. Celery doesn't need
-    # to know the version number
-    config.app_version = '0.1'
+# Python dotted path to the WSGI application used by Django's runserver.
+WSGI_APPLICATION = 'edgeflip.wsgi.application'
 
-# set up singletons
+TEMPLATE_DIRS = (
+    # Put strings here, like "/home/html/django_templates" or "C:/www/django/templates".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
 
-logging.config.dictConfig(config.logging)
-logger = logging.getLogger(__name__)
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.admin',
+    'south',
+    'edgeflip',
+)
 
-logger.info("Configured with %r", config.list_dirs())
+# A sample logging configuration. The only tangible logging
+# performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error when DEBUG=False.
+# See http://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse'
+        }
+    },
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    }
+}

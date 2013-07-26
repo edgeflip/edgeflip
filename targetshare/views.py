@@ -11,7 +11,7 @@ from django.http import (
 )
 from django.views.decorators.http import require_POST
 
-from edgeflip import (
+from targetshare import (
     celery,
     datastructs,
     facebook,
@@ -20,7 +20,7 @@ from edgeflip import (
     tasks,
     utils,
 )
-from edgeflip.settings import config
+from targetshare.settings import config
 
 
 logger = logging.getLogger(__name__)

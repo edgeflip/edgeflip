@@ -2,8 +2,8 @@ from datetime import date
 
 from mock import Mock, patch
 
-from edgeflip.tests import EdgeFlipTestCase
-from edgeflip import (
+from targetshare.tests import EdgeFlipTestCase
+from targetshare import (
     client_db_tools as cdb,
     datastructs,
 )
@@ -12,7 +12,7 @@ import copy
 
 class TestClientDBTools(EdgeFlipTestCase):
 
-    @patch('edgeflip.client_db_tools.matcher')
+    @patch('targetshare.client_db_tools.matcher')
     def test_civis_matching_match_found(self, civis_mock):
         ''' Test the civis matching task where a match is found '''
         matcher_mock = Mock()
@@ -33,7 +33,7 @@ class TestClientDBTools(EdgeFlipTestCase):
         cdb.civisFilter(edge, 'persuasion_score', 'min', 100, matches)
         self.assertEqual([edge], matches)
 
-    @patch('edgeflip.client_db_tools.matcher')
+    @patch('targetshare.client_db_tools.matcher')
     def test_civis_matching_no_match(self, civis_mock):
         ''' Test the civis matching task where a match is not found '''
         matcher_mock = Mock()

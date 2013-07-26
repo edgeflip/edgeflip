@@ -4,7 +4,7 @@ import base64
 import urllib
 from Crypto.Cipher import DES
 
-from edgeflip.settings import config
+from targetshare.settings import config
 
 logger = logging.getLogger(__name__)
 

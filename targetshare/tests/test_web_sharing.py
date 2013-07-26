@@ -3,8 +3,8 @@ from datetime import date
 
 from mock import patch, Mock
 
-from edgeflip.tests import EdgeFlipTestCase
-from edgeflip import (
+from targetshare.tests import EdgeFlipTestCase
+from targetshare import (
     client_db_tools as cdb,
     datastructs
 )
@@ -85,7 +85,7 @@ class TestWebSharing(EdgeFlipTestCase):
         assert data['px3_task_id']
         assert data['px4_task_id']
 
-    @patch('edgeflip.web.sharing.celery')
+    @patch('targetshare.web.sharing.celery')
     def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
         task isn't yet complete
@@ -106,7 +106,7 @@ class TestWebSharing(EdgeFlipTestCase):
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
 
-    @patch('edgeflip.web.sharing.celery')
+    @patch('targetshare.web.sharing.celery')
     def test_faces_px4_wait(self, celery_mock):
         ''' Test that even if px3 is done, we'll wait on px4 if we're not
         ready to give up on it yet
@@ -129,7 +129,7 @@ class TestWebSharing(EdgeFlipTestCase):
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
 
-    @patch('edgeflip.web.sharing.celery')
+    @patch('targetshare.web.sharing.celery')
     def test_faces_last_call(self, celery_mock):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
@@ -163,7 +163,7 @@ class TestWebSharing(EdgeFlipTestCase):
         self.assertEqual(data['status'], 'success')
         assert data['html']
 
-    @patch('edgeflip.web.sharing.celery')
+    @patch('targetshare.web.sharing.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
         px3_result_mock = Mock()

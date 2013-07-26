@@ -1,6 +1,6 @@
 from django.db import models
 
-from edgeflip.web import utils
+from targetshare.web import utils
 
 
 class Assignment(models.Model):

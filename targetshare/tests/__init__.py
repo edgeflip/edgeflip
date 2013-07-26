@@ -3,10 +3,10 @@ import mock
 import unittest
 from subprocess import call, PIPE
 
-from edgeflip.web import getApp
-from edgeflip.settings import config
-from edgeflip import database
-from edgeflip.celery import celery
+from targetshare.web import getApp
+from targetshare.settings import config
+from targetshare import database
+from targetshare.celery import celery
 
 APP = getApp()
 FILE_ROOT = os.path.dirname(__file__)

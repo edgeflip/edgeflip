@@ -16,7 +16,7 @@ from .. import mock_facebook
 from .. import database
 from .. import datastructs
 from .. import client_db_tools as cdb
-from edgeflip import tasks, celery
+from targetshare import tasks, celery
 
 from ..settings import config
 

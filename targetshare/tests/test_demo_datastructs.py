@@ -2,7 +2,7 @@ import re
 import unittest
 from datetime import date
 
-from edgeflip.datastructs import (
+from targetshare.datastructs import (
     Edge,
     FriendInfo,
     Timer,
