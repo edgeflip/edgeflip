@@ -1148,37 +1148,40 @@ class TieredEdges(object):
     and return useful things like a list of secondary Id's as well
     as the ability to re-rank the edges within the tiers"""
 
-    def __init__(self, tier_type, tier_id=None, edges=None):
+    def __init__(self, edges=None, **kwargs):
         """Initialize the object with the top tier"""
-        self.tier_type = tier_type
         self.tiers = []
-        if tier_id:
-            self.tiers.append((tier_id, edges))
+        if kwargs:
+            edges = edges if edges else []
+            kwargs['edges'] = edges
+            self.tiers.append(kwargs)
 
     def __len__(self):
-        return len([e for t, l in self.tiers for e in l])
+        return len([e for t in self.tiers for e in t['edges']])
 
-    def appendTier(self, tier_id, edges):
+    def appendTier(self, edges, **kwargs):
         """Append a new tier to the end"""
-        self.tiers.append((tier_id, edges))
+        edges = edges if edges else []
+        kwargs['edges'] = edges
+        self.tiers.append(kwargs)
 
     def edges(self):
-        return [e for t, l in self.tiers for e in l]
+        return [e for t in self.tiers for e in t['edges']]
 
     def secondaries(self):
-        return [e.secondary for t, l in self.tiers for e in l]
+        return [e.secondary for t in self.tiers for e in t['edges']]
 
     def secondaryIds(self):
-        return [e.secondary.id for t, l in self.tiers for e in l]
+        return [e.secondary.id for t in self.tiers for e in t['edges']]
 
     def rerankEdges(self, new_edge_ranking):
         """Re-ranks the edges within the tiers. For instance, if
         the tiers were generated using px3 scores but px4 has now
         become available, we can maintain the tiers while providing
         a better order within them."""
-        new_tiers = []
 
-        for tier_id, edge_list in self.tiers:
+        for tier in self.tiers:
+            edge_list = tier['edges'][:]    # copying - need the original order below
             tier_edge_ids = set([e.secondary.id for e in edge_list])
             new_order = []
 
@@ -1197,9 +1200,7 @@ class TieredEdges(object):
                         new_order.append(e)
                         tier_edge_ids.remove(e.secondary.id)
 
-            new_tiers.append((tier_id, new_order))
-
-        self.tiers = new_tiers
+            tier['edges'] = new_order
 
 
 class TooFewFriendsError(Exception):
