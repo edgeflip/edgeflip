@@ -1,8 +1,8 @@
-CREATE DATABASE edgeflip;
+CREATE DATABASE IF NOT EXISTS edgeflip;
 GRANT ALL PRIVILEGES ON edgeflip.* TO edgeflip@localhost;
 GRANT ALL PRIVILEGES ON edgeflip.* TO edgeflip@localhost IDENTIFIED BY 'edgeflip';
 USE edgeflip;
-CREATE TABLE `celery_taskmeta` (
+CREATE TABLE IF NOT EXISTS `celery_taskmeta` (
       `id` int(11) NOT NULL AUTO_INCREMENT,
       `task_id` varchar(255) DEFAULT NULL,
       `status` varchar(50) DEFAULT NULL,
