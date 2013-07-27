@@ -33,7 +33,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     updated = datetime.datetime(2013, 1, 1) + datetime.timedelta(days=-1)
 
-    def everyone(self):
+    def users(self):
         """helper that returns some user dicts. map of fbid => dict of user data"""
         return {u['fbid']: u for u in
                 [
@@ -98,15 +98,15 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def test_save_many_users(self):
         """Test saving many users"""
-        dynamo.save_many_users(self.everyone().values())
+        dynamo.save_many_users(self.users().values())
         table = dynamo.get_table('users')
 
-        results = list(table.batch_get(keys=[{'fbid':k} for k in self.everyone().keys()]))
-        self.assertItemsEqual([x['fbid'] for x in results], self.everyone().keys())
+        results = list(table.batch_get(keys=[{'fbid':k} for k in self.users().keys()]))
+        self.assertItemsEqual([x['fbid'] for x in results], self.users().keys())
 
         for x in results:
             d = dict(x.items())
-            user = self.everyone().get(x['fbid'])
+            user = self.users().get(x['fbid'])
             dynamo._remove_null_values(user)
 
             # munge the raw dict from dynamo in a compatible way
@@ -120,14 +120,14 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def test_fetch_many_users(self):
         """Test fetching many users"""
-        dynamo.save_many_users(self.everyone().values())
-        users = list(dynamo.fetch_many_users(self.everyone().keys()))
+        dynamo.save_many_users(self.users().values())
+        users = list(dynamo.fetch_many_users(self.users().keys()))
         for u in users:
             self.assertIsInstance(u, dict)
             assert 'updated' in u
             del u['updated']
 
-            d = self.everyone()[u['fbid']]
+            d = self.users()[u['fbid']]
             for k, v in d.items():
                 if isinstance(v, (types.NoneType, basestring, set, list, tuple)) and not v:
                     del d[k]
