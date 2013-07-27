@@ -13,8 +13,38 @@ tools & classes for data stored in AWS DynamoDB
 This module makes heavy use of iterators and generator comprehensions.
 Results are processed in Python as a stream from AWS. This makes things fast
 and keeps memory usage low. Many functions return generators instead of
-lists. Ideally, you should materialize these (i.e., iterate through/list()) as late
-as possible in your code.
+lists. Ideally, you should materialize these (i.e., iterate through/list())
+as late as possible in your code.
+
+There are three data types managed by this module: users, tokens and edges.
+All objects have a `udpated` field, which is the timestamp the object was
+last stored to Dynamo.
+
+Users
++++++
+
+Users are stored in a single table keyed by `fbid`. They have various fields
+(see `save_user` for a list). All fields are strings and optional, except for `fbid` which
+is a number and `birthday` which is a date.
+
+
+Tokens
++++++
+
+Tokens are stored in a single table keyed by `(fbid, appid)`. All fields are
+required. `token` is the string auth token from Facebook. `expires` is a
+datetime when the token expires.
+
+
+Edges
++++++
+
+Edges are stored in two tables: `edges_incoming`, which is keyed by `(target, source)`, and `edges_outgoing`, which is keyed by `(source, target)`. All fields are ints and optional (see `save_incoming_edge` for a list). Your code should always use `save_edge` / `save_many_edges`.
+
+Field data lives in the incoming table; fetching outgoing edges requires a
+join to access the data. Both tables also have a local secondary index on
+`(fbid, updated)` which is used to restrict freshness to be newer than a
+given date.
 """
 import logging
 import threading
@@ -33,7 +63,6 @@ from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex, Key
 from boto.dynamodb2.types import NUMBER
 
 from .settings import config
-from . import datastructs
 
 logger = logging.getLogger(__name__)
 
