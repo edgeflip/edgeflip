@@ -3,10 +3,7 @@ import types
 from freezegun import freeze_time
 
 from edgeflip.tests import EdgeFlipTestCase
-from edgeflip import (
-    dynamo,
-    datastructs
-)
+from edgeflip import dynamo
 
 def test_remove_null_values():
     '''test internal _remove_null_values'''
