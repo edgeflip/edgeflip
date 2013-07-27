@@ -171,6 +171,26 @@ class EdgeCounts(object):
         self.photoOther = photoOth    # count of photos not owned by target in which source & target are both tagged
         self.mutuals = muts
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make an `datastructs.EdgeCount` from a `dynamo` dict """
+        return cls(
+            sourceId = int(x['fbid_source']),
+            targetId = int(x['fbid_target']),
+            postLikes = _int_or_none(x.get('post_likes')),
+            postComms = _int_or_none(x.get('post_comms')),
+            statLikes = _int_or_none(x.get('stat_likes')),
+            statComms = _int_or_none(x.get('stat_comms')),
+            wallPosts = _int_or_none(x.get('wall_posts')),
+            wallComms = _int_or_none(x.get('wall_comms')),
+            tags = _int_or_none(x.get('tags')),
+            photoTarg = _int_or_none(x.get('photos_target')),
+            photoOth = _int_or_none(x.get('photos_other')),
+            muts = _int_or_none(x.get('mut_friends'))
+        )
+
+# internal helper to convert from dynamo's decimal
+_int_or_none = lambda x: int(x) if x is not None else None
 
 class Edge(object):
     """relationship between two users

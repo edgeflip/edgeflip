@@ -521,22 +521,9 @@ def fetch_outgoing_edges(fbid, newer_than=None):
 
     return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 
-# internal helper to convert from dynamo's decimal
-_int_or_none = lambda x: int(x) if x is not None else None
 
 def _make_edge(x):
-    """make an `datastructs.EdgeCount` from a boto Item. for internal use"""
-    return datastructs.EdgeCounts(
-        sourceId = int(x['fbid_source']),
-        targetId = int(x['fbid_target']),
-        postLikes = _int_or_none(x['post_likes']),
-        postComms = _int_or_none(x['post_comms']),
-        statLikes = _int_or_none(x['stat_likes']),
-        statComms = _int_or_none(x['stat_comms']),
-        wallPosts = _int_or_none(x['wall_posts']),
-        wallComms = _int_or_none(x['wall_comms']),
-        tags = _int_or_none(x['tags']),
-        photoTarg = _int_or_none(x['photos_target']),
-        photoOth = _int_or_none(x['photos_other']),
-        muts = _int_or_none(x['mut_friends'])
-        )
+    """make a dict from a boto Item. for internal use"""
+    e = dict(x.items())
+    e['updated'] = epoch_to_datetime(e['updated'])
+    return e

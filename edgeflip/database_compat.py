@@ -128,12 +128,12 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
     # build dict of secondary id -> EdgeCounts
     # XXX this is the ugliest variable name I have ever written in my life.
     if requireIncoming:
-        secondary_EdgeCounts_in = {e.targetId : e for e in
+        secondary_EdgeCounts_in = {e['fbid_target']: datastructs.EdgeCounts.from_dynamo(e) for e in
                                    dynamo.fetch_incoming_edges(primId, newer_than_date)
                                    if e.postLikes is not None}
 
     else:
-        secondary_EdgeCounts_in = {e.targetId : e for e in
+        secondary_EdgeCounts_in = {e['fbid_target']: datastructs.EdgeCounts.from_dynamo(e) for e in
                                    dynamo.fetch_incoming_edges(primId, newer_than_date)}
 
 
@@ -154,7 +154,7 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
     args = ((primary,
              secondary_UserInfo[ec.targetId],
              secondary_EdgeCounts_in.get(ec.targetId),
-             ec)
+             datastructs.EdgeCounts.from_dynamo(ec))
             for ec in dynamo.fetch_outgoing_edges(primId, newer_than_date))
 
     return [datastructs.Edge(*a) for a in args if a[2] is not None]
