@@ -228,9 +228,9 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
                  stat_likes=None, stat_comms=None, wall_posts=0, wall_comms=10,
                  tags=86, photos_target=None, photos_other=None, mut_friends=200),
 
-            dict(fbid_source=100, fbid_target=201, post_likes=None, post_comms=None,
+            dict(fbid_source=101, fbid_target=200, post_likes=None, post_comms=None,
                  stat_likes=50, stat_comms=55, wall_posts=138, wall_comms=None,
-                 tags=None, photos_target=6, photos_other=4, mut_friends=201),
+                 tags=None, photos_target=6, photos_other=4, mut_friends=101),
 
             dict(fbid_source=100, fbid_target=202, post_likes=80, post_comms=65,
                  stat_likes=4, stat_comms=44, wall_posts=10, wall_comms=100,
@@ -328,3 +328,90 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               self.edges().keys())
+
+    def test_fetch_edge(self):
+        """Test fetching a single edge"""
+        self.save_edge()
+
+        d = dynamo.fetch_edge(100, 200)
+        self.assertIsInstance(d, dict)
+        assert 'updated' in d
+        del d['updated']
+
+        e = self.edges()[(100, 200)]
+        dynamo._remove_null_values(e)
+        self.assertDictEqual(d, e)
+
+    def test_fetch_many_edges(self):
+        """Test fetching many edges"""
+        dynamo.save_many_edges(self.edges().values())
+
+        results = list(dynamo.fetch_many_edges(self.edges().keys()))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              self.edges().keys())
+
+        for x in results:
+            d = dict(x.items())
+            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
+            dynamo._remove_null_values(edge)
+
+            # munge the raw dict from dynamo in a compatible way
+            assert 'updated' in d
+            del d['updated']
+            self.assertDictEqual(edge, d)
+
+
+    def test_fetch_all_incoming_edges(self):
+        """Test fetching all edges"""
+        dynamo.save_many_edges(self.edges().values())
+
+        results = list(dynamo.fetch_all_incoming_edges())
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              self.edges().keys())
+
+        for x in results:
+            d = dict(x.items())
+            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
+            dynamo._remove_null_values(edge)
+
+            # munge the raw dict from dynamo in a compatible way
+            assert 'updated' in d
+            del d['updated']
+            self.assertDictEqual(edge, d)
+
+    def test_fetch_incoming_edges(self):
+        """Test fetching incoming edges"""
+        dynamo.save_many_edges(self.edges().values())
+
+        results = list(dynamo.fetch_incoming_edges(200))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              [(100, 200), (101, 200)])
+
+        for x in results:
+            d = dict(x.items())
+            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
+            dynamo._remove_null_values(edge)
+
+            # munge the raw dict from dynamo in a compatible way
+            assert 'updated' in d
+            del d['updated']
+            self.assertDictEqual(edge, d)
+
+
+    def test_fetch_outgoing_edges(self):
+        """Test fetching outgoing edges"""
+        dynamo.save_many_edges(self.edges().values())
+
+        results = list(dynamo.fetch_outgoing_edges(100))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              [(100, 200), (100, 202)])
+
+        for x in results:
+            d = dict(x.items())
+            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
+            dynamo._remove_null_values(edge)
+
+            # munge the raw dict from dynamo in a compatible way
+            assert 'updated' in d
+            del d['updated']
+            self.assertDictEqual(edge, d)
