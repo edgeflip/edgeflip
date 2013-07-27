@@ -13,14 +13,13 @@ from freezegun import freeze_time
 @freeze_time('2013-01-01')
 class TestCeleryTasks(EdgeFlipTestCase):
 
-    def _token(self):
-        '''helper to return a token'''
-        return datastructs.TokenInfo(tok='1',
-                                     own=1,
-                                     app=1,
-                                     exp=datetime.datetime.now() +
-                                     datetime.timedelta(days=365))
+    def setUp(self):
+        super(TestCeleryTasks, self).setUp()
 
+
+
+        expires = datetime.datetime(2100, 1, 1, 12, 0, 0)
+        self.token = datastructs.TokenInfo('1', 1, 1, expires)
 
     def test_proximity_rank_three(self):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
@@ -28,8 +27,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        token = self._token()
-        task_id = tasks.proximity_rank_three(True, 1, token)
+        task_id = tasks.proximity_rank_three(True, 1, self.token)
         assert task_id
         assert celery.AsyncResult(task_id)
 
@@ -41,15 +39,13 @@ class TestCeleryTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        token = self._token()
-        ranked_edges = tasks.px3_crawl(True, 1, token)
+        ranked_edges = tasks.px3_crawl(True, 1, self.token)
         assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
-        token = self._token()
-        ranked_edges = tasks.px3_crawl(True, 1, token)
-        edges, cs_filter, cs, generic, campaign_id, content_id = tasks.perform_filtering(
+        ranked_edges = tasks.px3_crawl(True, 1, self.token)
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
             'local',
             1,
@@ -60,17 +56,69 @@ class TestCeleryTasks(EdgeFlipTestCase):
             10,
             ('sharing-social-good', '471727162864364')
         )
-        assert all((isinstance(x, datastructs.Edge) for x in edges))
-        assert isinstance(cs_filter[0], cdb.ChoiceSetFilter)
-        assert isinstance(cs, cdb.ChoiceSet)
-        self.assertEqual(generic, [1, 'all'])
+        assert all((isinstance(x, datastructs.Edge) for x in edges_ranked))
+        assert isinstance(edges_filtered, cdb.TieredEdges)
+        assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
+        assert isinstance(filter_id, int)
+        assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
-        token = self._token()
-        ranked_edges = tasks.proximity_rank_four(True, 1, token)
+        ranked_edges = tasks.proximity_rank_four(True, 1, self.token)
         assert all((isinstance(x, datastructs.Edge) for x in ranked_edges))
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
         edges = list(dynamo.fetch_all_incoming_edges())
         assert edges
+
+    def test_fallback_cascade(self):
+        # Some test users and edges
+        test_user1 = datastructs.UserInfo(
+            uid=1,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=datetime.date(1984, 1, 1),
+            city='Chicago',
+            state='Illinois'
+        )
+        test_user2 = datastructs.UserInfo(
+            uid=2,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=datetime.date(1984, 1, 1),
+            city='Toledo',
+            state='Ohio'
+        )
+        test_edge1 = datastructs.Edge(
+            test_user1,
+            test_user1,
+            None
+        )
+        test_edge1.score = 0.5
+        test_edge2 = datastructs.Edge(
+            test_user1,
+            test_user2,
+            None
+        )
+        test_edge2.score = 0.4
+
+        ranked_edges = [test_edge2, test_edge1]
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
+            ranked_edges,
+            'local',
+            5,
+            1,
+            'fake-session-id',
+            '127.0.0.1',
+            1,
+            10,
+            ('sharing-social-good', '471727162864364')
+        )
+
+        self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
+        self.assertEquals(edges_filtered.tiers[0]['campaignId'], 5)
+        self.assertEquals(edges_filtered.tiers[1]['campaignId'], 4)

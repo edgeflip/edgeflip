@@ -34,7 +34,9 @@ def setUp(self):
         shell=True, stderr=PIPE, stdout=PIPE
     )
     # Now let's create the database
-    call('/usr/bin/mysql < edgeflip/tests/test_data/initial_test.sql', shell=True)
+    call('/usr/bin/mysql < %s/test_data/initial_test.sql' % (
+        FILE_ROOT
+    ), shell=True)
     call('/usr/bin/mysql edgeflip_test < %s/test_data/test_database.sql' % (
         FILE_ROOT
     ), shell=True)
@@ -77,8 +79,10 @@ class EdgeFlipTestCase(unittest.TestCase):
         # Database Adjustments
         self.orig_dbname = config.dbname
         self.orig_dbuser = config.dbuser
+        self.orig_dbthreads = config.database.use_threads
         config.dbname = 'edgeflip_test'
         config.dbuser = 'edgeflip_test'
+        config.database.use_threads = False
 
         # Prevent commits to the database
         self.conn = database.getConn()
@@ -115,6 +119,7 @@ class EdgeFlipTestCase(unittest.TestCase):
         celery.conf['CELERY_ALWAYS_EAGER'] = self.orig_eager
         config.dbname = self.orig_dbname
         config.dbuser = self.orig_dbuser
+        config.database.use_threads = self.orig_dbthreads
 
         # Undo APP settings
         APP.config['TESTING'] = False

@@ -450,7 +450,7 @@ def getClientContentURL(contentId, choiceSetFilterSlug, fbObjectSlug):
     return url
 
 
-def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, metadata=None):
+def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=None, minFriends=1, metadata=None):
     """Create a new campaign associated with the given client.
 
     facesURL must be provided and specifies the page on the client's servers
@@ -474,16 +474,19 @@ def createCampaign(clientId, name, description, facesURL, thanksURL, errorURL, f
     except IntegrityError as e:
         return {'error': str(e)}
 
-    updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent)
+    updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign, fallbackContent, fallbackCascading, minFriends)
     updateMetadata('campaign_meta', 'campaign_meta_id', 'campaign_id', campaignId, metadata, replaceAll=True)
 
     return {'campaign_id': campaignId}
 
 
-def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None):
+def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallbackCampaign=None, fallbackContent=None, fallbackCascading=None, minFriends=1):
     """Update the properties associated with a given campaign."""
     if (not facesURL or not thanksURL or not errorURL):
         raise ValueError("Must specify URLs for the faces, thank you, and error pages")
+
+    if (fallbackCascading is None) and (fallbackCampaign is not None):
+        fallbackCascading = False
 
     row = {
         'campaign_id': campaignId,
@@ -491,7 +494,9 @@ def updateCampaignProperties(campaignId, facesURL, thanksURL, errorURL, fallback
         'client_thanks_url': thanksURL,
         'client_error_url': errorURL,
         'fallback_campaign_id': fallbackCampaign,
-        'fallback_content_id': fallbackContent
+        'fallback_content_id': fallbackContent,
+        'fallback_is_cascading': fallbackCascading,
+        'min_friends': minFriends
     }
 
     dbInsert('campaign_properties', 'campaign_property_id', row.keys(), [row], 'campaign_id', campaignId, replaceAll=True)
@@ -1137,6 +1142,66 @@ class ChoiceSet(object):
                 return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
 
         return sortedFilters[0]
+
+
+class TieredEdges(object):
+    """Quick little class to hold tuples of edges in different tiers
+    and return useful things like a list of secondary Id's as well
+    as the ability to re-rank the edges within the tiers"""
+
+    def __init__(self, edges=None, **kwargs):
+        """Initialize the object with the top tier"""
+        self.tiers = []
+        if kwargs:
+            edges = edges if edges else []
+            kwargs['edges'] = edges
+            self.tiers.append(kwargs)
+
+    def __len__(self):
+        return len([e for t in self.tiers for e in t['edges']])
+
+    def appendTier(self, edges, **kwargs):
+        """Append a new tier to the end"""
+        edges = edges if edges else []
+        kwargs['edges'] = edges
+        self.tiers.append(kwargs)
+
+    def edges(self):
+        return [e for t in self.tiers for e in t['edges']]
+
+    def secondaries(self):
+        return [e.secondary for t in self.tiers for e in t['edges']]
+
+    def secondaryIds(self):
+        return [e.secondary.id for t in self.tiers for e in t['edges']]
+
+    def rerankEdges(self, new_edge_ranking):
+        """Re-ranks the edges within the tiers. For instance, if
+        the tiers were generated using px3 scores but px4 has now
+        become available, we can maintain the tiers while providing
+        a better order within them."""
+
+        for tier in self.tiers:
+            edge_list = tier['edges'][:]    # copying - need the original order below
+            tier_edge_ids = set([e.secondary.id for e in edge_list])
+            new_order = []
+
+            for e in new_edge_ranking:
+                if e.secondary.id in tier_edge_ids:
+                    new_order.append(e)
+                    tier_edge_ids.remove(e.secondary.id)
+
+            if tier_edge_ids:
+                # the new ranking was missing some edges. Note it in
+                # the logs, then iterate through the original order and
+                # append the remaining edges to the end of the list
+                logger.info("%s edges missing from new edge rankings for user %s!", len(tier_edge_ids), edge_list[0].primary.id)
+                for e in edge_list:
+                    if e.secondary.id in tier_edge_ids:
+                        new_order.append(e)
+                        tier_edge_ids.remove(e.secondary.id)
+
+            tier['edges'] = new_order
 
 
 class TooFewFriendsError(Exception):

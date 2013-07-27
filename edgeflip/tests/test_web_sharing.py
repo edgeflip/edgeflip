@@ -154,9 +154,9 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            (self.test_filter, [self.test_edge]),
-            self.test_cs,
-            [1, 'all'],
+            cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            self.test_filter.filterId,
+            self.test_filter.urlSlug,
             1,
             1
         )
@@ -186,11 +186,11 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            (self.test_filter, [self.test_edge]),
-            self.test_cs,
-            [1, 'all'],
+            cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            self.test_filter.filterId,
+            self.test_filter.urlSlug,
             1,
-            1,
+            1
         )
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = True
