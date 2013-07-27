@@ -320,3 +320,11 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             assert 'updated' in d
             del d['updated']
             self.assertDictEqual(edge, d)
+
+        outgoing = dynamo.get_table('edges_outgoing')
+
+        results = list(outgoing.batch_get(keys=[{'fbid_source':s, 'fbid_target':t}
+                                                for s, t in self.edges().keys()]))
+
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              self.edges().keys())
