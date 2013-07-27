@@ -397,6 +397,7 @@ def save_many_edges(edges):
     with incoming.batch_write() as inc, outgoing.batch_write() as out:
         for e in edges:
             e['updated'] = updated
+            _remove_null_values(e)
             inc.put_item(data = e)
             out.put_item(data = {'fbid_source': e['fbid_source'], 'fbid_target': e['fbid_target'], 'updated': updated})
 
