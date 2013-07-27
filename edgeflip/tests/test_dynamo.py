@@ -415,3 +415,67 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             assert 'updated' in d
             del d['updated']
             self.assertDictEqual(edge, d)
+
+    def test_fetch_incoming_edges_newer_than(self):
+        """Test fetching incoming edges with newer than date"""
+
+        # save everything with "old" date
+        with freeze_time('2013-01-01'):
+            dynamo.save_many_edges(self.edges().values())
+
+
+        # save edge (100, 200) with a newer date
+        with freeze_time('2013-01-06'):
+            e = self.edges()[(100, 200)]
+            dynamo.save_edge(**e)
+
+
+        results = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5)))
+
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              [(100, 200)])
+
+        d = results[0]
+        self.assertIsInstance(d, dict)
+        assert 'updated' in d
+        del d['updated']
+        e = self.edges()[(100, 200)]
+        dynamo._remove_null_values(e)
+        self.assertDictEqual(d, e)
+
+        # empty results
+        empty = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 10)))
+        self.assertItemsEqual(empty, [])
+
+
+    def test_fetch_outgoing_edges_newer_than(self):
+        """Test fetching outgoing edges newer than date"""
+
+        # save everything with "old" date
+        with freeze_time('2013-01-01'):
+            dynamo.save_many_edges(self.edges().values())
+
+
+        # save edge (100, 200) with a newer date
+        with freeze_time('2013-01-06'):
+            e = self.edges()[(100, 200)]
+            dynamo.save_edge(**e)
+
+
+        results = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5)))
+
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              [(100, 200)])
+
+
+        d = results[0]
+        self.assertIsInstance(d, dict)
+        assert 'updated' in d
+        del d['updated']
+        e = self.edges()[(100, 200)]
+        dynamo._remove_null_values(e)
+        self.assertDictEqual(d, e)
+
+        # empty results
+        empty = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 10)))
+        self.assertItemsEqual(empty, [])
