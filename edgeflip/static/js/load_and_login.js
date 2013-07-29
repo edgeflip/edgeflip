@@ -64,7 +64,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
 
         $.ajax({
             type: "POST",
-            url: '/faces',
+            url: '/faces/',
             contentType: "application/json",
             dataType: 'json',
             data: params,
@@ -115,6 +115,6 @@ function displayFriendDiv(data, jqXHR) {
 }
 
 function commError(){
-    alert("Sorry - an error occured communicating with Facebook.");
+    //alert("Sorry - an error occured communicating with Facebook.");
     top.location = errorURL; // set in frame_faces.html via Jinja
 }

@@ -36,12 +36,12 @@
     <SCRIPT>
 
         var sessionid = '{{ session_id }}';
-        var campaignid = {{ campaignId }};
-        var contentid = {{ contentId }};
+        var campaignid = {{ campaign.pk }};
+        var contentid = {{ content.pk }};
 
         function recordEvent(eventType, fbid, redirect, accessToken) {
 
-            var appid = {{ fbParams.fb_app_id }};
+            var appid = {{ fb_params.fb_app_id }};
             var content = '{{ fb_params.fb_app_name }}:button {{ goto|safe }}';
 
             var params = JSON.stringify({

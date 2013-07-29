@@ -4,6 +4,7 @@ import random
 import datetime
 
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
@@ -39,6 +40,15 @@ def _validate_client_subdomain(campaign, content, subdomain):
         valid = False
 
     return valid
+
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
 
 
 def button_encoded(request, campaign_slug):
@@ -110,27 +120,28 @@ def frame_faces_encoded(request, campaign_slug):
 
 
 def frame_faces(request, campaign_id, content_id):
-    subdomain = 'fix this'
+    subdomain = request.get_host().split('.')[0]
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
-    properties = campaign.campaignproperties_set.get()
+    client = campaign.client
     params_dict = {
-        'fb_app_name': properties.fb_app_name,
-        'fb_app_id': properties.fb_app_id
+        'fb_app_name': client.fb_app_name,
+        'fb_app_id': client.fb_app_id
     }
 
     return render(request, 'frame_faces.html', {
         'fb_params': params_dict,
         'campaign': campaign,
         'content': content,
-        'properties': properties
+        'properties': campaign.campaignproperties_set.get()
     })
 
 
 @require_POST
+@csrf_exempt
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
@@ -140,6 +151,7 @@ def faces(request):
     mock_mode = request.POST.get('mock_mode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
+    session_id = request.POST.get('session_id') or request.session.session_key
     last_call = True if request.POST.get('last_call') else False
     edges_ranked = fbmodule = px4_edges = None
 
@@ -150,9 +162,11 @@ def faces(request):
     else:
         fbmodule = facebook
 
-    subdomain = 'fix this'
-    session_id = request.session.id
-    ip = 'fix this'
+    subdomain = request.get_host().split('.')[0]
+    if not session_id:
+        request.session.save()
+        session_id = request.session.session_key
+    ip = get_client_ip(request)
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     if not _validate_client_subdomain(campaign, content, subdomain):
