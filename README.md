@@ -9,29 +9,36 @@ Basic Installation
 Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basic steps to getting up and running:
 
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
-2. Install minimal developer tools `sudo apt-get install git`
-3. Check out the repo `git clone https://github.com/edgeflip/edgeflip.git` *All following commands are run in checkout directory.*
-4. Install system dependencies: `./scripts/install-dependencies.sh`
-5. Create a virtualenv (you will need to open a new terminal/shell first): `mkvirtualenv edgeflip`
-6. Add your checkout to the virtualenv `add2virtualenv .`
-7. Upgrade distribute: `pip install -U distribute`
-8. Install python packages: `pip install -r requirements.txt`
-9. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
-10. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
+2. Install minimal developer tools, git and Fabric:
+
+    $ `sudo apt-get install git python-pip`  
+    $ `sudo pip install Fabric>=1.6`
+
+3. Check out the repo: `git clone https://github.com/edgeflip/edgeflip.git`
+4. From within the checkout hierarchy, build (and test) the application:
+
+    $ `fab build test`
+
+    (To see all tasks and options, run `fab -l`.)
+
+5. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
+6. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
  
 Local Database
 --------------
-To set up a local mysql database:
 
-1. *Once only*, run `scripts/initial_db_setup.sh`. This creates an `edgeflip` database & user with a insecure default password.
-2. To reset the database, use `bin/reset_db.py`. This will use your configuration values.
-3. To seed the database with values for the mockclient, use `bin/mockclient_campaigns.py`. This uses the edgeflip and mockclient host data in your configuration.
+A local mysql database is automatically set up by the build task; (see `fab -d build.db`). This creates an `edgeflip` database & user with an insecure default password.
+
+* To set up the database ad-hoc, run `fab build.db`.
+* To force the database schema to reinitialize, provide the "force" option: `fab build.db:force=1`.
+* To reset the database, use `bin/reset_db.py`. This will use your configuration values.
+* To seed the database with values for the mockclient, use `bin/mockclient_campaigns.py`. This uses the edgeflip and mockclient host data in your configuration.
 
 RabbitMQ
 --------------
 To set up your RabbitMQ instance:
 
-1. Start by installing RabbitMQ: `sudo apt-get install rabbitmq-server` (If this is your first setup, `install-dependencies.sh` will have done this for you)
+1. Start by installing RabbitMQ: `sudo apt-get install rabbitmq-server`. (If this is your first setup, `fab build` will have done this for you.)
 2. Create a user: `sudo rabbitmqctl add_user edgeflip edgeflip`
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
 4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
@@ -46,18 +53,18 @@ be far too specific for a particular environment.
 
 *Locally*:
 
-1. Make sure you have the Celery packages installed: `pip install -r requirements.txt`
+1. Make sure you have the Celery packages installed: `fab build.requirements`
 2. Run the celery startup script (with your virtualenv active): `./scripts/celery/local_celery.sh`
 
 *Production*:
 
-1. Make sure you have the Celery packages installed: `pip install -r requirements.txt`
+1. Make sure you have the Celery packages installed: `fab build.requirements`
 2. Symlink `scripts/celery/celeryd` to `/etc/init.d/celeryd`
 3. Copy `scripts/celery/celeryd.conf` to `/etc/default/celeryd`
 4. Set CELERY_CHDIR to the proper virtualenv path in `/etc/default/celeryd`
-4. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery` 
-5. Chown log/pid dirs: `sudo chown -R celery:celery /var/run/celery /var/log/celery`
-4. Start the daemon: `/etc/init.d/celeryd start`
+5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery` 
+6. Chown log/pid dirs: `sudo chown -R celery:celery /var/run/celery /var/log/celery`
+7. Start the daemon: `/etc/init.d/celeryd start`
 
 Hostname Alias
 --------------
@@ -124,7 +131,7 @@ sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
 Running Tests With Nose
 ------------
 New tests and the start of a test framework have been added to edgeflip/tests. 
-This tests can be ran with `nosetests edgeflip/tests/ --config=nose.cfg`. 
+These tests can be run with `fab test`; (see `fab -d test`). 
 
 They build up a new test database and destroy it upon completion, so you shouldn't
 have to worry about them trampling your current database. This does require a minor
@@ -134,3 +141,5 @@ The contents of that file should look like so:
     [client]
     user=ROOT_USER
     password=ROOT_PASSWORD
+
+You can get [coverage](http://nedbatchelder.com/code/coverage/) reports by running `nosetests edgeflip/tests/ --config=nose.cfg --with-coverage`. A nice HTML summary and annotated source are generated at `cover/index.html` in your workdir.
