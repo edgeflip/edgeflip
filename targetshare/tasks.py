@@ -1,7 +1,7 @@
 from __future__ import absolute_import
 import time
 
-import flask
+import celery
 from celery.utils.log import get_task_logger
 
 from targetshare import (
@@ -9,9 +9,10 @@ from targetshare import (
     database,
     facebook,
     mock_facebook,
+    models,
     ranking,
+    utils,
 )
-from targetshare.celery import celery
 from targetshare.settings import config
 
 MAX_FALLBACK_COUNT = 5
@@ -26,10 +27,10 @@ def add(x, y):
     return x + y
 
 
-def proximity_rank_three(mockMode, fbid, token, **kwargs):
+def proximity_rank_three(mock_mode, fbid, token, **kwargs):
     ''' Builds the px3 crawl and filtering chain '''
     chain = (
-        px3_crawl.s(mockMode, fbid, token) |
+        px3_crawl.s(mock_mode, fbid, token) |
         perform_filtering.s(fbid=fbid, **kwargs)
     )
     task = chain.apply_async()
@@ -73,85 +74,91 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         raise RuntimeError("Exceeded maximum fallback count")
 
     # Get fallback & threshold info about this campaign from the DB
-    cmpgPropsId, fallbackCampaignId, fallbackContentId, fallbackCascading, minFriends = cdb.dbGetObjectAttributes(
-        'campaign_properties',
-        ['campaign_property_id', 'fallback_campaign_id', 'fallback_content_id',
-         'fallback_is_cascading', 'min_friends'],
-        'campaign_id',
-        campaignId
-    )[0]
+    properties = models.CampaignProperties.objects.get(campaign__pk=campaignId)
+    fallback_cascading = properties.fallback_is_cascading
+    fallback_content_id = properties.fallback_content_id
 
-    if fallbackCascading and (fallbackCampaignId is None):
+    if properties.fallback_is_cascading and (properties.fallback_campaign is None):
         logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.", campaignId)
-        fallbackCascading = None
+        fallback_cascading = None
 
     # if fallback content_id IS NULL, defer to current content_id
-    if (fallbackContentId is None) and (fallbackCampaignId is not None):
-        fallbackContentId = contentId
+    if (properties.fallback_content is None and
+            properties.fallback_campaign is not None):
+        fallback_content_id = contentId
 
     # For a cascading fallback, take any friends at all for
     # the current campaign to append to the list. Otherwise,
     # use the minFriends parameter as the threshold for errors.
-    minFriends = 1 if fallbackCascading else minFriends
+    minFriends = 1 if fallback_cascading else properties.min_friends
 
     # Check if any friends should be excluded for this campaign/content combination
-    excludeFriends = database.getFaceExclusionsDb(fbid, campaignId, contentId)
-    excludeFriends = excludeFriends.union(alreadyPicked.secondaryIds())    # avoid re-adding if already picked
-    edgesEligible = [
-        e for e in edgesRanked if e.secondary.id not in excludeFriends
+    exclude_friends = set(models.FaceExclusion.objects.filter(
+        fbid=fbid,
+        campaign__pk=campaignId,
+        content__pk=contentId
+    ).values_list('friend_fbid', flat=True))
+    exclude_friends = exclude_friends.union(alreadyPicked.secondaryIds())    # avoid re-adding if already picked
+    edges_eligible = [
+        e for e in edgesRanked if e.secondary.id not in exclude_friends
     ]
 
     # Get filter experiments, do assignment (and write DB)
-    filterRecs = cdb.dbGetExperimentTupes(
-        'campaign_global_filters', 'campaign_global_filter_id',
-        'filter_id', [('campaign_id', campaignId)]
-    )
-    filterExpTupes = [(r[1], r[2]) for r in filterRecs]
-    globalFilterId = cdb.doRandAssign(filterExpTupes)
-    cdb.dbWriteAssignment(
-        sessionId, campaignId, contentId, 'filter_id', globalFilterId, True,
-        'campaign_global_filters', [r[0] for r in filterRecs],
-        background=config.database.use_threads
+    filter_exp_tupes = sorted(models.CampaignGlobalFilter.objects.filter(
+        campaign__pk=campaignId
+    ).values_list('filter_id', 'rand_cdf'), key=lambda t: t[1])
+    utils.check_cdf(filter_exp_tupes)
+    global_filter_id = utils.rand_assign(filter_exp_tupes)
+    models.Assignment.objects.create(
+        session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+        feature_type='filter_id', feature_row=global_filter_id,
+        random_assign=True, chosen_from_table='campaign_global_filters',
+        chosen_from_rows=[r[0] for r in filter_exp_tupes]
     )
 
     # apply filter
-    globalFilter = cdb.getFilter(globalFilterId)
-    filteredEdges = globalFilter.filterEdgesBySec(edgesEligible)
+    global_filter = models.Filter.objects.get(
+        pk=global_filter_id)
+    filtered_edges = global_filter.filter_edges_by_sec(edges_eligible)
 
     # Get choice set experiments, do assignment (and write DB)
-    choiceSetRecs = cdb.dbGetExperimentTupes(
-        'campaign_choice_sets', 'campaign_choice_set_id', 'choice_set_id',
-        [('campaign_id', campaignId)], ['allow_generic', 'generic_url_slug']
+    choice_set_recs = models.CampaignChoiceSet.objects.filter(
+        campaign__pk=campaignId
     )
-    choiceSetExpTupes = [(r[1], r[2]) for r in choiceSetRecs]
-    choiceSetId = cdb.doRandAssign(choiceSetExpTupes)
-    cdb.dbWriteAssignment(
-        sessionId, campaignId, contentId, 'choice_set_id', choiceSetId, True,
-        'campaign_choice_sets', [r[0] for r in filterRecs],
-        background=config.database.use_threads
+    choice_set_exp_tupes = [
+        (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
+    ]
+    choice_set_id = utils.rand_assign(choice_set_exp_tupes)
+    models.Assignment.objects.create(
+        session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+        feature_type='choice_set_id', feature_row=choice_set_id,
+        random_assign=True, chosen_from_table='campaign_choice_sets',
+        chosen_from_rows=[r.pk for r in choice_set_recs]
     )
-    allowGeneric = {r[1]: [r[3], r[4]] for r in choiceSetRecs}[choiceSetId]
+    allow_generic = {
+        r.choice_set.pk: [r.allow_generic, r.generic_url_slug] for r in choice_set_recs
+    }[choice_set_id]
 
     # pick best choice set filter (and write DB)
-    choiceSet = cdb.getChoiceSet(choiceSetId)
+    choice_set = models.ChoiceSet.objects.get(pk=choice_set_id)
     bestCSFilter = None
     try:
-        bestCSFilter = choiceSet.chooseBestFilter(
-            filteredEdges, useGeneric=allowGeneric[0],
+        bestCSFilter = choice_set.choose_best_filter(
+            filtered_edges, useGeneric=allow_generic[0],
             minFriends=minFriends, eligibleProportion=1.0
         )
 
-        choiceSetSlug = bestCSFilter[0].urlSlug if bestCSFilter[0] else allowGeneric[1]
-        bestCSFilterId = bestCSFilter[0].filterId if bestCSFilter[0] else None
+        choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
+        best_csf_id = bestCSFilter[0].filter_id if bestCSFilter[0] else None
 
         alreadyPicked.appendTier(
             edges=bestCSFilter[1],
-            bestCSFilterId=bestCSFilterId,
-            choiceSetSlug=choiceSetSlug,
+            bestCSFilterId=best_csf_id,
+            choiceSetSlug=choice_set_slug,
             campaignId=campaignId,
             contentId=contentId
         )
-    except cdb.TooFewFriendsError as e:
+    except utils.TooFewFriendsError as e:
         logger.info(
             "Too few friends found for %s with campaign %s. Checking for fallback.",
             fbid,
@@ -165,43 +172,47 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             logger.debug("Generic returned for %s with campaign %s." % (
                 fbid, campaignId
             ))
-            cdb.dbWriteAssignment(
-                sessionId, campaignId, contentId,
-                'generic choice set filter', None, False,
-                'choice_set_filters',
-                [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
-                background=config.database.use_threads
+            models.Assignment.objects.create(
+                session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+                feature_type='generic choice set filter',
+                feature_row=None, random_assign=False,
+                chosen_from_table='choice_set_filters',
+                chosen_from_rows=[x.pk for x in choice_set.choicesetfilter_set.all()]
             )
         else:
-            cdb.dbWriteAssignment(
-                sessionId, campaignId, contentId, 'filter_id',
-                bestCSFilter[0].filterId, False, 'choice_set_filters',
-                [csf.choiceSetFilterId for csf in choiceSet.choiceSetFilters],
-                background=config.database.use_threads
+            models.Assignment.objects.create(
+                session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+                feature_type='filter_id', feature_row=bestCSFilter[0].filter_id,
+                random_assign=False, chosen_from_table='choice_set_filters',
+                chosen_from_rows=[x.pk for x in choice_set.choicesetfilter_set.all()]
             )
 
-    slotsLeft = numFace - len(alreadyPicked)
+    slotsLeft = int(numFace) - len(alreadyPicked)
 
-    if slotsLeft > 0 and fallbackCascading:
+    if slotsLeft > 0 and fallback_cascading:
         # We still have slots to fill and can fallback to do so
 
         # write "fallback" assignments to DB
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId, 'cascading fallback campaign',
-            fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId],
-            background=config.database.use_threads
+        models.Assignment.objects.create(
+            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            feature_type='cascading fallback campaign',
+            feature_row=properties.fallback_campaign.pk,
+            random_assign=False, chosen_from_table='campaign_properties',
+            chosen_from_rows=[properties.pk]
         )
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId, 'cascading fallback content',
-            fallbackContentId, False, 'campaign_properties', [cmpgPropsId],
-            background=config.database.use_threads
+        models.Assignment.objects.create(
+            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            feature_type='cascading fallback content ',
+            feature_row=fallback_content_id,
+            random_assign=False, chosen_from_table='campaign_properties',
+            chosen_from_rows=[properties.pk]
         )
 
-        # Recursive call with new fallbackCampaignId & fallbackContentId,
+        # Recursive call with new fallbackCampaignId & fallback_content_id,
         # incrementing fallbackCount
         return perform_filtering(
-            edgesRanked, clientSubdomain, fallbackCampaignId,
-            fallbackContentId, sessionId, ip, fbid, numFace,
+            edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
+            fallback_content_id, sessionId, ip, fbid, numFace,
             paramsDB, fallbackCount + 1, alreadyPicked
         )
 
@@ -210,7 +221,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # requirement, so need to fallback
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
-        if (fallbackCampaignId is None):
+        if properties.fallback_campaign is None:
             # zzz Obviously, do something smarter here...
             logger.info(
                 "No fallback for %s with campaign %s. Returning error to user.",
@@ -231,27 +242,31 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId, 'fallback campaign',
-            fallbackCampaignId, False, 'campaign_properties', [cmpgPropsId],
-            background=config.database.use_threads
+        models.Assignment.objects.create(
+            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            feature_type='cascading fallback campaign',
+            feature_row=properties.fallback_campaign.pk,
+            random_assign=False, chosen_from_table='campaign_properties',
+            chosen_from_rows=[properties.pk]
         )
-        cdb.dbWriteAssignment(
-            sessionId, campaignId, contentId, 'fallback content',
-            fallbackContentId, False, 'campaign_properties', [cmpgPropsId],
-            background=config.database.use_threads
+        models.Assignment.objects.create(
+            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            feature_type='fallback campaign',
+            feature_row=fallback_content_id,
+            random_assign=False, chosen_from_table='campaign_properties',
+            chosen_from_rows=[properties.pk]
         )
 
         # If we're not cascading, no one is already picked.
         # If we're here, should probably always be the case that
-        # fallbackCascading is False, but do the check to be safe...
-        alreadyPicked = alreadyPicked if fallbackCascading else None
+        # fallback_cascading is False, but do the check to be safe...
+        alreadyPicked = alreadyPicked if fallback_cascading else None
 
-        # Recursive call with new fallbackCampaignId & fallbackContentId,
+        # Recursive call with new fallbackCampaignId & fallback_content_id,
         # incrementing fallbackCount
         return perform_filtering(
-            edgesRanked, clientSubdomain, fallbackCampaignId,
-            fallbackContentId, sessionId, ip, fbid, numFace,
+            edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
+            fallback_content_id, sessionId, ip, fbid, numFace,
             paramsDB, fallbackCount + 1, alreadyPicked
         )
 

@@ -3,6 +3,8 @@ import logging
 import random
 import datetime
 
+from celery import Celery
+
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.http import (
@@ -13,7 +15,6 @@ from django.http import (
 from django.views.decorators.http import require_POST
 
 from targetshare import (
-    celery,
     datastructs,
     facebook,
     mock_facebook,
@@ -169,6 +170,7 @@ def faces(request):
     ip = get_client_ip(request)
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    properties = campaign.campaignproperties_set.get()
     client = campaign.client
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
@@ -177,7 +179,6 @@ def faces(request):
         return HttpResponseForbidden(
             'Mock mode only allowed for the mock client')
 
-    properties = campaign.campaignproperties_set.get()
     token = datastructs.TokenInfo(
         tok, fbid,
         int(client.fb_app_id),
@@ -189,8 +190,8 @@ def faces(request):
     )
 
     if px3_task_id and px4_task_id:
-        px3_result = celery.celery.AsyncResult(px3_task_id)
-        px4_result = celery.celery.AsyncResult(px4_task_id)
+        px3_result = Celery.AsyncResult(px3_task_id)
+        px4_result = Celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.successful() else []
             edges_ranked, best_cs_filter, choice_set, allow_generic, campaign_id, content_id = px3_result.result
@@ -215,21 +216,22 @@ def faces(request):
         px3_task_id = tasks.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
-            subdomain=subdomain,
-            campaign_id=campaign_id,
-            content_id=content_id,
+            clientSubdomain=subdomain,
+            campaignId=campaign_id,
+            contentId=content_id,
+            sessionId=session_id,
             ip=ip,
             fbid=fbid,
-            num_face=num_face,
-            properties=properties
+            numFace=num_face,
+            paramsDB=client
         )
-        px4_task_id = tasks.proximity_rank_four.delay(
+        px4_task = tasks.proximity_rank_four.delay(
             mock_mode, fbid, token)
         return HttpResponse(json.dumps(
             {
                 'status': 'waiting',
                 'px3_task_id': px3_task_id,
-                'px4_task_id': px4_task_id,
+                'px4_task_id': px4_task.id,
                 'campaign_id': campaign_id,
                 'content_id': content_id,
             }),

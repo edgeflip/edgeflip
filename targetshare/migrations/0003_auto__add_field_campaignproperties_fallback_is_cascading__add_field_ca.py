@@ -1,51 +1,35 @@
 # -*- coding: utf-8 -*-
+import datetime
 from south.db import db
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
+from django.db import models
 
 
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Drop old, in the way, primary keys
-        db.execute('ALTER TABLE user_clients DROP PRIMARY KEY')
-        db.execute('ALTER TABLE user_clients ADD user_client_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE assignments ADD assignment_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE events ADD event_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE edges DROP PRIMARY KEY')
-        db.execute('ALTER TABLE edges ADD edge_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE face_exclusions DROP PRIMARY KEY')
-        db.execute('ALTER TABLE face_exclusions ADD face_exclusion_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
+        # Adding field 'CampaignProperties.fallback_is_cascading'
+        db.add_column('campaign_properties', 'fallback_is_cascading',
+                      self.gf('django.db.models.fields.NullBooleanField')(null=True, blank=True),
+                      keep_default=False)
 
-        # Adding unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
-        db.create_unique('edges', ['fbid_source', 'fbid_target'])
+        # Adding field 'CampaignProperties.min_friends'
+        db.add_column('campaign_properties', 'min_friends',
+                      self.gf('django.db.models.fields.IntegerField')(default=1),
+                      keep_default=False)
 
-        # Adding unique constraint on 'Event', fields ['session_id', 'campaign', 'content', 'fbid', 'friend_fbid', 'activity_id']
-        db.create_unique('events', ['session_id', 'campaign_id', 'content', 'fbid', 'friend_fbid', 'activity_id'])
-
-        # Adding unique constraint on 'FaceExclusion', fields ['fbid', 'campaign', 'content', 'friend_fbid']
-        db.create_unique('face_exclusions', ['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
-
-        # Adding unique constraint on 'Token', fields ['fbid', 'app_id', 'owner_id']
-        db.create_unique('tokens', ['fbid', 'appid', 'ownerid'])
-
-        # Adding unique constraint on 'UserClient', fields ['fbid', 'client']
-        db.create_unique('user_clients', ['fbid', 'client_id'])
+        # Changing field 'Event.campaign'
+        db.alter_column('events', 'campaign_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'], null=True))
 
     def backwards(self, orm):
-        # Deleting field 'UserClient.user_client_id'
-        db.delete_column('user_clients', 'user_client_id')
+        # Deleting field 'CampaignProperties.fallback_is_cascading'
+        db.delete_column('campaign_properties', 'fallback_is_cascading')
 
-        # Deleting field 'Assignment.assignment_id'
-        db.delete_column('assignments', 'assignment_id')
+        # Deleting field 'CampaignProperties.min_friends'
+        db.delete_column('campaign_properties', 'min_friends')
 
-        # Deleting field 'Event.event_id'
-        db.delete_column('events', 'event_id')
-
-        # Deleting field 'Edge.edge_id'
-        db.delete_column('edges', 'edge_id')
-
-        # Deleting field 'FaceExclusion.face_exclusion_id'
-        db.delete_column('face_exclusions', 'face_exclusion_id')
+        # User chose to not deal with backwards NULL issues for 'Event.campaign'
+        raise RuntimeError("Cannot reverse this migration. 'Event.campaign' and its values cannot be restored.")
 
     models = {
         u'targetshare.assignment': {
@@ -157,7 +141,7 @@ class Migration(DataMigration):
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         u'targetshare.campaignglobalfilter': {
-            'Meta': {'object_name': 'CampaignGlobalFilter', 'db_table': "'campaign_global_filter'"},
+            'Meta': {'object_name': 'CampaignGlobalFilter', 'db_table': "'campaign_global_filters'"},
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
             'campaign_global_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
@@ -202,6 +186,8 @@ class Migration(DataMigration):
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'fallback_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'fallback_campaign'", 'to': u"orm['targetshare.Campaign']"}),
             'fallback_content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']"}),
+            'fallback_is_cascading': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
+            'min_friends': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         u'targetshare.campaignproximitymodel': {
@@ -325,7 +311,7 @@ class Migration(DataMigration):
             'Meta': {'unique_together': "(('session_id', 'campaign', 'content', 'fbid', 'friend_fbid', 'activity_id'),)", 'object_name': 'Event', 'db_table': "'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True'}),
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']", 'null': 'True'}),
             'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "'client_id'"}),
             'content': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),

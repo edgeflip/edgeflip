@@ -1,6 +1,13 @@
-from django.db import models
+import time
+import logging
+import threading
 
-from targetshare.web import utils
+from django.db import models
+from django.conf import settings
+
+from targetshare import datastructs, utils
+
+logger = logging.getLogger(__name__)
 
 
 class Assignment(models.Model):
@@ -123,6 +130,46 @@ class ChoiceSet(models.Model):
     def __unicode__(self):
         return u'%s' % self.name
 
+    def choose_best_filter(self, edges, useGeneric=False,
+            minFriends=2, eligibleProportion=0.5):
+        """Determine the best choice set filter from a list of edges based on
+        the filter that passes the largest number of secondaries (average score
+        is used for tie breaking)
+
+        useGeneric specifies whether the choice set should fall back to friends
+          who fall in ANY bin if there not enough friends in a single bin.
+        minFriends is the minimum number of friends that must be returned,
+          otherwise, we'll raise a TooFewFriendsError.
+        eligibleProportion specifies the top fraction (based on score) of friends
+          that should even be considered here (if we want to restrict only to
+          those friends with a reasonable proximity to the primary).
+        """
+        sort_func = lambda el: (len(el), sum([e.score for e in el]) / len(el) if el else 0)
+        edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
+        elgCount = int(len(edges) * eligibleProportion)
+        edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
+
+        filtered_edges = [
+            (csf, csf.filter.filter_edges_by_sec(
+                edgesElg)) for csf in self.choicesetfilter_set.all()
+        ]
+        sortedFilters = sorted(filtered_edges, key=lambda t: sort_func(t[1]), reverse=True)
+
+        if (len(sortedFilters[0][1]) < minFriends):
+
+            if (not useGeneric):
+                raise utils.TooFewFriendsError(
+                    "Too few friends were available after filtering")
+
+            genericFriends = set(e.secondary.id for t in sortedFilters for e in t[1])
+            if (len(genericFriends) < minFriends):
+                raise utils.TooFewFriendsError(
+                    "Too few friends were available after filtering")
+            else:
+                return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
+
+        return sortedFilters[0]
+
     class Meta:
         db_table = 'choice_sets'
 
@@ -171,7 +218,7 @@ class CampaignChoiceSet(models.Model):
     end_dt = models.DateTimeField(null=True)
 
     class Meta:
-        db_table = 'campaign_choice_set'
+        db_table = 'campaign_choice_sets'
 
 
 class CampaignFacesStyle(models.Model):
@@ -278,9 +325,12 @@ class CampaignProperties(models.Model):
     client_error_url = models.CharField(max_length=2096)
     fallback_campaign = models.ForeignKey(
         'Campaign',
-        related_name='fallback_campaign'
+        related_name='fallback_campaign',
+        null=True
     )
-    fallback_content = models.ForeignKey('ClientContent')
+    fallback_content = models.ForeignKey('ClientContent', null=True)
+    fallback_is_cascading = models.NullBooleanField()
+    min_friends = models.IntegerField(default=1)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -354,7 +404,7 @@ class ChoiceSetAlgorithmMeta(models.Model):
 
 class ChoiceSetFilter(models.Model):
 
-    choice_set_meta_id = models.AutoField(primary_key=True)
+    choice_set_filter_id = models.AutoField(primary_key=True)
     choice_set = models.ForeignKey('ChoiceSet')
     filter = models.ForeignKey('Filter')
     url_slug = models.CharField(max_length=64)
@@ -446,7 +496,11 @@ class Event(models.Model):
     event_id = models.AutoField(primary_key=True)
     session_id = models.CharField(max_length=128)
     campaign = models.ForeignKey('Campaign', null=True)
-    client_content = models.ForeignKey('ClientContent', db_column='client_id')
+    client_content = models.ForeignKey(
+        'ClientContent',
+        db_column='client_id',
+        null=True
+    )
     ip = models.CharField(max_length=32)
     fbid = models.BigIntegerField()
     friend_fbid = models.BigIntegerField()
@@ -621,6 +675,72 @@ class Filter(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    def _standard_filter(self, user, feature, operator, value):
+        if not hasattr(user, feature):
+            return False
+
+        user_val = getattr(user, feature)
+        user_val = user_val if user_val else ''
+
+        if operator == 'min':
+            return user_val >= value
+
+        elif operator == 'max':
+            return user_val <= value
+
+        elif operator == 'eq':
+            return user_val == value
+
+        elif operator == 'in':
+            return user_val in value
+
+    def filter_edges_by_sec(self, edges):
+        """Given a list of edge objects, return those objects for which
+        the secondary passes the current filter."""
+        if not self.filterfeature_set.exists():
+            return edges
+        for f in self.filterfeature_set.all():
+            if f.feature in settings.CIVIS_FILTERS:
+                start_time = time.time()
+                threads = []
+                loopTimeout = 10
+                loopSleep = 0.1
+                matches = []
+                for count, edge in enumerate(edges):
+                    t = threading.Thread(
+                        target=utils.civis_filter,
+                        args=(edge, f.feature, f.operator, f.value, matches)
+                    )
+                    t.setDaemon(True)
+                    t.name = 'civis-%d' % count
+                    threads.append(t)
+                    t.start()
+
+                timeStop = time.time() + loopTimeout
+                while (time.time() < timeStop):
+                    threadsAlive = []
+                    for t in threads:
+                        if t.isAlive():
+                            threadsAlive.append(t)
+
+                    threads = threadsAlive
+                    if (threadsAlive):
+                        time.sleep(loopSleep)
+                    else:
+                        break
+                logger.debug(
+                    "Civis matching complete in %s" % (time.time() - start_time)
+                )
+                edges = [
+                    x for x in matches if isinstance(x, datastructs.Edge)
+                ]
+
+            # Standard min/max/eq/in filters below
+            else:
+                edges = [x for x in edges if self._standard_filter(
+                    x.secondary, f.feature, f.operator, f.value)]
+        return edges
 
     def __unicode__(self):
         return u'%s' % self.name

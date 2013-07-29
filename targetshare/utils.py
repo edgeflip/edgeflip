@@ -1,8 +1,15 @@
+import time
+import threading
 import logging
 import random
 import base64
 import urllib
 from Crypto.Cipher import DES
+
+import us
+import requests
+from civis_matcher import matcher
+from unidecode import unidecode
 
 from targetshare.settings import config
 
@@ -68,3 +75,64 @@ def decodeDES(encoded):
     b64decoded = base64.urlsafe_b64decode(unquoted)
     message = cipher.decrypt(b64decoded).rstrip(PADDING)
     return message
+
+
+def civis_filter(edge, feature, operator, value, matches):
+    ''' Performs a match against the Civis API and retrieves the score for a
+    given user
+    '''
+    start_time = time.time()
+    user = edge.secondary
+    logger.debug('Thread %s started' % threading.current_thread().name)
+    cm = matcher.CivisMatcher()
+    kwargs = {}
+    if user.birthday:
+        kwargs['birth_month'] = '%02d' % user.birthday.month
+        kwargs['birth_year'] = user.birthday.year
+        kwargs['birth_day'] = '%02d' % user.birthday.day
+
+    if not user.state or not user.city:
+        return
+
+    if user.state:
+        state = us.states.lookup(user.state)
+        kwargs['state'] = state.abbr if state else None
+    else:
+        kwargs['state'] = None
+
+    try:
+        start_time = time.time()
+        result = cm.match(
+            first_name=unidecode(user.fname),
+            last_name=unidecode(user.lname),
+            city=unidecode(user.city) if user.city else None,
+            **kwargs
+        )
+        end_time = time.time()
+        logger.debug(
+            'Request time: %s, url: %s',
+            (end_time - start_time),
+            result.url
+        )
+    except requests.RequestException:
+        return None
+    except matcher.MatchException as exc:
+        # This means there was an issue with the Civis API. Likely means no
+        # match, but it's hard to say in the current state of their API.
+        logger.info('Exception: %s' % exc.message)
+        return None
+
+    scores = getattr(result, 'scores', None)
+    if scores and float(scores[feature][operator]) >= float(value):
+        matches.append(edge)
+    logger.debug(
+        'Thread %s ended: %s' % (
+            threading.current_thread().name, time.time() - start_time
+        )
+    )
+    return
+
+
+class TooFewFriendsError(Exception):
+    """Too few friends found in picking best choice set filter"""
+    pass

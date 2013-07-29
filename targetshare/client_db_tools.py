@@ -9,12 +9,7 @@ import random
 import logging
 import threading
 
-import us
-import requests
-from unidecode import unidecode
 from MySQLdb import IntegrityError
-
-from civis_matcher import matcher
 
 from targetshare import (
     database as db,
@@ -943,62 +938,6 @@ def dbInsert(table, index, insCols, rows, objectCol=None, objectId=None, uniqueC
         return newId
 
 
-def civisFilter(edge, feature, operator, value, matches):
-    ''' Performs a match against the Civis API and retrieves the score for a
-    given user
-    '''
-    start_time = time.time()
-    user = edge.secondary
-    logger.debug('Thread %s started' % threading.current_thread().name)
-    cm = matcher.CivisMatcher()
-    kwargs = {}
-    if user.birthday:
-        kwargs['birth_month'] = '%02d' % user.birthday.month
-        kwargs['birth_year'] = user.birthday.year
-        kwargs['birth_day'] = '%02d' % user.birthday.day
-
-    if not user.state or not user.city:
-        return
-
-    if user.state:
-        state = us.states.lookup(user.state)
-        kwargs['state'] = state.abbr if state else None
-    else:
-        kwargs['state'] = None
-
-    try:
-        start_time = time.time()
-        result = cm.match(
-            first_name=unidecode(user.fname),
-            last_name=unidecode(user.lname),
-            city=unidecode(user.city) if user.city else None,
-            **kwargs
-        )
-        end_time = time.time()
-        logger.debug(
-            'Request time: %s, url: %s',
-            (end_time - start_time),
-            result.url
-        )
-    except requests.RequestException:
-        return None
-    except matcher.MatchException as exc:
-        # This means there was an issue with the Civis API. Likely means no
-        # match, but it's hard to say in the current state of their API.
-        logger.info('Exception: %s' % exc.message)
-        return None
-
-    scores = getattr(result, 'scores', None)
-    if scores and float(scores[feature][operator]) >= float(value):
-        matches.append(edge)
-    logger.debug(
-        'Thread %s ended: %s' % (
-            threading.current_thread().name, time.time() - start_time
-        )
-    )
-    return
-
-
 class Filter(object):
     def __init__(self, filterId, features):
         """A class to hold filters and associated functionality
@@ -1008,71 +947,6 @@ class Filter(object):
         """
         self.filterId = int(filterId)
         self.features = features
-
-    def _standard_filter(self, user, feature, operator, value):
-        if not hasattr(user, feature):
-            return False
-
-        user_val = getattr(user, feature)
-
-        if operator == 'min':
-            return user_val >= value
-
-        elif operator == 'max':
-            return user_val <= value
-
-        elif operator == 'eq':
-            return user_val == value
-
-        elif operator == 'in':
-            return user_val in value
-
-    def filterEdgesBySec(self, edges):
-        """Given a list of edge objects, return those objects for which
-        the secondary passes the current filter."""
-        if not self.features:
-            return edges
-        for feature, operator, value in self.features:
-            if feature in config.filtering.civis_filters:
-                start_time = time.time()
-                threads = []
-                loopTimeout = 10
-                loopSleep = 0.1
-                matches = []
-                for count, edge in enumerate(edges):
-                    t = threading.Thread(
-                        target=civisFilter,
-                        args=(edge, feature, operator, value, matches)
-                    )
-                    t.setDaemon(True)
-                    t.name = 'civis-%d' % count
-                    threads.append(t)
-                    t.start()
-
-                timeStop = time.time() + loopTimeout
-                while (time.time() < timeStop):
-                    threadsAlive = []
-                    for t in threads:
-                        if t.isAlive():
-                            threadsAlive.append(t)
-
-                    threads = threadsAlive
-                    if (threadsAlive):
-                        time.sleep(loopSleep)
-                    else:
-                        break
-                logger.debug(
-                    "Civis matching complete in %s" % (time.time() - start_time)
-                )
-                edges = [
-                    x for x in matches if isinstance(x, datastructs.Edge)
-                ]
-
-            # Standard min/max/eq/in filters below
-            else:
-                edges = [x for x in edges if self._standard_filter(
-                    x.secondary, feature, operator, value)]
-        return edges
 
 
 class ChoiceSetFilter(Filter):
@@ -1107,40 +981,6 @@ class ChoiceSet(object):
         """
         self.choiceSetId = int(choiceSetId)
         self.choiceSetFilters = choiceSetFilters
-        self.sortFunc = lambda el: (len(el), sum([e.score for e in el]) / len(el) if el else 0)
-
-    def chooseBestFilter(self, edges, useGeneric=False, minFriends=2, eligibleProportion=0.5):
-        """Determine the best choice set filter from a list of edges based on
-        the filter that passes the largest number of secondaries (average score
-        is used for tie breaking)
-
-        useGeneric specifies whether the choice set should fall back to friends
-          who fall in ANY bin if there not enough friends in a single bin.
-        minFriends is the minimum number of friends that must be returned,
-          otherwise, we'll raise a TooFewFriendsError.
-        eligibleProportion specifies the top fraction (based on score) of friends
-          that should even be considered here (if we want to restrict only to
-          those friends with a reasonable proximity to the primary).
-        """
-        edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
-        elgCount = int(len(edges) * eligibleProportion)
-        edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
-
-        filteredEdges = [(f, f.filterEdgesBySec(edgesElg)) for f in self.choiceSetFilters]
-        sortedFilters = sorted(filteredEdges, key=lambda t: self.sortFunc(t[1]), reverse=True)
-
-        if (len(sortedFilters[0][1]) < minFriends):
-
-            if (not useGeneric):
-                raise TooFewFriendsError("Too few friends were available after filtering")
-
-            genericFriends = set(e.secondary.id for t in sortedFilters for e in t[1])
-            if (len(genericFriends) < minFriends):
-                raise TooFewFriendsError("Too few friends were available after filtering")
-            else:
-                return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
-
-        return sortedFilters[0]
 
 
 class TieredEdges(object):

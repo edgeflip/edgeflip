@@ -1078,7 +1078,7 @@ class Migration(SchemaMigration):
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True'}),
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
-            'content': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
+            'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "'client_id'"}),
             'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'db_column': "'type'"}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {}),
