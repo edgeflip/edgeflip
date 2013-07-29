@@ -146,8 +146,8 @@ def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
     num_face = request.POST.get('num')
-    content_id = request.POST.get('content_id')
-    campaign_id = request.POST.get('campaign_id')
+    content_id = request.POST.get('contentid')
+    campaign_id = request.POST.get('campaignid')
     mock_mode = request.POST.get('mock_mode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
@@ -169,6 +169,7 @@ def faces(request):
     ip = get_client_ip(request)
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    client = campaign.client
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
@@ -179,12 +180,12 @@ def faces(request):
     properties = campaign.campaignproperties_set.get()
     token = datastructs.TokenInfo(
         tok, fbid,
-        properties.fb_app_id,
+        int(client.fb_app_id),
         datetime.datetime.now()
     )
     token = fbmodule.extendTokenFb(
         fbid, token,
-        properties.fb_app_id or token
+        int(client.fb_app_id) or token
     )
 
     if px3_task_id and px4_task_id:
@@ -217,7 +218,7 @@ def faces(request):
             subdomain=subdomain,
             campaign_id=campaign_id,
             content_id=content_id,
-            ip='wut', # XXX: FIXME!
+            ip=ip,
             fbid=fbid,
             num_face=num_face,
             properties=properties

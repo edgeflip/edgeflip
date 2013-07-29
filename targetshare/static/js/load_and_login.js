@@ -50,7 +50,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
         var progress = $('#progress');
         var your_friends_div = $('#your-friends-here');
 
-        var params = JSON.stringify({
+        var params = {
             fbid: fbid,
             token: accessToken,
             num: num,
@@ -60,12 +60,12 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             px3_task_id: px3_task_id,
             px4_task_id: px4_task_id,
             last_call: last_call
-        });
+        };
 
         $.ajax({
             type: "POST",
             url: '/faces/',
-            contentType: "application/json",
+            //contentType: "application/json",
             dataType: 'json',
             data: params,
             error: function(jqXHR, textStatus, errorThrown) {
