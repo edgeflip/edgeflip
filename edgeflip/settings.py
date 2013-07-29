@@ -1,6 +1,11 @@
 # Django settings for edgeflip project.
 import os
 
+import djcelery
+from kombu import Queue
+
+djcelery.setup_loader()
+
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 
 DEBUG = True
@@ -82,7 +87,7 @@ STATICFILES_DIRS = (
 STATICFILES_FINDERS = (
     'django.contrib.staticfiles.finders.FileSystemFinder',
     'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+    #'django.contrib.staticfiles.finders.DefaultStorageFinder',
 )
 
 # Make this unique, and don't share it with anybody.
@@ -92,7 +97,7 @@ SECRET_KEY = 'zgoi_vwcwps&13gu&=*zpm-alto_g(bapb31rob(onr(gmg1c_'
 TEMPLATE_LOADERS = (
     'django.template.loaders.filesystem.Loader',
     'django.template.loaders.app_directories.Loader',
-#     'django.template.loaders.eggs.Loader',
+    #'django.template.loaders.eggs.Loader',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -125,7 +130,49 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     'south',
+    'djcelery',
     'targetshare',
+)
+
+# CELERY SETTINGS
+QUEUE_ARGS = {'x-ha-policy': 'all'}
+BROKER_URL = 'amqp://edgeflip:edgeflip@localhost:5672/edgehost'
+BROKER_HEARTBEAT = 10
+BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
+CELERYD_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_RESULT_EXPIRES = 3600
+CELERY_RESULT_BACKEND = 'database'
+CELERY_RESULT_DBURI = "mysql://%s:%s@%s/%s" % (
+    DATABASES['default']['USER'],
+    DATABASES['default']['PASSWORD'],
+    DATABASES['default'].get('HOST', 'locahost'),
+    DATABASES['default']['NAME'],
+)
+# FIXME: Short lived sessions won't be needed once we have more consistent
+# traffic levels. Then MySQL won't kill our connections.
+CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
+CELERY_ALWAYS_EAGER = False
+CELERY_QUEUES = (
+    Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
+    Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+)
+CELERY_ROUTES = {
+    'targetshare.tasks.px3_crawl': {
+        'queue': 'px3',
+        'routing_key': 'px3.crawl'
+    },
+    'targetshare.tasks.perform_filtering': {
+        'queue': 'px3_filter',
+        'routing_key': 'px3.filter'
+    },
+    'targetshare.tasks.proximity_rank_four': {
+        'queue': 'px4',
+        'routing_key': 'px4.crawl'
+    },
+}
+CELERY_IMPORTS = (
+    'targetshare.tasks',
 )
 
 # A sample logging configuration. The only tangible logging

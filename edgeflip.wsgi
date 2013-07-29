@@ -1,3 +1,6 @@
+import djcelery
+djcelery.setup_loader()
+
 activate_this = '/var/www/edgeflip/bin/activate_this.py'
 execfile(activate_this, dict(__file__=activate_this))
 
