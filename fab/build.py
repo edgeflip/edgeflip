@@ -100,7 +100,7 @@ def install_deps():
     # Install fake dynamo:
     if 'dev' in roles:
         gems = l('gem list --local --no-versions', capture=True)
-        if 'fake_dynamo' not in gems:
+        if 'fake_dynamo' not in gems.split():
             l('sudo gem install fake_dynamo --version 0.2.3')
 
 
