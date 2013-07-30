@@ -93,6 +93,7 @@ def frame_faces_encoded(campaignSlug):
 
 
 # Serves the actual faces & share message
+@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
 @app.route("/frame_faces/<int:campaignId>/<int:contentId>")
 def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
@@ -119,7 +120,6 @@ def frame_faces(campaignId, contentId):
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
-
     paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
     #zzz
     #paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : 417233888375210}
@@ -196,8 +196,8 @@ def faces():
         px4_result = celery.celery.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.successful() else []
-            edgesRanked, bestCSFilter, choiceSet, allowGeneric, campaignId, contentId = px3_result.result
-            if not all([edgesRanked, bestCSFilter, choiceSet]):
+            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result
+            if not all([edgesRanked, edgesFiltered]):
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
             if last_call and not px3_result.ready():
@@ -255,6 +255,9 @@ def faces():
     )
 
 
+
+
+
 def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
                   clientSubdomain, campaignId, contentId, sessionId,
                   ip, fbid, numFace, paramsDB):
@@ -262,7 +265,7 @@ def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
     information needed to record the campaign assignment.
     '''
     MAX_FACES = 50  # Totally arbitrary number to avoid going too far down the list.
-    friendDicts = [ e.toDict() for e in bestCSFilter[1] ]
+    friendDicts = [e.toDict() for e in edgesFiltered.edges()]
     faceFriends = friendDicts[:MAX_FACES]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
     allFriends = [e.toDict() for e in edgesRanked] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
 
@@ -550,14 +553,9 @@ def recordEvent():
     return ajaxResponse('', 200, sessionId)
 
 
-# @app.route("/canvas/", methods=['GET', 'POST'])
-# def canvas():
-#@app.route("/canvas/<campaignId>/<contentId>")
-@app.route("/canvas/<int:campaignId>/<int:contentId>", methods=['GET', 'POST'])
-def canvas(campaignId, contentId):
-    return frame_faces(campaignId, contentId)
-
-
+@app.route("/canvas/", methods=['GET', 'POST'])
+def canvas():
+    return flask.render_template('canvas.html')
 
 
 @app.route("/health_check")

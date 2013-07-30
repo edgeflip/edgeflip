@@ -470,18 +470,23 @@ function doShare() {
 	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
 
     var debugStr = "sharing: \n" + msg + "\n\nrecips: " + recips.toString();
+    debugStr += "\n\nFB.api(/me/" + FB_APP_NAME + ':' + FB_ACTION_TYPE + ", post, "
+    debugStr += "{" + FB_OBJ_TYPE + ": " + FB_OBJ_URL + ", message: " + msg + "}, function(response) {...})"
     alert(debugStr);
     console.log(debugStr);
-    return;
+    //return;
 
 	// The actual call to do the sharing
+    var paramObj = { message: msg }
+    paramObj[FB_OBJ_TYPE] = FB_OBJ_URL; // gotta do it this way since the property name is dynamic
 	FB.api(
 		'/me/' + FB_APP_NAME + ':' + FB_ACTION_TYPE,
 		'post',
-		{ FB_OBJ_TYPE: FB_OBJ_URL, message: msg },
+		paramObj,
 		function(response) {
 			if (!response || response.error) {
-				// alert('Error occured ' + response.error.message);
+				//alert('Error occured ' + response.error.message);
+                //console.log('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
                 recordEvent('share_fail', response.error);
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
