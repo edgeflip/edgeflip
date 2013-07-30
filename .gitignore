@@ -19,3 +19,5 @@ edgeflip/web/templates/clients/local/*
 *.sublime-workspace
 edgeflip.egg-info
 /cover
+
+edgeflip/static

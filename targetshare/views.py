@@ -6,6 +6,7 @@ import datetime
 import celery
 
 from django.shortcuts import render, get_object_or_404
+from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from django.http import (
@@ -14,6 +15,7 @@ from django.http import (
     HttpResponseForbidden
 )
 from django.views.decorators.http import require_POST
+from django.core.urlresolvers import reverse
 
 from targetshare import (
     datastructs,
@@ -73,7 +75,6 @@ def button(request, campaign_id, content_id):
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
-    properties = campaign.campaignproperties_set.get()
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
     params_dict = {
         'fb_app_name': client.fb_app_name, 'fb_app_id': client.fb_app_id
@@ -143,7 +144,7 @@ def frame_faces(request, campaign_id, content_id):
 
 
 @require_POST
-@csrf_exempt
+@csrf_exempt # FIXME
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
@@ -255,33 +256,12 @@ def faces(request):
 def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                    choice_set_slug, subdomain, campaign, content, session_id,
                    ip, fbid, num_face, properties):
+
+    max_friends = 50
     friend_dicts = [e.toDict() for e in edges_filtered.edges()]
     face_friends = friend_dicts[:num_face]
-    all_friends = friend_dicts[:50]
+    all_friends = friend_dicts[:max_friends]
     pick_dicts = [e.toDict() for e in edges_ranked]
-
-    '''
-    choice_set_slug = best_cs_filter[0].urlSlug if best_cs_filter[0] else allow_generic[1]
-    if best_cs_filter_id is None:
-        logger.debug("Generic returned for %s with campaign %s." % (
-            fbid, campaign.pk
-        ))
-        models.Assignment.objects.create(
-            session_id=session_id, campaign=campaign,
-            content=content, feature_type='generic choice set filter',
-            feature_row=None, random_assign=False,
-            chosen_from_table='choice_set_filters',
-            chosen_from_rows=[csf.choiceSetFilterId for csf in choice_set.choiceSetfilters]
-        )
-    else:
-        models.Assignment.objects.create(
-            session_id=session_id, campaign=campaign,
-            content=content, feature_type='filter_id',
-            feature_row=best_cs_filter[0].filterId, random_assign=False,
-            chosen_from_table='choice_set_filters',
-            chosen_from_rows=[csf.choiceSetFilterId for csf in choice_set.choiceSetfilters]
-        )
-    '''
 
     fb_object_recs = campaign.campaignfbobjects_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
@@ -303,10 +283,17 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'msg2_pre': fb_attrs.msg2_pre,
         'msg2_post': fb_attrs.msg2_post,
     }
+    fb_object_url = '%s?cssslug=%s' % (
+        reverse('objects', kwargs={
+            'fb_object_id': fb_object_id, 'content_id': content.pk
+        }),
+        choice_set_slug
+    )
+
     action_params = {
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
-        'fb_object_url': 'INSERT REVERSE URL', # XXX: FIXME
+        'fb_object_url': fb_object_url,
         'fb_app_name': campaign.client.fb_app_name,
         'fb_app_id': campaign.client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
@@ -320,38 +307,45 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         action_params['fb_object_url']
     )
 
-    for friend in face_friends:
-        try:
-            models.Event.objects.create(
-                session_id=session_id, campaign=campaign, client_content=content,
-                ip=ip, fbid=fbid, friend_fbid=friend['id'], event_type='shown',
-                app_id=action_params['fb_app_id'], content=content_str,
-                activity_id=None
-            )
-        except Exception as e:
-            print e
+    num_gen = max_friends
+    for tier in edges_filtered.tiers:
+        edges_list = tier['edges'][:]
+        tier_campaignId = tier['campaignId']
+        tier_contentId = tier['contentId']
 
-    try:
-        return HttpResponse(
-            json.dumps({
-                'status': 'success',
-                'html': render_to_string('faces_table.html', {
-                    'all_friends': all_friends,
-                    'msg_params': msg_params,
-                    'action_params': action_params,
-                    'face_friends': face_friends,
-                    'pick_friends': pick_dicts,
-                    'num_friends': num_face
-                }),
-                'campaignid': campaign.pk,
-                'contentid': content.pk,
-            }),
-            status=200
-        )
-    except Exception as e:
-        logger.exception('PROBLEMS!')
-        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
-        print e
+        if len(edges_list) > num_gen:
+            edges_list = edges_list[:num_gen]
+
+        if edges_list:
+            for friend in edges_list:
+                models.Event.objects.create(
+                    session_id=session_id, campaign_id=tier_campaignId,
+                    client_content_id=tier_contentId, ip=ip, fbid=fbid,
+                    friend_fbid=friend.secondary.id, event_type='shown',
+                    app_id=action_params['fb_app_id'], content=content_str,
+                    activity_id=None
+                )
+            num_gen = num_gen - len(edges_list)
+
+        if (num_gen <= 0):
+            break
+
+    return HttpResponse(
+        json.dumps({
+            'status': 'success',
+            'html': render_to_string('faces_table.html', {
+                'all_friends': all_friends,
+                'msg_params': msg_params,
+                'action_params': action_params,
+                'face_friends': face_friends,
+                'pick_friends': pick_dicts,
+                'num_friends': num_face
+            }, context_instance=RequestContext(request)),
+            'campaignid': campaign.pk,
+            'contentid': content.pk,
+        }),
+        status=200
+    )
 
 
 def objects(request, fb_object_id, content_id):
@@ -365,17 +359,22 @@ def objects(request, fb_object_id, content_id):
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
-    fb_object_slug = fb_attrs.url_slug
     redirect_url = client.clientcontent_set.get().url
 
     if not redirect_url:
         return HttpResponseNotFound()
 
+    fb_object_url = '%s?cssslug=%s' % (
+        reverse('objects', kwargs={
+            'fb_object_id': fb_object_id, 'content_id': content_id
+        }),
+        choice_set_slug
+    )
     obj_params = {
         'page_title': fb_attrs.page_title,
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
-        'fb_object_url': 'INSERT REVERSE URL', # XXX: FIXME
+        'fb_object_url': fb_object_url,
         'fb_app_name': client.fb_app_name,
         'fb_app_id': client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
@@ -383,8 +382,8 @@ def objects(request, fb_object_id, content_id):
         'fb_object_description': fb_attrs.og_description
     }
     content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
-    ip = 'blah' # XXX FIXME
-    user_agent = 'blah' # XXX FIXME
+    ip = get_client_ip(request)
+    user_agent = request.META.get('HTTP_USER_AGENT')
     if user_agent.find('facebookexternalhit') != -1:
         logger.info(
             'Facebook crawled object %s with content %s from IP %s',
@@ -392,7 +391,7 @@ def objects(request, fb_object_id, content_id):
         )
     else:
         models.Event.objects.create(
-            session_id=request.session.id, campaign=None, content=content,
+            session_id=request.session.session_key, campaign=None, content=content,
             ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=None
@@ -406,6 +405,7 @@ def objects(request, fb_object_id, content_id):
 
 
 @require_POST
+@csrf_exempt # FIXME
 def suppress(request):
     user_id = request.POST.get('userid')
     app_id = request.POST.get('appid')
@@ -413,8 +413,11 @@ def suppress(request):
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     old_id = request.POST.get('oldid')
-    session_id = request.session.id
-    ip = 'fixme' # XXX: FIXME
+    ip = get_client_ip(request)
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+    session_id = request.session.session_key
 
     new_id = request.POST.get('newid')
     fname = request.POST.get('fname')
@@ -440,15 +443,16 @@ def suppress(request):
             app_id=app_id, content=content, activity_id=None
         )
         return render(request, 'new_face.html', {
-            'id': new_id,
-            'fname': fname,
-            'lname': lname
+            'fbid': new_id,
+            'firstname': fname,
+            'lastname': lname
         })
     else:
         return HttpResponse()
 
 
 @require_POST
+@csrf_exempt # FIXME
 def record_event(request):
 
     user_id = request.POST.get('userid')
@@ -459,14 +463,17 @@ def record_event(request):
     action_id = request.POST.get('actionid')
     friends = [int(f) for f in request.POST.get('friends', [])]
     event_type = request.POST.get('eventType')
-    session_id = request.session.id
-    ip = 'fixme' # XXX: FIXME
+    ip = get_client_ip(request)
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+    session_id = request.session.session_key
 
-    if (event_type not in [
+    if event_type not in [
         'button_load', 'button_click', 'authorized', 'auth_fail',
         'select_all_click', 'suggest_message_click',
         'share_click', 'share_fail', 'shared', 'clickback'
-    ]):
+    ]:
         return HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
@@ -524,7 +531,7 @@ def record_event(request):
         # dump them to the logs to ensure we keep the data.
         logger.error(
             'Front-end error encountered for user %s in session %s: %s',
-            user_id, request.session.id, error_msg
+            user_id, request.session.session_key, error_msg
         )
 
     share_msg = request.POST.get('shareMsg')

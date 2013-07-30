@@ -72,7 +72,7 @@ this is the message div and the faces themselves
                         </div>
                         <div class="friend_box unselected_friend" id="friend-{{ face_friend.id }}" onClick="faceClick({{ face_friend.id }});">
                             <div class="checkmark">
-                                <img src="/{{ STATIC_URL }}img/checkmark-sm.png">
+                                <img src="{{ STATIC_URL }}img/checkmark-sm.png">
                             </div>
                             <div class="friend_pic">
                                 <img src="https://graph.facebook.com/{{ face_friend.id }}/picture" border=0 />
@@ -273,6 +273,6 @@ editable.on('keyup', function(event) {
 
 </script>
 
-<script src="/{{ STATIC_URL }}js/manual_add.js"></script>
+<script src="{{ STATIC_URL }}js/manual_add.js"></script>
 
 

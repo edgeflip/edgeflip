@@ -402,7 +402,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 	var appid = {{ action_params.fb_app_id }};
 	var content = '{{ action_params.fb_app_name }}:{{ action_params.fb_object_type }} {{ action_params.fb_object_url | safe }}';
 
-	var params = JSON.stringify({
+	var params = {
 		userid: userid,
 		appid: appid,
 		content: content,
@@ -413,12 +413,11 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		sessionid: sessionid,	// global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid
-	});
+	};
 
 	$.ajax({
 		type: "POST",
-		url: '/suppress',
-		contentType: "application/json",
+		url: '/suppress/',
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
@@ -518,7 +517,7 @@ function recordShare(actionid, shareMsg) {
 	var appid = {{ action_params.fb_app_id }};
 	var content = '{{ action_params.fb_app_name }}:{{ action_params.fb_object_type }} {{ action_params.fb_object_url | safe }}';
 
-	var params = JSON.stringify({
+	var params = {
 		userid: userid,
 		actionid: actionid,
 		appid: appid,
@@ -529,12 +528,11 @@ function recordShare(actionid, shareMsg) {
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid,
         shareMsg: shareMsg
-	});
+	};
 
 	$.ajax({
 		type: "POST",
-		url: '/record_event',
-		contentType: "application/json",
+		url: '/record_event/',
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
@@ -559,7 +557,7 @@ function recordEvent(eventType, errorMsg) {
     var appid = {{ action_params.fb_app_id }};
     var content = '{{ action_params.fb_app_name }}:{{ action_params.fb_object_type }} {{ action_params.fb_object_url | safe }}';
 
-    var params = JSON.stringify({
+    var params = {
         userid: userid,
         appid: appid,
         content: content,
@@ -568,12 +566,12 @@ function recordEvent(eventType, errorMsg) {
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid,
         errorMsg: errorMsg
-    });
+    };
 
     $.ajax({
         type: "POST",
-        url: '/record_event',
-        contentType: "application/json",
+        url: '/record_event/',
+        //contentType: "application/json",
         dataType: 'html',
         data: params,
         error: function(jqXHR, textStatus, errorThrown) {
