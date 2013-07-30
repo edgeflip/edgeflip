@@ -1,4 +1,6 @@
 """Fabric tasks to prepare and build the project and its environment"""
+import itertools
+import os.path
 from os.path import join
 
 from fabric import api as fab
@@ -68,6 +70,16 @@ def install_deps():
 
     Requires that the OS provides APT.
 
+    This task respects the roles under which it is invoked, (and defaults to
+    "dev"). "Base" dependencies are always installed, as well as role-specific
+    dependencies found in the dependencies/ directory. For example:
+
+        fab -R staging dependencies
+
+    will install dependencies specified by base.dependencies and
+    staging.dependencies, given that they are both discovered in the
+    dependencies/ directory.
+
     """
     # Check for apt-get:
     if not which_binary('apt-get'):
@@ -75,9 +87,21 @@ def install_deps():
         fab.warn("No path to APT, cannot install OS dependencies")
         return
 
-    deps_file = join(BASEDIR, 'dependencies.txt')
-    deps = open(deps_file).read()
-    l('sudo apt-get install -y {}'.format(deps.replace('\n', ' ')))
+    # Install APT packages specified in dependencies dir:
+    roles = fab.env.roles or ['dev'] # Default to just dev
+    deps_paths = (join(BASEDIR, 'dependencies', '{}.dependencies'.format(role))
+                  for role in itertools.chain(['base'], roles))
+    deps = itertools.chain.from_iterable(open(deps_path).readlines()
+                                         for deps_path in deps_paths
+                                         if os.path.exists(deps_path))
+    l('sudo apt-get install -y {}'.format(
+        ' '.join(dep.strip() for dep in deps)))
+
+    # Install fake dynamo:
+    if 'dev' in roles:
+        gems = l('gem list --local --no-versions', capture=True)
+        if 'fake_dynamo' not in gems.split():
+            l('sudo gem install fake_dynamo --version 0.2.3')
 
 
 @fab.task(name='virtualenv')
@@ -137,10 +161,26 @@ def install_reqs(env=None):
 
         requirements:MY-ENV
 
+    This task respects the roles under which it is invoked, (and defaults to
+    "dev"). "Base" requirements are always installed, as well as role-specific
+    requirements found in the requirements/ directory. For example:
+
+        fab -R staging requirements
+
+    will install requirements specified by base.requirements and
+    staging.requirements, given that they are both discovered in the
+    requirements/ directory.
+
     """
+    roles = fab.env.roles or ['dev'] # Default to just dev
+    reqs_paths = (join('requirements', '{}.requirements'.format(role))
+                  for role in itertools.chain(['base'], roles))
     with workon(env):
         with fab.lcd(BASEDIR):
-            l('pip install -r requirements.txt')
+            l('pip install {}'.format(
+                ' '.join('-r ' + path for path in reqs_paths
+                         if os.path.exists(join(BASEDIR, path)))
+            ))
 
 
 @fab.task(name='db')
