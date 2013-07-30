@@ -57,11 +57,13 @@ To set up your RabbitMQ instance:
 
 Statsd/Graphite
 -----------------
-If you don't do this, things should still work. I hope.
+If you don't do this, things should still work. I hope. Also, this is very much a developer setup - 
+production will be a centralized service.
 
-1. Install node & npm: [do this](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
+1. Install [node & npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
 2. Install [Graphite](http://graphite.wikidot.com/): `sudo apt-get install graphite-carbon`
-
+3. Clone [statsd](https://github.com/etsy/statsd) in your working directory: `git clone git://github.com/etsy/statsd.git
+4. Start the server: `node statsd/stats.js statsdConfig.js`
 
 Celery
 --------------
