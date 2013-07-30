@@ -20,3 +20,4 @@ edgeflip/web/templates/clients/local/*
 /fake_dynamo.fdb
 edgeflip.egg-info
 /cover
+/.fake_dynamo.pid
