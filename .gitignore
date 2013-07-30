@@ -20,3 +20,4 @@ edgeflip/web/templates/clients/local/*
 *.idea
 ssl
 edgeflip.egg-info
+/cover

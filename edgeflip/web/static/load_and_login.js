@@ -50,9 +50,19 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
         var progress = $('#progress');
         var your_friends_div = $('#your-friends-here');
 
+        // In test mode, just use the provided test fbid & token for getting faces
+        // Note, however, that you're logged into facebook as you, so trying to
+        // share with someone else's friends is going to cause you trouble!
+        var ajax_fbid = fbid;
+        var ajax_token = accessToken;
+        if (test_mode) {
+            ajax_fbid = test_fbid;
+            ajax_token = test_token;
+        }
+
         var params = JSON.stringify({
-            fbid: fbid,
-            token: accessToken,
+            fbid: ajax_fbid,
+            token: ajax_token,
             num: num,
             sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,
@@ -78,6 +88,8 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             success: function(data, textStatus, jqXHR) {
                 campaignid = data.campaignid;
                 contentid = data.contentid;
+                var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                sessionid = header_efsid || sessionid;
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
                         if (pollingCount > 40) {
@@ -110,8 +122,6 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-    sessionid = header_efsid || sessionid;
 }
 
 function commError(){
