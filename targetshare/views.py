@@ -3,7 +3,7 @@ import logging
 import random
 import datetime
 
-from celery import Celery
+import celery
 
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
@@ -190,12 +190,12 @@ def faces(request):
     )
 
     if px3_task_id and px4_task_id:
-        px3_result = Celery.AsyncResult(px3_task_id)
-        px4_result = Celery.AsyncResult(px4_task_id)
+        px3_result = celery.current_app.AsyncResult(px3_task_id)
+        px4_result = celery.current_app.AsyncResult(px4_task_id)
         if (px3_result.ready() and (px4_result.ready() or last_call)):
             px4_edges = px4_result.result if px4_result.successful() else []
-            edges_ranked, best_cs_filter, choice_set, allow_generic, campaign_id, content_id = px3_result.result
-            if not all([edges_ranked, best_cs_filter, choice_set]):
+            edges_ranked, edges_filtered, best_cs_filter_id, choice_set_slug, campaign_id, content_id = px3_result.result
+            if not all([edges_ranked, best_cs_filter_id, choice_set_slug]):
                 return HttpResponse('No friends identified for you.', status=500)
         else:
             if last_call and not px3_result.ready():
@@ -206,8 +206,8 @@ def faces(request):
                         'status': 'waiting',
                         'px3_task_id': px3_task_id,
                         'px4_task_id': px4_task_id,
-                        'campaign_id': campaign_id,
-                        'content_id': content_id,
+                        'campaignid': campaign_id,
+                        'contentid': content_id,
                     }),
                     status=200,
                     content_type='application/json'
@@ -232,8 +232,8 @@ def faces(request):
                 'status': 'waiting',
                 'px3_task_id': px3_task_id,
                 'px4_task_id': px4_task.id,
-                'campaign_id': campaign_id,
-                'content_id': content_id,
+                'campaignid': campaign_id,
+                'contentid': content_id,
             }),
             status=200,
             content_type='application/json'
@@ -243,29 +243,25 @@ def faces(request):
         fbid=fbid, client=campaign.client
     )
     if px4_edges:
-        filtered_px4_edges = []
-        filtered_px3_edge_ids = [x.secondary.id for x in best_cs_filter[1]]
-        for edge in px4_edges:
-            if edge.secondary.id in filtered_px3_edge_ids:
-                filtered_px4_edges.append(edge)
+        edges_filtered.rerankEdges(px4_edges)
 
-        best_cs_filter = (best_cs_filter[0], filtered_px4_edges)
-
-    return apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
-                          allow_generic, subdomain, campaign, content,
-                          session_id, ip, fbid, num_face, properties)
+    return apply_campaign(request, edges_ranked, edges_filtered,
+                          best_cs_filter_id, choice_set_slug, subdomain,
+                          campaign, content, session_id, ip, fbid,
+                          int(num_face), properties)
 
 
-def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
-                   allow_generic, subdomain, campaign, content, session_id,
+def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
+                   choice_set_slug, subdomain, campaign, content, session_id,
                    ip, fbid, num_face, properties):
-    friend_dicts = [e.toDict() for e in best_cs_filter[1]]
+    friend_dicts = [e.toDict() for e in edges_filtered.edges()]
     face_friends = friend_dicts[:num_face]
     all_friends = friend_dicts[:50]
     pick_dicts = [e.toDict() for e in edges_ranked]
 
+    '''
     choice_set_slug = best_cs_filter[0].urlSlug if best_cs_filter[0] else allow_generic[1]
-    if best_cs_filter[0] is None:
+    if best_cs_filter_id is None:
         logger.debug("Generic returned for %s with campaign %s." % (
             fbid, campaign.pk
         ))
@@ -284,8 +280,9 @@ def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
             chosen_from_table='choice_set_filters',
             chosen_from_rows=[csf.choiceSetFilterId for csf in choice_set.choiceSetfilters]
         )
+    '''
 
-    fb_object_recs = campaign.campaignfbobject_set.all()
+    fb_object_recs = campaign.campaignfbobjects_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
     fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
     models.Assignment.objects.create(
@@ -309,14 +306,14 @@ def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': 'INSERT REVERSE URL', # XXX: FIXME
-        'fb_app_name': properties.fb_app_name,
-        'fb_app_id': properties.fb_app_id,
+        'fb_app_name': campaign.client.fb_app_name,
+        'fb_app_id': campaign.client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
     logger.debug('fb_object_url: %s', action_params['fb_object_url'])
-    content = '%s:%s %s' % (
+    content_str = '%s:%s %s' % (
         action_params['fb_app_name'],
         action_params['fb_object_type'],
         action_params['fb_object_url']
@@ -324,10 +321,10 @@ def apply_campaign(request, edges_ranked, best_cs_filter, choice_set,
 
     for friend in face_friends:
         models.Event.objects.create(
-            session_id=session_id, campaign=campaign, content=content,
-            ip=ip, fbid=fbid,
-            friend_fbid=friend['id'], event_type='shown',
-            app_id=action_params['fb_app_id'], conent=content, acvitiy_id=None
+            session_id=session_id, campaign=campaign, client_content=content,
+            ip=ip, fbid=fbid, friend_fbid=friend['id'], event_type='shown',
+            app_id=action_params['fb_app_id'], content=content_str,
+            acvitiy_id=None
         )
 
     return HttpResponse(
