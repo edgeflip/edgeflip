@@ -36,9 +36,11 @@ A local mysql database is automatically set up by the build task; (see `fab -d b
 
 Dynamo
 ------
-1. Set the config option `dynamo.engine` to either `mock` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
-2. To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo) must be installed; (note, this is handled automatically by the build task in development mode -- see `fab -d build.dependencies`). The server may then by invoked and managed via `fab serve.dynamo`; (see `fab -d serve.dynamo`).
-3. Set up and create tables. This can be quite slow on live AWS:
+The config option `dynamo.engine` may be set to either `mock` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
+
+To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo) must be installed; (note, this is handled automatically by the build task in development mode -- see `fab -d build.dependencies`).
+1. With FakeDynamo installed, the server may be invoked and managed via `fab serve.dynamo`; (see `fab -d serve.dynamo`).
+2. Set up and create tables -- (note, this can be quite slow on live AWS):
     * If necessary, drop tables with `bin/drop_dynamo.py`
     * Create tables with `bin/create_dynamo.py`
 
