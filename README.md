@@ -55,6 +55,14 @@ To set up your RabbitMQ instance:
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
 4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
 
+Statsd/Graphite
+-----------------
+If you don't do this, things should still work. I hope.
+
+1. Install node & npm: [do this](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
+2. Install [Graphite](http://graphite.wikidot.com/): `sudo apt-get install graphite-carbon`
+
+
 Celery
 --------------
 Starting Celery:
