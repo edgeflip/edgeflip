@@ -498,7 +498,7 @@ class Event(models.Model):
     campaign = models.ForeignKey('Campaign', null=True)
     client_content = models.ForeignKey(
         'ClientContent',
-        db_column='client_id',
+        db_column='content_id',
         null=True
     )
     ip = models.CharField(max_length=32)

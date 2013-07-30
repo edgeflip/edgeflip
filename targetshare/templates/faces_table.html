@@ -1,0 +1,278 @@
+<!-- DOC snippet returned by faces enpoint
+
+this is the message div and the faces themselves
+ -->
+
+<SCRIPT>
+    {% include 'faces_and_msg.js' %}
+</SCRIPT>
+
+<SCRIPT>
+    // different sets of friends returned from algorithm
+    var nextidx = {{ face_friends | length }};
+
+    // Just the friends who can come in as faces
+    var friends = [
+        {% for friend in all_friends %}
+            {'id': {{friend.id}}, 'fname': '{{friend.fname}}', 'lname': '{{friend.lname}}' },
+        {% endfor %}
+        ];
+
+      // This needs to the dictionary of all names, not just those initially shown...
+    var fbnames = {
+
+        {% for friend in pick_friends %}
+            {{friend.id}}: '{{friend.name}}',
+        {% endfor %}
+
+                  };
+
+      // Needs to be ALL of the user's friends since they could type in anyone,
+      // regardless of whether they meet our targeting criteria.
+    var pick_friends = [
+
+    {% for pickFriend in pick_friends %}
+        {
+            value: {{pickFriend.id}},
+            label: "{{pickFriend.name}}"
+        },
+    {% endfor %}
+
+    ];
+
+    if (nextidx === 0 || friends.length === 0) {
+        // Should never, ever get here unless something went very wrong in Flask land
+        // Even so, let's be sure to send the user somewhere reasonable rather than 
+        // land them on a page with nothing to do...
+        alert("Sorry. An error was encountered while communicating with Facebook.");
+        top.location = errorURL; // set in frame_faces.html via Jinja
+    }
+
+</SCRIPT>
+
+<div class="right_container">
+
+    <div class="faces_container">
+        <div class="share_prompt">{{ msg_parms.sharing_prompt }}</div>
+        {% block faces_prompt %}
+        <div class="msg_title" style="padding: 0px;">Step 1. Click on the friends you want to share with:</div>
+        {% endblock faces_prompt %}
+
+        <div id="check_em_all" class="small_button active_small" onClick="checkAll();">Select All &gt;&gt;</div>
+
+
+        <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table" style="clear: both;">
+            <tr>
+            {% for face_friend in face_friends %}
+
+                <td>
+                    <div style="position: relative" id="wrapper-{{fbid}}">
+                        <div class="xout" onClick="doReplace({{ face_friend.id }});">
+                            x
+                        </div>
+                        <div class="friend_box unselected_friend" id="friend-{{ face_friend.id }}" onClick="faceClick({{ face_friend.id }});">
+                            <div class="checkmark">
+                                <img src="/{{ STATIC_URL }}img/checkmark-sm.png">
+                            </div>
+                            <div class="friend_pic">
+                                <img src="https://graph.facebook.com/{{ face_friend.id }}/picture" border=0 />
+                            </div>
+                            <div class="friend_txt">
+                                <div class="friend_name dojoxEllipsis">
+                                    {{ face_friend.fname }}
+                                </div>
+                                <div class="friend_name dojoxEllipsis">
+                                    {{ face_friend.lname }}
+                                </div>
+                                <div class="friend_checkbox">
+                                    <input type="checkbox" id="box-{{ face_friend.id }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+
+                {% if forloop.counter0 == 2 and num_friends > 3 %}
+                    </tr><tr>
+                {% endif %}
+                {% if forloop.counter0 == 5 and num_friends > 6 %}
+                    </tr><tr>
+                {% endif %}
+
+            {% endfor %}
+
+            </tr>
+        </table>
+
+        <div id="manual_add">
+            <div id="manual_input_container">
+                <div>You can add extra friends by typing their names here:&nbsp;
+                <input id="manual_input" onLoad="adjust_manual_width();" /></div>
+            </div>
+            <div id="picked_friends_container"></div>
+        </div> <!-- manual_add -->
+
+        {% block msg_prompt %}
+        <div class="msg_title" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
+        <div style="height: 30px;"><input id="sugg_msg" class="small_button inactive_small" style="margin: -2px 4px 6px 4px;" onClick="useSuggested('#msg'+(Math.round(Math.random()*1)+1)+'_txt');" value="Suggest A Message" /></div>
+        {% endblock msg_prompt %}
+
+        <div class="msg_block">
+            <div class="msg_txt">
+                <div id="other_msg" contentEditable="True">
+                    <span id='helper_txt' style='color: gray;'></span>
+                </div>
+
+
+                <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
+                    <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
+                        <tr>
+                            <td>
+                                <img src='{{ fbParams.fb_object_image }}' style='margin-right: 7px; height: 60px'>
+                            </td>
+                            <td>
+                                <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px'>
+                                    {{ fbParams.fb_object_title }}
+                                </div>
+                                <div style='font-size: 9px; color: gray; font-weight: normal'>
+                                    {{ fbParams.fb_object_description }}
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+
+        <div style="display: none;"> <!-- hide the suggestions -->
+            <div id="suggested_msg_title">Suggested Messages:</div>
+            <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+                <div class="msg_txt suggested_msg" id="msg1_txt">{{ msg_parms.msg1_pre }}<span class="preset_names"></span>{{ msg_parms.msg1_post }}</div>
+            </div>
+
+            <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
+                <div class="msg_txt suggested_msg" id="msg2_txt">{{ msg_parms.msg2_pre }}<span class="preset_names"></span>{{ msg_parms.msg2_post }}</div>
+            </div>
+        </div>
+
+
+        {% block button %}
+        <div id="do_share_container">
+            <div id="do_share_button" class="button inactive_button" onclick="doShare();">Show Your Support</div>
+        </div>
+        {% endblock button %}
+
+    </div> <!-- faces_container -->
+
+</div> <!-- right_container -->
+
+<script>
+// Adding listeners in script block to ensure necessary divs already exist...
+
+/* event binding & key handling for editable msg div*/
+
+var editable = $('#other_msg');
+var msg_length = $('#other_msg').text().length;
+var max_msg_length = 1000;
+
+// key presses that we'll let through in the event the message has gotten too long
+var allow_keys = [
+                    8,         // Backspace
+                    46,        // Delete
+                    20,     // Caps Lock
+                    91,        // Command
+                    93,        // Right Command
+                    17,        // Control
+                    18,        // Alt
+                    40,        // Down
+                    35,        // End
+                    27,        // Escape
+                    36,        // Home
+                    37,        // Left
+                    34,        // Page Down
+                    33,        // Page Up
+                    39,        // Right
+                    38        // Up
+                 ];
+
+
+// disable pasting to avoid introducing marked-up text
+editable.on('paste', function(event) {
+    event.preventDefault();
+    return false;
+});
+
+// disable drag-and-drop to avoid introducing marked-up text
+editable.on('dragover drop', function(event) {
+    event.preventDefault();
+    return false;
+});
+
+// have to catch return key presses on the keydown (to use preventDefault)
+editable.on('keydown', function(event) {  
+
+    var code = (event.keyCode ? event.keyCode : event.which);
+    // return (13) or enter (108) key pressed
+    if(code == 13 || code == 108) {
+
+        event.preventDefault();
+        return false;
+
+    } else if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1) {
+
+        event.preventDefault();
+        return false;
+
+    } else {
+
+        helperTextDisappear();
+        msg_length = $('#other_msg').text().length;
+
+    }
+});
+
+// catch deletes and undos on keyup (after text has been edited)
+editable.on('keyup', function(event) {
+
+    var code = (event.keyCode ? event.keyCode : event.which);
+
+    // check if user has manually deleted a friend
+    var recips_removed = handleDeleted();
+    if (recips_removed) { 
+        $('.suggested_msg .preset_names').html(friendNames(false));
+    }
+
+    // in the event of an "undo" could actually add back a friend!
+    var recips_added = handleUndo();
+    if (recips_added || $(".msg-txt-friend").length > recips.length) { 
+        $('.suggested_msg .preset_names').html(friendNames(false));
+        $('#other_msg .preset_names').html(friendNames(true));
+    }
+
+    // Doing this here rather than the keydown because the alert seems to cause trouble with the preventDefault() to avoid the input
+    if (msg_length >= max_msg_length && allow_keys.indexOf(code) === -1 && code != 13 && code != 108) {
+        alert("Please limit your message to fewer than "+max_msg_length+" characters.");
+    }
+
+});
+
+
+</script>
+
+<script>
+    /* this whole thing can probably die - boxes should already be unchecked */
+
+    // Quick code to pre-load messages for testing...
+    
+    $("input[id*='box-']").prop('checked', false)
+
+    $('.suggested_msg .preset_names').html(friendNames(false));
+
+    $('#other_msg').focus();
+
+</script>
+
+<script src="/{{ STATIC_URL }}js/manual_add.js"></script>
+
+

@@ -6,6 +6,7 @@ import datetime
 import celery
 
 from django.shortcuts import render, get_object_or_404
+from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
 from django.http import (
     HttpResponse,
@@ -320,29 +321,37 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     )
 
     for friend in face_friends:
-        models.Event.objects.create(
-            session_id=session_id, campaign=campaign, client_content=content,
-            ip=ip, fbid=fbid, friend_fbid=friend['id'], event_type='shown',
-            app_id=action_params['fb_app_id'], content=content_str,
-            acvitiy_id=None
-        )
+        try:
+            models.Event.objects.create(
+                session_id=session_id, campaign=campaign, client_content=content,
+                ip=ip, fbid=fbid, friend_fbid=friend['id'], event_type='shown',
+                app_id=action_params['fb_app_id'], content=content_str,
+                activity_id=None
+            )
+        except Exception as e:
+            print e
 
-    return HttpResponse(
-        json.dumps({
-            'status': 'success',
-            'html': render(request, 'face_table.html', {
-                'all_friends': all_friends,
-                'msg_params': msg_params,
-                'action_params': action_params,
-                'face_friends': face_friends,
-                'pick_friends': pick_dicts,
-                'num_friends': num_face
+    try:
+        return HttpResponse(
+            json.dumps({
+                'status': 'success',
+                'html': render_to_string('faces_table.html', {
+                    'all_friends': all_friends,
+                    'msg_params': msg_params,
+                    'action_params': action_params,
+                    'face_friends': face_friends,
+                    'pick_friends': pick_dicts,
+                    'num_friends': num_face
+                }),
+                'campaignid': campaign.pk,
+                'contentid': content.pk,
             }),
-            'campaign': campaign,
-            'content': content,
-        }),
-        status=200
-    )
+            status=200
+        )
+    except Exception as e:
+        logger.exception('PROBLEMS!')
+        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
+        print e
 
 
 def objects(request, fb_object_id, content_id):
@@ -386,7 +395,7 @@ def objects(request, fb_object_id, content_id):
             session_id=request.session.id, campaign=None, content=content,
             ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
-            app_id=client.fb_app_id, acvitiy_id=None
+            app_id=client.fb_app_id, activity_id=None
         )
 
     return render(request, 'fb_object.html', {
