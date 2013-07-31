@@ -1,5 +1,8 @@
 """Settings for the edgeflip project
 
+Configuration
+=============
+
 Configuration via conf.d
 ------------------------
 
@@ -52,10 +55,25 @@ Last-ditch overrides
 --------------------
 
 Because configuration may be specified in Python, and to allow for override of
-Django settings as yet untouched by a `conf.d/`, `override.conf` files, which
+Django settings as yet untouched by a `conf.d/`, `overrides.conf` files, which
 reside next to `conf.d/` directories, are loaded at the very end. This YAML
 file is intended for emergency and development-time tweaks, without touching
-the Python. Generally, and as a rule, `override.conf` files should be empty.
+the Python. Generally, and as a rule, `overrides.conf` files should be empty.
+
+Use
+===
+
+Generally, this module should not be imported directly. Rather, a settings
+object, based on the contents of this file (and Django's defaults), is
+available at `django.conf.settings`. For example::
+
+    from django.conf import settings
+    settings.DATABASES
+
+It is possible to import this module directly, and thereby have access to
+`edgeflip` settings without loading the Django framework; however, this is
+discouraged, as it cannot be ensured that these settings will be identical to
+those seen otherwise.
 
 """
 import os
@@ -82,7 +100,7 @@ except Exception:
     # This exception comes when celery starts up outside of the app's repo.
     # Catching that exception and setting a dummy value. Celery doesn't need
     # to know the version number
-    RELEASE_VERSION = '0.1'
+    RELEASE_VERSION = '0.0'
 
 
 # Load configuration from conf.d directories #
@@ -312,9 +330,9 @@ overrides = pymlconf.ConfigManager(
     files=[
         # Repo overrides file shouldn't have anything (committed), but check
         # it for dev-time tweaks (and to mirror environment conf directory):
-        os.path.join(PROJECT_ROOT, 'override.conf'),
+        os.path.join(PROJECT_ROOT, 'overrides.conf'),
         # Check for (temporary) overrides to above settings in this environment:
-        os.path.join(env_conf_dir, 'override.conf'),
+        os.path.join(env_conf_dir, 'overrides.conf'),
     ],
 )
 locals().update((key.upper(), value) for key, value in overrides.items())
