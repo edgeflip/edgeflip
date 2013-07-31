@@ -427,6 +427,8 @@ def objects(fbObjectId, contentId):
         # It's just the FB crawler! Note it in the logs, but don't write the event
         logger.info("Facebook crawled object %s with content %s from IP %s", fbObjectId, contentId, ip)
     else:
+        if not actionId:
+            logger.error("Clickback with no action_id (writing the event anyway) from URL: %s", flask.request.url)
         # record the clickback event to the DB
         database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 
