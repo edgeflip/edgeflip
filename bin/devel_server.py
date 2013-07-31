@@ -9,13 +9,14 @@ import argparse
 
 
 parser = argparse.ArgumentParser(description='Run a devel server from localhost')
-parser.add_argument('--port', default=8080, type=int, help='force server to run on given port')
+parser.add_argument('--host', default='localhost', help='Host IP to bind to')
+parser.add_argument('--port', default=8080, type=int, help='Force server to run on given port')
 args = parser.parse_args()
 
 app = edgeflip.web.getApp()
 app.debug = True
 
-run_simple('localhost', args.port, app,
+run_simple(args.host, args.port, app,
            use_reloader=True,
            use_debugger=True,
            passthrough_errors=False,
