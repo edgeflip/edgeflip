@@ -84,6 +84,15 @@ Mock Client
 -----------
 The default configuration is written against a mock client site. You'll need to run this server as well; see the instructions in the [mockclient repo](https://github.com/edgeflip/mockclient)
 
+User Testing
+------------
+You can view the results for a given authed user by hitting the /frame_faces endpoint with GET parameters for `test_mode`, `fbid`, and `token`. For instance, to view results for our test user in your local environment, you could go to:
+
+```
+http://local.edgeflip.com:8080/frame_faces/1/1?test_mode&fbid=100005022126470&token=CAAGtCIn5MuwBAJ1oSTKUT47Cat0uxmQ1Ixj2LAqCOGzVxCRnkESooyHttCwBH9v5z45GfTjAIZBfLkxt0Uy6yjPB714ZCQV4riYhFE0nfub6JRY8ofIruYTVOpO72wVZAN4jxYOkYMJ4ErCEr81DfYrZCqku9EQZD
+```
+The front-end will still require you to be logged into Facebook & authorized, but will display results for the specified user instead. **Note: posting to Facebook is disabled in test mode!**
+
 Load Testing
 ------------
 For the purposes of load testing, a POST request can be made against the /faces endpoing in a "mock mode" that will do everything but talk to facebook, instead returning a set of randomly-generated fake friend records. The following is an example of such a mock request against the local development server:
