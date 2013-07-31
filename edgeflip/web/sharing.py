@@ -176,11 +176,6 @@ def faces():
         thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
-    # Assume we're starting with a short term token, expiring now, then try extending the
-    # token. If we hit an error, proceed with what we got from the old one.
-    token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
-
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
@@ -205,6 +200,12 @@ def faces():
                     sessionId
                 )
     else:
+
+        # Assume we're starting with a short term token, expiring now, then try extending the
+        # token. If we hit an error, proceed with what we got from the old one.
+        token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
+        token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
+
         px3_task_id = tasks.proximity_rank_three(
             mockMode=mockMode,
             token=token,
