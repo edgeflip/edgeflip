@@ -317,6 +317,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             edges_list = edges_list[:num_gen]
 
         if edges_list:
+            # TODO: Use bulk_create!
             for friend in edges_list:
                 models.Event.objects.create(
                     session_id=session_id, campaign_id=tier_campaignId,
@@ -479,6 +480,7 @@ def record_event(request):
         )
 
     for friend in friends:
+        # TODO: Use bulk_create!
         models.Event.objects.create(
             session_id=session_id, campaign_id=campaign_id,
             client_content_id=content_id, ip=ip, fbid=user_id,
