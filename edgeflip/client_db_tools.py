@@ -951,7 +951,7 @@ def civisFilter(edges, feature, operator, score_value):
         user_dict = {}
         if user.birthday:
             user_dict['birth_month'] = '%02d' % user.birthday.month
-            user_dict['birth_year'] = user.birthday.year
+            user_dict['birth_year'] = str(user.birthday.year)
             user_dict['birth_day'] = '%02d' % user.birthday.day
 
         if not user.state or not user.city:
