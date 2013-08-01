@@ -104,18 +104,16 @@ except Exception:
 
 
 # Load configuration from conf.d directories #
-# TODO: Configuration shouldn't live with releases; /etc/edgeflip/?
+# default configuration in repo:
+config = pymlconf.ConfigManager(dirs=[os.path.join(PROJECT_ROOT, 'conf.d')],
+                                filename_as_namespace=False)
+# TODO: Configuration shouldn't live with releases; instead: /etc/edgeflip/ ?
 env_conf_dir = os.path.expanduser(os.getenv('EDGEFLIP_CONF_DIR',
                                             '/var/www/edgeflip'))
-config = pymlconf.ConfigManager(
-    dirs=[
-        # default configuration in repo:
-        os.path.join(PROJECT_ROOT, 'conf.d'),
-        # environmental or personal configuration overwrites:
-        os.path.join(env_conf_dir, 'conf.d'),
-    ],
-    filename_as_namespace=False,
-)
+if os.getenv('EDGEFLIP_CONF_DIR') or os.path.isdir('/var/www/edgeflip'):
+    # environmental or personal configuration overwrites:
+    config.load_dirs([os.path.join(env_conf_dir, 'conf.d')],
+                     filename_as_namespace=False)
 locals().update((key.upper(), value) for key, value in config.items())
 
 
@@ -238,7 +236,7 @@ CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_RESULT_BACKEND = 'database'
 CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
-    host=(DATABASES.default.HOST or 'locahost'),
+    host=(DATABASES.default.HOST or 'localhost'),
     **DATABASES.default
 )
 # FIXME: Short lived sessions won't be needed once we have more consistent
@@ -277,13 +275,13 @@ SOUTH_TESTS_MIGRATE = False
 
 
 # Load override settings #
-overrides = pymlconf.ConfigManager(
-    files=[
-        # Repo overrides file shouldn't have anything (committed), but check
-        # it for dev-time tweaks (and to mirror environment conf directory):
-        os.path.join(PROJECT_ROOT, 'overrides.conf'),
-        # Check for (temporary) overrides to above settings in this environment:
-        os.path.join(env_conf_dir, 'overrides.conf'),
-    ],
-)
+overrides = pymlconf.ConfigManager(files=[
+    # Repo overrides file shouldn't have anything (committed), but check
+    # it for dev-time tweaks (and to mirror environment conf directory):
+    os.path.join(PROJECT_ROOT, 'overrides.conf'),
+])
+# Check for (temporary) overrides to above settings in this environment:
+overrides_path = os.path.join(env_conf_dir, 'overrides.conf')
+if os.path.exists(overrides_path):
+    overrides.load_files(overrides_path)
 locals().update((key.upper(), value) for key, value in overrides.items())
