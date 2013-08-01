@@ -959,7 +959,7 @@ def civisFilter(edges, feature, operator, score_value):
 
         state = us.states.lookup(user.state)
         user_dict['state'] = state.abbr if state else None
-        user_dict['city'] = unidecode(user.city)
+        user_dict['city'] = user.city
         user_dict['first_name'] = user.fname
         user_dict['last_name'] = user.lname
         people_dict['people'][user.id] = user_dict
@@ -977,7 +977,8 @@ def civisFilter(edges, feature, operator, score_value):
     valid_ids = []
     for key, value in results.items():
         scores = getattr(value, 'scores', None)
-        if scores and float(scores[feature][operator]) >= float(score_value):
+        filter_feature = scores.get(feature) if scores else None
+        if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
             valid_ids.append(str(key))
 
     return [x for x in edges if str(x.secondary.id) in valid_ids]
