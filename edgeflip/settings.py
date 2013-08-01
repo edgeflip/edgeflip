@@ -85,3 +85,7 @@ logging.config.dictConfig(config.logging)
 logger = logging.getLogger(__name__)
 
 logger.info("Configured with %r", config.list_dirs())
+
+# statsd
+from statsd import StatsClient
+statsd = StatsClient(config.statsd.host, config.statsd.port, config.statsd.prefix)
