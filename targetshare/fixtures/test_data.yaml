@@ -64,7 +64,7 @@
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 3
--   fields: {allow_generic: true, campaign: 4, choice_set: 1, end_dt: null, generic_url_slug: all,
+-   fields: {allow_generic: true, campaign: 4, choice_set: 2, end_dt: null, generic_url_slug: all,
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 4
