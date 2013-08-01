@@ -1,14 +1,17 @@
+import celery
+
 from targetshare.tests import EdgeFlipTestCase
 from targetshare import (
     client_db_tools as cdb,
     datastructs,
     tasks
 )
-from targetshare.celery import celery
 import datetime
 
 
 class TestCeleryTasks(EdgeFlipTestCase):
+
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestCeleryTasks, self).setUp()
@@ -23,7 +26,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         '''
         task_id = tasks.proximity_rank_three(True, 1, self.token)
         assert task_id
-        assert celery.AsyncResult(task_id)
+        assert celery.current_app.AsyncResult(task_id)
 
     def test_px3_crawl(self):
         ''' Run the px3_crawl celery task without throwing it
@@ -53,7 +56,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((isinstance(x, datastructs.Edge) for x in edges_ranked))
         assert isinstance(edges_filtered, cdb.TieredEdges)
         assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
-        assert isinstance(filter_id, int)
+        assert isinstance(filter_id, long)
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
@@ -115,6 +118,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
             ('sharing-social-good', '471727162864364')
         )
 
+        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
         self.assertEquals(edges_filtered.tiers[0]['campaignId'], 5)
         self.assertEquals(edges_filtered.tiers[1]['campaignId'], 4)

@@ -14,7 +14,7 @@ import MySQLdb as mysql
 import flask
 
 from . import datastructs
-from .settings import config
+#from .settings import config
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,5 @@
 from __future__ import absolute_import
-import time
+from datetime import datetime, timedelta
 
 import celery
 from celery.utils.log import get_task_logger
@@ -128,6 +128,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     choice_set_exp_tupes = [
         (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
     ]
+    import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
     choice_set_id = utils.rand_assign(choice_set_exp_tupes)
     models.Assignment.objects.create(
         session_id=sessionId, campaign_id=campaignId, content_id=contentId,
@@ -234,10 +235,12 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                 paramsDB[0],
                 '/frame_faces/%s/%s' % (campaignId, contentId)
             )
-            database.writeEventsDb(
-                sessionId, campaignId, contentId, ip, fbid, [None],
-                'no_friends_error', int(paramsDB[1]), thisContent, None,
-                background=settings.DATABASES.default.BACKGROUND_WRITE,
+            models.Event.objects.create(
+                session_id=sessionId, campaign_id=campaignId,
+                client_content_id=contentId, ip=ip, fbid=fbid,
+                friend_fbid=None, event_type='no_friends_error',
+                app_id=int(paramsDB[1]), content=thisContent,
+                activity_id=None
             )
             return (None, None, None, None, campaignId, contentId)
 
@@ -290,15 +293,14 @@ def proximity_rank_four(mockMode, fbid, token):
     fbmodule = mock_facebook if mockMode else facebook
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
-        newerThan = time.time() - settings.FRESHNESS * 24 * 60 * 60
+        newer_than = datetime.now() + timedelta(days=settings.FRESHNESS)
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
-        edgesUnranked = database.getFriendEdgesDb(
-            fbid,
-            requireIncoming=True,
-            requireOutgoing=False,
-            newerThan=newerThan
+        edgesUnranked = models.Edge.objects.filter(
+            fbid_target=fbid,
+            post_likes__isnull=False,
+            updated__gte=newer_than
         )
         if not edgesUnranked:
             edgesUnranked = fbmodule.getFriendEdgesFb(

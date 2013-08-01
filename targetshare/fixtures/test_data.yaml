@@ -20,6 +20,10 @@
     model: targetshare.campaign
     pk: 4
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
+        description: null, is_deleted: false, name: cascade test real}
+    model: targetshare.campaign
+    pk: 5
+-   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
         description: null, is_deleted: false, name: VA Share Button}
     model: targetshare.buttonstyle
     pk: 1
@@ -60,10 +64,14 @@
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 3
--   fields: {allow_generic: true, campaign: 4, choice_set: 4, end_dt: null, generic_url_slug: all,
+-   fields: {allow_generic: true, campaign: 4, choice_set: 1, end_dt: null, generic_url_slug: all,
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 4
+-   fields: {allow_generic: true, campaign: 5, choice_set: 3, end_dt: null, generic_url_slug: all,
+        rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
+    model: targetshare.campaignchoiceset
+    pk: 5
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, filter: 2, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobjects
@@ -92,6 +100,10 @@
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobjects
     pk: 7
+-   fields: {campaign: 5, end_dt: null, fb_object: 1, filter: 3, rand_cdf: '1.000000000',
+        start_dt: !!timestamp '2013-07-15 11:38:28'}
+    model: targetshare.campaignfbobjects
+    pk: 8
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15
             11:38:28'}
     model: targetshare.campaigngenericfbobjects
@@ -124,6 +136,10 @@
             11:38:28'}
     model: targetshare.campaignglobalfilter
     pk: 4
+-   fields: {campaign: 5, end_dt: null, filter: 1, rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-05
+            11:38:28'}
+    model: targetshare.campaignglobalfilter
+    pk: 5
 -   fields: {campaign: 1, client_error_url: 'https://donate.demandaction.org/act/donate',
         client_faces_url: 'http://mockclient.edgeflip.com:5000/guncontrol_share',
         client_thanks_url: 'https://donate.demandaction.org/act/donate', end_dt: null,
@@ -150,6 +166,12 @@
         min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignproperties
     pk: 4
+-   fields: {campaign: 5, client_error_url: 'http://fake.com', 
+        client_faces_url: 'http://fake.com/', client_thanks_url: 'http://fake.com/',
+        end_dt: null, fallback_campaign: 4, fallback_content: null, fallback_is_cascading: true,
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+    model: targetshare.campaignproperties
+    pk: 5
 -   fields: {choice_set: 1, end_dt: null, filter: 1, propensity_model_type: null,
         start_dt: !!timestamp '2013-07-15 11:38:28', url_slug: all}
     model: targetshare.choicesetfilter

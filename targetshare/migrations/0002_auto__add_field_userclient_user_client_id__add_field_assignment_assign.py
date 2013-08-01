@@ -7,7 +7,7 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         # Drop old, in the way, primary keys
-        db.execute('ALTER TABLE user_clients DROP PRIMARY KEY IF EXISTS')
+        db.execute('ALTER TABLE user_clients DROP PRIMARY KEY')
         db.execute('ALTER TABLE user_clients ADD user_client_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
         db.execute('ALTER TABLE assignments ADD assignment_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
         db.execute('ALTER TABLE events ADD event_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')

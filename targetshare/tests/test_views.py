@@ -1,13 +1,13 @@
 import json
 from datetime import date
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 
 from mock import patch, Mock
 
 from targetshare import datastructs, models, client_db_tools as cdb
 from targetshare.tests import EdgeFlipTestCase
-from targetshare.settings import config
 
 
 class TestEdgeFlipViews(EdgeFlipTestCase):
@@ -47,11 +47,11 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             filter_id=2, url_slug='all', choice_set=self.test_cs)
 
         # mock mock_mode subdomain
-        self.orig_subdomain = config.web.mock_subdomain
-        config.web.mock_subdomain = 'testserver'
+        self.orig_subdomain = settings.WEB.mock_subdomain
+        settings.WEB.mock_subdomain = 'testserver'
 
     def tearDown(self):
-        config.web.mock_subdomain = self.orig_subdomain
+        settings.WEB.mock_subdomain = self.orig_subdomain
         super(TestEdgeFlipViews, self).tearDown()
 
     def test_faces_get(self):
