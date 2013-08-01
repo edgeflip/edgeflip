@@ -1,16 +1,129 @@
-# Django settings for edgeflip project.
+"""Settings for the edgeflip project
+
+Configuration
+=============
+
+Configuration via conf.d
+------------------------
+
+The `edgeflip` project is primarily configured from `YAML <http://en.wikipedia.org/wiki/YAML#Examples>`__
+files, whose names end in `.conf`, residing in `conf.d/` directories. These are
+loaded into this module in sorted order, and so filenames are usually prefixed
+with a 2-digit number to control loading order::
+
+    00-base.conf     10-database.conf  20-stream.conf
+    05-logging.conf  10-queue.conf     40-facebook.conf
+
+Base configuration is batteries-included in this package's `conf.d` directory.
+Installation- or environment-specific configuration is read from
+`/var/www/edgeflip/conf.d` or, if set, a `conf.d/` under the path specified by
+environment variable `EDGEFLIP_CONF_DIR`. This additional configuration is
+merged *on top* of the base configuration.
+
+Conventions
+~~~~~~~~~~~
+
+By convention, each module should get its own configuration file and section.
+Try to avoid cluttering up the top level namespace. For example,
+(in `60-crawler.conf`)::
+
+    ---
+    crawler:
+        retries: 42
+        proxy: http://example.com
+
+instead of::
+
+    ---
+    crawler_retries: 42
+    crawler_proxy: http://example.com
+
+Each module should document what options it takes, and provide defaults in
+this package's `conf.d/`.
+
+Configuration in Python
+-----------------------
+
+Settings may also be applied directly to this file, such that they are
+overridden by or override any values set in `conf.d/` directories. Values set
+here have the advantage of being able to depend upon or compose configuration
+in YAML. However, for simplicity and flexibility, this should generally be
+limited to those settings which are not secrets, which are Django-specific
+and for which there is no need to vary by environment.
+
+Last-ditch overrides
+--------------------
+
+Because configuration may be specified in Python, and to allow for override of
+Django settings as yet untouched by a `conf.d/`, `overrides.conf` files, which
+reside next to `conf.d/` directories, are loaded at the very end. This YAML
+file is intended for emergency and development-time tweaks, without touching
+the Python. Generally, and as a rule, `overrides.conf` files should be empty.
+
+Use
+===
+
+Generally, this module should not be imported directly. Rather, a settings
+object, based on the contents of this file (and Django's defaults), is
+available at `django.conf.settings`. For example::
+
+    from django.conf import settings
+    settings.DATABASES
+
+It is possible to import this module directly, and thereby have access to
+`edgeflip` settings without loading the Django framework; however, this is
+discouraged, as it cannot be ensured that these settings will be identical to
+those seen otherwise.
+
+"""
 import os
 
 import djcelery
+import pymlconf
+import sh
 from kombu import Queue
+
 
 djcelery.setup_loader()
 
-PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(PROJECT_ROOT)
 
-DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
+# Determine release #
+# TODO: This should be determined by the release process and written to file,
+# TODO: rather than shipping the repo itself and reading this value on start.
+git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
+try:
+    RELEASE_VERSION = git_repo.describe().strip()
+except Exception:
+    # This exception comes when celery starts up outside of the app's repo.
+    # Catching that exception and setting a dummy value. Celery doesn't need
+    # to know the version number
+    RELEASE_VERSION = '0.0'
+
+
+# Load configuration from conf.d directories #
+env_conf_dir = os.path.expanduser(os.getenv('EDGEFLIP_CONF_DIR',
+                                            '/var/www/edgeflip'))
+config = pymlconf.ConfigManager(
+    dirs=[
+        # default configuration in repo:
+        os.path.join(PROJECT_ROOT, 'conf.d'),
+        # environmental or personal configuration overwrites:
+        os.path.join(env_conf_dir, 'conf.d'),
+    ],
+    filename_as_namespace=False,
+)
+locals().update((key.upper(), value) for key, value in config.items())
+
+
+# Django settings #
+
+#DEBUG = True # FIXME
+#TEMPLATE_DEBUG = DEBUG
+
+# FIXME
 ADMINS = (
     # ('Your Name', 'your_email@example.com'),
 )
@@ -18,6 +131,7 @@ ADMINS = (
 MANAGERS = ADMINS
 
 DATABASES = {
+    # FIXME: populate from conf.d
     'default': {
         'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
         'NAME': 'edgeflip_django',                      # Or path to database file if using sqlite3.
@@ -31,7 +145,7 @@ DATABASES = {
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [] # FIXME
 
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
@@ -134,9 +248,10 @@ INSTALLED_APPS = (
     'targetshare',
 )
 
-# CELERY SETTINGS
+
+# Celery settings #
 QUEUE_ARGS = {'x-ha-policy': 'all'}
-BROKER_URL = 'amqp://edgeflip:edgeflip@localhost:5672/edgehost'
+BROKER_URL = 'amqp://edgeflip:edgeflip@localhost:5672/edgehost' # FIXME
 BROKER_HEARTBEAT = 10
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
@@ -175,7 +290,8 @@ CELERY_IMPORTS = (
     'targetshare.tasks',
 )
 
-# APP SETTINGS
+
+# App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
 
 # TEST SETTINGS
@@ -186,6 +302,7 @@ SOUTH_TESTS_MIGRATE = False
 # the site admins on every HTTP 500 error when DEBUG=False.
 # See http://docs.djangoproject.com/en/dev/topics/logging for
 # more details on how to customize your logging configuration.
+# FIXME
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -209,3 +326,16 @@ LOGGING = {
         },
     }
 }
+
+
+# Load override settings #
+overrides = pymlconf.ConfigManager(
+    files=[
+        # Repo overrides file shouldn't have anything (committed), but check
+        # it for dev-time tweaks (and to mirror environment conf directory):
+        os.path.join(PROJECT_ROOT, 'overrides.conf'),
+        # Check for (temporary) overrides to above settings in this environment:
+        os.path.join(env_conf_dir, 'overrides.conf'),
+    ],
+)
+locals().update((key.upper(), value) for key, value in overrides.items())

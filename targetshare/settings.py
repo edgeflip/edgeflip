@@ -1,3 +1,4 @@
+# TODO: REMOVE ME (and use django.conf.settings)
 #!/usr/bin/python
 """Configuration for Edgeflip app
 
