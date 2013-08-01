@@ -31,3 +31,4 @@ sh==1.08
 mock==1.0.1
 requests==1.2.3
 pylibmc==1.2.3
+statsd==2.0.2
