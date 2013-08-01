@@ -1,12 +1,14 @@
+import datetime
+
 import celery
 
-from targetshare.tests import EdgeFlipTestCase
 from targetshare import (
     client_db_tools as cdb,
     datastructs,
-    tasks
+    tasks,
 )
-import datetime
+
+from . import EdgeFlipTestCase
 
 
 class TestCeleryTasks(EdgeFlipTestCase):
@@ -118,7 +120,6 @@ class TestCeleryTasks(EdgeFlipTestCase):
             ('sharing-social-good', '471727162864364')
         )
 
-        import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
         self.assertEquals(edges_filtered.tiers[0]['campaignId'], 5)
         self.assertEquals(edges_filtered.tiers[1]['campaignId'], 4)

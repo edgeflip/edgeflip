@@ -221,8 +221,11 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
+    # 3rd-party apps:
     'south',
     'djcelery',
+    'django_nose',
+    # Edgeflip apps:
     'targetshare',
 )
 
@@ -272,6 +275,16 @@ CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False
+TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
+NOSE_ARGS = (
+    '--with-blockage',
+    '--cover-branches',
+    '--cover-erase',
+    '--cover-html',
+    '--cover-package=edgeflip',
+    '--logging-level=CRITICAL',
+    '--exclude=^fab$',
+)
 
 
 # Load override settings #
