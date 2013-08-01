@@ -128,7 +128,6 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     choice_set_exp_tupes = [
         (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
     ]
-    import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
     choice_set_id = utils.rand_assign(choice_set_exp_tupes)
     models.Assignment.objects.create(
         session_id=sessionId, campaign_id=campaignId, content_id=contentId,
