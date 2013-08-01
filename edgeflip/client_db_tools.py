@@ -10,7 +10,6 @@ import threading
 
 import us
 import requests
-from unidecode import unidecode
 from MySQLdb import IntegrityError
 
 from civis_matcher import matcher
