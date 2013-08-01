@@ -1,6 +1,5 @@
 edgeflip/target_config.json
 *.pyc
-edgeflip/old
 *.sqlite
 /edgeflip/logs/*
 edgeflip/edgeflip.config
@@ -14,9 +13,12 @@ edgeflip/web/templates/clients/local/*
 /htmlcov/*
 /doc/_build/*
 /doc/snakefood.svg
+
 *~
 *.sublime-project
 *.sublime-workspace
+.ropeproject
+
 edgeflip.egg-info
 /cover
 
