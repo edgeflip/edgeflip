@@ -7,11 +7,21 @@
 """
 import sys
 import logging
+import datetime
 import threading
+
 import MySQLdb as mysql
+from django.db import connection
+
+from . import datastructs
 
 
 logger = logging.getLogger(__name__)
+
+
+def getConn():
+    """return a connection for this thread."""
+    return connection
 
 
 class Table(object):
@@ -32,25 +42,19 @@ class Table(object):
             self.addIndex(col)
         self.keyCols = key
         self.otherStmts = otherStmts
-
     def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for cTup in cTups:
             if (len(cTup) == 2):
                 cTup = (cTup[0], cTup[1], None)
             self.colTups.append(cTup)
-
     def addCol(self, colName, colType, colDefault=None):
         self.addCols([(colName, colType, colDefault)])
-
     def addIndex(self, colName):
         self.indices.append(colName)
-
     def setKey(self, cols):
         self.keyCols = cols
-
     def getKey(self):
         return self.keyCols
-
     def sqlCreate(self):
         sys.stderr.write("colTups: " + str(self.colTups) + "\n")
         sql = "CREATE TABLE " + self.name
@@ -63,12 +67,11 @@ class Table(object):
             colSqls.append(colSql)
         sql += ", ".join(colSqls)
         if (self.indices):  # , INDEX(colA), INDEX(colB)
-            sql += ", " + ", ".join(["INDEX(" + c + ")" for c in self.indices])
+            sql += ", " + ", ".join([ "INDEX(" + c + ")" for c in self.indices ])
         if (self.keyCols):  # PRIMARY KEY (colA, colB)
             sql += ", PRIMARY KEY (" + ", ".join(self.keyCols) + ")"
         sql += ") "
         return sql
-
     def sqlDrop(self):
         return "DROP TABLE IF EXISTS " + self.name
 
@@ -167,14 +170,43 @@ TABLES['face_exclusions'] =     Table(name='face_exclusions',
                                       key=['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
 
 
-# Reset the DB by dropping and recreating tables
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
     :rtype: datastructs.UserInfo
 
     freshness - how recent does data need to be? returns None if not fresh enough
     """
-    raise NotImplementedError
+
+    conn = getConn()
+
+    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
+    sql = """SELECT fbid, fname, lname, email, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
+
+    curs = conn.cursor()
+    curs.execute(sql, (userId,))
+    rec = curs.fetchone()
+    if (rec is None):
+        return None
+    else:
+        fbid, fname, lname, email, gender, birthday, city, state, updated = rec
+        updated = datetime.datetime.utcfromtimestamp(updated)
+        logger.debug("getting user %s, update date is %s (GMT)" % (userId, updated.strftime("%Y-%m-%d %H:%M:%S")))
+
+        if (updated <= freshnessDate):
+            return None
+        else:
+            """We want freshnessIncludeEdge to go away! (should just get the edges & check them separately)"""
+            if (freshnessIncludeEdge):
+                curs.execute("SELECT min(unix_timestamp(updated)) as freshnessEdge FROM edges WHERE fbid_source=%s OR fbid_target=%s", (userId, userId))
+                rec = curs.fetchone()
+
+                updatedEdge = datetime.datetime.utcfromtimestamp(rec[0])
+                if (updatedEdge is None) or (updatedEdge < freshnessDate):
+                    return None
+
+        # if we made it here, we're fresh
+        return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
 def getFriendEdgesDb(primId, requireIncoming=False,
@@ -182,28 +214,147 @@ def getFriendEdgesDb(primId, requireIncoming=False,
     """return list of datastructs.Edge objects for primaryId user
 
     """
-    raise NotImplementedError
 
+    conn = getConn()
+
+    edges = []  # list of edges to be returned
+    primary = getUserDb(primId)
+
+    curs = conn.cursor()
+    sqlSelect = """
+            SELECT e.fbid_source, e.fbid_target,
+                    e.post_likes, e.post_comms, e.stat_likes, e.stat_comms,
+                    e.wall_posts, e.wall_comms, e.tags,
+                    e.photos_target, e.photos_other, e.mut_friends,
+                    unix_timestamp(e.updated),
+                    u.fname, u.lname, u.email, u.gender, u.birthday, u.city, u.state
+            FROM edges e
+            JOIN users u
+    """
+
+    sql = sqlSelect + \
+        " ON e.fbid_source = u.fbid" + \
+        " WHERE unix_timestamp(e.updated)>%s AND e.fbid_target=%s"
+    if requireIncoming:
+        sql = sql + " AND e.post_likes IS NOT NULL"
+    params = (newerThan, primId)
+    secId_edgeCountsIn = {}
+    secId_userInfo = {}
+    curs.execute(sql, params)
+    for rec in curs: # here, the secondary is the source, primary is the target
+        secId, primId, iPstLk, iPstCm, iStLk, iStCm, \
+            iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated, \
+            fname, lname, email, gender, birthday, city, state = rec
+        edgeCountsIn = datastructs.EdgeCounts(secId, primId,
+                                              iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
+                                              iTags, iPhOwn, iPhOth, iMuts)
+        secInfo = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+        secId_edgeCountsIn[secId] = edgeCountsIn
+        secId_userInfo[secId] = secInfo
+
+    if (not requireOutgoing):
+        for secId, edgeCountsIn in secId_edgeCountsIn.items():
+            logger.debug("Got secondary info & incoming edge for %s----%s from the database.", primary.id, secId)
+            edges.append(datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
+
+    else:
+        sql = sqlSelect + \
+            " ON e.fbid_target = u.fbid" + \
+            " WHERE unix_timestamp(e.updated)>%s AND e.fbid_source=%s"
+        if requireIncoming:
+            sql = sql + " AND e.post_likes IS NOT NULL"
+        params = (newerThan, primId)
+        curs.execute(sql, params)
+        for rec in curs: # here, primary is the source, secondary is target
+            primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
+                oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
+                fname, lname, email, gender, birthday, city, state = rec
+            edgeCountsOut = datastructs.EdgeCounts(primId, secId,
+                                                   oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
+                                                   oTags, oPhOwn, oPhOth, oMuts)
+            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+
+            # zzz This will simply ignore edges where we've crawled the outgoing edge but not
+            #     the incoming one (eg, with the current primary as someone else's secondary)
+            #     That could happen either if this primary is totally new OR if it's a new
+            #     friend who came in as a primary after friending the current primary.
+            edgeCountsIn = secId_edgeCountsIn.get(secId)
+            if edgeCountsIn is not None:
+                logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
+                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+            else:
+                logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
+    return edges
 
 # helper function that may get run in a background thread
 def _updateDb(user, token, edges):
     """takes datastructs.* and writes to database
     """
-    raise NotImplementedError
+    tim = datastructs.Timer()
+    conn = getConn()
+    curs = conn.cursor()
+
+    try:
+        updateTokensDb(curs, [user], token)
+        updateUsersDb(curs, [user])
+        tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
+        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        eCount = updateFriendEdgesDb(curs, edges)
+        conn.commit()
+    except:
+        conn.rollback()
+        raise
+
+    logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
+                    (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
+    return eCount
 
 
 def updateDb(user, token, edges, background=False):
     """calls _updateDb maybe in thread
 
     """
-    raise NotImplementedError
 
+    if (background):
+        t = threading.Thread(target=_updateDb, args=(user, token, edges))
+        t.daemon = False
+        t.start()
+        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
+        return 0
+    else:
+        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
+        return _updateDb(user, token, edges)
 
 def updateFriendEdgesDb(curs, edges):
     """update edges table
 
     """
-    raise NotImplementedError
+
+    writeCount = 0
+    for e in edges:
+        for counts in [e.countsIn, e.countsOut]:
+            if (counts is not None):
+                col_val = {
+                    'fbid_source': counts.sourceId,
+                    'fbid_target': counts.targetId,
+                    'post_likes': counts.postLikes,
+                    'post_comms': counts.postComms,
+                    'stat_likes': counts.statLikes,
+                    'stat_comms': counts.statComms,
+                    'wall_posts': counts.wallPosts,
+                    'wall_comms': counts.wallComms,
+                    'tags': counts.tags,
+                    'photos_target': counts.photoTarget,
+                    'photos_other': counts.photoOther,
+                    'mut_friends': counts.mutuals,
+                    'updated': None     # Force DB to change updated to current_timestamp
+                                        # even if rest of record is identical. Depends on
+                                        # MySQL handling of NULLs in timestamps and feels
+                                        # a bit ugly...
+                }
+                writeCount += upsert(curs, "edges", col_val)
+    return writeCount
 
 
 def updateUsersDb(curs, users):
@@ -298,8 +449,27 @@ def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, even
     """update events table
 
     """
-    raise NotImplementedError
 
+    tim = datastructs.Timer()
+    conn = getConn()
+    curs = conn.cursor()
+
+    rows = [{'sessionId': sessionId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'ip': ip, 'userId': userId, 'friendId': friendId,
+             'eventType': eventType, 'appId': appId, 'content': content, 'activityId': activityId
+            } for friendId in friendIds]
+    sql = """INSERT INTO events (session_id, campaign_id, content_id, ip, fbid, friend_fbid, type, appid, content, activity_id)
+                VALUES (%(sessionId)s, %(campaignId)s, %(contentId)s, %(ip)s, %(userId)s, %(friendId)s, %(eventType)s, %(appId)s, %(content)s, %(activityId)s) """
+
+    insertCount = 0
+    for row in rows:
+        curs.execute(sql, row)
+        conn.commit()
+        insertCount += 1
+
+    logger.debug("_writeEventsDb() thread %d updated %d %s event(s) from session %s", threading.current_thread().ident, insertCount, eventType, sessionId)
+
+    return insertCount
 
 def writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, eventType, appId, content, activityId, background=False):
     """calls _writeEventsDb maybe in a thread
@@ -323,8 +493,25 @@ def _writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg):
     """update share_messages table
 
     """
-    raise NotImplementedError
 
+    conn = getConn()
+    curs = conn.cursor()
+
+    row = {
+            'activityId': activityId, 'userId': userId,
+            'campaignId': campaignId, 'contentId': contentId,
+            'shareMsg': shareMsg
+          }
+    sql = """INSERT IGNORE INTO share_messages (activity_id, fbid, campaign_id, content_id, message)
+                VALUES (%(activityId)s, %(userId)s, %(campaignId)s, %(contentId)s, %(shareMsg)s) """
+
+    curs.execute(sql, row)
+    conn.commit()
+    insertCount = 1
+
+    logger.debug("_writeShareMsgDb() thread %d wrote share message for FB action %s", threading.current_thread().ident, activityId)
+
+    return insertCount
 
 def writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg, background=False):
     """calls _writeShareMsgDb maybe in a thread
@@ -346,16 +533,52 @@ def writeShareMsgDb(activityId, userId, campaignId, contentId, shareMsg, backgro
 def getFaceExclusionsDb(userId, campaignId, contentId):
     """returns the set of friends to not show as faces for a given primary user
         sharing a certain piece of content under a certain campaign"""
-    raise NotImplementedError
 
+    conn = getConn()
+    curs = conn.cursor()
+
+    sql = "SELECT friend_fbid FROM face_exclusions WHERE fbid=%s AND campaign_id=%s AND content_id=%s"
+    vals = [userId, campaignId, contentId]
+
+    curs.execute(sql, vals)
+    res = curs.fetchall()
+    conn.commit()
+
+    excludeFriends = set([rec[0] for rec in res])
+    return excludeFriends
 
 # helper function that may get run in a background thread
 def _writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason):
     """update events table
 
     """
-    raise NotImplementedError
 
+    # zzz Could run into trouble here with the insert-ignores in the case where
+    #     someone suppressed a friend, but then later added them manually. The
+    #     front-end behavior will still be correct, but we'll only show the initial
+    #     reason why they should be excluded in this table. Probably not a big deal,
+    #     but worth keeping in mind that this table is NOT a complete record of all
+    #     the shares and suppressions -- that lives in the events table.
+
+    conn = getConn()
+    curs = conn.cursor()
+
+    rows = [{
+             'userId': userId, 'campaignId' : campaignId, 'contentId' : contentId,
+             'friendId': friendId, 'reason': reason
+            } for friendId in friendIds]
+    sql = """INSERT IGNORE INTO face_exclusions (fbid, campaign_id, content_id, friend_fbid, reason)
+                VALUES (%(userId)s, %(campaignId)s, %(contentId)s, %(friendId)s, %(reason)s) """
+
+    insertCount = 0
+    for row in rows:
+        curs.execute(sql, row)
+        conn.commit()
+        insertCount += 1
+
+    logger.debug("_writeFaceExclusionsDb() thread %d updated %d %s exclusions from user %s", threading.current_thread().ident, insertCount, reason, userId)
+
+    return insertCount
 
 def writeFaceExclusionsDb(userId, campaignId, contentId, friendIds, reason, background=False):
     """calls _writeFaceExclusionsDb maybe in a thread
