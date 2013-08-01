@@ -103,6 +103,15 @@ def frame_faces(campaignId, contentId):
     except ValueError:
         return "Content not found", 404     # Better fallback here or something?
 
+    test_mode = False
+    test_fbid = test_token = None
+    if 'test_mode' in flask.request.args:
+        test_mode = True
+        if 'fbid' not in flask.request.args or 'token' not in flask.request.args:
+            return "Test mode requires an ID and Token", 400
+        test_fbid = int(flask.request.args['fbid'])
+        test_token = flask.request.args['token']
+
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
     paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
@@ -116,6 +125,9 @@ def frame_faces(campaignId, contentId):
         thanksURL=thanksURL,
         errorURL=errorURL,
         app_version=config.app_version,
+        test_mode=test_mode,
+        test_fbid=test_fbid,
+        test_token=test_token
     )
 
 
@@ -164,11 +176,6 @@ def faces():
         thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
-    # Assume we're starting with a short term token, expiring now, then try extending the
-    # token. If we hit an error, proceed with what we got from the old one.
-    token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
-
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
@@ -193,6 +200,12 @@ def faces():
                     sessionId
                 )
     else:
+
+        # Assume we're starting with a short term token, expiring now, then try extending the
+        # token. If we hit an error, proceed with what we got from the old one.
+        token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
+        token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
+
         px3_task_id = tasks.proximity_rank_three(
             mockMode=mockMode,
             token=token,
@@ -314,13 +327,17 @@ def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
     # under. In the case of cascading fallbacks, this could actually
     # differ from the final campaign used for the shown/shared events.
     numGen = MAX_FACES
-    for campaignId, edges_list in edgesFiltered.tiers:
+    for tier in edgesFiltered.tiers:
+        edges_list = tier['edges'][:]
+        tier_campaignId = tier['campaignId']
+        tier_contentId = tier['contentId']
+
         if len(edges_list) > numGen:
             edges_list = edges_list[:numGen]
 
         if (edges_list):
             database.writeEventsDb(
-                sessionId, campaignId, contentId, ip, fbid,
+                sessionId, tier_campaignId, tier_contentId, ip, fbid,
                 [e.secondary.id for e in edges_list], 'generated',
                 actionParams['fb_app_id'], content, None,
                 background=config.database.use_threads
@@ -411,6 +428,8 @@ def objects(fbObjectId, contentId):
         # It's just the FB crawler! Note it in the logs, but don't write the event
         logger.info("Facebook crawled object %s with content %s from IP %s", fbObjectId, contentId, ip)
     else:
+        if not actionId:
+            logger.error("Clickback with no action_id (writing the event anyway) from URL: %s", flask.request.url)
         # record the clickback event to the DB
         database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 

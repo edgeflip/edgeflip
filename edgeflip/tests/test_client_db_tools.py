@@ -234,9 +234,9 @@ class TestClientDBTools(EdgeFlipTestCase):
             None
         )
 
-        edgesFiltered = cdb.TieredEdges('campaignId', 1, [test_edge1])
-        edgesFiltered.appendTier(7, [test_edge4, test_edge3])
-        edgesFiltered.appendTier(3, [test_edge2])
+        edgesFiltered = cdb.TieredEdges(edges=[test_edge1], campaignId=1)
+        edgesFiltered.appendTier(edges=[test_edge4, test_edge3], campaignId=7)
+        edgesFiltered.appendTier(edges=[test_edge2], campaignId=3)
 
         self.assertEqual(len(edgesFiltered), 4)
         self.assertEqual(edgesFiltered.secondaryIds(), [1, 4, 3, 2])
