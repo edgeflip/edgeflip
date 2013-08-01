@@ -49,7 +49,7 @@ class Campaign(models.Model):
     campaign_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('Client')
     name = models.CharField(max_length=256)
-    description = models.TextField()
+    description = models.TextField(null=True)
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
@@ -82,8 +82,8 @@ class ButtonStyleFile(models.Model):
 
     button_style_file_id = models.AutoField(primary_key=True)
     button_style = models.ForeignKey('ButtonStyle')
-    html_template = models.CharField(max_length=256)
-    css_file = models.CharField(max_length=256)
+    html_template = models.CharField(max_length=256, null=True)
+    css_file = models.CharField(max_length=256, null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -250,7 +250,7 @@ class CampaignFBObjects(models.Model):
 
 class CampaignGenericFBObjects(models.Model):
 
-    campaign_generic_fb_object_ib = models.AutoField(primary_key=True)
+    campaign_generic_fb_object_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign')
     fb_object = models.ForeignKey('FBObject')
     rand_cdf = models.DecimalField(max_digits=10, decimal_places=9)
@@ -408,7 +408,7 @@ class ChoiceSetFilter(models.Model):
     choice_set = models.ForeignKey('ChoiceSet')
     filter = models.ForeignKey('Filter')
     url_slug = models.CharField(max_length=64)
-    propensity_model_type = models.CharField(max_length=32)
+    propensity_model_type = models.CharField(max_length=32, null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -454,14 +454,14 @@ class ClientDefault(models.Model):
 
     client_default_id = models.AutoField(primary_key=True)
     client = models.ForeignKey('Client')
-    button_style = models.ForeignKey('ButtonStyle')
-    faces_style = models.ForeignKey('FacesStyle')
-    propensity_model = models.ForeignKey('PropensityModel')
-    proximity_model = models.ForeignKey('ProximityModel')
-    mix_model = models.ForeignKey('MixModel')
-    filter = models.ForeignKey('Filter')
-    choice_set = models.ForeignKey('ChoiceSet')
-    choice_set_algorithm = models.ForeignKey('ChoiceSetAlgorithm')
+    button_style = models.ForeignKey('ButtonStyle', null=True)
+    faces_style = models.ForeignKey('FacesStyle', null=True)
+    propensity_model = models.ForeignKey('PropensityModel', null=True)
+    proximity_model = models.ForeignKey('ProximityModel', null=True)
+    mix_model = models.ForeignKey('MixModel', null=True)
+    filter = models.ForeignKey('Filter', null=True)
+    choice_set = models.ForeignKey('ChoiceSet', null=True)
+    choice_set_algorithm = models.ForeignKey('ChoiceSetAlgorithm', null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -824,7 +824,7 @@ class PropensityModelMeta(models.Model):
 
 class PropensityModel(models.Model):
 
-    propensity_model_id = models.AutoField(primary_key=True)
+    proximity_model_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=256, null=True)
     description = models.CharField(max_length=1024, null=True)
     is_deleted = models.BooleanField(default=False)
@@ -842,7 +842,6 @@ class ProximityModelDefinition(models.Model):
 
     proximity_model_definition_id = models.AutoField(primary_key=True)
     proximity_model = models.ForeignKey('ProximityModel')
-    proximity_model_type = models.CharField(max_length=64, null=True)
     model_definition = models.TextField(null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)

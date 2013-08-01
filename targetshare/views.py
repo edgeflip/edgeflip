@@ -151,7 +151,7 @@ def faces(request):
     num_face = request.POST.get('num')
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
-    mock_mode = request.POST.get('mock_mode', False)
+    mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
     session_id = request.POST.get('session_id') or request.session.session_key
