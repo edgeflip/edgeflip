@@ -72,7 +72,6 @@ class EdgeFlipTestCase(unittest.TestCase):
         # APP Adjustments
         APP.config['TESTING'] = True
         self.app = APP.test_client()
-        config.unit_testing = True
 
         # Celery Adjustments
         self.orig_eager = celery.conf['CELERY_ALWAYS_EAGER']
@@ -115,7 +114,6 @@ class EdgeFlipTestCase(unittest.TestCase):
 
         # Undo APP settings
         APP.config['TESTING'] = False
-        config.unit_testing = False
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):

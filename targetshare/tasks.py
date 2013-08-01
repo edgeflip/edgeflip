@@ -3,6 +3,7 @@ import time
 
 import celery
 from celery.utils.log import get_task_logger
+from django.conf import settings
 
 from targetshare import (
     client_db_tools as cdb,
@@ -13,7 +14,6 @@ from targetshare import (
     ranking,
     utils,
 )
-from targetshare.settings import config
 
 MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
@@ -237,7 +237,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             database.writeEventsDb(
                 sessionId, campaignId, contentId, ip, fbid, [None],
                 'no_friends_error', int(paramsDB[1]), thisContent, None,
-                background=config.database.use_threads
+                background=settings.DATABASES.default.BACKGROUND_WRITE,
             )
             return (None, None, None, None, campaignId, contentId)
 
@@ -290,7 +290,7 @@ def proximity_rank_four(mockMode, fbid, token):
     fbmodule = mock_facebook if mockMode else facebook
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
-        newerThan = time.time() - config.freshness * 24 * 60 * 60
+        newerThan = time.time() - settings.FRESHNESS * 24 * 60 * 60
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
@@ -316,5 +316,5 @@ def proximity_rank_four(mockMode, fbid, token):
         requireOutgoing=False,
     )
     database.updateDb(user, token, edgesRanked,
-                      background=config.database.use_threads)
+                      background=settings.DATABASES.default.BACKGROUND_WRITE)
     return edgesRanked

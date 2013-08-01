@@ -9,9 +9,9 @@ from Crypto.Cipher import DES
 import us
 import requests
 from civis_matcher import matcher
+from django.conf import settings
 from unidecode import unidecode
 
-from targetshare.settings import config
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,7 @@ BLOCK_SIZE = 8
 pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 
 # DES appears to be limited to 8-character secret, so truncate if too long
-secret = pad(config.crypto.des_secret)[:8]
+secret = pad(settings.CRYPTO.des_secret)[:8]
 cipher = DES.new(secret)
 
 

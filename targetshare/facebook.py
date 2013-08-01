@@ -13,8 +13,10 @@ from collections import defaultdict
 from contextlib import closing
 from math import ceil
 
-from . import datastructs
-from .settings import config
+from django.conf import settings
+
+from targetshare import datastructs
+
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,7 @@ def getUrlFb(url):
     timeout should be parameter, etc.
     """
     try:
-        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as responseFile:
             responseJson = json.load(responseFile)
     except (urllib2.URLError, urllib2.HTTPError) as e:
         logger.info("error opening url %s: %s", url, e.reason)
@@ -91,6 +93,7 @@ def getUrlFb(url):
 
     return responseJson
 
+
 def _threadFbURL(url, results):
     """Used to read JSON from Facebook in a thread and append output to a list of results"""
     tim = datastructs.Timer()
@@ -102,16 +105,17 @@ def _threadFbURL(url, results):
     logger.debug('Thread %s read %s records from FB in %s', threading.current_thread().name, len(responseJson['data']), tim.elapsedPr())
     return len(responseJson['data'])
 
+
 def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
-    url += '&client_id=' + str(appid) + '&client_secret=' + config.facebook.secrets[appid]
+    url += '&client_id=' + str(appid) + '&client_secret=' + settings.FACEBOOK.secrets[appid]
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
     ts = time.time()
     try:
-        with closing(urllib2.urlopen(url, timeout=config.facebook.api_timeout)) as responseFile:
+        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as responseFile:
             responseDict = urlparse.parse_qs(responseFile.read())
             tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
@@ -137,9 +141,9 @@ def getFriendsFb(userId, token):
     tim = datastructs.Timer()
     logger.debug("getting friends for %d", userId)
 
-    loopTimeout = config.facebook.friendLoop.timeout
-    loopSleep = config.facebook.friendLoop.sleep
-    limit = config.facebook.friendLoop.fqlLimit
+    loopTimeout = settings.FACEBOOK.friendLoop.timeout
+    loopSleep = settings.FACEBOOK.friendLoop.sleep
+    limit = settings.FACEBOOK.friendLoop.fqlLimit
 
     # Get the number of friends from FB to determine how many chunks to run
     numFriendsFQL = urllib.quote_plus("SELECT friend_count FROM user WHERE uid = %s" % userId)
@@ -154,7 +158,7 @@ def getFriendsFb(userId, token):
     threads = []
     friendChunks = []
     for i in range(chunks):
-        offset = limit*i
+        offset = limit * i
         url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (userId, limit, offset))
         url = url + '&format=json&access_token=' + token
 
@@ -240,11 +244,11 @@ def getFriendsFb(userId, token):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
         f = datastructs.FriendInfo(
-                userId, friendId, rec['first_name'], rec['last_name'],
-                email, rec['sex'], dateFromFb(rec['birthday_date']),
-                city, state,
-                primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
-            )
+            userId, friendId, rec['first_name'], rec['last_name'],
+            email, rec['sex'], dateFromFb(rec['birthday_date']),
+            city, state,
+            primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
+        )
         friends[friendId] = f
     logger.debug("returning %d friends for %d (%s)", len(friends.values()), userId, tim.elapsedPr())
     return friends.values()
@@ -287,7 +291,7 @@ def getFriendEdges(userId, tok, friendQueue):
 
 def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
     logger.info('reading stream for user %s, %s', userId, tok)
-    sc = ReadStreamCounts(userId, tok, config['stream_days_in'], config['stream_days_chunk_in'], config['stream_threadcount_in'], loopTimeout=config['stream_read_timeout_in'], loopSleep=config['stream_read_sleep_in'])
+    sc = ReadStreamCounts(userId, tok, settings.STREAM_DAYS_IN, settings.STREAM_DAYS_CHUNK_IN, settings.STREAM_THREADCOUNT_IN, loopTimeout=settings.STREAM_READ_TIMEOUT_IN, loopSleep=settings.STREAM_READ_SLEEP_IN)
     logging.debug('got %s', str(sc))
     logger.debug('got %s', str(sc))
 
@@ -329,7 +333,7 @@ def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
 def getFriendEdgesOutGoing(friend, user, tok):
     timFriend = datastructs.Timer()
     try:
-        scFriend = ReadStreamCounts(friend.id, tok, config['stream_days_out'], config['stream_days_chunk_out'], config['stream_threadcount_out'], loopTimeout=config['stream_read_timeout_out'], loopSleep=config['stream_read_sleep_out'])
+        scFriend = ReadStreamCounts(friend.id, tok, settings.STREAM_DAYS_OUT, settings.STREAM_DAYS_CHUNK_OUT, settings.STREAM_THREADCOUNT_OUT, loopTimeout=settings.STREAM_READ_TIMEOUT_OUT, loopSleep=settings.STREAM_READ_SLEEP_OUT)
     except Exception as ex:
         logger.warning("error reading stream for %d: %s", friend.id, str(ex))
         return
@@ -354,7 +358,7 @@ def getFriendEdgesOutGoing(friend, user, tok):
     # If this friend took fewer seconds to crawl than the number of chunks, wait that
     # additional time before proceeding to next friend to avoid getting shut out by FB.
     # __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
-    friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
+    friendSecs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
     secsLeft = friendSecs - timFriend.elapsedSecs()
     if (secsLeft > 0):
         logger.debug("Nap time! Waiting %d seconds...", secsLeft)
@@ -546,7 +550,7 @@ class ReadStreamCounts(StreamCounts):
 
     i need to be refactored
     """
-    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=config.facebook.api_timeout, loopTimeout=10, loopSleep=0.1):
+    def __init__(self, userId, token, numDays=100, chunkSizeDays=20, threadCount=4, timeout=settings.FACEBOOK.api_timeout, loopTimeout=10, loopSleep=0.1):
         # zzz Is the "timeout" param even getting used here? Appears to be leftover from an earlier version...
 
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
@@ -607,8 +611,8 @@ class ReadStreamCounts(StreamCounts):
         logger.debug("%d chunk results for user %s", len(scChunks), userId)
 
         badChunkRate = 1.0 * (numChunks - len(scChunks)) / numChunks
-        if (badChunkRate >= config['bad_chunk_thresh']):
-            raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %0.2f" % (userId, config['bad_chunk_thresh']))
+        if (badChunkRate >= settings.BAD_CHUNK_THRESH):
+            raise BadChunksError("Aborting ReadStreamCounts for %s: bad chunk rate exceeded threshold of %0.2f" % (userId, settings.BAD_CHUNK_THRESH))
 
         for i, scChunk in enumerate(scChunks):
             logger.debug("chunk %d %s", i, str(scChunk))
@@ -663,7 +667,7 @@ class ThreadStreamReader(threading.Thread):
 
             req = urllib2.Request(url)
             try:
-                responseFile = urllib2.urlopen(req, timeout=config.facebook.api_timeout)
+                responseFile = urllib2.urlopen(req, timeout=settings.FACEBOOK.api_timeout)
             except Exception as e:
                 logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
 
@@ -675,7 +679,7 @@ class ThreadStreamReader(threading.Thread):
                 errCount += 1
                 self.queue.task_done()
                 qcount += 1
-                if (qcount < config['stream_read_trycount']):
+                if (qcount < settings.STREAM_READ_TRYCOUNT):
                     self.queue.put((ts1, ts2, qcount))
                 continue
 

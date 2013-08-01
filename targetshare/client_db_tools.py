@@ -4,7 +4,6 @@
 # Will generally need to work out some auth, probably at the API level
 # (including a check that requests are always consistent with the authed user)
 from __future__ import absolute_import
-import time
 import random
 import logging
 import threading
@@ -13,10 +12,9 @@ from MySQLdb import IntegrityError
 
 from targetshare import (
     database as db,
-    datastructs,
+    utils,
 )
-from targetshare.settings import config
-from .web import utils
+
 
 logger = logging.getLogger(__name__)
 

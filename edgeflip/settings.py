@@ -104,6 +104,7 @@ except Exception:
 
 
 # Load configuration from conf.d directories #
+# TODO: Configuration shouldn't live with releases; /etc/edgeflip/?
 env_conf_dir = os.path.expanduser(os.getenv('EDGEFLIP_CONF_DIR',
                                             '/var/www/edgeflip'))
 config = pymlconf.ConfigManager(
@@ -120,28 +121,7 @@ locals().update((key.upper(), value) for key, value in config.items())
 
 # Django settings #
 
-#DEBUG = True # FIXME
-#TEMPLATE_DEBUG = DEBUG
-
-# FIXME
-ADMINS = (
-    # ('Your Name', 'your_email@example.com'),
-)
-
 MANAGERS = ADMINS
-
-DATABASES = {
-    # FIXME: populate from conf.d
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
-        'NAME': 'edgeflip_django',                      # Or path to database file if using sqlite3.
-        # The following settings are not used with sqlite3:
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': '',                      # Empty for localhost through domain sockets or '127.0.0.1' for localhost through TCP.
-        'PORT': '',                      # Set to empty string for default.
-    }
-}
 
 # Hosts/domain names that are valid for this site; required if DEBUG is False
 # See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
@@ -251,22 +231,19 @@ INSTALLED_APPS = (
 
 # Celery settings #
 QUEUE_ARGS = {'x-ha-policy': 'all'}
-BROKER_URL = 'amqp://edgeflip:edgeflip@localhost:5672/edgehost' # FIXME
+BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
 BROKER_HEARTBEAT = 10
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_RESULT_BACKEND = 'database'
-CELERY_RESULT_DBURI = "mysql://%s:%s@%s/%s" % (
-    DATABASES['default']['USER'],
-    DATABASES['default']['PASSWORD'],
-    DATABASES['default'].get('HOST', 'locahost'),
-    DATABASES['default']['NAME'],
+CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
+    host=(DATABASES.default.HOST or 'locahost'),
+    **DATABASES.default
 )
 # FIXME: Short lived sessions won't be needed once we have more consistent
 # traffic levels. Then MySQL won't kill our connections.
 CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
-CELERY_ALWAYS_EAGER = False
 CELERY_QUEUES = (
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
@@ -293,36 +270,6 @@ CELERY_IMPORTS = (
 
 # App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
-
-# A sample logging configuration. The only tangible logging
-# performed by this configuration is to send an email to
-# the site admins on every HTTP 500 error when DEBUG=False.
-# See http://docs.djangoproject.com/en/dev/topics/logging for
-# more details on how to customize your logging configuration.
-# FIXME
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'filters': {
-        'require_debug_false': {
-            '()': 'django.utils.log.RequireDebugFalse'
-        }
-    },
-    'handlers': {
-        'mail_admins': {
-            'level': 'ERROR',
-            'filters': ['require_debug_false'],
-            'class': 'django.utils.log.AdminEmailHandler'
-        }
-    },
-    'loggers': {
-        'django.request': {
-            'handlers': ['mail_admins'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-    }
-}
 
 
 # Load override settings #

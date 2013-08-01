@@ -5,17 +5,18 @@ import datetime
 
 import celery
 
-from django.shortcuts import render, get_object_or_404
-from django.template import RequestContext
-from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
+from django.conf import settings
+from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
     HttpResponseNotFound,
     HttpResponseForbidden
 )
+from django.shortcuts import render, get_object_or_404
+from django.template import RequestContext
+from django.template.loader import render_to_string
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
-from django.core.urlresolvers import reverse
 
 from targetshare import (
     datastructs,
@@ -25,7 +26,6 @@ from targetshare import (
     tasks,
     utils,
 )
-from targetshare.settings import config
 
 
 logger = logging.getLogger(__name__)
@@ -158,7 +158,7 @@ def faces(request):
     last_call = True if request.POST.get('last_call') else False
     edges_ranked = fbmodule = px4_edges = None
 
-    if mock_mode:
+    if settings.ENV != 'production' and mock_mode:
         logger.info('Running in mock mode')
         fbmodule = mock_facebook
         fbid = 100000000000 + random.randint(1, 10000000)
@@ -177,7 +177,7 @@ def faces(request):
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
-    if mock_mode and subdomain != config.web.mock_subdomain:
+    if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return HttpResponseForbidden(
             'Mock mode only allowed for the mock client')
 

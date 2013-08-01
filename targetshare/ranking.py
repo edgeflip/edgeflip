@@ -1,12 +1,8 @@
 #!/usr/bin/python
-import sys
-
-from . import database
-from . import datastructs
-
 import logging
 
-from .settings import config
+from . import database
+
 
 logger = logging.getLogger(__name__)
 

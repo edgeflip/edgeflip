@@ -1,4 +1,11 @@
 #!/usr/bin/python
+"""Module to mock out talking to Facebook for load testing
+
+NOTE: This is built around our current implementation with
+      just px3 and minimal edges. We'll need to do something
+      more if we want to move to more complex edges.
+
+"""
 import time
 import datetime
 import urllib
@@ -6,24 +13,19 @@ import random
 import logging
 from collections import defaultdict
 
-from . import datastructs
-from .settings import config
+from django.conf import settings
+
+from targetshare import datastructs
+
 
 logger = logging.getLogger(__name__)
 
-"""Module to mock out talking to Facebook for load testing
 
-NOTE: This is built around our current implementation with
-      just px3 and minimal edges. We'll need to do something
-      more if we want to move to more complex edges.
-"""
+"""Some fake names for generating friends.
 
-
-"""
-Some fake names for generating friends.
 These will work for state-based filtes; not great for ethnicity-based.
-"""
 
+"""
 FIRST_NAMES = ['Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie', 'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa']
 LAST_NAMES = ['Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe']
 CITY_NAMES = ['Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City']
@@ -67,9 +69,9 @@ FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FR
 FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != "+str(STREAMTYPE.STATUS_UPDATE)+" AND actor_id != %s"
+FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + " AND actor_id != %s"
 FQL_WALL_COMMS = "SELECT actor_id FROM %s WHERE post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM %s) AND fromid = %s)"
-FQL_TAGS       = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != "+str(STREAMTYPE.PHOTO)
+FQL_TAGS       = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != " + str(STREAMTYPE.PHOTO)
 #zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
 
 FQL_TAG_PHOTOS   = "SELECT object_id FROM photo_tag WHERE subject = %s"
@@ -81,6 +83,7 @@ FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT obj
 
 FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
 FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
+
 
 def dateFromFb(dateStr):
     """we would like this to die"""
@@ -96,13 +99,13 @@ def extendTokenFb(user, token, appid):
     """extends lifetime of a user token from FB, which doesn't return JSON
     """
     url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=%s' % token.tok
-    url += '&client_id=' + str(appid) + '&client_secret=' + config.facebook.secrets[appid]
+    url += '&client_id=' + str(appid) + '&client_secret=' + settings.FACEBOOK.secrets[appid]
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
     ts = time.time()
 
     # just return the current token without talking to FB...
-    responseDict = {'access_token' : [token.tok], 'expires' : ['5184000']}
+    responseDict = {'access_token': [token.tok], 'expires': ['5184000']}
     tokNew = responseDict['access_token'][0]
     expiresIn = int(responseDict['expires'][0])
     logging.debug("Mocked extended access token %s expires in %s seconds." % (tokNew, expiresIn))
@@ -118,15 +121,15 @@ def fakeUserInfo(fbid, friend=False, numFriends=0):
     fakeInfo['last_name'] = unicode(random.choice(LAST_NAMES))
 
     if (random.random() <= 0.33):
-        fakeInfo['birthday_date'] = '%s/%s/%s' % (random.randint(1,12), random.randint(1,28), random.randint(1920, 1995))
+        fakeInfo['birthday_date'] = '%s/%s/%s' % (random.randint(1, 12), random.randint(1, 28), random.randint(1920, 1995))
     else:
         fakeInfo['birthday_date'] = None
 
     if (random.random() <= 0.67):
         fakeInfo['current_location'] = {
-            'city' : unicode(random.choice(CITY_NAMES)),
-            'state' : unicode(random.choice(STATE_NAMES))
-            }
+            'city': unicode(random.choice(CITY_NAMES)),
+            'state': unicode(random.choice(STATE_NAMES))
+        }
 
     if (friend):
         # Only have a mutual friend count for friends
@@ -150,12 +153,12 @@ def getFriendsFb(userId, token):
 
     queryJsons = []
 
-    tagPhotosLabel   = "tag_photos"
-    primPhotosLabel  = "prim_photos"
+    tagPhotosLabel = "tag_photos"
+    primPhotosLabel = "prim_photos"
     otherPhotosLabel = "other_photos"
-    tagPhotosRef      = "#" + tagPhotosLabel
-    primPhotosRef      = "#" + primPhotosLabel
-    otherPhotosRef      = "#" + otherPhotosLabel
+    tagPhotosRef = "#" + tagPhotosLabel
+    primPhotosRef = "#" + primPhotosLabel
+    otherPhotosRef = "#" + otherPhotosLabel
 
     queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (userId))))
     queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (userId))))
@@ -167,14 +170,13 @@ def getFriendsFb(userId, token):
     queryJson = '{' + ','.join(queryJsons) + '}'
     url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=%s' % token
 
-
     # zzz Should this also wait for a couple of seconds to mock out
     #     tying up the thread while we wait for a resonse from the
     #     Facebook API??
     # TODO: Stop using this mock_facebook lib for unit tests, and instead
-    # use the Mock lib. Then we can drop this config.unit_testing check, and
+    # use the Mock lib. Then we can drop this check, and
     # stick with using this library for its other real purposes.
-    if not config.unit_testing:
+    if settings.DEBUG:
         time.sleep(random.random()*4+0.5)
 
     # generate fake id's for between 1 and 1,000 fake friends
@@ -273,7 +275,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     # Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
     # relative to the number of calls we're making (the number of chunks) to 1 call / sec.
-    friendSecs = config['stream_days_out'] / config['stream_days_chunk_out']
+    friendSecs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
 
     edges = []
     user = getUserFb(userId, tok)
@@ -308,5 +310,3 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     logger.debug("mocked getting %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
-
-
