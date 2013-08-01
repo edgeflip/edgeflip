@@ -27,7 +27,6 @@ def build_all(deps='1', env=None, schema=None):
     Otherwise, the following tasks are executed:
 
         virtualenv
-        install
         update-distribute
         requirements
         db
@@ -48,17 +47,15 @@ def build_all(deps='1', env=None, schema=None):
     # virtualenv
     fab.execute(make_virtualenv, name=env)
 
-    # install
-    fab.execute(install_project) # TODO: remove pending Django
-
     # update-distribute
-    # (Needed as long as Flask requires a higher version than Ubuntu provides):
+    # (Needed as long as Ubuntu provides such an old version):
     fab.execute(update_distribute)
 
     # requirements
     fab.execute(install_reqs)
 
     # db
+    # FIXME: review pending django changes
     fab.execute(setup_db, schema=schema)
 
 
@@ -109,23 +106,6 @@ def update_distribute(env=None):
     """Update an installation of distibute"""
     with workon(env):
         l('pip install -U distribute')
-
-
-@fab.task(name='install')
-def install_project(env=None):
-    """Install the project package into the Python environment (deprecated)
-
-    This task is deprecated, pending migration of Celery to Django.
-
-    Requires that a virtual environment has been created, and is either
-    already activated, or specified, e.g.:
-
-        install:MY-ENV
-
-    """
-    with workon(env):
-        with fab.lcd(BASEDIR): # Allow invokation from anywhere in project
-            l('pip install -e .')
 
 
 @fab.task(name='requirements')

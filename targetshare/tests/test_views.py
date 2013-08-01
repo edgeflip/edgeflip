@@ -2,14 +2,14 @@ import json
 from datetime import date
 
 from django.core.urlresolvers import reverse
-
 from mock import patch, Mock
 
 from targetshare import datastructs, models, client_db_tools as cdb
-from targetshare.tests import EdgeFlipTestCase
-from targetshare.settings import config
+
+from . import EdgeFlipTestCase
 
 
+@patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
 class TestEdgeFlipViews(EdgeFlipTestCase):
 
     fixtures = ['test_data']
@@ -45,14 +45,6 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             client=self.test_client, name='Unit Tests')
         self.test_filter = models.ChoiceSetFilter.objects.create(
             filter_id=2, url_slug='all', choice_set=self.test_cs)
-
-        # mock mock_mode subdomain
-        self.orig_subdomain = config.web.mock_subdomain
-        config.web.mock_subdomain = 'testserver'
-
-    def tearDown(self):
-        config.web.mock_subdomain = self.orig_subdomain
-        super(TestEdgeFlipViews, self).tearDown()
 
     def test_faces_get(self):
         ''' Faces endpoint requires POST, so we expect a 405 here '''

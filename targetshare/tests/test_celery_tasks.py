@@ -1,11 +1,14 @@
-from targetshare.tests import EdgeFlipTestCase
+import datetime
+
+import celery
+
 from targetshare import (
     client_db_tools as cdb,
     datastructs,
-    tasks
+    tasks,
 )
-from targetshare.celery import celery
-import datetime
+
+from . import EdgeFlipTestCase
 
 
 class TestCeleryTasks(EdgeFlipTestCase):
@@ -23,7 +26,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         '''
         task_id = tasks.proximity_rank_three(True, 1, self.token)
         assert task_id
-        assert celery.AsyncResult(task_id)
+        assert celery.current_app.AsyncResult(task_id)
 
     def test_px3_crawl(self):
         ''' Run the px3_crawl celery task without throwing it
