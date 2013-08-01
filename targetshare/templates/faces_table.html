@@ -53,7 +53,7 @@ this is the message div and the faces themselves
 <div class="right_container">
 
     <div class="faces_container">
-        <div class="share_prompt">{{ msg_parms.sharing_prompt }}</div>
+        <div class="share_prompt">{{ msg_params.sharing_prompt }}</div>
         {% block faces_prompt %}
         <div class="msg_title" style="padding: 0px;">Step 1. Click on the friends you want to share with:</div>
         {% endblock faces_prompt %}
@@ -66,7 +66,7 @@ this is the message div and the faces themselves
             {% for face_friend in face_friends %}
 
                 <td>
-                    <div style="position: relative" id="wrapper-{{fbid}}">
+                    <div style="position: relative" id="wrapper-{{face_friend.id}}">
                         <div class="xout" onClick="doReplace({{ face_friend.id }});">
                             x
                         </div>
@@ -128,14 +128,14 @@ this is the message div and the faces themselves
                     <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
                         <tr>
                             <td>
-                                <img src='{{ fbParams.fb_object_image }}' style='margin-right: 7px; height: 60px'>
+                                <img src='{{ action_params.fb_object_image }}' style='margin-right: 7px; height: 60px'>
                             </td>
                             <td>
                                 <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px'>
-                                    {{ fbParams.fb_object_title }}
+                                    {{ action_params.fb_object_title }}
                                 </div>
                                 <div style='font-size: 9px; color: gray; font-weight: normal'>
-                                    {{ fbParams.fb_object_description }}
+                                    {{ action_params.fb_object_description }}
                                 </div>
                             </td>
                         </tr>
@@ -148,11 +148,11 @@ this is the message div and the faces themselves
         <div style="display: none;"> <!-- hide the suggestions -->
             <div id="suggested_msg_title">Suggested Messages:</div>
             <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-                <div class="msg_txt suggested_msg" id="msg1_txt">{{ msg_parms.msg1_pre }}<span class="preset_names"></span>{{ msg_parms.msg1_post }}</div>
+                <div class="msg_txt suggested_msg" id="msg1_txt">{{ msg_params.msg1_pre }}<span class="preset_names"></span>{{ msg_params.msg1_post }}</div>
             </div>
 
             <div class="msg_block" style="padding-bottom: 3px; margin-bottom: 0px;">
-                <div class="msg_txt suggested_msg" id="msg2_txt">{{ msg_parms.msg2_pre }}<span class="preset_names"></span>{{ msg_parms.msg2_post }}</div>
+                <div class="msg_txt suggested_msg" id="msg2_txt">{{ msg_params.msg2_pre }}<span class="preset_names"></span>{{ msg_params.msg2_post }}</div>
             </div>
         </div>
 

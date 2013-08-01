@@ -272,6 +272,10 @@ CELERY_IMPORTS = (
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
 
 
+# Test settings #
+SOUTH_TESTS_MIGRATE = False
+
+
 # Load override settings #
 overrides = pymlconf.ConfigManager(
     files=[

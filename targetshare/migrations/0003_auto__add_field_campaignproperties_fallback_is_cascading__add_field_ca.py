@@ -59,9 +59,9 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ButtonStyleFile', 'db_table': "'button_style_files'"},
             'button_style': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ButtonStyle']"}),
             'button_style_file_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'css_file': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'css_file': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'html_template': ('django.db.models.fields.CharField', [], {'max_length': '256'}),
+            'html_template': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         u'targetshare.buttonstylemeta': {
@@ -79,7 +79,7 @@ class Migration(SchemaMigration):
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'delete_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'description': ('django.db.models.fields.TextField', [], {}),
+            'description': ('django.db.models.fields.TextField', [], {'null': 'True'}),
             'is_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256'})
         },
@@ -241,7 +241,7 @@ class Migration(SchemaMigration):
             'choice_set_meta_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']"}),
-            'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'url_slug': ('django.db.models.fields.CharField', [], {'max_length': '64'})
         },
@@ -277,17 +277,17 @@ class Migration(SchemaMigration):
         },
         u'targetshare.clientdefault': {
             'Meta': {'object_name': 'ClientDefault', 'db_table': "'client_defaults'"},
-            'button_style': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ButtonStyle']"}),
-            'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSet']"}),
-            'choice_set_algorithm': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSetAlgorithm']"}),
+            'button_style': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ButtonStyle']", 'null': 'True'}),
+            'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSet']", 'null': 'True'}),
+            'choice_set_algorithm': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSetAlgorithm']", 'null': 'True'}),
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Client']"}),
             'client_default_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'faces_style': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.FacesStyle']"}),
-            'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']"}),
-            'mix_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.MixModel']"}),
-            'propensity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.PropensityModel']"}),
-            'proximity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ProximityModel']"}),
+            'faces_style': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.FacesStyle']", 'null': 'True'}),
+            'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']", 'null': 'True'}),
+            'mix_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.MixModel']", 'null': 'True'}),
+            'propensity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.PropensityModel']", 'null': 'True'}),
+            'proximity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ProximityModel']", 'null': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         u'targetshare.edge': {

@@ -151,7 +151,7 @@ def faces(request):
     num_face = request.POST.get('num')
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
-    mock_mode = request.POST.get('mock_mode', False)
+    mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
     session_id = request.POST.get('session_id') or request.session.session_key
@@ -317,6 +317,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             edges_list = edges_list[:num_gen]
 
         if edges_list:
+            # TODO: Use bulk_create!
             for friend in edges_list:
                 models.Event.objects.create(
                     session_id=session_id, campaign_id=tier_campaignId,
@@ -479,6 +480,7 @@ def record_event(request):
         )
 
     for friend in friends:
+        # TODO: Use bulk_create!
         models.Event.objects.create(
             session_id=session_id, campaign_id=campaign_id,
             client_content_id=content_id, ip=ip, fbid=user_id,

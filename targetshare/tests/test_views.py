@@ -1,19 +1,21 @@
 import json
 from datetime import date
 
+from django.core.urlresolvers import reverse
+
 from mock import patch, Mock
 
+from targetshare import datastructs, models, client_db_tools as cdb
 from targetshare.tests import EdgeFlipTestCase
-from targetshare import (
-    client_db_tools as cdb,
-    datastructs
-)
+from targetshare.settings import config
 
 
-class TestWebSharing(EdgeFlipTestCase):
+class TestEdgeFlipViews(EdgeFlipTestCase):
+
+    fixtures = ['test_data']
 
     def setUp(self):
-        super(TestWebSharing, self).setUp()
+        super(TestEdgeFlipViews, self).setUp()
         self.params = {
             'fbid': '1',
             'token': 1,
@@ -38,40 +40,23 @@ class TestWebSharing(EdgeFlipTestCase):
             self.test_user,
             None
         )
-        self.test_filter = cdb.ChoiceSetFilter(
-            1,
-            2,
-            'all',
-            features=[
-                (
-                    'state',
-                    'in',
-                    ['Illinois', 'California', 'Massachusetts', 'New York']
-                )
-            ]
-        )
-        self.test_cs = cdb.ChoiceSet(1, [self.test_filter])
+        self.test_client = models.Client.objects.get(pk=1)
+        self.test_cs = models.ChoiceSet.objects.create(
+            client=self.test_client, name='Unit Tests')
+        self.test_filter = models.ChoiceSetFilter.objects.create(
+            filter_id=2, url_slug='all', choice_set=self.test_cs)
 
-    def _make_request(self, url='/faces', status_code=200, params=None):
-        ''' Helper function for making HTTP requests to our various urls '''
-        params = params if params else self.params
-        headers = [
-            ('Content-Type', 'application/json; charset=utf-8'),
-            ('X-Requested-With', 'XMLHttpRequest'),
-        ]
-        response = self.app.post(
-            url,
-            headers=headers,
-            content_type='application/json',
-            base_url='http://local/',
-            data=json.dumps(params)
-        )
-        self.assertStatusCode(response, status_code)
-        return response
+        # mock mock_mode subdomain
+        self.orig_subdomain = config.web.mock_subdomain
+        config.web.mock_subdomain = 'testserver'
+
+    def tearDown(self):
+        config.web.mock_subdomain = self.orig_subdomain
+        super(TestEdgeFlipViews, self).tearDown()
 
     def test_faces_get(self):
         ''' Faces endpoint requires POST, so we expect a 405 here '''
-        response = self.app.get('/faces')
+        response = self.client.get(reverse('faces'))
         self.assertStatusCode(response, 405)
 
     def test_faces_initial_entry(self):
@@ -79,13 +64,20 @@ class TestWebSharing(EdgeFlipTestCase):
         receive a JSON response with a status of waiting along with the
         tasks IDs of the Celery jobs we started
         '''
-        response = self._make_request()
-        data = json.loads(response.data)
-        self.assertEqual(data['status'], 'waiting')
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
         assert data['px3_task_id']
         assert data['px4_task_id']
 
-    @patch('targetshare.web.sharing.celery')
+    def test_faces_invalid_subdomain(self):
+        ''' Test hitting the faces endpoint from an invalid domain '''
+        self.test_client.subdomain = 'invalidsubdomain'
+        self.test_client.save()
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 404)
+
+    @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
         task isn't yet complete
@@ -97,16 +89,17 @@ class TestWebSharing(EdgeFlipTestCase):
             result_mock,
             result_mock
         ]
-        celery_mock.celery.AsyncResult = async_mock
+        celery_mock.current_app.AsyncResult = async_mock
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
         })
-        response = self._make_request()
-        data = json.loads(response.data)
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
         self.assertEqual(data['status'], 'waiting')
 
-    @patch('targetshare.web.sharing.celery')
+    @patch('targetshare.views.celery')
     def test_faces_px4_wait(self, celery_mock):
         ''' Test that even if px3 is done, we'll wait on px4 if we're not
         ready to give up on it yet
@@ -120,16 +113,17 @@ class TestWebSharing(EdgeFlipTestCase):
             px3_result_mock,
             px4_result_mock
         ]
-        celery_mock.celery.AsyncResult = async_mock
+        celery_mock.current_app.AsyncResult = async_mock
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
         })
-        response = self._make_request()
-        data = json.loads(response.data)
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
         self.assertEqual(data['status'], 'waiting')
 
-    @patch('targetshare.web.sharing.celery')
+    @patch('targetshare.views.celery')
     def test_faces_last_call(self, celery_mock):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
@@ -139,8 +133,8 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.result = (
             [self.test_edge],
             cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
-            self.test_filter.filterId,
-            self.test_filter.urlSlug,
+            self.test_filter.filter_id,
+            self.test_filter.url_slug,
             1,
             1
         )
@@ -152,18 +146,19 @@ class TestWebSharing(EdgeFlipTestCase):
             px3_result_mock,
             px4_result_mock
         ]
-        celery_mock.celery.AsyncResult = async_mock
+        celery_mock.current_app.AsyncResult = async_mock
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
             'last_call': True,
         })
-        response = self._make_request()
-        data = json.loads(response.data)
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
 
-    @patch('targetshare.web.sharing.celery')
+    @patch('targetshare.views.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
         px3_result_mock = Mock()
@@ -171,8 +166,8 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.result = (
             [self.test_edge],
             cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
-            self.test_filter.filterId,
-            self.test_filter.urlSlug,
+            self.test_filter.filter_id,
+            self.test_filter.url_slug,
             1,
             1
         )
@@ -185,13 +180,14 @@ class TestWebSharing(EdgeFlipTestCase):
             px3_result_mock,
             px4_result_mock
         ]
-        celery_mock.celery.AsyncResult = async_mock
+        celery_mock.current_app.AsyncResult = async_mock
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
             'last_call': True,
         })
-        response = self._make_request()
-        data = json.loads(response.data)
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
