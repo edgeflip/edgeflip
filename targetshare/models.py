@@ -111,7 +111,7 @@ class CampaignButtonStyle(models.Model):
     campaign = models.ForeignKey('Campaign')
     button_style = models.ForeignKey('ButtonStyle')
     rand_cdf = models.DecimalField(max_digits=10, decimal_places=9)
-    start_dt = models.DateTimeField()
+    start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
     class Meta:

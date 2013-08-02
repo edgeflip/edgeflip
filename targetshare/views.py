@@ -87,14 +87,14 @@ def button(request, campaign_id, content_id):
     style_template = None
     try:
         style_recs = campaign.campaignbuttonstyle_set.all()
-        style_exp_tupes = [(x.button_id, x.rand_cdf) for x in style_recs]
+        style_exp_tupes = [(x.button_style_id, x.rand_cdf) for x in style_recs]
         style_id = int(utils.rand_assign(style_exp_tupes))
         models.Assignment.objects.create(
             session_id=session_id, campaign=campaign,
             content=content, feature_type='button_style_id',
             feature_row=style_id, random_assign=True,
             chosen_from_table='campaign_button_styles',
-            chosen_from_rows=[x.button_id for x in style_recs]
+            chosen_from_rows=[x.button_style_id for x in style_recs]
         )
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
@@ -317,15 +317,18 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             edges_list = edges_list[:num_gen]
 
         if edges_list:
-            # TODO: Use bulk_create!
+            events = []
             for friend in edges_list:
-                models.Event.objects.create(
-                    session_id=session_id, campaign_id=tier_campaignId,
-                    client_content_id=tier_contentId, ip=ip, fbid=fbid,
-                    friend_fbid=friend.secondary.id, event_type='shown',
-                    app_id=action_params['fb_app_id'], content=content_str,
-                    activity_id=None
+                events.append(
+                    models.Event(
+                        session_id=session_id, campaign_id=tier_campaignId,
+                        client_content_id=tier_contentId, ip=ip, fbid=fbid,
+                        friend_fbid=friend.secondary.id, event_type='shown',
+                        app_id=action_params['fb_app_id'], content=content_str,
+                        activity_id=None
+                    )
                 )
+            models.Event.objects.bulk_create(events)
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
@@ -479,14 +482,19 @@ def record_event(request):
             "Ah, ah, ah. You didn't say the magic word"
         )
 
+    events = []
     for friend in friends:
-        # TODO: Use bulk_create!
-        models.Event.objects.create(
-            session_id=session_id, campaign_id=campaign_id,
-            client_content_id=content_id, ip=ip, fbid=user_id,
-            friend_fbid=friend, event_type=event_type,
-            app_id=app_id, content=content, activity_id=action_id
+        events.append(
+            models.Event(
+                session_id=session_id, campaign_id=campaign_id,
+                client_content_id=content_id, ip=ip, fbid=user_id,
+                friend_fbid=friend, event_type=event_type,
+                app_id=app_id, content=content, activity_id=action_id
+            )
         )
+
+    if events:
+        models.Event.objects.bulk_create(events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -520,12 +528,18 @@ def record_event(request):
     if event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so
         # we don't show them for the same content/campaign again
+        exclusions = []
         for friend in friends:
-            models.FaceExclusion.objects.create(
-                fbid=user_id, campaign_id=campaign_id,
-                content=content_id, friend_fbid=friend,
-                reason='shared'
+            exclusions.append(
+                models.FaceExclusion(
+                    fbid=user_id, campaign_id=campaign_id,
+                    content=content_id, friend_fbid=friend,
+                    reason='shared'
+                )
             )
+
+        if exclusions:
+            models.FaceExclusion.objects.bulk_create(exclusions)
 
     error_msg = request.POST.get('errorMsg')
     if error_msg:
