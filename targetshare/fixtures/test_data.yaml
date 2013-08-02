@@ -96,7 +96,7 @@
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobjects
     pk: 6
--   fields: {campaign: 4, end_dt: null, fb_object: 8, filter: 7, rand_cdf: '1.000000000',
+-   fields: {campaign: 4, end_dt: null, fb_object: 1, filter: 1, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobjects
     pk: 7
@@ -221,30 +221,6 @@
         proximity_model: null, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.clientdefault
     pk: 1
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 1406112512, reason: suppressed,
-        updated: !!timestamp '2013-07-30 22:22:25'}
-    model: targetshare.faceexclusion
-    pk: 9
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 73500741, reason: suppressed,
-        updated: !!timestamp '2013-08-01 15:17:49'}
-    model: targetshare.faceexclusion
-    pk: 10
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 100000545751117,
-        reason: suppressed, updated: !!timestamp '2013-08-01 15:21:15'}
-    model: targetshare.faceexclusion
-    pk: 11
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 1533504470, reason: suppressed,
-        updated: !!timestamp '2013-08-01 15:22:38'}
-    model: targetshare.faceexclusion
-    pk: 12
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 1131977471, reason: suppressed,
-        updated: !!timestamp '2013-08-01 15:40:16'}
-    model: targetshare.faceexclusion
-    pk: 13
--   fields: {campaign: 1, content: 1, fbid: 1357997116, friend_fbid: 323500072, reason: suppressed,
-        updated: !!timestamp '2013-08-01 15:40:18'}
-    model: targetshare.faceexclusion
-    pk: 14
 -   fields: {end_dt: null, fb_object: 1, msg1_post: ' -- Have you seen this amazing
             infographic about gun control?', msg1_pre: 'Hi there ', msg2_post: '!',
         msg2_pre: 'Help keep the pressure on Congress to pass gun control, ', og_action: support,

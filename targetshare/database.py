@@ -13,6 +13,8 @@ import threading
 import MySQLdb as mysql
 from django.db import connection
 
+from targetshare import models
+
 from . import datastructs
 
 
@@ -348,7 +350,7 @@ def updateFriendEdgesDb(curs, edges):
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
                     'mut_friends': counts.mutuals,
-                    'updated': None     # Force DB to change updated to current_timestamp
+                    'updated': datetime.datetime.now() # Force DB to change updated to current_timestamp
                                         # even if rest of record is identical. Depends on
                                         # MySQL handling of NULLs in timestamps and feels
                                         # a bit ugly...
@@ -362,26 +364,27 @@ def updateUsersDb(curs, users):
 
     """
 
-    updateCount = 0
     for u in users:
         col_val = {
-            'fname': u.fname,
-            'lname': u.lname,
+            'first_name': u.fname,
+            'last_name': u.lname,
             'email': u.email,
             'gender': u.gender,
             'birthday': u.birthday,
             'city': u.city,
             'state': u.state
         }
-        # Only include columns with non-null (or empty/zero) values
-        # to ensure a NULL can never overwrite a non-null
-        col_val = { k : v for k,v in col_val.items() if v }
-        col_val['fbid'] = u.id
-        col_val['updated'] = None   # Force DB to change updated to current_timestamp
-                                    # even if rest of record is identical. Depends on
-                                    # MySQL handling of NULLs in timestamps and feels
-                                    # a bit ugly...
-        updateCount += upsert(curs, 'users', col_val)
+        user, created = models.User.objects.get_or_create(fbid=u.id)
+        count = 0
+        for k, v in col_val.items():
+            if not v:
+                continue
+
+            setattr(user, k, v)
+            user.save()
+            count += 1
+        return count
+
     return updateCount
 
 def updateTokensDb(curs, users, token):
@@ -395,7 +398,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : None    # Force DB to change updated to current_timestamp
+            'updated' : datetime.datetime.now() # Force DB to change updated to current_timestamp
                                 # even if rest of record is identical. Depends on
                                 # MySQL handling of NULLs in timestamps and feels
                                 # a bit ugly...

@@ -1,5 +1,6 @@
 import time
 import logging
+import datetime
 import threading
 
 from django.db import models
@@ -902,7 +903,7 @@ class Token(models.Model):
     owner_id = models.BigIntegerField(db_column='ownerid')
     token = models.CharField(max_length=512)
     expires = models.DateTimeField(null=True)
-    updated = models.DateTimeField(auto_now=True)
+    updated = models.DateTimeField(auto_now=True, default=datetime.datetime.now)
 
     class Meta:
         unique_together = ('fbid', 'app_id', 'owner_id')
@@ -929,8 +930,8 @@ class User(models.Model):
     email = models.CharField(max_length=256, null=True)
     gender = models.CharField(max_length=8, null=True)
     birthday = models.DateTimeField(null=True)
-    city = models.CharField(max_length=32)
-    state = models.CharField(max_length=32)
+    city = models.CharField(max_length=32, null=True)
+    state = models.CharField(max_length=32, null=True)
     updated = models.DateTimeField(auto_now=True)
 
     def __unicode__(self):
