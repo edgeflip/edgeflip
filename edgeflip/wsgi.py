@@ -17,7 +17,8 @@ import os
 
 # Activate Python virtual environment:
 activate_this = '/var/www/edgeflip/bin/activate_this.py'
-execfile(activate_this, dict(__file__=activate_this))
+if os.path.exists(activate_this):
+    execfile(activate_this, dict(__file__=activate_this))
 
 # Set up Django:
 # We defer to a DJANGO_SETTINGS_MODULE already in the environment. This breaks
