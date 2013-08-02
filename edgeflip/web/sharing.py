@@ -179,26 +179,26 @@ def faces():
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
-        if (px3_result.ready() and (px4_result.ready() or last_call)):
+
+        if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
             px4_edges = px4_result.result if px4_result.successful() else []
-            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result
+            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result if px3_result.successful() else (None)*6
+
             if not all([edgesRanked, edgesFiltered]):
+                logger.error("No friends identified for %s. Celery px3 result was: %s", fbid, px3_result.result)
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
-            if last_call and not px3_result.ready():
-                return ajaxResponse('No friends identified for you.', 500, sessionId)
-            else:
-                return ajaxResponse(
-                    json.dumps({
-                        'status': 'waiting',
-                        'px3_task_id': px3_task_id,
-                        'px4_task_id': px4_task_id,
-                        'campaignid': campaignId,
-                        'contentid': contentId,
-                    }),
-                    200,
-                    sessionId
-                )
+            return ajaxResponse(
+                json.dumps({
+                    'status': 'waiting',
+                    'px3_task_id': px3_task_id,
+                    'px4_task_id': px4_task_id,
+                    'campaignid': campaignId,
+                    'contentid': contentId,
+                }),
+                200,
+                sessionId
+            )
     else:
 
         # Assume we're starting with a short term token, expiring now, then try extending the
