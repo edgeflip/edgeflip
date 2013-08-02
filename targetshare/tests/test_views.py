@@ -216,3 +216,59 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
         )
         assert models.Assignment.objects.exists()
+
+    def test_frame_faces_encoded(self):
+        ''' Testing the views.frame_faces_encoded method '''
+        response = self.client.get(
+            reverse('frame-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        )
+        self.assertStatusCode(response, 200)
+
+    def test_frame_faces(self):
+        ''' Testing views.frame_faces '''
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        client = models.Client.objects.get(campaign__pk=1)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            response.context['campaign'],
+            models.Campaign.objects.get(pk=1)
+        )
+        self.assertEqual(
+            response.context['content'],
+            models.ClientContent.objects.get(pk=1)
+        )
+        self.assertEqual(
+            response.context['fb_params'],
+            {
+                'fb_app_name': client.fb_app_name,
+                'fb_app_id': client.fb_app_id
+            }
+        )
+
+    def test_objects_hit_by_fb(self):
+        ''' Test hitting the views.object endpoint as the FB crawler '''
+        assert not models.Event.objects.exists()
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            HTTP_USER_AGENT='facebookexternalhit'
+        )
+        self.assertStatusCode(response, 200)
+        assert not models.Event.objects.exists()
+        assert response.context['fb_params']
+        assert response.context['content']
+        assert response.context['redirect_url']
+
+    def test_objects(self):
+        ''' Test hitting the views.object endpoint with an activity id as a
+        normal, non-fb bot, user
+        '''
+        assert not models.Event.objects.exists()
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            data={'fb_action_ids': 1}
+        )
+        self.assertStatusCode(response, 200)
+        assert models.Event.objects.filter(activity_id=1).exists()
+        assert response.context['fb_params']
+        assert response.context['content']
+        assert response.context['redirect_url']

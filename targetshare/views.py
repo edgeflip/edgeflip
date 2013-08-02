@@ -114,7 +114,7 @@ def frame_faces_encoded(request, campaign_slug):
 
     try:
         decoded = utils.decodeDES(campaign_slug)
-        campaign_id, content_id = [int(i) for i in decoded.split('/')]
+        campaign_id, content_id = [int(i) for i in decoded.split('/') if i]
     except:
         logger.exception('Exception on decrypting frame_faces')
         return HttpResponseNotFound()
@@ -356,14 +356,18 @@ def objects(request, fb_object_id, content_id):
 
     fb_object = get_object_or_404(models.FBObject, fb_object_id=fb_object_id)
     content = get_object_or_404(
-        models.ClientContent, client_content_id=content_id
+        models.ClientContent, content_id=content_id
     )
     client = fb_object.client
-    fb_attrs = fb_object.fbobjectattributes_set.get()
+    fb_attrs = fb_object.fbobjectattribute_set.get()
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
-    redirect_url = client.clientcontent_set.get().url
+    redirect_url = content.url
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+    session_id = request.session.session_key
 
     if not redirect_url:
         return HttpResponseNotFound()
@@ -387,7 +391,7 @@ def objects(request, fb_object_id, content_id):
     }
     content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = get_client_ip(request)
-    user_agent = request.META.get('HTTP_USER_AGENT')
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
         logger.info(
             'Facebook crawled object %s with content %s from IP %s',
@@ -395,15 +399,15 @@ def objects(request, fb_object_id, content_id):
         )
     else:
         models.Event.objects.create(
-            session_id=request.session.session_key, campaign=None, content=content,
-            ip=ip, fbid=None,
+            session_id=session_id, campaign=None,
+            content=content, ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
-            app_id=client.fb_app_id, activity_id=None
+            app_id=client.fb_app_id, activity_id=action_id
         )
 
     return render(request, 'fb_object.html', {
         'fb_params': obj_params,
-        'reidrect_url': redirect_url,
+        'redirect_url': redirect_url,
         'content': content
     })
 

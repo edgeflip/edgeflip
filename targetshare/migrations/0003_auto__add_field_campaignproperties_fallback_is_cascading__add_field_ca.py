@@ -316,7 +316,7 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'db_column': "'type'"}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
+            'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True'}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'ip': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '128'}),

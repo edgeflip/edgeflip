@@ -503,7 +503,7 @@ class Event(models.Model):
         null=True
     )
     ip = models.CharField(max_length=32)
-    fbid = models.BigIntegerField()
+    fbid = models.BigIntegerField(null=True)
     friend_fbid = models.BigIntegerField(null=True)
     event_type = models.CharField(max_length=64, db_column='type')
     app_id = models.BigIntegerField(db_column='appid')
