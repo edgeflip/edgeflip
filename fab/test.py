@@ -1,7 +1,7 @@
 """Fabric tasks to test the project"""
 from fabric import api as fab
 
-from . import BASEDIR, true, workon
+from . import manage, true
 
 
 DEFAULT_FLAGS = (
@@ -11,10 +11,6 @@ DEFAULT_FLAGS = (
 DEFAULT_KEY_ARGS = (
     # ('key', 'value'),
 )
-
-
-# Break convention for simplicity here:
-l = fab.local
 
 
 @fab.task(name='all', default=True)
@@ -55,14 +51,7 @@ def test(path='', *args, **kws):
     key_args = dict(DEFAULT_KEY_ARGS)
     key_args.update(kws)
 
-    with workon():
-        with fab.lcd(BASEDIR):
-            l('python manage.py test {path} {flags} {key_args}'.format(
-                path=path,
-                flags=' '.join('--' + flag for flag in flags),
-                key_args=' '.join('--{}={}'.format(key, value)
-                                  for key, value in key_args.items()),
-            ))
+    manage('test', [path], flags, key_args)
 
 
 __test__ = False # In case nose gets greedy

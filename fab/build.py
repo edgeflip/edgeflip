@@ -3,7 +3,7 @@ from os.path import join
 
 from fabric import api as fab
 
-from . import BASEDIR, true, workon
+from . import BASEDIR, manage, true, workon
 
 
 ENV_NAME = 'edgeflip'
@@ -124,29 +124,51 @@ def install_reqs(env=None):
 
 
 @fab.task(name='db')
-def setup_db(schema=None, force='0'):
+def setup_db(env=None, force='0'):
     """Initialize the database
 
-    Optionally specify a custom schema file by supplying an argument ("schema"):
+    Requires that a virtual environment has been created, and is either
+    already activated, or specified, e.g.:
 
-        db:/home/initial.sql
+        db:MY-ENV
 
-    To force initialization, by tearing down any existing database,
-    specify "force":
+    To force initialization during development, by tearing down any existing
+    database, specify "force":
 
         db:force=[1|true|yes|y]
 
     """
-    password = fab.prompt("Enter mysql password:")
-    if true(force):
-        l('mysql --user=root --password={} < {}'.format(
+    sql_path = join(BASEDIR, 'edgeflip', 'sql')
+    sql_context = {'DATABASE': 'edgeflip', 'USER': 'root'}
+    password = None
+
+    # Database teardown
+    if not fab.env.roles or 'dev' in fab.env.roles:
+        password = fab.prompt("Enter mysql password:")
+        if true(force):
+            teardown_sql = open(join(sql_path, 'teardown.sql')).read()
+            l('mysql --user=root --password={} --execute="{}"'.format(
+                password,
+                teardown_sql.format(**sql_context),
+            ))
+    elif true(force):
+        fab.warn("Cannot force database set-up outside of development role {!r}"
+                 .format(fab.env.roles))
+        return
+
+    # Database initialization
+    setup_sql = open(join(sql_path, 'setup.sql')).read()
+    setup_prepped = setup_sql.format(**sql_context)
+    if password is None:
+        l('mysql --user=root -p --execute="{}"'.format(setup_prepped))
+    else:
+        l('mysql --user=root --password={} --execute="{}"'.format(
             password,
-            join(BASEDIR, 'sql', 'teardown.sql'),
+            setup_prepped,
         ))
-    l('mysql --user=root --password={} < {}'.format(
-        password,
-        schema or join(BASEDIR, 'sql', 'initial.sql'),
-    ))
+
+    # Application schema initialization
+    manage('syncdb', flags=['migrate'], env=env)
 
 
 # Helpers #
