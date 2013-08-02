@@ -203,7 +203,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         bs = models.ButtonStyle.objects.create(
             client=client, name='test')
         models.ButtonStyleFile.objects.create(
-            html_template='button.html', button_style=bs)
+            html_template='targetshare/button.html', button_style=bs)
         models.CampaignButtonStyle.objects.create(
             campaign=campaign, button_style=bs,
             rand_cdf=Decimal('1.000000')

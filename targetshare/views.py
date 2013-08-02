@@ -99,7 +99,7 @@ def button(request, campaign_id, content_id):
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
     except:
-        style_template = 'button.html'
+        style_template = 'targetshare/button.html'
 
     return render(request, style_template, {
         'fb_params': params_dict,
@@ -135,7 +135,7 @@ def frame_faces(request, campaign_id, content_id):
         'fb_app_id': client.fb_app_id
     }
 
-    return render(request, 'frame_faces.html', {
+    return render(request, 'targetshare/frame_faces.html', {
         'fb_params': params_dict,
         'campaign': campaign,
         'content': content,
@@ -337,7 +337,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     return HttpResponse(
         json.dumps({
             'status': 'success',
-            'html': render_to_string('faces_table.html', {
+            'html': render_to_string('targetshare/faces_table.html', {
                 'all_friends': all_friends,
                 'msg_params': msg_params,
                 'action_params': action_params,
@@ -405,7 +405,7 @@ def objects(request, fb_object_id, content_id):
             app_id=client.fb_app_id, activity_id=action_id
         )
 
-    return render(request, 'fb_object.html', {
+    return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
         'redirect_url': redirect_url,
         'content': content
@@ -450,7 +450,7 @@ def suppress(request):
             friend_fbid=old_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
-        return render(request, 'new_face.html', {
+        return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
             'lastname': lname
