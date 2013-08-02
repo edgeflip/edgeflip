@@ -3,7 +3,7 @@ from os.path import join
 
 from fabric import api as fab
 
-from . import BASEDIR, workon
+from . import BASEDIR, true, workon
 
 
 ENV_NAME = 'edgeflip'
@@ -150,14 +150,6 @@ def setup_db(schema=None, force='0'):
 
 
 # Helpers #
-
-def true(inp):
-    """Return whether the given string indicates True."""
-    try:
-        return inp.lower() in ('true', 'yes', 'y', '1')
-    except AttributeError:
-        return False
-
 
 def which_binary(name):
     """Check for path to binary at `name`, with "which"."""

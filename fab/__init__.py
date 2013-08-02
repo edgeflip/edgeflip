@@ -7,6 +7,14 @@ from fabric import api as fab
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+def true(inp):
+    """Return whether the given string indicates True."""
+    try:
+        return inp.lower() in ('true', 'yes', 'y', '1')
+    except AttributeError:
+        return False
+
+
 def workon(env=None):
     """Context manager which sets the PATH to that of the named virtualenv
 
