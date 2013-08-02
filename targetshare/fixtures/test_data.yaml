@@ -16,7 +16,7 @@
     model: targetshare.campaign
     pk: 3
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-        description: null, is_deleted: false, name: McAuliffe for Governor}
+        description: null, is_deleted: false, name: cascade test fallback}
     model: targetshare.campaign
     pk: 4
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
@@ -48,10 +48,6 @@
         description: null, is_deleted: false, name: OFA Enviro States}
     model: targetshare.choiceset
     pk: 3
--   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-        description: null, is_deleted: false, name: In Virginia}
-    model: targetshare.choiceset
-    pk: 4
 -   fields: {allow_generic: true, campaign: 1, choice_set: 2, end_dt: null, generic_url_slug: all,
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
@@ -64,11 +60,11 @@
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 3
--   fields: {allow_generic: true, campaign: 4, choice_set: 2, end_dt: null, generic_url_slug: all,
+-   fields: {allow_generic: false, campaign: 4, choice_set: 1, end_dt: null, generic_url_slug: null,
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 4
--   fields: {allow_generic: true, campaign: 5, choice_set: 3, end_dt: null, generic_url_slug: all,
+-   fields: {allow_generic: false, campaign: 5, choice_set: 3, end_dt: null, generic_url_slug: null,
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 5
@@ -196,10 +192,6 @@
         start_dt: !!timestamp '2013-07-15 11:38:28', url_slug: NY}
     model: targetshare.choicesetfilter
     pk: 6
--   fields: {choice_set: 4, end_dt: null, filter: 7, propensity_model_type: null,
-        start_dt: !!timestamp '2013-07-15 11:38:28', url_slug: all}
-    model: targetshare.choicesetfilter
-    pk: 7
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
         description: null, is_deleted: false, name: Support Gun Control, url: 'http://mockclient.edgeflip.com:5000/guncontrol'}
     model: targetshare.clientcontent
@@ -371,10 +363,6 @@
             11:38:28', value: New York, value_type: string}
     model: targetshare.filterfeature
     pk: 5
--   fields: {end_dt: null, feature: state, filter: 7, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Virginia, value_type: string}
-    model: targetshare.filterfeature
-    pk: 6
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
         description: Default element created by edgeflip, is_deleted: false, name: edgeflip
             default}
@@ -400,10 +388,6 @@
         description: null, is_deleted: false, name: In New York}
     model: targetshare.filter
     pk: 6
--   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-        description: null, is_deleted: false, name: In Virginia}
-    model: targetshare.filter
-    pk: 7
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:44', fbid: 1357997116}
     model: targetshare.userclient
     pk: 1
