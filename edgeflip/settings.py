@@ -281,7 +281,7 @@ NOSE_ARGS = (
     '--cover-branches',
     '--cover-erase',
     '--cover-html',
-    '--cover-package=edgeflip',
+    '--cover-package=targetshare',
     '--logging-level=CRITICAL',
     '--exclude=^fab$',
 )
