@@ -92,6 +92,8 @@ class TestWebSharing(EdgeFlipTestCase):
         '''
         result_mock = Mock()
         result_mock.ready.return_value = False
+        result_mock.successful.return_value = False
+        result_mock.failed.return_value = False
         async_mock = Mock()
         async_mock.side_effect = [
             result_mock,
@@ -113,6 +115,8 @@ class TestWebSharing(EdgeFlipTestCase):
         '''
         px3_result_mock = Mock()
         px3_result_mock.ready.return_value = True
+        px3_result_mock.successful.return_value = True
+        px3_result_mock.failed.return_value = False
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
         async_mock = Mock()
