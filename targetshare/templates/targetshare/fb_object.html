@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US"
+      xmlns:fb="https://www.facebook.com/2008/fbml"> 
+    <head prefix="og: http://ogp.me/ns# {{ fb_params.fb_app_name }}: 
+                  http://ogp.me/ns/apps/{{ fb_params.fb_app_name }}#">
+    <title>{{ fb_params.page_title }}</title>
+    <!-- DOC: destination page facebook sends user to after auth -->
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <meta property="fb:app_id" content="{{ fb_params.fb_app_id }}" /> 
+    <meta property="og:type" content="{{ fb_params.fb_app_name }}:{{ fb_params.fb_object_type }}" /> 
+    <meta property="og:title" content="{{ fb_params.fb_object_title }}" /> 
+    <meta property="og:image" content="{{ fb_params.fb_object_image }}" /> 
+    <meta property="og:description" content="{{ fb_params.fb_object_desc }}" /> 
+    <meta property="og:url" content="{{ fb_params.fb_object_url }}">
+
+    <script>
+        /* 
+        redirect to page on client site
+        */
+
+        window.location = '{{ redirect_url | safe }}';
+
+    </script>
+
+    <style>
+        a, a:active, a:visited {
+            text-decoration: none; 
+            color: dodgerblue;
+        }
+    </style>
+
+</HEAD>
+<BODY>
+<h2 style="margin: 0px auto; display: table;">L o a d i n g...</h2>
+
+<div style="display: table; height: 90px; margin: 15px auto; border: thin solid lightgray; padding: 2px; border-radius: 2px;">
+    <table style='width: 490px; height: 90px; background: white; padding-left: 5px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left; cursor: pointer;' valign='middle' onClick="window.location = '{{ redirect_url | safe }}';">
+        <tr>
+            <td>
+                <img src='{{ fb_params.fb_object_image }}' style='margin-right: 7px; height: 90px; border: none;'>
+            </td>
+            <td>
+                <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 14px'>
+                    {{ fb_params.fb_object_title }}
+                </div>
+                <div style='font-size: 11px; color: gray; font-weight: normal; line-height: 14px;'>
+                    {{ fb_params.fb_object_desc }}
+                </div>
+            </td>
+        </tr>
+    </table>
+</div>
+
+<p>You should be redirected to your content shortly. <a href="{{ redirect_url }}">Click here</a> if you're not redirected immediately.</p>
+
+</BODY>
+</HTML>
