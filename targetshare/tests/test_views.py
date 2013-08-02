@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from datetime import date
 
 from django.core.urlresolvers import reverse
@@ -183,3 +184,35 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
+
+    def test_button_no_recs(self):
+        ''' Tests views.button without style recs '''
+        response = self.client.get(reverse('button', args=[1, 1]))
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
+        )
+        assert not models.Assignment.objects.exists()
+
+    def test_button_with_recs(self):
+        ''' Tests views.button with style recs '''
+        # Create Button Styles
+        campaign = models.Campaign.objects.get(pk=1)
+        client = campaign.client
+        bs = models.ButtonStyle.objects.create(
+            client=client, name='test')
+        models.ButtonStyleFile.objects.create(
+            html_template='button.html', button_style=bs)
+        models.CampaignButtonStyle.objects.create(
+            campaign=campaign, button_style=bs,
+            rand_cdf=Decimal('1.000000')
+        )
+        assert not models.Assignment.objects.exists()
+        response = self.client.get(reverse('button', args=[1, 1]))
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
+        )
+        assert models.Assignment.objects.exists()
