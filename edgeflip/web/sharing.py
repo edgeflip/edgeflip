@@ -53,8 +53,9 @@ def button(campaignId, contentId):
         return "Content not found", 404
 
     facesURL = cdb.getFacesURL(campaignId, contentId)
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
-    paramsDict = {'fb_app_name': paramsDB[0], 'fb_app_id': int(paramsDB[1])}
+    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
+    # paramsDict = {'fb_app_name': paramsDB[0], 'fb_app_id': int(paramsDB[1])}
+    paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
 
     ip = getIP(req=flask.request)
     sessionId = generateSessionId(ip, '%s:button %s' % (paramsDict['fb_app_name'], facesURL))
@@ -119,8 +120,10 @@ def frame_faces(campaignId, contentId):
 
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
 
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
-    paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
+    # paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
+    paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
+
     #zzz
     #paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : 417233888375210}
 
@@ -179,17 +182,20 @@ def faces():
     if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
         return "Mock mode only allowed for the mock client.", 403
 
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
+    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
+    paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
+    fbAppName = paramsDict['fb_app_name']
+    fbAppId = paramsDict['fb_app_id']
 
     if (not sessionId):
         # If we don't have a sessionId, generate one with "content" as the button that would have pointed to this page...
-        thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
+        thisContent = '%s:button %s' % (fbAppName, flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
     # Assume we're starting with a short term token, expiring now, then try extending the
     # token. If we hit an error, proceed with what we got from the old one.
-    token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
+    token = datastructs.TokenInfo(tok, fbid, fbAppId, datetime.datetime.now())
+    token = fbmodule.extendTokenFb(fbid, token, fbAppId) or token
 
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
@@ -225,7 +231,7 @@ def faces():
             ip=ip,
             fbid=fbid,
             numFace=numFace,
-            paramsDB=paramsDB
+            paramsDB=(fbAppName, fbAppId)  # paramsDB zzz I'd really like to break these out into separate params
         )
         px4_task = tasks.proximity_rank_four.delay(
             mockMode, fbid, token)
@@ -251,16 +257,33 @@ def faces():
     return applyCampaign(
         edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
         clientSubdomain, campaignId, contentId, sessionId, ip,
-        fbid, numFace, paramsDB
+        fbid, numFace, fbAppName, fbAppId
     )
 
 
+
+def getAppInfo(clientId):
+    ''' Looks up the proper fb app id/name in database.  Values are overidden by those specified in conf files using
+    the appname_override and appid_override keys.
+
+    returns a dict suitable for passing into templates, e.g. {'fb_app_name': superduperapp, 'fb_app_id':8675309}
+    '''
+
+    appName = config.facebook.appname_override if ("appname_override" in config.facebook) else None
+    appId = config.facebook.appid_override if ("appid_override" in config.facebook) else None
+
+    if not (appId and appName):
+        paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
+        appName = appName or paramsDB[0]
+        appId = appId or int(paramsDB[1])  #zzz should prob be stored as an int in the db
+
+    return {'fb_app_name': appName, 'fb_app_id': appId}
 
 
 
 def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
                   clientSubdomain, campaignId, contentId, sessionId,
-                  ip, fbid, numFace, paramsDB):
+                  ip, fbid, numFace, fbAppName, fbAppId):
     ''' Receives the filtered edges, the filters used, and all the necessary
     information needed to record the campaign assignment.
     '''
@@ -320,8 +343,8 @@ def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
             contentId=contentId, _external=True) + (
                 '?csslug=%s' % choiceSetSlug if choiceSetSlug else ''
             ),
-        'fb_app_name': paramsDB[0],
-        'fb_app_id': int(paramsDB[1]),
+        'fb_app_name': fbAppName,
+        'fb_app_id': fbAppId,
         'fb_object_title': fbObjectInfo[7],
         'fb_object_image': fbObjectInfo[8],
         'fb_object_description': fbObjectInfo[9]
