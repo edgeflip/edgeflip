@@ -5,6 +5,7 @@ import celery
 from targetshare import (
     client_db_tools as cdb,
     datastructs,
+    models,
     tasks,
 )
 
@@ -12,6 +13,8 @@ from . import EdgeFlipTestCase
 
 
 class TestCeleryTasks(EdgeFlipTestCase):
+
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestCeleryTasks, self).setUp()
@@ -56,7 +59,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((isinstance(x, datastructs.Edge) for x in edges_ranked))
         assert isinstance(edges_filtered, cdb.TieredEdges)
         assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
-        assert isinstance(filter_id, int)
+        assert isinstance(filter_id, long)
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
@@ -65,10 +68,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        curs = self.conn.cursor()
-        sql = 'SELECT * FROM edges WHERE fbid_target=%s'
-        row_count = curs.execute(sql, 1)
-        assert row_count
+        assert models.Edge.objects.count()
 
     def test_fallback_cascade(self):
         # Some test users and edges

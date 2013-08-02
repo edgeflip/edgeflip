@@ -39,7 +39,7 @@ class Migration(SchemaMigration):
             ('campaign_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Client'])),
             ('name', self.gf('django.db.models.fields.CharField')(max_length=256)),
-            ('description', self.gf('django.db.models.fields.TextField')()),
+            ('description', self.gf('django.db.models.fields.TextField')(null=True)),
             ('is_deleted', self.gf('django.db.models.fields.BooleanField')(default=False)),
             ('create_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('delete_dt', self.gf('django.db.models.fields.DateTimeField')(null=True)),
@@ -62,8 +62,8 @@ class Migration(SchemaMigration):
         db.create_table('button_style_files', (
             ('button_style_file_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('button_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ButtonStyle'])),
-            ('html_template', self.gf('django.db.models.fields.CharField')(max_length=256)),
-            ('css_file', self.gf('django.db.models.fields.CharField')(max_length=256)),
+            ('html_template', self.gf('django.db.models.fields.CharField')(max_length=256, null=True)),
+            ('css_file', self.gf('django.db.models.fields.CharField')(max_length=256, null=True)),
             ('start_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('end_dt', self.gf('django.db.models.fields.DateTimeField')(null=True)),
         ))
@@ -126,7 +126,7 @@ class Migration(SchemaMigration):
         db.send_create_signal(u'targetshare', ['CampaignChoiceSetAlgorithm'])
 
         # Adding model 'CampaignChoiceSet'
-        db.create_table('campaign_choice_set', (
+        db.create_table('campaign_choice_sets', (
             ('campaign_choice_set_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
             ('choice_set', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSet'])),
@@ -163,7 +163,7 @@ class Migration(SchemaMigration):
 
         # Adding model 'CampaignGenericFBObjects'
         db.create_table('campaign_generic_fb_objects', (
-            ('campaign_generic_fb_object_ib', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('campaign_generic_fb_object_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
             ('fb_object', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FBObject'])),
             ('rand_cdf', self.gf('django.db.models.fields.DecimalField')(max_digits=10, decimal_places=9)),
@@ -173,7 +173,7 @@ class Migration(SchemaMigration):
         db.send_create_signal(u'targetshare', ['CampaignGenericFBObjects'])
 
         # Adding model 'CampaignGlobalFilter'
-        db.create_table('campaign_global_filter', (
+        db.create_table('campaign_global_filters', (
             ('campaign_global_filter_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
             ('filter', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Filter'])),
@@ -223,8 +223,8 @@ class Migration(SchemaMigration):
             ('client_faces_url', self.gf('django.db.models.fields.CharField')(max_length=2096)),
             ('client_thanks_url', self.gf('django.db.models.fields.CharField')(max_length=2096)),
             ('client_error_url', self.gf('django.db.models.fields.CharField')(max_length=2096)),
-            ('fallback_campaign', self.gf('django.db.models.fields.related.ForeignKey')(related_name='fallback_campaign', to=orm['targetshare.Campaign'])),
-            ('fallback_content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'])),
+            ('fallback_campaign', self.gf('django.db.models.fields.related.ForeignKey')(related_name='fallback_campaign', to=orm['targetshare.Campaign'], null=True)),
+            ('fallback_content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True)),
             ('start_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('end_dt', self.gf('django.db.models.fields.DateTimeField')(null=True)),
         ))
@@ -264,11 +264,11 @@ class Migration(SchemaMigration):
 
         # Adding model 'ChoiceSetFilter'
         db.create_table('choice_set_filters', (
-            ('choice_set_meta_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('choice_set_filter_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('choice_set', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSet'])),
             ('filter', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Filter'])),
             ('url_slug', self.gf('django.db.models.fields.CharField')(max_length=64)),
-            ('propensity_model_type', self.gf('django.db.models.fields.CharField')(max_length=32)),
+            ('propensity_model_type', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
             ('start_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('end_dt', self.gf('django.db.models.fields.DateTimeField')(null=True)),
         ))
@@ -302,14 +302,14 @@ class Migration(SchemaMigration):
         db.create_table('client_defaults', (
             ('client_default_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Client'])),
-            ('button_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ButtonStyle'])),
-            ('faces_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FacesStyle'])),
-            ('propensity_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.PropensityModel'])),
-            ('proximity_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ProximityModel'])),
-            ('mix_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.MixModel'])),
-            ('filter', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Filter'])),
-            ('choice_set', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSet'])),
-            ('choice_set_algorithm', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSetAlgorithm'])),
+            ('button_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ButtonStyle'], null=True)),
+            ('faces_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FacesStyle'], null=True)),
+            ('propensity_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.PropensityModel'], null=True)),
+            ('proximity_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ProximityModel'], null=True)),
+            ('mix_model', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.MixModel'], null=True)),
+            ('filter', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Filter'], null=True)),
+            ('choice_set', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSet'], null=True)),
+            ('choice_set_algorithm', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSetAlgorithm'], null=True)),
             ('start_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
             ('end_dt', self.gf('django.db.models.fields.DateTimeField')(null=True)),
         ))
@@ -624,8 +624,8 @@ class Migration(SchemaMigration):
             ('email', self.gf('django.db.models.fields.CharField')(max_length=256, null=True)),
             ('gender', self.gf('django.db.models.fields.CharField')(max_length=8, null=True)),
             ('birthday', self.gf('django.db.models.fields.DateTimeField')(null=True)),
-            ('city', self.gf('django.db.models.fields.CharField')(max_length=32)),
-            ('state', self.gf('django.db.models.fields.CharField')(max_length=32)),
+            ('city', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
+            ('state', self.gf('django.db.models.fields.CharField')(max_length=32, null=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
         ))
         db.send_create_signal(u'targetshare', ['User'])
@@ -903,7 +903,7 @@ class Migration(SchemaMigration):
         u'targetshare.campaigngenericfbobjects': {
             'Meta': {'object_name': 'CampaignGenericFBObjects', 'db_table': "'campaign_generic_fb_objects'"},
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
-            'campaign_generic_fb_object_ib': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'campaign_generic_fb_object_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.FBObject']"}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'max_digits': '10', 'decimal_places': '9'}),
@@ -1005,7 +1005,7 @@ class Migration(SchemaMigration):
         u'targetshare.choicesetfilter': {
             'Meta': {'object_name': 'ChoiceSetFilter', 'db_table': "'choice_set_filters'"},
             'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSet']"}),
-            'choice_set_meta_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'choice_set_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']"}),
             'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
@@ -1292,13 +1292,13 @@ class Migration(SchemaMigration):
         u'targetshare.user': {
             'Meta': {'object_name': 'User', 'db_table': "'users'"},
             'birthday': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'city': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'city': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'email': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'fname'"}),
             'gender': ('django.db.models.fields.CharField', [], {'max_length': '8', 'null': 'True'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'lname'"}),
-            'state': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'state': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'targetshare.userclient': {

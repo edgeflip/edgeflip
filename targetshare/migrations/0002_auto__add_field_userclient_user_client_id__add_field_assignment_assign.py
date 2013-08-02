@@ -7,29 +7,29 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         # Drop old, in the way, primary keys
-        db.execute('ALTER TABLE user_clients DROP PRIMARY KEY IF EXISTS')
+        #db.execute('ALTER TABLE user_clients DROP PRIMARY KEY')
         db.execute('ALTER TABLE user_clients ADD user_client_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
         db.execute('ALTER TABLE assignments ADD assignment_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
         db.execute('ALTER TABLE events ADD event_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE edges DROP PRIMARY KEY')
+        #db.execute('ALTER TABLE edges DROP PRIMARY KEY')
         db.execute('ALTER TABLE edges ADD edge_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-        db.execute('ALTER TABLE face_exclusions DROP PRIMARY KEY')
+        #db.execute('ALTER TABLE face_exclusions DROP PRIMARY KEY')
         db.execute('ALTER TABLE face_exclusions ADD face_exclusion_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
 
         # Adding unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
-        db.create_unique('edges', ['fbid_source', 'fbid_target'])
+        #db.create_unique('edges', ['fbid_source', 'fbid_target'])
 
         # Adding unique constraint on 'Event', fields ['session_id', 'campaign', 'content', 'fbid', 'friend_fbid', 'activity_id']
-        db.create_unique('events', ['session_id', 'campaign_id', 'content', 'fbid', 'friend_fbid', 'activity_id'])
+        #db.create_unique('events', ['session_id', 'campaign_id', 'content', 'fbid', 'friend_fbid', 'activity_id'])
 
         # Adding unique constraint on 'FaceExclusion', fields ['fbid', 'campaign', 'content', 'friend_fbid']
-        db.create_unique('face_exclusions', ['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
+        #db.create_unique('face_exclusions', ['fbid', 'campaign_id', 'content_id', 'friend_fbid'])
 
         # Adding unique constraint on 'Token', fields ['fbid', 'app_id', 'owner_id']
-        db.create_unique('tokens', ['fbid', 'appid', 'ownerid'])
+        #db.create_unique('tokens', ['fbid', 'appid', 'ownerid'])
 
         # Adding unique constraint on 'UserClient', fields ['fbid', 'client']
-        db.create_unique('user_clients', ['fbid', 'client_id'])
+        #db.create_unique('user_clients', ['fbid', 'client_id'])
 
     def backwards(self, orm):
         # Deleting field 'UserClient.user_client_id'
@@ -150,7 +150,7 @@ class Migration(DataMigration):
         u'targetshare.campaigngenericfbobjects': {
             'Meta': {'object_name': 'CampaignGenericFBObjects', 'db_table': "'campaign_generic_fb_objects'"},
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
-            'campaign_generic_fb_object_ib': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'campaign_generic_fb_object_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.FBObject']"}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'max_digits': '10', 'decimal_places': '9'}),
@@ -252,7 +252,7 @@ class Migration(DataMigration):
         u'targetshare.choicesetfilter': {
             'Meta': {'object_name': 'ChoiceSetFilter', 'db_table': "'choice_set_filters'"},
             'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSet']"}),
-            'choice_set_meta_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'choice_set_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']"}),
             'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
@@ -543,13 +543,13 @@ class Migration(DataMigration):
         u'targetshare.user': {
             'Meta': {'object_name': 'User', 'db_table': "'users'"},
             'birthday': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'city': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'city': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'email': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'fname'"}),
             'gender': ('django.db.models.fields.CharField', [], {'max_length': '8', 'null': 'True'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'lname'"}),
-            'state': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'state': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'targetshare.userclient': {

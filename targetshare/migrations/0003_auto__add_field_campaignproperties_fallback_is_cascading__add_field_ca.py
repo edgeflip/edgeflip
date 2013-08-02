@@ -134,7 +134,7 @@ class Migration(SchemaMigration):
         u'targetshare.campaigngenericfbobjects': {
             'Meta': {'object_name': 'CampaignGenericFBObjects', 'db_table': "'campaign_generic_fb_objects'"},
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']"}),
-            'campaign_generic_fb_object_ib': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'campaign_generic_fb_object_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.FBObject']"}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'max_digits': '10', 'decimal_places': '9'}),
@@ -238,7 +238,7 @@ class Migration(SchemaMigration):
         u'targetshare.choicesetfilter': {
             'Meta': {'object_name': 'ChoiceSetFilter', 'db_table': "'choice_set_filters'"},
             'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ChoiceSet']"}),
-            'choice_set_meta_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'choice_set_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Filter']"}),
             'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
@@ -529,13 +529,13 @@ class Migration(SchemaMigration):
         u'targetshare.user': {
             'Meta': {'object_name': 'User', 'db_table': "'users'"},
             'birthday': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'city': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'city': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'email': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'first_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'fname'"}),
             'gender': ('django.db.models.fields.CharField', [], {'max_length': '8', 'null': 'True'}),
             'last_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'lname'"}),
-            'state': ('django.db.models.fields.CharField', [], {'max_length': '32'}),
+            'state': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         u'targetshare.userclient': {
