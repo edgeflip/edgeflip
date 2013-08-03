@@ -11,6 +11,7 @@ class FaceExclusion(models.Model):
     reason = models.CharField(max_length=512, null=True)
     updated = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         unique_together = ('fbid', 'campaign', 'content', 'friend_fbid')
         db_table = 'face_exclusions'

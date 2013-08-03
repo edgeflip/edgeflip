@@ -18,6 +18,7 @@ class Edge(models.Model):
     mut_friends = models.IntegerField(null=True)
     updated = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         unique_together = ('fbid_source', 'fbid_target')
         db_table = 'edges'

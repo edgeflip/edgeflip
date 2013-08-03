@@ -8,6 +8,7 @@ class UserClient(models.Model):
     client = models.ForeignKey('Client')
     create_dt = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         unique_together = ('fbid', 'client')
         db_table = 'user_clients'

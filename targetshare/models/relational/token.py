@@ -12,6 +12,7 @@ class Token(models.Model):
     expires = models.DateTimeField(null=True)
     updated = models.DateTimeField(auto_now=True, default=datetime.datetime.now) # FIXME: default?
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         unique_together = ('fbid', 'app_id', 'owner_id')
         db_table = 'tokens'

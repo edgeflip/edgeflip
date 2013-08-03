@@ -9,5 +9,6 @@ class MixModelDefinition(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'mix_model_definitions'

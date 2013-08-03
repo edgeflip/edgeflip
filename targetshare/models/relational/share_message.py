@@ -10,5 +10,6 @@ class ShareMessage(models.Model):
     message = models.TextField(null=True)
     updated = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'share_messages'

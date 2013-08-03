@@ -56,5 +56,6 @@ class ChoiceSet(models.Model):
 
         return sortedFilters[0]
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'choice_sets'

@@ -32,5 +32,6 @@ class CampaignProperties(models.Model):
 
         return url + 'efcmpgslug=' + str(slug)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'campaign_properties'

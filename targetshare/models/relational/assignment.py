@@ -14,5 +14,6 @@ class Assignment(models.Model):
     chosen_from_table = models.CharField(max_length=128)
     chosen_from_rows = models.CharField(max_length=128)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'assignments'

@@ -20,7 +20,8 @@ class Event(models.Model):
     activity_id = models.BigIntegerField(null=True)
     updated = models.DateTimeField(auto_now=True)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         unique_together = (
             'session_id', 'campaign', 'content',
             'fbid', 'friend_fbid', 'activity_id'

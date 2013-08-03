@@ -14,5 +14,6 @@ class Campaign(models.Model):
     def __unicode__(self):
         return u'%s' % self.name
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'campaigns'

@@ -16,5 +16,6 @@ class User(models.Model):
     def __unicode__(self):
         return u'%s %s' % (self.first_name, self.last_name)
 
-    class Meta:
+    class Meta(object):
+        app_label = 'targetshare'
         db_table = 'users'
