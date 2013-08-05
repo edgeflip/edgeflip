@@ -9,4 +9,12 @@ Explore the project's Fabric interface, e.g.:
 Requires provisioning of Fabric >= 1.6.
 
 """
-from fab import build, run, test
+from fabric import api as fab
+
+from fab import build, manage, serve, test
+
+
+@fab.task(name='shell')
+def start_shell():
+    ''' Drops user into a Django shell '''
+    manage('shell')

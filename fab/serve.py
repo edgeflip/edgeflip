@@ -24,9 +24,3 @@ def start_celery(workers=4, loglevel='info', queues=None):
 def start_runserver(host='127.0.0.1', port='8000'):
     ''' Starts up the django runserver with specified host and port '''
     manage('runserver', args=('%s:%s' % (host, port),))
-
-
-@fab.task(name='shell')
-def start_shell():
-    ''' Drops user into a Django shell '''
-    manage('shell')
