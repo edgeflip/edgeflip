@@ -201,6 +201,7 @@ class TestWebSharing(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = False
         px3_result_mock.successful.return_value = False
         px3_result_mock.failed.return_value = False
+        px3_result_mock.result = None
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
         px4_result_mock.successful.return_value = False
