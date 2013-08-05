@@ -182,7 +182,7 @@ def faces():
 
         if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
             px4_edges = px4_result.result if px4_result.successful() else []
-            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result if px3_result.successful() else (None)*6
+            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result if px3_result.successful() else (None,)*6
 
             if not all([edgesRanked, edgesFiltered]):
                 logger.error("No friends identified for %s. Celery px3 result was: %s", fbid, px3_result.result)
