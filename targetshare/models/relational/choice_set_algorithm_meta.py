@@ -9,6 +9,7 @@ class ChoiceSetAlgorithmMeta(models.Model):
     )
     choice_set_algorithm = models.ForeignKey(
         'ChoiceSetAlgorithm',
+        null=True,
         db_column='choice_set_algoritm_id'
     )
     name = models.CharField(max_length=256, null=True)

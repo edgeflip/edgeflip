@@ -9,7 +9,8 @@ class ChoiceSetAlgorithmDefinition(models.Model):
     )
     choice_set_algorithm = models.ForeignKey(
         'ChoiceSetAlgorithm',
-        db_column='choice_set_algoritm_id'
+        db_column='choice_set_algoritm_id',
+        null=True
     )
     algorithm_definition = models.TextField(null=True)
     start_dt = models.DateTimeField(auto_now_add=True)

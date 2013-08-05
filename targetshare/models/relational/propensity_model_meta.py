@@ -4,7 +4,7 @@ from django.db import models
 class PropensityModelMeta(models.Model):
 
     propensity_model_meta_id = models.AutoField(primary_key=True)
-    propensity_model = models.ForeignKey('PropensityModel')
+    propensity_model = models.ForeignKey('PropensityModel', null=True)
     name = models.CharField(max_length=256, null=True)
     value = models.CharField(max_length=1024, null=True)
     start_dt = models.DateTimeField(auto_now_add=True)
