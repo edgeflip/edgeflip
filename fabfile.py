@@ -9,4 +9,4 @@ Explore the project's Fabric interface, e.g.:
 Requires provisioning of Fabric >= 1.6.
 
 """
-from fab import build, test
+from fab import build, run, test
