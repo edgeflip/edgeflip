@@ -1,8 +1,9 @@
 import json
 from decimal import Decimal
-from datetime import date
+from datetime import date, timedelta
 
 from django.core.urlresolvers import reverse
+from django.utils import timezone
 from mock import patch, Mock
 
 from targetshare import datastructs, models, client_db_tools as cdb
@@ -272,3 +273,137 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
+
+    def test_suppress(self):
+        ''' Test suppressing a user that was recommended '''
+        assert not models.Event.objects.exists()
+        response = self.client.post(
+            reverse('suppress'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'oldid': 2,
+                'newid': 3,
+                'fname': 'Suppress',
+                'lname': 'Test',
+            }
+        )
+        self.assertStatusCode(response, 200)
+        assert models.Event.objects.filter(
+            fbid=1, friend_fbid=2, event_type='suppress'
+        ).exists()
+        assert models.FaceExclusion.objects.filter(
+            fbid=1, friend_fbid=2
+        ).exists()
+        assert models.Event.objects.filter(
+            fbid=1, friend_fbid=3, event_type='shown'
+        ).exists()
+        self.assertEqual(int(response.context['fbid']), 3)
+        self.assertEqual(response.context['firstname'], 'Suppress')
+
+    def test_record_event_forbidden(self):
+        ''' Test views.record_event. Expects particular event_types to be
+        sent, otherwise it returns a 403
+        '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'friends': [10, 11, 12],
+                'event_type': 'fake-event'
+            }
+        )
+        self.assertStatusCode(response, 403)
+
+    def test_record_event_shared(self):
+        ''' Test views.record_event with shared event_type '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'friends': [10, 11, 12],
+                'eventType': 'shared',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            models.Event.objects.filter(
+                event_type='shared', friend_fbid__in=[10, 11, 12]
+            ).count(), 3
+        )
+        self.assertEqual(
+            models.FaceExclusion.objects.filter(
+                friend_fbid__in=[10, 11, 12]
+            ).count(), 3
+        )
+        assert models.ShareMessage.objects.filter(
+            activity_id=100, fbid=1, campaign_id=1,
+            content_id=1, message='Testing Share'
+        ).exists()
+
+    @patch('targetshare.views.facebook')
+    def test_record_event_authorized(self, fb_mock):
+        ''' Test views.record_event with authorized event_type '''
+        fb_mock.extendToken.return_value = None
+        token = models.Token.objects.create(
+            fbid=1111111, app_id=self.test_client.fb_app_id,
+            token='test-token', owner_id=1111111,
+            expires=timezone.now() - timedelta(days=5)
+        )
+        response = self.client.post(
+            '%s?token=1' % reverse('record-event'), {
+                'userid': 1111111,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'friends': [10, 11, 12],
+                'eventType': 'authorized',
+                'shareMsg': 'Testing Share',
+                'token': 'test-token'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        refreshed_token = models.Token.objects.get(pk=token.pk)
+        assert refreshed_token.expires > token.expires
+        self.assertEqual(
+            models.Event.objects.filter(
+                event_type='authorized', friend_fbid__in=[10, 11, 12]
+            ).count(), 3
+        )
+
+    def test_canvas(self):
+        ''' Tests views.canvas '''
+        response = self.client.get(reverse('canvas'))
+        self.assertStatusCode(response, 200)
+
+    @patch('targetshare.views.facebook')
+    def test_health_check(self, fb_mock):
+        ''' Tests views.health_check '''
+        fb_mock.getUrlFb.return_value = {'id': 6963}
+        response = self.client.get(reverse('health-check'))
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            json.loads(response.content), {
+                'database': True,
+                'facebook': True
+            }
+        )
+
+    def test_health_check_elb(self):
+        ''' Test health-check view from Amazon ELB perspective '''
+        response = self.client.get(reverse('health-check'), {'elb': True})
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.content, "It's Alive!")

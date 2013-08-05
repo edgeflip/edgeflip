@@ -447,7 +447,7 @@ def suppress(request):
         models.Event.objects.create(
             session_id=session_id, campaign_id=campaign_id,
             client_content_id=content_id, ip=ip, fbid=user_id,
-            friend_fbid=old_id, event_type="shown",
+            friend_fbid=new_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
         return render(request, 'targetshare/new_face.html', {
@@ -469,7 +469,7 @@ def record_event(request):
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
-    friends = [int(f) for f in request.POST.get('friends', [])]
+    friends = [int(f) for f in request.POST.getlist('friends')]
     event_type = request.POST.get('eventType')
     ip = get_client_ip(request)
     if not request.session.session_key:
@@ -537,7 +537,7 @@ def record_event(request):
             exclusions.append(
                 models.FaceExclusion(
                     fbid=user_id, campaign_id=campaign_id,
-                    content=content_id, friend_fbid=friend,
+                    content_id=content_id, friend_fbid=friend,
                     reason='shared'
                 )
             )
@@ -566,7 +566,7 @@ def record_event(request):
 
 def canvas(request):
 
-    return render(request, 'canvas.html')
+    return render(request, 'targetshare/canvas.html')
 
 
 def health_check(request):
