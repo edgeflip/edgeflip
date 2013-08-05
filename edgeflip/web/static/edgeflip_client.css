@@ -4,6 +4,7 @@ body {
 
 /* div around the entire form */
 #faces_form_container {
+    width: 760px;
 	/*display: table;*/
 	/*overflow-x: hidden;*/
 	vertical-align: top;
