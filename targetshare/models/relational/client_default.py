@@ -4,7 +4,7 @@ from django.db import models
 class ClientDefault(models.Model):
 
     client_default_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client')
+    client = models.ForeignKey('Client', related_name='clientdefaults')
     button_style = models.ForeignKey('ButtonStyle', null=True)
     faces_style = models.ForeignKey('FacesStyle', null=True)
     propensity_model = models.ForeignKey('PropensityModel', null=True)

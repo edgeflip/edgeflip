@@ -6,7 +6,7 @@ from targetshare import utils
 class ChoiceSet(models.Model):
 
     choice_set_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client')
+    client = models.ForeignKey('Client', related_name='choicesets')
     name = models.CharField(max_length=256)
     description = models.TextField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
