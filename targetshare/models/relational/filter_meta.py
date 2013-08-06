@@ -1,5 +1,7 @@
 from django.db import models
 
+from .manager import StartStopManager
+
 
 class FilterMeta(models.Model):
 
@@ -10,9 +12,12 @@ class FilterMeta(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
+    objects = StartStopManager()
+
     def __unicode__(self):
         return u'%s' % self.name
 
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'filter_meta'
+        ss_fields = ('name',)
