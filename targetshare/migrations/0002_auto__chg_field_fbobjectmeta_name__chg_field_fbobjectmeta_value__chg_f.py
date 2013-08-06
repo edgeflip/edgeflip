@@ -198,9 +198,6 @@ class Migration(SchemaMigration):
 
         # Changing field 'Event.client_content'
         db.alter_column('events', 'content_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True, db_column='content_id'))
-        # Adding unique constraint on 'Event', fields ['activity_id', 'campaign', 'fbid', 'session_id', 'content', 'friend_fbid']
-        db.create_unique('events', ['activity_id', 'campaign_id', 'fbid', 'session_id', 'content', 'friend_fbid'])
-
 
         # Changing field 'FBObjectAttribute.og_image'
         db.alter_column('fb_object_attributes', 'og_image', self.gf('django.db.models.fields.CharField')(max_length=2096))
@@ -742,9 +739,6 @@ class Migration(SchemaMigration):
 
         # Removing unique constraint on 'Token', fields ['fbid']
         db.delete_unique('tokens', ['fbid'])
-
-        # Removing unique constraint on 'Event', fields ['activity_id', 'campaign', 'fbid', 'session_id', 'content', 'friend_fbid']
-        db.delete_unique('events', ['activity_id', 'campaign_id', 'fbid', 'session_id', 'content', 'friend_fbid'])
 
         # Removing unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
         db.delete_unique('edges', ['fbid_source', 'fbid_target'])
@@ -1759,7 +1753,7 @@ class Migration(SchemaMigration):
             'wall_posts': ('django.db.models.fields.IntegerField', [], {'null': 'True'})
         },
         'targetshare.event': {
-            'Meta': {'unique_together': "(('session_id', 'campaign', 'content', 'fbid', 'friend_fbid', 'activity_id'),)", 'object_name': 'Event', 'db_table': "'events'"},
+            'Meta': {'object_name': 'Event', 'db_table': "'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'db_column': "'appid'", 'blank': 'True'}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),

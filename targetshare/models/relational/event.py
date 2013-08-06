@@ -23,8 +23,4 @@ class Event(models.Model):
 
     class Meta(object):
         app_label = 'targetshare'
-        unique_together = (
-            'session_id', 'campaign', 'content',
-            'fbid', 'friend_fbid', 'activity_id'
-        )
         db_table = 'events'
