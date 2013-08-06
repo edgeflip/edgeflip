@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import datetime
 from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
 from django.conf import settings
 
 DB_NAME = settings.DATABASES['default']['NAME']
@@ -167,7 +165,6 @@ class Migration(SchemaMigration):
         db.alter_column('edges', 'updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True))
         # Adding unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
         db.create_unique('edges', ['fbid_source', 'fbid_target'])
-
 
         # Changing field 'FacesStyleMeta.name'
         db.alter_column('faces_style_meta', 'name', self.gf('django.db.models.fields.CharField')(max_length=128))
@@ -371,7 +368,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'Token', fields ['fbid', 'app_id', 'owner_id']
         db.create_unique('tokens', ['fbid', 'appid', 'ownerid'])
 
-
         # Changing field 'ClientDefault.client_default_id'
         db.alter_column('client_defaults', 'client_default_id', self.gf('django.db.models.fields.AutoField')(primary_key=True))
 
@@ -524,7 +520,6 @@ class Migration(SchemaMigration):
                       self.gf('django.db.models.fields.CharField')(max_length=128, null=True, db_column='lname'),
                       keep_default=False)
 
-
         # Changing field 'User.city'
         db.alter_column('users', 'city', self.gf('django.db.models.fields.CharField')(max_length=32, null=True))
 
@@ -660,7 +655,6 @@ class Migration(SchemaMigration):
         # Adding unique constraint on 'UserClient', fields ['fbid', 'client']
         db.create_unique('user_clients', ['fbid', 'client_id'])
 
-
         # Changing field 'FBObject.create_dt'
         db.alter_column('fb_objects', 'create_dt', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True))
 
@@ -742,7 +736,6 @@ class Migration(SchemaMigration):
 
         # Removing unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
         db.delete_unique('edges', ['fbid_source', 'fbid_target'])
-
 
         # Changing field 'FBObjectMeta.name'
         db.alter_column('fb_object_meta', 'name', self.gf('django.db.models.fields.CharField')(max_length=255))
@@ -890,7 +883,6 @@ class Migration(SchemaMigration):
         # Deleting field 'Edge.edge_id'
         db.delete_column('edges', 'edge_id')
 
-
         # Changing field 'Edge.updated'
         db.alter_column('edges', 'updated', self.gf('django.db.models.fields.DateTimeField')())
 
@@ -926,7 +918,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'Event.app_id'
         db.delete_column('events', 'appid')
-
 
         # Changing field 'Event.ip'
         db.alter_column('events', 'ip', self.gf('django.db.models.fields.CharField')(max_length=32L))
@@ -1134,7 +1125,6 @@ class Migration(SchemaMigration):
         # Deleting field 'Assignment.assignment_id'
         db.delete_column('assignments', 'assignment_id')
 
-
         # Changing field 'Assignment.chosen_from_rows'
         db.alter_column('assignments', 'chosen_from_rows', self.gf('django.db.models.fields.CharField')(max_length=128L))
 
@@ -1245,7 +1235,6 @@ class Migration(SchemaMigration):
         # Deleting field 'FaceExclusion.face_exclusion_id'
         db.delete_column('face_exclusions', 'face_exclusion_id')
 
-
         # Changing field 'FaceExclusion.updated'
         db.alter_column('face_exclusions', 'updated', self.gf('django.db.models.fields.DateTimeField')())
 
@@ -1266,7 +1255,6 @@ class Migration(SchemaMigration):
 
         # Deleting field 'User.last_name'
         db.delete_column('users', 'lname')
-
 
         # Changing field 'User.city'
         db.alter_column('users', 'city', self.gf('django.db.models.fields.CharField')(default='', max_length=32L))
@@ -1355,7 +1343,6 @@ class Migration(SchemaMigration):
         # Deleting field 'FacesStyleFiles.faces_style'
         db.delete_column('faces_style_files', 'faces_style_id')
 
-
         # Changing field 'FacesStyleFiles.css_file'
         db.alter_column('faces_style_files', 'css_file', self.gf('django.db.models.fields.CharField')(max_length=128L))
 
@@ -1405,7 +1392,6 @@ class Migration(SchemaMigration):
         raise RuntimeError("Cannot reverse this migration. 'UserClient.id' and its values cannot be restored.")
         # Deleting field 'UserClient.user_client_id'
         db.delete_column('user_clients', 'user_client_id')
-
 
         # Changing field 'UserClient.create_dt'
         db.alter_column('user_clients', 'create_dt', self.gf('django.db.models.fields.DateTimeField')())
