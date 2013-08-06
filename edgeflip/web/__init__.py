@@ -7,6 +7,9 @@
 
 from ..settings import config
 import logging
+import atexit
+
+from statsd import statsd
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,7 @@ _app = None
 
 def getApp():
     """import the primary Flask app as specified by :envvar:`web.app`
-    
+
     :returns: a Flask app
     """
     global _app
@@ -22,6 +25,7 @@ def getApp():
         mod = __import__(config.web.app, globals(), {}, 'app')
         _app = getattr(mod, 'app')
         logger.debug("Loaded app from %s", config.web.app)
-    
+        statsd.incr(__name__+".startup")
+        atexit.register(statsd.incr, __name__+".shutdown")
+
     return _app
-    
