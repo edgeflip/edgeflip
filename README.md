@@ -11,7 +11,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 1. You'll need an SSH key with access to the edgeflip github account in ~/.ssh -- contact us if you need to get one.
 2. Install minimal developer tools, git and Fabric:
 
-    $ `sudo apt-get install git python-pip`  
+    $ `sudo apt-get install git python-pip`
     $ `sudo pip install Fabric>=1.6`
 
 3. Check out the repo: `git clone https://github.com/edgeflip/edgeflip.git`
@@ -23,7 +23,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 
 5. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 6. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
- 
+
 Local Database
 --------------
 
@@ -57,13 +57,18 @@ To set up your RabbitMQ instance:
 
 Statsd/Graphite
 -----------------
-If you don't do this, things should still work. I hope. Also, this is very much a developer setup - 
-production will be a centralized service.
+
+If you skip this, things still work. Also, this is very much a developer
+setup - production will be a centralized service.
 
 1. Install [node & npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
-2. Install [Graphite](http://graphite.wikidot.com/): `sudo apt-get install graphite-carbon`
-3. Clone [statsd](https://github.com/etsy/statsd) in your working directory: `git clone git://github.com/etsy/statsd.git
-4. Start the server: `node statsd/stats.js statsdConfig.js`
+2. Clone [statsd](https://github.com/etsy/statsd) in your working directory: `git clone git://github.com/etsy/statsd.git
+3. Start the server: `node statsd/stats.js statsdConfig.js`
+
+* [Graphite on
+Ubuntu](https://github.com/janoside/ubuntu-statsd-graphite-setup) is painful (be sure to use a separate virtualenv if you attempt this).
+
+* As an alternative, [Hosted Graphite](https://www.hostedgraphite.com/) is super-easy to use with this [statsd plugin](https://github.com/hostedgraphite/statsdplugin) (also includes [tasseo](https://github.com/obfuscurity/tasseo) real-time dashboards).
 
 Celery
 --------------
@@ -71,7 +76,7 @@ Starting Celery:
 
 Setup and operation of Celery differs a bit between your local environments and production.
 This is mainly due to the fact that init scripts are excessive for local development, and tend to
-be far too specific for a particular environment. 
+be far too specific for a particular environment.
 
 *Locally*:
 
@@ -84,7 +89,7 @@ be far too specific for a particular environment.
 2. Symlink `scripts/celery/celeryd` to `/etc/init.d/celeryd`
 3. Copy `scripts/celery/celeryd.conf` to `/etc/default/celeryd`
 4. Set CELERY_CHDIR to the proper virtualenv path in `/etc/default/celeryd`
-5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery` 
+5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery`
 6. Chown log/pid dirs: `sudo chown -R celery:celery /var/run/celery /var/log/celery`
 7. Start the daemon: `/etc/init.d/celeryd start`
 
@@ -152,12 +157,12 @@ sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
 
 Running Tests With Nose
 ------------
-New tests and the start of a test framework have been added to edgeflip/tests. 
-These tests can be run with `fab test`; (see `fab -d test`). 
+New tests and the start of a test framework have been added to edgeflip/tests.
+These tests can be run with `fab test`; (see `fab -d test`).
 
 They build up a new test database and destroy it upon completion, so you shouldn't
 have to worry about them trampling your current database. This does require a minor
-bit of setup on your machine however. You'll need to create a file at ~/.my.cnf. 
+bit of setup on your machine however. You'll need to create a file at ~/.my.cnf.
 The contents of that file should look like so:
 
     [client]
