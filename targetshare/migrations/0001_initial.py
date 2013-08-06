@@ -10,7 +10,6 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding model 'Assignment'
         db.create_table(u'assignments', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('session_id', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'], null=True, blank=True)),
             ('content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True, blank=True)),
@@ -320,7 +319,6 @@ class Migration(SchemaMigration):
 
         # Adding model 'Edge'
         db.create_table(u'edges', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('fbid_source', self.gf('django.db.models.fields.BigIntegerField')()),
             ('fbid_target', self.gf('django.db.models.fields.BigIntegerField')()),
             ('post_likes', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
@@ -339,15 +337,14 @@ class Migration(SchemaMigration):
 
         # Adding model 'Event'
         db.create_table(u'events', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('session_id', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'], null=True, blank=True)),
             ('client_content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True, db_column=u'content_id', blank=True)),
             ('ip', self.gf('django.db.models.fields.CharField')(max_length=32L, blank=True)),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
             ('friend_fbid', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
-            ('type', self.gf('django.db.models.fields.CharField')(max_length=64L, blank=True)),
-            ('appid', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
+            ('event_type', self.gf('django.db.models.fields.CharField')(max_length=64L, blank=True, db_column=u'type')),
+            ('app_id', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True, db_column=u'appid')),
             ('content', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
             ('activity_id', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
             ('updated', self.gf('django.db.models.fields.DateTimeField')()),
@@ -356,7 +353,6 @@ class Migration(SchemaMigration):
 
         # Adding model 'FaceExclusion'
         db.create_table(u'face_exclusions', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')()),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
             ('content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'])),
@@ -590,7 +586,6 @@ class Migration(SchemaMigration):
 
         # Adding model 'Token'
         db.create_table(u'tokens', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')()),
             ('app_id', self.gf('django.db.models.fields.BigIntegerField')(db_column=u'appid')),
             ('owner_id', self.gf('django.db.models.fields.BigIntegerField')(db_column=u'ownerid')),
@@ -602,7 +597,6 @@ class Migration(SchemaMigration):
 
         # Adding model 'UserClient'
         db.create_table(u'user_clients', (
-            (u'id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')()),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Client'])),
             ('create_dt', self.gf('django.db.models.fields.DateTimeField')()),
@@ -789,7 +783,6 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']", 'null': 'True', 'blank': 'True'}),
             'feature_row': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'feature_type': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'random_assign': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'})
         },
@@ -1042,7 +1035,6 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Edge', 'db_table': "u'edges'"},
             'fbid_source': ('django.db.models.fields.BigIntegerField', [], {}),
             'fbid_target': ('django.db.models.fields.BigIntegerField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'mut_friends': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'photos_other': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'photos_target': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
@@ -1058,16 +1050,15 @@ class Migration(SchemaMigration):
         u'targetshare.event': {
             'Meta': {'object_name': 'Event', 'db_table': "u'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'appid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'app_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True', 'db_column': "u'appid'"}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
             'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "u'content_id'", 'blank': 'True'}),
             'content': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'ip': ('django.db.models.fields.CharField', [], {'max_length': '32L', 'blank': 'True'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'}),
-            'type': ('django.db.models.fields.CharField', [], {'max_length': '64L', 'blank': 'True'}),
+            'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64L', 'blank': 'True', 'db_column': "u'type'"}),
             'updated': ('django.db.models.fields.DateTimeField', [], {})
         },
         u'targetshare.faceexclusion': {
@@ -1076,7 +1067,6 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']"}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'reason': ('django.db.models.fields.CharField', [], {'max_length': '512L', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {})
         },
@@ -1269,7 +1259,6 @@ class Migration(SchemaMigration):
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "u'appid'"}),
             'expires': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'owner_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "u'ownerid'"}),
             'token': ('django.db.models.fields.CharField', [], {'max_length': '512L', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {})
@@ -1291,7 +1280,6 @@ class Migration(SchemaMigration):
             'client': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         }
     }
 
