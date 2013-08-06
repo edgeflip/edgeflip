@@ -1,4 +1,5 @@
 import datetime
+import operator
 from collections import defaultdict
 
 from django.db import models
@@ -16,10 +17,12 @@ class StartStopManager(models.Manager):
         """Replace the RelatedManager's active objects with new objects as specified by
         an iterable of new associated object data.
 
+        Objects are considered "active" whose DateTimeField, "ss_end_field" is NULL; (by
+        default, the name of this field is assumed to be "end_dt").
+
         By default, pre-existing, active objects whose signatures conflict with the
-        objects to be inserted are expired by setting a DateTimeField (defaulting to
-        "end_dt") to the current datetime. Pass the `replace_all` flag to expire all
-        associated objects.
+        objects to be inserted are expired by setting "ss_end_field" to the current
+        datetime. Pass the `replace_all` flag to expire all associated objects.
 
         For example::
 
@@ -45,12 +48,12 @@ class StartStopManager(models.Manager):
 
         As called above, `replace`:
 
-            1) validates that unique `FilterFeature`s are being inserted, where
+            1) validates that unique `FilterFeature`s will be inserted, where
                 the object signature is determined by `FilterFeature`'s
                 `Meta.ss_fields`
             2) expires the currently active set of `FilterFeature`s whose
-                signatures match those to be inserted by setting `end_dt`
-            3) inserts the new `FilterFeature`s under `my_filter`
+                signatures match those to be inserted, by setting `end_dt`
+            3) inserts the new `FilterFeature`s under `Filter` `my_filter`
 
         Alternatively, `replace_all` may be specified, such that all active
         `FilterFeature`s are expired and replaced by the new data::
@@ -88,8 +91,8 @@ class StartStopManager(models.Manager):
         else:
             # Objects to replace match all columns in fields (&) for any set
             # of data (|):
-            conditions = reduce(set.union, ( # |
-                reduce(set.intersection, ( # &
+            conditions = reduce(operator.or_, ( # |
+                reduce(operator.and_, ( # &
                     models.Q(**{field: object_data[field]}) for field in self.ss_fields
                 )) for object_data in data
             ))
