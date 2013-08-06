@@ -1,3 +1,6 @@
+# TODO: This module should be gone before Django branch is merged in.
+# TODO: Any remaining need for these things may be served by
+# TODO: targetshare.models.operations --JL
 
 # Eventually this module should serve as the backing for a control panel API
 
