@@ -53,7 +53,9 @@ import pymlconf
 import time
 import types
 import datetime
-from itertools import imap, chain
+from itertools import imap
+from measure_it import measure, measure_each, statsd_metric
+from statsd import statsd
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -191,6 +193,7 @@ def create_table(**schema):
     schema['table_name'] = name
     return Table.create(connection=get_dynamo(), **schema)
 
+@statsd.timer(__name__+'.create_all_tables')
 def create_all_tables():
     """Create all tables in Dynamo.
 
@@ -202,6 +205,7 @@ def create_all_tables():
     create_table(**edges_incoming_schema)
     create_table(**edges_outgoing_schema)
 
+@statsd.timer(__name__+'.drop_all_tables')
 def drop_all_tables():
     """Delete all tables in Dynamo"""
     for t in ('users', 'tokens', 'edges_outgoing', 'edges_incoming'):
@@ -222,7 +226,7 @@ users_schema = {
     'indexes': [],
 }
 
-
+@statsd.timer(__name__+'.save_user')
 def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=None):
     """save a user to Dynamo. If user exists, update with new, non-None attrs.
 
@@ -250,6 +254,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=
                 user[k] = v
         return user.partial_save()
 
+@measure.func(metric=statsd_metric)
 def save_many_users(users):
     """save many users to Dynamo as a batch, overwriting existing rows.
 
@@ -266,6 +271,7 @@ def save_many_users(users):
             _remove_null_values(d)
             batch.put_item(data = d)
 
+@statsd.timer(__name__+'.fetch_user')
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
 
@@ -277,6 +283,7 @@ def fetch_user(fbid):
     if x['fbid'] is None: return None
     return _make_user(x)
 
+@measure.func(metric=statsd_metric)
 def fetch_many_users(fbids):
     """Retrieve many users.
 
@@ -311,6 +318,7 @@ tokens_schema = {
     ]
 }
 
+@statsd.timer(__name__+'.save_token')
 def save_token(fbid, appid, token, expires, updated=None):
     """save a token to dynamo, overwriting existing.
 
@@ -332,6 +340,7 @@ def save_token(fbid, appid, token, expires, updated=None):
 
     return x.save(overwrite=True)
 
+@statsd.timer(__name__+'.fetch_token')
 def fetch_token(fbid, appid):
     """retrieve a token from facebook
 
@@ -345,6 +354,7 @@ def fetch_token(fbid, appid):
     return _make_token(x)
 
 
+@measure.func(metric=statsd_metric)
 def fetch_many_tokens(ids):
     """Retrieve many tokens.
 
@@ -398,6 +408,7 @@ edges_incoming_schema = {
     ]
 }
 
+@statsd.timer(__name__+'.save_edge')
 def save_edge(fbid_source, fbid_target, **kwargs):
     """Save an edge to dynamo
 
@@ -412,6 +423,7 @@ def save_edge(fbid_source, fbid_target, **kwargs):
     save_incoming_edge(fbid_source, fbid_target, **kwargs)
     save_outgoing_edge(fbid_source, fbid_target, updated)
 
+@measure.func(metric=statsd_metric)
 def save_many_edges(edges):
     """save many edges to dynamo in a batch, overwriting.
 
@@ -475,6 +487,8 @@ def save_outgoing_edge(fbid_source, fbid_target, updated):
     logger.debug("Saving edge %s -> %s to table %s", fbid_source, fbid_target, t)
     table.put_item(data, overwrite=True)
 
+
+@statsd.timer(__name__+'.fetch_edge')
 def fetch_edge(fbid_source, fbid_target):
     """retrieve an edge from facebook
 
@@ -487,6 +501,7 @@ def fetch_edge(fbid_source, fbid_target):
     x = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
     return _make_edge(x) if x['fbid_source'] is not None else None
 
+@measure.func(metric=statsd_metric)
 def fetch_many_edges(ids):
     """Retrieve many edges.
 
@@ -511,6 +526,7 @@ def fetch_all_incoming_edges():
     """
     return imap(_make_edge, get_table('edges_incoming').scan())
 
+@measure.func(metric=statsd_metric)
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many incoming edges
 
@@ -531,6 +547,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
                            updated__gt = datetime_to_epoch(newer_than))
         return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 
+@measure.func(metric=statsd_metric)
 def fetch_outgoing_edges(fbid, newer_than=None):
     """Fetch many outgoing edges
 
