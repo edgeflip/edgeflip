@@ -1,6 +1,6 @@
 from django.db import models
 
-from .manager import StartStopManager
+from .manager import start_stop_manager
 
 
 class FilterFeature(models.Model):
@@ -31,12 +31,11 @@ class FilterFeature(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
-    objects = StartStopManager()
+    objects = start_stop_manager('feature', 'operator')
 
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'filter_features'
-        ss_fields = ('feature', 'operator')
 
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""

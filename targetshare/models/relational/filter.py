@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 class Filter(models.Model):
 
     filter_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client', null=True, blank=True)
+    client = models.ForeignKey('Client', related_name='filters',
+                               null=True, blank=True)
     name = models.CharField(max_length=256, null=True, blank=True)
     description = models.CharField(max_length=1024, blank=True)
     is_deleted = models.BooleanField(default=False)
