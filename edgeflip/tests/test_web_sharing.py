@@ -108,6 +108,8 @@ class TestWebSharing(EdgeFlipTestCase):
         '''
         result_mock = Mock()
         result_mock.ready.return_value = False
+        result_mock.successful.return_value = False
+        result_mock.failed.return_value = False
         async_mock = Mock()
         async_mock.side_effect = [
             result_mock,
@@ -129,6 +131,8 @@ class TestWebSharing(EdgeFlipTestCase):
         '''
         px3_result_mock = Mock()
         px3_result_mock.ready.return_value = True
+        px3_result_mock.successful.return_value = True
+        px3_result_mock.failed.return_value = False
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
         async_mock = Mock()
@@ -144,6 +148,31 @@ class TestWebSharing(EdgeFlipTestCase):
         response = self._make_request()
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'waiting')
+
+    @patch('edgeflip.web.sharing.celery')
+    def test_faces_px3_fail(self, celery_mock):
+        ''' Test that if px3 fails, we'll return an error even if we're
+        still waiting on px4 and not on the last call
+        '''
+        px3_result_mock = Mock()
+        px3_result_mock.ready.return_value = True
+        px3_result_mock.successful.return_value = False
+        px3_result_mock.failed.return_value = True
+        px3_result_mock.result = ValueError('Ruh-Roh!')
+        px4_result_mock = Mock()
+        px4_result_mock.ready.return_value = False
+        async_mock = Mock()
+        async_mock.side_effect = [
+            px3_result_mock,
+            px4_result_mock
+        ]
+        celery_mock.celery.AsyncResult = async_mock
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid'
+        })
+        response = self._make_request(status_code=500)
+        self.assertEqual(response.data, 'No friends identified for you.')
 
     @patch('edgeflip.web.sharing.celery')
     def test_faces_last_call(self, celery_mock):
@@ -178,6 +207,33 @@ class TestWebSharing(EdgeFlipTestCase):
         data = json.loads(response.data)
         self.assertEqual(data['status'], 'success')
         assert data['html']
+
+    @patch('edgeflip.web.sharing.celery')
+    def test_faces_last_call_fail(self, celery_mock):
+        ''' Test that if px3 and px4 are not ready, last call will return a
+        'no friends for you' error to the user
+        '''
+        px3_result_mock = Mock()
+        px3_result_mock.ready.return_value = False
+        px3_result_mock.successful.return_value = False
+        px3_result_mock.failed.return_value = False
+        px3_result_mock.result = None
+        px4_result_mock = Mock()
+        px4_result_mock.ready.return_value = False
+        px4_result_mock.successful.return_value = False
+        async_mock = Mock()
+        async_mock.side_effect = [
+            px3_result_mock,
+            px4_result_mock
+        ]
+        celery_mock.celery.AsyncResult = async_mock
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid',
+            'last_call': True
+        })
+        response = self._make_request(status_code=500)
+        self.assertEqual(response.data, 'No friends identified for you.')
 
     @patch('edgeflip.web.sharing.celery')
     def test_faces_complete_crawl(self, celery_mock):

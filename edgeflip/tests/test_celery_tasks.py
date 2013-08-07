@@ -44,6 +44,10 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
+        # FIXME: Because the px3 mock crawl yields random results, this may in
+        #        some cases return a set of edges in which none meet the filter
+        #        used in this test. That would cause this test to 'fail' even
+        #        though all the code is working properly.
         ranked_edges = tasks.px3_crawl(True, 1, self.token)
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
