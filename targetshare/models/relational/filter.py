@@ -5,7 +5,8 @@ import time
 from django.conf import settings
 from django.db import models
 
-from targetshare import datastructs, utils
+from targetshare import utils
+from targetshare.models import datastructs
 
 
 logger = logging.getLogger(__name__)

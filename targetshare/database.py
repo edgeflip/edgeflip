@@ -15,8 +15,6 @@ from django.db import connection
 
 from targetshare import models
 
-from . import datastructs
-
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +42,7 @@ class Table(object):
             self.addIndex(col)
         self.keyCols = key
         self.otherStmts = otherStmts
+
     def addCols(self, cTups):  # colTups are (colName, colType) or (colName, colType, colDefault)
         for cTup in cTups:
             if (len(cTup) == 2):
@@ -208,7 +207,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
                     return None
 
         # if we made it here, we're fresh
-        return datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
+        return models.datastructs.UserInfo(fbid, fname, lname, email, gender, birthday, city, state)
 
 
 def getFriendEdgesDb(primId, requireIncoming=False,
@@ -247,10 +246,10 @@ def getFriendEdgesDb(primId, requireIncoming=False,
         secId, primId, iPstLk, iPstCm, iStLk, iStCm, \
             iWaPst, iWaCm, iTags, iPhOwn, iPhOth, iMuts, iUpdated, \
             fname, lname, email, gender, birthday, city, state = rec
-        edgeCountsIn = datastructs.EdgeCounts(secId, primId,
-                                              iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
-                                              iTags, iPhOwn, iPhOth, iMuts)
-        secInfo = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+        edgeCountsIn = models.datastructs.EdgeCounts(secId, primId,
+                                                     iPstLk, iPstCm, iStLk, iStCm, iWaPst, iWaCm,
+                                                     iTags, iPhOwn, iPhOth, iMuts)
+        secInfo = models.datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
 
         secId_edgeCountsIn[secId] = edgeCountsIn
         secId_userInfo[secId] = secInfo
@@ -258,7 +257,7 @@ def getFriendEdgesDb(primId, requireIncoming=False,
     if (not requireOutgoing):
         for secId, edgeCountsIn in secId_edgeCountsIn.items():
             logger.debug("Got secondary info & incoming edge for %s----%s from the database.", primary.id, secId)
-            edges.append(datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
+            edges.append(models.datastructs.Edge(primary, secId_userInfo[secId], edgeCountsIn, None))
 
     else:
         sql = sqlSelect + \
@@ -272,10 +271,10 @@ def getFriendEdgesDb(primId, requireIncoming=False,
             primId, secId, oPstLk, oPstCm, oStLk, oStCm, \
                 oWaPst, oWaCm, oTags, oPhOwn, oPhOth, oMuts, oUpdated, \
                 fname, lname, email, gender, birthday, city, state = rec
-            edgeCountsOut = datastructs.EdgeCounts(primId, secId,
-                                                   oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
-                                                   oTags, oPhOwn, oPhOth, oMuts)
-            secondary = datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
+            edgeCountsOut = models.datastructs.EdgeCounts(primId, secId,
+                                                          oPstLk, oPstCm, oStLk, oStCm, oWaPst, oWaCm,
+                                                          oTags, oPhOwn, oPhOth, oMuts)
+            secondary = models.datastructs.UserInfo(secId, fname, lname, email, gender, birthday, city, state)
 
             # zzz This will simply ignore edges where we've crawled the outgoing edge but not
             #     the incoming one (eg, with the current primary as someone else's secondary)
@@ -284,7 +283,7 @@ def getFriendEdgesDb(primId, requireIncoming=False,
             edgeCountsIn = secId_edgeCountsIn.get(secId)
             if edgeCountsIn is not None:
                 logger.debug("Got secondary info & bidirectional edge for %s----%s from the database.", primary.id, secId)
-                edges.append(datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
+                edges.append(models.datastructs.Edge(primary, secondary, edgeCountsIn, edgeCountsOut))
             else:
                 logger.warning("Edge skipped: no incoming data found for %s----%s.", primary.id, secId)
     return edges
@@ -293,7 +292,7 @@ def getFriendEdgesDb(primId, requireIncoming=False,
 def _updateDb(user, token, edges):
     """takes datastructs.* and writes to database
     """
-    tim = datastructs.Timer()
+    tim = models.datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
 
@@ -452,8 +451,7 @@ def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, even
     """update events table
 
     """
-
-    tim = datastructs.Timer()
+    tim = models.datastructs.Timer()
     conn = getConn()
     curs = conn.cursor()
 

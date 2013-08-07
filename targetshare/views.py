@@ -20,7 +20,6 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from targetshare import (
-    datastructs,
     facebook,
     mock_facebook,
     models,
@@ -217,7 +216,7 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = datastructs.TokenInfo(
+        token = models.datastructs.TokenInfo(
             tok, fbid,
             int(client.fb_app_id),
             datetime.datetime.now()
@@ -523,10 +522,10 @@ def record_event(request):
             models.UserClient.objects.create(
                 fbid=user_id, client=client
             )
-            user = datastructs.UserInfo(
+            user = models.datastructs.UserInfo(
                 user_id, None, None, None, None, None, None, None
             )
-            token = datastructs.TokenInfo(
+            token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), datetime.datetime.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token

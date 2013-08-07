@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
 
-from targetshare import datastructs, models
+from targetshare import models
 
 from . import EdgeFlipTestCase
 
@@ -27,7 +27,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             'contentid': 1,
             'mockmode': True,
         }
-        self.test_user = datastructs.UserInfo(
+        self.test_user = models.datastructs.UserInfo(
             uid=1,
             first_name='Test',
             last_name='User',
@@ -37,7 +37,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             city='Chicago',
             state='Illinois',
         )
-        self.test_edge = datastructs.Edge(
+        self.test_edge = models.datastructs.Edge(
             self.test_user,
             self.test_user,
             None
@@ -156,7 +156,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
             self.test_filter.filter_id,
             self.test_filter.url_slug,
             1,
@@ -189,7 +189,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
             self.test_filter.filter_id,
             self.test_filter.url_slug,
             1,

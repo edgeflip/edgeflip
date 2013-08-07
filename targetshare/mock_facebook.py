@@ -15,7 +15,7 @@ from collections import defaultdict
 
 from django.conf import settings
 
-from targetshare import datastructs
+from targetshare.models import datastructs
 
 
 logger = logging.getLogger(__name__)

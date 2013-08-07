@@ -13,7 +13,6 @@ from targetshare import (
     ranking,
     utils,
 )
-from targetshare.models.datastructs import TieredEdges
 
 MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
@@ -67,7 +66,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     in the past.
 
     '''
-    alreadyPicked = alreadyPicked or TieredEdges()
+    alreadyPicked = alreadyPicked or models.datastructs.TieredEdges()
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
