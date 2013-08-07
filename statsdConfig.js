@@ -5,4 +5,5 @@
 , backends: ["./backends/console"]
 , dumpMessages: true
 , prefixStats: "devel"
+, legacyNamespace: false
 }
