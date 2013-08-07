@@ -152,6 +152,7 @@ class EdgeCounts(object):
         self.mutuals = muts
 
 
+# TODO: replace with namedtuple?
 class Edge(object):
     """relationship between two users
 
