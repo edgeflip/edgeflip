@@ -5,7 +5,8 @@ from django.db import models
 
 class Token(models.Model):
 
-    fbid = models.BigIntegerField(primary_key=True)
+    token_id = models.AutoField(primary_key=True)
+    fbid = models.BigIntegerField()
     app_id = models.BigIntegerField(db_column='appid')
     owner_id = models.BigIntegerField(db_column='ownerid')
     token = models.CharField(max_length=512)
