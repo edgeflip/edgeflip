@@ -6,7 +6,16 @@ from django.db import models
 
 
 class StartStopManager(models.Manager):
+    """Model manager supporting related objects which must be expired and replaced by
+    fresh objects, rather than updated or deleted.
 
+    It is assumed that models making use of this manager have a "start" DateTimeField
+    and, more importantly, an "end" DateTimeField; the "end" field, when set, indicates
+    that the object is no longer active.
+
+    See method `replace`.
+
+    """
     # Factory method needed to preserve argument-less __init__ for RelatedManager.
     # Also see start_stop_manager():
     @classmethod

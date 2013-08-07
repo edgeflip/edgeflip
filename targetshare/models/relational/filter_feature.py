@@ -22,8 +22,7 @@ class FilterFeature(models.Model):
     FILTER_LIST_DELIM = '||'
 
     filter_feature_id = models.AutoField(primary_key=True)
-    filter = models.ForeignKey('Filter', related_name='filterfeatures',
-            null=True)
+    filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True)
     operator = models.CharField(max_length=32, blank=True)
     value = models.CharField(max_length=1024, blank=True)

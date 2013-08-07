@@ -6,7 +6,7 @@ from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
 
-from targetshare import datastructs, models, client_db_tools as cdb
+from targetshare import datastructs, models
 
 from . import EdgeFlipTestCase
 
@@ -130,7 +130,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
             self.test_filter.filter_id,
             self.test_filter.url_slug,
             1,
@@ -163,7 +163,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         px3_result_mock.ready.return_value = True
         px3_result_mock.result = (
             [self.test_edge],
-            cdb.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+            datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
             self.test_filter.filter_id,
             self.test_filter.url_slug,
             1,
@@ -258,7 +258,6 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             'test_mode': True
         })
         self.assertStatusCode(response, 400)
-
 
     def test_objects_hit_by_fb(self):
         ''' Test hitting the views.object endpoint as the FB crawler '''

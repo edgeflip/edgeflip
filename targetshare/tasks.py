@@ -6,7 +6,6 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 
 from targetshare import (
-    client_db_tools as cdb,
     database,
     facebook,
     mock_facebook,
@@ -14,6 +13,7 @@ from targetshare import (
     ranking,
     utils,
 )
+from targetshare.models.datastructs import TieredEdges
 
 MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
@@ -65,9 +65,9 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                       fallbackCount=0, alreadyPicked=None):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
-    '''
 
-    alreadyPicked = alreadyPicked if alreadyPicked else cdb.TieredEdges()
+    '''
+    alreadyPicked = alreadyPicked or TieredEdges()
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?

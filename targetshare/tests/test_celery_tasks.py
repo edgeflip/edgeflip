@@ -3,7 +3,6 @@ import datetime
 import celery
 
 from targetshare import (
-    client_db_tools as cdb,
     datastructs,
     models,
     tasks,
@@ -57,7 +56,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
             ('sharing-social-good', '471727162864364')
         )
         assert all((isinstance(x, datastructs.Edge) for x in edges_ranked))
-        assert isinstance(edges_filtered, cdb.TieredEdges)
+        assert isinstance(edges_filtered, datastructs.TieredEdges)
         assert all((isinstance(x, datastructs.Edge) for x in edges_filtered.edges()))
         assert isinstance(filter_id, long)
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))

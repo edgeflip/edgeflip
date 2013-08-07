@@ -49,8 +49,7 @@ def rand_assign(tupes):
 
 def check_cdf(tupes):
     """Takes tuples of (id, CDF Probability) and ensures the CDF is well-defined"""
-
-    probs = sorted([t[1] for t in tupes])
+    probs = sorted(t[1] for t in tupes)
     if (min(probs) <= 0):
         raise CDFProbsError("Zero or negative probabilities detected")
     if (max(probs) != 1.0):

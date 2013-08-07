@@ -1,8 +1,7 @@
-
 import logging
 
-from . import database as db
-from . import client_db_tools as cdb
+from targetshare import database as db, utils
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,8 +25,8 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
     badCDFs = []
     for key, tupes in cdfs.items():
         try:
-            cdb.checkCDF(tupes)
-        except cdb.CDFProbsError as e:
+            utils.check_cdf(tupes)
+        except utils.CDFProbsError as e:
             logger.error("Bad CDF found in %s for %s=%s: %s", (cdfTable, str(keyCols), str(key), str(e)))
             badCDFs.append(key)
 
@@ -40,8 +39,9 @@ def checkDbCDFs(cdfTable, keyCols, objectCol, curs):
 def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
     """Run a single DB check, which should return identifiers for any
        records that fail the check. errorRecsFn should return a string
-       to be inserted into errorMsg via python string substitution."""
+       to be inserted into errorMsg via python string substitution.
 
+    """
     if (errorRecsFn is None):
         errorRecsFn = lambda r: str(r[0])
 
@@ -59,7 +59,6 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 
 def validateClientDb():
     """Run several validation checks against the DB client schema"""
-
     logger.debug("=========== Running Client DB Validation ===========")
 
     conn = db.getConn()
