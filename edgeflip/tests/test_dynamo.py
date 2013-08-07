@@ -131,6 +131,35 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
             self.assertDictEqual(u, d)
 
+    def test_update_many_users(self):
+        """Test updating many users"""
+        dynamo.save_many_users(self.users().values())
+
+        # a modified user
+        alice_new = self.users()[1234]
+        alice_new['email'] = ''
+        alice_new['birthday'] = None
+        alice_new['state'] = 'NY'
+
+        alice_res = self.users()[1234]
+        alice_res['state'] = 'NY'
+
+        # a new user
+        evan_new = dict(fbid=200, fname='Evan', lname='Escarole', email='evan@example.com',
+                        gender=None, birthday=None, city='Evanston', state='WY')
+
+        dynamo.update_many_users([alice_new.copy(), evan_new.copy()])
+
+        # compare modified user
+        alice_dyn = dynamo.fetch_user(1234)
+        del alice_dyn['updated']
+        self.assertDictEqual(alice_res, alice_new)
+
+        # compare new user
+        evan_dyn = dynamo.fetch_user(200)
+        del evan_dyn['updated']
+        self.assertDictEqual(evan_new, evan_dyn)
+
 
 @freeze_time('2013-01-01')
 class DynamoTokenTestCase(EdgeFlipTestCase):

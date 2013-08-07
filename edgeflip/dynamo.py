@@ -271,6 +271,50 @@ def save_many_users(users):
             _remove_null_values(d)
             batch.put_item(data = d)
 
+@statsd.timer(__name__+'.update_many_users')
+def update_many_users(users):
+    """save many users to Dynamo as a batch, updating existing rows.
+
+    This modifies dicts passed in.
+
+    :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
+    """
+    updated = epoch_now()
+    table = get_table('users')
+
+    # map of fbid => data dict
+    users_data= {u['fbid']:u for u in users}
+    if not users_data: return
+
+    for item in table.batch_get(keys=[{'fbid': k} for k in users_data]):
+        if item['fbid'] is None: continue
+
+        # pop the corresponding data dict
+        data = users_data.pop(item['fbid'])
+        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['updated'] = updated
+        _remove_null_values(data)
+        print("UPDATE", item['fbid'], data.keys())
+
+        # update the boto item
+        for k, v in data.iteritems():
+            if k != 'fbid':
+                item[k] = v
+        print("UPDATE2", dict(item.items()))
+        item.partial_save()
+        print("UPDATE3", dict(item.items()))
+
+
+    # everything left in users_data must be new items. Loop through these &
+    # save individually, so that a concurrent write will cause an error
+    # (instead of silently clobbering using batch_write)
+    for data in users_data.itervalues():
+        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['updated'] = updated
+        _remove_null_values(data)
+        table.put_item(data)
+
+
 @statsd.timer(__name__+'.fetch_user')
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
