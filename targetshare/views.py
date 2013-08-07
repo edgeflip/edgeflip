@@ -395,7 +395,7 @@ def objects(request, fb_object_id, content_id):
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
         'fb_app_name': client.fb_app_name,
-        'fb_app_id': client.fb_app_id,
+        'fb_app_id': int(client.fb_app_id),
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
