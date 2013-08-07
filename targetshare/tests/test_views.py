@@ -78,6 +78,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         '''
         result_mock = Mock()
         result_mock.ready.return_value = False
+        result_mock.successful.return_value = False
+        result_mock.failed.return_value = False
         async_mock = Mock()
         async_mock.side_effect = [
             result_mock,
@@ -100,6 +102,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         '''
         px3_result_mock = Mock()
         px3_result_mock.ready.return_value = True
+        px3_result_mock.successful.return_value = True
+        px3_result_mock.failed.return_value = False
         px4_result_mock = Mock()
         px4_result_mock.ready.return_value = False
         async_mock = Mock()
@@ -245,6 +249,16 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'fb_app_id': client.fb_app_id
             }
         )
+
+    def test_frame_faces_test_mode_bad_request(self):
+        ''' Tests views.frame_faces with test_mode enabled, but without
+        providing a test FB ID or Token
+        '''
+        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+            'test_mode': True
+        })
+        self.assertStatusCode(response, 400)
+
 
     def test_objects_hit_by_fb(self):
         ''' Test hitting the views.object endpoint as the FB crawler '''

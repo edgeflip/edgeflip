@@ -184,7 +184,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                 session_id=sessionId, campaign_id=campaignId, content_id=contentId,
                 feature_type='filter_id', feature_row=bestCSFilter[0].filter_id,
                 random_assign=False, chosen_from_table='choice_set_filters',
-                chosen_from_rows=[x.pk for x in choice_set.choicesetfilter_set.all()]
+                chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
             )
 
     slotsLeft = int(numFace) - len(alreadyPicked)

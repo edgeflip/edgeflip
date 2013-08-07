@@ -44,9 +44,9 @@ class Filter(models.Model):
     def filter_edges_by_sec(self, edges):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
-        if not self.filterfeature_set.exists():
+        if not self.filterfeatures.exists():
             return edges
-        for f in self.filterfeature_set.all():
+        for f in self.filterfeatures.all():
             if f.feature in settings.CIVIS_FILTERS:
                 start_time = time.time()
                 threads = []

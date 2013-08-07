@@ -38,7 +38,7 @@ class ChoiceSet(models.Model):
 
         filtered_edges = [
             (csf, csf.filter.filter_edges_by_sec(
-                edgesElg)) for csf in self.choicesetfilter_set.all()
+                edgesElg)) for csf in self.choicesetfilters.all()
         ]
         sortedFilters = sorted(filtered_edges, key=lambda t: sort_func(t[1]), reverse=True)
 

@@ -65,13 +65,20 @@
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
 
+        var test_mode = false;
+        {% if test_mode %}
+            test_mode = true;
+            var test_fbid = {{ test_fbid }};
+            var test_token = '{{ test_token }}';
+        {% endif %}
+
         //zzz Passing these through "safe" probably isn't ideal since it came
         //    from something a client entered in the control panel, but right
         //    now we're setting these parameters in the DB by hand and I don't
         //    want Jinja trying to escape URL characters. Let's find a better
         //    solution going forward...
-        var thanksURL = '{{ thanksURL|safe }}';
-        var errorURL = '{{ errorURL|safe }}';
+        var thanksURL = '{{ properties.client_thanks_url|safe }}';
+        var errorURL = '{{ properties.client_error_url|safe }}';
 
     </SCRIPT>
     <!-- edgeflip javascript -->

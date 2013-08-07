@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import (
     HttpResponse,
+    HttpResponseBadRequest,
     HttpResponseNotFound,
     HttpResponseForbidden
 )
@@ -129,6 +130,15 @@ def frame_faces(request, campaign_id, content_id):
     if not _validate_client_subdomain(campaign, content, subdomain):
         return HttpResponseNotFound()
 
+    test_mode = False
+    test_fbid = test_token = None
+    if request.GET.get('test_mode'):
+        test_mode = True
+        if 'fbid' not in request.GET or 'token' not in request.GET:
+            return HttpResponseBadRequest('Test mode requires ID and Token')
+        test_fbid = int(request.GET.get('fbid'))
+        test_token = request.GET.get('token')
+
     client = campaign.client
     params_dict = {
         'fb_app_name': client.fb_app_name,
@@ -139,7 +149,10 @@ def frame_faces(request, campaign_id, content_id):
         'fb_params': params_dict,
         'campaign': campaign,
         'content': content,
-        'properties': campaign.campaignproperties_set.get()
+        'properties': campaign.campaignproperties_set.get(),
+        'test_mode': test_mode,
+        'test_token': test_token,
+        'test_fbid': test_fbid
     })
 
 
@@ -154,7 +167,7 @@ def faces(request):
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
-    session_id = request.POST.get('session_id') or request.session.session_key
+    session_id = request.POST.get('session_id')
     last_call = True if request.POST.get('last_call') else False
     edges_ranked = fbmodule = px4_edges = None
 
@@ -181,40 +194,38 @@ def faces(request):
         return HttpResponseForbidden(
             'Mock mode only allowed for the mock client')
 
-    token = datastructs.TokenInfo(
-        tok, fbid,
-        int(client.fb_app_id),
-        datetime.datetime.now()
-    )
-    token = fbmodule.extendTokenFb(
-        fbid, token,
-        int(client.fb_app_id) or token
-    )
-
     if px3_task_id and px4_task_id:
         px3_result = celery.current_app.AsyncResult(px3_task_id)
         px4_result = celery.current_app.AsyncResult(px4_task_id)
-        if (px3_result.ready() and (px4_result.ready() or last_call)):
+        if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
             px4_edges = px4_result.result if px4_result.successful() else []
-            edges_ranked, edges_filtered, best_cs_filter_id, choice_set_slug, campaign_id, content_id = px3_result.result
-            if not all([edges_ranked, best_cs_filter_id, choice_set_slug]):
+            edges_ranked, edges_filtered, \
+                best_cs_filter_id, choice_set_slug, \
+                campaign_id, content_id = px3_result.result if px3_result.successful() else (None, ) * 6
+            if not all([edges_ranked, edges_filtered]):
                 return HttpResponse('No friends identified for you.', status=500)
         else:
-            if last_call and not px3_result.ready():
-                return HttpResponse('No friends identified for you.', status=500)
-            else:
-                return HttpResponse(
-                    json.dumps({
-                        'status': 'waiting',
-                        'px3_task_id': px3_task_id,
-                        'px4_task_id': px4_task_id,
-                        'campaignid': campaign_id,
-                        'contentid': content_id,
-                    }),
-                    status=200,
-                    content_type='application/json'
-                )
+            return HttpResponse(
+                json.dumps({
+                    'status': 'waiting',
+                    'px3_task_id': px3_task_id,
+                    'px4_task_id': px4_task_id,
+                    'campaignid': campaign_id,
+                    'contentid': content_id,
+                }),
+                status=200,
+                content_type='application/json'
+            )
     else:
+        token = datastructs.TokenInfo(
+            tok, fbid,
+            int(client.fb_app_id),
+            datetime.datetime.now()
+        )
+        token = fbmodule.extendTokenFb(
+            fbid, token,
+            int(client.fb_app_id) or token
+        )
         px3_task_id = tasks.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
