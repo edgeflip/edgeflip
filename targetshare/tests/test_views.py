@@ -122,6 +122,32 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertEqual(data['status'], 'waiting')
 
     @patch('targetshare.views.celery')
+    def test_faces_px3_fail(self, celery_mock):
+        ''' Test that if px3 fails, we'll return an error even if we're
+        still waiting on px4 and not on the last call
+        '''
+        px3_result_mock = Mock()
+        px3_result_mock.ready.return_value = True
+        px3_result_mock.successful.return_value = False
+        px3_result_mock.failed.return_value = True
+        px3_result_mock.result = ValueError('Ruh-Roh!')
+        px4_result_mock = Mock()
+        px4_result_mock.ready.return_value = False
+        async_mock = Mock()
+        async_mock.side_effect = [
+            px3_result_mock,
+            px4_result_mock
+        ]
+        celery_mock.current_app.AsyncResult = async_mock
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid'
+        })
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 500)
+        self.assertEqual(response.content, 'No friends identified for you.')
+
+    @patch('targetshare.views.celery')
     def test_faces_last_call(self, celery_mock):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
