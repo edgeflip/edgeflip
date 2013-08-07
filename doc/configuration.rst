@@ -13,15 +13,15 @@ New Relic
 .. envvar:: newrelic.enabled
 
     should New Relic support be turned on
-    
+
 .. envvar:: newrelic.inifile
 
     a fully qualified path to the `newrelic.ini` file.
-    
+
 .. envvar:: newrelic.environment
-    
+
     a New Relic environment, as defined in `newrelic.ini`. Defaults to `development`.
-    
+
 
 AWS
 ---
@@ -34,3 +34,19 @@ Cross-service configuration for AWS/boto. Currently this is just access & secret
 .. envvar:: aws.AWS_SECRET_ACCESS_KEY
 
     AWS secret key
+
+statsd
+------
+Configuration for statsd. See also notes in README. If there is no statsd instance running at the specified host, things will work just fine (but stats will be lost).
+
+.. envvar:: statsd.host
+
+    statsd host, defaults to localhost
+
+.. envvar:: statsd.port
+
+    statsd port, defaults to 8125
+
+.. envvar:: statsd.prefix
+
+    string prefix, defaults to 'devel'

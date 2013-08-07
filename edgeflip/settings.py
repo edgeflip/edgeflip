@@ -13,6 +13,8 @@ Code using configuration should import the `config` object from this module, lik
 
 `config` is a :mod:`pymlconf` dict-object; config items can be accessed as properties or by item lookup.
 
+Note you must import settings *before* modules that are configured by it (currently logging & statsd).
+
 Configuring the app
 -------------------
 
@@ -30,6 +32,11 @@ Logging
 -------
 
 This module will set up stdlib :mod:`logging` using `config.logging`. By default, all log messages go to the console. There is a syslog handler ready for use; just set `logging.root = [syslog]`  somewhere in your custom config instead.
+
+Statsd
+------
+
+This module will set up `statsd <https://github.com/jsocol/pystatsd>`__.
 
 Conventions
 -----------

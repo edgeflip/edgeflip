@@ -55,7 +55,6 @@ import types
 import datetime
 from itertools import imap
 from measure_it import measure, measure_each, statsd_metric
-from statsd import statsd
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -66,6 +65,7 @@ from boto.dynamodb2.types import NUMBER
 
 from .settings import config
 
+from statsd import statsd
 logger = logging.getLogger(__name__)
 
 # `threading.local` for Dynamo connections created outside of flask. gross.
