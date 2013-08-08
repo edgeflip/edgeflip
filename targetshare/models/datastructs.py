@@ -1,109 +1,101 @@
-# TODO: Review
 import logging
-import time
 import datetime
+import itertools
 from unidecode import unidecode
 
 
 LOG = logging.getLogger(__name__)
 
 
-class TieredEdges(object):
-    """Quick little class to hold tuples of edges in different tiers
-    and return useful things like a list of secondary Id's as well
-    as the ability to re-rank the edges within the tiers"""
+class TieredEdges(tuple):
+    """Collection of Edges ranked into tiered tuples."""
+    __slots__ = () # No need for object __dict__ or stored attributes
 
-    def __init__(self, edges=None, **kwargs):
-        """Initialize the object with the top tier"""
-        self.tiers = []
-        if kwargs:
-            edges = edges or []
-            kwargs['edges'] = edges
-            self.tiers.append(kwargs)
+    @classmethod
+    def make(cls, iterable=()):
+        """Return a new collection from an iterable of tiers."""
+        return super(TieredEdges, cls).__new__(cls, iterable)
+
+    def __new__(cls, edges=(), **kws):
+        """Instantiate a new collection, with an optional top tier."""
+        if edges or kws:
+            kws['edges'] = tuple(edges or ())
+            init = (kws,)
+        else:
+            init = ()
+        return cls.make(init)
+
+    def __repr__(self):
+        return "<{}: {!r}>".format(self.__class__.__name__, tuple(self))
+
+    def _edges(self):
+        return itertools.chain.from_iterable(tier['edges'] for tier in self)
 
     def __len__(self):
-        return len([e for t in self.tiers for e in t['edges']])
+        return sum(1 for _edge in self._edges())
 
-    def appendTier(self, edges, **kwargs):
-        """Append a new tier to the end"""
-        edges = edges or []
-        kwargs['edges'] = edges
-        self.tiers.append(kwargs)
-
+    @property
     def edges(self):
-        return [e for t in self.tiers for e in t['edges']]
+        """All edges contained in the collection, untiered."""
+        return tuple(self._edges())
 
+    @property
     def secondaries(self):
-        return [e.secondary for t in self.tiers for e in t['edges']]
+        """All edge secondaries contained in the collection."""
+        return tuple(edge.secondary for edge in self._edges())
 
-    def secondaryIds(self):
-        return [e.secondary.id for t in self.tiers for e in t['edges']]
+    @property
+    def secondary_ids(self):
+        """All edge secondaries' IDs."""
+        return tuple(edge.secondary.id for edge in self._edges())
 
-    def rerankEdges(self, new_edge_ranking):
-        """Re-ranks the edges within the tiers. For instance, if
-        the tiers were generated using px3 scores but px4 has now
-        become available, we can maintain the tiers while providing
-        a better order within them.
+    def copy(self):
+        return self.make(self)
+
+    __copy__ = copy
+
+    def add(self, edges, **kws):
+        """Return a new collection of these tiers with the given tier added to the end."""
+        kws['edges'] = tuple(edges or ())
+        return self.make(self + (kws,))
+
+    def _rerank(self, ranking):
+        """Generate a stream of the collection's tiers with edges reranked according to
+        the given ranking.
 
         """
-        for tier in self.tiers:
-            edge_list = tier['edges'][:]    # copying - need the original order below
-            tier_edge_ids = set(e.secondary.id for e in edge_list)
-            new_order = []
+        for tier in self:
+            edge_ids = set(edge.secondary.id for edge in tier['edges'])
+            reranked = []
+            for edge in ranking:
+                if edge.secondary.id in edge_ids:
+                    reranked.append(edge)
+                    edge_ids.remove(edge.secondary.id)
 
-            for e in new_edge_ranking:
-                if e.secondary.id in tier_edge_ids:
-                    new_order.append(e)
-                    tier_edge_ids.remove(e.secondary.id)
-
-            if tier_edge_ids:
+            if edge_ids:
                 # the new ranking was missing some edges. Note it in
                 # the logs, then iterate through the original order and
                 # append the remaining edges to the end of the list
                 LOG.info("%s edges missing from new edge rankings for user %s!",
-                         len(tier_edge_ids), edge_list[0].primary.id)
-                for e in edge_list:
-                    if e.secondary.id in tier_edge_ids:
-                        new_order.append(e)
-                        tier_edge_ids.remove(e.secondary.id)
+                         len(edge_ids), tier['edges'][0].primary.id)
+                for edge in tier['edges']:
+                    if edge.secondary.id in edge_ids:
+                        reranked.append(edge)
+                        edge_ids.remove(edge.secondary.id)
 
-            tier['edges'] = new_order
+            tier = tier.copy()
+            tier['edges'] = reranked
+            yield tier
 
+    def rerank(self, ranking):
+        """Return a new collection of these tiers, with each tier's edges reranked
+        according to the given ranking.
 
-class Timer(object):
-    """used for inline profiling & debugging
+        For instance, if the tiers were generated using px3 scores but px4 has now become
+        available, we can maintain the tiers while providing a better order within them.
 
-
-    XXX i can probably die
-    """
-    def __init__(self):
-        self.start = time.time()
-
-    def reset(self):
-        self.start = time.time()
-
-    def elapsedSecs(self):
-        return time.time() - self.start
-
-    def elapsedPr(self, precision=2):
-        delt = datetime.timedelta(seconds=time.time() - self.start)
-        hours = delt.days * 24 + delt.seconds / 3600
-        hoursStr = str(hours)
-        mins = (delt.seconds - hours * 3600) / 60
-        minsStr = "%02d" % (mins)
-        secs = (delt.seconds - hours * 3600 - mins * 60)
-        if (precision):
-            secsFloat = secs + delt.microseconds / 1000000.0 # e.g., 2.345678
-            secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
-        else:
-            secsStr = "%02d" % (secs)
-        if (hours == 0):
-            return minsStr + ":" + secsStr
-        else:
-            return hoursStr + ":" + minsStr + ":" + secsStr
-
-    def stderr(self, txt=""):
-        raise NotImplementedError # what is this intended to do? No stderr please!
+        """
+        return self.make(self._rerank(ranking))
 
 
 def unidecodeSafe(s):
@@ -128,6 +120,8 @@ def unidecodeSafe(s):
         except UnicodeEncodeError:
             return unidecode(s)
 
+
+# TODO: replace following with model objects (except possibly FriendInfo) #
 
 class UserInfo(object):
     """basic facebook data from a user's profile
@@ -218,7 +212,6 @@ class EdgeCounts(object):
         self.mutuals = muts
 
 
-# TODO: replace with namedtuple? Or simply the model object?
 class Edge(object):
     """relationship between two users
 

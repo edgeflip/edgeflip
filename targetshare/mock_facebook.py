@@ -15,6 +15,7 @@ from collections import defaultdict
 
 from django.conf import settings
 
+from targetshare import utils
 from targetshare.models import datastructs
 
 
@@ -146,7 +147,7 @@ def getFriendsFb(userId, token):
 
     returns object from datastructs
     """
-    tim = datastructs.Timer()
+    tim = utils.Timer()
     logger.debug("mocking getting friends for %d", userId)
 
     # Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
@@ -266,7 +267,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     skipFriends = skipFriends if skipFriends is not None else set()
 
     logger.debug("mocking getting friend edges from FB for %d", userId)
-    tim = datastructs.Timer()
+    tim = utils.Timer()
     friends = getFriendsFb(userId, tok)
     logger.debug("mocked getting %d friends total", len(friends))
 

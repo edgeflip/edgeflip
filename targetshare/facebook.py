@@ -15,6 +15,7 @@ from math import ceil
 
 from django.conf import settings
 
+from targetshare import utils
 from targetshare.models import datastructs
 
 
@@ -96,7 +97,7 @@ def getUrlFb(url):
 
 def _threadFbURL(url, results):
     """Used to read JSON from Facebook in a thread and append output to a list of results"""
-    tim = datastructs.Timer()
+    tim = utils.Timer()
 
     responseJson = getUrlFb(url)
     for entry in responseJson['data']:
@@ -138,7 +139,7 @@ def getFriendsFb(userId, token):
 
     returns object from datastructs
     """
-    tim = datastructs.Timer()
+    tim = utils.Timer()
     logger.debug("getting friends for %d", userId)
 
     loopTimeout = settings.FACEBOOK.friendLoop.timeout
@@ -331,7 +332,7 @@ def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
 
 
 def getFriendEdgesOutGoing(friend, user, tok):
-    timFriend = datastructs.Timer()
+    timFriend = utils.Timer()
     try:
         scFriend = ReadStreamCounts(friend.id, tok, settings.STREAM_DAYS_OUT, settings.STREAM_DAYS_CHUNK_OUT, settings.STREAM_THREADCOUNT_OUT, loopTimeout=settings.STREAM_READ_TIMEOUT_OUT, loopSleep=settings.STREAM_READ_SLEEP_OUT)
     except Exception as ex:
@@ -374,7 +375,7 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
     skipFriends = skipFriends if skipFriends is not None else set()
 
     logger.debug("getting friend edges from FB for %d", userId)
-    tim = datastructs.Timer()
+    tim = utils.Timer()
     friends = getFriendsFb(userId, tok)
     logger.debug("got %d friends total", len(friends))
 
@@ -554,7 +555,7 @@ class ReadStreamCounts(StreamCounts):
         # zzz Is the "timeout" param even getting used here? Appears to be leftover from an earlier version...
 
         logger.debug("ReadStreamCounts(%s, %s, %d, %d, %d)", userId, token[:10] + "...", numDays, chunkSizeDays, threadCount)
-        tim = datastructs.Timer()
+        tim = utils.Timer()
         self.id = userId
         self.stream = []
         self.friendId_postLikeCount = defaultdict(int)
@@ -635,7 +636,7 @@ class ThreadStreamReader(threading.Thread):
     def run(self):
         timeStop = time.time() + self.lifespan
         logger.debug("thread %s starting", self.name)
-        timThread = datastructs.Timer()
+        timThread = utils.Timer()
         goodCount = 0
         errCount = 0
         while (time.time() < timeStop):
@@ -644,7 +645,7 @@ class ThreadStreamReader(threading.Thread):
             except Queue.Empty as e:
                 break
 
-            tim = datastructs.Timer()
+            tim = utils.Timer()
 
             logger.debug("reading stream for %s, interval (%s - %s)", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
 

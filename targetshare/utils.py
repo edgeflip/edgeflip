@@ -1,3 +1,4 @@
+import datetime
 import time
 import threading
 import logging
@@ -135,3 +136,39 @@ def civis_filter(edge, feature, operator, value, matches):
 class TooFewFriendsError(Exception):
     """Too few friends found in picking best choice set filter"""
     pass
+
+
+class Timer(object):
+    """used for inline profiling & debugging
+
+
+    XXX i can probably die
+    """
+    def __init__(self):
+        self.start = time.time()
+
+    def reset(self):
+        self.start = time.time()
+
+    def elapsedSecs(self):
+        return time.time() - self.start
+
+    def elapsedPr(self, precision=2):
+        delt = datetime.timedelta(seconds=time.time() - self.start)
+        hours = delt.days * 24 + delt.seconds / 3600
+        hoursStr = str(hours)
+        mins = (delt.seconds - hours * 3600) / 60
+        minsStr = "%02d" % (mins)
+        secs = (delt.seconds - hours * 3600 - mins * 60)
+        if (precision):
+            secsFloat = secs + delt.microseconds / 1000000.0 # e.g., 2.345678
+            secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
+        else:
+            secsStr = "%02d" % (secs)
+        if (hours == 0):
+            return minsStr + ":" + secsStr
+        else:
+            return hoursStr + ":" + minsStr + ":" + secsStr
+
+    def stderr(self, txt=""):
+        raise NotImplementedError # what is this intended to do? No stderr please!
