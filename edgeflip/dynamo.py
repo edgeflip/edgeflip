@@ -153,9 +153,10 @@ def get_table(name):
 
     :rtype: `boto.dynamodb2.table.Table`
     """
-    # xxx might be desirable to cache these objects like in get_dynamo()
-    table = Table(_table_name(name), connection=get_dynamo())
-    table.describe()
+    table = Table(_table_name(name),
+                  schema=schemas[name]['schema'],
+                  indexes=schemas[name].get('indexes', []),
+                  connection=get_dynamo())
     return table
 
 def datetime_to_epoch(dt):
