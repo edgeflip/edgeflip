@@ -302,9 +302,8 @@ def _updateDb(user, token, edges):
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
         fCount = updateUsersDb(curs, [e.secondary for e in edges])
         eCount = updateFriendEdgesDb(curs, edges)
-        conn.commit()
     except:
-        conn.rollback()
+        logger.exception('Problems updating DB')
         raise
 
     logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
@@ -363,6 +362,7 @@ def updateUsersDb(curs, users):
 
     """
 
+    count = 0
     for u in users:
         col_val = {
             'first_name': u.fname,
@@ -373,18 +373,11 @@ def updateUsersDb(curs, users):
             'city': u.city,
             'state': u.state
         }
-        user, created = models.User.objects.get_or_create(fbid=u.id)
-        count = 0
-        for k, v in col_val.items():
-            if not v:
-                continue
+        user, created = models.User.objects.get_or_create(
+            fbid=u.id, defaults=col_val)
+        count += 1
+    return count
 
-            setattr(user, k, v)
-            user.save()
-            count += 1
-        return count
-
-    return updateCount
 
 def updateTokensDb(curs, users, token):
     """update tokens table"""
