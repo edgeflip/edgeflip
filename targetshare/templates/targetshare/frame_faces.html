@@ -1,24 +1,18 @@
-<!DOCTYPE html>
+{% extends 'targetshare/base.html' %}
+{% block title %}Sharing for Social Good{% endblock %}
 
-<HTML>
-<HEAD>
-    <!-- served in iframe on client - container for faces & mesg div -->
-    <TITLE>Sharing for Social Good</TITLE>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-
+{% block style_includes %}
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
+    <!-- edgeflip stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/button.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/faces.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/share_msg.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/manual_add.css" />
+    <!-- edgeflip stylesheets -->
+{% endblock %}
 
-    {% block edgeflip_style %}
-        <!-- edgeflip stylesheets -->
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/button.css" />
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/faces.css" />
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/share_msg.css" />
-        <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/manual_add.css" />
-        <!-- edgeflip stylesheets -->
-    {% endblock edgeflip_style %}
-
+{% block style_inline %}
     <!-- Document-specific style -->
     <STYLE>
         /* May eventually want to template these style rules and pass from Flask */
@@ -29,8 +23,10 @@
 
     </STYLE>
     <!-- Document-specific style -->
+{% endblock %}
 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+{% block js_include %}
+    {{ block.super }}
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/jquery-ui.min.js"></script>
 
     <script> 
@@ -50,10 +46,12 @@
     </script>
 
     <!-- edgeflip javascript -->
-    <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
     <script src="{{ STATIC_URL }}js/url_params.js"></script>
     <script src="{{ STATIC_URL }}js/load_and_login.js?version={{ settings.RELEASE_VERSION }}"></script>
-    <SCRIPT>
+{% endblock %}
+
+{% block js_inline %}
+    <script>
         // Read the session id from the query string if it exists
         var sessionid = '';
         var urlparams = read_url_params();
@@ -80,64 +78,61 @@
         var thanksURL = '{{ properties.client_thanks_url|safe }}';
         var errorURL = '{{ properties.client_error_url|safe }}';
 
-    </SCRIPT>
+    </script>
     <!-- edgeflip javascript -->
+{% endblock %}
 
-</HEAD>
-<BODY>
+{% block body %}
+    <div style="display: table; position: relative; margin: 0px auto;">
 
-<div style="display: table; position: relative; margin: 0px auto;">
+        <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
+            <h2 style="margin: 10px;">L o a d i n g . . .</h2>
+            <img src="{{ STATIC_URL }}img/aniprogress.gif">
+        </div>
 
-    <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
-        <h2 style="margin: 10px;">L o a d i n g . . .</h2>
-        <img src="{{ STATIC_URL }}img/aniprogress.gif">
     </div>
 
-</div>
-
-<div id="friends_div" style="display:none;">
-    
-    <div id="your-friends-here"></div> <!-- your-friends-here -->
-
-</div> <!-- friends_div -->
-
-
-<div id="fb-root"></div>
-<script type="text/javascript">
-    
-    /* standard facebook workflow */
-
-    window.fbAsyncInit = function() {
-
-
-        FB.init({ appId: '{{ fb_params.fb_app_id }}', //change the appId to your appId
-            status: true, 
-            cookie: true,
-            xfbml: true,
-            oauth: true});
-
-        FB.Event.subscribe('auth.statusChange', function(response) {
-            if (response.status === 'connected') {
-                var uid = response.authResponse.userID;
-                var tok = response.authResponse.accessToken;
-                login(uid, tok, response, null);
-            } else {
-                // User isn't logged in or hasn't authed, so try doing the login directly
-                // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-                doFBLogin();
-            }
-        });
-
-    }; // fbAsyncInit
-
-    (function() {
-        var e = document.createElement('script'); e.async = true;
-        e.src = document.location.protocol 
-            + '//connect.facebook.net/en_US/all.js';
-        document.getElementById('fb-root').appendChild(e);
-    }());
+    <div id="friends_div" style="display:none;">
         
-</script>
+        <div id="your-friends-here"></div> <!-- your-friends-here -->
 
-</BODY>
-</HTML>
+    </div> <!-- friends_div -->
+
+
+    <div id="fb-root"></div>
+    <script type="text/javascript">
+        
+        /* standard facebook workflow */
+
+        window.fbAsyncInit = function() {
+
+
+            FB.init({ appId: '{{ fb_params.fb_app_id }}', //change the appId to your appId
+                status: true, 
+                cookie: true,
+                xfbml: true,
+                oauth: true});
+
+            FB.Event.subscribe('auth.statusChange', function(response) {
+                if (response.status === 'connected') {
+                    var uid = response.authResponse.userID;
+                    var tok = response.authResponse.accessToken;
+                    login(uid, tok, response, null);
+                } else {
+                    // User isn't logged in or hasn't authed, so try doing the login directly
+                    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
+                    doFBLogin();
+                }
+            });
+
+        }; // fbAsyncInit
+
+        (function() {
+            var e = document.createElement('script'); e.async = true;
+            e.src = document.location.protocol 
+                + '//connect.facebook.net/en_US/all.js';
+            document.getElementById('fb-root').appendChild(e);
+        }());
+            
+    </script>
+{% endblock %}

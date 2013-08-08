@@ -2,7 +2,7 @@
 	var efDiv = document.getElementById('ef_frame_div');
     var script_src = efDiv.children[0].src;
 
-	var efFrameURL = script_src.replace('/static/js/create_frame.js', '/frame_faces/');
+	var efFrameURL = script_src.replace('/static/js/create_frame.js', '/frame_faces');
 
 
 	var urlparams = {};

@@ -5,7 +5,7 @@ from . import manage
 
 
 @fab.task(name='server', default=True)
-def start_runserver(host='0.0.0.0', port='8000'):
+def start_runserver(host='0.0.0.0', port='8080'):
     """Start the Django runserver with specified host and port"""
     manage('runserver', args=('%s:%s' % (host, port),))
 
