@@ -294,16 +294,12 @@ def update_many_users(users):
         data['birthday'] = date_to_epoch(data.get('birthday'))
         data['updated'] = updated
         _remove_null_values(data)
-        print("UPDATE", item['fbid'], data.keys())
 
         # update the boto item
         for k, v in data.iteritems():
             if k != 'fbid':
                 item[k] = v
-        print("UPDATE2", dict(item.items()))
         item.partial_save()
-        print("UPDATE3", dict(item.items()))
-
 
     # everything left in users_data must be new items. Loop through these &
     # save individually, so that a concurrent write will cause an error
