@@ -177,10 +177,11 @@ function syncFriendBoxes() {
 
     // go through the manual add friends and make sure they should be there
     var friendBoxesAdded = $('.added_friend');
-    for (var i=0; i<friendBoxesAdded.length; i++) {
+    for (var i=friendBoxesAdded.length-1; i>=0; i--) {
+        var box = friendBoxesAdded[i]
         var fbid = parseInt(friendBoxesAdded[i].id.split('-')[1]);
         if (!isRecip(fbid)) {
-            friendBoxesAdded[i].remove();
+            $(friendBoxesAdded[i]).remove();
         }
     }
 
@@ -305,10 +306,6 @@ function useSuggested(msgs) {
 	}
 
     // grab the pre and post off the front of the queue and stick 'em back on the end
-
-    //zzz
-    console.log(msgs.toString());
-
     var msgPair = msgs.shift();
     msgs.push(msgPair);
     var msgPre = msgPair[0];
@@ -438,8 +435,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 /* hits facebook API */
 // Called when someone actually shares a message
 function doShare() {
-    recordEvent('share_click');
-
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
 	if (getRecipFbids().length == 0) {
 		if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
@@ -448,6 +443,7 @@ function doShare() {
 			return;
 		}
 	}
+    recordEvent('share_click');
 
     helperTextDisappear();
     $('#friends_div').hide();
@@ -468,13 +464,6 @@ function doShare() {
 	msg = $('#message_form_editable').text();
 	msg = msg.replace(/[\n\r]/g, ' ');
 	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
-
-    var debugStr = "sharing: \n" + msg + "\n\nrecips: " + recips.toString();
-    debugStr += "\n\nFB.api(/me/" + FB_APP_NAME + ':' + FB_ACTION_TYPE + ", post, "
-    debugStr += "{" + FB_OBJ_TYPE + ": " + FB_OBJ_URL + ", message: " + msg + "}, function(response) {...})"
-    alert(debugStr);
-    console.log(debugStr);
-    //return;
 
 	// The actual call to do the sharing
     var paramObj = { message: msg }
@@ -574,52 +563,6 @@ function recordEvent(eventType, errorMsg) {
 function helperTextDisappear() {
     $('#message_helper_txt').remove();
 }
-
-
-
-
-
-//
-//	var params = JSON.stringify({
-//		userid: userid,
-//		appid: FB_APP_ID,
-//		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-//		sessionid: sessionid,	// global session id was pulled in from query string above
-//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-//        contentid: contentid
-//
-//		oldid: oldid,
-//		newid: id,
-//		fname: fname,
-//		lname: lname,
-//	});
-//	var params = JSON.stringify({
-//		userid: userid,
-//		appid: FB_APP_ID,
-//		content: content,
-//		sessionid: sessionid,	// global session id was pulled in from query string above
-//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-//        contentid: contentid
-//
-//
-//		actionid: actionid,
-//		friends: recips,
-//        eventType: 'shared',
-//	});
-//
-//    var params = JSON.stringify({
-//        userid: userid,
-//        appid: FB_APP_ID,
-//        content: content,
-//        sessionid: sessionid,   // global session id was pulled in from query string above
-//        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-//        contentid: contentid,
-//
-//
-//        eventType: eventType,
-//        errorMsg: errorMsg
-//    });
-
 
 
 /////////////////////////////////

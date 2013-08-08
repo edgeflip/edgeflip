@@ -9,7 +9,7 @@ import datetime
 import random
 import json
 
-from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, decodeDES
+from .utils import ajaxResponse, generateSessionId, getIP, locateTemplate, locateCss, decodeDES
 
 from .. import facebook
 from .. import mock_facebook
@@ -53,8 +53,6 @@ def button(campaignId, contentId):
         return "Content not found", 404
 
     facesURL = cdb.getFacesURL(campaignId, contentId)
-    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
-    # paramsDict = {'fb_app_name': paramsDB[0], 'fb_app_id': int(paramsDB[1])}
     paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
 
     ip = getIP(req=flask.request)
@@ -76,7 +74,15 @@ def button(campaignId, contentId):
         # zzz (mostly a quick hack to account for existing clients without specific button style in in the DB...)
         styleTemplate = locateTemplate('button.html', clientSubdomain, app)
 
-    return flask.render_template(styleTemplate, fbParams=paramsDict, goto=facesURL, campaignId=campaignId, contentId=contentId, sessionId=sessionId)
+    return flask.render_template(
+        styleTemplate,
+        fbParams=paramsDict,
+        clientCss=locateCss("edgeflip_client.css", clientSubdomain, app),
+        clientCssSimp=locateCss("edgeflip_client_simp.css", clientSubdomain, app),
+        goto=facesURL,
+        campaignId=campaignId,
+        contentId=contentId,
+        sessionId=sessionId)
 
 
 @app.route("/frame_faces/<campaignSlug>")
@@ -100,13 +106,6 @@ def frame_faces(campaignId, contentId):
     """html container (iframe) for client site """
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
-
-    logger.debug("host: " + flask.request.host + ", client subdomain: " + clientSubdomain)
-
-    # try:
-    #     clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    # except ValueError as e:
-    #     return "Content not found", 404     # Better fallback here or something?
     clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
 
     test_mode = False
@@ -119,21 +118,16 @@ def frame_faces(campaignId, contentId):
         test_token = flask.request.args['token']
 
     thanksURL, errorURL = cdb.dbGetObjectAttributes('campaign_properties', ['client_thanks_url', 'client_error_url'], 'campaign_id', campaignId)[0]
-
-    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])[0]
-    # paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : int(paramsDB[1])}
     paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
-
-    #zzz
-    #paramsDict = {'fb_app_name' : paramsDB[0], 'fb_app_id' : 417233888375210}
-
     logger.info("fb params: " + str(paramsDict))
 
     return flask.render_template(
-        locateTemplate('frame_faces.html', clientSubdomain, app),
+        locateTemplate('frame_faces.html', clientSubdomain, app),  # allowed (but discouraged) to be custom
         fbParams=paramsDict,
         campaignId=campaignId,
         contentId=contentId,
+        clientCss=locateCss("edgeflip_client.css", clientSubdomain, app),
+        clientCssSimp=locateCss("edgeflip_client_simp.css", clientSubdomain, app),
         thanksURL=thanksURL,
         errorURL=errorURL,
         app_version=config.app_version,
@@ -172,17 +166,12 @@ def faces():
 
     # zzz As above, do this right (with subdomain keyword)...
     clientSubdomain = flask.request.host.split('.')[0]
-    # try:
-    #     clientId = cdb.validateClientSubdomain(campaignId, contentId, clientSubdomain)
-    # except ValueError as e:
-    #     return "Content not found", 404     # Better fallback here or something?
     clientId = cdb.dbGetObject('campaigns', ['client_id'], 'campaign_id', campaignId)[0][0]
 
     # Want to ensure mock mode can only be run in staging or local development
     if (mockMode and not (clientSubdomain == config.web.mock_subdomain)):
         return "Mock mode only allowed for the mock client.", 403
 
-    # paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
     paramsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
     fbAppName = paramsDict['fb_app_name']
     fbAppId = paramsDict['fb_app_id']
@@ -263,19 +252,20 @@ def faces():
 
 
 def getAppInfo(clientId):
-    ''' Looks up the proper fb app id/name in database.  Values are overidden by those specified in conf files using
+    """ Looks up the proper fb app id/name in database.  Values are overidden by those specified in conf files using
     the appname_override and appid_override keys.
 
     returns a dict suitable for passing into templates, e.g. {'fb_app_name': superduperapp, 'fb_app_id':8675309}
-    '''
+    """
 
     appName = config.facebook.appname_override if ("appname_override" in config.facebook) else None
     appId = config.facebook.appid_override if ("appid_override" in config.facebook) else None
 
-    if not (appId and appName):
+    if not (appId and appName):  # hit the db if we don't have conf.d values
         paramsDB = cdb.dbGetClient(clientId, ['fb_app_name', 'fb_app_id'])[0]
-        appName = appName or paramsDB[0]
-        appId = appId or int(paramsDB[1])  #zzz should prob be stored as an int in the db
+        if (paramsDB):
+            appName = appName or paramsDB[0]
+            appId = appId or int(paramsDB[1])  # should prob be stored as an int in the db
 
     return {'fb_app_name': appName, 'fb_app_id': appId}
 
@@ -287,11 +277,11 @@ def applyCampaign(edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug,
     ''' Receives the filtered edges, the filters used, and all the necessary
     information needed to record the campaign assignment.
     '''
-    MAX_FACES = 50  # Totally arbitrary number to avoid going too far down the list.
+    MAX_FACES = 50  # Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
     friendDicts = [e.toDict() for e in edgesFiltered.edges()]
-    faceFriends = friendDicts[:MAX_FACES]           # Anyone who we might show as a face. Totally arbitrary number to avoid going too far down the list, but maybe just send them all?
-    allFriends = [e.toDict() for e in edgesRanked] # For the "manual add" box -- ALL friends can be included, regardless of targeting criteria or prior shares/suppressions!
-
+    faceFriends = friendDicts[:MAX_FACES]           # Anyone who we might show as a face
+    allFriends = [e.toDict() for e in edgesRanked]  # For the "manual add" box -- all friends can be included,
+                                                    # regardless of targeting criteria or prior shares/suppressions!
 
     fbObjectTable = 'campaign_fb_objects'
     fbObjectIdx = 'campaign_fb_object_id'
@@ -417,13 +407,12 @@ def objects(fbObjectId, contentId):
                     ['og_action', 'og_type', 'og_title', 'og_image', 'og_description',
                     'page_title', 'url_slug'], 
                     'fb_object_id', fbObjectId)
-    paramsDB = cdb.dbGetClient(clientId, ['fb_app_name','fb_app_id'])
+    fbParamsDict = getAppInfo(clientId)  # fb_app_name, fb_app_id
 
-    if (not fbObjectInfo or not paramsDB):
+    if (not all([fbObjectInfo, fbParamsDict['fb_app_name'], fbParamsDict['fb_app_id']])):
         return "404 - Content Not Found", 404
     else:
         fbObjectInfo = fbObjectInfo[0]
-        paramsDB = paramsDB[0]
 
     choiceSetSlug = flask.request.args.get('csslug', '')
     actionId = flask.request.args.get('fb_action_ids', '').split(',')[0].strip()
@@ -439,18 +428,18 @@ def objects(fbObjectId, contentId):
         return "404 - Content Not Found", 404
 
     objParams = {
-    'page_title': fbObjectInfo[5],
-    'fb_action_type': fbObjectInfo[0],
-    'fb_object_type': fbObjectInfo[1],
-    'fb_object_title': fbObjectInfo[2],
-    'fb_object_image': fbObjectInfo[3],
-    'fb_object_desc': fbObjectInfo[4],
-    'fb_object_url' : flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
-    'fb_app_name' : paramsDB[0],
-    'fb_app_id' : int(paramsDB[1])
+        'page_title': fbObjectInfo[5],
+        'fb_action_type': fbObjectInfo[0],
+        'fb_object_type': fbObjectInfo[1],
+        'fb_object_title': fbObjectInfo[2],
+        'fb_object_image': fbObjectInfo[3],
+        'fb_object_desc': fbObjectInfo[4],
+        'fb_object_url': flask.url_for('objects', fbObjectId=fbObjectId, contentId=contentId, _external=True) + ('?csslug=%s' % choiceSetSlug if choiceSetSlug else ''),
+        'fb_app_name': fbParamsDict['fb_app_name'],
+        'fb_app_id': fbParamsDict['fb_app_id']
     }
 
-    ip = getIP(req = flask.request)
+    ip = getIP(req=flask.request)
     sessionId = flask.request.args.get('efsid')
     content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % objParams
     if (not sessionId):
@@ -479,7 +468,7 @@ def suppress():
     content = flask.request.json['content']     # This is a string with type & URL as passed to FB
     oldid = flask.request.json['oldid']
     sessionId = flask.request.json['sessionid']
-    ip = getIP(req = flask.request)
+    ip = getIP(req=flask.request)
 
     newid = flask.request.json['newid']
     fname = flask.request.json['fname']
@@ -515,13 +504,13 @@ def recordEvent():
     friends = friends or [None]
     eventType = flask.request.json['eventType']
     sessionId = flask.request.json['sessionid']
-    ip = getIP(req = flask.request)
+    ip = getIP(req=flask.request)
 
-    if (eventType not in [  'button_load', 'button_click', 
-                            'authorized', 'auth_fail', 
-                            'select_all_click', 'suggest_message_click', 
-                            'share_click', 'share_fail', 'shared', 'clickback'
-                        ]):
+    if (eventType not in ['button_load', 'button_click',
+                          'authorized', 'auth_fail',
+                          'select_all_click', 'suggest_message_click',
+                          'share_click', 'share_fail', 'shared', 'clickback'
+                          ]):
         return "Ah, ah, ah. You didn't say the magic word.", 403
 
     if (not sessionId):

@@ -74,3 +74,11 @@ def locateTemplate(templateName, clientSubdomain, app):
         return 'clients/%s/%s' % (clientSubdomain, templateName)
     else:
         return templateName
+
+def locateCss(cssName, clientSubdomain, app):
+    fullPath = os.path.join(app.root_path, app.static_folder, 'clients', clientSubdomain, cssName)
+    if (os.path.exists(fullPath)):
+        return '/static/clients/%s/%s' % (clientSubdomain, cssName)
+
+    else:
+        return '/static/' + cssName

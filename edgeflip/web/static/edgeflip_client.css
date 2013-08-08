@@ -2,9 +2,13 @@ body {
 	font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 }
 
+#your-friends-here {
+    width: 100%;
+}
+
 /* div around the entire form */
 #faces_form_container {
-    width: 760px;
+    width: 700px;
 	/*display: table;*/
 	/*overflow-x: hidden;*/
 	vertical-align: top;
@@ -18,7 +22,7 @@ body {
 
 #progress {
     /*width: 250px;*/
-    /*background-color: white;*/
+    background-color: white;
     margin: 50px auto;
     /*margin-top: 50px;*/
     /*display: block;*/
@@ -94,13 +98,22 @@ body {
 	background-color: #094163;
 }
 
-
+.dojoxEllipsis,
+.dojoxEllipsisShown {
+    color: inherit;
+}
 
 
 
 /***************************************************
  Styling for friend picker buttons (new_face.html)
 */
+
+#friends_table {
+    width: 550px;
+    margin: 0px auto;
+    clear: both;
+}
 
 /* styles the boxes with friend names and pictures */
 .friend_box {
@@ -271,7 +284,9 @@ body {
 	border: solid thin gray;
 	border-radius: 5px;
 	background-color: white;
-    margin: 0px 75px;
+    /*margin: 0px 75px;*/
+    width: 550px;
+    margin: 0px auto;
 }
 
 #message_form_editable {

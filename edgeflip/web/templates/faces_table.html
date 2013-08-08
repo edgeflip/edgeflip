@@ -23,9 +23,6 @@ this is the message div and the faces themselves
     suggested_messages.push(['{{ msgParams.msg1_pre }}', '{{ msgParams.msg1_post }}']);
     suggested_messages.push(['{{ msgParams.msg2_pre }}', '{{ msgParams.msg2_post }}']);
 
-    console.log(suggested_messages.toString());
-
-
 </script>
 
 
@@ -39,7 +36,7 @@ this is the message div and the faces themselves
 
     <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
 
-    <table align=center border=0 cellpadding=0 cellspacing=7 class="friends_table">
+    <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table">
         <tr>
             {% for faceFriend in faceFriends[:numFace] %}
                 <td>{{ face(faceFriend.id, faceFriend.fname, faceFriend.lname) }}</td>

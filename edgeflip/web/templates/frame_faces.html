@@ -12,8 +12,11 @@
 
     {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client.css')}}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client_simp.css')}}" />
+
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client.css')}}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client_simp.css')}}" />#}
+    <link rel="stylesheet" type="text/css" href="{{ clientCss }}" />
+    <link rel="stylesheet" type="text/css" href="{{ clientCssSimp }}" />
 
 
     {% endblock edgeflip_style %}
@@ -96,7 +99,7 @@
 
 </div>
 
-<div id="friends_div" style="display:none;">
+<div id="friends_div" style="display:none; width: 100%">
     
     <div id="your-friends-here"></div> <!-- your-friends-here -->
 

@@ -5,7 +5,7 @@ body {
 /* div around the entire form */
 #faces_form_container {
 	background-color: #f7f7f7;
-	border: 2px solid lightgrey;
+	border: 2px solid #7C889B;
 	border-radius: 10px;
 	padding: 25px;
     margin: 20px auto;
