@@ -158,7 +158,6 @@ def frame_faces(request, campaign_id, content_id):
 @require_POST
 @csrf_exempt # FIXME
 def faces(request):
-    import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
     num_face = request.POST.get('num')
