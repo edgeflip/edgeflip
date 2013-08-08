@@ -359,10 +359,7 @@ def updateFriendEdgesDb(curs, edges):
 
 
 def updateUsersDb(curs, users):
-    """update users table
-
-    """
-
+    """update users table"""
     for u in users:
         col_val = {
             'first_name': u.fname,
