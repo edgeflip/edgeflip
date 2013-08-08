@@ -7,7 +7,7 @@ class EdgeFlipTestCase(TestCase):
     def setUp(self):
         super(EdgeFlipTestCase, self).setUp()
         self.eager = settings.CELERY_ALWAYS_EAGER
-        settings.CELERY_ALWAYS_EAGER = False
+        settings.CELERY_ALWAYS_EAGER = True
 
     def tearDown(self):
         settings.CELERY_ALWAYS_EAGER = self.eager
