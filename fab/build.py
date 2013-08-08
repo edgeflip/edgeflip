@@ -15,7 +15,7 @@ l = fab.local
 # Tasks #
 
 @fab.task(name='all', default=True)
-def build_all(deps='1', env=None, schema=None):
+def build_all(deps='1', env=None):
     """Execute all tasks to build the project and its environment
 
     By default, OS-level dependencies are installed (via task "dependencies").
@@ -35,10 +35,6 @@ def build_all(deps='1', env=None, schema=None):
 
         build:env=MY-ENV
 
-    Or pass a custom DB schema file to task "db" by specifying "schema":
-
-        build:schema=/home/initial.sql
-
     """
     # dependencies
     if true(deps):
@@ -55,8 +51,7 @@ def build_all(deps='1', env=None, schema=None):
     fab.execute(install_reqs)
 
     # db
-    # FIXME: review pending django changes
-    fab.execute(setup_db, schema=schema)
+    fab.execute(setup_db)
 
 
 @fab.task(name='dependencies')

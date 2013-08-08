@@ -1,0 +1,474 @@
+- fields:
+    create_dt: 2013-08-07 13:35:35+00:00
+    domain: edgeflip.com
+    fb_app_id: '471727162864364'
+    fb_app_name: sharing-social-good
+    name: Mayors Against Illegal Guns
+    subdomain: demandaction
+  model: targetshare.client
+  pk: 1
+- fields:
+    create_dt: 2013-08-07 13:35:37+00:00
+    domain: edgeflip.com
+    fb_app_id: '471727162864364'
+    fb_app_name: sharing-social-good
+    name: Terry McAuliffe for Governor
+    subdomain: terrymcauliffe
+  model: targetshare.client
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: MAIG Final Fallback for NV Campaign
+  model: targetshare.campaign
+  pk: 1
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: MAIG Border State Fallback for NV Campaign
+  model: targetshare.campaign
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: MAIG NV Campaign
+  model: targetshare.campaign
+  pk: 3
+- fields:
+    client: 2
+    create_dt: 2013-08-07 13:35:37+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: Auth Campaign for McAuliffe (ver. A)
+  model: targetshare.campaign
+  pk: 4
+- fields:
+    client: 2
+    create_dt: 2013-08-07 13:35:37+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: Auth Campaign for McAuliffe (ver. B)
+  model: targetshare.campaign
+  pk: 5
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: Default element created by edgeflip
+    is_deleted: false
+    name: edgeflip default
+  model: targetshare.choiceset
+  pk: 1
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: null
+    is_deleted: false
+    name: In NV Border State
+  model: targetshare.choiceset
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: null
+    is_deleted: false
+    name: In Nevada
+  model: targetshare.choiceset
+  pk: 3
+- fields:
+    client: 2
+    create_dt: 2013-08-07 13:35:37+00:00
+    delete_dt: null
+    description: Default element created by edgeflip
+    is_deleted: false
+    name: edgeflip default
+  model: targetshare.choiceset
+  pk: 4
+- fields:
+    allow_generic: true
+    campaign: 1
+    choice_set: 1
+    end_dt: null
+    generic_url_slug: all
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignchoiceset
+  pk: 1
+- fields:
+    allow_generic: true
+    campaign: 2
+    choice_set: 2
+    end_dt: null
+    generic_url_slug: all
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignchoiceset
+  pk: 2
+- fields:
+    allow_generic: false
+    campaign: 3
+    choice_set: 3
+    end_dt: null
+    generic_url_slug: null
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignchoiceset
+  pk: 3
+- fields:
+    campaign: 1
+    end_dt: null
+    fb_object: 1
+    filter: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignfbobjects
+  pk: 1
+- fields:
+    campaign: 2
+    end_dt: null
+    fb_object: 1
+    filter: 2
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignfbobjects
+  pk: 2
+- fields:
+    campaign: 3
+    end_dt: null
+    fb_object: 2
+    filter: 3
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignfbobjects
+  pk: 3
+- fields:
+    campaign: 1
+    end_dt: null
+    fb_object: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaigngenericfbobjects
+  pk: 1
+- fields:
+    campaign: 2
+    end_dt: null
+    fb_object: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaigngenericfbobjects
+  pk: 2
+- fields:
+    campaign: 1
+    end_dt: null
+    filter: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignglobalfilter
+  pk: 1
+- fields:
+    campaign: 2
+    end_dt: null
+    filter: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignglobalfilter
+  pk: 2
+- fields:
+    campaign: 3
+    end_dt: null
+    filter: 1
+    rand_cdf: '1.000000000'
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignglobalfilter
+  pk: 3
+- fields:
+    campaign: 1
+    client_error_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    client_faces_url: http://www.demandaction.org/SandovalSB221Share
+    client_thanks_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    end_dt: null
+    fallback_campaign: null
+    fallback_content: null
+    fallback_is_cascading: null
+    min_friends: 1
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignproperties
+  pk: 1
+- fields:
+    campaign: 2
+    client_error_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    client_faces_url: http://www.demandaction.org/SandovalSB221Share
+    client_thanks_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    end_dt: null
+    fallback_campaign: 1
+    fallback_content: 1
+    fallback_is_cascading: false
+    min_friends: 1
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignproperties
+  pk: 2
+- fields:
+    campaign: 3
+    client_error_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    client_faces_url: http://www.demandaction.org/SandovalSB221Share
+    client_thanks_url: https://donate.demandaction.org/act/donate?source=fbo_datgsxx0613nssandovts
+    end_dt: null
+    fallback_campaign: 2
+    fallback_content: 1
+    fallback_is_cascading: false
+    min_friends: 1
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.campaignproperties
+  pk: 3
+- fields:
+    campaign: 4
+    client_error_url: https://donate.terrymcauliffe.com/page/contribute/donate
+    client_faces_url: http://action.terrymcauliffe.com/page/share/stand-with-terry
+    client_thanks_url: https://donate.terrymcauliffe.com/page/contribute/donate
+    end_dt: null
+    fallback_campaign: null
+    fallback_content: null
+    fallback_is_cascading: null
+    min_friends: 1
+    start_dt: 2013-08-07 13:35:37+00:00
+  model: targetshare.campaignproperties
+  pk: 4
+- fields:
+    campaign: 5
+    client_error_url: https://donate.terrymcauliffe.com/page/contribute/donate
+    client_faces_url: http://action.terrymcauliffe.com/page/share/standing-with-terry
+    client_thanks_url: https://donate.terrymcauliffe.com/page/contribute/donate
+    end_dt: null
+    fallback_campaign: null
+    fallback_content: null
+    fallback_is_cascading: null
+    min_friends: 1
+    start_dt: 2013-08-07 13:35:37+00:00
+  model: targetshare.campaignproperties
+  pk: 5
+- fields:
+    choice_set: 1
+    end_dt: null
+    filter: 1
+    propensity_model_type: ''
+    start_dt: 2013-08-07 13:35:35+00:00
+    url_slug: all
+  model: targetshare.choicesetfilter
+  pk: 1
+- fields:
+    choice_set: 2
+    end_dt: null
+    filter: 2
+    propensity_model_type: ''
+    start_dt: 2013-08-07 13:35:35+00:00
+    url_slug: border
+  model: targetshare.choicesetfilter
+  pk: 2
+- fields:
+    choice_set: 3
+    end_dt: null
+    filter: 3
+    propensity_model_type: ''
+    start_dt: 2013-08-07 13:35:35+00:00
+    url_slug: NV
+  model: targetshare.choicesetfilter
+  pk: 3
+- fields:
+    choice_set: 4
+    end_dt: null
+    filter: 4
+    propensity_model_type: ''
+    start_dt: 2013-08-07 13:35:37+00:00
+    url_slug: all
+  model: targetshare.choicesetfilter
+  pk: 4
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: Fallback Content for the MAIG first targeted sharing campaign.
+    is_deleted: false
+    name: Gun Reform Share into NV
+    url: http://www.demandaction.org/sandovalsb221?source=fbo_datgsxx0613nssandovts
+  model: targetshare.clientcontent
+  pk: 1
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: Main Content for the MAIG first targeted sharing campaign.
+    is_deleted: false
+    name: NV Gun Reform Call Sandoval
+    url: http://www.demandaction.org/sandovalsb221call?source=fbo_datgsxx0613nssandovts
+  model: targetshare.clientcontent
+  pk: 2
+- fields:
+    client: 2
+    create_dt: 2013-08-07 13:35:37+00:00
+    delete_dt: null
+    description: Dummy Content for authorization-only buttons (will never be reached).
+    is_deleted: false
+    name: McAuliffe VA Auth Campaign Dummy
+    url: https://donate.terrymcauliffe.com/page/contribute/donate
+  model: targetshare.clientcontent
+  pk: 3
+- fields:
+    button_style: null
+    choice_set: 1
+    choice_set_algorithm: null
+    client: 1
+    end_dt: null
+    faces_style: null
+    filter: 1
+    mix_model: null
+    propensity_model: null
+    proximity_model: null
+    start_dt: 2013-08-07 13:35:35+00:00
+  model: targetshare.clientdefault
+  pk: 1
+- fields:
+    button_style: null
+    choice_set: 4
+    choice_set_algorithm: null
+    client: 2
+    end_dt: null
+    faces_style: null
+    filter: 4
+    mix_model: null
+    propensity_model: null
+    proximity_model: null
+    start_dt: 2013-08-07 13:35:37+00:00
+  model: targetshare.clientdefault
+  pk: 2
+- fields:
+    end_dt: null
+    fb_object: 1
+    msg1_post: ' -- big news! A bill to require background checks for all gun sales
+      just passed the Nevada legislature. Ask your friends in the state to tell their
+      Governor to sign it into law!'
+    msg1_pre: 'Hey '
+    msg2_post: ' -- big news! A bill to require background checks for all gun sales
+      just passed the Nevada legislature. Ask your friends in the state to tell their
+      Governor to sign it into law!'
+    msg2_pre: 'Hey '
+    og_action: support
+    og_description: 'Ask your friends in NV to tell their Gov: Support Background
+      Checks and Sign SB-221!'
+    og_image: https://demandaction.edgeflip.com/static/clients/demandaction/mayors_logo.jpg
+    og_title: Tell NV Governor to Sign Background Check Bill
+    og_type: cause
+    page_title: Demand Action on Gun Reform
+    sharing_prompt: Ask your Facebook friends to tell Nevada's Governor Sandoval to
+      sign comprehensive background checks into law!
+    start_dt: 2013-08-07 13:35:35+00:00
+    url_slug: ''
+  model: targetshare.fbobjectattribute
+  pk: 1
+- fields:
+    end_dt: null
+    fb_object: 2
+    msg1_post: ' -- big news! A bill to require background checks for all gun sales
+      just passed the Nevada legislature. Tell Governor Sandoval to sign it into law!'
+    msg1_pre: 'Hey '
+    msg2_post: ' -- big news! A bill to require background checks for all gun sales
+      just passed the Nevada legislature. Tell Governor Sandoval to sign it into law!'
+    msg2_pre: 'Hey '
+    og_action: support
+    og_description: 'Tell NV''s Gov: Support Background Checks and Sign SB-221!'
+    og_image: https://demandaction.edgeflip.com/static/clients/demandaction/mayors_logo.jpg
+    og_title: Tell NV Governor to Sign Background Check Bill
+    og_type: cause
+    page_title: Demand Action on Gun Reform
+    sharing_prompt: Ask your Facebook friends in Nevada to tell Governor Sandoval
+      to sign comprehensive background checks into law!
+    start_dt: 2013-08-07 13:35:35+00:00
+    url_slug: ''
+  model: targetshare.fbobjectattribute
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: Gun Reform NV Share Fallback
+  model: targetshare.fbobject
+  pk: 1
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: Gun Reform NV Share
+  model: targetshare.fbobject
+  pk: 2
+- fields:
+    end_dt: null
+    feature: state
+    filter: 2
+    operator: in
+    start_dt: 2013-08-07 13:35:35+00:00
+    value: California||Arizona||Utah||Idaho||Oregon
+    value_type: list
+  model: targetshare.filterfeature
+  pk: 1
+- fields:
+    end_dt: null
+    feature: state
+    filter: 3
+    operator: eq
+    start_dt: 2013-08-07 13:35:35+00:00
+    value: Nevada
+    value_type: string
+  model: targetshare.filterfeature
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: Default element created by edgeflip
+    is_deleted: false
+    name: edgeflip default
+  model: targetshare.filter
+  pk: 1
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: Nevada Border States
+  model: targetshare.filter
+  pk: 2
+- fields:
+    client: 1
+    create_dt: 2013-08-07 13:35:35+00:00
+    delete_dt: null
+    description: ''
+    is_deleted: false
+    name: In Nevada
+  model: targetshare.filter
+  pk: 3
+- fields:
+    client: 2
+    create_dt: 2013-08-07 13:35:37+00:00
+    delete_dt: null
+    description: Default element created by edgeflip
+    is_deleted: false
+    name: edgeflip default
+  model: targetshare.filter
+  pk: 4

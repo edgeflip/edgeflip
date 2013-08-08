@@ -103,15 +103,15 @@ class StartStopManager(models.Manager):
         As called above, `replace`:
 
             1) validates that unique `FilterFeature`s will be inserted, where
-                the object signature is determined by `FilterFeature`'s
-                `Meta.ss_fields`
+                the object signature has been passed to the manager through the factory
+                function `start_stop_manager`
             2) expires the currently active set of `FilterFeature`s whose
                 signatures match those to be inserted, by setting `end_dt`
             3) inserts the new `FilterFeature`s under `Filter` `my_filter`
 
         Alternatively, `replace_all` may be specified, such that all active
-        `FilterFeature`s are expired and replaced by the new data. Data may also be
-        specified as model objects::
+        `FilterFeature`s are expired and replaced by the new data. And, regardless,
+        data may also be specified as model objects::
 
             my_filter.filterfeature_set.replace(
                 [
