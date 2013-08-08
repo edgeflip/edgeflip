@@ -1,11 +1,11 @@
 {% extends 'targetshare/faces_table.html' %}
 
 {% block faces_prompt -%}
-    <div class="msg_title" style="padding: 0px;"><img src="{{ url_for('static', filename='clients/demandaction/step-one.png') }}" class="step_icon" /> Click on the friends you want to share with:</div>
+    <div class="msg_title" style="padding: 0px;"><img src="{{ STATIC_URL }}img/clients/demandaction/step-one.png" class="step_icon" /> Click on the friends you want to share with:</div>
 {% endblock faces_prompt -%}
 
 {% block msg_prompt %}
-    <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ url_for('static', filename='clients/demandaction/step-two.png') }}" class="step_icon" /> Share a personalized message on Facebook:
+    <div class="msg_title" style="margin-bottom: 10px;"><img src="{{ STATIC_URL }}img/clients/demandaction/step-two.png" class="step_icon" /> Share a personalized message on Facebook:
     </div>
 
     <div style="height: 50px">

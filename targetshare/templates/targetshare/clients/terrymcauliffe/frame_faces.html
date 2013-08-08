@@ -1,13 +1,13 @@
-{% extends 'frame_faces.html' %}
-{% block edgeflip_style %}
-<!-- VA FONTS!!! -->
-<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans:400,600,400italic,600italic,700,700italic" />
-<!-- VA FONTS!!! -->
+{% extends 'targetshare/frame_faces.html' %}
+{% block style_includes %}
+    <!-- VA FONTS!!! -->
+    <link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans:400,600,400italic,600italic,700,700italic" />
+    <!-- VA FONTS!!! -->
 
-<!-- edgeflip stylesheets -->
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/terrymcauliffe/button.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/terrymcauliffe/faces.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/terrymcauliffe/share_msg.css') }}" />
-<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/terrymcauliffe/manual_add.css') }}" />
-<!-- edgeflip stylesheets -->
-{% endblock edgeflip_style %}
+    <!-- edgeflip stylesheets -->
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/clients/terrymcauliffe/button.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/clients/terrymcauliffe/faces.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/clients/terrymcauliffe/share_msg.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/clients/terrymcauliffe/manual_add.css" />
+    <!-- edgeflip stylesheets -->
+{% endblock %}
