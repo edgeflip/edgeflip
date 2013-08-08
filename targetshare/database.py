@@ -298,9 +298,9 @@ def _updateDb(user, token, edges):
 
     try:
         updateTokensDb(curs, [user], token)
-        updateUsersDb(curs, [user])
+        updateUsersDb(user)
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
-        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        fCount = updateUsersDb(*(e.secondary for e in edges))
         eCount = updateFriendEdgesDb(curs, edges)
     except:
         logger.exception('Problems updating DB')
@@ -357,7 +357,7 @@ def updateFriendEdgesDb(curs, edges):
     return writeCount
 
 
-def updateUsersDb(curs, users):
+def updateUsersDb(*users):
     """update users table"""
     for u in users:
         col_val = {
@@ -379,7 +379,6 @@ def updateUsersDb(curs, users):
 
 def updateTokensDb(curs, users, token):
     """update tokens table"""
-
     insertedTokens = 0
     for user in users:
         col_val = {
