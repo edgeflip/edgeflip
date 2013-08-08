@@ -1,8 +1,8 @@
-import datetime
 import operator
 from collections import defaultdict
 
 from django.db import models
+from django.utils import timezone
 
 
 class StartStopManager(models.Manager):
@@ -160,7 +160,7 @@ class StartStopManager(models.Manager):
                              "Can neither expire old objects nor create new ones.")
 
         # Expire replaced objects:
-        replaced.update(**{self.end_field: datetime.datetime.now()})
+        replaced.update(**{self.end_field: timezone.now()})
 
         # Insert and return new objects:
         return tuple(self.create(**object_data) for object_data in data)

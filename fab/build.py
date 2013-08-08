@@ -119,7 +119,7 @@ def install_reqs(env=None):
 
 
 @fab.task(name='db')
-def setup_db(env=None, force='0'):
+def setup_db(env=None, force='0', testdata='1'):
     """Initialize the database
 
     Requires that a virtual environment has been created, and is either
@@ -132,13 +132,19 @@ def setup_db(env=None, force='0'):
 
         db:force=[1|true|yes|y]
 
+    In development, a test data fixture is loaded into the database by default; disable
+    this by specifying "testdata":
+
+        db:testdata=[0|false|no|n]
+
     """
+    roles = fab.env.roles or ['dev']
     sql_path = join(BASEDIR, 'edgeflip', 'sql')
     sql_context = {'DATABASE': 'edgeflip', 'USER': 'root'}
     password = None
 
     # Database teardown
-    if not fab.env.roles or 'dev' in fab.env.roles:
+    if 'dev' in roles:
         password = fab.prompt("Enter mysql password:")
         if true(force):
             teardown_sql = open(join(sql_path, 'teardown.sql')).read()
@@ -164,6 +170,10 @@ def setup_db(env=None, force='0'):
 
     # Application schema initialization
     manage('syncdb', flags=['migrate'], env=env)
+
+    # Load test data (dev):
+    if 'dev' in roles and true(testdata):
+        manage('loaddata', ['test_data'], env=env)
 
 
 # Helpers #

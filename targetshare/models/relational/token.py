@@ -1,5 +1,3 @@
-import datetime
-
 from django.db import models
 
 
@@ -11,7 +9,7 @@ class Token(models.Model):
     owner_id = models.BigIntegerField(db_column='ownerid')
     token = models.CharField(max_length=512)
     expires = models.DateTimeField(null=True)
-    updated = models.DateTimeField(auto_now=True, default=datetime.datetime.now) # FIXME: default?
+    updated = models.DateTimeField(auto_now=True)
 
     class Meta(object):
         app_label = 'targetshare'

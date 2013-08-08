@@ -12,6 +12,7 @@ import threading
 
 import MySQLdb as mysql
 from django.db import connection
+from django.utils import timezone
 
 from targetshare import models
 
@@ -180,7 +181,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     conn = getConn()
 
-    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    freshnessDate = timezone.now() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, email, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
@@ -298,9 +299,9 @@ def _updateDb(user, token, edges):
 
     try:
         updateTokensDb(curs, [user], token)
-        updateUsersDb(curs, [user])
+        updateUsersDb(user)
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
-        fCount = updateUsersDb(curs, [e.secondary for e in edges])
+        fCount = updateUsersDb(*(e.secondary for e in edges))
         eCount = updateFriendEdgesDb(curs, edges)
     except:
         logger.exception('Problems updating DB')
@@ -348,7 +349,7 @@ def updateFriendEdgesDb(curs, edges):
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
                     'mut_friends': counts.mutuals,
-                    'updated': datetime.datetime.now() # Force DB to change updated to current_timestamp
+                    'updated': timezone.now() # Force DB to change updated to current_timestamp
                                         # even if rest of record is identical. Depends on
                                         # MySQL handling of NULLs in timestamps and feels
                                         # a bit ugly...
@@ -357,11 +358,8 @@ def updateFriendEdgesDb(curs, edges):
     return writeCount
 
 
-def updateUsersDb(curs, users):
-    """update users table
-
-    """
-
+def updateUsersDb(*users):
+    """update users table"""
     for u in users:
         col_val = {
             'first_name': u.fname,
@@ -382,7 +380,6 @@ def updateUsersDb(curs, users):
 
 def updateTokensDb(curs, users, token):
     """update tokens table"""
-
     insertedTokens = 0
     for user in users:
         col_val = {
@@ -391,7 +388,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : datetime.datetime.now() # Force DB to change updated to current_timestamp
+            'updated' : timezone.now() # Force DB to change updated to current_timestamp
                                 # even if rest of record is identical. Depends on
                                 # MySQL handling of NULLs in timestamps and feels
                                 # a bit ugly...

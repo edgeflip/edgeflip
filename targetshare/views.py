@@ -1,7 +1,6 @@
 import json
 import logging
 import random
-import datetime
 
 import celery
 
@@ -17,6 +16,7 @@ from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.utils import timezone
 
 from targetshare import (
     facebook,
@@ -217,7 +217,7 @@ def faces(request):
         token = models.datastructs.TokenInfo(
             tok, fbid,
             int(client.fb_app_id),
-            datetime.datetime.now()
+            timezone.now()
         )
         token = fbmodule.extendTokenFb(
             fbid, token,
@@ -523,7 +523,7 @@ def record_event(request):
                 user_id, None, None, None, None, None, None, None
             )
             token = models.datastructs.TokenInfo(
-                tok, user_id, int(app_id), datetime.datetime.now()
+                tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
             models.Token.objects.filter(
