@@ -1,6 +1,6 @@
 import json
 from decimal import Decimal
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.core.urlresolvers import reverse
 from django.utils import timezone
@@ -33,7 +33,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             last_name='User',
             email='test@example.com',
             sex='male',
-            birthday=date(1984, 1, 1),
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Chicago',
             state='Illinois',
         )

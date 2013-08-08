@@ -4,6 +4,8 @@ import time
 import datetime
 from unidecode import unidecode
 
+from django.utils import timezone
+
 
 LOG = logging.getLogger(__name__)
 
@@ -143,8 +145,11 @@ class UserInfo(object):
         self.email = email
         self.gender = sex
         self.birthday = birthday
+        # Birthday is currently a DateTimeField in MySQL, so let's treat
+        # our comparisons as such for now. Later this can be fixed, after
+        # the Users table moves to Dynamo
         self.age = int(
-            (datetime.date.today() - self.birthday).days / 365.25) if (birthday) else None
+            (timezone.now() - self.birthday).days / 365.25) if (birthday) else None
         self.city = city
         self.state = state
 
