@@ -24,13 +24,10 @@ def updateUsersDb(users):
 
     :arg users: a list of `datastruct.UserInfo`
     """
-    # XXX it'd be nice to use boto's batch_write here, but it doesn't support partial updates
-    #for u in users:
-    #    dynamo.save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
-    dynamo.save_many_users(dict(fbid=u.id, fname=u.fname, lname=u.lname,
-                                email=u.email, gender=u.gender, birthday=u.birthday,
-                                city=u.city, state=u.state)
-                           for u in users)
+    dynamo.update_many_users(dict(fbid=u.id, fname=u.fname, lname=u.lname,
+                                  email=u.email, gender=u.gender, birthday=u.birthday,
+                                  city=u.city, state=u.state)
+                             for u in users)
 
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
