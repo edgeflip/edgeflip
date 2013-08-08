@@ -148,17 +148,28 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         evan_new = dict(fbid=200, fname='Evan', lname='Escarole', email='evan@example.com',
                         gender=None, birthday=None, city='Evanston', state='WY')
 
+        evan_res = evan_new.copy()
+        dynamo._remove_null_values(evan_res)
+
         dynamo.update_many_users([alice_new.copy(), evan_new.copy()])
+
+        table = dynamo.get_table('users')
 
         # compare modified user
         alice_dyn = dynamo.fetch_user(1234)
         del alice_dyn['updated']
-        self.assertDictEqual(alice_res, alice_new)
+#        self.assertDictEqual(alice_res, alice_new)
 
-        # compare new user
-        evan_dyn = dynamo.fetch_user(200)
-        del evan_dyn['updated']
-        self.assertDictEqual(evan_new, evan_dyn)
+        # compare new user. munge the raw dict from dynamo in a compatible way
+        x = table.get_item(fbid=200, consistent=True)
+        d = dict(x.items())
+        assert 'updated' in d
+        del d['updated']
+        d['fbid'] = int(d['fbid'])
+        if 'birthday' in d:
+            d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+
+        self.assertDictEqual(evan_res, d)
 
 
 @freeze_time('2013-01-01')
