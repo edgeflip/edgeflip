@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html{% block extra_html_tags %}{% endblock %}>
+    <head{% block head_tags %}{% endblock %}>
+        <title>{% block title %}{% endblock %}</title>
+        {% block meta_tags %}
+            <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+            <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        {% endblock %}
+
+        {% block extrahead %}
+        {% endblock %}
+
+        {% block style_includes %}
+        {% endblock %}
+
+        {% block style_inline %}
+        {% endblock %}
+
+        {% block js_include %}
+            <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+            {% comment %} Edgeflip js {% endcomment %}
+            <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
+        {% endblock %}
+
+        {% block js_inline %}
+        {% endblock %}
+
+    </head>
+    <body>
+
+        {% block body %}
+
+        {% endblock %}
+    </body>
+</html>

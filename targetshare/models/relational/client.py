@@ -1,4 +1,6 @@
 from django.db import models
+from django.template import TemplateDoesNotExist
+from django.template.loader import find_template
 
 
 class Client(models.Model):
@@ -13,6 +15,20 @@ class Client(models.Model):
 
     def __unicode__(self):
         return u'%s' % self.name
+
+    def locate_template(self, template_name):
+        ''' Attempts to locate a given template name in the clients template
+        path. If it doesn't find one, returns the default template
+        '''
+        try:
+            template = find_template('targetshare/%s/%s' % (
+                self.subdomain,
+                template_name
+            ))[0]
+        except TemplateDoesNotExist:
+            template = 'targetshare/%s' % template_name
+
+        return template
 
     class Meta(object):
         app_label = 'targetshare'

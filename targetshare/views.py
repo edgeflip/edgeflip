@@ -99,7 +99,7 @@ def button(request, campaign_id, content_id):
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
     except:
-        style_template = 'targetshare/button.html'
+        style_template = client.locate_template('button.html')
 
     return render(request, style_template, {
         'fb_params': params_dict,
@@ -144,7 +144,7 @@ def frame_faces(request, campaign_id, content_id):
         'fb_app_id': client.fb_app_id
     }
 
-    return render(request, 'targetshare/frame_faces.html', {
+    return render(request, client.locate_template('frame_faces.html'), {
         'fb_params': params_dict,
         'campaign': campaign,
         'content': content,
@@ -158,6 +158,7 @@ def frame_faces(request, campaign_id, content_id):
 @require_POST
 @csrf_exempt # FIXME
 def faces(request):
+    import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
     num_face = request.POST.get('num')
@@ -272,6 +273,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     face_friends = friend_dicts[:num_face]
     all_friends = friend_dicts[:max_friends]
     pick_dicts = [e.toDict() for e in edges_ranked]
+    client = campaign.client
 
     fb_object_recs = campaign.campaignfbobjects_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
@@ -304,8 +306,8 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
-        'fb_app_name': campaign.client.fb_app_name,
-        'fb_app_id': campaign.client.fb_app_id,
+        'fb_app_name': client.fb_app_name,
+        'fb_app_id': client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
@@ -347,7 +349,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     return HttpResponse(
         json.dumps({
             'status': 'success',
-            'html': render_to_string('targetshare/faces_table.html', {
+            'html': render_to_string(client.locate_template('faces_table.html'), {
                 'all_friends': all_friends,
                 'msg_params': msg_params,
                 'action_params': action_params,
