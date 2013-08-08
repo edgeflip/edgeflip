@@ -50,9 +50,21 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
         var progress = $('#progress');
         var your_friends_div = $('#your-friends-here');
 
+        // In test mode, just use the provided test fbid & token for getting faces
+        // Note, however, that you're logged into facebook as you, so trying to
+        // share with someone else's friends is going to cause you trouble!
+        var ajax_fbid = fbid;
+        var ajax_token = accessToken;
+        if (test_mode) {
+            console.log('in test mode');
+            console.log(test_token);
+            ajax_fbid = test_fbid;
+            ajax_token = test_token;
+        }
+
         var params = {
-            fbid: fbid,
-            token: accessToken,
+            fbid: ajax_fbid,
+            token: ajax_token,
             num: num,
             sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,

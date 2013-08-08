@@ -1,6 +1,6 @@
-import datetime
-
 import celery
+
+from django.utils import timezone
 
 from targetshare import (
     models,
@@ -16,7 +16,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestCeleryTasks, self).setUp()
-        expires = datetime.datetime(2100, 1, 1, 12, 0, 0)
+        expires = timezone.datetime(2100, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.datastructs.TokenInfo('1', '1', '1', expires)
 
     def test_proximity_rank_three(self):
@@ -76,7 +76,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
             last_name='User',
             email='test@example.com',
             sex='male',
-            birthday=datetime.date(1984, 1, 1),
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Chicago',
             state='Illinois'
         )
@@ -86,7 +86,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
             last_name='User',
             email='test@example.com',
             sex='male',
-            birthday=datetime.date(1984, 1, 1),
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Toledo',
             state='Ohio'
         )

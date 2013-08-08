@@ -1,9 +1,10 @@
 from __future__ import absolute_import
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.utils import timezone
 
 from targetshare import (
     database,
@@ -291,7 +292,7 @@ def proximity_rank_four(mockMode, fbid, token):
     fbmodule = mock_facebook if mockMode else facebook
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
-        newer_than = datetime.now() + timedelta(days=settings.FRESHNESS)
+        newer_than = timezone.now() + timedelta(days=settings.FRESHNESS)
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.

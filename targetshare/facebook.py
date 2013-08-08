@@ -14,6 +14,7 @@ from contextlib import closing
 from math import ceil
 
 from django.conf import settings
+from django.utils import timezone
 
 from targetshare import utils
 from targetshare.models import datastructs
@@ -71,7 +72,7 @@ def dateFromFb(dateStr):
         dateElts = dateStr.split('/')
         if (len(dateElts) == 3):
             m, d, y = dateElts
-            return datetime.date(int(y), int(m), int(d))
+            return timezone.datetime(int(y), int(m), int(d), tzinfo=timezone.utc)
     return None
 
 
@@ -121,7 +122,10 @@ def extendTokenFb(user, token, appid):
             tokNew = responseDict['access_token'][0]
             expiresIn = int(responseDict['expires'][0])
             logging.debug("Extended access token %s expires in %s seconds." % (tokNew, expiresIn))
-            expDate = datetime.datetime.utcfromtimestamp(ts + expiresIn)
+            expDate = timezone.make_aware(
+                datetime.datetime.utcfromtimestamp(ts + expiresIn),
+                timezone.utc
+            )
         return datastructs.TokenInfo(tokNew, user, appid, expDate)
 
     except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:

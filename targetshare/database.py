@@ -12,6 +12,7 @@ import threading
 
 import MySQLdb as mysql
 from django.db import connection
+from django.utils import timezone
 
 from targetshare import models, utils
 
@@ -180,7 +181,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
 
     conn = getConn()
 
-    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    freshnessDate = timezone.now() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
     sql = """SELECT fbid, fname, lname, email, gender, birthday, city, state, unix_timestamp(updated) FROM users WHERE fbid=%s"""
 
@@ -348,7 +349,7 @@ def updateFriendEdgesDb(curs, edges):
                     'photos_target': counts.photoTarget,
                     'photos_other': counts.photoOther,
                     'mut_friends': counts.mutuals,
-                    'updated': datetime.datetime.now() # Force DB to change updated to current_timestamp
+                    'updated': timezone.now() # Force DB to change updated to current_timestamp
                                         # even if rest of record is identical. Depends on
                                         # MySQL handling of NULLs in timestamps and feels
                                         # a bit ugly...
@@ -387,7 +388,7 @@ def updateTokensDb(curs, users, token):
             'ownerid': token.ownerId,
             'token':token.tok,
             'expires': token.expires,
-            'updated' : datetime.datetime.now() # Force DB to change updated to current_timestamp
+            'updated' : timezone.now() # Force DB to change updated to current_timestamp
                                 # even if rest of record is identical. Depends on
                                 # MySQL handling of NULLs in timestamps and feels
                                 # a bit ugly...
