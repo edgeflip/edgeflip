@@ -127,7 +127,7 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
     if requireIncoming:
         secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
                                    dynamo.fetch_incoming_edges(primId, newer_than_date)
-                                   if e.postLikes is not None}
+                                   if 'post_likes' in e}
 
     else:
         secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
