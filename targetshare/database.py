@@ -302,12 +302,11 @@ def _updateDb(user, token, edges):
         tCount = updateTokensDb(curs, [e.secondary for e in edges], token)
         fCount = updateUsersDb(curs, [e.secondary for e in edges])
         eCount = updateFriendEdgesDb(curs, edges)
-        conn.commit()
     except:
-        conn.rollback()
+        logger.exception('Problems updating DB')
         raise
 
-    logger.debug("_updateDB() thread %d updated %d friends, %d tokens, %d edges for user %d (took %s)" %
+    logger.debug("_updateDB() thread %s updated %s friends, %s tokens, %s edges for user %s (took %s)" %
                     (threading.current_thread().ident, fCount, tCount, eCount, user.id, tim.elapsedPr()))
     return eCount
 
@@ -321,10 +320,10 @@ def updateDb(user, token, edges, background=False):
         t = threading.Thread(target=_updateDb, args=(user, token, edges))
         t.daemon = False
         t.start()
-        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
+        logger.debug("updateDb() spawning background thread %s for user %s", t.ident, user.id)
         return 0
     else:
-        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
+        logger.debug("updateDb() foreground thread %s for user %s", threading.current_thread().ident, user.id)
         return _updateDb(user, token, edges)
 
 def updateFriendEdgesDb(curs, edges):
@@ -370,18 +369,13 @@ def updateUsersDb(curs, users):
             'city': u.city,
             'state': u.state
         }
-        user, created = models.User.objects.get_or_create(fbid=u.id)
-        count = 0
-        for k, v in col_val.items():
-            if not v:
-                continue
-
-            setattr(user, k, v)
+        user, created = models.User.objects.get_or_create(
+            fbid=u.id, defaults=col_val)
+        if not created:
+            for key, val in col_val.items():
+                setattr(user, key, val)
             user.save()
-            count += 1
-        return count
 
-    return updateCount
 
 def updateTokensDb(curs, users, token):
     """update tokens table"""

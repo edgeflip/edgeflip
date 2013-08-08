@@ -16,7 +16,6 @@ from django.http import (
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.template.loader import render_to_string
-from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
 from targetshare import (
@@ -156,7 +155,6 @@ def frame_faces(request, campaign_id, content_id):
 
 
 @require_POST
-@csrf_exempt # FIXME
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
@@ -424,7 +422,6 @@ def objects(request, fb_object_id, content_id):
 
 
 @require_POST
-@csrf_exempt # FIXME
 def suppress(request):
     user_id = request.POST.get('userid')
     app_id = request.POST.get('appid')
@@ -471,7 +468,6 @@ def suppress(request):
 
 
 @require_POST
-@csrf_exempt # FIXME
 def record_event(request):
 
     user_id = request.POST.get('userid')
