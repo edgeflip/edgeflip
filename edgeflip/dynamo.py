@@ -112,6 +112,8 @@ else:
 
 logger.debug("Installed engine %s", config.dynamo.engine)
 
+schemas = {} # map of table name => boto schema dict
+
 def get_dynamo():
     """return a dynamo connection for this thread.
 
@@ -200,15 +202,15 @@ def create_all_tables():
     You should only call this method once.
     """
     dynamo = get_dynamo()
-    create_table(**users_schema)
-    create_table(**tokens_schema)
-    create_table(**edges_incoming_schema)
-    create_table(**edges_outgoing_schema)
+    create_table(**schemas['users'])
+    create_table(**schemas['tokens'])
+    create_table(**schemas['edges_incoming'])
+    create_table(**schemas['edges_outgoing'])
 
 @statsd.timer(__name__+'.drop_all_tables')
 def drop_all_tables():
     """Delete all tables in Dynamo"""
-    for t in ('users', 'tokens', 'edges_outgoing', 'edges_incoming'):
+    for t in schemas:
         try:
             get_table(t).delete()
         except StandardError as e:
@@ -218,7 +220,7 @@ def drop_all_tables():
 
 ##### USERS #####
 
-users_schema = {
+schemas['users'] = {
     'table_name': 'users',
     'schema': [
         HashKey('fbid', data_type=NUMBER),
@@ -350,7 +352,7 @@ def _make_user(x):
 
 ##### TOKENS #####
 
-tokens_schema = {
+schemas['tokens'] = {
     'table_name': 'tokens',
     'schema': [
         HashKey('fbid', data_type=NUMBER),
@@ -420,7 +422,7 @@ def _make_token(x):
 
 ##### EDGES #####
 
-edges_outgoing_schema = {
+schemas['edges_outgoing'] = {
     'table_name': 'edges_outgoing',
     'schema': [
         HashKey('fbid_source', data_type=NUMBER),
@@ -434,7 +436,7 @@ edges_outgoing_schema = {
     ]
 }
 
-edges_incoming_schema = {
+schemas['edges_incoming'] = {
     'table_name': 'edges_incoming',
     'schema': [
         HashKey('fbid_target', data_type=NUMBER),
