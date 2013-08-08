@@ -23,18 +23,18 @@ function setDropdown(friends) {
 			return false;
 		},
 		select: function( event, ui ) {
-			// Only add a friend if they haven't already been added (and aren't already provided)
-			if (!( $("#added-"+ui.item.value).length > 0 || $("#friend-"+ui.item.value).length > 0 ) ) {
+            var fbid = parseInt(ui.item.value);
 
-				if (getRecipFbids().length >= 10) {
-					alert("Sorry: only ten friends can be tagged.");
-				} else {
-					selectFriend(ui.item.value);
-//					msgNamesUpdate(false);
-				}
-			}
-			$("#manual_input").val('');
-			return false;
+            if (getRecipFbids().length >= 10) {
+                console.log("zzz too many friends " + fbid);
+                alert("Sorry: only ten friends can be tagged.");
+            }
+            else if (!isRecip(fbid)) {
+				selectFriend(fbid);
+            }
+
+            $("#manual_input").val('');
+            return false;
 		}
 	})
 	.data( "uiAutocomplete" )._renderItem = function( ul, item ) {
