@@ -2,8 +2,6 @@
 
 
 // Set up the autofill drop-down for manually adding friends
-//$(function() {
-
 function setDropdown(friends) {
 	$( "#manual_input" ).autocomplete({
 		minLength: 0,
@@ -43,7 +41,6 @@ function setDropdown(friends) {
 			.appendTo( ul );
 	};
 }
-//});
 
 // Called when the user removes a manually added friend
 function removeFriend(fbid) {
