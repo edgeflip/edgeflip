@@ -21,7 +21,7 @@ class Client(models.Model):
         path. If it doesn't find one, returns the default template
         '''
         try:
-            template = find_template('targetshare/%s/%s' % (
+            template = find_template('targetshare/clients/%s/%s' % (
                 self.subdomain,
                 template_name
             ))[0]

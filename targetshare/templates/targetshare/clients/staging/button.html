@@ -1,0 +1,13 @@
+{% extends 'button.html' %}
+{% block edgeflip_style %}
+<!-- VA FONTS!!! -->
+<link rel="stylesheet" type="text/css" href="//fonts.googleapis.com/css?family=Open+Sans:400,600,400italic,600italic,700,700italic" />
+<!-- VA FONTS!!! -->
+
+<!-- edgeflip stylesheets -->
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='clients/terrymcauliffe/button.css') }}" />
+<!-- edgeflip stylesheets -->
+{% endblock edgeflip_style %}
+{% block button %}
+<div id="share_button" class="button inactive_button" style="width: 325px;" onclick="doFBLogin();">Join Terry's Rapid Response Team</div>
+{% endblock button %}
