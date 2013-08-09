@@ -83,7 +83,6 @@ class EdgeFlipTestCase(unittest.TestCase):
         config.dbname = 'edgeflip_test'
         config.dbuser = 'edgeflip_test'
         config.database.use_threads = False
-        config.database_compat.use_celery = False
 
         # Prevent commits to the database
         self.conn = database.getConn()

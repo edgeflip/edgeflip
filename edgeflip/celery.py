@@ -52,15 +52,15 @@ celery.conf.update(
             'queue': 'px4',
             'routing_key': 'px4.crawl'
         },
-        'edgeflip.database_compat.updateTokensDb' :{
+        'edgeflip.tasks.update_tokens' :{
             'queue': 'update_tokens',
             'routing_key': 'update.tokens'
         },
-        'edgeflip.database_compat.updateUsersDb' :{
+        'edgeflip.tasks.update_users' :{
             'queue': 'update_users',
             'routing_key': 'update.users'
         },
-        'edgeflip.database_compat.updateFriendEdgesDb' :{
+        'edgeflip.tasks.update_edges' :{
             'queue': 'update_edges',
             'routing_key': 'update.edges'
         },

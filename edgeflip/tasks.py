@@ -301,6 +301,31 @@ def proximity_rank_four(mockMode, fbid, token):
         requireIncoming=True,
         requireOutgoing=False,
     )
-    database.updateDb(user, token, edgesRanked,
-                      background=config.database_compat.use_celery)
+    update_database(user, token, edgesRanked)
     return edgesRanked
+
+@celery.task
+def update_users(users):
+    """async wrapper for `edgeflip.database.compat.updateUsersDb`"""
+    database.updateUsersDb(users)
+
+@celery.task
+def update_tokens(token):
+    """async wrapper for `edgeflip.database.compat.updateTokensDb`"""
+    database.updateTokensDb(token)
+
+@celery.task
+def update_edges(edges):
+    """async wrapper for `edgeflip.database.compat.updateFriendEdgesDb`"""
+    database.updateFriendEdgesDb(edges)
+
+def update_database(user, token, edges):
+    """async version of `edgeflip.database_compat.updateDb"""
+    tasks = []
+    tasks.append(update_tokens.delay(token))
+    tasks.append(update_users.delay(([user])))
+    tasks.append(update_users.delay([e.secondary for e in edges]))
+    tasks.append(update_edges.delay(edges))
+    ids = [t.id for t in tasks]
+
+    logger.debug("updateDb() using background celery tasks %r for user %d", ids, user.id)
