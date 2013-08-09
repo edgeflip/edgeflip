@@ -120,7 +120,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         self.assertEquals(edges_filtered[0]['campaignId'], 5)
         self.assertEquals(edges_filtered[1]['campaignId'], 4)
 
-    def test_bulk_write_objs(self):
+    def test_delayed_bulk_create(self):
         ''' Tests the tasks.bulk_write_objs task '''
         assert not models.User.objects.exists()
         users = []

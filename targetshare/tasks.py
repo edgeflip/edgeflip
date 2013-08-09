@@ -323,7 +323,7 @@ def proximity_rank_four(mockMode, fbid, token):
 
 
 @celery.task
-def bulk_write_objs(app_name, model_name, objects):
+def bulk_create(app_name, model_name, objects):
     ''' Handles bulk create objects in the background, so that we're not
     stopping up the request/response cycle with irrelevant database writes.
 
@@ -339,7 +339,7 @@ def bulk_write_objs(app_name, model_name, objects):
 
 
 @celery.task
-def save_model_obj(model_obj):
+def delayed_save(model_obj):
     ''' Very simple task for delaying the save() of an object for the
     background to keep the write out of the request/response cycle. Can
     certainly take new or existing objects, but keep in mind that this comes

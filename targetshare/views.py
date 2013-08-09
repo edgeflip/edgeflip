@@ -95,7 +95,7 @@ def button(request, campaign_id, content_id):
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[x.button_style_id for x in style_recs]
         )
-        tasks.save_model_obj.delay(assignment)
+        tasks.delayed_save.delay(assignment)
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
     except:
@@ -283,7 +283,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         chosen_from_table='campaign_fb_objects',
         chosen_from_rows=[r.pk for r in fb_object_recs]
     )
-    tasks.save_model_obj.delay(assignment)
+    tasks.delayed_save.delay(assignment)
 
     fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
@@ -339,7 +339,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         activity_id=None
                     )
                 )
-            tasks.bulk_write_objs.delay('targetshare', 'Event', events)
+            tasks.bulk_create.delay('targetshare', 'Event', events)
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
@@ -415,7 +415,7 @@ def objects(request, fb_object_id, content_id):
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=action_id
         )
-        tasks.save_model_obj.delay(event)
+        tasks.delayed_save.delay(event)
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
@@ -448,13 +448,13 @@ def suppress(request):
         friend_fbid=old_id, event_type='suppress',
         app_id=app_id, content=content, activity_id=None
     )
-    tasks.save_model_obj.delay(event)
+    tasks.delayed_save.delay(event)
     exclusion = models.FaceExclusion(
         fbid=user_id, campaign_id=campaign_id,
         content_id=content_id, friend_fbid=old_id,
         reason='suppressed'
     )
-    tasks.save_model_obj.delay(exclusion)
+    tasks.delayed_save.delay(exclusion)
 
     if new_id != '':
         event = models.Event(
@@ -463,7 +463,7 @@ def suppress(request):
             friend_fbid=new_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
-        tasks.save_model_obj.delay(event)
+        tasks.delayed_save.delay(event)
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
@@ -511,7 +511,7 @@ def record_event(request):
         )
 
     if events:
-        tasks.bulk_write_objs.delay('targetshare', 'Event', events)
+        tasks.bulk_create.delay('targetshare', 'Event', events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -525,7 +525,7 @@ def record_event(request):
             user_client = models.UserClient(
                 fbid=user_id, client=client
             )
-            tasks.save_model_obj.delay(user_client)
+            tasks.delayed_save.delay(user_client)
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
@@ -554,7 +554,7 @@ def record_event(request):
             )
 
         if exclusions:
-            tasks.bulk_write_objs.delay(
+            tasks.bulk_create.delay(
                 'targetshare',
                 'FaceExclusion',
                 exclusions
@@ -575,7 +575,7 @@ def record_event(request):
             activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
             content_id=content_id, message=share_msg
         )
-        tasks.save_model_obj.delay(share_message)
+        tasks.delayed_save.delay(share_message)
 
     return HttpResponse()
 
