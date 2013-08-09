@@ -8,6 +8,7 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'', include('targetshare.urls')),
+    url(r'^mocks/', include('targetmock.urls')),
     url(r'^admin/', include('targetadmin.urls')),
 )
 

@@ -228,6 +228,7 @@ INSTALLED_APPS = (
     # Edgeflip apps:
     'targetshare',
     'targetadmin',
+    'targetmock',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (

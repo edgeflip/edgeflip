@@ -1,0 +1,15 @@
+{% extends 'targetmock/base.html' %}
+
+{% block title %}Stand With President Obama on Immigration Reform{% endblock %}
+{% block style_inlines %}
+    <!-- Document-specific style -->
+    /* May eventually want to template these style rules and pass from Flask */
+    body {
+        background-color: #EBF5FF;
+    }
+    <!-- Document-specific style -->
+{% endblock %}
+
+{% block body %}
+    {% include 'targetmock/ef_frame_div.html' %}
+{% endblock %}
