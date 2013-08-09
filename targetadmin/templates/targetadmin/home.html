@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<HTML>
+<HEAD>
+<TITLE>Choose a Client</TITLE>
+</HEAD>
+<BODY>
+    <h2>Choose a Client</h2>
+    <ul>
+        {% for client in client_list %}
+            <li><a href="/clients/{{ client.pk }}">{{ client.name }}</a></li>
+        {% endfor %}
+    </ul>
+    Or, <a href="/new_client">Create a Client</a>
+</BODY>
+</HTML>

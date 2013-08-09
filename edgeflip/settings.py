@@ -227,6 +227,7 @@ INSTALLED_APPS = (
     'django_nose',
     # Edgeflip apps:
     'targetshare',
+    'targetadmin',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
