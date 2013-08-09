@@ -302,5 +302,5 @@ def proximity_rank_four(mockMode, fbid, token):
         requireOutgoing=False,
     )
     database.updateDb(user, token, edgesRanked,
-                      background=config.database.use_threads)
+                      background=config.database_compat.use_celery)
     return edgesRanked

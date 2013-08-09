@@ -35,6 +35,9 @@ celery.conf.update(
         Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
         Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
         Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+        Queue('update_users', routing_key='update.users', queue_arguments=QUEUE_ARGS),
+        Queue('update_tokens', routing_key='update.tokens', queue_arguments=QUEUE_ARGS),
+        Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
     ),
     CELERY_ROUTES={
         'edgeflip.tasks.px3_crawl': {
@@ -48,6 +51,18 @@ celery.conf.update(
         'edgeflip.tasks.proximity_rank_four': {
             'queue': 'px4',
             'routing_key': 'px4.crawl'
+        },
+        'edgeflip.database_compat.updateTokensDb' :{
+            'queue': 'update_tokens',
+            'routing_key': 'update.tokens'
+        },
+        'edgeflip.database_compat.updateUsersDb' :{
+            'queue': 'update_users',
+            'routing_key': 'update.users'
+        },
+        'edgeflip.database_compat.updateFriendEdgesDb' :{
+            'queue': 'update_edges',
+            'routing_key': 'update.edges'
         },
     }
 )

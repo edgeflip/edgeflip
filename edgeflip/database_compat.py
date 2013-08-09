@@ -4,6 +4,10 @@
 This module imports _everything_ from `edgeflip.database`, and then overrides
 some functions with versions backed by `edgeflip.dynamo`. See their
 respective documentations.
+
+.. envvar:: database.use_celery
+
+    should updates be done as celery tasks
 """
 # slurp database's namespace before other imports, so we can overwrite
 from .database import *
@@ -17,8 +21,11 @@ import decimal
 from . import dynamo
 from . import datastructs
 
+from edgeflip.celery import celery
+
 logger = logging.getLogger(__name__)
 
+@celery.task
 def updateUsersDb(users):
     """update users table
 
@@ -53,6 +60,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         logger.debug("got user %s, updated at %s (GMT)" % (userId, user['updated'].strftime("%Y-%m-%d %H:%M:%S")))
         return datastructs.UserInfo.from_dynamo(user)
 
+@celery.task
 def updateTokensDb(token):
     """update tokens table
 
@@ -72,6 +80,7 @@ def getUserTokenDb(userId, appId):
     """
     return datastructs.TokenInfo.from_dynamo(dynamo.fetch_token(userId, appId))
 
+@celery.task
 def updateFriendEdgesDb(edges):
     """update edges table
 
@@ -175,13 +184,24 @@ def _updateDb(user, token, edges):
 
 
 def updateDb(user, token, edges, background=False):
-    """calls _updateDb maybe in thread"""
-
+    """calls _updateDb maybe in celery"""
     if background:
-        t = threading.Thread(target=_updateDb, args=(user, token, edges))
-        t.daemon = False
-        t.start()
-        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
+        tasks = []
+        tasks.append(updateTokensDb.apply_async(token))
+        tasks.append(updateUsersDb.apply_async(([user])))
+        tasks.append(updateUsersDb.apply_async([e.secondary for e in edges]))
+        tasks.append(updateFriendEdgesDb.apply_async(edges))
+        ids = [t.id for t in tasks]
+
+        logger.debug("updateDb() using background celery tasks %r for user %d", ids, user.id)
     else:
-        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
-        _updateDb(user, token, edges)
+        tim = datastructs.Timer()
+
+        # update token for primary
+        updateTokensDb(token)
+        updateUsersDb([user])
+        updateUsersDb([e.secondary for e in edges])
+        updateFriendEdgesDb(edges)
+
+        logger.debug("updateDB() updated %d friends and edges for user %d (took %s)" %
+                     (len(edges), user.id, tim.elapsedPr()))
