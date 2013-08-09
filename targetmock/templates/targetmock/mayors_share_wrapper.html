@@ -1,0 +1,33 @@
+{% extends 'targetmock/base.html' %}
+
+{% block title %}Demand Action on Gun Control{% endblock %}
+{% block style_inlines %}
+    /* May eventually want to template these style rules and pass from Flask */
+    body {
+        background-color: #444444;
+    }
+
+    #share_content {
+        width: 750px;
+    }
+{% endblock %}
+
+{% block body %}
+    <div id="share_content" class="h2_container" style="background-color: #222222; margin-bottom: 15px; height: 120px;">
+        <h2 style="color: white;">Check out this graphic from <a href="http://www.demandaction.org/blog/2013-05-gun-reform-vote-has-serious-consequences-for-key-sen" style="color: yellow; text-decoration: none;">Demand Action</a>, then let your Facebook friends know you support common sense gun control</h2>
+        <!-- SHARE BUTTON -->
+        <div style="margin-top: 5px;">
+
+            <!-- to work on staging, probably change to: http://demandaction.efstaging.com/button/1/1 -->
+            <iframe src="{{ config.EF_URL }}/button/1/1" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
+
+        </div>
+    </div>
+    <BR>
+
+    <div style="display: table; position: relative; margin: 0px auto;">
+
+        <img src="{{ STATIC_URL }}img/mayors_graphic.jpg" style="width: 600px; display: block;"/>
+
+    </div>
+{% endblock %}

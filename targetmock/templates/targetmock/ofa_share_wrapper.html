@@ -1,0 +1,29 @@
+{% extends 'targetmock/base.html' %}
+{% block title %}OFA Sharing Page{% endblock %}
+{% block style_inlines %}
+    /* May eventually want to template these style rules and pass from Flask */
+    body {
+        background-image: url("{{ url_for('static', filename='ofa_wind_bg.jpg') }}");
+        background-attachment: fixed;
+        background-size: cover;
+            /* For IE<9 */
+        background-position: center bottom;
+        background-repeat: no-repeat;
+    }
+{% endblock %}
+{% block body %}
+    <div id="header_container">
+        <div id="header" onClick="window.location = 'http://www.barackobama.com/';"></div> 
+    </div>
+
+    <div id="share_content" class="h2_container">
+        <h2>Support Climate Legislation by telling your friends in key states to contact their Senators!</h2>
+    </div>
+    <BR>
+
+    <!-- SHARE BUTTON -->
+    <div style="display: table; position: relative; margin: 0px auto;">
+
+        <iframe src="{{ config.EF_URL }}/button/3/3" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
+    </div>
+{% endblock %}

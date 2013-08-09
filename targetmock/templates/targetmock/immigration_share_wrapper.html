@@ -1,0 +1,34 @@
+{% extends 'targetmock/base.html' %}
+
+{% block title %}Stand With President Obama on Immigration Reform{% endblock %}
+{% block style_inlines %}
+    /* May eventually want to template these style rules and pass from Flask */
+    body {
+        background-color: #EBF5FF;
+    }
+
+    #share_content {
+        width: 750px;
+    }
+{% endblock %}
+
+{% block body %}
+    <div id="share_content" class="h2_container" style="margin-bottom: 15px;">
+        <h2>Check out this graphic from <a href="http://www.whitehouse.gov/issues/immigration/blueprint-for-reform" style="color: dodgerblue; text-decoration: none;">The White House</a>, then let your Facebook friends know you support common sense immigration reform</h2>
+    </div>
+    <BR>
+
+    <div style="display: table; position: relative; margin: 50px auto;">
+
+        <img src="{{ STATIC_URL }}img/immigration_blueprint.jpg" style="width: 600px; display: block;"/>
+
+    </div>
+
+    <!-- SHARE BUTTON -->
+    <div style="position: fixed; top: 120px; left: 40%; z-index: 10;">
+
+        <!-- to work on staging, probably change to: http://obama.efstaging.com/button/2/2 -->
+        <iframe src="{{ config.EF_URL }}/button/2/2" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
+
+    </div>
+{% endblock %}

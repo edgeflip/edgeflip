@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>{% block title %}{% endblock %}</title>
+        <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" />
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+        
+        {% block style_includes %}
+            <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/site.css" />
+        {% endblock %}
+
+        <style>
+        {% block style_inlines %}
+        {% endblock %}
+        </style>
+
+    </head>
+    <body>
+        {% block body %}
+        {% endblock %}
+    </body>
+</html>

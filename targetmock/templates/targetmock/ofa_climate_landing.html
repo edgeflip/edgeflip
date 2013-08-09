@@ -1,0 +1,13 @@
+{% extends 'targetmock/base.html' %}
+{% block title %}{{ page_title }}{% endblock %}
+{% block body %}
+    <h2>This is the OFA landing page...</h2>
+    <p>It lives on the OFA servers and is where our object page actually sends people to. It will probably contain content such as:</p>
+
+    <h3>{{ sen_info.state_name }} Residents: Tell Senator {{ sen_info.name }} It's Time for Climate Legislation!</h3>
+    <p style="margin-left: 50px;"><span style="font-weight:bold;">Senator {{ sen_info.name }}</span><BR>
+    Email: <a href="mailto:{{ sen_info.email }}">{{ sen_info.email }}</a><BR>
+    Phone: {{ sen_info.phone }}
+    </p>
+    <p style="font-size:10px; margin-top: 15px;">Not in {{ sen_info.state_name }}? <a href="{{ url_for('ofa_auth') }}">Click here to tell your friends.</a></p>
+{% endblock %}
