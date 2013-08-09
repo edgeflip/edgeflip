@@ -28,7 +28,7 @@ class CampaignProperties(models.Model):
         else:
             url += '&'
 
-        slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id)) # FIXME campaign_id?
+        slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
 
         return url + 'efcmpgslug=' + str(slug)
 

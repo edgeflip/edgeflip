@@ -12,19 +12,16 @@ class TieredEdges(tuple):
     """Collection of Edges ranked into tiered tuples."""
     __slots__ = () # No need for object __dict__ or stored attributes
 
-    @classmethod
-    def make(cls, iterable=()):
-        """Return a new collection from an iterable of tiers."""
-        return super(TieredEdges, cls).__new__(cls, iterable)
+    def __new__(cls, tiers=(), edges=(), **top_tier):
+        """Instantiate a new collection from an iterable of `tiers` or by specifying the
+        contents of an optional top tier (its `edges` and metadata).
 
-    def __new__(cls, edges=(), **kws):
-        """Instantiate a new collection, with an optional top tier."""
-        if edges or kws:
-            kws['edges'] = tuple(edges or ())
-            init = (kws,)
-        else:
-            init = ()
-        return cls.make(init)
+        """
+        tiers = () if tiers is None else tiers
+        if edges or top_tier:
+            top_tier['edges'] = tuple(() if edges is None else edges)
+            tiers = itertools.chain([top_tier], tiers)
+        return super(TieredEdges, cls).__new__(cls, tiers)
 
     def __repr__(self):
         return "<{}: {}>".format(self.__class__.__name__,
@@ -52,7 +49,7 @@ class TieredEdges(tuple):
         return tuple(edge.secondary.id for edge in self._edges())
 
     def copy(self):
-        return self.make(self)
+        return type(self)(self)
 
     __copy__ = copy
 
@@ -61,7 +58,7 @@ class TieredEdges(tuple):
         added to the end.
 
         """
-        return self.make(itertools.chain(self, other))
+        return type(self)(itertools.chain(self, other))
 
     def _reranked(self, ranking):
         """Generate a stream of the collection's tiers with edges reranked according to
@@ -99,7 +96,7 @@ class TieredEdges(tuple):
         available, we can maintain the tiers while providing a better order within them.
 
         """
-        return self.make(self._reranked(ranking))
+        return type(self)(self._reranked(ranking))
 
 
 def unidecodeSafe(s):

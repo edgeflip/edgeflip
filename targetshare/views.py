@@ -196,10 +196,19 @@ def faces(request):
         px3_result = celery.current_app.AsyncResult(px3_task_id)
         px4_result = celery.current_app.AsyncResult(px4_task_id)
         if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
-            px4_edges = px4_result.result if px4_result.successful() else []
-            edges_ranked, edges_filtered, \
-                best_cs_filter_id, choice_set_slug, \
-                campaign_id, content_id = px3_result.result if px3_result.successful() else (None, ) * 6
+            if px3_result.successful():
+                px3_result_result = px3_result.result
+            else:
+                px3_result_result = (None,) * 6
+            (
+                edges_ranked,
+                edges_filtered,
+                best_cs_filter_id,
+                choice_set_slug,
+                campaign_id,
+                content_id,
+            ) = px3_result_result
+            px4_edges = px4_result.result if px4_result.successful() else ()
             if not all([edges_ranked, edges_filtered]):
                 return HttpResponse('No friends identified for you.', status=500)
         else:
@@ -216,14 +225,8 @@ def faces(request):
             )
     else:
         token = models.datastructs.TokenInfo(
-            tok, fbid,
-            int(client.fb_app_id),
-            timezone.now()
-        )
-        token = fbmodule.extendTokenFb(
-            fbid, token,
-            int(client.fb_app_id) or token
-        )
+            tok, fbid, int(client.fb_app_id), timezone.now())
+        token = fbmodule.extendTokenFb(fbid, token, (int(client.fb_app_id) or token))
         px3_task_id = tasks.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
@@ -236,8 +239,7 @@ def faces(request):
             numFace=num_face,
             paramsDB=client
         )
-        px4_task = tasks.proximity_rank_four.delay(
-            mock_mode, fbid, token)
+        px4_task = tasks.proximity_rank_four.delay(mock_mode, fbid, token)
         return HttpResponse(json.dumps(
             {
                 'status': 'waiting',
@@ -250,9 +252,7 @@ def faces(request):
             content_type='application/json'
         )
 
-    models.UserClient.objects.get_or_create(
-        fbid=fbid, client=campaign.client
-    )
+    models.UserClient.objects.get_or_create(fbid=fbid, client=campaign.client)
     if px4_edges:
         edges_filtered = edges_filtered.reranked(px4_edges)
 
