@@ -151,7 +151,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
         best_csf_id = bestCSFilter[0].filter_id if bestCSFilter[0] else None
 
-        already_picked = already_picked.add(
+        already_picked += models.datastructs.TieredEdges(
             edges=bestCSFilter[1],
             bestCSFilterId=best_csf_id,
             choiceSetSlug=choice_set_slug,

@@ -253,7 +253,7 @@ def faces(request):
         fbid=fbid, client=campaign.client
     )
     if px4_edges:
-        edges_filtered = edges_filtered.rerank(px4_edges)
+        edges_filtered = edges_filtered.reranked(px4_edges)
 
     return apply_campaign(request, edges_ranked, edges_filtered,
                           best_cs_filter_id, choice_set_slug, subdomain,

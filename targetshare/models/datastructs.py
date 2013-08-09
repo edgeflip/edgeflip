@@ -1,5 +1,4 @@
 import logging
-import datetime
 import itertools
 from unidecode import unidecode
 
@@ -28,7 +27,8 @@ class TieredEdges(tuple):
         return cls.make(init)
 
     def __repr__(self):
-        return "<{}: {!r}>".format(self.__class__.__name__, tuple(self))
+        return "<{}: {}>".format(self.__class__.__name__,
+                                 super(TieredEdges, self).__repr__())
 
     def _edges(self):
         return itertools.chain.from_iterable(tier['edges'] for tier in self)
@@ -56,12 +56,14 @@ class TieredEdges(tuple):
 
     __copy__ = copy
 
-    def add(self, edges, **kws):
-        """Return a new collection of these tiers with the given tier added to the end."""
-        kws['edges'] = tuple(edges or ())
-        return self.make(self + (kws,))
+    def __add__(self, other):
+        """Return a new collection of these tiers with the tiers of the given collection
+        added to the end.
 
-    def _rerank(self, ranking):
+        """
+        return self.make(itertools.chain(self, other))
+
+    def _reranked(self, ranking):
         """Generate a stream of the collection's tiers with edges reranked according to
         the given ranking.
 
@@ -89,7 +91,7 @@ class TieredEdges(tuple):
             tier['edges'] = reranked
             yield tier
 
-    def rerank(self, ranking):
+    def reranked(self, ranking):
         """Return a new collection of these tiers, with each tier's edges reranked
         according to the given ranking.
 
@@ -97,7 +99,7 @@ class TieredEdges(tuple):
         available, we can maintain the tiers while providing a better order within them.
 
         """
-        return self.make(self._rerank(ranking))
+        return self.make(self._reranked(ranking))
 
 
 def unidecodeSafe(s):
