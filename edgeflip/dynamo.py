@@ -54,7 +54,7 @@ import time
 import types
 import datetime
 from itertools import imap
-from measure_it import measure, measure_each, statsd_metric
+from measure_it import measure, measure_each, measure_reduce, statsd_metric
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
@@ -257,7 +257,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=
                 user[k] = v
         return user.partial_save()
 
-@measure.func(metric=statsd_metric)
+@measure_reduce(metric=statsd_metric)
 def save_many_users(users):
     """save many users to Dynamo as a batch, overwriting existing rows.
 
@@ -274,7 +274,7 @@ def save_many_users(users):
             _remove_null_values(d)
             batch.put_item(data = d)
 
-@statsd.timer(__name__+'.update_many_users')
+@measure_reduce(metric=statsd_metric)
 def update_many_users(users):
     """save many users to Dynamo as a batch, updating existing rows.
 
@@ -466,7 +466,7 @@ def save_edge(fbid_source, fbid_target, **kwargs):
     save_incoming_edge(fbid_source, fbid_target, **kwargs)
     save_outgoing_edge(fbid_source, fbid_target, updated)
 
-@measure.func(metric=statsd_metric)
+@measure_reduce(metric=statsd_metric)
 def save_many_edges(edges):
     """save many edges to dynamo in a batch, overwriting.
 
