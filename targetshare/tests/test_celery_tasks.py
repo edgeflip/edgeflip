@@ -130,13 +130,13 @@ class TestCeleryTasks(EdgeFlipTestCase):
                 last_name='User',
                 fbid=x,
             ))
-        tasks.bulk_write_objs('targetshare', 'User', users)
+        tasks.bulk_create('targetshare', 'User', users)
         self.assertEqual(models.User.objects.count(), 10)
 
     def test_delayed_obj_save(self):
         ''' Tests the tasks.save_model_obj task '''
         assert not models.User.objects.exists()
-        tasks.save_model_obj(models.User(
+        tasks.delayed_save(models.User(
             first_name='Test',
             last_name='Delayed_User',
             fbid=100
