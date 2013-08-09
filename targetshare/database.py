@@ -14,7 +14,7 @@ import MySQLdb as mysql
 from django.db import connection
 from django.utils import timezone
 
-from targetshare import models
+from targetshare import models, utils
 
 
 logger = logging.getLogger(__name__)
@@ -293,7 +293,7 @@ def getFriendEdgesDb(primId, requireIncoming=False,
 def _updateDb(user, token, edges):
     """takes datastructs.* and writes to database
     """
-    tim = models.datastructs.Timer()
+    tim = utils.Timer()
     conn = getConn()
     curs = conn.cursor()
 
@@ -442,7 +442,7 @@ def _writeEventsDb(sessionId, campaignId, contentId, ip, userId, friendIds, even
     """update events table
 
     """
-    tim = models.datastructs.Timer()
+    tim = utils.Timer()
     conn = getConn()
     curs = conn.cursor()
 

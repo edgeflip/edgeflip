@@ -56,7 +56,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         )
         assert all((isinstance(x, models.datastructs.Edge) for x in edges_ranked))
         assert isinstance(edges_filtered, models.datastructs.TieredEdges)
-        assert all((isinstance(x, models.datastructs.Edge) for x in edges_filtered.edges()))
+        assert all((isinstance(x, models.datastructs.Edge) for x in edges_filtered.edges))
         assert isinstance(filter_id, long)
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
@@ -116,6 +116,6 @@ class TestCeleryTasks(EdgeFlipTestCase):
             ('sharing-social-good', '471727162864364')
         )
 
-        self.assertEquals(edges_filtered.secondaryIds(), [1, 2])
-        self.assertEquals(edges_filtered.tiers[0]['campaignId'], 5)
-        self.assertEquals(edges_filtered.tiers[1]['campaignId'], 4)
+        self.assertEquals(edges_filtered.secondary_ids, (1, 2))
+        self.assertEquals(edges_filtered[0]['campaignId'], 5)
+        self.assertEquals(edges_filtered[1]['campaignId'], 4)

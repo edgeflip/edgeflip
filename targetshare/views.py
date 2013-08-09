@@ -253,7 +253,7 @@ def faces(request):
         fbid=fbid, client=campaign.client
     )
     if px4_edges:
-        edges_filtered.rerankEdges(px4_edges)
+        edges_filtered = edges_filtered.reranked(px4_edges)
 
     return apply_campaign(request, edges_ranked, edges_filtered,
                           best_cs_filter_id, choice_set_slug, subdomain,
@@ -266,7 +266,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                    ip, fbid, num_face, properties):
 
     max_friends = 50
-    friend_dicts = [e.toDict() for e in edges_filtered.edges()]
+    friend_dicts = [e.toDict() for e in edges_filtered.edges]
     face_friends = friend_dicts[:num_face]
     all_friends = friend_dicts[:max_friends]
     pick_dicts = [e.toDict() for e in edges_ranked]
@@ -317,8 +317,8 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     )
 
     num_gen = max_friends
-    for tier in edges_filtered.tiers:
-        edges_list = tier['edges'][:]
+    for tier in edges_filtered:
+        edges_list = tier['edges']
         tier_campaignId = tier['campaignId']
         tier_contentId = tier['contentId']
 
@@ -519,15 +519,12 @@ def record_event(request):
             models.UserClient.objects.create(
                 fbid=user_id, client=client
             )
-            user = models.datastructs.UserInfo(
-                user_id, None, None, None, None, None, None, None
-            )
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
             models.Token.objects.filter(
-                fbid=user.id, app_id=token.appId, owner_id=token.ownerId,
+                fbid=user_id, app_id=token.appId, owner_id=token.ownerId,
                 token=token.tok
             ).update(expires=token.expires)
         else:

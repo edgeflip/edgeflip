@@ -62,12 +62,12 @@ def px3_crawl(mockMode, fbid, token):
 @celery.task
 def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                       sessionId, ip, fbid, numFace, paramsDB,
-                      fallbackCount=0, alreadyPicked=None):
+                      fallbackCount=0, already_picked=None):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
 
     '''
-    alreadyPicked = alreadyPicked or models.datastructs.TieredEdges()
+    already_picked = already_picked or models.datastructs.TieredEdges()
 
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
@@ -98,7 +98,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         campaign__pk=campaignId,
         content__pk=contentId
     ).values_list('friend_fbid', flat=True))
-    exclude_friends = exclude_friends.union(alreadyPicked.secondaryIds())    # avoid re-adding if already picked
+    exclude_friends = exclude_friends.union(already_picked.secondary_ids)    # avoid re-adding if already picked
     edges_eligible = [
         e for e in edgesRanked if e.secondary.id not in exclude_friends
     ]
@@ -151,7 +151,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
         best_csf_id = bestCSFilter[0].filter_id if bestCSFilter[0] else None
 
-        alreadyPicked.appendTier(
+        already_picked += models.datastructs.TieredEdges(
             edges=bestCSFilter[1],
             bestCSFilterId=best_csf_id,
             choiceSetSlug=choice_set_slug,
@@ -187,7 +187,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
                 chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
             )
 
-    slotsLeft = int(numFace) - len(alreadyPicked)
+    slotsLeft = int(numFace) - len(already_picked)
 
     if slotsLeft > 0 and fallback_cascading:
         # We still have slots to fill and can fallback to do so
@@ -213,10 +213,10 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         return perform_filtering(
             edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
             fallback_content_id, sessionId, ip, fbid, numFace,
-            paramsDB, fallbackCount + 1, alreadyPicked
+            paramsDB, fallbackCount + 1, already_picked
         )
 
-    elif len(alreadyPicked) < minFriends:
+    elif len(already_picked) < minFriends:
         # We haven't found enough friends to satisfy the campaign's
         # requirement, so need to fallback
 
@@ -262,14 +262,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # If we're not cascading, no one is already picked.
         # If we're here, should probably always be the case that
         # fallback_cascading is False, but do the check to be safe...
-        alreadyPicked = alreadyPicked if fallback_cascading else None
+        already_picked = already_picked if fallback_cascading else None
 
         # Recursive call with new fallbackCampaignId & fallback_content_id,
         # incrementing fallbackCount
         return perform_filtering(
             edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
             fallback_content_id, sessionId, ip, fbid, numFace,
-            paramsDB, fallbackCount + 1, alreadyPicked
+            paramsDB, fallbackCount + 1, already_picked
         )
 
     else:
@@ -277,10 +277,10 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
 
         # Might have cascaded beyond the point of having new friends to add,
         # so pick up various return values from the last tier with friends.
-        last_tier = alreadyPicked.tiers[-1]
+        last_tier = already_picked[-1]
 
         return (
-            edgesRanked, alreadyPicked,
+            edgesRanked, already_picked,
             last_tier['bestCSFilterId'], last_tier['choiceSetSlug'],
             last_tier['campaignId'], last_tier['contentId']
         )
