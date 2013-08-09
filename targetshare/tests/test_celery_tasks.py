@@ -119,3 +119,26 @@ class TestCeleryTasks(EdgeFlipTestCase):
         self.assertEquals(edges_filtered.secondary_ids, (1, 2))
         self.assertEquals(edges_filtered[0]['campaignId'], 5)
         self.assertEquals(edges_filtered[1]['campaignId'], 4)
+
+    def test_bulk_write_objs(self):
+        ''' Tests the tasks.bulk_write_objs task '''
+        assert not models.User.objects.exists()
+        users = []
+        for x in range(10):
+            users.append(models.User(
+                first_name='Test%s' % x,
+                last_name='User',
+                fbid=x,
+            ))
+        tasks.bulk_write_objs('targetshare', 'User', users)
+        self.assertEqual(models.User.objects.count(), 10)
+
+    def test_delayed_obj_save(self):
+        ''' Tests the tasks.save_model_obj task '''
+        assert not models.User.objects.exists()
+        tasks.save_model_obj(models.User(
+            first_name='Test',
+            last_name='Delayed_User',
+            fbid=100
+        ))
+        assert models.User.objects.filter(last_name='Delayed_User').exists()

@@ -88,13 +88,14 @@ def button(request, campaign_id, content_id):
         style_recs = campaign.campaignbuttonstyle_set.all()
         style_exp_tupes = [(x.button_style_id, x.rand_cdf) for x in style_recs]
         style_id = int(utils.rand_assign(style_exp_tupes))
-        models.Assignment.objects.create(
+        assignment = models.Assignment(
             session_id=session_id, campaign=campaign,
             content=content, feature_type='button_style_id',
             feature_row=style_id, random_assign=True,
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[x.button_style_id for x in style_recs]
         )
+        tasks.save_model_obj.delay(assignment)
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
     except:
@@ -275,13 +276,14 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     fb_object_recs = campaign.campaignfbobjects_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
     fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
-    models.Assignment.objects.create(
+    assignment = models.Assignment(
         session_id=session_id, campaign=campaign,
         content=content, feature_type='fb_object_id',
         feature_row=fb_object_id, random_assign=True,
         chosen_from_table='campaign_fb_objects',
         chosen_from_rows=[r.pk for r in fb_object_recs]
     )
+    tasks.save_model_obj.delay(assignment)
 
     fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
@@ -337,7 +339,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         activity_id=None
                     )
                 )
-            models.Event.objects.bulk_create(events)
+            tasks.bulk_write_objs.delay('targetshare', 'Event', events)
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
@@ -407,12 +409,13 @@ def objects(request, fb_object_id, content_id):
             fb_object_id, content_id, ip
         )
     else:
-        models.Event.objects.create(
+        event = models.Event(
             session_id=session_id, campaign=None,
             content=content, ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=action_id
         )
+        tasks.save_model_obj.delay(event)
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
@@ -439,25 +442,28 @@ def suppress(request):
     fname = request.POST.get('fname')
     lname = request.POST.get('lname')
 
-    models.Event.objects.create(
+    event = models.Event(
         session_id=session_id, campaign_id=campaign_id,
         client_content_id=content_id, ip=ip, fbid=user_id,
         friend_fbid=old_id, event_type='suppress',
         app_id=app_id, content=content, activity_id=None
     )
-    models.FaceExclusion.objects.create(
+    tasks.save_model_obj.delay(event)
+    exclusion = models.FaceExclusion(
         fbid=user_id, campaign_id=campaign_id,
         content_id=content_id, friend_fbid=old_id,
         reason='suppressed'
     )
+    tasks.save_model_obj.delay(exclusion)
 
     if new_id != '':
-        models.Event.objects.create(
+        event = models.Event(
             session_id=session_id, campaign_id=campaign_id,
             client_content_id=content_id, ip=ip, fbid=user_id,
             friend_fbid=new_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
+        tasks.save_model_obj.delay(event)
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
@@ -505,7 +511,7 @@ def record_event(request):
         )
 
     if events:
-        models.Event.objects.bulk_create(events)
+        tasks.bulk_write_objs.delay('targetshare', 'Event', events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -516,9 +522,10 @@ def record_event(request):
             client = None
 
         if client:
-            models.UserClient.objects.create(
+            user_client = models.UserClient(
                 fbid=user_id, client=client
             )
+            tasks.save_model_obj.delay(user_client)
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
@@ -547,7 +554,11 @@ def record_event(request):
             )
 
         if exclusions:
-            models.FaceExclusion.objects.bulk_create(exclusions)
+            tasks.bulk_write_objs.delay(
+                'targetshare',
+                'FaceExclusion',
+                exclusions
+            )
 
     error_msg = request.POST.get('errorMsg')
     if error_msg:
@@ -560,10 +571,11 @@ def record_event(request):
 
     share_msg = request.POST.get('shareMsg')
     if share_msg:
-        models.ShareMessage.objects.create(
+        share_message = models.ShareMessage(
             activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
             content_id=content_id, message=share_msg
         )
+        tasks.save_model_obj.delay(share_message)
 
     return HttpResponse()
 
