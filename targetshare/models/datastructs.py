@@ -80,7 +80,7 @@ class TieredEdges(tuple):
                 # the new ranking was missing some edges. Note it in
                 # the logs, then iterate through the original order and
                 # append the remaining edges to the end of the list
-                LOG.info("%s edges missing from new edge rankings for user %s!",
+                LOG.warn("Edges missing (%d) from new edge rankings for user %s",
                          len(edge_ids), tier['edges'][0].primary.id)
                 for edge in tier['edges']:
                     if edge.secondary.id in edge_ids:
