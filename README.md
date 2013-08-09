@@ -31,8 +31,9 @@ A local mysql database is automatically set up by the build task; (see `fab -d b
 
 * To set up the database ad-hoc, run `fab build.db`.
 * To force the database schema to reinitialize, provide the "force" option: `fab build.db:force=1`.
-* To reset the database, use `bin/reset_db.py`. This will use your configuration values.
-* To seed the database with values for the mockclient, use `bin/mockclient_campaigns.py`. This uses the edgeflip and mockclient host data in your configuration.
+* To seed the database with values for the mockclient, you have two options:
+    * If you're resetting or starting a new database just pass "testdata=1" to the build.db command. e.g: `fab build.db:force=1,testdata=1`
+    * If you have an existing database, you can run the following command from the root of the `edgeflip` repo: `python manage.py loaddata targetshare/fixtures/test_data.yaml`
 
 RabbitMQ
 --------------
@@ -54,7 +55,7 @@ be far too specific for a particular environment.
 *Locally*:
 
 1. Make sure you have the Celery packages installed: `fab build.requirements`
-2. Run the celery startup script (with your virtualenv active): `./scripts/celery/local_celery.sh`
+2. Then run the celery fab command: `fab serve.celery`
 
 *Production*:
 
@@ -78,11 +79,16 @@ If you are using a local virtual machine, you will need an entry in the *host* m
 
 Devel Server
 ------------
-To run the server use `bin/devel_server.py`. If you need a barebones server (for use with a debugger, for example), use `bin/debug_server.py`.
+To run the server use `fab serve.server`. This command also has options for `host` and `port`:
+
+* `fab serve.server:host=0.0.0.0,port=1234`
 
 Mock Client
 -----------
-The default configuration is written against a mock client site. You'll need to run this server as well; see the instructions in the [mockclient repo](https://github.com/edgeflip/mockclient)
+This should no longer be necessary as this aspect of the stack has been brought into the `targetmock` Django app.
+However, with this change, instead of using a url such as "http://mockclient.edgeflip.com:5000/guncontrol_share" you will
+now use "http://local.edgeflip.com/mocks/guncontrol_share". This saves us from having to run
+two web instances locally in order to test the app.
 
 Load Testing
 ------------
@@ -131,15 +137,5 @@ sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
 Running Tests With Nose
 ------------
 New tests and the start of a test framework have been added to edgeflip/tests. 
-These tests can be run with `fab test`; (see `fab -d test`). 
-
-They build up a new test database and destroy it upon completion, so you shouldn't
-have to worry about them trampling your current database. This does require a minor
-bit of setup on your machine however. You'll need to create a file at ~/.my.cnf. 
-The contents of that file should look like so:
-
-    [client]
-    user=ROOT_USER
-    password=ROOT_PASSWORD
-
-You can get [coverage](http://nedbatchelder.com/code/coverage/) reports by running `nosetests edgeflip/tests/ --config=nose.cfg --with-coverage`. A nice HTML summary and annotated source are generated at `cover/index.html` in your workdir.
+These tests can be run with `fab test`; (see `fab -d test`). These tests also include
+building an HTML summary of test coverage which can be found at `cover/index.html`
