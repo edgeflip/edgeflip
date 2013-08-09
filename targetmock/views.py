@@ -1,8 +1,6 @@
 from django.http import HttpResponseNotFound
 from django.shortcuts import render
 
-DEFAULT_EF_URL = 'http://local.edgeflip.com:8080'
-
 ## random blob of data we need - per state info
 state_sen_info = {
     'CA': {

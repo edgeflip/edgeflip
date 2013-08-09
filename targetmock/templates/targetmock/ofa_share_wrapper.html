@@ -3,7 +3,7 @@
 {% block style_inlines %}
     /* May eventually want to template these style rules and pass from Flask */
     body {
-        background-image: url("{{ url_for('static', filename='ofa_wind_bg.jpg') }}");
+        background-image: url("{{ STATIC_URL }}img/ofa_wind_bg.jpg");
         background-attachment: fixed;
         background-size: cover;
             /* For IE<9 */
@@ -24,6 +24,6 @@
     <!-- SHARE BUTTON -->
     <div style="display: table; position: relative; margin: 0px auto;">
 
-        <iframe src="{{ config.EF_URL }}/button/3/3" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
+        <iframe src="{% url 'button' 3 3 %}" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
     </div>
 {% endblock %}

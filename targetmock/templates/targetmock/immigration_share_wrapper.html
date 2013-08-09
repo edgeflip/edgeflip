@@ -28,7 +28,7 @@
     <div style="position: fixed; top: 120px; left: 40%; z-index: 10;">
 
         <!-- to work on staging, probably change to: http://obama.efstaging.com/button/2/2 -->
-        <iframe src="{{ config.EF_URL }}/button/2/2" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
+        <iframe src="{% url 'button' 2 2 %}" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no"></iframe>
 
     </div>
 {% endblock %}
