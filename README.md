@@ -86,8 +86,8 @@ To run the server use `fab serve.server`. This command also has options for `hos
 Mock Client
 -----------
 This should no longer be necessary as this aspect of the stack has been brought into the `targetmock` Django app.
-However, with this change, instead of using a url such as `http://mockclient.edgeflip.com:5000/guncontrol_shar` you will
-now use `http://local.edgeflip.com/mocks/guncontrol_share`. This saves us from having to run
+However, with this change, instead of using a url such as "http://mockclient.edgeflip.com:5000/guncontrol_share" you will
+now use "http://local.edgeflip.com/mocks/guncontrol_share". This saves us from having to run
 two web instances locally in order to test the app.
 
 Load Testing
