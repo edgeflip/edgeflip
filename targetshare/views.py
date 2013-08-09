@@ -339,7 +339,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         activity_id=None
                     )
                 )
-            tasks.bulk_create.delay('targetshare', 'Event', events)
+            tasks.bulk_create.delay(events)
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
@@ -511,7 +511,7 @@ def record_event(request):
         )
 
     if events:
-        tasks.bulk_create.delay('targetshare', 'Event', events)
+        tasks.bulk_create.delay(events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -554,11 +554,7 @@ def record_event(request):
             )
 
         if exclusions:
-            tasks.bulk_create.delay(
-                'targetshare',
-                'FaceExclusion',
-                exclusions
-            )
+            tasks.bulk_create.delay(exclusions)
 
     error_msg = request.POST.get('errorMsg')
     if error_msg:

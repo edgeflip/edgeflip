@@ -323,18 +323,14 @@ def proximity_rank_four(mockMode, fbid, token):
 
 
 @celery.task
-def bulk_create(app_name, model_name, objects):
+def bulk_create(objects):
     ''' Handles bulk create objects in the background, so that we're not
     stopping up the request/response cycle with irrelevant database writes.
 
     Arguments:
-        app_name: String representing the app where the model
-            resides. e.g. 'targetshare'
-        model_name: Name of the model to be used, e.g. 'Event'
-        objects: A list containing objects matching the app/model combo that
-            was passed in.
+        objects: A list of model objects
     '''
-    model = get_model(app_name, model_name)
+    model, = set(type(obj) for obj in objects)
     model.objects.bulk_create(objects)
 
 
