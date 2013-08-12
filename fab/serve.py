@@ -13,7 +13,7 @@ def start_runserver(host='0.0.0.0', port='8080'):
 @fab.task(name='celery')
 def start_celery(workers='4',
                  loglevel='info',
-                 queues='px3,px3_filter,px4,celery'):
+                 queues='px3,px3_filter,px4,celery,delayed_save,bulk_create'):
     """Start Celery with the specified number of workers and log level
 
     Directs Celery at the default set of queues, or those specified, e.g.:
