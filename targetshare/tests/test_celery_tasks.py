@@ -42,6 +42,10 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
+        # FIXME: Because the px3 mock crawl yields random results, this may in
+        #        some cases return a set of edges in which none meet the filter
+        #        used in this test. That would cause this test to 'fail' even
+        #        though all the code is working properly.
         ranked_edges = tasks.px3_crawl(True, 1, self.token)
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
@@ -119,3 +123,26 @@ class TestCeleryTasks(EdgeFlipTestCase):
         self.assertEquals(edges_filtered.secondary_ids, (1, 2))
         self.assertEquals(edges_filtered[0]['campaignId'], 5)
         self.assertEquals(edges_filtered[1]['campaignId'], 4)
+
+    def test_delayed_bulk_create(self):
+        ''' Tests the tasks.bulk_write_objs task '''
+        assert not models.User.objects.exists()
+        users = []
+        for x in range(10):
+            users.append(models.User(
+                first_name='Test%s' % x,
+                last_name='User',
+                fbid=x,
+            ))
+        tasks.bulk_create(users)
+        self.assertEqual(models.User.objects.count(), 10)
+
+    def test_delayed_obj_save(self):
+        ''' Tests the tasks.save_model_obj task '''
+        assert not models.User.objects.exists()
+        tasks.delayed_save(models.User(
+            first_name='Test',
+            last_name='Delayed_User',
+            fbid=100
+        ))
+        assert models.User.objects.filter(last_name='Delayed_User').exists()

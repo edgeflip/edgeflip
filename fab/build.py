@@ -53,6 +53,9 @@ def build_all(deps='1', env=None):
     # db
     fab.execute(setup_db)
 
+    # static files
+    collect_static(True)
+
 
 @fab.task(name='dependencies')
 def install_deps():
@@ -176,8 +179,22 @@ def setup_db(env=None, force='0', testdata='1'):
         manage('loaddata', ['test_data'], env=env)
 
 
-# Helpers #
+@fab.task
+def collect_static(noinput=False):
+    ''' Collects static files from installed apps to static file path.
 
+    By default this will prompt for input, unless you pass True to the command
+    in which case it'll automatically overwrite your current static files with
+    a fresh pull:
+
+        collect_static:True
+
+    '''
+    args = ('--noinput',) if true(noinput) else tuple()
+    manage('collectstatic', args=args)
+
+
+# Helpers #
 def which_binary(name):
     """Check for path to binary at `name`, with "which"."""
     with fab.settings(warn_only=True): # Handle abortion manually

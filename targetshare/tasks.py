@@ -5,6 +5,7 @@ import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils import timezone
+from django.db.models import get_model
 
 from targetshare import (
     database,
@@ -319,3 +320,30 @@ def proximity_rank_four(mockMode, fbid, token):
     database.updateDb(user, token, edgesRanked,
                       background=settings.DATABASES.default.BACKGROUND_WRITE)
     return edgesRanked
+
+
+@celery.task
+def bulk_create(objects):
+    ''' Handles bulk create objects in the background, so that we're not
+    stopping up the request/response cycle with irrelevant database writes.
+
+    Arguments:
+        objects: A list of model objects
+    '''
+    model, = set(type(obj) for obj in objects)
+    model.objects.bulk_create(objects)
+
+
+@celery.task
+def delayed_save(model_obj):
+    ''' Very simple task for delaying the save() of an object for the
+    background to keep the write out of the request/response cycle. Can
+    certainly take new or existing objects, but keep in mind that this comes
+    with a certain level of inherent danger.
+
+    Via this method, you can't guarentee the timing of when the object is saved
+    so this method is best reserved for things that won't need to be read back
+    from the database in a very quick fashion. In other words, use with some
+    appropriate level of caution
+    '''
+    model_obj.save()

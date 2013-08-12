@@ -1,12 +1,9 @@
 import logging
-import threading
-import time
 
 from django.conf import settings
 from django.db import models
 
 from targetshare import utils
-from targetshare.models import datastructs
 
 
 logger = logging.getLogger(__name__)
@@ -49,40 +46,9 @@ class Filter(models.Model):
             return edges
         for f in self.filterfeatures.all():
             if f.feature in settings.CIVIS_FILTERS:
-                start_time = time.time()
-                threads = []
-                loopTimeout = 10
-                loopSleep = 0.1
-                matches = []
-                for count, edge in enumerate(edges):
-                    t = threading.Thread(
-                        target=utils.civis_filter,
-                        args=(edge, f.feature, f.operator, f.value, matches)
-                    )
-                    t.setDaemon(True)
-                    t.name = 'civis-%d' % count
-                    threads.append(t)
-                    t.start()
-
-                timeStop = time.time() + loopTimeout
-                while (time.time() < timeStop):
-                    threadsAlive = []
-                    for t in threads:
-                        if t.isAlive():
-                            threadsAlive.append(t)
-
-                    threads = threadsAlive
-                    if (threadsAlive):
-                        time.sleep(loopSleep)
-                    else:
-                        break
-                logger.debug(
-                    "Civis matching complete in %s" % (time.time() - start_time)
+                edges = utils.civis_filter(
+                    edges, f.feature, f.operator, f.value
                 )
-                edges = [
-                    x for x in matches if isinstance(x, datastructs.Edge)
-                ]
-
             # Standard min/max/eq/in filters below
             else:
                 edges = [x for x in edges if self._standard_filter(

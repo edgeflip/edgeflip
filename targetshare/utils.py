@@ -1,6 +1,5 @@
 import datetime
 import time
-import threading
 import logging
 import random
 import base64
@@ -11,7 +10,6 @@ import us
 import requests
 from civis_matcher import matcher
 from django.conf import settings
-from unidecode import unidecode
 
 
 logger = logging.getLogger(__name__)
@@ -77,60 +75,47 @@ def decodeDES(encoded):
     return message
 
 
-def civis_filter(edge, feature, operator, value, matches):
+def civis_filter(edges, feature, operator, score_value):
     ''' Performs a match against the Civis API and retrieves the score for a
     given user
     '''
-    start_time = time.time()
-    user = edge.secondary
-    logger.debug('Thread %s started' % threading.current_thread().name)
-    cm = matcher.CivisMatcher()
-    kwargs = {}
-    if user.birthday:
-        kwargs['birth_month'] = '%02d' % user.birthday.month
-        kwargs['birth_year'] = user.birthday.year
-        kwargs['birth_day'] = '%02d' % user.birthday.day
+    people_dict = {'people': {}}
+    for edge in edges:
+        user = edge.secondary
+        user_dict = {}
+        if user.birthday:
+            user_dict['birth_month'] = '%02d' % user.birthday.month
+            user_dict['birth_year'] = str(user.birthday.year)
+            user_dict['birth_day'] = '%02d' % user.birthday.day
 
-    if not user.state or not user.city:
-        return
+        if not user.state or not user.city:
+            continue
 
-    if user.state:
         state = us.states.lookup(user.state)
-        kwargs['state'] = state.abbr if state else None
-    else:
-        kwargs['state'] = None
+        user_dict['state'] = state.abbr if state else None
+        user_dict['city'] = user.city
+        user_dict['first_name'] = user.fname
+        user_dict['last_name'] = user.lname
+        people_dict['people'][user.id] = user_dict
 
     try:
-        start_time = time.time()
-        result = cm.match(
-            first_name=unidecode(user.fname),
-            last_name=unidecode(user.lname),
-            city=unidecode(user.city) if user.city else None,
-            **kwargs
-        )
-        end_time = time.time()
-        logger.debug(
-            'Request time: %s, url: %s',
-            (end_time - start_time),
-            result.url
-        )
+        cm = matcher.CivisMatcher()
+        results = cm.bulk_match(people_dict)
     except requests.RequestException:
-        return None
-    except matcher.MatchException as exc:
-        # This means there was an issue with the Civis API. Likely means no
-        # match, but it's hard to say in the current state of their API.
-        logger.info('Exception: %s' % exc.message)
-        return None
+        logger.exception('Failed to contact Civis')
+        return []
+    except matcher.MatchException:
+        logger.exception('Matcher Error!')
+        return []
 
-    scores = getattr(result, 'scores', None)
-    if scores and float(scores[feature][operator]) >= float(value):
-        matches.append(edge)
-    logger.debug(
-        'Thread %s ended: %s' % (
-            threading.current_thread().name, time.time() - start_time
-        )
-    )
-    return
+    valid_ids = []
+    for key, value in results.items():
+        scores = getattr(value, 'scores', None)
+        filter_feature = scores.get(feature) if scores else None
+        if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
+            valid_ids.append(str(key))
+
+    return [x for x in edges if str(x.secondary.id) in valid_ids]
 
 
 class TooFewFriendsError(Exception):

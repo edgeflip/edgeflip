@@ -90,6 +90,8 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             success: function(data, textStatus, jqXHR) {
                 campaignid = data.campaignid;
                 contentid = data.contentid;
+                var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+                sessionid = header_efsid || sessionid;
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
                         if (pollingCount > 40) {
@@ -122,8 +124,6 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-    sessionid = header_efsid || sessionid;
 }
 
 function commError(){
