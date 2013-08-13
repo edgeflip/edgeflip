@@ -5,6 +5,8 @@ from targetshare.tests import EdgeFlipTestCase
 
 class TargetMockTest(EdgeFlipTestCase):
 
+    urls = 'targetmock.urls'
+
     def test_ofa_landing_no_state(self):
         ''' Test views.ofa_landing without a state specified '''
         response = self.client.get(reverse('ofa-landing'))
