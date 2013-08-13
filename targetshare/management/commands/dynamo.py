@@ -1,6 +1,6 @@
 import logging
 
-from django.core.management.base import LabelCommand
+from django.core.management.base import CommandError, LabelCommand
 
 from targetshare import database, models
 
@@ -36,7 +36,7 @@ class Command(LabelCommand):
 
             with table.batch_write() as batch:
                 for row in curs:
-                    batch.put_item(data = dict(zip(names, row)))
+                    batch.put_item(data=dict(zip(names, row)))
 
             logger.debug('Finished tokens')
 
@@ -50,7 +50,7 @@ class Command(LabelCommand):
 
             with table.batch_write() as batch:
                 for row in curs:
-                    batch.put_item(data = dict(zip(names, row)))
+                    batch.put_item(data=dict(zip(names, row)))
 
             logger.debug('Finished users')
 
@@ -68,11 +68,13 @@ class Command(LabelCommand):
 
             with incoming.batch_write() as inc, outgoing.batch_write() as out:
                 for row in curs:
-                    inc.put_item(data = dict(zip(names, row)))
-                    out.put_item(data = {'fbid_source': row[0],
+                    inc.put_item(data=dict(zip(names, row)))
+                    out.put_item(data={'fbid_source': row[0],
                                         'fbid_target': row[1],
                                         'updated': row[-1]})
 
             logger.debug('Finished edges')
 
             conn.close()
+        else:
+            raise CommandError("No such subcommand '{}'.".format(label))
