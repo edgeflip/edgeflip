@@ -104,6 +104,8 @@ def button(request, campaign_id, content_id):
     return render(request, style_template, {
         'fb_params': params_dict,
         'goto': faces_url,
+        'client_css': client.locate_css('edgeflip_client.css'),
+        'client_css_simple': client.locate_css('edgeflip_client_simple.css'),
         'campaign': campaign,
         'content': content,
         'session_id': session_id
@@ -123,11 +125,8 @@ def frame_faces_encoded(request, campaign_slug):
 
 
 def frame_faces(request, campaign_id, content_id):
-    subdomain = request.get_host().split('.')[0]
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-    if not _validate_client_subdomain(campaign, content, subdomain):
-        return HttpResponseNotFound()
 
     test_mode = False
     test_fbid = test_token = None
@@ -185,8 +184,6 @@ def faces(request):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     properties = campaign.campaignproperties_set.get()
     client = campaign.client
-    if not _validate_client_subdomain(campaign, content, subdomain):
-        return HttpResponseNotFound()
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return HttpResponseForbidden(
@@ -266,11 +263,10 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                    choice_set_slug, subdomain, campaign, content, session_id,
                    ip, fbid, num_face, properties):
 
-    max_friends = 50
+    max_faces = 50
     friend_dicts = [e.toDict() for e in edges_filtered.edges]
-    face_friends = friend_dicts[:num_face]
-    all_friends = friend_dicts[:max_friends]
-    pick_dicts = [e.toDict() for e in edges_ranked]
+    face_friends = friend_dicts[:max_faces]
+    all_friends = [e.toDict() for e in edges_ranked]
     client = campaign.client
 
     fb_object_recs = campaign.campaignfbobjects_set.all()
@@ -301,7 +297,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         choice_set_slug
     )
 
-    action_params = {
+    fb_params = {
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
@@ -311,14 +307,14 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
-    logger.debug('fb_object_url: %s', action_params['fb_object_url'])
+    logger.debug('fb_object_url: %s', fb_params['fb_object_url'])
     content_str = '%s:%s %s' % (
-        action_params['fb_app_name'],
-        action_params['fb_object_type'],
-        action_params['fb_object_url']
+        fb_params['fb_app_name'],
+        fb_params['fb_object_type'],
+        fb_params['fb_object_url']
     )
 
-    num_gen = max_friends
+    num_gen = max_faces
     for tier in edges_filtered:
         edges_list = tier['edges']
         tier_campaignId = tier['campaignId']
@@ -335,7 +331,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         session_id=session_id, campaign_id=tier_campaignId,
                         client_content_id=tier_contentId, ip=ip, fbid=fbid,
                         friend_fbid=friend.secondary.id, event_type='shown',
-                        app_id=action_params['fb_app_id'], content=content_str,
+                        app_id=fb_params['fb_app_id'], content=content_str,
                         activity_id=None
                     )
                 )
@@ -349,11 +345,10 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         json.dumps({
             'status': 'success',
             'html': render_to_string(client.locate_template('faces_table.html'), {
-                'all_friends': all_friends,
                 'msg_params': msg_params,
-                'action_params': action_params,
+                'fb_params': fb_params,
+                'all_friends': all_friends,
                 'face_friends': face_friends,
-                'pick_friends': pick_dicts,
                 'num_friends': num_face
             }, context_instance=RequestContext(request)),
             'campaignid': campaign.pk,

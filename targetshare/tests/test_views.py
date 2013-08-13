@@ -64,13 +64,6 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert data['px3_task_id']
         assert data['px4_task_id']
 
-    def test_faces_invalid_subdomain(self):
-        ''' Test hitting the faces endpoint from an invalid domain '''
-        self.test_client.subdomain = 'invalidsubdomain'
-        self.test_client.save()
-        response = self.client.post(reverse('faces'), data=self.params)
-        self.assertStatusCode(response, 404)
-
     @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
