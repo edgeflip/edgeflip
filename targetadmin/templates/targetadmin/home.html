@@ -1,9 +1,6 @@
-<!DOCTYPE html>
-<HTML>
-<HEAD>
-<TITLE>Choose a Client</TITLE>
-</HEAD>
-<BODY>
+{% extends "targetadmin/base.html" %}
+{% block title %}Choose a Client{% endblock %}
+{% block content %}
     <h2>Choose a Client</h2>
     <ul>
         {% for client in client_list %}
@@ -11,5 +8,4 @@
         {% endfor %}
     </ul>
     Or, <a href="/new_client">Create a Client</a>
-</BODY>
-</HTML>
+{% endblock %}
