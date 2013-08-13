@@ -12,7 +12,8 @@
 
     {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />
+    <link rel="stylesheet" type="text/css" href="{{ clientCss }}" />
+    <link rel="stylesheet" type="text/css" href="{{ clientCssSimp }}" />
     <!-- edgeflip stylesheets -->
     {% endblock edgeflip_style %}
 
@@ -132,7 +133,7 @@
 <BODY>
 
 {% block button %}
-<div id="share_button" class="button active_button" style="width: 250px;" onclick="doFBLogin();">Support us on Facebook</div>
+<div id="share_button" class="button_big button_active" style="width: 250px;" onclick="doFBLogin();">Support us on Facebook</div>
 {% endblock button %}
 
 <div id="fb-root"></div>

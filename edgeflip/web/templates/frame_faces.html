@@ -12,11 +12,13 @@
 
     {% block edgeflip_style %}
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='button.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='faces.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='share_msg.css') }}" />
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='manual_add.css') }}" />
-    <!-- edgeflip stylesheets -->
+
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client.css')}}" />#}
+{#    <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='edgeflip_client_simp.css')}}" />#}
+    <link rel="stylesheet" type="text/css" href="{{ clientCss }}" />
+    <link rel="stylesheet" type="text/css" href="{{ clientCssSimp }}" />
+
+
     {% endblock edgeflip_style %}
 
     <!-- Document-specific style -->
@@ -90,15 +92,14 @@
 <BODY>
 
 <div style="display: table; position: relative; margin: 0px auto;">
-
-    <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
-        <h2 style="margin: 10px;">L o a d i n g . . .</h2>
+    <div id="progress">
+        <div style="margin-bottom: 10px">L o a d i n g . . .</div>
         <img src="{{url_for('static', filename='aniprogress.gif')}}">
     </div>
 
 </div>
 
-<div id="friends_div" style="display:none;">
+<div id="friends_div" style="display:none; width: 100%">
     
     <div id="your-friends-here"></div> <!-- your-friends-here -->
 
@@ -139,8 +140,19 @@
             + '//connect.facebook.net/en_US/all.js';
         document.getElementById('fb-root').appendChild(e);
     }());
-        
+
 </script>
+
+<div>
+
+    <div style='font-size: 0.75em; margin: 50px auto 0px; width: 300px; color: #666666'>
+        &copy; 2013 Edgeflip, LLC&nbsp;&nbsp;|&nbsp;&nbsp;
+        <a style='text-decoration: none' href="http://www.edgeflip.com/">about</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+        <a style='text-decoration: none' href="http://www.edgeflip.com/tou.html">terms of use</a>&nbsp;&nbsp;|&nbsp;&nbsp;
+        <a style='text-decoration: none' href="http://www.edgeflip.com/privacy.html">privacy</a>
+    </div>
+
+</div>
 
 </BODY>
 </HTML>

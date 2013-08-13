@@ -5,10 +5,9 @@
     <div class="xout" onClick="doReplace({{fbid}});">
         x
     </div>
-    <div class="friend_box unselected_friend" id="friend-{{fbid}}" onClick="faceClick({{fbid}});">
-        <div class="checkmark">
-            <img src="{{ url_for('static', filename='checkmark-sm.png') }}">
-        </div>
+    <div class="friend_box friend_box_unselected" id="friend-{{fbid}}" onClick="toggleFriend({{fbid}});">
+        <div class="checkmark">&nbsp;</div>
+
         <div class="friend_pic">
             <img src="https://graph.facebook.com/{{fbid}}/picture" border=0 />
         </div>
@@ -18,9 +17,6 @@
             </div>
             <div class="friend_name dojoxEllipsis">
                 {{lastname}}
-            </div>
-            <div class="friend_checkbox">
-                <input type="checkbox" id="box-{{fbid}}">
             </div>
         </div>
     </div>

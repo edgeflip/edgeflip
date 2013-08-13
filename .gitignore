@@ -17,5 +17,7 @@ edgeflip/web/templates/clients/local/*
 *~
 *.sublime-project
 *.sublime-workspace
+*.idea
+ssl
 edgeflip.egg-info
 /cover
