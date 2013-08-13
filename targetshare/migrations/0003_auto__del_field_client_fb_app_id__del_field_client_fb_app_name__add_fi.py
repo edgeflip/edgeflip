@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import datetime
-from south.db import db
 from south.v2 import SchemaMigration
-from django.db import models
 
 
 class Migration(SchemaMigration):
@@ -12,12 +9,10 @@ class Migration(SchemaMigration):
         just the attribute of the fb_app_id and fb_app_name
         '''
 
-
     def backwards(self, orm):
         ''' Passing on this one, nothing actually changed in the database,
         just the attribute of the fb_app_id and fb_app_name
         '''
-
 
     models = {
         'targetshare.assignment': {

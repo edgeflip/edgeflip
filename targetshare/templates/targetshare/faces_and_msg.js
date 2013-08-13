@@ -42,7 +42,7 @@ function isRecip(fbid) {
 }
 
 function htmlRecip(fbid) {
-	var html = "<span class='recipient message_friend_name' id='recipient-"+fbid+"' contentEditable='False'>";
+    var html = "<span class='recipient message_friend_name' id='recipient-"+fbid+"' contentEditable='False'>";
     html += friendFromFbid[fbid].name + "<span class='message_x' onClick='unselectFriend("+fbid+");'>x</span></span>&nbsp;";
     return html;
 }
@@ -148,13 +148,13 @@ activated by unclick a friend to share with or from manual drop or in edit messa
 function unselectFriend(fbid) {
     //alert("unselectFriend(" + fbid + ")");
     if (isRecip(fbid)) {
-		$('#recipient-'+fbid).remove();	// remove the friend from the message
+        $('#recipient-'+fbid).remove();    // remove the friend from the message
         syncFriendBoxes();
         reformatRecipsList();
-		return true;
-	} else {
-		return false;
-	}
+        return true;
+    } else {
+        return false;
+    }
 }
 
 function syncFriendBoxes() {
@@ -166,9 +166,9 @@ function syncFriendBoxes() {
             $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
             $('#wrapper-'+fbid+' .xout').hide();
             $('#wrapper-'+fbid+' .checkmark').show();
-	  	}
+          }
         else {
-            $('#added-'+fbid).remove();			  	// remove the manually added friend (if it exists)
+            $('#added-'+fbid).remove();                  // remove the manually added friend (if it exists)
             $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
             $('#wrapper-'+fbid+' .xout').show();
             $('#wrapper-'+fbid+' .checkmark').hide();
@@ -190,7 +190,7 @@ function syncFriendBoxes() {
     for (var i=0; i<recipIds.length; i++) {
         var fbid = recipIds[i];
         if (($('#added-'+fbid).length == 0) && ($('#friend-'+fbid).length == 0)) {
-	  		$('#picked_friends_container').append(htmlRecipAdded(fbid))
+              $('#picked_friends_container').append(htmlRecipAdded(fbid))
         }
     }
 }
@@ -199,26 +199,26 @@ function syncFriendBoxes() {
 // grabbed from stackoverflow:
 // http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
 function msgFocusEnd() {
-	$('#message_form_editable').focus();
+    $('#message_form_editable').focus();
 
-	var contentEditableElement = document.getElementById('message_form_editable');
-	var range,selection;
-	if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
-	{
-	    range = document.createRange();//Create a range (a range is a like the selection but invisible)
-	    range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
-	    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-	    selection = window.getSelection();//get the selection object (allows you to change selection)
-	    selection.removeAllRanges();//remove any selections already made
-	    selection.addRange(range);//make the range you have just created the visible selection
-	}
-	else if(document.selection)//IE 8 and lower
-	{ 
-	    range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
-	    range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
-	    range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
-	    range.select();//Select the range (make it the visible selection
-	}
+    var contentEditableElement = document.getElementById('message_form_editable');
+    var range,selection;
+    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+    {
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+    }
+    else if(document.selection)//IE 8 and lower
+    { 
+        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+        range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        range.select();//Select the range (make it the visible selection
+    }
 
 }
 
@@ -229,41 +229,41 @@ function insertRecipAtCursor(html) {
 
     var sel, range;
     if ( elementContainsSelection($('#message_form_editable').get(0)) ) {
-	    if (window.getSelection) {
-	        // IE9 and non-IE
-	        sel = window.getSelection();
-	        if (sel.getRangeAt && sel.rangeCount) {
-	            range = sel.getRangeAt(0);
-	            range.deleteContents();
+        if (window.getSelection) {
+            // IE9 and non-IE
+            sel = window.getSelection();
+            if (sel.getRangeAt && sel.rangeCount) {
+                range = sel.getRangeAt(0);
+                range.deleteContents();
 
-	            // Range.createContextualFragment() would be useful here but is
-	            // non-standard and not supported in all browsers (IE9, for one)
-	            var el = document.createElement("div");
-	            el.innerHTML = html;
-	            var frag = document.createDocumentFragment(), node, lastNode;
-	            while ( (node = el.firstChild) ) {
-	                lastNode = frag.appendChild(node);
-	            }
-	            range.insertNode(frag);
+                // Range.createContextualFragment() would be useful here but is
+                // non-standard and not supported in all browsers (IE9, for one)
+                var el = document.createElement("div");
+                el.innerHTML = html;
+                var frag = document.createDocumentFragment(), node, lastNode;
+                while ( (node = el.firstChild) ) {
+                    lastNode = frag.appendChild(node);
+                }
+                range.insertNode(frag);
 
-	            // Preserve the selection
-	            if (lastNode) {
-	                range = range.cloneRange();
-	                range.setStartAfter(lastNode);
-	                range.collapse(true);
-	                sel.removeAllRanges();
-	                sel.addRange(range);
-	            }
-	        }
-	    } else if (document.selection && document.selection.type != "Control") {
-	        // IE < 9
-	        document.selection.createRange().pasteHTML(html);
-	    }
+                // Preserve the selection
+                if (lastNode) {
+                    range = range.cloneRange();
+                    range.setStartAfter(lastNode);
+                    range.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(range);
+                }
+            }
+        } else if (document.selection && document.selection.type != "Control") {
+            // IE < 9
+            document.selection.createRange().pasteHTML(html);
+        }
 
-	} else {
-		$('#message_form_editable').append(html);
-		msgFocusEnd();
-	}
+    } else {
+        $('#message_form_editable').append(html);
+        msgFocusEnd();
+    }
 }
 
 // more stackoverflow:
@@ -302,8 +302,8 @@ function useSuggested(msgs) {
 
     // If they don't have anyone checked, using the suggested message adds everyone
     if (getRecipFbids().length == 0) {
-		selectAll(true);
-	}
+        selectAll(true);
+    }
 
     // grab the pre and post off the front of the queue and stick 'em back on the end
     var msgPair = msgs.shift();
@@ -316,7 +316,7 @@ function useSuggested(msgs) {
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
 
     activateShareButton();
-	msgFocusEnd();
+    msgFocusEnd();
 }
 
 /* selects all friends */
@@ -342,19 +342,19 @@ function selectAll(skipRecord) {
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
     if (isRecip(fbid)) {
-  	    unselectFriend(fbid);
+          unselectFriend(fbid);
     }
     else {
-  	    selectFriend(fbid);
+          selectFriend(fbid);
     }
 }
 
 /* called when someone suppresses a friend (X in faces list) */
 function doReplace(old_fbid) {
-	var div_id = '#wrapper-'+old_fbid;
+    var div_id = '#wrapper-'+old_fbid;
 
-	// Remove the friend from the messages
-	unselectFriend(old_fbid);
+    // Remove the friend from the messages
+    unselectFriend(old_fbid);
 
     // Hide the suppressed div immediately, because the response to
     // the ajax call can be a little sluggish...
@@ -368,64 +368,64 @@ function doReplace(old_fbid) {
         // templating...
         var fbid = faceFriends.shift();
         var fname = $("<div/>").html(friendFromFbid[fbid].fname).text();
-		var lname = $("<div/>").html(friendFromFbid[fbid].lname).text();
+        var lname = $("<div/>").html(friendFromFbid[fbid].lname).text();
 
-		// Update the friends shown
-		friendHTML(old_fbid, fbid, fname, lname, div_id);
+        // Update the friends shown
+        friendHTML(old_fbid, fbid, fname, lname, div_id);
 
-	} else {
-		// No new friends to add, so just remove this one
-		// (note that we have to remove rather than hide the element to avoid avoid accidentally
-		// including the friend in the message that gets sent!)
-		friendHTML(old_fbid, '', '', '', div_id);
-		// $(div_id).remove();
-	}
+    } else {
+        // No new friends to add, so just remove this one
+        // (note that we have to remove rather than hide the element to avoid avoid accidentally
+        // including the friend in the message that gets sent!)
+        friendHTML(old_fbid, '', '', '', div_id);
+        // $(div_id).remove();
+    }
 }
 
 
 // Ajax call to tell our server the friend has been suppressed and get the HTML for the next one
 function friendHTML(oldid, id, fname, lname, div_id) {
-	var new_html;
-	var userid = myfbid; // myfbid should get set globablly upon login/auth
+    var new_html;
+    var userid = myfbid; // myfbid should get set globablly upon login/auth
 
-	var params = {
-		userid: userid,
-		appid: FB_APP_ID,
-		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-		oldid: oldid,
-		newid: id,
-		fname: fname,
-		lname: lname,
-		sessionid: sessionid,	// global session id was pulled in from query string above
+    var params = {
+        userid: userid,
+        appid: FB_APP_ID,
+        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+        oldid: oldid,
+        newid: id,
+        fname: fname,
+        lname: lname,
+        sessionid: sessionid,    // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid
-	};
+    };
 
-	$.ajax({
-		type: "POST",
-		url: '/suppress/',
-		dataType: 'html',
-		data: params,
-		error: function(jqXHR, textStatus, errorThrown) {
-			//new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
-			//$(div_id).replaceWith(new_html);
+    $.ajax({
+        type: "POST",
+        url: '/suppress/',
+        dataType: 'html',
+        data: params,
+        error: function(jqXHR, textStatus, errorThrown) {
+            //new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
+            //$(div_id).replaceWith(new_html);
             // Something went wrong, so just remove the div as though no friend was returned
             $(div_id).remove();
-		},
-		success: function(data, textStatus, jqXHR) {
-			if (id) {
-				new_html = data;
-				$(div_id).replaceWith(new_html);
+        },
+        success: function(data, textStatus, jqXHR) {
+            if (id) {
+                new_html = data;
+                $(div_id).replaceWith(new_html);
                 $(div_id).show();
-			} else {
+            } else {
                 // We hid it above, but still need to actually remove it if there's
                 // no new friend coming in (otherwise, a select all will still add this friend...)
-				$(div_id).remove();
-			}
-			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-			sessionid = header_efsid || sessionid;
-		}
-	});
+                $(div_id).remove();
+            }
+            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+            sessionid = header_efsid || sessionid;
+        }
+    });
 }
 
 
@@ -439,14 +439,14 @@ function doShare() {
         alert("Sharing is not allowed in test mode!");
         return;
     }
-	// Quick checks: has the user selected a message and at least one friend with whom to share?
-	if (getRecipFbids().length == 0) {
-		if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
-			selectAll(true);
-		} else {
-			return;
-		}
-	}
+    // Quick checks: has the user selected a message and at least one friend with whom to share?
+    if (getRecipFbids().length == 0) {
+        if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
+            selectAll(true);
+        } else {
+            return;
+        }
+    }
     recordEvent('share_click');
 
     helperTextDisappear();
@@ -455,77 +455,77 @@ function doShare() {
     $('#progress').show();
 
     var recips = getRecipFbids();
-	for (var i=0; i < recips.length; i++) {
-		$('#recipient-'+recips[i]).replaceWith("@[" + recips[i] + "]"); // FB format for mention tags: @[fbid]
- 	}
+    for (var i=0; i < recips.length; i++) {
+        $('#recipient-'+recips[i]).replaceWith("@[" + recips[i] + "]"); // FB format for mention tags: @[fbid]
+     }
 
     var recipsList = $('#message_form_editable .'+RECIPS_LIST_CONTAINER);
-	if (recipsList.length > 0) {
-		recipsList.replaceWith(recipsList.text());
-	}
+    if (recipsList.length > 0) {
+        recipsList.replaceWith(recipsList.text());
+    }
 
-	var msg = "";
-	msg = $('#message_form_editable').text();
-	msg = msg.replace(/[\n\r]/g, ' ');
-	msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
+    var msg = "";
+    msg = $('#message_form_editable').text();
+    msg = msg.replace(/[\n\r]/g, ' ');
+    msg = msg.substring(0, 1500); // Limit submissions to 1,500 characters (different from keydown to allow for possibility that fbid's are longer)
 
-	// The actual call to do the sharing
+    // The actual call to do the sharing
     var paramObj = { message: msg }
     paramObj[FB_OBJ_TYPE] = FB_OBJ_URL; // gotta do it this way since the property name is dynamic
-	FB.api(
-		'/me/' + FB_APP_NAME + ':' + FB_ACTION_TYPE,
-		'post',
-		paramObj,
-		function(response) {
-			if (!response || response.error) {
-				//alert('Error occured ' + response.error.message);
+    FB.api(
+        '/me/' + FB_APP_NAME + ':' + FB_ACTION_TYPE,
+        'post',
+        paramObj,
+        function(response) {
+            if (!response || response.error) {
+                //alert('Error occured ' + response.error.message);
                 //console.log('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
                 recordEvent('share_fail', response.error);
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
-			} else {
+            } else {
                 // thank you page redirect happens in recordShare()
-				recordShare(response.id, msg);
-				// alert('Post was successful! Action ID: ' + response.id);
-			}
-	  	}
-	);
+                recordShare(response.id, msg);
+                // alert('Post was successful! Action ID: ' + response.id);
+            }
+          }
+    );
 }
 
 /* records share event on edgeflip servers; redirects user to thank you page */
 function recordShare(actionid, shareMsg) {
-	var new_html;
-	var userid = myfbid; // myfbid should get set globablly upon login/auth
+    var new_html;
+    var userid = myfbid; // myfbid should get set globablly upon login/auth
 
-	var params = {
-		userid: userid,
-		actionid: actionid,
-		appid: FB_APP_ID,
-		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-		friends: getRecipFbids(),
+    var params = {
+        userid: userid,
+        actionid: actionid,
+        appid: FB_APP_ID,
+        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+        friends: getRecipFbids(),
         eventType: 'shared',
-		sessionid: sessionid,	// global session id was pulled in from query string above
+        sessionid: sessionid,    // global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid,
         shareMsg: shareMsg
-	};
+    };
 
-	$.ajax({
-		type: "POST",
-		url: '/record_event/',
-		dataType: 'html',
-		data: params,
-		error: function(jqXHR, textStatus, errorThrown) {
-			// Even if recording the event on our servers failed, we should send them on their way...
+    $.ajax({
+        type: "POST",
+        url: '/record_event/',
+        dataType: 'html',
+        data: params,
+        error: function(jqXHR, textStatus, errorThrown) {
+            // Even if recording the event on our servers failed, we should send them on their way...
             top.location = thanksURL; // set in frame_faces.html via Jinja
-		},
-		success: function(data, textStatus, jqXHR) {
-			var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-			sessionid = header_efsid || sessionid;
+        },
+        success: function(data, textStatus, jqXHR) {
+            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
+            sessionid = header_efsid || sessionid;
             top.location = thanksURL; // set in frame_faces.html via Jinja
-		}
-	});
+        }
+    });
 
 }
 
