@@ -23,7 +23,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 
 5. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 6. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
- 
+
 Local Database
 --------------
 
@@ -47,6 +47,18 @@ To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumara
     * Create tables with `bin/create_dynamo.py`
 
 
+Dynamo
+------
+The config option `dynamo.engine` may be set to either `mock` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
+
+To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo) must be installed; (note, this is handled automatically by the build task in development mode &mdash; see `fab -d build.dependencies`).
+
+1. With FakeDynamo installed, the server may be invoked and managed via `fab serve.dynamo`; (see `fab -d serve.dynamo`).
+2. Set up and create tables &mdash; (note, this can be quite slow on live AWS):
+    * If necessary, drop tables with `bin/drop_dynamo.py`
+    * Create tables with `bin/create_dynamo.py`
+
+
 RabbitMQ
 --------------
 To set up your RabbitMQ instance:
@@ -56,13 +68,28 @@ To set up your RabbitMQ instance:
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
 4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
 
+Statsd/Graphite
+-----------------
+
+If you skip this, things still work. Also, this is very much a developer
+setup - production will be a centralized service.
+
+1. Install [node & npm](https://github.com/joyent/node/wiki/Installing-Node.js-via-package-manager#ubuntu-mint)
+2. Clone [statsd](https://github.com/etsy/statsd) in your working directory: `git clone git://github.com/etsy/statsd.git
+3. Start the server: `node statsd/stats.js statsdConfig.js`
+
+* [Graphite on
+Ubuntu](https://github.com/janoside/ubuntu-statsd-graphite-setup) is painful (be sure to use a separate virtualenv if you attempt this).
+
+* As an alternative, [Hosted Graphite](https://www.hostedgraphite.com/) is super-easy to use with this [statsd plugin](https://github.com/hostedgraphite/statsdplugin) (also includes [tasseo](https://github.com/obfuscurity/tasseo) real-time dashboards).
+
 Celery
 --------------
 Starting Celery:
 
 Setup and operation of Celery differs a bit between your local environments and production.
 This is mainly due to the fact that init scripts are excessive for local development, and tend to
-be far too specific for a particular environment. 
+be far too specific for a particular environment.
 
 *Locally*:
 
@@ -75,7 +102,7 @@ be far too specific for a particular environment.
 2. Symlink `scripts/celery/celeryd` to `/etc/init.d/celeryd`
 3. Copy `scripts/celery/celeryd.conf` to `/etc/default/celeryd`
 4. Set CELERY_CHDIR to the proper virtualenv path in `/etc/default/celeryd`
-5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery` 
+5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery`
 6. Chown log/pid dirs: `sudo chown -R celery:celery /var/run/celery /var/log/celery`
 7. Start the daemon: `/etc/init.d/celeryd start`
 

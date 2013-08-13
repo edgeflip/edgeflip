@@ -1,8 +1,8 @@
 #!/usr/bin/env python
+import logging
+
 from targetshare import database, models
 
-
-import logging
 logger = logging.getLogger('mysql_to_dynamo')
 
 conn = database.getConn()

@@ -13,13 +13,13 @@ New Relic
 .. envvar:: newrelic.enabled
 
     should New Relic support be turned on
-    
+
 .. envvar:: newrelic.inifile
 
     a fully qualified path to the `newrelic.ini` file.
-    
+
 .. envvar:: newrelic.environment
-    
+
     a New Relic environment, as defined in `newrelic.ini`. Defaults to `development`.
     
 

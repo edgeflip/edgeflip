@@ -1,4 +1,4 @@
-"""Fabric tasks for executing various common commands"""
+"""Fabric tasks for managing servers"""
 import os
 import signal
 from os.path import join
@@ -11,6 +11,18 @@ from . import BASEDIR, manage
 # Break convention for simplicity here:
 l = fab.local
 
+CELERY_QUEUES = (
+    'px3',
+    'px3_filter',
+    'px4',
+    'celery',
+    'delayed_save',
+    'bulk_create',
+    'update_users',
+    'update_tokens',
+    'update_edges',
+)
+
 
 @fab.task(name='server', default=True)
 def start_runserver(host='0.0.0.0', port='8080'):
@@ -21,7 +33,7 @@ def start_runserver(host='0.0.0.0', port='8080'):
 @fab.task(name='celery')
 def start_celery(workers='4',
                  loglevel='info',
-                 queues='px3,px3_filter,px4,celery,delayed_save,bulk_create'):
+                 queues=','.join(CELERY_QUEUES)):
     """Start Celery with the specified number of workers and log level
 
     Directs Celery at the default set of queues, or those specified, e.g.:

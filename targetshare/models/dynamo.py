@@ -62,6 +62,7 @@ from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
 from django.conf import settings
+from statsd import statsd
 
 
 logger = logging.getLogger(__name__)
@@ -85,7 +86,6 @@ def _make_dynamo_aws():
     return DynamoDBConnection(aws_access_key_id=access_id,
                               aws_secret_access_key=secret)
 
-
 def _make_dynamo_mock():
     """makes a connection to mock server, based on configuration. For internal use.
 
@@ -93,8 +93,8 @@ def _make_dynamo_mock():
 
     """
     # based on https://ddbmock.readthedocs.org/en/v0.4.1/pages/getting_started.html#run-as-regular-client-server
-    host = 'localhost'
-    port = 4567
+    host='localhost'
+    port=4567
     endpoint = '{}:{}'.format(host, port)
     region = RegionInfo(name='mock', endpoint=endpoint)
     conn = DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
@@ -111,6 +111,8 @@ else:
     raise RuntimeError("Bad value {} for settings.DYNAMO.engine".format(settings.DYNAMO.engine))
 
 logger.debug("Installed engine %s", settings.DYNAMO.engine)
+
+schemas = {} # map of table name => boto schema dict
 
 # FIXME
 def get_dynamo():
@@ -152,9 +154,10 @@ def get_table(name):
 
     :rtype: `boto.dynamodb2.table.Table`
     """
-    # xxx might be desirable to cache these objects like in get_dynamo()
-    table = Table(_table_name(name), connection=get_dynamo())
-    table.describe()
+    table = Table(_table_name(name),
+                  schema=schemas[name]['schema'],
+                  indexes=schemas[name].get('indexes', []),
+                  connection=get_dynamo())
     return table
 
 def datetime_to_epoch(dt):
@@ -194,20 +197,22 @@ def create_table(**schema):
     schema['table_name'] = name
     return Table.create(connection=get_dynamo(), **schema)
 
+@statsd.timer(__name__+'.create_all_tables')
 def create_all_tables():
     """Create all tables in Dynamo.
 
     You should only call this method once.
     """
     dynamo = get_dynamo()
-    create_table(**users_schema)
-    create_table(**tokens_schema)
-    create_table(**edges_incoming_schema)
-    create_table(**edges_outgoing_schema)
+    create_table(**schemas['users'])
+    create_table(**schemas['tokens'])
+    create_table(**schemas['edges_incoming'])
+    create_table(**schemas['edges_outgoing'])
 
+@statsd.timer(__name__+'.drop_all_tables')
 def drop_all_tables():
     """Delete all tables in Dynamo"""
-    for t in ('users', 'tokens', 'edges_outgoing', 'edges_incoming'):
+    for t in schemas:
         try:
             get_table(t).delete()
         except StandardError as e:
@@ -217,7 +222,7 @@ def drop_all_tables():
 
 ##### USERS #####
 
-users_schema = {
+schemas['users'] = {
     'table_name': 'users',
     'schema': [
         HashKey('fbid', data_type=NUMBER),
@@ -225,7 +230,7 @@ users_schema = {
     'indexes': [],
 }
 
-
+@statsd.timer(__name__+'.save_user')
 def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=None):
     """save a user to Dynamo. If user exists, update with new, non-None attrs.
 
@@ -253,6 +258,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=
                 user[k] = v
         return user.partial_save()
 
+
 def save_many_users(users):
     """save many users to Dynamo as a batch, overwriting existing rows.
 
@@ -269,6 +275,47 @@ def save_many_users(users):
             _remove_null_values(d)
             batch.put_item(data = d)
 
+
+def update_many_users(users):
+    """save many users to Dynamo as a batch, updating existing rows.
+
+    This modifies dicts passed in.
+
+    :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
+    """
+    updated = epoch_now()
+    table = get_table('users')
+
+    # map of fbid => data dict
+    users_data= {u['fbid']:u for u in users}
+    if not users_data: return
+
+    for item in table.batch_get(keys=[{'fbid': k} for k in users_data]):
+        if item['fbid'] is None: continue
+
+        # pop the corresponding data dict
+        data = users_data.pop(item['fbid'])
+        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['updated'] = updated
+        _remove_null_values(data)
+
+        # update the boto item
+        for k, v in data.iteritems():
+            if k != 'fbid':
+                item[k] = v
+        item.partial_save()
+
+    # everything left in users_data must be new items. Loop through these &
+    # save individually, so that a concurrent write will cause an error
+    # (instead of silently clobbering using batch_write)
+    for data in users_data.itervalues():
+        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['updated'] = updated
+        _remove_null_values(data)
+        table.put_item(data)
+
+
+@statsd.timer(__name__+'.fetch_user')
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
 
@@ -279,6 +326,7 @@ def fetch_user(fbid):
     x = table.get_item(fbid=fbid)
     if x['fbid'] is None: return None
     return _make_user(x)
+
 
 def fetch_many_users(fbids):
     """Retrieve many users.
@@ -306,7 +354,7 @@ def _make_user(x):
 
 ##### TOKENS #####
 
-tokens_schema = {
+schemas['tokens'] = {
     'table_name': 'tokens',
     'schema': [
         HashKey('fbid', data_type=NUMBER),
@@ -314,6 +362,7 @@ tokens_schema = {
     ]
 }
 
+@statsd.timer(__name__+'.save_token')
 def save_token(fbid, appid, token, expires, updated=None):
     """save a token to dynamo, overwriting existing.
 
@@ -335,6 +384,7 @@ def save_token(fbid, appid, token, expires, updated=None):
 
     return x.save(overwrite=True)
 
+@statsd.timer(__name__+'.fetch_token')
 def fetch_token(fbid, appid):
     """retrieve a token from facebook
 
@@ -373,7 +423,7 @@ def _make_token(x):
 
 ##### EDGES #####
 
-edges_outgoing_schema = {
+schemas['edges_outgoing'] = {
     'table_name': 'edges_outgoing',
     'schema': [
         HashKey('fbid_source', data_type=NUMBER),
@@ -387,7 +437,7 @@ edges_outgoing_schema = {
     ]
 }
 
-edges_incoming_schema = {
+schemas['edges_incoming'] = {
     'table_name': 'edges_incoming',
     'schema': [
         HashKey('fbid_target', data_type=NUMBER),
@@ -401,6 +451,7 @@ edges_incoming_schema = {
     ]
 }
 
+@statsd.timer(__name__+'.save_edge')
 def save_edge(fbid_source, fbid_target, **kwargs):
     """Save an edge to dynamo
 
@@ -414,6 +465,7 @@ def save_edge(fbid_source, fbid_target, **kwargs):
     kwargs['updated'] = updated = epoch_now()
     save_incoming_edge(fbid_source, fbid_target, **kwargs)
     save_outgoing_edge(fbid_source, fbid_target, updated)
+
 
 def save_many_edges(edges):
     """save many edges to dynamo in a batch, overwriting.
@@ -478,6 +530,8 @@ def save_outgoing_edge(fbid_source, fbid_target, updated):
     logger.debug("Saving edge %s -> %s to table %s", fbid_source, fbid_target, t)
     table.put_item(data, overwrite=True)
 
+
+@statsd.timer(__name__+'.fetch_edge')
 def fetch_edge(fbid_source, fbid_target):
     """retrieve an edge from facebook
 
@@ -489,6 +543,7 @@ def fetch_edge(fbid_source, fbid_target):
     table = get_table(t)
     x = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
     return _make_edge(x) if x['fbid_source'] is not None else None
+
 
 def fetch_many_edges(ids):
     """Retrieve many edges.
@@ -514,6 +569,7 @@ def fetch_all_incoming_edges():
     """
     return imap(_make_edge, get_table('edges_incoming').scan())
 
+
 def fetch_incoming_edges(fbid, newer_than=None):
     """Fetch many incoming edges
 
@@ -533,6 +589,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
                            fbid_target__eq = fbid,
                            updated__gt = datetime_to_epoch(newer_than))
         return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
+
 
 def fetch_outgoing_edges(fbid, newer_than=None):
     """Fetch many outgoing edges

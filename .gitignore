@@ -1,12 +1,10 @@
 *.pyc
 *.sqlite
-/edgeflip/logs/*
 *.wpr
 *.wpu
 *.pickle
 *.swp
-.coverage
-/htmlcov/*
+
 /doc/_build/*
 /doc/snakefood.svg
 
@@ -15,8 +13,14 @@
 *.sublime-workspace
 .ropeproject
 
-/cover
-
+/edgeflip/logs/*
 /edgeflip/static
+
 /fake_dynamo.fdb
 /.fake_dynamo.pid
+
+/cover
+/htmlcov
+.coverage
+
+/statsd

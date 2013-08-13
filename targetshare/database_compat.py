@@ -24,13 +24,10 @@ def updateUsersDb(users):
 
     :arg users: a list of `datastruct.UserInfo`
     """
-    # XXX it'd be nice to use boto's batch_write here, but it doesn't support partial updates
-    #for u in users:
-    #    dynamo.save_user(fbid=u.id, fname=u.fname, lname=u.lname, email=u.email, gender=u.gender, birthday=u.birthday, city=u.city, state=u.state)
-    dynamo.save_many_users(dict(fbid=u.id, fname=u.fname, lname=u.lname,
-                                email=u.email, gender=u.gender, birthday=u.birthday,
-                                city=u.city, state=u.state)
-                           for u in users)
+    dynamo.update_many_users(dict(fbid=u.id, fname=u.fname, lname=u.lname,
+                                  email=u.email, gender=u.gender, birthday=u.birthday,
+                                  city=u.city, state=u.state)
+                             for u in users)
 
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
@@ -128,12 +125,12 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
     # build dict of secondary id -> EdgeCounts
     # XXX this is the ugliest variable name I have ever written in my life.
     if requireIncoming:
-        secondary_EdgeCounts_in = {e['fbid_target']: datastructs.EdgeCounts.from_dynamo(e) for e in
+        secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
                                    dynamo.fetch_incoming_edges(primId, newer_than_date)
-                                   if e.postLikes is not None}
+                                   if 'post_likes' in e}
 
     else:
-        secondary_EdgeCounts_in = {e['fbid_target']: datastructs.EdgeCounts.from_dynamo(e) for e in
+        secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
                                    dynamo.fetch_incoming_edges(primId, newer_than_date)}
 
 
@@ -159,12 +156,8 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
 
     return [datastructs.Edge(*a) for a in args if a[2] is not None]
 
-
-
-# helper function that may get run in a background thread
-def _updateDb(user, token, edges):
-    """takes datastructs.* and writes to database
-    """
+def updateDb(user, token, edges):
+    """takes datastructs.* and writes to dynamo"""
     tim = datastructs.Timer()
 
     # update token for primary
@@ -173,18 +166,5 @@ def _updateDb(user, token, edges):
     updateUsersDb([e.secondary for e in edges])
     updateFriendEdgesDb(edges)
 
-    logger.debug("_updateDB() thread %d updated %d friends and edges for user %d (took %s)" %
-                    (threading.current_thread().ident, len(edges), user.id, tim.elapsedPr()))
-
-
-def updateDb(user, token, edges, background=False):
-    """calls _updateDb maybe in thread"""
-
-    if background:
-        t = threading.Thread(target=_updateDb, args=(user, token, edges))
-        t.daemon = False
-        t.start()
-        logger.debug("updateDb() spawning background thread %d for user %d", t.ident, user.id)
-    else:
-        logger.debug("updateDb() foreground thread %d for user %d", threading.current_thread().ident, user.id)
-        _updateDb(user, token, edges)
+    logger.debug("updateDB() updated %d friends and edges for user %d (took %s)" %
+                 (len(edges), user.id, tim.elapsedPr()))

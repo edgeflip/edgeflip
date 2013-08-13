@@ -131,6 +131,53 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
             self.assertDictEqual(u, d)
 
+    def test_update_many_users(self):
+        """Test updating many users"""
+        dynamo.save_many_users(self.users().values())
+
+        # a modified user
+        alice_new = self.users()[1234]
+        alice_new['email'] = ''
+        alice_new['birthday'] = None
+        alice_new['state'] = 'NY'
+
+        alice_res = self.users()[1234]
+        alice_res['state'] = 'NY'
+        dynamo._remove_null_values(alice_res)
+
+        # a new user
+        evan_new = dict(fbid=200, fname='Evan', lname='Escarole', email='evan@example.com',
+                        gender=None, birthday=None, city='Evanston', state='WY')
+
+        evan_res = evan_new.copy()
+        dynamo._remove_null_values(evan_res)
+
+        dynamo.update_many_users([alice_new.copy(), evan_new.copy()])
+
+        table = dynamo.get_table('users')
+
+        # compare modified user. munge the raw dict from dynamo in a compatible way
+        x = table.get_item(fbid=1234)
+        d = dict(x.items())
+        assert 'updated' in d
+        del d['updated']
+        d['fbid'] = int(d['fbid'])
+        if 'birthday' in d:
+            d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+
+        self.assertDictEqual(alice_res, d)
+
+        # compare new user. munge the raw dict from dynamo in a compatible way
+        x = table.get_item(fbid=200)
+        d = dict(x.items())
+        assert 'updated' in d
+        del d['updated']
+        d['fbid'] = int(d['fbid'])
+        if 'birthday' in d:
+            d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+
+        self.assertDictEqual(evan_res, d)
+
 
 @freeze_time('2013-01-01')
 class DynamoTokenTestCase(EdgeFlipTestCase):
