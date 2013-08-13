@@ -5,10 +5,9 @@ import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.utils import timezone
-from django.db.models import get_model
 
 from targetshare import (
-    database,
+    database_compat as database,
     facebook,
     mock_facebook,
     models,

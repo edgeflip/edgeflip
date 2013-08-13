@@ -307,8 +307,9 @@ NOSE_ARGS = (
     '--cover-erase',
     '--cover-html',
     '--cover-package=targetshare',
-    '--logging-level=CRITICAL',
     '--exclude=^fab$',
+    '--http-whitelist=localhost:4567',
+    '--logging-level=CRITICAL',
 )
 
 

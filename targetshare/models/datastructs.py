@@ -156,6 +156,17 @@ class UserInfo(object):
                  unidecodeSafe(self.state)]
         return " ".join(rets)
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make a `datastructs.UserInfo` from a `dynamo` dict."""
+        return cls(uid=int(x['fbid']),
+                   first_name=x.get('fname'),
+                   last_name=x.get('lname'),
+                   email=x.get('email'),
+                   sex=x.get('gender'), # XXX aaah!
+                   birthday=x.get('birthday'),
+                   city=x.get('city'),
+                   state=x.get('state'))
 
 class FriendInfo(UserInfo):
     """same as a UserInfo w/ addtional fields relative to a target user
@@ -190,6 +201,15 @@ class TokenInfo(object):
         return "%s:%s %s (exp %s)" % (self.appId, self.ownerId, self.tok, self.expires.strftime("%m/%d"))
 
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make a `datastructs.TokenInfo` from a `dynamo` dict"""
+        return datastructs.TokenInfo(tok = x['token'],
+                                     own = int(x['fbid']),
+                                     app = int(x['appid']),
+                                     exp=x['expires'])
+
+
 class EdgeCounts(object):
     """ Stores counts of different interactions of one user on another. In all cases, counts indicate
         the actions of the source user on the target's feed.
@@ -215,6 +235,26 @@ class EdgeCounts(object):
         self.photoOther = photoOth    # count of photos not owned by target in which source & target are both tagged
         self.mutuals = muts
 
+    @classmethod
+    def from_dynamo(cls, x):
+        """make an `datastructs.EdgeCount` from a `dynamo` dict """
+        return cls(
+            sourceId = int(x['fbid_source']),
+            targetId = int(x['fbid_target']),
+            postLikes = _int_or_none(x.get('post_likes')),
+            postComms = _int_or_none(x.get('post_comms')),
+            statLikes = _int_or_none(x.get('stat_likes')),
+            statComms = _int_or_none(x.get('stat_comms')),
+            wallPosts = _int_or_none(x.get('wall_posts')),
+            wallComms = _int_or_none(x.get('wall_comms')),
+            tags = _int_or_none(x.get('tags')),
+            photoTarg = _int_or_none(x.get('photos_target')),
+            photoOth = _int_or_none(x.get('photos_other')),
+            muts = _int_or_none(x.get('mut_friends'))
+        )
+
+# internal helper to convert from dynamo's decimal
+_int_or_none = lambda x: int(x) if x is not None else None
 
 class Edge(object):
     """relationship between two users

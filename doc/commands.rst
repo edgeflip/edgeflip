@@ -26,4 +26,14 @@ Commandline utility for manipulating RabbitMQ queues.
 
 Script to drop tables and recreate database.
 
+:program:`drop_dynamo.py`
+--------------------------
+.. program:: drop_dynamo.py
 
+Script to drop Dynamo tables. This can take several minutes to take effect.
+
+:program:`create_dynamo.py`
+-----------------------------
+.. program:: create_dynamo.py
+
+Script to create Dynamo tables. This can take several minutes to take effect.

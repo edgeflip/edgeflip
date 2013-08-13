@@ -1,8 +1,10 @@
 import celery
 
 from django.utils import timezone
+from freezegun import freeze_time
 
 from targetshare import (
+    dynamo,
     models,
     tasks,
 )
@@ -10,6 +12,7 @@ from targetshare import (
 from . import EdgeFlipTestCase
 
 
+@freeze_time('2013-01-01')
 class TestCeleryTasks(EdgeFlipTestCase):
 
     fixtures = ['test_data']
@@ -70,7 +73,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        assert models.Edge.objects.count()
+        assert list(dynamo.fetch_all_incoming_edges())
 
     def test_fallback_cascade(self):
         # Some test users and edges

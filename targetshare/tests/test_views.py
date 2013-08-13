@@ -434,12 +434,11 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         fb_mock.getUrlFb.return_value = {'id': 6963}
         response = self.client.get(reverse('health-check'))
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            json.loads(response.content), {
-                'database': True,
-                'facebook': True
-            }
-        )
+        self.assertEqual(json.loads(response.content), {
+            'database': True,
+            'facebook': True,
+            'dynamo': True,
+        })
 
     def test_health_check_elb(self):
         ''' Test health-check view from Amazon ELB perspective '''

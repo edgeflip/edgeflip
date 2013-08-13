@@ -1,10 +1,6 @@
-edgeflip/target_config.json
 *.pyc
 *.sqlite
 /edgeflip/logs/*
-edgeflip/edgeflip.config
-edgeflip/web/templates/clients/local
-edgeflip/web/templates/clients/local/*
 *.wpr
 *.wpu
 *.pickle
@@ -19,7 +15,8 @@ edgeflip/web/templates/clients/local/*
 *.sublime-workspace
 .ropeproject
 
-edgeflip.egg-info
 /cover
 
-edgeflip/static
+/edgeflip/static
+/fake_dynamo.fdb
+/.fake_dynamo.pid

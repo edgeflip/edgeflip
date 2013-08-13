@@ -1,6 +1,6 @@
 import logging
 
-from targetshare import database as db, utils
+from targetshare import database_compat as db, utils
 
 
 logger = logging.getLogger(__name__)
