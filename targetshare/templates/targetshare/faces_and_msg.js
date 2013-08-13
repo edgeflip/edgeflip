@@ -20,7 +20,7 @@ var faceFriends = [
     {% for friend in face_friends %}
         {{friend.id}},
     {% endfor %}
-].slice({{ numFace }});
+].slice({{ num_face }});
 
 
 function getRecipElts() {

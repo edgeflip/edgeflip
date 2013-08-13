@@ -2,6 +2,17 @@ body {
     font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 }
 
+.h2_container {
+       border: none;
+       white-space: normal; 
+       text-align: center;
+       padding: 10px;
+       background-color: #f7f7f7;
+       border-radius: 5px;
+       -moz-border-radius: 5px;
+       box-shadow: 2px 2px 5px black;
+}
+
 #your-friends-here {
     width: 100%;
 }
