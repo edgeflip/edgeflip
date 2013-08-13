@@ -14,10 +14,11 @@ import datetime
 import types
 import decimal
 
-from . import dynamo
-from . import datastructs
+from .models import dynamo
+from .models import datastructs
 
 logger = logging.getLogger(__name__)
+
 
 def updateUsersDb(users):
     """update users table
