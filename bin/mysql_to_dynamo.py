@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-from edgeflip import database, dynamo
+from targetshare import database, models
 
 
 import logging
@@ -10,7 +10,7 @@ curs = conn.cursor()
 
 # TOKENS
 logger.debug('Loading tokens')
-table = dynamo.get_table('tokens')
+table = models.dynamo.get_table('tokens')
 curs.execute("""SELECT ownerid, appid, token,
                        unix_timestamp(expires),
                        unix_timestamp(updated)
@@ -25,7 +25,7 @@ logger.debug('Finished tokens')
 
 # USERS
 logger.debug('Loading users')
-table = dynamo.get_table('users')
+table = models.dynamo.get_table('users')
 curs.execute("""SELECT fbid, fname, lname email, gender, birthday, city, state,
                        unix_timestamp(updated)
                 FROM users;""")
@@ -39,8 +39,8 @@ logger.debug('Finished users')
 
 # EDGES
 logger.debug('Loading edges')
-incoming = dynamo.get_table('edges_incoming')
-outgoing = dynamo.get_table('edges_outgoing')
+incoming = models.dynamo.get_table('edges_incoming')
+outgoing = models.dynamo.get_table('edges_outgoing')
 
 curs.execute("""SELECT fbid_source, fbid_target, post_likes, post_comms,
                        stat_likes, stat_comms, wall_posts, wall_comms,

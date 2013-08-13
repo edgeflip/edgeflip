@@ -53,21 +53,22 @@ import pymlconf
 import time
 import types
 import datetime
-from itertools import imap, chain
+from itertools import imap
 
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
-from boto.dynamodb2.fields import HashKey, RangeKey, AllIndex, IncludeIndex, KeysOnlyIndex
+from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
+from django.conf import settings
 
-from .settings import config
 
 logger = logging.getLogger(__name__)
 
 # `threading.local` for Dynamo connections created outside of flask. gross.
 _non_flask_threadlocal = threading.local()
+
 
 def _make_dynamo_aws():
     """makes a connection to dynamo, based on configuration. For internal use.
@@ -76,13 +77,14 @@ def _make_dynamo_aws():
 
     """
     try:
-        access_id = config.aws.AWS_ACCESS_KEY_ID
-        secret = config.aws.AWS_SECRET_ACCESS_KEY
+        access_id = settings.AWS.AWS_ACCESS_KEY_ID
+        secret = settings.AWS.AWS_SECRET_ACCESS_KEY
     except (KeyError, pymlconf.ConfigurationError):
         access_id = None
         secret = None
     return DynamoDBConnection(aws_access_key_id=access_id,
                               aws_secret_access_key=secret)
+
 
 def _make_dynamo_mock():
     """makes a connection to mock server, based on configuration. For internal use.
@@ -91,8 +93,8 @@ def _make_dynamo_mock():
 
     """
     # based on https://ddbmock.readthedocs.org/en/v0.4.1/pages/getting_started.html#run-as-regular-client-server
-    host='localhost'
-    port=4567
+    host = 'localhost'
+    port = 4567
     endpoint = '{}:{}'.format(host, port)
     region = RegionInfo(name='mock', endpoint=endpoint)
     conn = DynamoDBConnection(aws_access_key_id="AXX", aws_secret_access_key="SEKRIT", region=region, port=port, is_secure=False)
@@ -101,15 +103,16 @@ def _make_dynamo_mock():
     conn._auth_handler.region_name = "us-mock-1"
     return conn
 
-if config.dynamo.engine == 'aws':
+if settings.DYNAMO.engine == 'aws':
     _make_dynamo = _make_dynamo_aws
-elif config.dynamo.engine == 'mock':
+elif settings.DYNAMO.engine == 'mock':
     _make_dynamo = _make_dynamo_mock
 else:
-    raise RuntimeError("Bad value {} for config.dynamo.engine".format(config.dynamo.engine))
+    raise RuntimeError("Bad value {} for settings.DYNAMO.engine".format(settings.DYNAMO.engine))
 
-logger.debug("Installed engine %s", config.dynamo.engine)
+logger.debug("Installed engine %s", settings.DYNAMO.engine)
 
+# FIXME
 def get_dynamo():
     """return a dynamo connection for this thread.
 
@@ -142,7 +145,7 @@ def _table_name(name):
 
     For internal use.
     """
-    return ".".join((config.dynamo.prefix, name))
+    return ".".join((settings.DYNAMO.prefix, name))
 
 def get_table(name):
     """Return a boto table for the given name
