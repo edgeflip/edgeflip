@@ -148,6 +148,8 @@ def frame_faces(request, campaign_id, content_id):
         'campaign': campaign,
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
+        'client_css': client.locate_css('edgeflip_client.css'),
+        'client_css_simple': client.locate_css('edgeflip_client_simple.css'),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid
@@ -349,7 +351,8 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                 'fb_params': fb_params,
                 'all_friends': all_friends,
                 'face_friends': face_friends,
-                'num_friends': num_face
+                'show_faces': face_friends[:num_face],
+                'num_face': num_face
             }, context_instance=RequestContext(request)),
             'campaignid': campaign.pk,
             'contentid': content.pk,

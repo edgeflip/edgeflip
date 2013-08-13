@@ -36,34 +36,33 @@ this is the message div and the faces themselves
 
     <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table">
         <tr>
-            {% for face_friend in face_friends|slice:":num_face" %}
+            {% for face_friend in show_faces %}
                 <td>
-                    <div style="position: relative" id="wrapper-{{ face_friend.fbid }}">
-                        <div class="xout" onClick="doReplace({{fbid}});">
+                    <div style="position: relative" id="wrapper-{{ face_friend.id }}">
+                        <div class="xout" onClick="doReplace({{ face_friend.id }});">
                             x
                         </div>
-                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{fbid}});">
+                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.id }}" onClick="toggleFriend({{ face_friend.id }});">
                             <div class="checkmark">&nbsp;</div>
 
                             <div class="friend_pic">
-                                <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
+                                <img src="https://graph.facebook.com/{{ face_friend.id }}/picture" border=0 />
                             </div>
                             <div class="friend_txt">
                                 <div class="friend_name dojoxEllipsis">
-                                    {{ face_friend.first_name }}
+                                    {{ face_friend.fname }}
                                 </div>
                                 <div class="friend_name dojoxEllipsis">
-                                    {{ face_friend.lastname }}
+                                    {{ face_friend.lname }}
                                 </div>
                             </div>
                         </div>
                     </div>
                 </td>
-                {# TODO: Fix this if block to be prettier #}
                 {% if forloop.counter0 == 2 and num_face > 3 %}
                     </tr><tr>
                 {% endif %}
-                {% if forloop.conter0 == 5 and num_face > 6 %}
+                {% if forloop.counter0 == 5 and num_face > 6 %}
                     </tr><tr>
                 {% endif %}
             {% endfor %}

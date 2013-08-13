@@ -388,7 +388,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 
-	var params = JSON.stringify({
+	var params = {
 		userid: userid,
 		appid: FB_APP_ID,
 		content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
@@ -399,12 +399,11 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 		sessionid: sessionid,	// global session id was pulled in from query string above
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid
-	});
+	};
 
 	$.ajax({
 		type: "POST",
-		url: '/suppress',
-		contentType: "application/json",
+		url: '/suppress/',
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
@@ -499,7 +498,7 @@ function recordShare(actionid, shareMsg) {
 	var new_html;
 	var userid = myfbid; // myfbid should get set globablly upon login/auth
 
-	var params = JSON.stringify({
+	var params = {
 		userid: userid,
 		actionid: actionid,
 		appid: FB_APP_ID,
@@ -510,12 +509,11 @@ function recordShare(actionid, shareMsg) {
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid,
         shareMsg: shareMsg
-	});
+	};
 
 	$.ajax({
 		type: "POST",
-		url: '/record_event',
-		contentType: "application/json",
+		url: '/record_event/',
 		dataType: 'html',
 		data: params,
 		error: function(jqXHR, textStatus, errorThrown) {
@@ -537,7 +535,7 @@ function recordShare(actionid, shareMsg) {
 function recordEvent(eventType, errorMsg) {
     var userid = myfbid;
 
-    var params = JSON.stringify({
+    var params = {
         userid: userid,
         appid: FB_APP_ID,
         content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
@@ -546,12 +544,11 @@ function recordEvent(eventType, errorMsg) {
         campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
         contentid: contentid,
         errorMsg: errorMsg
-    });
+    };
 
     $.ajax({
         type: "POST",
-        url: '/record_event',
-        contentType: "application/json",
+        url: '/record_event/',
         dataType: 'html',
         data: params,
         error: function(jqXHR, textStatus, errorThrown) {
