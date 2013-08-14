@@ -24,7 +24,6 @@ from .choice_set_filter import ChoiceSetFilter
 from .choice_set_meta import ChoiceSetMeta
 from .client_content import ClientContent
 from .client_default import ClientDefault
-from .edge import Edge
 from .event import Event
 from .face_exclusion import FaceExclusion
 from .faces_style import FacesStyle
@@ -46,6 +45,4 @@ from .proximity_model_definition import ProximityModelDefinition
 from .proximity_model_meta import ProximityModelMeta
 from .proximity_model import ProximityModel
 from .share_message import ShareMessage
-from .token import Token
 from .user_client import UserClient
-from .user import User

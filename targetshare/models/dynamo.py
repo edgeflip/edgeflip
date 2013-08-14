@@ -45,10 +45,10 @@ join to access the data. Both tables also have a local secondary index on
 given date.
 
 """
+import calendar
 import logging
 import threading
 import pymlconf
-import time
 import types
 import datetime
 from itertools import imap
@@ -60,6 +60,7 @@ from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
 from django.conf import settings
+from django.utils import timezone
 
 
 LOG = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ def _make_dynamo_mock():
 
 
 def _make_dynamo():
-    """Retrive a (mock) dynamo server connection, based on configuration. For internal use."""
+    """Retrive a [mock] dynamo server connection, based on configuration. For internal use."""
     if settings.DYNAMO.engine == 'aws':
         return _make_dynamo_aws()
     elif settings.DYNAMO.engine == 'mock':
@@ -121,6 +122,8 @@ class DynamoDBConnectionProxy(object):
             cls._threadlocal.dynamo = _make_dynamo()
             return cls._threadlocal.dynamo
 
+    # Specify type(self) when calling get_connection to avoid reference to
+    # any same-named method on proxied object:
     def __getattr__(self, name):
         return getattr(type(self).get_connection(), name)
 
@@ -143,26 +146,28 @@ def get_table(name):
 
     :rtype: `boto.dynamodb2.table.Table`
     """
-    table = Table(_table_name(name),
-                  schema=SCHEMAS[name]['schema'],
-                  indexes=SCHEMAS[name].get('indexes', []),
-                  connection=connection)
-    return table
+    return Table(_table_name(name),
+                 schema=SCHEMAS[name]['schema'],
+                 indexes=SCHEMAS[name].get('indexes', []),
+                 connection=connection)
 
 
 def datetime_to_epoch(dt):
-    """given a datetime, return seconds since the epoch"""
-    return time.mktime(dt.utctimetuple()) if dt is not None else None
+    """given a datetime, return seconds since the epoch in UTC"""
+    return calendar.timegm(dt.utctimetuple()) if dt is not None else None
 
 
 def epoch_to_datetime(epoch):
-    """given seconds since the epoch, return a datetime"""
-    return datetime.datetime.fromtimestamp(epoch) if epoch is not None else None
+    """given seconds since the epoch in UTC, return a timezone-aware datetime"""
+    if epoch is None:
+        return None
+    naive = datetime.datetime.utcfromtimestamp(epoch)
+    return timezone.make_aware(naive, timezone.utc)
 
 
 def date_to_epoch(d):
-    """given a date, return seconds since the epoch"""
-    return time.mktime(d.timetuple()) if d is not None else None
+    """given a date, return seconds since the epoch in UTC"""
+    return calendar.timegm(d.timetuple()) if d is not None else None
 
 
 def epoch_to_date(epoch):
@@ -172,21 +177,22 @@ def epoch_to_date(epoch):
 
 def epoch_now():
     """return the current UTC time as seconds since the epoch"""
-    return datetime_to_epoch(datetime.datetime.now())
+    return datetime_to_epoch(timezone.now())
 
 
-def _remove_null_values(d):
-    """Modify a dict in place by deleting items having null-ish values. for internal use"""
-    for k, v in d.items():
-        if isinstance(v, (basestring, set, tuple, list, dict,
-                          types.NoneType)) and not v:
-            del d[k]
+def _remove_null_values(dict_):
+    """Modify a dict in place by deleting items having null-ish values. For internal use."""
+    considered_types = (basestring, set, tuple, list, dict, types.NoneType)
+    for key, value in dict_.items():
+        if isinstance(value, considered_types) and not value:
+            del dict_[key]
 
 
 def create_table(**schema):
     """create a new table in Dynamo
 
     :arg dict schema: keyword args for `boto.dynamodb2.Table.create`
+
     """
     name = _table_name(schema['table_name'])
     LOG.info("Creating table %s", name)
@@ -198,6 +204,7 @@ def create_all_tables():
     """Create all tables in Dynamo.
 
     You should only call this method once.
+
     """
     create_table(**SCHEMAS['users'])
     create_table(**SCHEMAS['tokens'])
@@ -207,13 +214,13 @@ def create_all_tables():
 
 def drop_all_tables():
     """Delete all tables in Dynamo"""
-    for t in SCHEMAS:
+    for table in SCHEMAS:
         try:
-            get_table(t).delete()
-        except StandardError as e:
-            LOG.warn("Error deleting table %s: %s", t, e)
+            get_table(table).delete()
+        except StandardError:
+            LOG.warn("Error deleting table %s", table, exc_info=True)
         else:
-            LOG.debug("Deleted table %s", t)
+            LOG.debug("Deleted table %s", table)
 
 
 ##### USERS #####
@@ -375,8 +382,8 @@ def save_token(fbid, appid, token, expires, updated=None):
     """
     table = get_table('tokens')
     x = Item(table, data=dict(
-        fbid=fbid,
-        appid=appid,
+        fbid=int(fbid),
+        appid=int(appid),
         token=token,
         expires=datetime_to_epoch(expires),
         updated=epoch_now()
@@ -392,7 +399,7 @@ def fetch_token(fbid, appid):
     :rtype: dict or None if not found
     """
     table = get_table('tokens')
-    x = table.get_item(fbid=fbid, appid=appid)
+    x = table.get_item(fbid=int(fbid), appid=int(appid))
     if x['fbid'] is None:
         return None
     return _make_token(x)

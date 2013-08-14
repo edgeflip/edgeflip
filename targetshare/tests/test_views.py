@@ -395,11 +395,12 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
         fb_mock.extendToken.return_value = None
-        # FIXME: dynamo
-        token = models.Token.objects.create(
-            fbid=1111111, app_id=self.test_client.fb_app_id,
-            token='test-token', owner_id=1111111,
-            expires=timezone.now() - timedelta(days=5)
+        expires0 = timezone.now() - timedelta(days=5)
+        models.dynamo.save_token(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            token='test-token',
+            expires=expires0,
         )
         response = self.client.post(
             '%s?token=1' % reverse('record-event'), {
@@ -416,13 +417,13 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         self.assertStatusCode(response, 200)
-        refreshed_token = models.Token.objects.get(pk=token.pk)
-        assert refreshed_token.expires > token.expires
-        self.assertEqual(
-            models.Event.objects.filter(
-                event_type='authorized', friend_fbid__in=[10, 11, 12]
-            ).count(), 3
+        refreshed_token = models.dynamo.fetch_token(1111111, self.test_client.fb_app_id)
+        self.assertGreater(refreshed_token['expires'], expires0)
+        events = models.Event.objects.filter(
+            event_type='authorized',
+            friend_fbid__in=[10, 11, 12]
         )
+        self.assertEqual(events.count(), 3)
 
     def test_canvas(self):
         ''' Tests views.canvas '''

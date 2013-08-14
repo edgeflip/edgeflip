@@ -127,26 +127,17 @@ class TestCeleryTasks(EdgeFlipTestCase):
         self.assertEquals(edges_filtered[1]['campaignId'], 4)
 
     def test_delayed_bulk_create(self):
-        ''' Tests the tasks.bulk_write_objs task '''
-        # FIXME: dynamo
-        assert not models.User.objects.exists()
-        users = []
-        for x in range(10):
-            users.append(models.User(
-                first_name='Test%s' % x,
-                last_name='User',
-                fbid=x,
-            ))
-        tasks.bulk_create(users)
-        self.assertEqual(models.User.objects.count(), 10)
+        """Task bulk_create calls objects.bulk_create with objects passed"""
+        clients = [models.relational.Client(name="Client {}".format(count))
+                   for count in xrange(1, 11)]
+        client_count = models.relational.Client.objects.count()
+        tasks.bulk_create(clients)
+        self.assertEqual(models.relational.Client.objects.count(), client_count + 10)
 
     def test_delayed_obj_save(self):
-        ''' Tests the tasks.save_model_obj task '''
-        # FIXME: dynamo
-        assert not models.User.objects.exists()
-        tasks.delayed_save(models.User(
-            first_name='Test',
-            last_name='Delayed_User',
-            fbid=100
-        ))
-        assert models.User.objects.filter(last_name='Delayed_User').exists()
+        """Task delayed_save calls the save method of the object passed"""
+        client = models.relational.Client(name="testy")
+        matching_clients = models.relational.Client.objects.filter(name="testy")
+        assert not matching_clients.exists()
+        tasks.delayed_save(client)
+        assert matching_clients.exists()

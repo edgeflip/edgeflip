@@ -525,11 +525,12 @@ def record_event(request):
                 tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
-            # FIXME: dynamo
-            models.Token.objects.filter(
-                fbid=user_id, app_id=token.appId, owner_id=token.ownerId,
-                token=token.tok
-            ).update(expires=token.expires)
+            models.dynamo.save_token(
+                fbid=user_id,
+                appid=token.appId,
+                token=token.tok,
+                expires=token.expires,
+            )
         else:
             LOG.error(
                 "Trying to write an authorization for fbid %s with "
@@ -583,20 +584,18 @@ def health_check(request):
         return http.HttpResponse("It's Alive!", status=200)
 
     components = {
-        'database': False,
-        'facebook': False
+        'database': models.Client.objects.exists(),
+        'dynamo': False,
+        'facebook': False,
     }
-    try:
-        components['database'] = models.Client.objects.exists()
-    except:
-        raise
 
-    try:
-        fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
-        components['facebook'] = int(fb_resp['id']) == 6963
-    except:
-        raise
+    fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
+    components['facebook'] = int(fb_resp['id']) == 6963
+
+    users = models.dynamo.get_table('users')
+    components['dynamo'] = bool(users.describe())
 
     return http.HttpResponse(
-        json.dumps(components), content_type='application/json'
+        json.dumps(components),
+        content_type='application/json',
     )

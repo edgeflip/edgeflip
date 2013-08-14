@@ -2,7 +2,7 @@ import logging
 
 from django.core.management.base import CommandError, LabelCommand
 
-from targetshare import database_compat, models
+from targetshare import database_compat as database, models
 
 
 class Command(LabelCommand):
@@ -31,7 +31,8 @@ class Command(LabelCommand):
             curs.execute("""SELECT ownerid, appid, token,
                                 unix_timestamp(expires),
                                 unix_timestamp(updated)
-                            FROM tokens;""")
+                            FROM tokens
+                            WHERE fbid=ownerid;""")
             names = [d[0] for d in curs.description] # column names
 
             with table.batch_write() as batch:

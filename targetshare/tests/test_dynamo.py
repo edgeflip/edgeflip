@@ -2,6 +2,7 @@ import datetime
 import types
 
 from freezegun import freeze_time
+from nose import tools
 
 from targetshare.models import dynamo
 
@@ -13,21 +14,18 @@ def test_remove_null_values():
     good = {"string": 'wat',
             "num": 9000,
             "zero": 0,
-            "set": set([1, 2, 3]),
-            "dict": dict(foo=42),
-            }
+            "set": {1, 2, 3},
+            "dict": {'foo': 42}}
     good_ = good.copy()
     dynamo._remove_null_values(good_)
-    assert good_ == good, good_
+    tools.eq_(good_, good)
 
-    bad = {
-        "string": '',
-        "set": set(),
-        "dict": {},
-    }
+    bad = {"string": '',
+           "set": set(),
+           "dict": {}}
     bad_ = bad.copy()
     dynamo._remove_null_values(bad_)
-    assert bad_ == {}
+    tools.eq_(bad_, {})
 
 
 @freeze_time('2013-01-01')
@@ -51,7 +49,6 @@ class DynamoUserTestCase(EdgeFlipTestCase):
                     dict(fbid=102, fname='David', lname='Dill', email='david@example.com',
                          gender='Male', birthday=None, city=None, state='DE'),
                 ]}
-
 
     def save_alice(self):
         """helper to save a single user alice"""
@@ -103,7 +100,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         dynamo.save_many_users(self.users().values())
         table = dynamo.get_table('users')
 
-        results = list(table.batch_get(keys=[{'fbid':k} for k in self.users().keys()]))
+        results = list(table.batch_get(keys=[{'fbid': k} for k in self.users().keys()]))
         self.assertItemsEqual([x['fbid'] for x in results], self.users().keys())
 
         for x in results:
@@ -245,7 +242,6 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         self.assertEqual(x['token'], 'DECAFBAD')
         self.assertEqual(x['expires'], self.expiry)
 
-
     def test_fetch_many_tokens(self):
         """Test fetching many tokens"""
 
@@ -292,7 +288,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             dict(fbid_source=500, fbid_target=601, post_likes=1, post_comms=2,
                  stat_likes=3, stat_comms=4, wall_posts=5, wall_comms=6,
                  tags=6, photos_target=8, photos_other=9, mut_friends=601),
-                ]}
+        ]}
 
     def save_edge(self):
         """helper to save a single edge, (100, 200)"""
@@ -354,7 +350,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         dynamo.save_many_edges(self.edges().values())
         incoming = dynamo.get_table('edges_incoming')
 
-        results = list(incoming.batch_get(keys=[{'fbid_source':s, 'fbid_target':t}
+        results = list(incoming.batch_get(keys=[{'fbid_source': s, 'fbid_target': t}
                                                 for s, t in self.edges().keys()]))
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -372,7 +368,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
         outgoing = dynamo.get_table('edges_outgoing')
 
-        results = list(outgoing.batch_get(keys=[{'fbid_source':s, 'fbid_target':t}
+        results = list(outgoing.batch_get(keys=[{'fbid_source': s, 'fbid_target': t}
                                                 for s, t in self.edges().keys()]))
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -408,7 +404,6 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             assert 'updated' in d
             del d['updated']
             self.assertDictEqual(edge, d)
-
 
     def test_fetch_all_incoming_edges(self):
         """Test fetching all edges"""
@@ -446,7 +441,6 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             del d['updated']
             self.assertDictEqual(edge, d)
 
-
     def test_fetch_outgoing_edges(self):
         """Test fetching outgoing edges"""
         dynamo.save_many_edges(self.edges().values())
@@ -467,17 +461,14 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_incoming_edges_newer_than(self):
         """Test fetching incoming edges with newer than date"""
-
         # save everything with "old" date
         with freeze_time('2013-01-01'):
             dynamo.save_many_edges(self.edges().values())
-
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
             dynamo.save_edge(**e)
-
 
         results = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5)))
 
@@ -496,26 +487,21 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         empty = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 10)))
         self.assertItemsEqual(empty, [])
 
-
     def test_fetch_outgoing_edges_newer_than(self):
         """Test fetching outgoing edges newer than date"""
-
         # save everything with "old" date
         with freeze_time('2013-01-01'):
             dynamo.save_many_edges(self.edges().values())
-
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
             dynamo.save_edge(**e)
 
-
         results = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5)))
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
-
 
         d = results[0]
         self.assertIsInstance(d, dict)
