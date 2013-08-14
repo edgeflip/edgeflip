@@ -317,24 +317,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'targetshare', ['Client'])
 
-        # Adding model 'Edge'
-        db.create_table(u'edges', (
-            ('fbid_source', self.gf('django.db.models.fields.BigIntegerField')()),
-            ('fbid_target', self.gf('django.db.models.fields.BigIntegerField')()),
-            ('post_likes', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('post_comms', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('stat_likes', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('stat_comms', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('wall_posts', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('wall_comms', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('tags', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('photos_target', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('photos_other', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('mut_friends', self.gf('django.db.models.fields.IntegerField')(null=True, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')()),
-        ))
-        db.send_create_signal(u'targetshare', ['Edge'])
-
         # Adding model 'Event'
         db.create_table(u'events', (
             ('session_id', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
@@ -584,17 +566,6 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal(u'targetshare', ['ShareMessage'])
 
-        # Adding model 'Token'
-        db.create_table(u'tokens', (
-            ('fbid', self.gf('django.db.models.fields.BigIntegerField')()),
-            ('app_id', self.gf('django.db.models.fields.BigIntegerField')(db_column=u'appid')),
-            ('owner_id', self.gf('django.db.models.fields.BigIntegerField')(db_column=u'ownerid')),
-            ('token', self.gf('django.db.models.fields.CharField')(max_length=512L, blank=True)),
-            ('expires', self.gf('django.db.models.fields.DateTimeField')(null=True, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')()),
-        ))
-        db.send_create_signal(u'targetshare', ['Token'])
-
         # Adding model 'UserClient'
         db.create_table(u'user_clients', (
             ('fbid', self.gf('django.db.models.fields.BigIntegerField')()),
@@ -602,20 +573,6 @@ class Migration(SchemaMigration):
             ('create_dt', self.gf('django.db.models.fields.DateTimeField')()),
         ))
         db.send_create_signal(u'targetshare', ['UserClient'])
-
-        # Adding model 'User'
-        db.create_table(u'users', (
-            ('fbid', self.gf('django.db.models.fields.BigIntegerField')(primary_key=True)),
-            ('fname', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
-            ('lname', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
-            ('email', self.gf('django.db.models.fields.CharField')(max_length=255, blank=True)),
-            ('gender', self.gf('django.db.models.fields.CharField')(max_length=8L, blank=True)),
-            ('birthday', self.gf('django.db.models.fields.DateField')(null=True, blank=True)),
-            ('city', self.gf('django.db.models.fields.CharField')(max_length=32L, blank=True)),
-            ('state', self.gf('django.db.models.fields.CharField')(max_length=32L, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')()),
-        ))
-        db.send_create_signal(u'targetshare', ['User'])
 
 
     def backwards(self, orm):
@@ -697,9 +654,6 @@ class Migration(SchemaMigration):
         # Deleting model 'Client'
         db.delete_table(u'clients')
 
-        # Deleting model 'Edge'
-        db.delete_table(u'edges')
-
         # Deleting model 'Event'
         db.delete_table(u'events')
 
@@ -763,14 +717,8 @@ class Migration(SchemaMigration):
         # Deleting model 'ShareMessage'
         db.delete_table(u'share_messages')
 
-        # Deleting model 'Token'
-        db.delete_table(u'tokens')
-
         # Deleting model 'UserClient'
         db.delete_table(u'user_clients')
-
-        # Deleting model 'User'
-        db.delete_table(u'users')
 
 
     models = {
@@ -1031,22 +979,6 @@ class Migration(SchemaMigration):
             'proximity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ProximityModel']", 'null': 'True', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {})
         },
-        u'targetshare.edge': {
-            'Meta': {'object_name': 'Edge', 'db_table': "u'edges'"},
-            'fbid_source': ('django.db.models.fields.BigIntegerField', [], {}),
-            'fbid_target': ('django.db.models.fields.BigIntegerField', [], {}),
-            'mut_friends': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'photos_other': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'photos_target': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'post_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'post_likes': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'stat_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'stat_likes': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'tags': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {}),
-            'wall_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'wall_posts': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'})
-        },
         u'targetshare.event': {
             'Meta': {'object_name': 'Event', 'db_table': "u'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
@@ -1252,27 +1184,6 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['targetshare.ClientContent']", 'null': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.CharField', [], {'max_length': '4096L', 'blank': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {})
-        },
-        u'targetshare.token': {
-            'Meta': {'object_name': 'Token', 'db_table': "u'tokens'"},
-            'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "u'appid'"}),
-            'expires': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            'owner_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "u'ownerid'"}),
-            'token': ('django.db.models.fields.CharField', [], {'max_length': '512L', 'blank': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {})
-        },
-        u'targetshare.user': {
-            'Meta': {'object_name': 'User', 'db_table': "u'users'"},
-            'birthday': ('django.db.models.fields.DateField', [], {'null': 'True', 'blank': 'True'}),
-            'city': ('django.db.models.fields.CharField', [], {'max_length': '32L', 'blank': 'True'}),
-            'email': ('django.db.models.fields.CharField', [], {'max_length': '255', 'blank': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
-            'fname': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'}),
-            'gender': ('django.db.models.fields.CharField', [], {'max_length': '8L', 'blank': 'True'}),
-            'lname': ('django.db.models.fields.CharField', [], {'max_length': '128L', 'blank': 'True'}),
-            'state': ('django.db.models.fields.CharField', [], {'max_length': '32L', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {})
         },
         u'targetshare.userclient': {

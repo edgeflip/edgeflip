@@ -156,16 +156,6 @@ class Migration(SchemaMigration):
         # Changing field 'ChoiceSetAlgorithmDefinition.choice_set_algorithm'
         db.alter_column('choice_set_algoritm_definitions', 'choice_set_algoritm_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ChoiceSetAlgorithm'], null=True, db_column='choice_set_algoritm_id'))
 
-        # Edge primary key handling
-        if db.execute(PRIMARY_KEY_SQL % ('edges', DB_NAME)):
-            db.execute('ALTER TABLE edges DROP PRIMARY KEY')
-        db.execute('ALTER TABLE edges ADD edge_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-
-        # Changing field 'Edge.updated'
-        db.alter_column('edges', 'updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True))
-        # Adding unique constraint on 'Edge', fields ['fbid_source', 'fbid_target']
-        db.create_unique('edges', ['fbid_source', 'fbid_target'])
-
         # Changing field 'FacesStyleMeta.name'
         db.alter_column('faces_style_meta', 'name', self.gf('django.db.models.fields.CharField')(default='', max_length=128))
 
@@ -349,25 +339,6 @@ class Migration(SchemaMigration):
         # Changing field 'ProximityModelDefinition.model_definition'
         db.alter_column('proximity_model_definitions', 'model_definition', self.gf('django.db.models.fields.TextField')())
 
-        # Token primary key handling
-        if db.execute(PRIMARY_KEY_SQL % ('tokens', DB_NAME)):
-            db.execute('ALTER TABLE tokens DROP PRIMARY KEY')
-        db.execute('ALTER TABLE tokens ADD token_id MEDIUMINT NOT NULL AUTO_INCREMENT KEY')
-
-        # Changing field 'Token.updated'
-        db.alter_column('tokens', 'updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True))
-
-        # Changing field 'Token.app_id'
-        db.alter_column('tokens', 'appid', self.gf('django.db.models.fields.BigIntegerField')(db_column='appid'))
-
-        # Changing field 'Token.token'
-        db.alter_column('tokens', 'token', self.gf('django.db.models.fields.CharField')(max_length=512))
-
-        # Changing field 'Token.owner_id'
-        db.alter_column('tokens', 'ownerid', self.gf('django.db.models.fields.BigIntegerField')(db_column='ownerid'))
-        # Adding unique constraint on 'Token', fields ['fbid', 'app_id', 'owner_id']
-        db.create_unique('tokens', ['fbid', 'appid', 'ownerid'])
-
         # Changing field 'ClientDefault.client_default_id'
         db.alter_column('client_defaults', 'client_default_id', self.gf('django.db.models.fields.AutoField')(primary_key=True))
 
@@ -503,24 +474,6 @@ class Migration(SchemaMigration):
         db.alter_column('face_exclusions', 'reason', self.gf('django.db.models.fields.CharField')(max_length=512, null=True))
         # Adding unique constraint on 'FaceExclusion', fields ['content', 'fbid', 'campaign', 'friend_fbid']
         db.create_unique('face_exclusions', ['content_id', 'fbid', 'campaign_id', 'friend_fbid'])
-
-        # Changing field 'User.city'
-        db.alter_column('users', 'city', self.gf('django.db.models.fields.CharField')(max_length=32, null=True))
-
-        # Changing field 'User.updated'
-        db.alter_column('users', 'updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True))
-
-        # Changing field 'User.gender'
-        db.alter_column('users', 'gender', self.gf('django.db.models.fields.CharField')(max_length=8, null=True))
-
-        # Changing field 'User.state'
-        db.alter_column('users', 'state', self.gf('django.db.models.fields.CharField')(max_length=32, null=True))
-
-        # Changing field 'User.birthday'
-        db.alter_column('users', 'birthday', self.gf('django.db.models.fields.DateTimeField')(null=True))
-
-        # Changing field 'User.email'
-        db.alter_column('users', 'email', self.gf('django.db.models.fields.CharField')(max_length=256, null=True))
 
         # Changing field 'CampaignGenericFBObjects.campaign_generic_fb_object_id'
         db.alter_column('campaign_generic_fb_objects', 'campaign_generic_fb_object_id', self.gf('django.db.models.fields.AutoField')(primary_key=True))
@@ -967,23 +920,6 @@ class Migration(SchemaMigration):
             'proximity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ProximityModel']", 'null': 'True', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
-        'targetshare.edge': {
-            'Meta': {'unique_together': "(('fbid_source', 'fbid_target'),)", 'object_name': 'Edge', 'db_table': "'edges'"},
-            'edge_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'fbid_source': ('django.db.models.fields.BigIntegerField', [], {}),
-            'fbid_target': ('django.db.models.fields.BigIntegerField', [], {}),
-            'mut_friends': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'photos_other': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'photos_target': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'post_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'post_likes': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'stat_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'stat_likes': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'tags': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'wall_comms': ('django.db.models.fields.IntegerField', [], {'null': 'True'}),
-            'wall_posts': ('django.db.models.fields.IntegerField', [], {'null': 'True'})
-        },
         'targetshare.event': {
             'Meta': {'object_name': 'Event', 'db_table': "'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
@@ -1191,28 +1127,6 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'message': ('django.db.models.fields.TextField', [], {'null': 'True', 'blank': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
-        },
-        'targetshare.token': {
-            'Meta': {'unique_together': "(('fbid', 'app_id', 'owner_id'),)", 'object_name': 'Token', 'db_table': "'tokens'"},
-            'token_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
-            'expires': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            'owner_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'ownerid'"}),
-            'token': ('django.db.models.fields.CharField', [], {'max_length': '512'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now', 'auto_now': 'True', 'blank': 'True'})
-        },
-        'targetshare.user': {
-            'Meta': {'object_name': 'User', 'db_table': "'users'"},
-            'birthday': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'city': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
-            'email': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
-            'first_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'fname'"}),
-            'gender': ('django.db.models.fields.CharField', [], {'max_length': '8', 'null': 'True'}),
-            'last_name': ('django.db.models.fields.CharField', [], {'max_length': '128', 'null': 'True', 'db_column': "'lname'"}),
-            'state': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         'targetshare.userclient': {
