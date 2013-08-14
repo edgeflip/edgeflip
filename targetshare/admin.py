@@ -23,7 +23,7 @@ admin.site.register(models.ChoiceSetAlgorithmDefinition)
 admin.site.register(models.ChoiceSetFilter)
 admin.site.register(models.ClientContent)
 admin.site.register(models.ClientDefault)
-admin.site.register(models.Edge)
+admin.site.register(models.Edge) # FIXME: dynamo
 admin.site.register(models.Event)
 admin.site.register(models.FaceExclusion)
 admin.site.register(models.FacesStyle)
@@ -39,6 +39,6 @@ admin.site.register(models.PropensityModel)
 admin.site.register(models.ProximityModelDefinition)
 admin.site.register(models.ProximityModel)
 admin.site.register(models.ShareMessage)
-admin.site.register(models.Token)
+admin.site.register(models.Token) # FIXME: dynamo
 admin.site.register(models.UserClient)
-admin.site.register(models.User)
+admin.site.register(models.User) # FIXME: dynamo

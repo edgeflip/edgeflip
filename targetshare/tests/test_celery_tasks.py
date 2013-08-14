@@ -4,7 +4,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from targetshare import (
-    dynamo,
     models,
     tasks,
 )
@@ -73,7 +72,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        assert list(dynamo.fetch_all_incoming_edges())
+        assert list(models.dynamo.fetch_all_incoming_edges())
 
     def test_fallback_cascade(self):
         # Some test users and edges
@@ -129,6 +128,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def test_delayed_bulk_create(self):
         ''' Tests the tasks.bulk_write_objs task '''
+        # FIXME: dynamo
         assert not models.User.objects.exists()
         users = []
         for x in range(10):
@@ -142,6 +142,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def test_delayed_obj_save(self):
         ''' Tests the tasks.save_model_obj task '''
+        # FIXME: dynamo
         assert not models.User.objects.exists()
         tasks.delayed_save(models.User(
             first_name='Test',

@@ -56,7 +56,7 @@ def build_all(deps='1', env=None):
     fab.execute(setup_db)
 
     # static files
-    collect_static(True)
+    fab.execute(collect_static, noinput='true')
 
 
 @fab.task(name='dependencies')
@@ -220,18 +220,18 @@ def setup_db(env=None, force='0', testdata='1'):
 
 
 @fab.task
-def collect_static(noinput=False):
-    ''' Collects static files from installed apps to static file path.
+def collect_static(noinput='false'):
+    """Collects static files from installed apps to static file path
 
     By default this will prompt for input, unless you pass True to the command
     in which case it'll automatically overwrite your current static files with
     a fresh pull:
 
-        collect_static:True
+        collect_static:noinput=[1|true|yes|y]
 
-    '''
-    args = ('--noinput',) if true(noinput) else tuple()
-    manage('collectstatic', args=args)
+    """
+    flags = ('noinput',) if true(noinput) else ()
+    manage('collectstatic', flags=flags)
 
 
 # Helpers #

@@ -2,7 +2,7 @@ import logging
 
 from django.core.management.base import CommandError, LabelCommand
 
-from targetshare import database, models
+from targetshare import database_compat, models
 
 
 class Command(LabelCommand):

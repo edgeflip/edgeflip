@@ -24,6 +24,23 @@ CELERY_QUEUES = (
 )
 
 
+# TODO: Make runserver and celery tasks more like dynamo, s.t. can also do this:
+#@fab.task(name='all')
+#def start_all():
+#    """Start all edgeflip servers
+#
+#    Namely:
+#
+#        web (Django)
+#        background tasks (Celery)
+#        document store (fake dynamo)
+#
+#    """
+#    fab.execute(start_runserver)
+#    fab.execute(start_celery)
+#    fab.execute(dynamo, command='start')
+
+
 @fab.task(name='server', default=True)
 def start_runserver(host='0.0.0.0', port='8080'):
     """Start the Django runserver with specified host and port"""
@@ -49,10 +66,11 @@ def start_celery(workers='4',
 
 
 @fab.task
-def dynamo(command='start', db_path=None, pid_path=None):
+def dynamo(command='start', port='4567', db_path=None, pid_path=None):
     """Manage the dynamo development database server, A.K.A. "fake dynamo"
 
-    This task accepts two commands: "start" [default] and "stop". For example:
+    This task accepts three commands: "start" [default], "status" and "stop".
+    For example:
 
         dynamo
         dynamo:start
@@ -74,7 +92,7 @@ def dynamo(command='start', db_path=None, pid_path=None):
     be shut down by the "stop" command if "pid_path" is specified again.
 
     """
-    commands = ('start', 'stop')
+    commands = ('start', 'stop', 'status')
     if command not in commands:
         fab.abort("Unexpected command, select from: {}"
                   .format(', '.join(commands)))
@@ -82,17 +100,29 @@ def dynamo(command='start', db_path=None, pid_path=None):
     default_pid_path = join(BASEDIR, '.fake_dynamo.pid')
     pid_path = pid_path or default_pid_path
 
+    # start #
     if command == 'start':
-        l('fake_dynamo -D -d {db_path} -P {pid_path}'.format(
+        l('fake_dynamo -D -d {db_path} -P {pid_path} -p {port}'.format(
             db_path=(db_path or join(BASEDIR, 'fake_dynamo.fdb')),
             pid_path=pid_path,
+            port=port,
         ))
 
+    # status #
+    if command == 'status':
+        try:
+            pid = dynamo_pid(pid_path)
+        except DynamoNotRunning:
+            fab.puts("fake dynamo server status: STOPPED (or none found running)")
+        else:
+            fab.puts("fake dynamo server status: STARTED ({})".format(pid))
+
+    # stop #
     if command == 'stop':
         try:
             # Retrieve server PID from specified PID file:
             try:
-                pid = int(open(pid_path).read())
+                pid = _dynamo_pid(pid_path)
             except (IOError, ValueError):
                 fab.abort("Bad PID file or file path or "
                           "fake dynamo is not running")
@@ -116,3 +146,33 @@ def dynamo(command='start', db_path=None, pid_path=None):
                     pass
                 else:
                     fab.puts("Stale PID file removed ({})".format(pid_path))
+
+
+def _dynamo_pid(pid_path):
+    return int(open(pid_path).read())
+
+
+def dynamo_pid(pid_path):
+    """Return the process ID of the running fake dynamo server given a path to a
+    PID file.
+
+    If no PID or process with that ID is found, raises exception DynamoNotRunning.
+
+    """
+    try:
+        pid = _dynamo_pid(pid_path)
+    except (IOError, ValueError):
+        pass
+    else:
+        try:
+            os.kill(pid, 0) # just checks that it's available
+        except OSError:
+            pass
+        else:
+            return pid
+
+    raise DynamoNotRunning()
+
+
+class DynamoNotRunning(Exception):
+    pass

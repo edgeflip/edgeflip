@@ -1,9 +1,12 @@
 import datetime
 import types
+
 from freezegun import freeze_time
 
-from edgeflip.tests import EdgeFlipTestCase
-from edgeflip import dynamo
+from targetshare.models import dynamo
+
+from . import EdgeFlipTestCase
+
 
 def test_remove_null_values():
     '''test internal _remove_null_values'''
@@ -17,13 +20,15 @@ def test_remove_null_values():
     dynamo._remove_null_values(good_)
     assert good_ == good, good_
 
-    bad = {"string": '',
-            "set": set(),
-            "dict": {},
-            }
+    bad = {
+        "string": '',
+        "set": set(),
+        "dict": {},
+    }
     bad_ = bad.copy()
     dynamo._remove_null_values(bad_)
     assert bad_ == {}
+
 
 @freeze_time('2013-01-01')
 class DynamoUserTestCase(EdgeFlipTestCase):

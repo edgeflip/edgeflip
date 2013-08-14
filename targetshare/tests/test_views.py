@@ -395,6 +395,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
         fb_mock.extendToken.return_value = None
+        # FIXME: dynamo
         token = models.Token.objects.create(
             fbid=1111111, app_id=self.test_client.fb_app_id,
             token='test-token', owner_id=1111111,

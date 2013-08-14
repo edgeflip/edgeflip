@@ -296,6 +296,7 @@ def proximity_rank_four(mockMode, fbid, token):
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
+        # FIXME: dynamo
         edgesUnranked = models.Edge.objects.filter(
             fbid_target=fbid,
             post_likes__isnull=False,
