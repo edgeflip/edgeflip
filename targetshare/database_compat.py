@@ -1,23 +1,19 @@
-"""Compatability layer for `edgeflip.database`
-
-
-This module imports _everything_ from `edgeflip.database`, and then overrides
-some functions with versions backed by `edgeflip.dynamo`. See their
-respective documentations.
-"""
-# slurp database's namespace before other imports, so we can overwrite
-from .database import *
-
 import logging
-import threading
 import datetime
 import types
-import decimal
+
+from django.db import connection
 
 from .models import dynamo
 from .models import datastructs
 
+
 logger = logging.getLogger(__name__)
+
+
+def getConn():
+    """return a connection for this thread."""
+    return connection
 
 
 def updateUsersDb(users):
