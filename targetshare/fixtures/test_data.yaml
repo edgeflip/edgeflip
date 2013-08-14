@@ -217,7 +217,7 @@
             infographic about gun control?', msg1_pre: 'Hi there ', msg2_post: '!',
         msg2_pre: 'Help keep the pressure on Congress to pass gun control, ', og_action: support,
         og_description: Senators who opposed gun reform have seen their job approval
-            plummet. Check out this infographic to learn more., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            plummet. Check out this infographic to learn more., og_image: '/static/img/logo.jpg',
         og_title: Gun Control, og_type: cause, page_title: Support Gun Control, sharing_prompt: Ask
             your Facebook friends in key states to learn more about gun reform., start_dt: !!timestamp '2013-07-15
             11:38:28'}
@@ -228,7 +228,7 @@
         msg2_post: '!', msg2_pre: 'Help keep the pressure on Congress to pass immigration
             reform, ', og_action: support, og_description: President Obama supports
             common sense reforms to fix our broken immigration system. Learn more
-            and show your support., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            and show your support., og_image: '/static/img/logo.jpg',
         og_title: Immigration Reform, og_type: cause, page_title: Support Immigration
             Reform, sharing_prompt: Ask your Facebook friends to learn more about
             immigration reform., start_dt: !!timestamp '2013-07-15 11:38:28'}
@@ -239,7 +239,7 @@
             there ', msg2_post: '!', msg2_pre: 'Now is the time for real climate legislation, ',
         og_action: support, og_description: The time has come for real climate legislation
             in America. Tell Senator Rowlf the Dog that you stand with President Obama
-            and Organizing for Action on this important issue., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            and Organizing for Action on this important issue., og_image: '/static/img/logo.jpg',
         og_title: Climate Legislation, og_type: cause, page_title: Tell Sen. Rowlf
             the Dog We're Putting Denial on Trial!, sharing_prompt: Ask your Facebook
             friends in Illinois to let Senator Rowlf the Dog know we're putting climate
@@ -251,7 +251,7 @@
             there ', msg2_post: '!', msg2_pre: 'Now is the time for real climate legislation, ',
         og_action: support, og_description: The time has come for real climate legislation
             in America. Tell Senator Kermit the Frog that you stand with President
-            Obama and Organizing for Action on this important issue., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            Obama and Organizing for Action on this important issue., og_image: '/static/img/logo.jpg',
         og_title: Climate Legislation, og_type: cause, page_title: Tell Sen. Kermit
             the Frog We're Putting Denial on Trial!, sharing_prompt: Ask your Facebook
             friends in Massachusetts to let Senator Kermit the Frog know we're putting
@@ -264,7 +264,7 @@
             there ', msg2_post: '!', msg2_pre: 'Now is the time for real climate legislation, ',
         og_action: support, og_description: The time has come for real climate legislation
             in America. Tell Senator Fozzie Bear that you stand with President Obama
-            and Organizing for Action on this important issue., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            and Organizing for Action on this important issue., og_image: '/static/img/logo.jpg',
         og_title: Climate Legislation, og_type: cause, page_title: Tell Sen. Fozzie
             Bear We're Putting Denial on Trial!, sharing_prompt: Ask your Facebook
             friends in California to let Senator Fozzie Bear know we're putting climate
@@ -276,7 +276,7 @@
             there ', msg2_post: '!', msg2_pre: 'Now is the time for real climate legislation, ',
         og_action: support, og_description: The time has come for real climate legislation
             in America. Tell Senator Miss Piggy that you stand with President Obama
-            and Organizing for Action on this important issue., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            and Organizing for Action on this important issue., og_image: '/static/img/logo.jpg',
         og_title: Climate Legislation, og_type: cause, page_title: Tell Sen. Miss
             Piggy We're Putting Denial on Trial!, sharing_prompt: Ask your Facebook
             friends in New York to let Senator Miss Piggy know we're putting climate
@@ -288,7 +288,7 @@
         msg2_post: '!', msg2_pre: 'Now is the time for real climate legislation, ',
         og_action: support, og_description: The time has come for real climate legislation
             in America. Tell your Senator that you stand with President Obama and
-            Organizing for Action on this important issue., og_image: 'http://local.edgeflip.com:8080/static/img/logo.jpg',
+            Organizing for Action on this important issue., og_image: '/static/img/logo.jpg',
         og_title: Climate Legislation, og_type: cause, page_title: Tell your Senator
             We're Putting Denial on Trial!, sharing_prompt: Ask your Facebook friends
             to let their Senators know we're putting climate denial on trial!, start_dt: !!timestamp '2013-07-15
