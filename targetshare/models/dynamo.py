@@ -49,6 +49,7 @@ import calendar
 import logging
 import threading
 import pymlconf
+import time
 import types
 import datetime
 from itertools import imap
@@ -167,7 +168,7 @@ def epoch_to_datetime(epoch):
 
 def date_to_epoch(d):
     """given a date, return seconds since the epoch in UTC"""
-    return calendar.timegm(d.timetuple()) if d is not None else None
+    return time.mktime(d.timetuple()) if d is not None else None
 
 
 def epoch_to_date(epoch):

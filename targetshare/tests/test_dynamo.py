@@ -1,6 +1,7 @@
 import datetime
 import types
 
+from django.utils import timezone
 from freezegun import freeze_time
 from nose import tools
 
@@ -31,7 +32,7 @@ def test_remove_null_values():
 @freeze_time('2013-01-01')
 class DynamoUserTestCase(EdgeFlipTestCase):
 
-    updated = datetime.datetime(2013, 1, 1) + datetime.timedelta(days=-1)
+    updated = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc) + datetime.timedelta(days=-1)
 
     def users(self):
         """helper that returns some user dicts. map of fbid => dict of user data"""
@@ -63,7 +64,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         self.assertEqual(x['fname'], 'Alice')
         self.assertEqual(x['fbid'], 1234)
         self.assertEqual(x['birthday'], -631130400)
-        self.assertEqual(x['updated'], 1357020000)
+        self.assertEqual(x['updated'], 1356998400)
         self.assertIsNone(x['city'])
         self.assertIsNone(x['state'])
 
@@ -184,20 +185,20 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 @freeze_time('2013-01-01')
 class DynamoTokenTestCase(EdgeFlipTestCase):
 
-    expiry = datetime.datetime(2014, 01, 01)
+    expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
 
     def tokens(self):
         """helper that returns some tokens data, keyed by (fbid, appid)"""
         return {(x['fbid'], x['appid']): x for x in
                 [
                     dict(fbid=1234, appid=666, token="FOOD1111",
-                         expires=datetime.datetime(2014, 01, 01)),
+                         expires=datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)),
 
                     dict(fbid=1234, appid=42, token="FOOD2222",
-                         expires=datetime.datetime(2014, 02, 02)),
+                         expires=datetime.datetime(2014, 02, 02, tzinfo=timezone.utc)),
 
                     dict(fbid=5678, appid=666, token="FOOD5555",
-                         expires=datetime.datetime(2014, 02, 02)),
+                         expires=datetime.datetime(2014, 02, 02, tzinfo=timezone.utc)),
 
                 ]}
 
@@ -244,7 +245,6 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
 
     def test_fetch_many_tokens(self):
         """Test fetching many tokens"""
-
         for d in self.tokens().values():
             dynamo.save_token(**d)
 
@@ -254,14 +254,13 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
             assert isinstance(t, dict)
             del t['updated']
             d = self.tokens()[(t['fbid'], t['appid'])]
-
             self.assertDictEqual(t, d)
 
 
 @freeze_time('2013-01-01')
 class DynamoEdgeTestCase(EdgeFlipTestCase):
 
-    expiry = datetime.datetime(2014, 01, 01)
+    expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
 
     maxDiff = 1000
 
@@ -470,7 +469,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             e = self.edges()[(100, 200)]
             dynamo.save_edge(**e)
 
-        results = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5)))
+        results = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
@@ -484,7 +483,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         self.assertDictEqual(d, e)
 
         # empty results
-        empty = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 10)))
+        empty = list(dynamo.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc)))
         self.assertItemsEqual(empty, [])
 
     def test_fetch_outgoing_edges_newer_than(self):
@@ -498,7 +497,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             e = self.edges()[(100, 200)]
             dynamo.save_edge(**e)
 
-        results = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5)))
+        results = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
 
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
@@ -512,5 +511,5 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         self.assertDictEqual(d, e)
 
         # empty results
-        empty = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 10)))
+        empty = list(dynamo.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc)))
         self.assertItemsEqual(empty, [])
