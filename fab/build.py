@@ -180,7 +180,7 @@ def setup_db(env=None, force='0', testdata='1'):
 
 
 @fab.task
-def collect_static(noinput=False):
+def collect_static(noinput=False, clear=False):
     ''' Collects static files from installed apps to static file path.
 
     By default this will prompt for input, unless you pass True to the command
@@ -190,8 +190,12 @@ def collect_static(noinput=False):
         collect_static:True
 
     '''
-    args = ('--noinput',) if true(noinput) else tuple()
-    manage('collectstatic', args=args)
+    flags = []
+    if true(noinput):
+        flags.append('noinput')
+    if true(clear):
+        flags.append('clear')
+    manage('collectstatic', flags=flags)
 
 
 # Helpers #
