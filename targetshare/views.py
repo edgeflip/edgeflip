@@ -16,6 +16,7 @@ from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
 from targetshare import (
@@ -124,6 +125,7 @@ def frame_faces_encoded(request, campaign_slug):
     return frame_faces(request, campaign_id, content_id)
 
 
+@csrf_exempt # FB posts directly to this view
 def frame_faces(request, campaign_id, content_id):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
