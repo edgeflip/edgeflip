@@ -14,12 +14,16 @@ urlpatterns = patterns('targetshare.views',
         'frame_faces', name='frame-faces'
     ),
     url(
+        r'^frame_faces/(?P<campaign_slug>\S+)/$',
+        'frame_faces_encoded', name='frame-faces-encoded'
+    ),
+    url(
         r'^canvas/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
         'frame_faces', name='canvas-faces'
     ),
     url(
-        r'^frame_faces/(?P<campaign_slug>\S+)/$',
-        'frame_faces_encoded', name='frame-faces-encoded'
+        r'^canvas/(?P<campaign_slug>\S+)/$',
+        'frame_faces_encoded', name='canvas-faces-encoded'
     ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
