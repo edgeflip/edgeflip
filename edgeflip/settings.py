@@ -229,6 +229,7 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'dashboard',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
