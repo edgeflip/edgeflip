@@ -324,7 +324,7 @@ def update_many_users(users):
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
 
-    :arg str fbid: the users' Facebook ID
+    :arg int fbid: the users' Facebook ID
     :rtype: dict
     """
     table = get_table('users')
