@@ -45,6 +45,7 @@ join to access the data. Both tables also have a local secondary index on
 given date.
 
 """
+from __future__ import print_function
 import calendar
 import logging
 import threading
@@ -52,6 +53,7 @@ import pymlconf
 import time
 import types
 import datetime
+import sys
 from itertools import imap
 
 from boto.regioninfo import RegionInfo
@@ -201,16 +203,54 @@ def create_table(**schema):
     return Table.create(connection=connection, **schema)
 
 
-def create_all_tables():
+def create_all_tables(timeout=0, wait=2, console=sys.stdout):
     """Create all tables in Dynamo.
 
-    You should only call this method once.
+    Table creation commands cannot be issued for two tables with secondary keys at
+    once, and so commands are issued in order, and job status polled, to finish as
+    quickly as possible without error.
+
+    You should only have to call this method once.
 
     """
-    create_table(**SCHEMAS['users'])
-    create_table(**SCHEMAS['tokens'])
-    create_table(**SCHEMAS['edges_incoming'])
-    create_table(**SCHEMAS['edges_outgoing'])
+    if timeout < 0:
+        raise ValueError("Invalid creation timeout")
+
+    # Sort schemas so as to create those tables with secondary keys last:
+    def sort_key(defn):
+        _table_name, schema = defn
+        return len(schema['schema'])
+    schemas = sorted(SCHEMAS.items(), key=sort_key)
+
+    for table_number, (table_name, schema) in enumerate(schemas, 1):
+        # Issue creation directive to AWS:
+        table = create_table(**schema)
+
+        # Monitor job status:
+        console.write("Table '{}' status: ".format(table_name))
+        for count in xrange(timeout + 1):
+            # Retrieve status:
+            description = table.describe()
+            status = description['Table']['TableStatus']
+
+            # Update console:
+            if count > 0:
+                console.write(".")
+            if count == 0 or status != 'CREATING':
+                console.write(status)
+            console.flush()
+
+            if (
+                status != 'CREATING' or         # Creation completed
+                len(schema['schema']) == 1 or   # Still processing non-blocking tables
+                table_number == len(schemas)    # This is the last table anyway
+            ):
+                break # We're done, proceed
+
+            if count < timeout:
+                time.sleep(wait)
+
+        print('', file=console) # Break line
 
 
 def drop_all_tables():
