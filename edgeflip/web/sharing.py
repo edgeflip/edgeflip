@@ -176,35 +176,36 @@ def faces():
         thisContent = '%s:button %s' % (paramsDB[0], flask.url_for('frame_faces', campaignId=campaignId, contentId=contentId, _external=True))
         sessionId = generateSessionId(ip, thisContent)
 
-    # Assume we're starting with a short term token, expiring now, then try extending the
-    # token. If we hit an error, proceed with what we got from the old one.
-    token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
-    token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
-
     if px3_task_id and px4_task_id:
         px3_result = celery.celery.AsyncResult(px3_task_id)
         px4_result = celery.celery.AsyncResult(px4_task_id)
-        if (px3_result.ready() and (px4_result.ready() or last_call)):
+
+        if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
             px4_edges = px4_result.result if px4_result.successful() else []
-            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result
+            edgesRanked, edgesFiltered, bestCSFilterId, choiceSetSlug, campaignId, contentId = px3_result.result if px3_result.successful() else (None,)*6
+
             if not all([edgesRanked, edgesFiltered]):
+                logger.error("No friends identified for %s. Celery px3 result was: %s", fbid, px3_result.result)
                 return ajaxResponse('No friends identified for you.', 500, sessionId)
         else:
-            if last_call and not px3_result.ready():
-                return ajaxResponse('No friends identified for you.', 500, sessionId)
-            else:
-                return ajaxResponse(
-                    json.dumps({
-                        'status': 'waiting',
-                        'px3_task_id': px3_task_id,
-                        'px4_task_id': px4_task_id,
-                        'campaignid': campaignId,
-                        'contentid': contentId,
-                    }),
-                    200,
-                    sessionId
-                )
+            return ajaxResponse(
+                json.dumps({
+                    'status': 'waiting',
+                    'px3_task_id': px3_task_id,
+                    'px4_task_id': px4_task_id,
+                    'campaignid': campaignId,
+                    'contentid': contentId,
+                }),
+                200,
+                sessionId
+            )
     else:
+
+        # Assume we're starting with a short term token, expiring now, then try extending the
+        # token. If we hit an error, proceed with what we got from the old one.
+        token = datastructs.TokenInfo(tok, fbid, int(paramsDB[1]), datetime.datetime.now())
+        token = fbmodule.extendTokenFb(fbid, token, int(paramsDB[1])) or token
+
         px3_task_id = tasks.proximity_rank_three(
             mockMode=mockMode,
             token=token,
@@ -427,6 +428,8 @@ def objects(fbObjectId, contentId):
         # It's just the FB crawler! Note it in the logs, but don't write the event
         logger.info("Facebook crawled object %s with content %s from IP %s", fbObjectId, contentId, ip)
     else:
+        if not actionId:
+            logger.error("Clickback with no action_id (writing the event anyway) from URL: %s", flask.request.url)
         # record the clickback event to the DB
         database.writeEventsDb(sessionId, None, contentId, ip, None, [None], 'clickback', objParams['fb_app_id'], content, actionId, background=config.database.use_threads)
 

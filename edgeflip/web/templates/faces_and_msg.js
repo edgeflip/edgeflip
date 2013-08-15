@@ -449,6 +449,11 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 // Called when someone actually shares a message
 function doShare() {
 
+    if (test_mode) {
+        alert("Sharing is not allowed in test mode!");
+        return;
+    }
+
 	// Quick checks: has the user selected a message and at least one friend with whom to share?
 	var msg = "";
 
