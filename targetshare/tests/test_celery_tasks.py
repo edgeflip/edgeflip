@@ -18,7 +18,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestCeleryTasks, self).setUp()
-        expires = timezone.datetime(2100, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.datastructs.TokenInfo('1', '1', '1', expires)
 
     def test_proximity_rank_three(self):
