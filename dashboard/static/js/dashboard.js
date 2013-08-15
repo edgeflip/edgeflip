@@ -1,5 +1,5 @@
 google.load("visualization", "1.0", {"packages": ["table", "corechart"]});
-google.load('jquery', '1.4.2');
+// google.load('jquery', '1.4.2');
 google.setOnLoadCallback(drawStuff);
 
 function drawStuff()

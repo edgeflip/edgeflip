@@ -3,7 +3,9 @@
 {% block title %}EdgeFlip | Dashboard{% endblock %}
 
 {% block includes %}
-    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script src="//www.google.com/jsapi"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/mod_csrf.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/fakedata.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
     
@@ -11,6 +13,6 @@
 
 {% block body %}
 
-<p> &lt;insert wes' templates here&gt; </p>
+<p> {% csrf_token %} </p>
 
 {% endblock %}
