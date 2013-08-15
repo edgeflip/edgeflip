@@ -355,7 +355,7 @@ def _make_user(x):
     """make a dict from a boto Item. for internal use"""
     u = dict(x.items())
     if 'birthday' in x:
-        u['birthday'] = epoch_to_date(x['birthday'])
+        u['birthday'] = epoch_to_datetime(x['birthday'])
     u['updated'] = epoch_to_datetime(x['updated'])
     return u
 
