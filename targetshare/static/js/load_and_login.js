@@ -10,26 +10,26 @@ var myfbid; // The FB ID of the current user to be filled in upon auth.
 /* loads a bunch of images
 */
 function preload(arrayOfImages) {
-    $(arrayOfImages).each(function () {
-        $('<img />').attr('src',this);
-    });
+	$(arrayOfImages).each(function () {
+		$('<img />').attr('src',this);
+	});
 }
 
 
 /* pops up facebook's signin page in a _top window */
 function doFBLogin() {
 
-    // Should never get here since we should only send someone to the faces page upon authorizing...
-    // Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
-    // a button to click on instead?
-    FB.login(function(response) {
-        if (response.authResponse) {
-            // Not sure we need this call -- can't we just grab the id from the response, too?
-            FB.api('/me', function(info) {
-                login(info.id, response.authResponse.accessToken, response, null);
-            });
-        } else {
-            // alert("Rocco, sit on the other side. You block the rearview mirror.");
+	// Should never get here since we should only send someone to the faces page upon authorizing...
+	// Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
+	// a button to click on instead?
+	FB.login(function(response) {
+		if (response.authResponse) {
+			// Not sure we need this call -- can't we just grab the id from the response, too?
+			FB.api('/me', function(info) {
+				login(info.id, response.authResponse.accessToken, response);
+			});
+		} else {
+			// alert("Rocco, sit on the other side. You block the rearview mirror.");
 
             // zzz Probably not the right thing to do in this case, but better than nothing...
             commError();

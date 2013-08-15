@@ -5,10 +5,8 @@
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
     <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/button.css" />
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/faces.css" />
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/share_msg.css" />
-    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/manual_add.css" />
+    <link rel="stylesheet" type="text/css" href="{{ client_css }}" />
+    <link rel="stylesheet" type="text/css" href="{{ client_css_simp }}" />
     <!-- edgeflip stylesheets -->
 {% endblock %}
 
@@ -85,14 +83,14 @@
 {% block body %}
     <div style="display: table; position: relative; margin: 0px auto;">
 
-        <div id="progress" class="h2_container" style="width: 250px; background-color: white; margin-top: 30%; display: block;">
-            <h2 style="margin: 10px;">L o a d i n g . . .</h2>
+        <div id="progress" class="h2_container"> 
+            <div style="margin-bottom: 10px">L o a d i n g . . .</div>
             <img src="{{ STATIC_URL }}img/aniprogress.gif">
         </div>
 
     </div>
 
-    <div id="friends_div" style="display:none;">
+    <div id="friends_div" style="display:none; width: 100%;">
         
         <div id="your-friends-here"></div> <!-- your-friends-here -->
 
@@ -135,4 +133,5 @@
         }());
             
     </script>
+    {% include 'targetshare/privacy_policy.html' %}
 {% endblock %}

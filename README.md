@@ -157,6 +157,36 @@ sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
 ```
 (Here, with 20 repeats of 5 concurrent requests with a maximum (random) delay of 1 sec. between repeats. More on parameters can be found on the [Siege homepage](http://www.joedog.org/siege-home/).)
 
+Locally Testing a Facebook Canvas App
+-------------------------------------
+
+1. First, install the Forward client (https://forwardhq.com/in-use/facebook)
+
+        $ gem install forward
+
+2. Run the devel server locally (pick your favorite port or default to 8080)
+
+        bin/devel_server.py --port 8765
+
+3. Now, forward the the port from step 2
+
+        $ forward 8765
+        Forwarding port 8765 to https://edgeflip.fwd.wf
+        Ctrl-C to stop forwarding
+
+4. Create (or retrieve) a client in your local database that's associated with the "edgeflip local" app
+
+        $ python bin/create_local_client.py --client-name jerkface
+        client #16 jerkface:
+        	https://apps.facebook.com/edgeflip-local/18/19
+
+5. Point your browser to the link you got from step 4, and be a local hero!*
+
+    *http://www.buylocalfood.org/
+
+
+
+
 Running Tests With Nose
 ------------
 New tests and the start of a test framework have been added to edgeflip/tests. 

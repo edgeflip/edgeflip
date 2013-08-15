@@ -5,6 +5,9 @@
 *.pickle
 *.swp
 
+/fake_dynamo.fdb
+/.fake_dynamo.pid
+
 /doc/_build/*
 /doc/snakefood.svg
 
@@ -12,15 +15,14 @@
 *.sublime-project
 *.sublime-workspace
 .ropeproject
+*.idea
 
 /edgeflip/logs/*
 /edgeflip/static
-
-/fake_dynamo.fdb
-/.fake_dynamo.pid
 
 /cover
 /htmlcov
 .coverage
 
+ssl
 /statsd

@@ -17,6 +17,14 @@ urlpatterns = patterns('targetshare.views',
         r'^frame_faces/(?P<campaign_slug>\S+)/$',
         'frame_faces_encoded', name='frame-faces-encoded'
     ),
+    url(
+        r'^canvas/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'frame_faces', name='canvas-faces'
+    ),
+    url(
+        r'^canvas/(?P<campaign_slug>\S+)/$',
+        'frame_faces_encoded', name='canvas-faces-encoded'
+    ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
         r'^objects/(?P<fb_object_id>\d+)/(?P<content_id>\d+)/$',

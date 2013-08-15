@@ -220,17 +220,17 @@ def setup_db(env=None, force='0', testdata='1'):
 
 
 @fab.task
-def collect_static(noinput='false'):
-    """Collects static files from installed apps to static file path
+def collect_static(noinput='false', clear='false'):
+    """Collects static files from installed apps to project's static file path
 
-    By default this will prompt for input, unless you pass True to the command
+    By default this will prompt for input, unless you pass "true" to the command
     in which case it'll automatically overwrite your current static files with
     a fresh pull:
 
         collect_static:noinput=[1|true|yes|y]
 
     """
-    flags = ('noinput',) if true(noinput) else ()
+    flags = [key for key, value in locals().items() if true(value)]
     manage('collectstatic', flags=flags)
 
 
