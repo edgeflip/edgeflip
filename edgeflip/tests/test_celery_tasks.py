@@ -12,7 +12,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestCeleryTasks, self).setUp()
-        expires = datetime.datetime(2100, 1, 1, 12, 0, 0)
+        expires = datetime.datetime(2020, 1, 1, 12, 0, 0)
         self.token = datastructs.TokenInfo('1', '1', '1', expires)
 
     def test_proximity_rank_three(self):
