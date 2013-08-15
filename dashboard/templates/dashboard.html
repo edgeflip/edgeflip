@@ -1,16 +1,15 @@
-{% extends 'targetmock/base.html' %}
-{% block title %}Demand Action on Gun Control{% endblock %}
-{% block style_inlines %}
-    /* May eventually want to template these style rules and pass from Flask */
-    body {
-        background-color: #444444;
-    }
+{% extends 'base.html' %}
+
+{% block title %}EdgeFlip | Dashboard{% endblock %}
+
+{% block includes %}
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
+    
 {% endblock %}
 
 {% block body %}
 
 <p> &lt;insert wes' templates here&gt; </p>
-
-
 
 {% endblock %}
