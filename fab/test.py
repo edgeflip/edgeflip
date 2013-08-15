@@ -1,32 +1,83 @@
 """Fabric tasks to test the project"""
+import os.path
+import shutil
+import tempfile
+
 from fabric import api as fab
 
-from . import BASEDIR, workon
+from . import manage, serve, true
 
 
-# Break convention for simplicity here:
-l = fab.local
+DEFAULT_FLAGS = (
+    'noinput',
+)
+
+DEFAULT_KEY_ARGS = (
+    # ('key', 'value'),
+)
 
 
 @fab.task(name='all', default=True)
-def test(*args, **kws):
-    """Run all project tests
+def test(path='', *args, **kws):
+    """Run all, or a subset, of project tests
 
-    Positional arguments and both novel and overriding flags may be passed to
+    To limit test discovery to a particular file or import path, specify the
+    "path" argument, e.g.:
+
+        test:targetshare/tests/test_views.py
+        test:targetshare.tests.test_views:TestViews.test_best_view
+
+    Flags and both novel and overriding keyword arguments may be passed to
     nose, e.g.:
 
-        test:pdb,config=my.cfg
+        test:.,pdb,config=my.cfg
+
+    This task sets some flags by default. To clear these, pass the flag or
+    keyword argument "clear-defaults":
+
+        test:.,clear-defaults
+        test:clear-defaults=[true|yes|y|1]
 
     """
-    flags = {'config': 'nose.cfg'}
-    flags.update(kws)
-    with workon():
-        with fab.lcd(BASEDIR):
-            l('nosetests edgeflip/tests {args} {flags}'.format(
-                args=' '.join('--' + arg for arg in args),
-                flags=' '.join('--{}={}'.format(key, value)
-                            for key, value in flags.items()),
-            ))
+    # Determine test arguments #
+    flags = list(args)
+
+    # Include default flags?
+    try:
+        flags.remove('clear-defaults')
+    except ValueError:
+        clear_default_args0 = False
+    else:
+        clear_default_args0 = True
+    clear_default_args1 = true(kws.pop('clear-defaults', None))
+    if not clear_default_args0 and not clear_default_args1:
+        flags.extend(DEFAULT_FLAGS)
+
+    key_args = dict(DEFAULT_KEY_ARGS)
+    key_args.update(kws)
+
+    # Ensure fake dynamo is running #
+    dynamo_dir = tempfile.mkdtemp()
+    pid_path = os.path.join(dynamo_dir, 'pid')
+    try:
+        serve.dynamo_pid(pid_path)
+    except serve.DynamoNotRunning:
+        db_path = os.path.join(dynamo_dir, 'db')
+        fab.execute(serve.dynamo,
+                    command='start',
+                    db_path=db_path,
+                    pid_path=pid_path,
+                    port='4444')
+
+    # Test #
+    try:
+        manage('test', [path], flags, key_args)
+    finally:
+        # Terminate fake dynamo:
+        fab.execute(serve.dynamo,
+                    command='stop',
+                    pid_path=pid_path)
+        shutil.rmtree(dynamo_dir)
 
 
 __test__ = False # In case nose gets greedy

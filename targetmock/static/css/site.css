@@ -1,0 +1,64 @@
+body {
+	margin: 0px;
+	padding: 0px;
+}
+
+h2 {
+	font-family: "Gill Sans", Helvetica, sans-serif; 
+	font-weight: 200; 
+	margin: 2px; 
+	color: #094163;
+}
+
+.h2_container {
+       border: none;
+       white-space: normal; 
+       text-align: center;
+       padding: 5px;
+       background-color: #f7f7f7;
+       border-radius: 5px;
+       -moz-border-radius: 5px;
+       box-shadow: 2px 2px 5px black;
+}
+
+
+
+#share_content {
+    height: 75px;
+    width: 500px;
+    border: none;
+    margin: 25px auto;
+}
+
+#header_container {
+    width: 100%;
+    background-color: #094163;
+    box-shadow: 0px 2px 8px black;
+}
+
+#header {
+    background-image: url('http://secure.assets.bostatic.com/uptown/images/ofa4-logo-large-white.png');
+    height: 50px;
+    width: 100%;
+    background-repeat: no-repeat;
+    background-position: 50%;
+    background-size: 30%;
+    cursor: pointer;
+}
+
+#button_frame {
+    width: 280px;
+    border: none;
+    overflow: hidden;
+}
+
+#ef_frame_div,
+#faces_frame {
+    width: 100%;
+    height: 900px; /* Better way to do this relative to content size?? */
+    border: none;
+}
+
+#faces_frame {
+    margin-top: 30px;
+}

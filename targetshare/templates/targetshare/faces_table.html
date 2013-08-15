@@ -1,0 +1,105 @@
+<!-- DOC snippet returned by faces enpoint
+
+this is the message div and the faces themselves
+ -->
+<script src="{{ STATIC_URL }}js/manual_add.js"></script>
+<script>{% include 'targetshare/faces_and_msg.js' %}</script>
+
+
+<script>
+
+    if ({{ face_friends | length }} === 0) {
+        // Should never, ever get here unless something went very wrong in Flask land
+        // Even so, let's be sure to send the user somewhere reasonable rather than 
+        // land them on a page with nothing to do...
+        alert("Sorry. An error was encountered while communicating with Facebook.");
+        top.location = errorURL; // set in frame_faces.html via Jinja
+    }
+
+    // suggested messages
+    var suggested_messages = [];
+    suggested_messages.push(['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}']);
+    suggested_messages.push(['{{ msg_params.msg2_pre }}', '{{ msg_params.msg2_post }}']);
+
+</script>
+
+
+<div id="faces_form_container">
+
+    <div class="text_title_prompt">{{ msg_params.sharing_prompt }}</div>
+
+    {% block faces_prompt %}
+        <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
+    {% endblock faces_prompt %}
+
+    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
+
+    <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table">
+        <tr>
+            {% for face_friend in show_faces %}
+                <td>
+                    <div style="position: relative" id="wrapper-{{ face_friend.id }}">
+                        <div class="xout" onClick="doReplace({{ face_friend.id }});">
+                            x
+                        </div>
+                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.id }}" onClick="toggleFriend({{ face_friend.id }});">
+                            <div class="checkmark">&nbsp;</div>
+
+                            <div class="friend_pic">
+                                <img src="https://graph.facebook.com/{{ face_friend.id }}/picture" border=0 />
+                            </div>
+                            <div class="friend_txt">
+                                <div class="friend_name dojoxEllipsis">
+                                    {{ face_friend.fname }}
+                                </div>
+                                <div class="friend_name dojoxEllipsis">
+                                    {{ face_friend.lname }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                {% if forloop.counter0 == 2 and num_face > 3 %}
+                    </tr><tr>
+                {% endif %}
+                {% if forloop.counter0 == 5 and num_face > 6 %}
+                    </tr><tr>
+                {% endif %}
+            {% endfor %}
+        </tr>
+    </table>
+
+    <div id="manual_add">
+        <div>You can add extra friends by typing their names here:&nbsp;
+        <input id="manual_input"/></div>
+        <div id="picked_friends_container"></div>
+    </div> <!-- manual_add -->
+
+    {% block msg_prompt %}
+        <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
+    {% endblock msg_prompt %}
+
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest Message</div>
+
+    <div id="message_form">
+        <div id="message_form_editable" contentEditable="True">
+            <span id='message_helper_txt' style='color: gray;'></span>
+        </div>
+        <div id='message_preview' valign='middle'>
+            <img src='{{ fb_params.fb_object_image }}'>
+            <div id='message_preview_title'>
+                {{ fb_params.fb_object_title }}
+            </div>
+            <div id='message_preview_desc'>
+                {{ fb_params.fb_object_description }}
+            </div>
+        </div>
+    </div>
+
+    {% block button %}
+        <div id="button_share_container">
+            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">Show Your Support</div>
+        </div>
+    {% endblock button %}
+
+</div> <!-- faces_container -->

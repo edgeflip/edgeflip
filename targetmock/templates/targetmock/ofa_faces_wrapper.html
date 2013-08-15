@@ -1,0 +1,21 @@
+{% extends 'targetmock/base.html' %}
+{% block title %}OFA Sharing Page{% endblock %}
+{% block style_inlines %}
+    /* May eventually want to template these style rules and pass from Flask */
+    body {
+        background-image: url("{{ STATIC_URL }}img/ofa_win_bg.jpg");
+        background-attachment: fixed;
+        background-size: cover;
+            /* For IE<9 */
+        background-position: center bottom;
+        background-repeat: no-repeat;
+    }
+{% endblock %}
+
+{% block body %}
+    <div id="header_container">
+        <div id="header" onClick="window.location = 'http://www.barackobama.com/';"></div> 
+    </div>
+
+    {% include 'targetmock/ef_frame_div.html' %}
+{% endblock %}

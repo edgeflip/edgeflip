@@ -7,6 +7,32 @@ from fabric import api as fab
 BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 
+# Break convention for simplicity here:
+l = fab.local
+
+
+def manage(command, args=(), flags=(), keyed=None, env=None):
+    """Run a Django management command"""
+    keyed = keyed or {}
+    with workon(env):
+        with fab.lcd(BASEDIR):
+            l('python manage.py {command} {args} {flags} {keyed}'.format(
+                command=command,
+                args=' '.join(args),
+                flags=' '.join('--' + flag for flag in flags),
+                keyed=' '.join('--{}={}'.format(key, value)
+                               for key, value in keyed.items()),
+            ))
+
+
+def true(inp):
+    """Return whether the given string indicates True."""
+    try:
+        return inp.lower() in ('true', 'yes', 'y', '1')
+    except AttributeError:
+        return False
+
+
 def workon(env=None):
     """Context manager which sets the PATH to that of the named virtualenv
 

@@ -1,9 +1,11 @@
 """Fabric tasks to prepare and build the project and its environment"""
+import itertools
+import os.path
 from os.path import join
 
 from fabric import api as fab
 
-from . import BASEDIR, workon
+from . import BASEDIR, manage, true, workon
 
 
 ENV_NAME = 'edgeflip'
@@ -15,7 +17,7 @@ l = fab.local
 # Tasks #
 
 @fab.task(name='all', default=True)
-def build_all(deps='1', env=None, schema=None):
+def build_all(deps='1', env=None):
     """Execute all tasks to build the project and its environment
 
     By default, OS-level dependencies are installed (via task "dependencies").
@@ -27,7 +29,6 @@ def build_all(deps='1', env=None, schema=None):
     Otherwise, the following tasks are executed:
 
         virtualenv
-        install
         update-distribute
         requirements
         db
@@ -35,10 +36,6 @@ def build_all(deps='1', env=None, schema=None):
     Customize the virtualenv name by specifying argument "env":
 
         build:env=MY-ENV
-
-    Or pass a custom DB schema file to task "db" by specifying "schema":
-
-        build:schema=/home/initial.sql
 
     """
     # dependencies
@@ -48,18 +45,18 @@ def build_all(deps='1', env=None, schema=None):
     # virtualenv
     fab.execute(make_virtualenv, name=env)
 
-    # install
-    fab.execute(install_project) # TODO: remove pending Django
-
     # update-distribute
-    # (Needed as long as Flask requires a higher version than Ubuntu provides):
+    # (Needed as long as Ubuntu provides such an old version):
     fab.execute(update_distribute)
 
     # requirements
     fab.execute(install_reqs)
 
     # db
-    fab.execute(setup_db, schema=schema)
+    fab.execute(setup_db)
+
+    # static files
+    fab.execute(collect_static, noinput='true')
 
 
 @fab.task(name='dependencies')
@@ -68,6 +65,16 @@ def install_deps():
 
     Requires that the OS provides APT.
 
+    This task respects the roles under which it is invoked, (and defaults to
+    "dev"). "Base" dependencies are always installed, as well as role-specific
+    dependencies found in the dependencies/ directory. For example:
+
+        fab -R staging dependencies
+
+    will install dependencies specified by base.dependencies and
+    staging.dependencies, given that they are both discovered in the
+    dependencies/ directory.
+
     """
     # Check for apt-get:
     if not which_binary('apt-get'):
@@ -75,9 +82,21 @@ def install_deps():
         fab.warn("No path to APT, cannot install OS dependencies")
         return
 
-    deps_file = join(BASEDIR, 'dependencies.txt')
-    deps = open(deps_file).read()
-    l('sudo apt-get install -y {}'.format(deps.replace('\n', ' ')))
+    # Install APT packages specified in dependencies dir:
+    roles = fab.env.roles or ['dev'] # Default to just dev
+    deps_paths = (join(BASEDIR, 'dependencies', '{}.dependencies'.format(role))
+                  for role in itertools.chain(['base'], roles))
+    deps = itertools.chain.from_iterable(open(deps_path).readlines()
+                                         for deps_path in deps_paths
+                                         if os.path.exists(deps_path))
+    l('sudo apt-get install -y {}'.format(
+        ' '.join(dep.strip() for dep in deps)))
+
+    # Install fake dynamo:
+    if 'dev' in roles:
+        gems = l('gem list --local --no-versions', capture=True)
+        if 'fake_dynamo' not in gems.split():
+            l('sudo gem install fake_dynamo --version 0.2.3')
 
 
 @fab.task(name='virtualenv')
@@ -111,23 +130,6 @@ def update_distribute(env=None):
         l('pip install -U distribute')
 
 
-@fab.task(name='install')
-def install_project(env=None):
-    """Install the project package into the Python environment (deprecated)
-
-    This task is deprecated, pending migration of Celery to Django.
-
-    Requires that a virtual environment has been created, and is either
-    already activated, or specified, e.g.:
-
-        install:MY-ENV
-
-    """
-    with workon(env):
-        with fab.lcd(BASEDIR): # Allow invokation from anywhere in project
-            l('pip install -e .')
-
-
 @fab.task(name='requirements')
 def install_reqs(env=None):
     """Install Python package requirements
@@ -137,47 +139,102 @@ def install_reqs(env=None):
 
         requirements:MY-ENV
 
+    This task respects the roles under which it is invoked, (and defaults to
+    "dev"). "Base" requirements are always installed, as well as role-specific
+    requirements found in the requirements/ directory. For example:
+
+        fab -R staging requirements
+
+    will install requirements specified by base.requirements and
+    staging.requirements, given that they are both discovered in the
+    requirements/ directory.
+
     """
+    roles = fab.env.roles or ['dev'] # Default to just dev
+    reqs_paths = (join('requirements', '{}.requirements'.format(role))
+                  for role in itertools.chain(['base'], roles))
     with workon(env):
         with fab.lcd(BASEDIR):
-            l('pip install -r requirements.txt')
+            l('pip install {}'.format(
+                ' '.join('-r ' + path for path in reqs_paths
+                         if os.path.exists(join(BASEDIR, path)))
+            ))
 
 
 @fab.task(name='db')
-def setup_db(schema=None, force='0'):
+def setup_db(env=None, force='0', testdata='1'):
     """Initialize the database
 
-    Optionally specify a custom schema file by supplying an argument ("schema"):
+    Requires that a virtual environment has been created, and is either
+    already activated, or specified, e.g.:
 
-        db:/home/initial.sql
+        db:MY-ENV
 
-    To force initialization, by tearing down any existing database,
-    specify "force":
+    To force initialization during development, by tearing down any existing
+    database, specify "force":
 
         db:force=[1|true|yes|y]
 
+    In development, a test data fixture is loaded into the database by default; disable
+    this by specifying "testdata":
+
+        db:testdata=[0|false|no|n]
+
     """
-    password = fab.prompt("Enter mysql password:")
-    if true(force):
-        l('mysql --user=root --password={} < {}'.format(
+    roles = fab.env.roles or ['dev']
+    sql_path = join(BASEDIR, 'edgeflip', 'sql')
+    sql_context = {'DATABASE': 'edgeflip', 'USER': 'root'}
+    password = None
+
+    # Database teardown
+    if 'dev' in roles:
+        password = fab.prompt("Enter mysql password:")
+        if true(force):
+            teardown_sql = open(join(sql_path, 'teardown.sql')).read()
+            l('mysql --user=root --password={} --execute="{}"'.format(
+                password,
+                teardown_sql.format(**sql_context),
+            ))
+    elif true(force):
+        fab.warn("Cannot force database set-up outside of development role {!r}"
+                 .format(fab.env.roles))
+        return
+
+    # Database initialization
+    setup_sql = open(join(sql_path, 'setup.sql')).read()
+    setup_prepped = setup_sql.format(**sql_context)
+    if password is None:
+        l('mysql --user=root -p --execute="{}"'.format(setup_prepped))
+    else:
+        l('mysql --user=root --password={} --execute="{}"'.format(
             password,
-            join(BASEDIR, 'sql', 'teardown.sql'),
+            setup_prepped,
         ))
-    l('mysql --user=root --password={} < {}'.format(
-        password,
-        schema or join(BASEDIR, 'sql', 'initial.sql'),
-    ))
+
+    # Application schema initialization
+    manage('syncdb', flags=['migrate'], env=env)
+
+    # Load test data (dev):
+    if 'dev' in roles and true(testdata):
+        manage('loaddata', ['test_data'], env=env)
+
+
+@fab.task
+def collect_static(noinput='false', clear='false'):
+    """Collects static files from installed apps to project's static file path
+
+    By default this will prompt for input, unless you pass "true" to the command
+    in which case it'll automatically overwrite your current static files with
+    a fresh pull:
+
+        collect_static:noinput=[1|true|yes|y]
+
+    """
+    flags = [key for key, value in locals().items() if true(value)]
+    manage('collectstatic', flags=flags)
 
 
 # Helpers #
-
-def true(inp):
-    """Return whether the given string indicates True."""
-    try:
-        return inp.lower() in ('true', 'yes', 'y', '1')
-    except AttributeError:
-        return False
-
 
 def which_binary(name):
     """Check for path to binary at `name`, with "which"."""
