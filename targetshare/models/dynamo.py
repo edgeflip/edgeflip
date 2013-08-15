@@ -324,11 +324,11 @@ def update_many_users(users):
 def fetch_user(fbid):
     """Fetch a user. Returns None if user not found.
 
-    :arg str fbid: the users' Facebook ID
+    :arg int fbid: the users' Facebook ID
     :rtype: dict
     """
     table = get_table('users')
-    x = table.get_item(fbid=fbid)
+    x = table.get_item(fbid=int(fbid))
     if x['fbid'] is None:
         return None
     return _make_user(x)
@@ -342,7 +342,7 @@ def fetch_many_users(fbids):
     """
     table = get_table('users')
     # boto's BatchGetResultSet requires keys to be a list
-    keys = [{'fbid': i} for i in fbids]
+    keys = [{'fbid': int(i)} for i in fbids]
     if not keys:
         return ()
     LOG.debug("Retrieving %d users", len(keys))
@@ -593,6 +593,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: iter of dict
     """
+    fbid = int(fbid)
     table = get_table('edges_incoming')
     if newer_than is None:
         results = table.query(fbid_target__eq=fbid)
@@ -614,6 +615,7 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     :arg `datetime.datetime` newer_than: only include edges newer than this
     :rtype: iter of dict
     """
+    fbid = int(fbid)
     table = get_table('edges_outgoing')
     if newer_than is None:
         keys = table.query(fbid_source__eq=fbid)
