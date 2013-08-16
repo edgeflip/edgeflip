@@ -15,7 +15,7 @@ def dashboard(request):
 
 # google.visualization is looking for this as "cols", TODO: do we actually need an id?
 METRICS = [
-    {'id': 'label', 'label': 'Date/Hour', 'type': 'number'},
+    {'id': 'label', 'label': 'time', 'type': 'number'},  # this wants to be timeofday for hourly, day for monthly
     {'id': 'visits', 'label': 'Visits', 'type': 'number'},
     {'id': 'clicks', 'label': 'Clicks', 'type': 'number'},
     {'id': 'auths', 'label': 'Authorizations', 'type': 'number'},
