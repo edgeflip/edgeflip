@@ -1,65 +1,29 @@
 google.load("visualization", "1.0", {"packages": ["table", "corechart"]});
 // google.load('jquery', '1.4.2');
-google.setOnLoadCallback(drawStuff);
+google.setOnLoadCallback(init);
+
+function init() {
+
+    // first pageview, get data for newest campaign and draw a chart
+    data = getData();
+    drawStuff();
+
+    // we want to have at any time, 2 "DataTables" to store data at hourly and daily resolutions
+
+    }
+
+
+
+function getData(campaign, date) {
+
+    // no need to post client, the server can pick that out of whatever user
+    $.post('/dashboard/chartdata/', {'campaign':'aggregate', 'day':'today'});
+
+    }
+
 
 function drawStuff()
 {
-
-    // create an array with our keys in it
-    var all_keys = []
-    for (name in all_json)
-    {
-        console.log(name);
-        all_keys.push(name);
-    }
-
-    var all_campaigns = [];
-    // We need to use the aggregate data json object because the day
-    // and hour objects won't necessarily always have the campaign_ids
-    for(i=0; i<all_keys.length; i++)
-    {
-        all_campaigns.push(all_json[all_keys[i]][0]);
-    }
-    
-
-    // we need to sort the keys in descending order from 
-    // most recently started campaign which we know the higher
-    // the number the newer the campaign
-    for(i=0; i<all_keys.length; i++)
-    {
-        for(j=0; j<all_keys.length-1;j++)
-        {
-            if(parseInt(all_json[all_keys[j]][0],10) < parseInt(all_json[all_keys[j+1]][0],10))
-            {
-                var tmp = all_keys[j];
-                all_keys[j] = all_keys[j+1];
-                all_keys[j+1] = tmp;
-            }
-        }
-    }
-
-    
-    // create the first second that lists out our campaigns for this client
-    var client = document.createElement('p');
-    client.innerHTML = 'Campaigns Currently Running for <b>{{client_name}}</b>';
-    var items = document.createElement('ul');
-    console.log(all_keys);
-    for (i=0; i < all_keys.length; i++)
-    {
-        var cur = document.createElement('li');
-        var cur_link = document.createElement('a');
-        var cur_link_href = "#aggregate_campaign_{0}";
-        cur_link_href = cur_link_href.replace('{0}', i.toString());
-        cur_link.href = cur_link_href;
-        cur_link.innerHTML = all_keys[i];
-        cur.appendChild(cur_link);
-        items.appendChild(cur);
-    }
-    document.body.appendChild(client);
-    document.body.appendChild(items);
-    document.body.appendChild(document.createElement('br'));
-    document.body.appendChild(document.createElement('br'));
-    document.body.appendChild(document.createElement('hr'));
 
     // AGGREGATE CAMPAIGN DISPLAY WITH ALL CAMPAIGNS INCLUDED
     // create the div to put it in
@@ -70,11 +34,11 @@ function drawStuff()
     Data.addColumn('number', 'Visits');
     Data.addColumn('number', 'Clicks');
     Data.addColumn('number', 'Authorizations');
-    Data.addColumn('number', 'Distinct Authorized Facebook Users');
-    Data.addColumn('number', '# Users Shown Friends');
-    Data.addColumn('number', '# Users Who Shared');
-    Data.addColumn('number', '# Friends Shared With');
-    Data.addColumn('number', '# Distint Friends Shared');
+    Data.addColumn('number', 'Unique Authorized Facebook Users');
+    Data.addColumn('number', 'Users Shown Friends');
+    Data.addColumn('number', 'Users Who Shared');
+    Data.addColumn('number', 'Friends Shared With');
+    Data.addColumn('number', 'Unique Friends Shared');
     Data.addColumn('number', 'Clickbacks');
     Data.addRows([aggregate_json.data]);
 
@@ -119,8 +83,6 @@ function drawStuff()
 
 
     // LINE CHART FOR DAILY DATA FOR ALL CAMPAIGNS
-    var daily_agg_div = document.createElement("div");
-    daily_agg_div.id = "daily_agg_div";
     var daily_data = new google.visualization.DataTable(); 
 
     daily_data.addColumn('date', 'Date');
@@ -142,6 +104,8 @@ function drawStuff()
     }
     daily_data.addRows(daily_data_arr);
 
+    var daily_agg_div = document.createElement("div");
+    daily_agg_div.id = "daily_agg_div";
     var daily_chart = new google.visualization.LineChart(daily_agg_div);
     daily_chart.draw(daily_data, {title: 'Daily Report(for the last 30 days)', fontSize: '10', enableInteractivity: 'true', 'width': 1000});
 
@@ -164,7 +128,20 @@ function drawStuff()
     document.body.appendChild(document.createElement('br'));
     document.body.appendChild(document.createElement('hr'));
     
-    
+    return
+}
+
+
+
+function mkEverything() {
+
+    // create an array with our keys in it
+    var all_keys = []
+    for (name in all_json)
+    {
+        all_keys.push(name);
+    }
+ 
     for(i = 0; i < all_keys.length; i++)
     {
         // for each key in our keys array create divs for the aggregate
@@ -300,3 +277,36 @@ function drawStuff()
     
 }
 
+
+
+function mkCampaigns() {
+
+    // campaign chooser
+
+
+    /* 
+    // create the first second that lists out our campaigns for this client
+    var client = document.createElement('p');
+    client.innerHTML = 'Campaigns Currently Running for <b>{{client_name}}</b>';
+    var items = document.createElement('ul');
+    console.log(all_keys);
+    for (i=0; i < all_keys.length; i++)
+    {
+        var cur = document.createElement('li');
+        var cur_link = document.createElement('a');
+        var cur_link_href = "#aggregate_campaign_{0}";
+        cur_link_href = cur_link_href.replace('{0}', i.toString());
+        cur_link.href = cur_link_href;
+        cur_link.innerHTML = all_keys[i];
+        cur.appendChild(cur_link);
+        items.appendChild(cur);
+    }
+    document.body.appendChild(client);
+    document.body.appendChild(items);
+    document.body.appendChild(document.createElement('br'));
+    document.body.appendChild(document.createElement('br'));
+    document.body.appendChild(document.createElement('hr'));
+    */
+    // end campaign chooser widget
+    //
+    }
