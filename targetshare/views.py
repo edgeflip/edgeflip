@@ -573,6 +573,7 @@ def record_event(request):
     return http.HttpResponse()
 
 
+@csrf_exempt
 def canvas(request):
 
     return render(request, 'targetshare/canvas.html')

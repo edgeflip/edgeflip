@@ -3,6 +3,7 @@ import datetime
 import types
 
 from django.db import connection
+from django.utils import timezone
 
 from .models import dynamo
 from .models import datastructs
@@ -36,7 +37,7 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
     if freshnessIncludeEdge:
         raise NotImplementedError("freshnessIncludeEdge must be False!")
 
-    freshnessDate = datetime.datetime.utcnow() - datetime.timedelta(days=freshnessDays)
+    freshnessDate = timezone.now() - datetime.timedelta(days=freshnessDays)
     logger.debug("getting user %s, freshness date is %s (GMT)" % (userId, freshnessDate.strftime("%Y-%m-%d %H:%M:%S")))
 
     user = dynamo.fetch_user(userId)
