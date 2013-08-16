@@ -155,13 +155,13 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
     for fbid, secondary, counts_in, counts_out in data:
         if secondary is None:
             logger.error(
-                "Secondary {!r} found in edges but not in users",
+                "Secondary %r found in edges but not in users",
                 fbid
             )
             continue
         if counts_in is None:
             logger.warn(
-                "Edge for user {!r} found in outgoing but not in incoming edges",
+                "Edge for user %r found in outgoing but not in incoming edges",
                 fbid
             )
             continue
