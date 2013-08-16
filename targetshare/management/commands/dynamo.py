@@ -14,7 +14,9 @@ class Command(LabelCommand):
         logger = logging.getLogger('mysql_to_dynamo')
 
         if label == 'create':
-            models.dynamo.create_all_tables()
+            models.dynamo.create_all_tables(
+                timeout=(60 * 3), # 3 minutes per table
+            )
             self.stdout.write("Created all Dynamo tables. "
                               "This make take several minutes to take effect.")
         elif label == 'destroy':
