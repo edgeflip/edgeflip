@@ -26,30 +26,18 @@ function on_data(response) {
 
 function render() {
 
-    var hourly_agg_div = document.createElement("div");
-    hourly_agg_div.id = "hourly_agg_div";
     var hr_agg_options = {title: 'Hourly Report', enableInteractivity: 'true', 'width': 1000};
-    var hr_agg_chart = new google.visualization.LineChart(hourly_agg_div);
+    var hr_agg_chart = new google.visualization.LineChart( $('#hourly')[0] );
     hr_agg_chart.draw(window.dailydata, hr_agg_options);
 
-
-    var daily_agg_div = document.createElement("div");
-    daily_agg_div.id = "daily_agg_div";
-    var daily_chart = new google.visualization.LineChart(daily_agg_div);
+    var daily_chart = new google.visualization.LineChart($('#daily')[0]);
     daily_chart.draw(window.monthlydata, {title: 'Daily Report(for the last 30 days)', enableInteractivity: 'true', 'width': 1000});
-
-
-    // Add the div to the document that contains our Aggregate_Table
-
-    document.body.appendChild(hourly_agg_div);
-    document.body.appendChild(daily_agg_div);
 }
 
 
 function mkCampaigns() {
 
     // campaign chooser
-
 
     /* 
     // create the first second that lists out our campaigns for this client
@@ -73,6 +61,4 @@ function mkCampaigns() {
     document.body.appendChild(document.createElement('br'));
     document.body.appendChild(document.createElement('hr'));
     */
-    // end campaign chooser widget
-    //
     }
