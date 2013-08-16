@@ -164,8 +164,7 @@ def epoch_to_datetime(epoch):
     """given seconds since the epoch in UTC, return a timezone-aware datetime"""
     if epoch is None:
         return None
-    naive = datetime.datetime.utcfromtimestamp(epoch)
-    return timezone.make_aware(naive, timezone.utc)
+    return datetime.datetime.fromtimestamp(epoch, timezone.utc)
 
 
 def date_to_epoch(d):
