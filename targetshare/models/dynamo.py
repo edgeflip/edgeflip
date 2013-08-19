@@ -325,6 +325,46 @@ def save_many_users(users):
             batch.put_item(data=d)
 
 
+def _handle_user_conflict(user, retry_count=3):
+    """ Handles conflicts when saving users to Dynamo. Currently works via a
+    recursive retry mechanism, but realistically this needs to move to celery
+    at some point. The reason it's not already there is simply due to awkward
+    architecture that leads to the celery path creating circular imports.
+
+    At some point we'll need to address the architectural issues, but that
+    time isn't right now.
+    """
+    table = get_table('users')
+
+    # Find dirty keys
+    dirty_dict = {}
+    for key, value in user._data.iteritems():
+        if not user._orig_data.get(key):
+            dirty_dict[key] = value
+            continue
+
+        if user._orig_data.get(key) and user._orig_data[key] != value:
+            dirty_dict[key] = value
+
+    freshest_user = table.get_item(fbid=int(user._data['fbid']))
+    for key, value in dirty_dict.iteritems():
+        if key == 'fbid':
+            # This is unlikely to change..
+            continue
+        if freshest_user._data.get(key) and freshest_user[key] == user._orig_data[key]:
+            freshest_user[key] = value
+
+    try:
+        freshest_user.partial_save()
+    except:
+        if retry_count:
+            return _handle_user_conflict(retry_count - 1)
+        else:
+            LOG.exception(
+                'Failed to handle user conflict on user: %s' % user
+            )
+
+
 def update_many_users(users):
     """save many users to Dynamo as a batch, updating existing rows.
 
@@ -354,7 +394,10 @@ def update_many_users(users):
         for k, v in data.iteritems():
             if k != 'fbid':
                 item[k] = v
-        item.partial_save()
+        try:
+            item.partial_save()
+        except:
+            _handle_user_conflict(item)
 
     # everything left in users_data must be new items. Loop through these &
     # save individually, so that a concurrent write will cause an error
