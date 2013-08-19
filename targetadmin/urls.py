@@ -1,7 +1,7 @@
 from django.conf.urls import patterns, url
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import decorators
-from django.views.generic import ListView
+from django.views.generic import ListView, DetailView
 
 from targetshare.models import relational
 
@@ -21,7 +21,18 @@ def internal(view):
 
 
 urlpatterns = patterns('targetadmin.views',
-    (r'^$', internal(ListView.as_view(model=relational.Client, template_name='targetadmin/home.html'))),
+    url(r'^$', internal(
+        ListView.as_view(
+            model=relational.Client,
+            template_name='targetadmin/home.html'
+        )),
+        name='client-list'),
+    url(r'^client/(?P<pk>\d+)/$', internal(
+        DetailView.as_view(
+            model=relational.Client,
+            template_name='targetadmin/client_home.html'
+        )),
+        name='client-detail'),
 )
 
 urlpatterns += patterns('',
