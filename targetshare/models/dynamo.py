@@ -155,32 +155,37 @@ def get_table(name):
                  connection=connection)
 
 
-def datetime_to_epoch(dt):
-    """given a datetime, return seconds since the epoch in UTC"""
-    return calendar.timegm(dt.utctimetuple()) if dt is not None else None
+def to_epoch(date):
+    """Given a datetime.date or datetime.datetime, return seconds since the
+    epoch in UTC.
+
+    """
+    if date is None:
+        return None
+    if isinstance(date, datetime.datetime):
+        # Handle datetime timezones:
+        return calendar.timegm(date.utctimetuple())
+    # Naively convert time-less date:
+    return time.mktime(date.timetuple())
 
 
 def epoch_to_datetime(epoch):
     """given seconds since the epoch in UTC, return a timezone-aware datetime"""
     if epoch is None:
         return None
-    naive = datetime.datetime.utcfromtimestamp(epoch)
-    return timezone.make_aware(naive, timezone.utc)
-
-
-def date_to_epoch(d):
-    """given a date, return seconds since the epoch in UTC"""
-    return time.mktime(d.timetuple()) if d is not None else None
+    return datetime.datetime.fromtimestamp(epoch, timezone.utc)
 
 
 def epoch_to_date(epoch):
     """given seconds since the epoch, return a date"""
-    return datetime.date.fromtimestamp(epoch) if epoch is not None else None
+    if epoch is None:
+        return None
+    return datetime.date.fromtimestamp(epoch)
 
 
 def epoch_now():
     """return the current UTC time as seconds since the epoch"""
-    return datetime_to_epoch(timezone.now())
+    return to_epoch(timezone.now())
 
 
 def _remove_null_values(dict_):
@@ -283,7 +288,7 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=
     Other args are string or None. You can pass a value for `updated` but it will be replaced with current timestamp.
     """
     updated = epoch_now()
-    birthday = date_to_epoch(birthday)
+    birthday = to_epoch(birthday)
 
     data = locals()
     _remove_null_values(data)
@@ -314,7 +319,7 @@ def save_many_users(users):
     table = get_table('users')
     with table.batch_write() as batch:
         for d in users:
-            d['birthday'] = date_to_epoch(d.get('birthday'))
+            d['birthday'] = to_epoch(d.get('birthday'))
             d['updated'] = updated
             _remove_null_values(d)
             batch.put_item(data=d)
@@ -341,7 +346,7 @@ def update_many_users(users):
 
         # pop the corresponding data dict
         data = users_data.pop(item['fbid'])
-        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['birthday'] = to_epoch(data.get('birthday'))
         data['updated'] = updated
         _remove_null_values(data)
 
@@ -355,7 +360,7 @@ def update_many_users(users):
     # save individually, so that a concurrent write will cause an error
     # (instead of silently clobbering using batch_write)
     for data in users_data.itervalues():
-        data['birthday'] = date_to_epoch(data.get('birthday'))
+        data['birthday'] = to_epoch(data.get('birthday'))
         data['updated'] = updated
         _remove_null_values(data)
         table.put_item(data)
@@ -426,7 +431,7 @@ def save_token(fbid, appid, token, expires, updated=None):
         fbid=int(fbid),
         appid=int(appid),
         token=token,
-        expires=datetime_to_epoch(expires),
+        expires=to_epoch(expires),
         updated=epoch_now()
     ))
     return x.save(overwrite=True)
@@ -641,7 +646,7 @@ def fetch_incoming_edges(fbid, newer_than=None):
     else:
         keys = table.query(index='updated',
                            fbid_target__eq=fbid,
-                           updated__gt=datetime_to_epoch(newer_than))
+                           updated__gt=to_epoch(newer_than))
         return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 
 
@@ -662,7 +667,7 @@ def fetch_outgoing_edges(fbid, newer_than=None):
     else:
         keys = table.query(index='updated',
                            fbid_source__eq=fbid,
-                           updated__gt=datetime_to_epoch(newer_than))
+                           updated__gt=to_epoch(newer_than))
 
     return fetch_many_edges((k['fbid_source'], k['fbid_target']) for k in keys)
 

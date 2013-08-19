@@ -98,9 +98,7 @@ def updateFriendEdgesDb(edges):
 
 
 def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAge=None):
-    """return list of datastructs.Edge objects for primaryId user
-
-    """
+    """Return list of datastructs.Edge objects for primaryId user."""
     # xxx with support from dynamo.fetch_* returning iterators instead of
     # lists, this could all be made to stream from Dynoamo in parallel (may
     # require threads)
@@ -109,37 +107,66 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
 
     primary = getUserDb(primId)
 
-    # build dict of secondary id -> EdgeCounts
-    # XXX this is the ugliest variable name I have ever written in my life.
+    # dict of secondary id -> EdgeCounts:
     if requireIncoming:
-        secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
-                                   dynamo.fetch_incoming_edges(primId, newer_than_date)
-                                   if 'post_likes' in e}
-
+        secondary_EdgeCounts_in = {
+            edge['fbid_source']: datastructs.EdgeCounts.from_dynamo(edge)
+            for edge in dynamo.fetch_incoming_edges(primId, newer_than_date)
+            if 'post_likes' in edge
+        }
     else:
-        secondary_EdgeCounts_in = {e['fbid_source']: datastructs.EdgeCounts.from_dynamo(e) for e in
-                                   dynamo.fetch_incoming_edges(primId, newer_than_date)}
+        secondary_EdgeCounts_in = {
+            edge['fbid_source']: datastructs.EdgeCounts.from_dynamo(edge)
+            for edge in dynamo.fetch_incoming_edges(primId, newer_than_date)
+        }
 
-    # build dict of secondary id -> UserInfo
-    secondary_UserInfo = {u['fbid']: datastructs.UserInfo.from_dynamo(u) for
-                          u in dynamo.fetch_many_users(fbid for fbid in secondary_EdgeCounts_in)}
+    # dict of secondary id -> UserInfo:
+    secondary_UserInfo = {
+        user['fbid']: datastructs.UserInfo.from_dynamo(user)
+        for user in dynamo.fetch_many_users(fbid for fbid in secondary_EdgeCounts_in)
+    }
 
-    # early return if we don't need outgoing
-    if not requireOutgoing:
-        return [datastructs.Edge(primary, secondary_UserInfo[fbid], ec, None)
-                for fbid, ec in secondary_EdgeCounts_in.iteritems()]
+    if requireOutgoing:
+        # build iterator of (secondary's Id, UserInfo, incoming edge, outgoing edge),
+        # fetching outgoing edges from Dynamo. Then turn those into Edge objects,
+        # while dropping outgoings that don't have a corresponding incoming for
+        # whatever reason.
+        data = (
+            (
+                edge.targetId,
+                secondary_UserInfo.get(edge.targetId),
+                secondary_EdgeCounts_in.get(edge.targetId),
+                datastructs.EdgeCounts.from_dynamo(edge)
+            )
+            for edge in dynamo.fetch_outgoing_edges(primId, newer_than_date)
+        )
+    else:
+        data = (
+            (
+                fbid,
+                secondary_UserInfo.get(fbid),
+                counts_in,
+                None,
+            )
+            for fbid, counts_in in secondary_EdgeCounts_in.items()
+        )
 
-    # build iterator of (secondary's UserInfo, incoming edge, outgoing edge),
-    # fetching outgoing edges from Dynamo. Then turn those into Edge objects,
-    # while dropping outgoings that don't have a corresponding incoming for
-    # whatever reason.
-    args = ((primary,
-             secondary_UserInfo[ec.targetId],
-             secondary_EdgeCounts_in.get(ec.targetId),
-             datastructs.EdgeCounts.from_dynamo(ec))
-            for ec in dynamo.fetch_outgoing_edges(primId, newer_than_date))
-
-    return [datastructs.Edge(*a) for a in args if a[2] is not None]
+    edges = []
+    for fbid, secondary, counts_in, counts_out in data:
+        if secondary is None:
+            logger.error(
+                "Secondary %r found in edges but not in users",
+                fbid
+            )
+            continue
+        if counts_in is None:
+            logger.warn(
+                "Edge for user %r found in outgoing but not in incoming edges",
+                fbid
+            )
+            continue
+        edges.append(datastructs.Edge(primary, secondary, counts_in, counts_out))
+    return edges
 
 
 def updateDb(user, token, edges):

@@ -39,13 +39,13 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         return {u['fbid']: u for u in
                 [
                     dict(fbid=1234, fname='Alice', lname='Apples', email='alice@example.com',
-                         gender='Female', birthday=datetime.date(1950, 1, 1), city=None, state=''),
+                         gender='Female', birthday=datetime.datetime(1950, 1, 1, tzinfo=timezone.utc), city=None, state=''),
 
                     dict(fbid=100, fname='Bob', lname='Beet', email='bob@example.com',
                          gender=None, birthday=None, city=None, state=None),
 
                     dict(fbid=101, fname='Carol', lname='Corn', email='carol@example.com',
-                         gender='Female', birthday=datetime.date(1980, 1, 1), city='Compton', state='CA'),
+                         gender='Female', birthday=datetime.datetime(1980, 1, 1, tzinfo=timezone.utc), city='Compton', state='CA'),
 
                     dict(fbid=102, fname='David', lname='Dill', email='david@example.com',
                          gender='Male', birthday=None, city=None, state='DE'),
@@ -53,7 +53,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def save_alice(self):
         """helper to save a single user alice"""
-        dynamo.save_user(1234, 'Alice', 'Apples', 'alice@example.com', 'Female', datetime.date(1950, 1, 1), None, '')
+        dynamo.save_user(1234, 'Alice', 'Apples', 'alice@example.com', 'Female', datetime.datetime(1950, 1, 1, tzinfo=timezone.utc), None, '')
 
     def test_save_user_new(self):
         """Test saving a new user"""
@@ -63,7 +63,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         x = table.get_item(fbid=1234)
         self.assertEqual(x['fname'], 'Alice')
         self.assertEqual(x['fbid'], 1234)
-        self.assertEqual(x['birthday'], -631130400)
+        self.assertEqual(x['birthday'], -631152000)
         self.assertEqual(x['updated'], 1356998400)
         self.assertIsNone(x['city'])
         self.assertIsNone(x['state'])
@@ -90,7 +90,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         assert isinstance(x, dict)
 
         self.assertEqual(x['fbid'], 1234)
-        self.assertEqual(x['birthday'], datetime.date(1950, 1, 1))
+        self.assertEqual(x['birthday'], datetime.datetime(1950, 1, 1, tzinfo=timezone.utc))
         self.assertEqual(x['email'], 'alice@example.com')
         self.assertEqual(x['gender'], 'Female')
         self.assertNotIn('city', x)
@@ -114,7 +114,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
             del d['updated']
             d['fbid'] = int(d['fbid'])
             if 'birthday' in d:
-                d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+                d['birthday'] = dynamo.epoch_to_datetime(d.get('birthday'))
 
             self.assertDictEqual(user, d)
 
@@ -166,7 +166,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         del d['updated']
         d['fbid'] = int(d['fbid'])
         if 'birthday' in d:
-            d['birthday'] = dynamo.epoch_to_date(d.get('birthday'))
+            d['birthday'] = dynamo.epoch_to_datetime(d.get('birthday'))
 
         self.assertDictEqual(alice_res, d)
 
@@ -215,7 +215,7 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         self.assertEqual(x['fbid'], 1234)
         self.assertEqual(x['appid'], 666)
         self.assertEqual(x['token'], 'DECAFBAD')
-        self.assertEqual(x['expires'], dynamo.datetime_to_epoch(self.expiry))
+        self.assertEqual(x['expires'], dynamo.to_epoch(self.expiry))
         assert 'updated' in x
 
     def test_save_token_update(self):
