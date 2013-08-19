@@ -59,7 +59,37 @@ function onData(response) {
         hAxis: {gridlines: {color:'#FFF'}},
         // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         });
+
+
+    // listen for legend selections on the monthly chart
+        google.visualization.events.addListener(window.monthlychart, 'onmouseover', selectHandler);
+        google.visualization.events.addListener(window.monthlychart, 'onmouseout', unselectHandler);
+
     }
+
+
+/*
+ * Two Charts One Legend
+ */
+
+function isLegend(datapoint) {
+    // check if something from an onmouse__ event is a hover over a legend event
+    if (datapoint.row == null) { return true; } 
+    return false
+    }
+
+function selectHandler(datapoint) {
+    if (isLegend(datapoint)) {
+        window.dailychart.setSelection( window.monthlychart.getSelection());
+        }
+    }
+
+function unselectHandler(datapoint) {
+    if (isLegend(datapoint)) {
+        window.dailychart.setSelection( window.monthlychart.getSelection());
+        }
+    }
+
 
 
 function mkCampaigns() {
