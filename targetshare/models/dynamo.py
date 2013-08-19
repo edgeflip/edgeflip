@@ -62,6 +62,7 @@ from boto.dynamodb2.table import Table
 from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from django.conf import settings
 from django.utils import timezone
 
@@ -336,18 +337,8 @@ def _handle_user_conflict(user, retry_count=3):
     """
     table = get_table('users')
 
-    # Find dirty keys
-    dirty_dict = {}
-    for key, value in user._data.iteritems():
-        if not user._orig_data.get(key):
-            dirty_dict[key] = value
-            continue
-
-        if user._orig_data.get(key) and user._orig_data[key] != value:
-            dirty_dict[key] = value
-
     freshest_user = table.get_item(fbid=int(user._data['fbid']))
-    for key, value in dirty_dict.iteritems():
+    for key, value in user._data.iteritems():
         if key == 'fbid':
             # This is unlikely to change..
             continue
@@ -358,7 +349,7 @@ def _handle_user_conflict(user, retry_count=3):
 
     try:
         freshest_user.partial_save()
-    except:
+    except ConditionalCheckFailedException:
         if retry_count:
             return _handle_user_conflict(retry_count - 1)
         else:
@@ -398,7 +389,7 @@ def update_many_users(users):
                 item[k] = v
         try:
             item.partial_save()
-        except:
+        except ConditionalCheckFailedException:
             _handle_user_conflict(item)
 
     # everything left in users_data must be new items. Loop through these &
