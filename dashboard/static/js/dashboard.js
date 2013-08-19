@@ -27,9 +27,38 @@ function onData(response) {
     window.monthlydata = new google.visualization.DataTable({'cols':response.cols, 'rows':response.monthly});
 
     // redraw charts
-    var hr_agg_options = {title: 'Hourly Report', enableInteractivity: 'true', 'width': 500};
-    window.dailychart.draw(window.dailydata, hr_agg_options);
-    window.monthlychart.draw(window.monthlydata, {title: 'Daily Report(for the last 30 days)', enableInteractivity: 'true', 'width': 500});
+    var dailyopts = {
+        title: 'Hourly Volume', 
+        enableInteractivity: 'true', 
+        width: 580, 
+        height:160,
+        chartArea: {width:500},
+        lineWidth: 1, // set this a bit thinner than monthly 
+
+        // curveType: 'function', // nice curves but it messes up vaxis calcs
+        legend: {position: 'none'}, // kill this legend, we'll hack into the bigger one below
+        // "turn off" the gridlines, but keep unit labels on axes
+        vAxis: {gridlines: {color:'#FFF'}},
+        hAxis: {gridlines: {color:'#FFF', count:12}},
+
+        // backgroundColor: {strokeWidth: 1, stroke: 'red'},
+        };
+
+    window.dailychart.draw(window.dailydata, dailyopts);
+
+    window.monthlychart.draw(window.monthlydata, {
+        title: 'Daily Volume', 
+        enableInteractivity: 'true', 
+        chartArea:{left:50,},
+        width: 799,
+        height:250,
+        legend: {position: 'right', textStyle: {fontSize:10}, alignment: 'end'},
+
+        // "turn off" the gridlines, but keep unit labels on axes
+        vAxis: {gridlines: {color:'#FFF'}},
+        hAxis: {gridlines: {color:'#FFF'}},
+        // backgroundColor: {strokeWidth: 1, stroke: 'red'},
+        });
     }
 
 

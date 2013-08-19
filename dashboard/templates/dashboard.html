@@ -10,7 +10,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/mod_csrf.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
 
-    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/dot-luv/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/auth.css" />
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/dash.css" />
 {% endblock %}
@@ -27,23 +27,26 @@
 
 {% block body %}
 <div id="bounds">
-    <div id="charts">
-        <div id="daily"></div>
-        <div id="monthly"></div>
-    </div>
-    
-    <div id="pickers">
 
-        <select id="campaignpicker">
+    <div id="campaignpicker">
+        <h2>Campaign:
+        <select>
             <option value="aggregate">Aggregate</option>
             {% for campaign in campaigns %}
             <option value="{{ campaign.id }}">{{ campaign.name }}</option>
             {% endfor %}
         </select>
-
-        <div id="datepicker">
-        </div>
+        </h2>
     </div>
+
+    <div id="charts">
+        <div id="daily"></div>
+        <div id="datepicker"></div>
+
+        <div id="monthly"></div>
+    </div>
+    
+
 </div>
 
 {% endblock %}

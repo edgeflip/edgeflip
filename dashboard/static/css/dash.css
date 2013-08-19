@@ -1,34 +1,19 @@
 #bounds {
     margin: 0 auto;
-    width: 70%;
-    border: 1 px solid orange;
+    width: 800px;
     }
 
 #charts {
     border:1px solid red;
-    float:left;
     }
 
-#pickers {
-    border:1px solid green;
-    float:left;
-    width: 300px;
+#datepicker {float:left;}
+#daily { float:right; }
 
-    }
-
-
-#campaignpicker {
-    width: 75%;
-    margin: 20px auto;
-    }
-
-#datepicker {
-    width: 75%;
-    margin: 0 auto;
-    }
+#monthly {clear:both;}
 
 
 /* something, somewhere, is overriding font-sizes */
 .ui-widget {
-    font-size: 12px;
+    font-size: 10px;
     }
