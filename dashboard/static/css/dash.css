@@ -1,0 +1,28 @@
+#bounds {
+    margin: 0 auto;
+    width: 70%;
+    border: 1 px solid orange;
+    }
+
+#charts {
+    border:1px solid red;
+    float:left;
+    }
+
+#pickers {
+    border:1px solid green;
+    float:left;
+    width: 300px;
+
+    }
+
+#datepicker {
+    width: 75%;
+    margin: 0 auto;
+    }
+
+
+/* something, somewhere, is overriding font-sizes */
+.ui-widget {
+    font-size: 12px;
+    }

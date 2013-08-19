@@ -7,24 +7,29 @@ function init() {
     getData();
     window.dailychart = new google.visualization.LineChart( $('#daily')[0] );
     window.monthlychart = new google.visualization.LineChart( $('#monthly')[0] );
+
+    // load up datepicker widgets
+    $( "#datepicker" ).datepicker({gotoCurrent:true, onSelect:getData});
     }
 
 
-function getData(campaign, date) {
+function getData() {
     // no need to post client, the server can pick that out of whatever user
-    $.post('/dashboard/chartdata/', {'campaign':'aggregate', 'day':'today'}, on_data);
+    day = $.datepicker.formatDate('mm/dd/yy', $('#datepicker').datepicker('getDate'));
+    campaign = 'aggregate';
+    $.post('/dashboard/chartdata/', {'campaign':campaign, 'day':day}, onData);
     }
 
 
-function on_data(response) {
+function onData(response) {
     // update data tables
     window.dailydata = new google.visualization.DataTable({'cols':response.cols, 'rows':response.daily});
     window.monthlydata = new google.visualization.DataTable({'cols':response.cols, 'rows':response.monthly});
 
     // redraw charts
-    var hr_agg_options = {title: 'Hourly Report', enableInteractivity: 'true', 'width': 1000};
+    var hr_agg_options = {title: 'Hourly Report', enableInteractivity: 'true', 'width': 500};
     window.dailychart.draw(window.dailydata, hr_agg_options);
-    window.monthlychart.draw(window.monthlydata, {title: 'Daily Report(for the last 30 days)', enableInteractivity: 'true', 'width': 1000});
+    window.monthlychart.draw(window.monthlydata, {title: 'Daily Report(for the last 30 days)', enableInteractivity: 'true', 'width': 500});
     }
 
 
