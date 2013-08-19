@@ -1,16 +1,13 @@
-edgeflip/target_config.json
 *.pyc
 *.sqlite
-/edgeflip/logs/*
-edgeflip/edgeflip.config
-edgeflip/web/templates/clients/local
-edgeflip/web/templates/clients/local/*
 *.wpr
 *.wpu
 *.pickle
 *.swp
-.coverage
-/htmlcov/*
+
+/fake_dynamo.fdb
+/.fake_dynamo.pid
+
 /doc/_build/*
 /doc/snakefood.svg
 
@@ -18,8 +15,14 @@ edgeflip/web/templates/clients/local/*
 *.sublime-project
 *.sublime-workspace
 .ropeproject
+*.idea
 
-edgeflip.egg-info
+/edgeflip/logs/*
+/edgeflip/static
+
 /cover
+/htmlcov
+.coverage
 
-edgeflip/static
+ssl
+/statsd

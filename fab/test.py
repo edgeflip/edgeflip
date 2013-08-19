@@ -1,7 +1,11 @@
 """Fabric tasks to test the project"""
+import os.path
+import shutil
+import tempfile
+
 from fabric import api as fab
 
-from . import manage, true
+from . import manage, serve, true
 
 
 DEFAULT_FLAGS = (
@@ -35,6 +39,7 @@ def test(path='', *args, **kws):
         test:clear-defaults=[true|yes|y|1]
 
     """
+    # Determine test arguments #
     flags = list(args)
 
     # Include default flags?
@@ -51,7 +56,28 @@ def test(path='', *args, **kws):
     key_args = dict(DEFAULT_KEY_ARGS)
     key_args.update(kws)
 
-    manage('test', [path], flags, key_args)
+    # Ensure fake dynamo is running #
+    dynamo_dir = tempfile.mkdtemp()
+    pid_path = os.path.join(dynamo_dir, 'pid')
+    try:
+        serve.dynamo_pid(pid_path)
+    except serve.DynamoNotRunning:
+        db_path = os.path.join(dynamo_dir, 'db')
+        fab.execute(serve.dynamo,
+                    command='start',
+                    db_path=db_path,
+                    pid_path=pid_path,
+                    port='4444')
+
+    # Test #
+    try:
+        manage('test', [path], flags, key_args)
+    finally:
+        # Terminate fake dynamo:
+        fab.execute(serve.dynamo,
+                    command='stop',
+                    pid_path=pid_path)
+        shutil.rmtree(dynamo_dir)
 
 
 __test__ = False # In case nose gets greedy

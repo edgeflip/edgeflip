@@ -4,18 +4,14 @@ import random
 
 import celery
 
+from django import http
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.http import (
-    HttpResponse,
-    HttpResponseBadRequest,
-    HttpResponseNotFound,
-    HttpResponseForbidden
-)
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 
 from targetshare import (
@@ -27,7 +23,7 @@ from targetshare import (
 )
 
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 def _validate_client_subdomain(campaign, content, subdomain):
@@ -60,8 +56,8 @@ def button_encoded(request, campaign_slug):
         decoded = utils.decodeDES(campaign_slug)
         campaign_id, content_id = [int(i) for i in decoded.split('/')]
     except:
-        logger.exception('Failed to decrypt button')
-        return HttpResponseNotFound()
+        LOG.exception('Failed to decrypt button')
+        return http.HttpResponseNotFound()
 
     return button(request, campaign_id, content_id)
 
@@ -72,7 +68,7 @@ def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
     if not _validate_client_subdomain(campaign, content, subdomain):
-        return HttpResponseNotFound()
+        return http.HttpResponseNotFound()
 
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
     params_dict = {
@@ -104,6 +100,8 @@ def button(request, campaign_id, content_id):
     return render(request, style_template, {
         'fb_params': params_dict,
         'goto': faces_url,
+        'client_css': client.locate_css('edgeflip_client.css'),
+        'client_css_simple': client.locate_css('edgeflip_client_simple.css'),
         'campaign': campaign,
         'content': content,
         'session_id': session_id
@@ -116,25 +114,23 @@ def frame_faces_encoded(request, campaign_slug):
         decoded = utils.decodeDES(campaign_slug)
         campaign_id, content_id = [int(i) for i in decoded.split('/') if i]
     except:
-        logger.exception('Exception on decrypting frame_faces')
-        return HttpResponseNotFound()
+        LOG.exception('Exception on decrypting frame_faces')
+        return http.HttpResponseNotFound()
 
     return frame_faces(request, campaign_id, content_id)
 
 
+@csrf_exempt # FB posts directly to this view
 def frame_faces(request, campaign_id, content_id):
-    subdomain = request.get_host().split('.')[0]
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-    if not _validate_client_subdomain(campaign, content, subdomain):
-        return HttpResponseNotFound()
 
     test_mode = False
     test_fbid = test_token = None
     if request.GET.get('test_mode'):
         test_mode = True
         if 'fbid' not in request.GET or 'token' not in request.GET:
-            return HttpResponseBadRequest('Test mode requires ID and Token')
+            return http.HttpResponseBadRequest('Test mode requires ID and Token')
         test_fbid = int(request.GET.get('fbid'))
         test_token = request.GET.get('token')
 
@@ -149,6 +145,8 @@ def frame_faces(request, campaign_id, content_id):
         'campaign': campaign,
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
+        'client_css': client.locate_css('edgeflip_client.css'),
+        'client_css_simple': client.locate_css('edgeflip_client_simple.css'),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid
@@ -170,7 +168,7 @@ def faces(request):
     edges_ranked = fbmodule = px4_edges = None
 
     if settings.ENV != 'production' and mock_mode:
-        logger.info('Running in mock mode')
+        LOG.info('Running in mock mode')
         fbmodule = mock_facebook
         fbid = 100000000000 + random.randint(1, 10000000)
     else:
@@ -185,11 +183,9 @@ def faces(request):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     properties = campaign.campaignproperties_set.get()
     client = campaign.client
-    if not _validate_client_subdomain(campaign, content, subdomain):
-        return HttpResponseNotFound()
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
-        return HttpResponseForbidden(
+        return http.HttpResponseForbidden(
             'Mock mode only allowed for the mock client')
 
     if px3_task_id and px4_task_id:
@@ -210,9 +206,9 @@ def faces(request):
             ) = px3_result_result
             px4_edges = px4_result.result if px4_result.successful() else ()
             if not all([edges_ranked, edges_filtered]):
-                return HttpResponse('No friends identified for you.', status=500)
+                return http.HttpResponse('No friends identified for you.', status=500)
         else:
-            return HttpResponse(
+            return http.HttpResponse(
                 json.dumps({
                     'status': 'waiting',
                     'px3_task_id': px3_task_id,
@@ -240,7 +236,7 @@ def faces(request):
             paramsDB=client
         )
         px4_task = tasks.proximity_rank_four.delay(mock_mode, fbid, token)
-        return HttpResponse(json.dumps(
+        return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',
                 'px3_task_id': px3_task_id,
@@ -266,11 +262,10 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                    choice_set_slug, subdomain, campaign, content, session_id,
                    ip, fbid, num_face, properties):
 
-    max_friends = 50
+    max_faces = 50
     friend_dicts = [e.toDict() for e in edges_filtered.edges]
-    face_friends = friend_dicts[:num_face]
-    all_friends = friend_dicts[:max_friends]
-    pick_dicts = [e.toDict() for e in edges_ranked]
+    face_friends = friend_dicts[:max_faces]
+    all_friends = [e.toDict() for e in edges_ranked]
     client = campaign.client
 
     fb_object_recs = campaign.campaignfbobjects_set.all()
@@ -301,7 +296,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         choice_set_slug
     )
 
-    action_params = {
+    fb_params = {
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
@@ -311,14 +306,14 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
-    logger.debug('fb_object_url: %s', action_params['fb_object_url'])
+    LOG.debug('fb_object_url: %s', fb_params['fb_object_url'])
     content_str = '%s:%s %s' % (
-        action_params['fb_app_name'],
-        action_params['fb_object_type'],
-        action_params['fb_object_url']
+        fb_params['fb_app_name'],
+        fb_params['fb_object_type'],
+        fb_params['fb_object_url']
     )
 
-    num_gen = max_friends
+    num_gen = max_faces
     for tier in edges_filtered:
         edges_list = tier['edges']
         tier_campaignId = tier['campaignId']
@@ -335,7 +330,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         session_id=session_id, campaign_id=tier_campaignId,
                         client_content_id=tier_contentId, ip=ip, fbid=fbid,
                         friend_fbid=friend.secondary.id, event_type='shown',
-                        app_id=action_params['fb_app_id'], content=content_str,
+                        app_id=fb_params['fb_app_id'], content=content_str,
                         activity_id=None
                     )
                 )
@@ -345,16 +340,16 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         if (num_gen <= 0):
             break
 
-    return HttpResponse(
+    return http.HttpResponse(
         json.dumps({
             'status': 'success',
             'html': render_to_string(client.locate_template('faces_table.html'), {
-                'all_friends': all_friends,
                 'msg_params': msg_params,
-                'action_params': action_params,
+                'fb_params': fb_params,
+                'all_friends': all_friends,
                 'face_friends': face_friends,
-                'pick_friends': pick_dicts,
-                'num_friends': num_face
+                'show_faces': face_friends[:num_face],
+                'num_face': num_face
             }, context_instance=RequestContext(request)),
             'campaignid': campaign.pk,
             'contentid': content.pk,
@@ -381,7 +376,7 @@ def objects(request, fb_object_id, content_id):
     session_id = request.session.session_key
 
     if not redirect_url:
-        return HttpResponseNotFound()
+        return http.HttpResponseNotFound()
 
     fb_object_url = '%s?cssslug=%s' % (
         reverse('objects', kwargs={
@@ -404,7 +399,7 @@ def objects(request, fb_object_id, content_id):
     ip = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
-        logger.info(
+        LOG.info(
             'Facebook crawled object %s with content %s from IP %s',
             fb_object_id, content_id, ip
         )
@@ -470,7 +465,7 @@ def suppress(request):
             'lastname': lname
         })
     else:
-        return HttpResponse()
+        return http.HttpResponse()
 
 
 @require_POST
@@ -495,7 +490,7 @@ def record_event(request):
         'select_all_click', 'suggest_message_click',
         'share_click', 'share_fail', 'shared', 'clickback'
     ]:
-        return HttpResponseForbidden(
+        return http.HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
 
@@ -530,12 +525,14 @@ def record_event(request):
                 tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
-            models.Token.objects.filter(
-                fbid=user_id, app_id=token.appId, owner_id=token.ownerId,
-                token=token.tok
-            ).update(expires=token.expires)
+            models.dynamo.save_token(
+                fbid=user_id,
+                appid=token.appId,
+                token=token.tok,
+                expires=token.expires,
+            )
         else:
-            logger.error(
+            LOG.error(
                 "Trying to write an authorization for fbid %s with "
                 "token %s for non-existent client", user_id, tok
             )
@@ -560,7 +557,7 @@ def record_event(request):
     if error_msg:
         # may want to push these to the DB at some point, but at least for now,
         # dump them to the logs to ensure we keep the data.
-        logger.error(
+        LOG.error(
             'Front-end error encountered for user %s in session %s: %s',
             user_id, request.session.session_key, error_msg
         )
@@ -573,9 +570,10 @@ def record_event(request):
         )
         tasks.delayed_save.delay(share_message)
 
-    return HttpResponse()
+    return http.HttpResponse()
 
 
+@csrf_exempt
 def canvas(request):
 
     return render(request, 'targetshare/canvas.html')
@@ -584,23 +582,21 @@ def canvas(request):
 def health_check(request):
 
     if 'elb' in request.GET:
-        return HttpResponse("It's Alive!", status=200)
+        return http.HttpResponse("It's Alive!", status=200)
 
     components = {
-        'database': False,
-        'facebook': False
+        'database': models.Client.objects.exists(),
+        'dynamo': False,
+        'facebook': False,
     }
-    try:
-        components['database'] = models.Client.objects.exists()
-    except:
-        raise
 
-    try:
-        fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
-        components['facebook'] = int(fb_resp['id']) == 6963
-    except:
-        raise
+    fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
+    components['facebook'] = int(fb_resp['id']) == 6963
 
-    return HttpResponse(
-        json.dumps(components), content_type='application/json'
+    users = models.dynamo.get_table('users')
+    components['dynamo'] = bool(users.describe())
+
+    return http.HttpResponse(
+        json.dumps(components),
+        content_type='application/json',
     )

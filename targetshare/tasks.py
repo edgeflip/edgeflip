@@ -4,11 +4,9 @@ from datetime import timedelta
 import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
-from django.utils import timezone
-from django.db.models import get_model
 
 from targetshare import (
-    database,
+    database_compat as database,
     facebook,
     mock_facebook,
     models,
@@ -293,14 +291,14 @@ def proximity_rank_four(mockMode, fbid, token):
     fbmodule = mock_facebook if mockMode else facebook
     try:
         user = fbmodule.getUserFb(fbid, token.tok)
-        newer_than = timezone.now() + timedelta(days=settings.FRESHNESS)
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
-        edgesUnranked = models.Edge.objects.filter(
-            fbid_target=fbid,
-            post_likes__isnull=False,
-            updated__gte=newer_than
+        edgesUnranked = database.getFriendEdgesDb(
+            fbid,
+            requireIncoming=True,
+            requireOutgoing=False,
+            maxAge=timedelta(days=settings.FRESHNESS),
         )
         if not edgesUnranked:
             edgesUnranked = fbmodule.getFriendEdgesFb(
@@ -317,8 +315,7 @@ def proximity_rank_four(mockMode, fbid, token):
         requireIncoming=True,
         requireOutgoing=False,
     )
-    database.updateDb(user, token, edgesRanked,
-                      background=settings.DATABASES.default.BACKGROUND_WRITE)
+    update_database(user, token, edgesRanked)
     return edgesRanked
 
 
@@ -347,3 +344,33 @@ def delayed_save(model_obj):
     appropriate level of caution
     '''
     model_obj.save()
+
+
+@celery.task
+def update_users(users):
+    """async wrapper for `edgeflip.database.compat.updateUsersDb`"""
+    database.updateUsersDb(users)
+
+
+@celery.task
+def update_tokens(token):
+    """async wrapper for `edgeflip.database.compat.updateTokensDb`"""
+    database.updateTokensDb(token)
+
+
+@celery.task
+def update_edges(edges):
+    """async wrapper for `edgeflip.database.compat.updateFriendEdgesDb`"""
+    database.updateFriendEdgesDb(edges)
+
+
+def update_database(user, token, edges):
+    """async version of `edgeflip.database_compat.updateDb"""
+    tasks = []
+    tasks.append(update_tokens.delay(token))
+    tasks.append(update_users.delay(([user])))
+    tasks.append(update_users.delay([e.secondary for e in edges]))
+    tasks.append(update_edges.delay(edges))
+    ids = [t.id for t in tasks]
+
+    logger.debug("updateDb() using background celery tasks %r for user %d", ids, user.id)

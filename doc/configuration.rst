@@ -13,12 +13,24 @@ New Relic
 .. envvar:: newrelic.enabled
 
     should New Relic support be turned on
-    
+
 .. envvar:: newrelic.inifile
 
     a fully qualified path to the `newrelic.ini` file.
-    
+
 .. envvar:: newrelic.environment
-    
+
     a New Relic environment, as defined in `newrelic.ini`. Defaults to `development`.
     
+
+AWS
+---
+Cross-service configuration for AWS/boto. Currently this is just access & secret keys. If these are unset, fall back to standard `boto configuration <http://boto.readthedocs.org/en/latest/boto_config_tut.html>`
+
+.. envvar:: aws.AWS_ACCESS_KEY_ID
+
+    AWS access key
+
+.. envvar:: aws.AWS_SECRET_ACCESS_KEY
+
+    AWS secret key

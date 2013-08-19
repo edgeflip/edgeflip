@@ -64,13 +64,6 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert data['px3_task_id']
         assert data['px4_task_id']
 
-    def test_faces_invalid_subdomain(self):
-        ''' Test hitting the faces endpoint from an invalid domain '''
-        self.test_client.subdomain = 'invalidsubdomain'
-        self.test_client.save()
-        response = self.client.post(reverse('faces'), data=self.params)
-        self.assertStatusCode(response, 404)
-
     @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
@@ -395,10 +388,12 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
         fb_mock.extendToken.return_value = None
-        token = models.Token.objects.create(
-            fbid=1111111, app_id=self.test_client.fb_app_id,
-            token='test-token', owner_id=1111111,
-            expires=timezone.now() - timedelta(days=5)
+        expires0 = timezone.now() - timedelta(days=5)
+        models.dynamo.save_token(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            token='test-token',
+            expires=expires0,
         )
         response = self.client.post(
             '%s?token=1' % reverse('record-event'), {
@@ -415,13 +410,13 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         self.assertStatusCode(response, 200)
-        refreshed_token = models.Token.objects.get(pk=token.pk)
-        assert refreshed_token.expires > token.expires
-        self.assertEqual(
-            models.Event.objects.filter(
-                event_type='authorized', friend_fbid__in=[10, 11, 12]
-            ).count(), 3
+        refreshed_token = models.dynamo.fetch_token(1111111, self.test_client.fb_app_id)
+        self.assertGreater(refreshed_token['expires'], expires0)
+        events = models.Event.objects.filter(
+            event_type='authorized',
+            friend_fbid__in=[10, 11, 12]
         )
+        self.assertEqual(events.count(), 3)
 
     def test_canvas(self):
         ''' Tests views.canvas '''
@@ -434,12 +429,11 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         fb_mock.getUrlFb.return_value = {'id': 6963}
         response = self.client.get(reverse('health-check'))
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            json.loads(response.content), {
-                'database': True,
-                'facebook': True
-            }
-        )
+        self.assertEqual(json.loads(response.content), {
+            'database': True,
+            'facebook': True,
+            'dynamo': True,
+        })
 
     def test_health_check_elb(self):
         ''' Test health-check view from Amazon ELB perspective '''

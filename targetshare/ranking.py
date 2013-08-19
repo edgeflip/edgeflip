@@ -1,7 +1,7 @@
 #!/usr/bin/python
 import logging
 
-from . import database
+from . import database_compat as database
 
 
 logger = logging.getLogger(__name__)

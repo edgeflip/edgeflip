@@ -23,7 +23,7 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
 
 5. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
 6. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
- 
+
 Local Database
 --------------
 
@@ -35,6 +35,19 @@ A local mysql database is automatically set up by the build task; (see `fab -d b
     * If you're resetting or starting a new database just pass "testdata=1" to the build.db command. e.g: `fab build.db:force=1,testdata=1`
     * If you have an existing database, you can run the following command from the root of the `edgeflip` repo: `python manage.py loaddata targetshare/fixtures/test_data.yaml`
 
+
+Dynamo
+------
+The config option `dynamo.engine` may be set to either `mock` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
+
+To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo) must be installed; (note, this is handled automatically by the build task in development mode &mdash; see `fab -d build.dependencies`).
+
+1. With FakeDynamo installed, the server may be invoked and managed via `fab serve.dynamo`; (see `fab -d serve.dynamo`).
+2. Set up and create tables &mdash; (note, this can be quite slow on live AWS):
+    * If necessary, drop tables with `bin/drop_dynamo.py`
+    * Create tables with `bin/create_dynamo.py`
+
+
 RabbitMQ
 --------------
 To set up your RabbitMQ instance:
@@ -44,13 +57,14 @@ To set up your RabbitMQ instance:
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
 4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
 
+
 Celery
 --------------
 Starting Celery:
 
 Setup and operation of Celery differs a bit between your local environments and production.
 This is mainly due to the fact that init scripts are excessive for local development, and tend to
-be far too specific for a particular environment. 
+be far too specific for a particular environment.
 
 *Locally*:
 
@@ -63,7 +77,7 @@ be far too specific for a particular environment.
 2. Symlink `scripts/celery/celeryd` to `/etc/init.d/celeryd`
 3. Copy `scripts/celery/celeryd.conf` to `/etc/default/celeryd`
 4. Set CELERY_CHDIR to the proper virtualenv path in `/etc/default/celeryd`
-5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery` 
+5. Create celery user/group: `sudo adduser --system celery` and `sudo addgroup --system celery`
 6. Chown log/pid dirs: `sudo chown -R celery:celery /var/run/celery /var/log/celery`
 7. Start the daemon: `/etc/init.d/celeryd start`
 
@@ -123,12 +137,12 @@ Once you've patched and installed Siege, you can run load tests by creating a fe
 1. A JSON file with the request parameters, such as:
 ```
     {
-        "mockmode" : "true", 
-        "fbid" : 100011235813, 
-        "token" : "IamAfakeTOKEN", 
-        "num" : 9, 
-        "sessionid" : "i-am-a-fake-session", 
-        "campaignid" : 2, 
+        "mockmode" : "true",
+        "fbid" : 100011235813,
+        "token" : "IamAfakeTOKEN",
+        "num" : 9,
+        "sessionid" : "i-am-a-fake-session",
+        "campaignid" : 2,
         "contentid" : 2
      }
 ```
@@ -142,6 +156,36 @@ http://local.edgeflip.com:8080/faces POST < test_data.json
 sudo siege -c 5 -d 1 -r 20 -f test_data.json.siege
 ```
 (Here, with 20 repeats of 5 concurrent requests with a maximum (random) delay of 1 sec. between repeats. More on parameters can be found on the [Siege homepage](http://www.joedog.org/siege-home/).)
+
+Locally Testing a Facebook Canvas App
+-------------------------------------
+
+1. First, install the Forward client (https://forwardhq.com/in-use/facebook)
+
+        $ gem install forward
+
+2. Run the devel server locally (pick your favorite port or default to 8080)
+
+        bin/devel_server.py --port 8765
+
+3. Now, forward the the port from step 2
+
+        $ forward 8765
+        Forwarding port 8765 to https://edgeflip.fwd.wf
+        Ctrl-C to stop forwarding
+
+4. Create (or retrieve) a client in your local database that's associated with the "edgeflip local" app
+
+        $ python bin/create_local_client.py --client-name jerkface
+        client #16 jerkface:
+        	https://apps.facebook.com/edgeflip-local/18/19
+
+5. Point your browser to the link you got from step 4, and be a local hero!*
+
+    *http://www.buylocalfood.org/
+
+
+
 
 Running Tests With Nose
 ------------

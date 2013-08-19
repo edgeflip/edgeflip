@@ -7,11 +7,13 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'', include('targetshare.urls')),
-    url(r'^mocks/', include('targetmock.urls')),
     url(r'^admin/', include('targetadmin.urls')),
     url(r'^dashboard/', include('dashboard.urls')),
 )
 
 if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
-    urlpatterns += patterns('', url(r'^simpleadmin/', include(admin.site.urls)))
+    urlpatterns += patterns('',
+        url(r'^mocks/', include('targetmock.urls')),
+        url(r'^simpleadmin/', include(admin.site.urls))
+    )

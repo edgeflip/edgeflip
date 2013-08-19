@@ -14,6 +14,7 @@ framework.
 
 """
 import os
+import sys
 
 # Activate Python virtual environment:
 activate_this = '/var/www/edgeflip/bin/activate_this.py'
@@ -25,6 +26,8 @@ if os.path.exists(activate_this):
 # if running multiple sites in the same mod_wsgi process. To fix this, use
 # mod_wsgi daemon mode with each site in its own daemon process, or use
 # os.environ["DJANGO_SETTINGS_MODULE"] = "edgeflip.settings"
+CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(os.path.abspath(os.path.join(CURRENT_PATH, '../')))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "edgeflip.settings")
 
 # Initialize new relic:

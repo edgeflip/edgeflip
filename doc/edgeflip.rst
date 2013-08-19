@@ -34,10 +34,28 @@ edgeflip Package
     :undoc-members:
     :show-inheritance:
 
+
+:mod:`database_compat` Module
+-----------------------------
+
+.. automodule:: edgeflip.database_compat
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+
 :mod:`datastructs` Module
 -------------------------
 
 .. automodule:: edgeflip.datastructs
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`dynamo` Module
+-------------------------
+
+.. automodule:: edgeflip.dynamo
     :members:
     :undoc-members:
     :show-inheritance:

@@ -121,10 +121,6 @@ locals().update((key.upper(), value) for key, value in config.items())
 
 MANAGERS = ADMINS
 
-# Hosts/domain names that are valid for this site; required if DEBUG is False
-# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
-ALLOWED_HOSTS = [] # FIXME
-
 # Local time zone for this installation. Choices can be found here:
 # http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
 # although not all choices may be available on all operating systems.
@@ -267,6 +263,9 @@ CELERY_QUEUES = (
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
+    Queue('update_users', routing_key='update.users', queue_arguments=QUEUE_ARGS),
+    Queue('update_tokens', routing_key='update.tokens', queue_arguments=QUEUE_ARGS),
+    Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
     'targetshare.tasks.px3_crawl': {
@@ -289,6 +288,18 @@ CELERY_ROUTES = {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
+    'targetshare.tasks.update_tokens': {
+        'queue': 'update_tokens',
+        'routing_key': 'update.tokens',
+    },
+    'targetshare.tasks.update_users': {
+        'queue': 'update_users',
+        'routing_key': 'update.users',
+    },
+    'targetshare.tasks.update_edges': {
+        'queue': 'update_edges',
+        'routing_key': 'update.edges',
+    },
 }
 CELERY_IMPORTS = (
     'targetshare.tasks',
@@ -308,8 +319,9 @@ NOSE_ARGS = (
     '--cover-erase',
     '--cover-html',
     '--cover-package=targetshare',
-    '--logging-level=CRITICAL',
     '--exclude=^fab$',
+    '--http-whitelist=localhost:4444',
+    '--logging-level=CRITICAL',
 )
 
 
