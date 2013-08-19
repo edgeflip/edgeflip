@@ -2,13 +2,25 @@
 
 {% block title %}EdgeFlip | Dashboard{% endblock %}
 
+
 {% block includes %}
     <script src="//www.google.com/jsapi"></script>
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/mod_csrf.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
-    
+
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/auth.css" />
 {% endblock %}
+
+
+{% block login %}
+    <div id="login">
+        <p>
+        Logged in as {{ user.username }} | <a href="/dashboard/logout/">Logout</a>
+        </p>
+    </div>
+{% endblock %}
+
 
 {% block body %}
 

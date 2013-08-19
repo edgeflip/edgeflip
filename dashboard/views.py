@@ -2,15 +2,22 @@ import json
 from django.views.decorators.http import require_GET, require_POST
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.contrib.auth.decorators import login_required
 
 from random import randint
 from datetime import datetime
 
 
 @require_GET
+@login_required(login_url='/dashboard/login/')
 def dashboard(request):
+    user = request.user  # really seems like this should automagically happen
 
-    return render(request, 'dashboard.html')
+    context = {
+        'user': user,
+        }
+
+    return render(request, 'dashboard.html', context)
 
 
 # google.visualization is looking for this as "cols", TODO: do we actually need an id?
