@@ -4,35 +4,24 @@ from django.contrib.auth import decorators
 from django.views.generic import ListView, DetailView
 
 from targetshare.models import relational
-
-
-def superuser_required(view):
-    def check_superuser(user):
-        if user.is_superuser:
-            return True
-        raise PermissionDenied
-    return decorators.user_passes_test(check_superuser)(view)
-
-
-def internal(view):
-    is_superuser = superuser_required(view)
-    logged_in_superuser = decorators.login_required(is_superuser, login_url='login')
-    return logged_in_superuser
+from targetadmin import utils
 
 
 urlpatterns = patterns('targetadmin.views',
-    url(r'^$', internal(
+    url(r'^$', utils.internal(
         ListView.as_view(
             model=relational.Client,
             template_name='targetadmin/home.html'
         )),
         name='client-list'),
-    url(r'^client/(?P<pk>\d+)/$', internal(
+    url(r'^client/(?P<pk>\d+)/$', utils.internal(
         DetailView.as_view(
             model=relational.Client,
             template_name='targetadmin/client_home.html'
         )),
         name='client-detail'),
+    url(r'^client/new/$', 'edit_client', name='client-new'),
+    url(r'^client/edit/(?P<client_pk>\d+)/$', 'edit_client', name='client-edit'),
 )
 
 urlpatterns += patterns('',
