@@ -15,6 +15,7 @@ def dashboard(request):
 
     context = {
         'user': user,
+        'campaigns': [],
         }
 
     return render(request, 'dashboard.html', context)
