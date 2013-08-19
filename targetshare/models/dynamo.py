@@ -351,7 +351,9 @@ def _handle_user_conflict(user, retry_count=3):
         if key == 'fbid':
             # This is unlikely to change..
             continue
-        if freshest_user._data.get(key) and freshest_user[key] == user._orig_data[key]:
+
+        if (not freshest_user._data.get(key) or
+                freshest_user._data[key] == user._orig_data.get(key)):
             freshest_user[key] = value
 
     try:

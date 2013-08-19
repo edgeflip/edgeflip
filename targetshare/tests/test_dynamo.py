@@ -181,6 +181,23 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
         self.assertDictEqual(evan_res, d)
 
+    def test_handle_user_conflict(self):
+        """ Test handling user upload conflicts during update_many_users """
+        dynamo.save_many_users(self.users().values())
+        table = dynamo.get_table('users')
+
+        alice_stale = table.get_item(fbid=1234)
+        alice_stale['last_name'] = 'Applesauce'
+
+        alice = table.get_item(fbid=1234)
+        alice['gender'] = 'Male'
+        alice.partial_save()
+
+        dynamo._handle_user_conflict(alice_stale)
+        fresh_alice = table.get_item(fbid=1234)
+        self.assertEqual(fresh_alice['gender'], 'Male')
+        self.assertEqual(fresh_alice['last_name'], 'Applesauce')
+
 
 @freeze_time('2013-01-01')
 class DynamoTokenTestCase(EdgeFlipTestCase):
