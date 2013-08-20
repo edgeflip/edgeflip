@@ -7,7 +7,7 @@ class CampaignSum(models.Model):
     campaign = models.CharField(max_length=256, blank=True)
 
 
-    data = models.CharField(max_length=500)  # and we jam our data in here as json
+    data = models.TextField(max_length=500)  # and we jam our data in here as json
 
 
     class Meta(object):
@@ -21,7 +21,7 @@ class DaySum(models.Model):
     campaign = models.CharField(max_length=256, blank=True)
 
     day = models.DateField()
-    data = models.CharField(max_length=500)  # ghetto json field
+    data = models.TextField(max_length=500)  # ghetto json field .. fixed size, we could CharField here
 
 
     class Meta(object):

@@ -1,11 +1,15 @@
 import json
+import logging
+from random import randint
+from datetime import datetime, timedelta
+
 from django.views.decorators.http import require_GET, require_POST
 from django.shortcuts import render
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
 
-from random import randint
-from datetime import datetime, timedelta
+
+from models import CampaignSum, DaySum
 
 
 @require_GET
@@ -18,7 +22,7 @@ def dashboard(request):
         'campaigns': [],
         }
 
-    return render(request, 'dashboard.html', context)
+    return render(request, 'dashboard/dashboard.html', context)
 
 
 # google.visualization is looking for this as "cols", TODO: do we actually need an id?
@@ -37,7 +41,7 @@ MONTHLY_METRICS = [
 
 DAILY_METRICS = [{'id':'label', 'label': 'time', 'type':'timeofday'},] + MONTHLY_METRICS[1:]
 
-def fakedata(now):
+def fakedata(now, client_id=None):
     """ generate fake hourly / daily data in GOOG vis format """
 
     # 30 days worth of data for the monthly table
@@ -51,8 +55,6 @@ def fakedata(now):
         delta = timedelta(days=(30-i))
         monthly[i]['c'].insert(0, {'v':"Date({},{},{})".format(now.year, (now-delta).month-1, (now-delta).day)}  )
         
-    # import pdb;pdb.set_trace()
-
     # 24 hours worth of data for the daily table
     daily = [{'c':[{'v':randint(1,100)} for i in range(len(MONTHLY_METRICS))] } for j in range(25)]
     for i in range(25):
@@ -77,3 +79,30 @@ def chartdata(request):
  
     return HttpResponse(json.dumps(data), content_type="application/json")
 
+
+def mkdata(request):
+    """one off that should be a management command to dump wes's json into django"""
+
+    with open('dashboard/VAdump.json') as f:
+        data = json.loads(f.read())
+
+    for campaign in data.keys():
+        logging.info(campaign)
+        daily_data = data[campaign]['days']
+        for k in daily_data.keys():
+            if sum(daily_data[k]) == 0:
+                del daily_data[k]
+
+        C = CampaignSum( campaign=campaign, data=json.dumps(daily_data))
+        C.save()
+
+        for day in data[campaign]['hours'].keys():
+            hourly_data = data[campaign]['hours'][day]
+
+            if [sum(row) for row in hourly_data] == range(24): continue
+            day = datetime.strptime(day, "%Y-%m-%d %H:%M:%S")
+
+            D = DaySum( campaign=campaign, data=json.dumps(hourly_data), day=day)
+            D.save()
+
+    
