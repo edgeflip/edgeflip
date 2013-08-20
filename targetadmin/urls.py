@@ -1,6 +1,4 @@
 from django.conf.urls import patterns, url
-from django.core.exceptions import PermissionDenied
-from django.contrib.auth import decorators
 from django.views.generic import ListView, DetailView
 
 from targetshare.models import relational
@@ -20,8 +18,16 @@ urlpatterns = patterns('targetadmin.views',
             template_name='targetadmin/client_home.html'
         )),
         name='client-detail'),
-    url(r'^client/new/$', 'edit_client', name='client-new'),
-    url(r'^client/edit/(?P<client_pk>\d+)/$', 'edit_client', name='client-edit'),
+    url(r'^client/new/$', 'client_view', name='client-new'),
+    url(r'^client/(?P<pk>\d+)/edit/$', 'client_view', name='client-edit'),
+    url(r'^client/(?P<client_pk>\d+)/content/$', 'content_list',
+        name='content-list'),
+    url(r'^client/(?P<client_pk>\d+)/content/(?P<pk>\d+)/$', 'content_detail',
+        name='content-detail'),
+    url(r'^client/(?P<client_pk>\d+)/content/new/$', 'content_edit',
+        name='content-new'),
+    url(r'^client/(?P<client_pk>\d+)/content/edit/(?P<pk>\d+)/$', 'content_edit',
+        name='content-edit'),
 )
 
 urlpatterns += patterns('',

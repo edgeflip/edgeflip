@@ -2,4 +2,71 @@
 {% block title %}{{ client.name }}{% endblock %}
 {% block content %}
     <h2>{{ client.name }}</h2>
+    <div class="span9">
+        <h4>Create New Elements</h4>
+        <ul>
+            <li><a href="#">Create Content</a></li>
+            <li><a href="#">Create FaceBook Objects</a></li>
+            <li><a href="#">Create Filter</a></li>
+            <li><a href="#">Create Choice Set</a></li>
+            <li><a href="#">Create Button Style</a></li>
+            <li><a href="#">Create Campaign</a></li>
+            <li><a href="#">Generate Snippet</a></li>
+        </ul>
+    </div>
+    <div class="span9"><h4>Existing Elements</h4></div>
+    <div class="span9">
+        <div class="span4">
+            <h4>Campaigns</h4>
+            <ul>
+                {% for campaign in client.campaign_set.all %}
+                    <li>{{ campaign }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="span4">
+            <h4>Content Objects</h4>
+            <ul>
+                {% for content in client.clientcontent_set.all %}
+                    <li>{{ content.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="span9">
+        <div class="span4">
+            <h4>Choice Set</h4>
+            <ul>
+                {% for cs in client.choicesets.all %}
+                    <li>{{ cs.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="span4">
+            <h4>Filters</h4>
+            <ul>
+                {% for filter in client.filters.all %}
+                    <li>{{ filter.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+    <div class="span9">
+        <div class="span4">
+            <h4>FaceBook Objects</h4>
+            <ul>
+                {% for fbo in client.fbobject_set.all %}
+                    <li>{{ fbo.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div class="span4">
+            <h4>Button Styles</h4>
+            <ul>
+                {% for button in client.buttonstyle_set.all %}
+                    <li>{{ button.name }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
 {% endblock %}

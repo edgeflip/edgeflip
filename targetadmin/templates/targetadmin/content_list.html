@@ -1,0 +1,11 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Choose a Client{% endblock %}
+{% block content %}
+    <h2>Choose a Content Object</h2>
+    <ul>
+        {% for content in object_list %}
+            <li><a href="{% url 'content-detail' client.pk content.pk %}">{{ content.name }}</a></li>
+        {% endfor %}
+    </ul>
+    Or, <a href="{% url 'content-new' client.pk %}">Create a Client Content Object</a>
+{% endblock %}
