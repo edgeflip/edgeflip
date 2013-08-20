@@ -59,9 +59,10 @@ from itertools import imap
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
-from boto.dynamodb2.items import Item
+from boto.dynamodb2.items import Item, NEWVALUE
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from django.conf import settings
 from django.utils import timezone
 
@@ -325,6 +326,37 @@ def save_many_users(users):
             batch.put_item(data=d)
 
 
+def _handle_user_conflict(user, retry_count=3):
+    """ Handles conflicts when saving users to Dynamo. Currently works via a
+    recursive retry mechanism, but realistically this needs to move to celery
+    at some point. The reason it's not already there is simply due to awkward
+    architecture that leads to the celery path creating circular imports.
+
+    At some point we'll need to address the architectural issues, but that
+    time isn't right now.
+    """
+    table = get_table('users')
+
+    freshest_user = table.get_item(fbid=int(user._data['fbid']))
+    for key, value in user._orig_data.items():
+        if ((value == freshest_user[key]) or
+                (value is NEWVALUE and freshest_user[key] is None)):
+            if key in user:
+                freshest_user[key] = user[key]
+            else:
+                del freshest_user[key]
+
+    try:
+        freshest_user.partial_save()
+    except ConditionalCheckFailedException:
+        if retry_count:
+            return _handle_user_conflict(user, retry_count - 1)
+        else:
+            LOG.exception(
+                'Failed to handle save conflict on user: %s' % user['fbid']
+            )
+
+
 def update_many_users(users):
     """save many users to Dynamo as a batch, updating existing rows.
 
@@ -354,7 +386,10 @@ def update_many_users(users):
         for k, v in data.iteritems():
             if k != 'fbid':
                 item[k] = v
-        item.partial_save()
+        try:
+            item.partial_save()
+        except ConditionalCheckFailedException:
+            _handle_user_conflict(item)
 
     # everything left in users_data must be new items. Loop through these &
     # save individually, so that a concurrent write will cause an error
