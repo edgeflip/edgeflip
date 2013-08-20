@@ -3,11 +3,17 @@
     width: 800px;
     }
 
+/*
 #charts {
     border:1px solid red;
     }
+*/
 
-#datepicker {float:left;}
+#datepicker {
+    float:left;
+    margin: 10px 0 0 40px;
+    }
+
 #daily { float:right; }
 
 #monthly {clear:both;}

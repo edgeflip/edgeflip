@@ -39,7 +39,7 @@ function onData(response) {
         title: 'Hourly Volume', 
         enableInteractivity: 'true', 
         width: 580, 
-        height:160,
+        height:175,
         chartArea: {width:500},
         lineWidth: 1, // set this a bit thinner than monthly 
 
