@@ -23,8 +23,16 @@ function getData() {
 
 function onData(response) {
     // update data tables
-    window.dailydata = new google.visualization.DataTable({'cols':response.cols, 'rows':response.daily});
-    window.monthlydata = new google.visualization.DataTable({'cols':response.cols, 'rows':response.monthly});
+    window.dailydata = new google.visualization.DataTable({'cols':response.daily_cols, 'rows':response.daily});
+    window.monthlydata = new google.visualization.DataTable({'cols':response.monthly_cols, 'rows':response.monthly});
+
+
+    // format dates
+    var shortdate = new google.visualization.DateFormat({formatType: 'short'});
+    shortdate.format( monthlydata, 0); 
+
+    var shorthour = new google.visualization.DateFormat({formatType: 'HH'});
+    shorthour.format( dailydata, 0);
 
     // redraw charts
     var dailyopts = {
@@ -39,7 +47,7 @@ function onData(response) {
         legend: {position: 'none'}, // kill this legend, we'll hack into the bigger one below
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'}},
-        hAxis: {gridlines: {color:'#FFF', count:12}},
+        hAxis: {gridlines: {color:'#FFF', count:13}, format:'H'},
 
         // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         };
@@ -56,7 +64,7 @@ function onData(response) {
 
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'}},
-        hAxis: {gridlines: {color:'#FFF'}},
+        hAxis: {gridlines: {color:'#FFF', count:7}, format:'M/dd'},
         // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         });
 
