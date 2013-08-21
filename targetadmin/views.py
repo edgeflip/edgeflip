@@ -77,6 +77,7 @@ class ClientRelationListView(ListView):
     specified.
     """
     object_string = None
+    template_name = 'targetadmin/client_relation_list.html'
 
     def get_queryset(self):
         queryset = super(ClientRelationListView, self).get_queryset()
@@ -101,6 +102,7 @@ class ClientRelationDetailView(DetailView):
     various objects by their relation to a specific Client
     """
     object_string = None
+    template_name = 'targetadmin/client_relation_detail.html'
 
     def get_context_data(self, **kwargs):
         context = super(ClientRelationDetailView, self).get_context_data(**kwargs)
@@ -124,6 +126,7 @@ class ClientRelationDetailView(DetailView):
 
 class ClientRelationFormView(CRUDView):
     object_string = None
+    template_name = 'targetadmin/client_relation_edit.html'
 
     def dispatch(self, request, *args, **kwargs):
         self.client = get_object_or_404(
@@ -159,7 +162,6 @@ class ClientRelationFormView(CRUDView):
 
 class ContentListView(ClientRelationListView):
     model = relational.ClientContent
-    template_name = 'targetadmin/content_list.html'
     object_string = 'Content'
 
 
@@ -168,7 +170,6 @@ content_list = internal(ContentListView.as_view())
 
 class ContentDetailView(ClientRelationDetailView):
     model = relational.ClientContent
-    template_name = 'targetadmin/content_detail.html'
     object_string = 'Content'
 
 
@@ -176,7 +177,6 @@ content_detail = internal(ContentDetailView.as_view())
 
 
 class ContentFormView(ClientRelationFormView):
-    template_name = 'targetadmin/content_edit.html'
     form_class = forms.ContentForm
     model = relational.ClientContent
     queryset = relational.ClientContent.objects.all()
