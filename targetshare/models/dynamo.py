@@ -234,7 +234,8 @@ def create_all_tables(timeout=0, wait=2, console=sys.stdout):
 
         # Monitor job status:
         console.write("Table '{}' status: ".format(table_name))
-        for count in xrange(timeout + 1):
+        count = 0
+        while count <= timeout:
             # Retrieve status:
             description = table.describe()
             status = description['Table']['TableStatus']
@@ -244,23 +245,43 @@ def create_all_tables(timeout=0, wait=2, console=sys.stdout):
                 console.write(".")
             if count == 0 or status != 'CREATING':
                 console.write(status)
+            elif count >= timeout:
+                console.write("TIMEOUT")
             console.flush()
 
             if (
                 status != 'CREATING' or         # Creation completed
+                count >= timeout or             # We're out of time
                 len(schema['schema']) == 1 or   # Still processing non-blocking tables
                 table_number == len(schemas)    # This is the last table anyway
             ):
                 break # We're done, proceed
 
-            if count < timeout:
-                time.sleep(wait)
+            if count + wait <= timeout:
+                step = wait
+            else:
+                step = timeout - count
+            time.sleep(step)
+            count += step
 
         print('', file=console) # Break line
 
 
-def drop_all_tables():
+def drop_all_tables(confirm=False):
     """Delete all tables in Dynamo"""
+    if confirm:
+        response = "None"
+        while response.strip().lower() not in ('', 'y', 'yes', 'n', 'no'):
+            response = raw_input(
+                "Drop tables [{tables}] with prefix '{prefix}' from dynamo [Y|n]? "
+                .format(
+                    tables=', '.join(SCHEMAS),
+                    prefix=settings.DYNAMO.prefix,
+                )
+            )
+        if response in ('n', 'no'):
+            return False
+
     for table in SCHEMAS:
         try:
             get_table(table).delete()
@@ -268,6 +289,8 @@ def drop_all_tables():
             LOG.warn("Error deleting table %s", table, exc_info=True)
         else:
             LOG.debug("Deleted table %s", table)
+
+    return True
 
 
 ##### USERS #####

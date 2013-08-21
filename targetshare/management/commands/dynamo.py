@@ -20,9 +20,10 @@ class Command(LabelCommand):
             self.stdout.write("Created all Dynamo tables. "
                               "This make take several minutes to take effect.")
         elif label == 'destroy':
-            models.dynamo.drop_all_tables()
-            self.stdout.write("Dropped all Dynamo tables. "
-                              "This make take several minutes to take effect.")
+            done = models.dynamo.drop_all_tables(confirm=True)
+            if done:
+                self.stdout.write("Dropped all Dynamo tables. "
+                                  "This make take several minutes to take effect.")
         elif label == 'migrate':
             conn = database.getConn()
             curs = conn.cursor()
