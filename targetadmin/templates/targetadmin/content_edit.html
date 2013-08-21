@@ -1,10 +1,10 @@
 {% extends "targetadmin/base.html" %}
-{% block title %}Edit Content{% endblock %}
+{% block title %}Edit {{ obj_str }}{% endblock %}
 {% block content %}
     {% if client %}
         <h2>Edit {{ content.name }}</h2>
     {% else %}
-        <h2>Create New Content</h2>
+    <h2>Create New {{ obj_str }}</h2>
     {% endif %}
     <form action="" method="post">
         {% csrf_token %}

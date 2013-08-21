@@ -76,6 +76,7 @@ class ClientRelationListView(ListView):
     context and to filter the queryset down by objects that match the client
     specified.
     """
+    object_string = None
 
     def get_queryset(self):
         queryset = super(ClientRelationListView, self).get_queryset()
@@ -84,6 +85,7 @@ class ClientRelationListView(ListView):
     def get_context_data(self, **kwargs):
         context = super(ClientRelationListView, self).get_context_data(**kwargs)
         context['client'] = self.client
+        context['obj_str'] = self.object_string
         return context
 
     def get(self, request, *args, **kwargs):
@@ -95,10 +97,15 @@ class ClientRelationListView(ListView):
 
 
 class ClientRelationDetailView(DetailView):
+    """ Simple extension of DetailView to basically assist in namespacing
+    various objects by their relation to a specific Client
+    """
+    object_string = None
 
     def get_context_data(self, **kwargs):
         context = super(ClientRelationDetailView, self).get_context_data(**kwargs)
         context['client'] = self.client
+        context['obj_str'] = self.object_string
         return context
 
     def get_object(self, queryset=None):
@@ -116,6 +123,7 @@ class ClientRelationDetailView(DetailView):
 
 
 class ClientRelationFormView(CRUDView):
+    object_string = None
 
     def dispatch(self, request, *args, **kwargs):
         self.client = get_object_or_404(
@@ -135,6 +143,7 @@ class ClientRelationFormView(CRUDView):
     def get_context_data(self, **kwargs):
         context = super(ClientRelationFormView, self).get_context_data(**kwargs)
         context['client'] = self.client
+        context['obj_str'] = self.object_string
         return context
 
     def get_success_url(self):
@@ -151,6 +160,7 @@ class ClientRelationFormView(CRUDView):
 class ContentListView(ClientRelationListView):
     model = relational.ClientContent
     template_name = 'targetadmin/content_list.html'
+    object_string = 'Content'
 
 
 content_list = internal(ContentListView.as_view())
@@ -159,6 +169,7 @@ content_list = internal(ContentListView.as_view())
 class ContentDetailView(ClientRelationDetailView):
     model = relational.ClientContent
     template_name = 'targetadmin/content_detail.html'
+    object_string = 'Content'
 
 
 content_detail = internal(ContentDetailView.as_view())
@@ -170,6 +181,7 @@ class ContentFormView(ClientRelationFormView):
     model = relational.ClientContent
     queryset = relational.ClientContent.objects.all()
     success_url = 'content-detail'
+    object_string = 'Content'
 
 
 content_edit = internal(ContentFormView.as_view())

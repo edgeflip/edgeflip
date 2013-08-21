@@ -5,7 +5,7 @@
     <div class="span9">
         <h4>Create New Elements</h4>
         <ul>
-            <li><a href="#">Create Content</a></li>
+            <li><a href="{% url 'content-new' client.pk %}">Create Content</a></li>
             <li><a href="#">Create FaceBook Objects</a></li>
             <li><a href="#">Create Filter</a></li>
             <li><a href="#">Create Choice Set</a></li>
@@ -19,54 +19,60 @@
         <div class="span4">
             <h4>Campaigns</h4>
             <ul>
-                {% for campaign in client.campaign_set.all %}
+                {% for campaign in client.campaign_set.all|slice:"5" %}
                     <li>{{ campaign }}</li>
                 {% endfor %}
             </ul>
+            <a href="#">View All</a>
         </div>
         <div class="span4">
             <h4>Content Objects</h4>
             <ul>
-                {% for content in client.clientcontent_set.all %}
+                {% for content in client.clientcontent_set.all|slice:"5" %}
                     <li>{{ content.name }}</li>
                 {% endfor %}
             </ul>
+            <a href="{% url 'content-list' client.pk %}">View All</a>
         </div>
     </div>
     <div class="span9">
         <div class="span4">
             <h4>Choice Set</h4>
             <ul>
-                {% for cs in client.choicesets.all %}
+                {% for cs in client.choicesets.all|slice:"5" %}
                     <li>{{ cs.name }}</li>
                 {% endfor %}
             </ul>
+            <a href="#">View All</a>
         </div>
         <div class="span4">
             <h4>Filters</h4>
             <ul>
-                {% for filter in client.filters.all %}
+                {% for filter in client.filters.all|slice:"5" %}
                     <li>{{ filter.name }}</li>
                 {% endfor %}
             </ul>
+            <a href="#">View All</a>
         </div>
     </div>
     <div class="span9">
         <div class="span4">
             <h4>FaceBook Objects</h4>
             <ul>
-                {% for fbo in client.fbobject_set.all %}
+                {% for fbo in client.fbobject_set.all|slice:"5" %}
                     <li>{{ fbo.name }}</li>
                 {% endfor %}
             </ul>
+            <a href="#">View All</a>
         </div>
         <div class="span4">
             <h4>Button Styles</h4>
             <ul>
-                {% for button in client.buttonstyle_set.all %}
+                {% for button in client.buttonstyle_set.all|slice:"5" %}
                     <li>{{ button.name }}</li>
                 {% endfor %}
             </ul>
+            <a href="#">View All</a>
         </div>
     </div>
 {% endblock %}
