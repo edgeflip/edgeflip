@@ -3,6 +3,7 @@ from django.views.generic import ListView, DetailView
 from django.views.generic.edit import UpdateView
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
+from django.http import Http404
 
 from targetadmin.utils import internal
 from targetadmin import forms
@@ -38,7 +39,7 @@ class CRUDView(UpdateView):
         return self.render_to_response(self.get_context_data(form=form))
 
     def post(self, request, *args, **kwargs):
-        self.object = self.get_object() if self.kwargs else None
+        self.object = self.get_object() if self.kwargs.get(self.pk_url_kwarg) else None
         form_class = self.get_form_class()
         form = self.get_form(form_class)
         if form.is_valid():
@@ -70,59 +71,105 @@ class ClientFormView(CRUDView):
 client_view = internal(ClientFormView.as_view())
 
 
-class ContentListView(ListView):
-    model = relational.ClientContent
-    template_name = 'targetadmin/content_list.html'
+class ClientRelationListView(ListView):
+    """ Simple extension of ListView to inject Client objects into the
+    context and to filter the queryset down by objects that match the client
+    specified.
+    """
+
+    def get_queryset(self):
+        queryset = super(ClientRelationListView, self).get_queryset()
+        return queryset.filter(client=self.client)
 
     def get_context_data(self, **kwargs):
-        context = super(ContentListView, self).get_context_data(**kwargs)
-        context['client'] = get_object_or_404(
+        context = super(ClientRelationListView, self).get_context_data(**kwargs)
+        context['client'] = self.client
+        return context
+
+    def get(self, request, *args, **kwargs):
+        self.client = get_object_or_404(
             relational.Client,
             pk=self.kwargs.get('client_pk')
         )
-        return context
-
-content_list = internal(ContentListView.as_view())
+        return super(ClientRelationListView, self).get(request, *args, **kwargs)
 
 
-class ContentDetailView(DetailView):
-    model = relational.ClientContent
-    template_name = 'targetadmin/content_detail.html'
+class ClientRelationDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
-        context = super(ContentDetailView, self).get_context_data(**kwargs)
-        context['client'] = get_object_or_404(
+        context = super(ClientRelationDetailView, self).get_context_data(**kwargs)
+        context['client'] = self.client
+        return context
+
+    def get_object(self, queryset=None):
+        obj = super(ClientRelationDetailView, self).get_object(queryset=queryset)
+        if obj.client != self.client:
+            raise Http404('Invalid Client')
+        return obj
+
+    def get(self, request, *args, **kwargs):
+        self.client = get_object_or_404(
             relational.Client,
             pk=self.kwargs.get('client_pk')
         )
-        return context
-
-content_detail = internal(ContentDetailView.as_view())
+        return super(ClientRelationDetailView, self).get(request, *args, **kwargs)
 
 
-class ContentFormView(CRUDView):
-    template_name = 'targetadmin/content_edit.html'
-    form_class = forms.ContentForm
-    model = relational.ClientContent
-    queryset = relational.ClientContent.objects.all()
-    success_url = 'content-detail'
+class ClientRelationFormView(CRUDView):
 
     def dispatch(self, request, *args, **kwargs):
-        self.client = relational.Client.objects.get(pk=kwargs['client_pk'])
-        return super(ContentFormView, self).dispatch(request, *args, **kwargs)
+        self.client = get_object_or_404(
+            relational.Client,
+            pk=self.kwargs.get('client_pk')
+        )
+        return super(ClientRelationFormView, self).dispatch(request, *args, **kwargs)
 
     def get_form(self, form_class):
         form_kwargs = self.get_form_kwargs()
         if self.object:
             form_kwargs['instance'] = self.object
         else:
-            form_kwargs['instance'] = relational.ClientContent(
-                client=self.client)
+            form_kwargs['instance'] = self.model(client=self.client)
         return form_class(**form_kwargs)
 
     def get_context_data(self, **kwargs):
-        context = super(ContentFormView, self).get_context_data(**kwargs)
+        context = super(ClientRelationFormView, self).get_context_data(**kwargs)
         context['client'] = self.client
         return context
+
+    def get_success_url(self):
+        if self.success_url:
+            return reverse(
+                self.success_url,
+                args=[self.client.pk, self.object.pk]
+            )
+        else:
+            raise ImproperlyConfigured(
+                'No URL to redirect to. Provide a success_url.')
+
+
+class ContentListView(ClientRelationListView):
+    model = relational.ClientContent
+    template_name = 'targetadmin/content_list.html'
+
+
+content_list = internal(ContentListView.as_view())
+
+
+class ContentDetailView(ClientRelationDetailView):
+    model = relational.ClientContent
+    template_name = 'targetadmin/content_detail.html'
+
+
+content_detail = internal(ContentDetailView.as_view())
+
+
+class ContentFormView(ClientRelationFormView):
+    template_name = 'targetadmin/content_edit.html'
+    form_class = forms.ContentForm
+    model = relational.ClientContent
+    queryset = relational.ClientContent.objects.all()
+    success_url = 'content-detail'
+
 
 content_edit = internal(ContentFormView.as_view())

@@ -1,5 +1,4 @@
 from django.core.urlresolvers import reverse
-from django.contrib.auth.models import User
 
 from targetshare.tests import EdgeFlipTestCase
 from targetshare.models import relational
@@ -17,6 +16,10 @@ class TargetAdminTest(EdgeFlipTestCase):
             _fb_app_name='That One App',
             domain='example.com',
             subdomain='test',
+        )
+        self.test_content = relational.ClientContent.objects.create(
+            name='Testing Content',
+            client=self.test_client
         )
         assert self.client.login(
             username='tester',
@@ -47,3 +50,43 @@ class TargetAdminTest(EdgeFlipTestCase):
             'name': 'Test',
         })
         self.assertStatusCode(response, 302)
+
+    def test_content_list_view(self):
+        ''' Test viewing a content list '''
+        response = self.client.get(
+            reverse('content-list', args=[self.test_client.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object_list']
+
+    def test_content_detail_view(self):
+        ''' Test viewing a content object '''
+        response = self.client.get(
+            reverse('content-detail', args=[self.test_client.pk, self.test_content.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object']
+
+    def test_content_detail_invalid_client(self):
+        ''' Test viewing a content object with a non-matching client '''
+        new_client = relational.Client.objects.create(name='No good')
+        response = self.client.get(
+            reverse('content-detail', args=[new_client.pk, self.test_content.pk])
+        )
+        self.assertStatusCode(response, 404)
+
+    def test_create_new_content_object(self):
+        ''' Create a new content object '''
+        response = self.client.post(
+            reverse('content-new', args=[self.test_client.pk]),
+            {'name': 'New Content', 'client': self.test_client.pk}
+        )
+        self.assertStatusCode(response, 302)
+        obj = relational.ClientContent.objects.get(
+            client=self.test_client,
+            name='New Content'
+        )
+        self.assertRedirects(
+            response,
+            reverse('content-detail', args=[self.test_client.pk, obj.pk])
+        )
