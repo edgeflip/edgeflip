@@ -1,8 +1,8 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Edit {{ obj_str }}{% endblock %}
 {% block content %}
-    {% if client %}
-        <h2>Edit {{ content.name }}</h2>
+    {% if object %}
+        <h2>Edit {{ object.name }}</h2>
     {% else %}
     <h2>Create New {{ obj_str }}</h2>
     {% endif %}

@@ -78,6 +78,8 @@ class ClientRelationListView(ListView):
     """
     object_string = None
     template_name = 'targetadmin/client_relation_list.html'
+    detail_url_name = None
+    create_url_name = None
 
     def get_queryset(self):
         queryset = super(ClientRelationListView, self).get_queryset()
@@ -85,8 +87,12 @@ class ClientRelationListView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super(ClientRelationListView, self).get_context_data(**kwargs)
-        context['client'] = self.client
-        context['obj_str'] = self.object_string
+        context.update({
+            'client': self.client,
+            'obj_str': self.object_string,
+            'detail_url_name': self.detail_url_name,
+            'create_url_name': self.create_url_name
+        })
         return context
 
     def get(self, request, *args, **kwargs):
@@ -103,11 +109,15 @@ class ClientRelationDetailView(DetailView):
     """
     object_string = None
     template_name = 'targetadmin/client_relation_detail.html'
+    edit_url_name = None
 
     def get_context_data(self, **kwargs):
         context = super(ClientRelationDetailView, self).get_context_data(**kwargs)
-        context['client'] = self.client
-        context['obj_str'] = self.object_string
+        context.update({
+            'client': self.client,
+            'obj_str': self.object_string,
+            'edit_url_name': self.edit_url_name
+        })
         return context
 
     def get_object(self, queryset=None):
@@ -163,6 +173,8 @@ class ClientRelationFormView(CRUDView):
 class ContentListView(ClientRelationListView):
     model = relational.ClientContent
     object_string = 'Content'
+    detail_url_name = 'content-detail'
+    create_url_name = 'content-new'
 
 
 content_list = internal(ContentListView.as_view())
@@ -171,6 +183,7 @@ content_list = internal(ContentListView.as_view())
 class ContentDetailView(ClientRelationDetailView):
     model = relational.ClientContent
     object_string = 'Content'
+    edit_url_name = 'content-edit'
 
 
 content_detail = internal(ContentDetailView.as_view())
@@ -185,3 +198,46 @@ class ContentFormView(ClientRelationFormView):
 
 
 content_edit = internal(ContentFormView.as_view())
+
+
+class FBObjectListView(ClientRelationListView):
+    model = relational.FBObject
+    object_string = 'Facebook Object'
+    detail_url_name = 'fb-obj-detail'
+    create_url_name = 'fb-obj-new'
+
+
+fb_object_list = internal(FBObjectListView.as_view())
+
+
+class FBObjectDetailView(ClientRelationDetailView):
+    model = relational.FBObject
+    object_string = 'Facebook Object'
+    edit_url_name = 'fb-obj-edit'
+
+
+fb_object_detail = internal(FBObjectDetailView.as_view())
+
+
+class FBObjectFormView(ClientRelationFormView):
+    form_class = forms.FBObjectAttributeForm
+    model = relational.FBObject
+    queryset = relational.FBObject.objects.all()
+    success_url = 'fb-obj-detail'
+    object_string = 'Facebook Object'
+
+    def get_form(self, form_class):
+        form_kwargs = self.get_form_kwargs()
+        if self.object:
+            form_kwargs['instance'] = self.object.fbobjectattribute_set.get()
+            form_kwargs['initial'] = {
+                'name': self.object.name,
+                'description': self.object.description,
+                'client': self.object.client
+            }
+        else:
+            form_kwargs['client'] = self.client
+        return form_class(**form_kwargs)
+
+
+fb_object_edit = internal(FBObjectFormView.as_view())
