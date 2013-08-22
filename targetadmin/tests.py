@@ -90,3 +90,72 @@ class TargetAdminTest(EdgeFlipTestCase):
             response,
             reverse('content-detail', args=[self.test_client.pk, obj.pk])
         )
+
+    def test_edit_content_object(self):
+        content = relational.ClientContent.objects.create(name='Edit Test')
+        response = self.client.post(
+            reverse('content-edit', args=[self.test_client.pk, content.pk]),
+            {'name': 'Edit Content Test', 'client': self.test_client.pk}
+        )
+        content = relational.ClientContent.objects.get(pk=content.pk)
+        self.assertEqual(content.name, 'Edit Content Test')
+        self.assertRedirects(
+            response,
+            reverse('content-detail', args=[self.test_client.pk, content.pk])
+        )
+
+    def test_fb_obj_list_view(self):
+        ''' Test viewing a list of fb_objs '''
+        fb_obj = self.test_client.fbobject_set.create(name='test object')
+        response = self.client.get(
+            reverse('fb-obj-list', args=[self.test_client.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object_list']
+
+    def test_fb_obj_detail(self):
+        ''' Test viewing a specific FB object '''
+        fb_obj = self.test_client.fbobject_set.create(name='test object')
+        response = self.client.get(
+            reverse('fb-obj-detail', args=[self.test_client.pk, fb_obj.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object']
+
+    def test_create_fb_object(self):
+        ''' Test creation of a FB object '''
+        response = self.client.post(
+            reverse('fb-obj-new', args=[self.test_client.pk]),
+            {
+                'name': 'Test Object',
+                'og_title': 'Test Title'
+            }
+        )
+        fb_obj_attr = relational.FBObjectAttribute.objects.get(
+            og_title='Test Title')
+        self.assertRedirects(
+            response,
+            reverse('fb-obj-detail', args=[self.test_client.pk, fb_obj_attr.fb_object.pk])
+        )
+        self.assertEqual(fb_obj_attr.fb_object.name, 'Test Object')
+        self.assertEqual(fb_obj_attr.og_title, 'Test Title')
+
+    def test_edit_fb_object(self):
+        ''' Test editing a FB Object '''
+        fb_obj = self.test_client.fbobject_set.create(name='test object')
+        fb_obj_attr = fb_obj.fbobjectattribute_set.create(og_title='Attr Edit Test')
+        response = self.client.post(
+            reverse('fb-obj-edit', args=[self.test_client.pk, fb_obj.pk]),
+            {
+                'name': 'Edit Test Edited',
+                'og_title': 'Test Title Edited'
+            }
+        )
+        fb_obj = relational.FBObject.objects.get(pk=fb_obj.pk)
+        fb_obj_attr = fb_obj.fbobjectattribute_set.get()
+        self.assertRedirects(
+            response,
+            reverse('fb-obj-detail', args=[self.test_client.pk, fb_obj.pk])
+        )
+        self.assertEqual(fb_obj_attr.fb_object.name, 'Edit Test Edited')
+        self.assertEqual(fb_obj_attr.og_title, 'Test Title Edited')
