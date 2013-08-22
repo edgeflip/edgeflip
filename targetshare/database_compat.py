@@ -5,8 +5,8 @@ import types
 from django.db import connection
 from django.utils import timezone
 
-from .models import dynamo
 from .models import datastructs
+from .models.dynamo import db as dynamo
 
 
 logger = logging.getLogger(__name__)

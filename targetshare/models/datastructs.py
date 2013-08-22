@@ -5,7 +5,7 @@ from unidecode import unidecode
 from boto.dynamodb2.items import Item
 from django.utils import timezone
 
-from targetshare.models import dynamo
+from targetshare.models.dynamo import db as dynamo
 
 
 LOG = logging.getLogger(__name__)

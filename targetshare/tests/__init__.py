@@ -3,7 +3,7 @@ from django.test import TestCase
 from mock import patch
 from pymlconf import ConfigDict
 
-from targetshare.models import dynamo
+from targetshare.models.dynamo import db as dynamo
 
 
 class EdgeFlipTestCase(TestCase):

@@ -20,6 +20,7 @@ from targetshare import (
     models,
     utils,
 )
+from targetshare.models.dynamo import db as dynamo
 from targetshare.tasks import db, ranking
 
 
@@ -525,7 +526,7 @@ def record_event(request):
                 tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
-            models.dynamo.save_token(
+            dynamo.save_token(
                 fbid=user_id,
                 appid=token.appId,
                 token=token.tok,
@@ -593,7 +594,7 @@ def health_check(request):
     fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
     components['facebook'] = int(fb_resp['id']) == 6963
 
-    users = models.dynamo.get_table('users')
+    users = dynamo.get_table('users')
     components['dynamo'] = bool(users.describe())
 
     return http.HttpResponse(

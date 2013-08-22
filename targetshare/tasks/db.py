@@ -3,7 +3,7 @@ from boto.dynamodb2.items import Item, NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
 
-from targetshare.models import dynamo
+from targetshare.models.dynamo import db as dynamo
 
 
 LOG = get_task_logger(__name__)

@@ -5,7 +5,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 from nose import tools
 
-from targetshare.models import dynamo
+from targetshare.models.dynamo import db as dynamo
 
 from . import EdgeFlipTestCase
 
