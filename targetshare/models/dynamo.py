@@ -59,9 +59,10 @@ from itertools import imap
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
-from boto.dynamodb2.items import Item
+from boto.dynamodb2.items import Item, NEWVALUE
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from django.conf import settings
 from django.utils import timezone
 
@@ -336,32 +337,23 @@ def _handle_user_conflict(user, retry_count=3):
     """
     table = get_table('users')
 
-    # Find dirty keys
-    dirty_dict = {}
-    for key, value in user._data.iteritems():
-        if not user._orig_data.get(key):
-            dirty_dict[key] = value
-            continue
-
-        if user._orig_data.get(key) and user._orig_data[key] != value:
-            dirty_dict[key] = value
-
     freshest_user = table.get_item(fbid=int(user._data['fbid']))
-    for key, value in dirty_dict.iteritems():
-        if key == 'fbid':
-            # This is unlikely to change..
-            continue
-        if freshest_user._data.get(key) and freshest_user[key] == user._orig_data[key]:
-            freshest_user[key] = value
+    for key, value in user._orig_data.items():
+        if ((value == freshest_user[key]) or
+                (value is NEWVALUE and freshest_user[key] is None)):
+            if key in user:
+                freshest_user[key] = user[key]
+            else:
+                del freshest_user[key]
 
     try:
         freshest_user.partial_save()
-    except:
+    except ConditionalCheckFailedException:
         if retry_count:
-            return _handle_user_conflict(retry_count - 1)
+            return _handle_user_conflict(user, retry_count - 1)
         else:
             LOG.exception(
-                'Failed to handle user conflict on user: %s' % user
+                'Failed to handle save conflict on user: %s' % user['fbid']
             )
 
 
@@ -396,7 +388,7 @@ def update_many_users(users):
                 item[k] = v
         try:
             item.partial_save()
-        except:
+        except ConditionalCheckFailedException:
             _handle_user_conflict(item)
 
     # everything left in users_data must be new items. Loop through these &
