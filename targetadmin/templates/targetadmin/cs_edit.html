@@ -1,0 +1,15 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Edit Choice Set{% endblock %}
+{% block content %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ cs_form.as_p }}
+        <hr>
+        {{ formset.management_form }}
+        {% for form in formset %}
+            {{ form }}
+            <hr>
+        {% endfor %}
+        <input class="btn btn-large" type="submit" value="Submit" />
+    </form>
+{% endblock %}

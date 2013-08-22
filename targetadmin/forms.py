@@ -54,3 +54,10 @@ class FilterForm(forms.ModelForm):
     class Meta:
         model = relational.Filter
         exclude = ('is_deleted', 'delete_dt')
+
+
+class ChoiceSetForm(forms.ModelForm):
+
+    class Meta:
+        model = relational.ChoiceSet
+        exclude = ('is_deleted', 'delete_dt')

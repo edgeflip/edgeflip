@@ -7,8 +7,8 @@
         <ul>
             <li><a href="{% url 'content-new' client.pk %}">Create Content</a></li>
             <li><a href="{% url 'fb-obj-new' client.pk %}">Create FaceBook Objects</a></li>
-            <li><a href="#">Create Filter</a></li>
-            <li><a href="#">Create Choice Set</a></li>
+            <li><a href="{% url 'filter-new' client.pk %}">Create Filter</a></li>
+            <li><a href="{% url 'cs-new' client.pk %}">Create Choice Set</a></li>
             <li><a href="#">Create Button Style</a></li>
             <li><a href="#">Create Campaign</a></li>
             <li><a href="#">Generate Snippet</a></li>
@@ -43,7 +43,7 @@
                     <li>{{ cs.name }}</li>
                 {% endfor %}
             </ul>
-            <a href="#">View All</a>
+            <a href="{% url 'cs-list' client.pk %}">View All</a>
         </div>
         <div class="span4">
             <h4>Filters</h4>

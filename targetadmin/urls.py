@@ -12,6 +12,7 @@ urlpatterns = patterns('targetadmin.views',
             template_name='targetadmin/home.html'
         )),
         name='client-list'),
+    # Client URLS
     url(r'^client/(?P<pk>\d+)/$', utils.internal(
         DetailView.as_view(
             model=relational.Client,
@@ -20,6 +21,7 @@ urlpatterns = patterns('targetadmin.views',
         name='client-detail'),
     url(r'^client/new/$', 'client_view', name='client-new'),
     url(r'^client/(?P<pk>\d+)/edit/$', 'client_view', name='client-edit'),
+    # Content URLs
     url(r'^client/(?P<client_pk>\d+)/content/$', 'content_list',
         name='content-list'),
     url(r'^client/(?P<client_pk>\d+)/content/(?P<pk>\d+)/$', 'content_detail',
@@ -28,6 +30,7 @@ urlpatterns = patterns('targetadmin.views',
         name='content-new'),
     url(r'^client/(?P<client_pk>\d+)/content/edit/(?P<pk>\d+)/$', 'content_edit',
         name='content-edit'),
+    # FB Object URLs
     url(r'^client/(?P<client_pk>\d+)/fbobject/$', 'fb_object_list',
         name='fb-obj-list'),
     url(r'^client/(?P<client_pk>\d+)/fbobject/(?P<pk>\d+)/$', 'fb_object_detail',
@@ -36,6 +39,7 @@ urlpatterns = patterns('targetadmin.views',
         name='fb-obj-new'),
     url(r'^client/(?P<client_pk>\d+)/fbobject/edit/(?P<pk>\d+)/$', 'fb_object_edit',
         name='fb-obj-edit'),
+    # Filter URLs
     url(r'^client/(?P<client_pk>\d+)/filter/$', 'filter_list',
         name='filter-list'),
     url(r'^client/(?P<client_pk>\d+)/filter/(?P<pk>\d+)/$', 'filter_detail',
@@ -44,6 +48,15 @@ urlpatterns = patterns('targetadmin.views',
         name='filter-new'),
     url(r'^client/(?P<client_pk>\d+)/filter/edit/(?P<pk>\d+)/$', 'filter_edit',
         name='filter-edit'),
+    # Choice Set URLs
+    url(r'^client/(?P<client_pk>\d+)/cs/$', 'cs_list',
+        name='cs-list'),
+    url(r'^client/(?P<client_pk>\d+)/cs/(?P<pk>\d+)/$', 'cs_detail',
+        name='cs-detail'),
+    url(r'^client/(?P<client_pk>\d+)/cs/new/$', 'cs_new',
+        name='cs-new'),
+    url(r'^client/(?P<client_pk>\d+)/cs/edit/(?P<pk>\d+)/$', 'cs_edit',
+        name='cs-edit'),
 )
 
 urlpatterns += patterns('',
