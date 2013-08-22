@@ -94,8 +94,9 @@ def chartdata(request):
     daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
 
     data = {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly.data, 'daily':daily.data}
+
     data['monthly'] = monthly.mkGoog()
-    data['daily'] = daily.mkGoog()
+    data['daily'] = daily.mkRaph()
 
     # send min and max days to restrict selectable days in the jquery widget
     data['minday'] = minday.strftime( '%m/%d/%y')
@@ -103,6 +104,8 @@ def chartdata(request):
     data['dailyday'] = daily.day.strftime( '%m/%d/%y')
 
     fakes = fakedata(maxday)
+    from random import randint
+    data['fakedaily'] = json.dumps([[randint(0,10) for i in range(24)] for j in range(9)])
 
     return HttpResponse(json.dumps(data), content_type="application/json")
 

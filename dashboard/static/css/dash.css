@@ -14,7 +14,12 @@
     margin: 10px 0 0 40px;
     }
 
-#daily { float:right; }
+#daily { 
+    float:right; 
+    border: 1px solid red;
+    height: 200px;
+    width: 500px;
+    }
 
 #monthly {clear:both;}
 

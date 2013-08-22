@@ -62,5 +62,21 @@ class DaySum(models.Model):
 
         return out
 
+    def mkRaph(self):
+        #raphael wants a list per metric, basically
+        data = json.loads(self.data)
+        from collections import defaultdict
+        tmp = defaultdict(lambda:[])
 
+        for row in data:
+            for i,val in enumerate(row):
+                tmp[i].append(val)
+
+        return json.dumps([[x for x in tmp[i]] for i in range(1,10)])
+
+    def max(self):
+        #for drawing axes, we need to know the maximum stacked value
+        pass
+
+        
 
