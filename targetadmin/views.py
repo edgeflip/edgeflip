@@ -1,9 +1,10 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect, render
 from django.views.generic import ListView, DetailView
 from django.views.generic.edit import UpdateView
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
+from django.forms.models import modelformset_factory
 
 from targetadmin.utils import internal
 from targetadmin import forms
@@ -241,3 +242,81 @@ class FBObjectFormView(ClientRelationFormView):
 
 
 fb_object_edit = internal(FBObjectFormView.as_view())
+
+
+class FilterObjectListView(ClientRelationListView):
+    model = relational.Filter
+    object_string = 'Filter'
+    detail_url_name = 'filter-detail'
+    create_url_name = 'filter-new'
+
+
+filter_list = internal(FilterObjectListView.as_view())
+
+
+class FilterObjectDetailView(ClientRelationDetailView):
+    model = relational.Filter
+    object_string = 'Filter'
+    edit_url_name = 'filter-edit'
+    template_name = 'targetadmin/filter_detail.html'
+
+
+filter_detail = internal(FilterObjectDetailView.as_view())
+
+
+class FilterFormView(ClientRelationFormView):
+    form_class = forms.FilterForm
+    model = relational.Filter
+    queryset = relational.Filter.objects.all()
+    success_url = 'filter-detail'
+    object_string = 'Filter'
+
+
+filter_new = internal(FilterFormView.as_view())
+
+
+def filter_edit(request, client_pk, pk):
+    """ Creates a filter set """
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    filter_obj = get_object_or_404(relational.Filter, pk=pk)
+    filter_form = forms.FilterForm(instance=filter_obj)
+    extra_forms = 2
+    ff_set = modelformset_factory(
+        relational.FilterFeature,
+        extra=extra_forms
+    )
+    formset = ff_set(
+        queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
+        initial=[{'filter': filter_obj} for x in range(extra_forms)]
+    )
+    if request.method == 'POST':
+        filter_form = forms.FilterForm(data=request.POST, instance=filter_obj)
+        formset = ff_set(
+            data=request.POST,
+            queryset=relational.FilterFeature.objects.filter(filter=filter_obj)
+        )
+        valid_formset = formset.is_valid()
+        valid_forms = []
+        if valid_formset:
+            valid_forms = formset.forms
+        else:
+            # Let's make sure our initial data isn't the cause of this
+            valid_formset = True
+            for form in formset.forms:
+                if form.is_valid():
+                    valid_forms.append(form)
+                else:
+                    if form._changed_data != ['filter']:
+                        valid_formset = False
+        if valid_formset and filter_form.is_valid():
+            for form in valid_forms:
+                form.save()
+            filter_form.save()
+            return redirect('filter-detail', client.pk, filter_obj.pk)
+
+    return render(request, 'targetadmin/filter_edit.html', {
+        'client': client,
+        'filter_obj': filter_obj,
+        'formset': formset,
+        'filter_form': filter_form,
+    })

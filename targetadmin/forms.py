@@ -47,3 +47,10 @@ class FBObjectAttributeForm(forms.ModelForm):
     class Meta:
         model = relational.FBObjectAttribute
         exclude = ('is_deleted', 'delete_dt', 'fb_object')
+
+
+class FilterForm(forms.ModelForm):
+
+    class Meta:
+        model = relational.Filter
+        exclude = ('is_deleted', 'delete_dt')

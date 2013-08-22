@@ -52,7 +52,7 @@
                     <li>{{ filter.name }}</li>
                 {% endfor %}
             </ul>
-            <a href="#">View All</a>
+            <a href="{% url 'filter-list' client.pk %}">View All</a>
         </div>
     </div>
     <div class="span9">
