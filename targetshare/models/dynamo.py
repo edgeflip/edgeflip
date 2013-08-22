@@ -59,10 +59,9 @@ from itertools import imap
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
-from boto.dynamodb2.items import Item, NEWVALUE
+from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
-from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from django.conf import settings
 from django.utils import timezone
 
@@ -267,19 +266,24 @@ def create_all_tables(timeout=0, wait=2, console=sys.stdout):
         print('', file=console) # Break line
 
 
+def _confirm(message):
+    response = None
+    while response not in ('', 'y', 'yes', 'n', 'no'):
+        response = raw_input(message + " [Y|n]? ").strip().lower()
+    return response in ('', 'y', 'yes')
+
+
 def drop_all_tables(confirm=False):
     """Delete all tables in Dynamo"""
     if confirm:
-        response = "None"
-        while response.strip().lower() not in ('', 'y', 'yes', 'n', 'no'):
-            response = raw_input(
-                "Drop tables [{tables}] with prefix '{prefix}' from dynamo [Y|n]? "
-                .format(
-                    tables=', '.join(SCHEMAS),
-                    prefix=settings.DYNAMO.prefix,
-                )
+        continue_ = _confirm(
+            "Drop tables [{tables}] with prefix '{prefix}' from dynamo"
+            .format(
+                tables=', '.join(SCHEMAS),
+                prefix=settings.DYNAMO.prefix,
             )
-        if response in ('n', 'no'):
+        )
+        if not continue_:
             return False
 
     for table in SCHEMAS:
@@ -291,6 +295,25 @@ def drop_all_tables(confirm=False):
             LOG.debug("Deleted table %s", table)
 
     return True
+
+
+def truncate_all_tables():
+    if not _confirm(
+        "Truncate all data from tables [{tables}] with prefix '{prefix}'"
+        .format(
+            tables=', '.join(SCHEMAS),
+            prefix=settings.DYNAMO.prefix,
+        )
+    ):
+        return
+
+    for table_name in SCHEMAS:
+        table = get_table(table_name)
+        with table.batch_write() as batch:
+            for item in table.scan():
+                batch.delete_item(**{
+                    key.name: item[key.name] for key in table.schema
+                })
 
 
 ##### USERS #####
@@ -347,81 +370,6 @@ def save_many_users(users):
             d['updated'] = updated
             _remove_null_values(d)
             batch.put_item(data=d)
-
-
-def _handle_user_conflict(user, retry_count=3):
-    """ Handles conflicts when saving users to Dynamo. Currently works via a
-    recursive retry mechanism, but realistically this needs to move to celery
-    at some point. The reason it's not already there is simply due to awkward
-    architecture that leads to the celery path creating circular imports.
-
-    At some point we'll need to address the architectural issues, but that
-    time isn't right now.
-    """
-    table = get_table('users')
-
-    freshest_user = table.get_item(fbid=int(user._data['fbid']))
-    for key, value in user._orig_data.items():
-        if ((value == freshest_user[key]) or
-                (value is NEWVALUE and freshest_user[key] is None)):
-            if key in user:
-                freshest_user[key] = user[key]
-            else:
-                del freshest_user[key]
-
-    try:
-        freshest_user.partial_save()
-    except ConditionalCheckFailedException:
-        if retry_count:
-            return _handle_user_conflict(user, retry_count - 1)
-        else:
-            LOG.exception(
-                'Failed to handle save conflict on user: %s' % user['fbid']
-            )
-
-
-def update_many_users(users):
-    """save many users to Dynamo as a batch, updating existing rows.
-
-    This modifies dicts passed in.
-
-    :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
-    """
-    updated = epoch_now()
-    table = get_table('users')
-
-    # map of fbid => data dict
-    users_data = {u['fbid']: u for u in users}
-    if not users_data:
-        return
-
-    for item in table.batch_get(keys=[{'fbid': k} for k in users_data]):
-        if item['fbid'] is None:
-            continue
-
-        # pop the corresponding data dict
-        data = users_data.pop(item['fbid'])
-        data['birthday'] = to_epoch(data.get('birthday'))
-        data['updated'] = updated
-        _remove_null_values(data)
-
-        # update the boto item
-        for k, v in data.iteritems():
-            if k != 'fbid':
-                item[k] = v
-        try:
-            item.partial_save()
-        except ConditionalCheckFailedException:
-            _handle_user_conflict(item)
-
-    # everything left in users_data must be new items. Loop through these &
-    # save individually, so that a concurrent write will cause an error
-    # (instead of silently clobbering using batch_write)
-    for data in users_data.itervalues():
-        data['birthday'] = to_epoch(data.get('birthday'))
-        data['updated'] = updated
-        _remove_null_values(data)
-        table.put_item(data)
 
 
 def fetch_user(fbid):

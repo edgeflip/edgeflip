@@ -267,41 +267,42 @@ CELERY_QUEUES = (
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
-    'targetshare.tasks.px3_crawl': {
+    'targetshare.tasks.ranking.px3_crawl': {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
-    'targetshare.tasks.perform_filtering': {
+    'targetshare.tasks.ranking.perform_filtering': {
         'queue': 'px3_filter',
         'routing_key': 'px3.filter'
     },
-    'targetshare.tasks.proximity_rank_four': {
+    'targetshare.tasks.ranking.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
     },
-    'targetshare.tasks.bulk_create': {
+    'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',
         'routing_key': 'bulk.create'
     },
-    'targetshare.tasks.delayed_save': {
+    'targetshare.tasks.db.delayed_save': {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
-    'targetshare.tasks.update_tokens': {
+    'targetshare.tasks.db.update_tokens': {
         'queue': 'update_tokens',
         'routing_key': 'update.tokens',
     },
-    'targetshare.tasks.update_users': {
+    'targetshare.tasks.db.update_users': {
         'queue': 'update_users',
         'routing_key': 'update.users',
     },
-    'targetshare.tasks.update_edges': {
+    'targetshare.tasks.db.update_edges': {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
 }
 CELERY_IMPORTS = (
-    'targetshare.tasks',
+    'targetshare.tasks.ranking',
+    'targetshare.tasks.db',
 )
 
 

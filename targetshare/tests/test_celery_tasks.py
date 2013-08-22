@@ -3,10 +3,8 @@ import celery
 from django.utils import timezone
 from freezegun import freeze_time
 
-from targetshare import (
-    models,
-    tasks,
-)
+from targetshare import models
+from targetshare.tasks import db, ranking
 
 from . import EdgeFlipTestCase
 
@@ -27,7 +25,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = tasks.proximity_rank_three(True, 1, self.token)
+        task_id = ranking.proximity_rank_three(True, 1, self.token)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
 
@@ -39,7 +37,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = tasks.px3_crawl(True, 1, self.token)
+        ranked_edges = ranking.px3_crawl(True, 1, self.token)
         assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
 
     def test_perform_filtering(self):
@@ -48,8 +46,8 @@ class TestCeleryTasks(EdgeFlipTestCase):
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
-        ranked_edges = tasks.px3_crawl(True, 1, self.token)
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
+        ranked_edges = ranking.px3_crawl(True, 1, self.token)
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
             'local',
             1,
@@ -67,7 +65,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
-        ranked_edges = tasks.proximity_rank_four(True, 1, self.token)
+        ranked_edges = ranking.proximity_rank_four(True, 1, self.token)
         assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
@@ -110,7 +108,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         test_edge2.score = 0.4
 
         ranked_edges = [test_edge2, test_edge1]
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
             'local',
             5,
@@ -131,7 +129,7 @@ class TestCeleryTasks(EdgeFlipTestCase):
         clients = [models.relational.Client(name="Client {}".format(count))
                    for count in xrange(1, 11)]
         client_count = models.relational.Client.objects.count()
-        tasks.bulk_create(clients)
+        db.bulk_create(clients)
         self.assertEqual(models.relational.Client.objects.count(), client_count + 10)
 
     def test_delayed_obj_save(self):
@@ -139,5 +137,5 @@ class TestCeleryTasks(EdgeFlipTestCase):
         client = models.relational.Client(name="testy")
         matching_clients = models.relational.Client.objects.filter(name="testy")
         assert not matching_clients.exists()
-        tasks.delayed_save(client)
+        db.delayed_save(client)
         assert matching_clients.exists()

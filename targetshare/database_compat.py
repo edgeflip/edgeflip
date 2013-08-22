@@ -17,17 +17,6 @@ def getConn():
     return connection
 
 
-def updateUsersDb(users):
-    """update users table
-
-    :arg users: a list of `datastruct.UserInfo`
-    """
-    dynamo.update_many_users(dict(fbid=u.id, fname=u.fname, lname=u.lname,
-                                  email=u.email, gender=u.gender, birthday=u.birthday,
-                                  city=u.city, state=u.state)
-                             for u in users)
-
-
 def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 years!
     """
     :rtype: datastructs.UserInfo
@@ -53,48 +42,12 @@ def getUserDb(userId, freshnessDays=36525, freshnessIncludeEdge=False): # 100 ye
         return datastructs.UserInfo.from_dynamo(user)
 
 
-def updateTokensDb(token):
-    """update tokens table
-
-    :arg token: a `datastruct.TokenInfo`
-    """
-    try:
-        ownerId = int(token.ownerId)
-    except (ValueError, TypeError):
-        logger.warn("Bad ownerId %r, token %s not updated", token.ownerId, token.tok)
-    else:
-        dynamo.save_token(ownerId, int(token.appId), token.tok, token.expires)
-
-
 def getUserTokenDb(userId, appId):
     """grab the "best" token from the tokens table
 
     :rtype: datastructs.TokenInfo
     """
     return datastructs.TokenInfo.from_dynamo(dynamo.fetch_token(userId, appId))
-
-
-def updateFriendEdgesDb(edges):
-    """update edges table
-
-    :arg edges: a list of `datastruct.Edge`
-    """
-    # pick out all the non-None EdgeCounts from all the edges
-    counts = [c for e in edges for c in (e.countsIn, e.countsOut) if c is not None]
-    dynamo.save_many_edges(
-        dict(fbid_source=c.sourceId,
-             fbid_target=c.targetId,
-             post_likes=c.postLikes,
-             post_comms=c.postComms,
-             stat_likes=c.statLikes,
-             stat_comms=c.statComms,
-             wall_posts=c.wallPosts,
-             wall_comms=c.wallComms,
-             tags=c.tags,
-             photos_target=c.photoTarget,
-             photos_other=c.photoOther,
-             mut_friends=c.mutuals)
-        for c in counts)
 
 
 def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAge=None):
@@ -167,17 +120,3 @@ def getFriendEdgesDb(primId, requireIncoming=False, requireOutgoing=False, maxAg
             continue
         edges.append(datastructs.Edge(primary, secondary, counts_in, counts_out))
     return edges
-
-
-def updateDb(user, token, edges):
-    """takes datastructs.* and writes to dynamo"""
-    tim = datastructs.Timer()
-
-    # update token for primary
-    updateTokensDb(token)
-    updateUsersDb([user])
-    updateUsersDb([e.secondary for e in edges])
-    updateFriendEdgesDb(edges)
-
-    logger.debug("updateDB() updated %d friends and edges for user %d (took %s)" %
-                 (len(edges), user.id, tim.elapsedPr()))
