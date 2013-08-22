@@ -71,52 +71,37 @@ def _dynamo_partial_save(item, attempt):
 
 
 @celery.task
-def update_users(users):
-    """update users table
-
-    :arg users: a list of `datastruct.UserInfo`
-
-    """
+def bulk_upsert(items):
+    """Upsert the given boto Items."""
     updated = dynamo.epoch_now()
-    table = dynamo.get_table('users')
 
-    users_data = {}
-    for user in users:
-        data = {
-            'fbid': user.id,
-            'fname': user.fname,
-            'lname': user.lname,
-            'email': user.email,
-            'gender': user.gender,
-            'birthday': dynamo.to_epoch(user.birthday),
-            'city': user.city,
-            'state': user.state,
-            'updated': updated,
-        }
-        dynamo._remove_null_values(data)
-        users_data[user.id] = data
-    if not users_data:
+    # TODO: add property to Item:
+    def pk(item):
+        return tuple(item.get_keys().values())
+
+    items_data = {}
+    for item in items:
+        # TODO: move to pre-save (before building prepare_partial perhaps):
+        item['updated'] = updated
+        items_data[pk(item)] = item
+    if not items_data:
         return
+
+    (table,) = set(item.table for item in items)
 
     # Update existing items:
     # FIXME: result batching --J
-    for item in table.batch_get(keys=[{'fbid': key} for key in users_data]):
-        if item['fbid'] is None:
-            continue
+    for existing in table.batch_get(keys=[item.get_keys() for item in items_data.values()]):
+        item = items_data.pop(pk(existing))
 
-        # pop the corresponding data dict
-        data = users_data.pop(item['fbid'])
+        # update the existing item:
+        for key, value in item.items():
+            existing[key] = value
 
-        # update the boto item
-        for key, value in data.items():
-            if key != 'fbid':
-                item[key] = value
+        delayed_save.delay(existing)
 
-        delayed_save.delay(item)
-
-    # Remaining user data is new. Save it:
-    for data in users_data.values():
-        item = Item(table, data=data)
+    # Remaining items are new. Save them:
+    for item in items_data.values():
         delayed_save.delay(item)
 
 
@@ -167,8 +152,8 @@ def update_database(user, token, edges):
     """async version of `edgeflip.database_compat.updateDb"""
     tasks = []
     tasks.append(update_tokens.delay(token))
-    tasks.append(update_users.delay(([user])))
-    tasks.append(update_users.delay([e.secondary for e in edges]))
+    tasks.append(bulk_upsert.delay([user.to_dynamo()] +
+                                   [edge.secondary.to_dynamo() for edge in edges]))
     tasks.append(update_edges.delay(edges))
     ids = [t.id for t in tasks]
 
