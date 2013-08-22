@@ -16,12 +16,20 @@ function init() {
 function getData() {
     // no need to post client, the server can pick that out of whatever user
     day = $.datepicker.formatDate('mm/dd/yy', $('#datepicker').datepicker('getDate'));
-    campaign = 'aggregate';
+    campaign = $('#campaignpicker select').val();
     $.post('/dashboard/chartdata/', {'campaign':campaign, 'day':day}, onData);
     }
 
 
 function onData(response) {
+
+    // reset valid dates in the jquery widget
+    window.response = response
+    $('#datepicker').datepicker( "option", "minDate", response.minday)
+    $('#datepicker').datepicker( "option", "maxDate", response.maxday)
+    
+
+
     // update data tables
     window.dailydata = new google.visualization.DataTable({'cols':response.daily_cols, 'rows':response.daily});
     window.monthlydata = new google.visualization.DataTable({'cols':response.monthly_cols, 'rows':response.monthly});
@@ -36,7 +44,7 @@ function onData(response) {
 
     // redraw charts
     var dailyopts = {
-        title: 'Hourly Volume', 
+        title: 'Hourly Volume - '+response.dailyday, 
         enableInteractivity: 'true', 
         width: 580, 
         height:175,
@@ -46,7 +54,7 @@ function onData(response) {
         // curveType: 'function', // nice curves but it messes up vaxis calcs
         legend: {position: 'none'}, // kill this legend, we'll hack into the bigger one below
         // "turn off" the gridlines, but keep unit labels on axes
-        vAxis: {gridlines: {color:'#FFF'}},
+        vAxis: {gridlines: {color:'#FFF'} },
         hAxis: {gridlines: {color:'#FFF', count:13}, format:'H'},
 
         // backgroundColor: {strokeWidth: 1, stroke: 'red'},
@@ -55,7 +63,7 @@ function onData(response) {
     window.dailychart.draw(window.dailydata, dailyopts);
 
     window.monthlychart.draw(window.monthlydata, {
-        title: 'Daily Volume', 
+        title: 'Daily Volume '+response.minday+' - '+response.maxday, 
         enableInteractivity: 'true', 
         chartArea:{left:50,},
         width: 799,
@@ -63,41 +71,12 @@ function onData(response) {
         legend: {position: 'right', textStyle: {fontSize:10}, alignment: 'end'},
 
         // "turn off" the gridlines, but keep unit labels on axes
-        vAxis: {gridlines: {color:'#FFF'}},
+        vAxis: {gridlines: {color:'#FFF'}, logScale:true},
         hAxis: {gridlines: {color:'#FFF', count:7}, format:'M/dd'},
         // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         });
 
-
-    // listen for legend selections on the monthly chart
-        google.visualization.events.addListener(window.monthlychart, 'onmouseover', selectHandler);
-        google.visualization.events.addListener(window.monthlychart, 'onmouseout', unselectHandler);
-
     }
-
-
-/*
- * Two Charts One Legend
- */
-
-function isLegend(datapoint) {
-    // check if something from an onmouse__ event is a hover over a legend event
-    if (datapoint.row == null) { return true; } 
-    return false
-    }
-
-function selectHandler(datapoint) {
-    if (isLegend(datapoint)) {
-        window.dailychart.setSelection( window.monthlychart.getSelection());
-        }
-    }
-
-function unselectHandler(datapoint) {
-    if (isLegend(datapoint)) {
-        window.dailychart.setSelection( window.monthlychart.getSelection());
-        }
-    }
-
 
 
 function mkCampaigns() {

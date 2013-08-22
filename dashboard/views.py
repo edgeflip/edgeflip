@@ -17,9 +17,14 @@ from models import CampaignSum, DaySum
 def dashboard(request):
     user = request.user  # really seems like this should automagically happen
 
+    # so normally.. look up campaigns available to this user.
+    # for now, we have only one client with data, so:
+    campaigns = [row.campaign for row in CampaignSum.objects.all()]
+
+
     context = {
         'user': user,
-        'campaigns': [],
+        'campaigns': campaigns,
         }
 
     return render(request, 'dashboard/dashboard.html', context)
@@ -66,17 +71,39 @@ def fakedata(now, client_id=None):
 @require_POST
 @login_required(login_url='/dashboard/login/')
 def chartdata(request):
+
     # look for a campaign id, default to the newest (or aggregate?)
+    monthly = CampaignSum.objects.get(campaign=request.POST['campaign'])
 
+    # grab min and max dates, TODO: this should be in the summary table
+    monthdata = json.loads( monthly.data)
+    days = [datetime.strptime(day, "%Y-%m-%d %H:%M:%S") for day in monthdata.keys()]
+    minday,maxday = min(days), max(days)
 
+    # pick the day we're going to look up data for, by POST or default
     if 'day' in request.POST and request.POST['day']:
         #catch errors on this as malicious POSTs
         t = datetime.strptime( request.POST['day'], '%m/%d/%Y')
+        if not minday < t < maxday:
+            t = maxday
     else:
-        t = datetime.today()
+        t = maxday
 
-    data = fakedata(t)
- 
+    logging.info(t)
+
+    daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
+
+    data = {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly.data, 'daily':daily.data}
+    data['monthly'] = monthly.mkGoog()
+    data['daily'] = daily.mkGoog()
+
+    # send min and max days to restrict selectable days in the jquery widget
+    data['minday'] = minday.strftime( '%m/%d/%y')
+    data['maxday'] = maxday.strftime( '%m/%d/%y')
+    data['dailyday'] = daily.day.strftime( '%m/%d/%y')
+
+    fakes = fakedata(maxday)
+
     return HttpResponse(json.dumps(data), content_type="application/json")
 
 
