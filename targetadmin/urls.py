@@ -6,13 +6,13 @@ from targetadmin import utils
 
 
 urlpatterns = patterns('targetadmin.views',
+    # Client URLS
     url(r'^$', utils.internal(
         ListView.as_view(
             model=relational.Client,
             template_name='targetadmin/home.html'
         )),
         name='client-list'),
-    # Client URLS
     url(r'^client/(?P<pk>\d+)/$', utils.internal(
         DetailView.as_view(
             model=relational.Client,
@@ -57,6 +57,15 @@ urlpatterns = patterns('targetadmin.views',
         name='cs-new'),
     url(r'^client/(?P<client_pk>\d+)/cs/edit/(?P<pk>\d+)/$', 'cs_edit',
         name='cs-edit'),
+    # Button Style URLs
+    url(r'^client/(?P<client_pk>\d+)/button/$', 'button_list',
+        name='button-list'),
+    url(r'^client/(?P<client_pk>\d+)/button/(?P<pk>\d+)/$', 'button_detail',
+        name='button-detail'),
+    url(r'^client/(?P<client_pk>\d+)/button/new/$', 'button_edit',
+        name='button-new'),
+    url(r'^client/(?P<client_pk>\d+)/button/edit/(?P<pk>\d+)/$', 'button_edit',
+        name='button-edit'),
 )
 
 urlpatterns += patterns('',

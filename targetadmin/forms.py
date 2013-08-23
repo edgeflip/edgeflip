@@ -61,3 +61,35 @@ class ChoiceSetForm(forms.ModelForm):
     class Meta:
         model = relational.ChoiceSet
         exclude = ('is_deleted', 'delete_dt')
+
+
+class ButtonStyleForm(forms.ModelForm):
+
+    name = forms.CharField()
+    description = forms.CharField(required=False)
+
+    def save(self, commit=True):
+        bsf = super(ButtonStyleForm, self).save(False)
+        if commit:
+            if not bsf.button_style:
+                button = relational.ButtonStyle.objects.create(
+                    name=self.cleaned_data['name'],
+                    description=self.cleaned_data['description'],
+                    client=self.client
+                )
+                bsf.button_style = button
+            else:
+                button = bsf.button_style
+                button.name = self.cleaned_data['name']
+                button.description = self.cleaned_data['description']
+                button.save()
+
+            bsf.save()
+        return bsf.button_style
+
+    def __init__(self, client=None, *args, **kwargs):
+        super(ButtonStyleForm, self).__init__(*args, **kwargs)
+        self.client = client
+
+    class Meta:
+        model = relational.ButtonStyleFile

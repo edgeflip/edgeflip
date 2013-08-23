@@ -34,7 +34,8 @@ class TargetAdminTest(EdgeFlipTestCase):
 
     def test_client_detail(self):
         """ Test client detail view """
-        response = self.client.get(reverse('client-detail', args=[1]))
+        response = self.client.get(reverse(
+            'client-detail', args=[self.test_client.pk]))
         self.assertStatusCode(response, 200)
         self.assertEqual(response.context['client'].name, 'Testing Client')
 
@@ -245,8 +246,6 @@ class TargetAdminTest(EdgeFlipTestCase):
         new_ff = filter_obj.filterfeatures.get(value='Illinois')
         self.assertEqual(new_ff.operator, 'in')
 
-    # ================ CS Tests ====================== #
-
     def test_cs_list_view(self):
         ''' View a listing of Choice Set objects '''
         self.test_client.choicesets.create(name='list_view_test')
@@ -326,3 +325,63 @@ class TargetAdminTest(EdgeFlipTestCase):
         # New CSF
         new_csf = cs.choicesetfilters.get(url_slug='new-slug')
         self.assertEqual(new_csf.url_slug, 'new-slug')
+
+    def test_button_list_view(self):
+        ''' Test viewing a list of Button Styles '''
+        self.test_client.buttonstyle_set.create(name='test object')
+        response = self.client.get(
+            reverse('button-list', args=[self.test_client.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object_list']
+
+    def test_button_detail(self):
+        ''' Test viewing a specific Button Style object '''
+        button = self.test_client.buttonstyle_set.create(name='test object')
+        response = self.client.get(
+            reverse('button-detail', args=[self.test_client.pk, button.pk])
+        )
+        self.assertStatusCode(response, 200)
+        assert response.context['object']
+
+    def test_create_button_object(self):
+        ''' Test creation of a Button Style object '''
+        response = self.client.post(
+            reverse('button-new', args=[self.test_client.pk]),
+            {
+                'name': 'Test Object',
+                'html_template': 'test.html',
+                'css_file': 'test.css'
+            }
+        )
+        bsf = relational.ButtonStyleFile.objects.get(html_template='test.html')
+        self.assertRedirects(
+            response,
+            reverse('button-detail', args=[self.test_client.pk, bsf.button_style.pk])
+        )
+        self.assertEqual(bsf.button_style.name, 'Test Object')
+        self.assertEqual(bsf.html_template, 'test.html')
+        self.assertEqual(bsf.css_file, 'test.css')
+
+    def test_edit_button_object(self):
+        ''' Test editing a Button Style Object '''
+        button = self.test_client.buttonstyle_set.create(name='test object')
+        bsf = button.buttonstylefiles.create()
+        response = self.client.post(
+            reverse('button-edit', args=[self.test_client.pk, button.pk]),
+            {
+                'name': 'Edit Test Edited',
+                'html_template': 'test.html',
+                'css_file': 'test.css',
+                'button_style': button.pk
+            }
+        )
+        button = relational.ButtonStyle.objects.get(pk=button.pk)
+        bsf = button.buttonstylefiles.get()
+        self.assertRedirects(
+            response,
+            reverse('button-detail', args=[self.test_client.pk, button.pk])
+        )
+        self.assertEqual(bsf.button_style.name, 'Edit Test Edited')
+        self.assertEqual(bsf.html_template, 'test.html')
+        self.assertEqual(bsf.css_file, 'test.css')
