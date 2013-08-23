@@ -2,10 +2,9 @@ import logging
 import itertools
 from unidecode import unidecode
 
-from boto.dynamodb2.items import Item
 from django.utils import timezone
 
-from targetshare.models.dynamo import db as dynamo
+from targetshare.models import dynamo
 
 
 LOG = logging.getLogger(__name__)
@@ -179,12 +178,11 @@ class UserInfo(object):
             'lname': self.lname,
             'email': self.email,
             'gender': self.gender,
-            'birthday': dynamo.to_epoch(self.birthday),
+            'birthday': dynamo.db.to_epoch(self.birthday),
             'city': self.city,
             'state': self.state,
         }
-        dynamo._remove_null_values(data)
-        return Item(dynamo.get_table('users'), data=data)
+        return dynamo.User(data)
 
 
 class FriendInfo(UserInfo):

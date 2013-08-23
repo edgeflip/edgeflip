@@ -46,7 +46,7 @@ def _dynamo_partial_save(item, attempt):
     except ConditionalCheckFailedException:
         if attempt == 4:
             LOG.exception(
-                'Failed to handle save conflict on item %r', item._data
+                'Failed to handle save conflict on item %r', dict(item)
             )
             raise
     else:
@@ -54,9 +54,7 @@ def _dynamo_partial_save(item, attempt):
 
     # Attempt to resolve conflict:
     expected = item._orig_data
-    fresh = item.table.get_item(**{
-        key.name: item[key.name] for key in item.table.schema
-    })
+    fresh = type(item).items.get_item(item.get_keys())
     for key, value in expected.items():
         fresh_value = fresh[key]
         unchanged = value == fresh_value
@@ -72,27 +70,17 @@ def _dynamo_partial_save(item, attempt):
 
 @celery.task
 def bulk_upsert(items):
-    """Upsert the given boto Items."""
-    updated = dynamo.epoch_now()
-
-    # TODO: add property to Item:
-    def pk(item):
-        return tuple(item.get_keys().values())
-
-    items_data = {}
-    for item in items:
-        # TODO: move to pre-save (before building prepare_partial perhaps):
-        item['updated'] = updated
-        items_data[pk(item)] = item
+    """Upsert the given dynamo Items."""
+    items_data = {item.pk: item for item in items}
     if not items_data:
         return
 
-    (table,) = set(item.table for item in items)
+    (cls,) = set(type(item) for item in items)
+    keys = [item.get_keys() for item in items_data.values()]
 
     # Update existing items:
-    # FIXME: result batching --J
-    for existing in table.batch_get(keys=[item.get_keys() for item in items_data.values()]):
-        item = items_data.pop(pk(existing))
+    for existing in cls.items.batch_get(keys=keys):
+        item = items_data.pop(existing.pk)
 
         # update the existing item:
         for key, value in item.items():
@@ -102,6 +90,8 @@ def bulk_upsert(items):
 
     # Remaining items are new. Save them:
     for item in items_data.values():
+        # TODO: Ensure that can call partial_save on new item -- boto might still not
+        # support. If so, can call a save, and fall back to partial save if it fails.
         delayed_save.delay(item)
 
 
