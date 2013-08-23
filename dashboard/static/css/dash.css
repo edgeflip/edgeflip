@@ -21,6 +21,8 @@
     width: 500px;
     }
 
+#daily svg { border: 1 px solid; }
+
 #monthly {clear:both;}
 
 

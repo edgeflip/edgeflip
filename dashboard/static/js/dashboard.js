@@ -1,4 +1,3 @@
-
 window.onload = init
 
 function init() {
@@ -8,8 +7,9 @@ function init() {
     // load up datepicker widgets
     $( "#datepicker" ).datepicker({gotoCurrent:true, onSelect:getData});
 
-    window.R = Raphael("daily");
-
+    // create some 0 height bars for each 
+    // window.data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
+    // draw();
     }
 
 
@@ -35,19 +35,47 @@ function onData(response) {
 
 
 function draw() {
-    R.clear();
-    R.rect(0,0,R.width,R.height);
-    // so vgutter is the space between the bars and the top/bottom of the chart
-    // gutter is the space horizontally between the bars
-    window.dailychart = R.barchart(0,0,R.width,R.height, data, {stacked: true,type:'hard', vgutter:20});
-    }
+    // wipe previous sets
+    $('#daily').children().remove();
 
-function mkBars() {
-    for (i=1,i<24,i++) {
-    
-        for (thing in data) {
-            // R.rect( data[thing].pop())}
-            // draw a rect at offset+i*width with a height of data[thing].pop()
-            }
+    // set axis scales
+    var hscale = d3.scale.linear().domain([0, 23]).range([40, 500-13]);
+    var vscale = d3.scale.linear().domain([0,d3.max( d3.max(data))]).range([1, 180]);
+    var colorscale = d3.scale.linear().domain([0,8]).interpolate(d3.interpolateRgb).range(["#ff0000", "#0000ff"]);
 
+    // draw a box per hour per row
+    for (row in data) {
+        rowdata = data[row]
+        d3.select('#daily').selectAll(".r"+row).data(rowdata).enter().append("rect").
+            attr("x", function(datum, index) { return hscale(index); }).
+            attr("y", function(datum) { return 180 - vscale(datum); }).
+            attr("height", function(datum) { return vscale(datum);}).
+            attr("width", 13).
+            attr("fill", function(d,i){return colorscale(row)}).
+            attr("class", "r"+row);
         }
+
+    // label X axis
+    d3.select('#daily').selectAll("text.hourlabel").
+        data(hscale.ticks()).
+        enter().append("text").
+        attr("x", function(datum, index) { return hscale(datum); }).
+        attr("y", 200).
+        attr("dx", 13/2). // so this centers horizontally.. but why not just bake it into the x coord?
+        attr("text-anchor", "middle").
+        attr("style", "font-size: 10; font-family: Helvetica, sans-serif").
+        text(function(datum) {if (datum%12==0) datum += 12; return datum<=12 ? datum+'A':((datum-12)+'P'); }).
+        attr("class", "hourlabel");
+
+    // label Y axis
+    $('.datalabel').remove();
+    d3.select('#daily').selectAll("text.datalabel").  // worst name evar
+        data( vscale.ticks() ).
+        enter().append("text").
+        attr("x", 15).
+        attr("y", function(datum, index) { return 180-vscale(index)}).
+        attr("text-anchor", "middle").
+        attr("style", "font-size: 10; font-family: Helvetica, sans-serif").
+        text(function(datum, index) { return datum; }).
+        attr("class", "datalabel");
+    }

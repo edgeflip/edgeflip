@@ -10,9 +10,7 @@
     <script type="text/javascript" src="{{ STATIC_URL }}js/mod_csrf.js"></script>
     <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
 
-    <script src="{{ STATIC_URL }}js/raphael.js"></script>
-    <script src="{{ STATIC_URL }}js/g.raphael.js"></script>
-    <script src="{{ STATIC_URL }}js/g.bar.js"></script>
+    <script src="{{ STATIC_URL }}js/d3.v3.js"></script>
 
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/auth.css" />
@@ -44,7 +42,7 @@
     </div>
 
     <div id="charts">
-        <div id="daily"></div>
+        <svg id="daily"></svg>
         <div id="datepicker"></div>
 
         <div id="monthly"></div>
