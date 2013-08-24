@@ -171,18 +171,16 @@ class UserInfo(object):
                    state=x.get('state'))
 
     def to_dynamo(self):
-        # TODO: move generic operations to Item.__init__ and __setitem__
-        data = {
+        return dynamo.User({
             'fbid': self.id,
             'fname': self.fname,
             'lname': self.lname,
             'email': self.email,
             'gender': self.gender,
-            'birthday': dynamo.db.to_epoch(self.birthday),
+            'birthday': self.birthday,
             'city': self.city,
             'state': self.state,
-        }
-        return dynamo.User(data)
+        })
 
 
 class FriendInfo(UserInfo):

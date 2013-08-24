@@ -1,8 +1,13 @@
-from boto.dynamodb2 import types
-
-from . import base
+from .base import Item, ItemField, HashKeyField, NUMBER, DATETIME
 
 
-class User(base.Item):
+class User(Item):
 
-    fbid = base.HashKeyField(data_type=types.NUMBER)
+    fbid = HashKeyField(data_type=NUMBER)
+    birthday = ItemField(data_type=DATETIME)
+    fname = ItemField()
+    lname = ItemField()
+    email = ItemField()
+    gender = ItemField()
+    city = ItemField()
+    state = ItemField()

@@ -1,8 +1,9 @@
 import logging
+import sys
 
 from django.core.management.base import CommandError, LabelCommand
 
-from targetshare.models.dynamo import db
+from targetshare.models.dynamo import db, utils
 from targetshare import database_compat as database
 
 
@@ -15,13 +16,14 @@ class Command(LabelCommand):
         logger = logging.getLogger('mysql_to_dynamo')
 
         if label == 'create':
-            db.create_all_tables(
+            utils.database.create_all_tables(
                 timeout=(60 * 3), # 3 minutes per table
+                console=sys.stdout,
             )
             self.stdout.write("Created all Dynamo tables. "
                               "This make take several minutes to take effect.")
         elif label == 'destroy':
-            done = db.drop_all_tables(confirm=True)
+            done = utils.database.drop_all_tables(confirm=True)
             if done:
                 self.stdout.write("Dropped all Dynamo tables. "
                                   "This make take several minutes to take effect.")

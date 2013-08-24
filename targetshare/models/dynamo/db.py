@@ -45,7 +45,6 @@ join to access the data. Both tables also have a local secondary index on
 given date.
 
 """
-from __future__ import print_function
 import calendar
 import logging
 import threading
@@ -53,7 +52,6 @@ import pymlconf
 import time
 import types
 import datetime
-import sys
 from itertools import imap
 
 from boto.regioninfo import RegionInfo
@@ -136,7 +134,7 @@ class DynamoDBConnectionProxy(object):
 connection = DynamoDBConnectionProxy()
 
 
-def _table_name(name):
+def table_name(name):
     """return a table name using the prefix specified in config.
 
     For internal use.
@@ -149,7 +147,7 @@ def get_table(name):
 
     :rtype: `boto.dynamodb2.table.Table`
     """
-    return Table(_table_name(name),
+    return Table(table_name(name),
                  schema=SCHEMAS[name]['schema'],
                  indexes=SCHEMAS[name].get('indexes', []),
                  connection=connection)
@@ -196,126 +194,6 @@ def _remove_null_values(dict_):
             del dict_[key]
 
 
-def create_table(**schema):
-    """create a new table in Dynamo
-
-    :arg dict schema: keyword args for `boto.dynamodb2.Table.create`
-
-    """
-    name = _table_name(schema['table_name'])
-    LOG.info("Creating table %s", name)
-    schema['table_name'] = name
-    return Table.create(connection=connection, **schema)
-
-
-def create_all_tables(timeout=0, wait=2, console=sys.stdout):
-    """Create all tables in Dynamo.
-
-    Table creation commands cannot be issued for two tables with secondary keys at
-    once, and so commands are issued in order, and job status polled, to finish as
-    quickly as possible without error.
-
-    You should only have to call this method once.
-
-    """
-    if timeout < 0:
-        raise ValueError("Invalid creation timeout")
-
-    # Sort schemas so as to create those tables with secondary keys last:
-    def sort_key(defn):
-        _table_name, schema = defn
-        return len(schema['schema'])
-    schemas = sorted(SCHEMAS.items(), key=sort_key)
-
-    for table_number, (table_name, schema) in enumerate(schemas, 1):
-        # Issue creation directive to AWS:
-        table = create_table(**schema)
-
-        # Monitor job status:
-        console.write("Table '{}' status: ".format(table_name))
-        count = 0
-        while count <= timeout:
-            # Retrieve status:
-            description = table.describe()
-            status = description['Table']['TableStatus']
-
-            # Update console:
-            if count > 0:
-                console.write(".")
-            if count == 0 or status != 'CREATING':
-                console.write(status)
-            elif count >= timeout:
-                console.write("TIMEOUT")
-            console.flush()
-
-            if (
-                status != 'CREATING' or         # Creation completed
-                count >= timeout or             # We're out of time
-                len(schema['schema']) == 1 or   # Still processing non-blocking tables
-                table_number == len(schemas)    # This is the last table anyway
-            ):
-                break # We're done, proceed
-
-            if count + wait <= timeout:
-                step = wait
-            else:
-                step = timeout - count
-            time.sleep(step)
-            count += step
-
-        print('', file=console) # Break line
-
-
-def _confirm(message):
-    response = None
-    while response not in ('', 'y', 'yes', 'n', 'no'):
-        response = raw_input(message + " [Y|n]? ").strip().lower()
-    return response in ('', 'y', 'yes')
-
-
-def drop_all_tables(confirm=False):
-    """Delete all tables in Dynamo"""
-    if confirm:
-        continue_ = _confirm(
-            "Drop tables [{tables}] with prefix '{prefix}' from dynamo"
-            .format(
-                tables=', '.join(SCHEMAS),
-                prefix=settings.DYNAMO.prefix,
-            )
-        )
-        if not continue_:
-            return False
-
-    for table in SCHEMAS:
-        try:
-            get_table(table).delete()
-        except StandardError:
-            LOG.warn("Error deleting table %s", table, exc_info=True)
-        else:
-            LOG.debug("Deleted table %s", table)
-
-    return True
-
-
-def truncate_all_tables():
-    if not _confirm(
-        "Truncate all data from tables [{tables}] with prefix '{prefix}'"
-        .format(
-            tables=', '.join(SCHEMAS),
-            prefix=settings.DYNAMO.prefix,
-        )
-    ):
-        return
-
-    for table_name in SCHEMAS:
-        table = get_table(table_name)
-        with table.batch_write() as batch:
-            for item in table.scan():
-                batch.delete_item(**{
-                    key.name: item[key.name] for key in table.schema
-                })
-
-
 ##### USERS #####
 
 SCHEMAS['users'] = {
@@ -353,23 +231,6 @@ def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=
             if k != 'fbid':
                 user[k] = v
         return user.partial_save()
-
-
-def save_many_users(users):
-    """save many users to Dynamo as a batch, overwriting existing rows.
-
-    This modifies dicts passed in.
-
-    :arg dicts users: iterable of dicts describing user. Keys should be as for `save_user`.
-    """
-    updated = epoch_now()
-    table = get_table('users')
-    with table.batch_write() as batch:
-        for d in users:
-            d['birthday'] = to_epoch(d.get('birthday'))
-            d['updated'] = updated
-            _remove_null_values(d)
-            batch.put_item(data=d)
 
 
 def fetch_user(fbid):

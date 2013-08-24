@@ -90,8 +90,6 @@ def bulk_upsert(items):
 
     # Remaining items are new. Save them:
     for item in items_data.values():
-        # TODO: Ensure that can call partial_save on new item -- boto might still not
-        # support. If so, can call a save, and fall back to partial save if it fails.
         delayed_save.delay(item)
 
 
