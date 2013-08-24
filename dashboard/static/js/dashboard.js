@@ -25,7 +25,7 @@ function onData(response) {
     $('#datepicker').datepicker( "option", "minDate", response.minday);
     $('#datepicker').datepicker( "option", "maxDate", response.maxday);
 
-    window.data = JSON.parse(response.fakedaily);
+    window.data = JSON.parse(response.daily);
     draw();
 
     }
@@ -47,7 +47,8 @@ function draw() {
     for (row in data) {
         rowdata = data[row]
         d3.select('#daily').selectAll(".r"+row).data(rowdata).enter().append("rect").
-            attr("x", function(datum, index) { return row<3? hscale(index)-4 : hscale(index)+4;}).
+            attr("x", function(datum, index) { return row<4? hscale(index)-4 : hscale(index)+4;}).
+            attr("x", function(datum, index) { return row<4? hscale(index)-4 : hscale(index)+4;}).
             attr("y", function(datum) { return 180 - vscale(datum);}).
             attr("height", function(datum) { return vscale(datum);}).
             attr("width", barwidth).
@@ -79,4 +80,46 @@ function draw() {
         attr("style", "font-size: 10; font-family: Helvetica, sans-serif").
         text(function(datum, index) { return datum; }).
         attr("class", "datalabel");
+
+
+    mkLegend(barwidth);
     }
+
+
+function mkLegend(barwidth) {
+    // clear whatever's there
+    jlegend = $('#legend');
+    jlegend.children().remove()
+
+    var height = jlegend.height()
+    var width = jlegend.width()
+
+    // set axes scale... probably only need one, reuse the color ?
+    var vscale = d3.scale.linear().domain([0, response.metrics.length/2]).range([1, height]);
+    var colorscale = d3.scale.linear().domain([0, response.metrics.length]).interpolate(d3.interpolateRgb).range(["#ff0000", "#0000ff"]);
+    
+    for (metric in response.metrics) {
+        d3.select("#legend").selectAll("text").
+        data(response.metrics).
+        enter().
+        // text labels
+        append("text").
+        attr("x", function(d,i) { return i<4 ? 15 : 250}).
+        attr("y", function(d,i) { return height-vscale(i%5)}). 
+        text( function(datum) { return datum.label;}).
+        attr("fill", function(d,i) { return colorscale(i)})  // hrm, .attr OR .style works here
+
+        // what's a legend without boxes
+        d3.select("#legend").selectAll("rect").
+        data(response.metrics).enter().
+        append("rect").
+        attr("x", function(d,i) { return i<4 ? 5 : 240}).
+        attr("y", function(d,i) { return (height-vscale(i%5))-barwidth}).
+        attr("height", barwidth).
+        attr("width", barwidth).
+        attr("fill", function(d,i){return colorscale(i)})
+        }
+
+    }
+
+

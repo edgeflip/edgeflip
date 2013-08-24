@@ -44,7 +44,7 @@ MONTHLY_METRICS = [
     {'id': 'clickbacks', 'label': 'Clickbacks', 'type': 'number'},
     ]
 
-DAILY_METRICS = [{'id':'label', 'label': 'time', 'type':'timeofday'},] + MONTHLY_METRICS[1:]
+DAILY_METRICS = MONTHLY_METRICS[1:]
 
 def fakedata(now, client_id=None):
     """ generate fake hourly / daily data in GOOG vis format """
@@ -93,7 +93,7 @@ def chartdata(request):
 
     daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
 
-    data = {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly.data, 'daily':daily.data}
+    data = {'metrics':DAILY_METRICS, 'monthly':monthly.data, 'daily':daily.data}
 
     data['monthly'] = monthly.mkGoog()
     data['daily'] = daily.mkRaph()
@@ -103,7 +103,6 @@ def chartdata(request):
     data['maxday'] = maxday.strftime( '%m/%d/%y')
     data['dailyday'] = daily.day.strftime( '%m/%d/%y')
 
-    fakes = fakedata(maxday)
     from random import randint
     data['fakedaily'] = json.dumps([[randint(0,10) for i in range(24)] for j in range(9)])
 

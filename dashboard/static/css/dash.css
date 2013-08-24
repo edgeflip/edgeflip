@@ -1,7 +1,7 @@
 
 #bounds {
     margin: 0 auto;
-    width: 800px;
+    width: 850px;
     }
 
 /*
@@ -11,20 +11,33 @@
 */
 
 #datepicker {
-    float:left;
+    float:right;
     margin: 10px 0 0 40px;
     }
 
 #daily { 
-    float:right; 
-    border: 1px solid red;
+    float:left; 
     height: 200px;
     width: 600px;
+    }
+
+#legend {
+    border: 1px solid red;
+    height: 100px;
+    width: 600px;
+
+    margin-top: 20px;
     }
 
 #daily svg { border: 1 px solid; }
 
 #monthly {clear:both;}
+
+text {
+    font-size: 10px; 
+    font-family: Helvetica, sans-serif;
+    }
+
 
 
 /* something, somewhere, is overriding font-sizes */
