@@ -7,9 +7,6 @@ function init() {
     // load up datepicker widgets
     $( "#datepicker" ).datepicker({gotoCurrent:true, onSelect:getData});
 
-    // create some 0 height bars for each 
-    // window.data = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    // draw();
     }
 
 
@@ -35,11 +32,14 @@ function onData(response) {
 
 
 function draw() {
+
+    var barwidth = 6;
+
     // wipe previous sets
     $('#daily').children().remove();
 
     // set axis scales
-    var hscale = d3.scale.linear().domain([0, 23]).range([40, 500-13]);
+    var hscale = d3.scale.linear().domain([0, 23]).range([40, 560-barwidth]);
     var vscale = d3.scale.linear().domain([0,d3.max( d3.max(data))]).range([1, 180]);
     var colorscale = d3.scale.linear().domain([0,8]).interpolate(d3.interpolateRgb).range(["#ff0000", "#0000ff"]);
 
@@ -47,10 +47,10 @@ function draw() {
     for (row in data) {
         rowdata = data[row]
         d3.select('#daily').selectAll(".r"+row).data(rowdata).enter().append("rect").
-            attr("x", function(datum, index) { return hscale(index); }).
-            attr("y", function(datum) { return 180 - vscale(datum); }).
+            attr("x", function(datum, index) { return row<3? hscale(index)-4 : hscale(index)+4;}).
+            attr("y", function(datum) { return 180 - vscale(datum);}).
             attr("height", function(datum) { return vscale(datum);}).
-            attr("width", 13).
+            attr("width", barwidth).
             attr("fill", function(d,i){return colorscale(row)}).
             attr("class", "r"+row);
         }
@@ -61,7 +61,7 @@ function draw() {
         enter().append("text").
         attr("x", function(datum, index) { return hscale(datum); }).
         attr("y", 200).
-        attr("dx", 13/2). // so this centers horizontally.. but why not just bake it into the x coord?
+        attr("dx", barwidth/2). // so this centers horizontally.. but why not just bake it into the x coord?
         attr("text-anchor", "middle").
         attr("style", "font-size: 10; font-family: Helvetica, sans-serif").
         text(function(datum) {if (datum%12==0) datum += 12; return datum<=12 ? datum+'A':((datum-12)+'P'); }).
@@ -74,6 +74,7 @@ function draw() {
         enter().append("text").
         attr("x", 15).
         attr("y", function(datum, index) { return 180-vscale(index)}).
+        // should probably just throw all this text stuff into a CSS file
         attr("text-anchor", "middle").
         attr("style", "font-size: 10; font-family: Helvetica, sans-serif").
         text(function(datum, index) { return datum; }).

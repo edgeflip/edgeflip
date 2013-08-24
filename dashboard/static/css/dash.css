@@ -1,3 +1,4 @@
+
 #bounds {
     margin: 0 auto;
     width: 800px;
@@ -18,7 +19,7 @@
     float:right; 
     border: 1px solid red;
     height: 200px;
-    width: 500px;
+    width: 600px;
     }
 
 #daily svg { border: 1 px solid; }
