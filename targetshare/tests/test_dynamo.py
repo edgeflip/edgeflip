@@ -182,20 +182,25 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         self.assertDictEqual(evan_res, d)
 
     def test_handle_user_conflict(self):
-        """ Test handling user upload conflicts during update_many_users """
+        """ Test handling user upload conflicts during update_many_users.
+        We assert here that the last name change goes through, however we also
+        show that the first to the database wins on key conflicts """
         dynamo.save_many_users(self.users().values())
         table = dynamo.get_table('users')
 
         alice_stale = table.get_item(fbid=1234)
         alice_stale['last_name'] = 'Applesauce'
+        alice_stale['email'] = 'aliceisnotcool@example.com'
 
         alice = table.get_item(fbid=1234)
+        alice['email'] = 'aliceiscool@example.com'
         alice['gender'] = 'Male'
         alice.partial_save()
 
         dynamo._handle_user_conflict(alice_stale)
         fresh_alice = table.get_item(fbid=1234)
         self.assertEqual(fresh_alice['gender'], 'Male')
+        self.assertEqual(fresh_alice['email'], 'aliceiscool@example.com')
         self.assertEqual(fresh_alice['last_name'], 'Applesauce')
 
 
