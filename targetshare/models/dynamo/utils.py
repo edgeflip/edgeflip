@@ -34,6 +34,10 @@ class DynamoDB(object):
     def table_names(self):
         return {table.table_name.split('.', 1)[1]: table for table in self.tables}
 
+    def register_item(self, sender, **_kws):
+        """Register a Table, as an `item_declared` signal receiver."""
+        self.tables.add(sender.items.table)
+
     @staticmethod
     def create_table(table):
         LOG.info("Creating table %s", table.table_name)

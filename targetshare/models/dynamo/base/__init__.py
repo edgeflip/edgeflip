@@ -1,4 +1,4 @@
-from .item import Item
+from .item import Item, item_declared
 from .fields import ItemField, HashKeyField, RangeKeyField, IncludeIndexField
 from .types import (
     DATE,

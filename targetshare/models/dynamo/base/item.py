@@ -2,13 +2,13 @@
 DynamoDB tables and documents.
 
 """
-from __future__ import absolute_import
 import itertools
 
 from boto.dynamodb2 import fields as basefields, items as baseitems
+from django.dispatch import Signal
 from django.utils import timezone
 
-from targetshare.models.dynamo import db, utils
+from targetshare.models.dynamo import db
 
 from .fields import ItemField
 from .table import Table
@@ -74,6 +74,11 @@ class ItemDoesNotExist(LookupError):
     pass
 
 
+# No need to depend on Django, but as long as we have access to
+# their signal/receiver implementation...:
+item_declared = Signal(providing_args=["item"])
+
+
 class DeclarativeItemBase(type):
     """Metaclass which defines subclasses of Item based on their declarations."""
     update_field = 'updated'
@@ -133,14 +138,14 @@ class DeclarativeItemBase(type):
             connection=db.connection,
             item=cls,
         )
-        # Keep record of table:
-        utils.database.tables.add(item_table)
-
         for value in attrs.values():
             if isinstance(value, ItemManagerDescriptor) and value.manager.table is None:
                 value.manager.table = item_table
 
         super(DeclarativeItemBase, cls).__init__(name, bases, attrs)
+
+        # Notify listeners:
+        item_declared.send(sender=cls)
 
 
 class Item(baseitems.Item):
