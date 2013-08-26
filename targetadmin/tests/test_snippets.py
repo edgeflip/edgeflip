@@ -1,7 +1,7 @@
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
-from targetshare.models import relational
+from targetshare.utils import encodeDES
 
 
 class TestSnippetViews(TestAdminBase):
@@ -29,4 +29,7 @@ class TestSnippetViews(TestAdminBase):
             reverse('encode', args=[self.test_client.pk, self.campaign.pk, self.content.pk])
         )
         self.assertStatusCode(response, 200)
-        self.assertEqual(response.content, "WA214ImqMZY%3D")
+        self.assertEqual(
+            response.content,
+            encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+        )
