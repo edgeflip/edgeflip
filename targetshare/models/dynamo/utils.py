@@ -30,13 +30,13 @@ class DynamoDB(object):
     def __init__(self, tables=None):
         self.tables = tables or set()
 
-    @property
-    def table_names(self):
-        return {table.table_name.split('.', 1)[1]: table for table in self.tables}
-
     def register_item(self, sender, **_kws):
         """Register a Table, as an `item_declared` signal receiver."""
         self.tables.add(sender.items.table)
+
+    @property
+    def _table_names(self):
+        return tuple(table.short_name for table in self.tables)
 
     @staticmethod
     def create_table(table):
@@ -109,7 +109,7 @@ class DynamoDB(object):
             continue_ = _confirm(
                 "Drop tables [{tables}] with prefix '{prefix}' from dynamo"
                 .format(
-                    tables=', '.join(self.table_names),
+                    tables=', '.join(self._table_names),
                     prefix=settings.DYNAMO.prefix,
                 )
             )
@@ -130,7 +130,7 @@ class DynamoDB(object):
         if not _confirm(
             "Truncate all data from tables [{tables}] with prefix '{prefix}'"
             .format(
-                tables=', '.join(self.table_names),
+                tables=', '.join(self._table_names),
                 prefix=settings.DYNAMO.prefix,
             )
         ):

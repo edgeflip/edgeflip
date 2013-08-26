@@ -8,8 +8,6 @@ from boto.dynamodb2 import fields as basefields, items as baseitems
 from django.dispatch import Signal
 from django.utils import timezone
 
-from targetshare.models.dynamo import db
-
 from .fields import ItemField
 from .manager import ItemManager, ItemManagerDescriptor
 from .table import Table
@@ -30,6 +28,7 @@ class Meta(object):
     """
     # User-available options:
     allow_undeclared_fields = False
+    indexes = ()
     table_name = None # Defaults to lowercased, pluralized version of class name
 
     # "Hide" methods with "_" to avoid appearance of available options #
@@ -130,13 +129,10 @@ class DeclarativeItemBase(type):
                            for field_name, field in cls._meta.fields.items()]
         schema = [field for field in internal_fields
                   if isinstance(field, basefields.BaseSchemaField)]
-        indexes = [field for field in internal_fields
-                   if isinstance(field, basefields.BaseIndexField)]
         item_table = Table(
-            table_name=db.table_name(cls._meta.table_name),
+            table_name=cls._meta.table_name,
             schema=schema,
-            indexes=indexes,
-            connection=db.connection,
+            indexes=cls._meta.indexes,
             item=cls,
         )
         for value in attrs.values():

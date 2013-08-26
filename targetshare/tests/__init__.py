@@ -13,15 +13,18 @@ class EdgeFlipTestCase(TestCase):
 
         # Test settings:
         self.patches = []
-        self.patches.append(mock.patch.multiple(
-            settings,
-            CELERY_ALWAYS_EAGER=True,
-            DYNAMO=ConfigDict({'prefix': 'test', 'engine': 'mock', 'port': 4444}),
-        ))
-        # Dynamo tables are created eagerly:
+        self.patches.append(
+            mock.patch.multiple(
+                settings,
+                CELERY_ALWAYS_EAGER=True,
+                DYNAMO=ConfigDict({'prefix': 'test', 'engine': 'mock', 'port': 4444}),
+            )
+        )
+        # Dynamo tables are created eagerly; force reset of prefix:
         for table in utils.database.tables:
-            table_name = "test.{}".format(table.table_name.split('.', 1)[1])
-            self.patches.append(mock.patch.object(table, 'table_name', table_name))
+            self.patches.append(
+                mock.patch.object(table, 'table_name', table.short_name)
+            )
         # Start patches:
         for patch in self.patches:
             patch.start()

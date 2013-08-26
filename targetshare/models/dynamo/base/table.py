@@ -4,6 +4,9 @@ Models definition and interactions with a table in DynamoDB.
 
 """
 from boto.dynamodb2 import table, items
+from django.conf import settings
+
+from targetshare.models.dynamo import db
 
 from .results import BatchGetResultSet
 
@@ -55,8 +58,39 @@ class Table(table.Table):
     def __init__(self, table_name, schema=None, throughput=None, indexes=None,
                  connection=None,
                  item=None): # Add "item" to inherited interface
+        # Default to global (thread-local) connection:
+        connection = connection or db.connection
         super(Table, self).__init__(table_name, schema, throughput, indexes, connection)
         self.item = item
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.table_name)
+
+    @property
+    def table_name(self):
+        try:
+            return vars(self)['table_name']
+        except KeyError:
+            raise AttributeError("'{}' object has no attribute 'table_name'"
+                                 .format(self.__class__.__name__))
+
+    @table_name.setter
+    def table_name(self, table_name):
+        """Allow table_name to be specified without global prefix."""
+        if table_name.startswith(settings.DYNAMO.prefix):
+            _prefix, short_name = table_name.split('.', 1)
+        else:
+            short_name = table_name
+            table_name = '{}.{}'.format(settings.DYNAMO.prefix, table_name)
+        vars(self).update(table_name=table_name, short_name=short_name)
+
+    @property
+    def short_name(self):
+        try:
+            return vars(self)['short_name']
+        except KeyError:
+            raise AttributeError("'{}' object has no attribute 'short_name'"
+                                 .format(self.__class__.__name__))
 
     # Use our BatchGetResultSet rather than boto's #
 

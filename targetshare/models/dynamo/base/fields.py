@@ -42,8 +42,3 @@ class HashKeyField(ItemField):
 class RangeKeyField(ItemField):
 
     internal = fields.RangeKey
-
-
-class IncludeIndexField(ItemField):
-
-    internal = fields.IncludeIndex
