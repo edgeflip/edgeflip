@@ -1,0 +1,9 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Edit {% if campaign %}{{ campaign.name }} Campaign{% else %}Choice Set{% endif %}{% endblock %}
+{% block content %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input class="btn btn-large" type="submit" value="Submit" />
+    </form>
+{% endblock %}

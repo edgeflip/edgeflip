@@ -83,6 +83,16 @@ urlpatterns += patterns('targetadmin.views',
         name='button-edit'),
 )
 
+urlpatterns += patterns('targetadmin.views',
+    # Campaign URLs
+    url(r'^client/(?P<client_pk>\d+)/campaign/$', 'campaign_views.campaign_list',
+        name='campaign-list'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<pk>\d+)/$', 'campaign_views.campaign_detail',
+        name='campaign-detail'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/new/$', 'campaign_views.campaign_create',
+        name='campaign-new'),
+)
+
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )

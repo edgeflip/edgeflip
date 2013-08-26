@@ -10,7 +10,7 @@
             <li><a href="{% url 'filter-new' client.pk %}">Create Filter</a></li>
             <li><a href="{% url 'cs-new' client.pk %}">Create Choice Set</a></li>
             <li><a href="{% url 'button-new' client.pk %}">Create Button Style</a></li>
-            <li><a href="#">Create Campaign</a></li>
+            <li><a href="{% url 'campaign-new' client.pk %}">Create Campaign</a></li>
             <li><a href="#">Generate Snippet</a></li>
         </ul>
     </div>
@@ -23,7 +23,7 @@
                     <li>{{ campaign }}</li>
                 {% endfor %}
             </ul>
-            <a href="#">View All</a>
+            <a href="{% url 'campaign-list' client.pk %}">View All</a>
         </div>
         <div class="span4">
             <h4>Content Objects</h4>
