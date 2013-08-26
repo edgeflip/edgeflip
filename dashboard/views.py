@@ -72,13 +72,20 @@ def fakedata(now, client_id=None):
 @login_required(login_url='/dashboard/login/')
 def chartdata(request):
 
+    out = {}
+
     # look for a campaign id, default to the newest (or aggregate?)
     monthly = CampaignSum.objects.get(campaign=request.POST['campaign'])
+    out['monthly'] = monthly.mkGoog()
 
     # grab min and max dates, TODO: this should be in the summary table
     monthdata = json.loads( monthly.data)
     days = [datetime.strptime(day, "%Y-%m-%d %H:%M:%S") for day in monthdata.keys()]
     minday,maxday = min(days), max(days)
+
+    # send min and max days to restrict selectable days in the jquery widget
+    out['minday'] = minday.strftime( '%m/%d/%y')
+    out['maxday'] = maxday.strftime( '%m/%d/%y')
 
     # pick the day we're going to look up data for, by POST or default
     if 'day' in request.POST and request.POST['day']:
@@ -89,22 +96,27 @@ def chartdata(request):
     else:
         t = maxday
 
-    logging.info(t)
+    """
+    sometimes there are gaps in the data, but jquery only lets us limit between one set
+    of dates!  so, if we don't have the Day object, just send back zeros
+    """
+    try:
+        daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
+        out['daily'] = daily.mkGoog()
+        out['dailyday'] = daily.day.strftime( '%m/%d/%y')
+    except DaySum.DoesNotExist:
+        blah = []
+        for i in range(24):
+            r = [{'v':0} for i in range(10)]
+            r[0] = {'v':[i,0,0]}
+            blah.append(r)
+        out['daily'] = [{'c':blah}]
+        out['dailyday'] = t.strftime( '%m/%d/%y')
 
-    daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
+    out['monthly_cols'] = MONTHLY_METRICS
+    out['daily_cols'] = DAILY_METRICS
 
-    data = {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly.data, 'daily':daily.data}
-    data['monthly'] = monthly.mkGoog()
-    data['daily'] = daily.mkGoog()
-
-    # send min and max days to restrict selectable days in the jquery widget
-    data['minday'] = minday.strftime( '%m/%d/%y')
-    data['maxday'] = maxday.strftime( '%m/%d/%y')
-    data['dailyday'] = daily.day.strftime( '%m/%d/%y')
-
-    fakes = fakedata(maxday)
-
-    return HttpResponse(json.dumps(data), content_type="application/json")
+    return HttpResponse(json.dumps(out), content_type="application/json")
 
 
 def mkdata(request):
@@ -132,4 +144,3 @@ def mkdata(request):
             D = DaySum( campaign=campaign, data=json.dumps(hourly_data), day=day)
             D.save()
 
-    

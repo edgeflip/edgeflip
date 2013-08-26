@@ -1,5 +1,6 @@
 import json
 import logging
+from datetime import datetime
 
 from django.db import models
 
@@ -22,16 +23,22 @@ class CampaignSum(models.Model):
         #start with a row like "2013-08-14 00:00:00": [18, 4, 3, 2, 1, 0, 0, 0, 0]
         data = json.loads( self.data)
 
+        logging.info(data)
+        #import pdb;pdb.set_trace()
         #make it into: {'c': [{'v': 'Date(2013,6,16)'}, {'v': 6}, {'v': 17}, {'v': 27}, {'v': 39}, {'v': 40}]}
         out = []
         for row in sorted(data.keys()):
-            year, month, day = row.split(' ')[0].split('-')
-            day = 'Date({},{},{})'.format( *row.split(' ')[0].split('-'))
+            realday = datetime.strptime(row, "%Y-%m-%d %H:%M:%S")
+
+            day = 'Date({},{},{})'.format(realday.year, realday.month-1, realday.day)
+            # so.. convert the string to a date, look for gaps, subtract 1, cast back to string
 
             tmp = [{'v': v} for v in data[row]]
             tmp.insert(0, {'v':day})
 
             out.append( {'c':tmp})
+
+            lastday = realday
 
         return out
 
