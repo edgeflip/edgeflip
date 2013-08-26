@@ -6,4 +6,6 @@ _item_declared.connect(_database.register_item)
 
 
 # Make item classes available #
+from .edge import IncomingEdge, OutgoingEdge
+from .token import Token
 from .user import User

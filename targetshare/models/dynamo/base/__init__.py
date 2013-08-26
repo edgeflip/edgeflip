@@ -1,6 +1,6 @@
 from .item import Item, item_declared
 from .manager import ItemManager
-from .fields import ItemField, HashKeyField, RangeKeyField, IncludeIndexField
+from .fields import ItemField, HashKeyField, RangeKeyField
 from .types import (
     DATE,
     DATETIME,
