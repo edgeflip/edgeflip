@@ -1,0 +1,64 @@
+{% extends "targetadmin/base.html" %}
+{% block extrahead %}
+    <script>
+        function doUpdate() {
+            cmpg = $('#campaign').val();
+            cnt = $('#content').val();
+            url = '/admin/client/encode/{{ client.pk }}/' + cmpg + '/' + cnt + '/';
+
+            $.ajax({
+                type: "GET",
+                url: url,
+                dataType: 'html',
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert('Ruh-Roh! ' + errorThrown)
+                },
+                success: function(data, textStatus, jqXHR) {
+                    $('#cmpgslug').html(data);
+                    $('#cmpg').html(cmpg);
+                    $('#cnt').html(cnt);
+                }
+            });
+        }
+    </script>
+{% endblock %}
+{% block title %}Generate Snippets{% endblock %}
+{% block content %}
+    <h2>Generate Snippets for {{ name }}</h2>
+
+    Campaign: 
+    <select id="campaign" onChange="doUpdate();">
+      {% for campaign in client.campaign_set.all %}
+      <option value="{{campaign.pk}}">{{ campaign.pk }} -- {{campaign.name}}</option>
+      {% endfor %}
+    </select> 
+
+    Content: 
+    <select id="content" onChange="doUpdate();">
+      {% for con in client.clientcontent_set.all %}
+      <option value="{{con.pk}}">{{ con.pk }} -- {{con.name}}</option>
+      {% endfor %}
+    </select><br />
+    <br />
+
+    {% with first_camp=client.campaign_set.all|slice:":1" first_content=client.clientcontent_set.all|slice:":1" %}
+        <span style="text-decoration: underline;">Button Snippet</span> (<span id="cmpg">{{first_camp.pk}}</span>/<span id="cnt">{{first_content.pk}}</span>):<br />
+            <pre><code>
+            &lt;!-- SHARE BUTTON --&gt;
+            &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
+                &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span id="cmpgslug">{{firstSlug}}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
+            &lt;/div&gt;
+            &lt;!-- SHARE BUTTON --&gt;
+            </code></pre>
+    {% endwith %}
+    <br />
+    <br />
+    <span style="text-decoration: underline;">Faces Snippet</span>:<br />
+        <pre><code>
+        &lt;!-- SHARE FACES --&gt;
+        &lt;div id="ef_frame_div" style="width: 100%; height: 930px; border: none;"&gt;
+            &lt;script src="https://{{client.subdomain}}.{{client.domain}}/static/create_frame.js"&gt;&lt;/script&gt;
+        &lt;/div&gt;
+        &lt;!-- SHARE FACES --&gt;
+        </code></pre>
+{% endblock %}

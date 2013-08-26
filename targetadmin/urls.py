@@ -93,6 +93,15 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-new'),
 )
 
+urlpatterns += patterns('targetadmin.views',
+    # Snippet URLs
+    url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
+        name='snippets'),
+    url(r'^client/encode/(?P<client_pk>\d+)/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/$',
+        'snippets.encode_campaign',
+        name='encode')
+)
+
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )

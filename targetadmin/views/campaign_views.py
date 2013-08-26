@@ -29,6 +29,7 @@ class CampaignDetailView(ClientRelationDetailView):
 campaign_detail = internal(CampaignDetailView.as_view())
 
 
+@internal
 def campaign_create(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     form = forms.CampaignForm(client=client)

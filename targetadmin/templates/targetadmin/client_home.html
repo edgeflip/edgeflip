@@ -11,7 +11,7 @@
             <li><a href="{% url 'cs-new' client.pk %}">Create Choice Set</a></li>
             <li><a href="{% url 'button-new' client.pk %}">Create Button Style</a></li>
             <li><a href="{% url 'campaign-new' client.pk %}">Create Campaign</a></li>
-            <li><a href="#">Generate Snippet</a></li>
+            <li><a href="{% url 'snippets' client.pk %}">Generate Snippet</a></li>
         </ul>
     </div>
     <div class="span9"><h4>Existing Elements</h4></div>
