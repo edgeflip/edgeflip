@@ -10,11 +10,11 @@
 */
 
 #datepicker {
-    float:left;
+    float:right;
     margin: 10px 0 0 40px;
     }
 
-#daily { float:right; }
+#daily { float:left; }
 
 #monthly {clear:both;}
 

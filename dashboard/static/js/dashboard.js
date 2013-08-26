@@ -27,7 +27,6 @@ function onData(response) {
     window.response = response
     $('#datepicker').datepicker( "option", "minDate", response.minday)
     $('#datepicker').datepicker( "option", "maxDate", response.maxday)
-    
 
 
     // update data tables
@@ -56,8 +55,6 @@ function onData(response) {
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'} },
         hAxis: {gridlines: {color:'#FFF', count:13}, format:'H'},
-
-        // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         };
 
     window.dailychart.draw(window.dailydata, dailyopts);
@@ -73,9 +70,7 @@ function onData(response) {
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'}, logScale:true},
         hAxis: {gridlines: {color:'#FFF', count:7}, format:'M/dd'},
-        // backgroundColor: {strokeWidth: 1, stroke: 'red'},
         });
-
     }
 
 
