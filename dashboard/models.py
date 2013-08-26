@@ -57,7 +57,8 @@ class DaySum(models.Model):
         out = []
         for hour, row in enumerate(data):
             tmp = [{'v':v} for v in row]
-            tmp.insert(0, {'v':[hour,0,0]})
+            tmp[0] = {'v':[hour,0,0]}
+            #tmp.insert(0, {'v':[hour,0,0]}) 
             out.append( {'c': tmp})
 
         return out
