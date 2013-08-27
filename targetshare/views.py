@@ -18,9 +18,10 @@ from targetshare import (
     facebook,
     mock_facebook,
     models,
-    tasks,
     utils,
 )
+from targetshare.models.dynamo import db as dynamo
+from targetshare.tasks import db, ranking
 
 
 LOG = logging.getLogger(__name__)
@@ -91,7 +92,7 @@ def button(request, campaign_id, content_id):
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[x.button_style_id for x in style_recs]
         )
-        tasks.delayed_save.delay(assignment)
+        db.delayed_save.delay(assignment)
         button_style = models.ButtonStyle.objects.get(pk=style_id)
         style_template = button_style.buttonstylefile_set.get().html_template
     except:
@@ -223,7 +224,7 @@ def faces(request):
         token = models.datastructs.TokenInfo(
             tok, fbid, int(client.fb_app_id), timezone.now())
         token = fbmodule.extendTokenFb(fbid, token, (int(client.fb_app_id) or token))
-        px3_task_id = tasks.proximity_rank_three(
+        px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
             clientSubdomain=subdomain,
@@ -235,7 +236,7 @@ def faces(request):
             numFace=num_face,
             paramsDB=client
         )
-        px4_task = tasks.proximity_rank_four.delay(mock_mode, fbid, token)
+        px4_task = ranking.proximity_rank_four.delay(mock_mode, fbid, token)
         return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',
@@ -278,7 +279,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         chosen_from_table='campaign_fb_objects',
         chosen_from_rows=[r.pk for r in fb_object_recs]
     )
-    tasks.delayed_save.delay(assignment)
+    db.delayed_save.delay(assignment)
 
     fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
@@ -334,7 +335,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         activity_id=None
                     )
                 )
-            tasks.bulk_create.delay(events)
+            db.bulk_create.delay(events)
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
@@ -410,7 +411,7 @@ def objects(request, fb_object_id, content_id):
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=action_id
         )
-        tasks.delayed_save.delay(event)
+        db.delayed_save.delay(event)
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
@@ -443,13 +444,13 @@ def suppress(request):
         friend_fbid=old_id, event_type='suppress',
         app_id=app_id, content=content, activity_id=None
     )
-    tasks.delayed_save.delay(event)
+    db.delayed_save.delay(event)
     exclusion = models.FaceExclusion(
         fbid=user_id, campaign_id=campaign_id,
         content_id=content_id, friend_fbid=old_id,
         reason='suppressed'
     )
-    tasks.delayed_save.delay(exclusion)
+    db.delayed_save.delay(exclusion)
 
     if new_id != '':
         event = models.Event(
@@ -458,7 +459,7 @@ def suppress(request):
             friend_fbid=new_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
-        tasks.delayed_save.delay(event)
+        db.delayed_save.delay(event)
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
@@ -506,7 +507,7 @@ def record_event(request):
         )
 
     if events:
-        tasks.bulk_create.delay(events)
+        db.bulk_create.delay(events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -520,12 +521,12 @@ def record_event(request):
             user_client = models.UserClient(
                 fbid=user_id, client=client
             )
-            tasks.delayed_save.delay(user_client)
+            db.delayed_save.delay(user_client)
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
             token = facebook.extendToken(user_id, token, int(app_id)) or token
-            models.dynamo.save_token(
+            dynamo.save_token(
                 fbid=user_id,
                 appid=token.appId,
                 token=token.tok,
@@ -551,7 +552,7 @@ def record_event(request):
             )
 
         if exclusions:
-            tasks.bulk_create.delay(exclusions)
+            db.bulk_create.delay(exclusions)
 
     error_msg = request.POST.get('errorMsg')
     if error_msg:
@@ -568,7 +569,7 @@ def record_event(request):
             activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
             content_id=content_id, message=share_msg
         )
-        tasks.delayed_save.delay(share_message)
+        db.delayed_save.delay(share_message)
 
     return http.HttpResponse()
 
@@ -593,7 +594,7 @@ def health_check(request):
     fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
     components['facebook'] = int(fb_resp['id']) == 6963
 
-    users = models.dynamo.get_table('users')
+    users = dynamo.get_table('users')
     components['dynamo'] = bool(users.describe())
 
     return http.HttpResponse(
