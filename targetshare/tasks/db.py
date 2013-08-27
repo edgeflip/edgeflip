@@ -54,7 +54,7 @@ def _dynamo_partial_save(item, attempt):
 
     # Attempt to resolve conflict:
     expected = item._orig_data
-    fresh = type(item).items.get_item(item.get_keys())
+    fresh = type(item).items.get_item(**item.get_keys())
     for key, value in expected.items():
         fresh_value = fresh[key]
         unchanged = value == fresh_value

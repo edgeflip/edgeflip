@@ -29,6 +29,25 @@ def test_remove_null_values():
     tools.eq_(bad_, {})
 
 
+class TestDynamo(EdgeFlipTestCase):
+
+    def test_batching(self):
+        """batch_get continues even if one batch empty"""
+        # Provision two users:
+        with dynamo.User.items.batch_write() as batch:
+            for fbid in (100, 101):
+                data = {'fbid': fbid}
+                # put_item should accept either dict or Item:
+                if fbid % 2:
+                    data = dynamo.User(data)
+                batch.put_item(data)
+
+        # Request users s.t. first batch of 100 don't exist:
+        keys = [{'fbid': count} for count in xrange(102)]
+        users = dynamo.User.items.batch_get(keys=keys)
+        self.assertEqual(sum(1 for user in users), 2)
+
+
 @freeze_time('2013-01-01')
 class DynamoUserTestCase(EdgeFlipTestCase):
 
@@ -104,22 +123,21 @@ class DynamoUserTestCase(EdgeFlipTestCase):
     def test_save_many_users(self):
         self.save_users()
 
-        results = list(dynamo.User.items.batch_get(keys=[{'fbid': k} for k in self.users().keys()]))
-        self.assertItemsEqual([x['fbid'] for x in results], self.users().keys())
+        users = self.users()
+        keys = [{'fbid': key} for key in users]
+        results = tuple(dynamo.User.items.batch_get(keys=keys))
+        self.assertItemsEqual((item['fbid'] for item in results), users)
 
-        for x in results:
-            d = dict(x.items())
-            user = self.users().get(x['fbid'])
-            dynamo._remove_null_values(user)
+        for item in results:
+            data = dict(item)
+            user = self.users()[item['fbid']]
 
-            # munge the raw dict from dynamo in a compatible way
-            assert 'updated' in d
-            del d['updated']
-            d['fbid'] = int(d['fbid'])
-            if 'birthday' in d:
-                d['birthday'] = dynamo.epoch_to_datetime(d.get('birthday'))
+            # Munge data to be comparable:
+            dynamo.db._remove_null_values(user)
+            data['fbid'] = int(data['fbid'])
+            data.pop('updated')
 
-            self.assertDictEqual(user, d)
+            self.assertDictEqual(data, user)
 
     def test_fetch_many_users(self):
         """Test fetching many users"""
@@ -136,75 +154,6 @@ class DynamoUserTestCase(EdgeFlipTestCase):
                     del d[k]
 
             self.assertDictEqual(u, d)
-
-    def test_update_many_users(self):
-        """Test updating many users"""
-        self.save_users()
-
-        # a modified user
-        alice_new = self.users()[1234]
-        alice_new['email'] = ''
-        alice_new['birthday'] = None
-        alice_new['state'] = 'NY'
-
-        alice_res = self.users()[1234]
-        alice_res['state'] = 'NY'
-        dynamo.db._remove_null_values(alice_res)
-
-        # a new user
-        evan_new = dict(fbid=200, fname='Evan', lname='Escarole', email='evan@example.com',
-                        gender=None, birthday=None, city='Evanston', state='WY')
-
-        evan_res = evan_new.copy()
-        dynamo.db._remove_null_values(evan_res)
-
-        dynamo.db.update_many_users([alice_new.copy(), evan_new.copy()])
-
-        table = dynamo.db.get_table('users')
-
-        # compare modified user. munge the raw dict from dynamo in a compatible way
-        x = table.get_item(fbid=1234)
-        d = dict(x.items())
-        assert 'updated' in d
-        del d['updated']
-        d['fbid'] = int(d['fbid'])
-        if 'birthday' in d:
-            d['birthday'] = dynamo.db.epoch_to_datetime(d.get('birthday'))
-
-        self.assertDictEqual(alice_res, d)
-
-        # compare new user. munge the raw dict from dynamo in a compatible way
-        x = table.get_item(fbid=200)
-        d = dict(x.items())
-        assert 'updated' in d
-        del d['updated']
-        d['fbid'] = int(d['fbid'])
-        if 'birthday' in d:
-            d['birthday'] = dynamo.db.epoch_to_date(d.get('birthday'))
-
-        self.assertDictEqual(evan_res, d)
-
-    def test_handle_user_conflict(self):
-        """ Test handling user upload conflicts during update_many_users.
-        We assert here that the last name change goes through, however we also
-        show that the first to the database wins on key conflicts """
-        self.save_users()
-        table = dynamo.db.get_table('users')
-
-        alice_stale = table.get_item(fbid=1234)
-        alice_stale['last_name'] = 'Applesauce'
-        alice_stale['email'] = 'aliceisnotcool@example.com'
-
-        alice = table.get_item(fbid=1234)
-        alice['email'] = 'aliceiscool@example.com'
-        alice['gender'] = 'Male'
-        alice.partial_save()
-
-        dynamo.db._handle_user_conflict(alice_stale)
-        fresh_alice = table.get_item(fbid=1234)
-        self.assertEqual(fresh_alice['gender'], 'Male')
-        self.assertEqual(fresh_alice['email'], 'aliceiscool@example.com')
-        self.assertEqual(fresh_alice['last_name'], 'Applesauce')
 
 
 @freeze_time('2013-01-01')
