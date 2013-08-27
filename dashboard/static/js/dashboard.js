@@ -5,8 +5,6 @@ google.setOnLoadCallback(init);
 function init() {
     // first pageview, get data for newest campaign and draw a chart
     getData();
-    window.dailychart = new google.visualization.LineChart( $('#daily')[0] );
-    window.monthlychart = new google.visualization.LineChart( $('#monthly')[0] );
 
     // load up datepicker widgets
     $( "#datepicker" ).datepicker({gotoCurrent:true, onSelect:getData});
@@ -18,6 +16,15 @@ function init() {
         $('#logscale').button( "option", "label", "Logarithmic Scaling: "+(window.logscale? "On":"Off"));
         draw();
         });
+
+    // toggle for charts / tables
+    window.chart = true;
+    $('#chart').button().click( function () {
+        window.chart = window.chart ? false:true;
+        $('#chart').button( "option", "label", "Viewing as: "+(window.chart? "Charts":"Tables"));
+        draw();
+        });
+
     }
 
 
@@ -53,12 +60,35 @@ function onData(response) {
     }
 
 
-
 function draw() {
+    window.chart?drawcharts():drawtables();
+    }
 
+
+function drawtables() {
+    window.dailychart.clearChart();
+    window.monthlychart.clearChart();
+
+    window.dailychart = new google.visualization.Table( $('#daily')[0] );
+    window.dailychart.draw(window.dailydata, {
+        title: 'Hourly Volume - '+window.response.dailyday, 
+        titleTextStyle: {fontSize:18},
+        });
+
+    window.monthlychart = new google.visualization.Table( $('#monthly')[0] );
+    window.monthlychart.draw(window.monthlydata, {
+        title: 'Daily Volume '+response.minday+' - '+response.maxday, 
+        titleTextStyle: {fontSize:18},
+        });
+
+    }
+
+
+function drawcharts() {
     // redraw charts
     var dailyopts = {
         title: 'Hourly Volume - '+window.response.dailyday, 
+        titleTextStyle: {fontSize:18},
         enableInteractivity: 'true', 
         width: 580, 
         height:175,
@@ -72,10 +102,15 @@ function draw() {
         hAxis: {gridlines: {color:'#FFF', count:13}, format:'H'},
         };
 
+    window.dailychart = new google.visualization.LineChart( $('#daily')[0] );
     window.dailychart.draw(window.dailydata, dailyopts);
 
+    // window.dailychart = new google.visualization.LineChart( $('#daily')[0] );
+
+    window.monthlychart = new google.visualization.LineChart( $('#monthly')[0] );
     window.monthlychart.draw(window.monthlydata, {
         title: 'Daily Volume '+response.minday+' - '+response.maxday, 
+        titleTextStyle: {fontSize:18},
         enableInteractivity: 'true', 
         chartArea:{left:50,},
         width: 799,

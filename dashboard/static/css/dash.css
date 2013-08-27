@@ -18,7 +18,7 @@
 
 #monthly {clear:both;}
 
-#charts label {float:right;}
+label {float:right;}
 
 
 /* something, somewhere, is overriding font-sizes */
