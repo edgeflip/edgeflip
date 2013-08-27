@@ -4,12 +4,17 @@ from random import randint
 from datetime import datetime, timedelta
 
 from django.views.decorators.http import require_GET, require_POST
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.contrib.auth.decorators import login_required
-
+from django.contrib.auth import logout
 
 from models import CampaignSum, DaySum
+
+def dashlogout(request):
+    logout(request)
+
+    return redirect('/dashboard/login/')
 
 
 @require_GET
