@@ -3,7 +3,6 @@
 */
 
 body {
-    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 }
 
 #your-friends-here {
@@ -237,7 +236,6 @@ body {
     overflow-x: auto;
     overflow-y: visible;
     border-radius: 5px;
-    /*margin: 0px 75px;*/
     width: 550px;
     margin: 0px auto;
 }
