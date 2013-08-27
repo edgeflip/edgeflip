@@ -1,8 +1,7 @@
 # Connect signals #
-from .base import item_declared as _item_declared
-from .utils import database as _database
+from . import base, utils
 
-_item_declared.connect(_database.register_item)
+base.item_declared.connect(utils.database.register_item)
 
 
 # Make item classes available #
