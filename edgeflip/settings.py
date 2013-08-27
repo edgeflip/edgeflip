@@ -262,47 +262,46 @@ CELERY_QUEUES = (
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
-    Queue('bulk_upsert', routing_key='bulk.upsert', queue_arguments=QUEUE_ARGS),
+    Queue('update_users', routing_key='update.users', queue_arguments=QUEUE_ARGS),
     Queue('update_tokens', routing_key='update.tokens', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
-    'targetshare.tasks.ranking.px3_crawl': {
+    'targetshare.tasks.px3_crawl': {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
-    'targetshare.tasks.ranking.perform_filtering': {
+    'targetshare.tasks.perform_filtering': {
         'queue': 'px3_filter',
         'routing_key': 'px3.filter'
     },
-    'targetshare.tasks.ranking.proximity_rank_four': {
+    'targetshare.tasks.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
     },
-    'targetshare.tasks.db.bulk_create': {
+    'targetshare.tasks.bulk_create': {
         'queue': 'bulk_create',
         'routing_key': 'bulk.create'
     },
-    'targetshare.tasks.db.delayed_save': {
+    'targetshare.tasks.delayed_save': {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
-    'targetshare.tasks.db.update_tokens': {
+    'targetshare.tasks.update_tokens': {
         'queue': 'update_tokens',
         'routing_key': 'update.tokens',
     },
-    'targetshare.tasks.db.bulk_upsert': {
-        'queue': 'bulk_upsert',
-        'routing_key': 'bulk.upsert',
+    'targetshare.tasks.update_users': {
+        'queue': 'update_users',
+        'routing_key': 'update.users',
     },
-    'targetshare.tasks.db.update_edges': {
+    'targetshare.tasks.update_edges': {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
 }
 CELERY_IMPORTS = (
-    'targetshare.tasks.ranking',
-    'targetshare.tasks.db',
+    'targetshare.tasks',
 )
 
 

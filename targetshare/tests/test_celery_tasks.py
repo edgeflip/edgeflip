@@ -3,20 +3,21 @@ import celery
 from django.utils import timezone
 from freezegun import freeze_time
 
-from targetshare import models
-from targetshare.models.dynamo import db as dynamo
-from targetshare.tasks import db, ranking
+from targetshare import (
+    models,
+    tasks,
+)
 
 from . import EdgeFlipTestCase
 
 
 @freeze_time('2013-01-01')
-class TestRankingTasks(EdgeFlipTestCase):
+class TestCeleryTasks(EdgeFlipTestCase):
 
     fixtures = ['test_data']
 
     def setUp(self):
-        super(TestRankingTasks, self).setUp()
+        super(TestCeleryTasks, self).setUp()
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.datastructs.TokenInfo('1', '1', '1', expires)
 
@@ -26,7 +27,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = ranking.proximity_rank_three(True, 1, self.token)
+        task_id = tasks.proximity_rank_three(True, 1, self.token)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
 
@@ -38,7 +39,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = ranking.px3_crawl(True, 1, self.token)
+        ranked_edges = tasks.px3_crawl(True, 1, self.token)
         assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
 
     def test_perform_filtering(self):
@@ -47,8 +48,8 @@ class TestRankingTasks(EdgeFlipTestCase):
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
-        ranked_edges = ranking.px3_crawl(True, 1, self.token)
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
+        ranked_edges = tasks.px3_crawl(True, 1, self.token)
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
             'local',
             1,
@@ -66,12 +67,12 @@ class TestRankingTasks(EdgeFlipTestCase):
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
-        ranked_edges = ranking.proximity_rank_four(True, 1, self.token)
+        ranked_edges = tasks.proximity_rank_four(True, 1, self.token)
         assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
         assert all((x.countsIn.postLikes is not None for x in ranked_edges))
 
         # Make sure some edges were created.
-        assert list(dynamo.fetch_all_incoming_edges())
+        assert list(models.dynamo.fetch_all_incoming_edges())
 
     def test_fallback_cascade(self):
         # Some test users and edges
@@ -109,7 +110,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         test_edge2.score = 0.4
 
         ranked_edges = [test_edge2, test_edge1]
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = tasks.perform_filtering(
             ranked_edges,
             'local',
             5,
@@ -125,15 +126,12 @@ class TestRankingTasks(EdgeFlipTestCase):
         self.assertEquals(edges_filtered[0]['campaignId'], 5)
         self.assertEquals(edges_filtered[1]['campaignId'], 4)
 
-
-class TestDatabaseTasks(EdgeFlipTestCase):
-
     def test_delayed_bulk_create(self):
         """Task bulk_create calls objects.bulk_create with objects passed"""
         clients = [models.relational.Client(name="Client {}".format(count))
                    for count in xrange(1, 11)]
         client_count = models.relational.Client.objects.count()
-        db.bulk_create(clients)
+        tasks.bulk_create(clients)
         self.assertEqual(models.relational.Client.objects.count(), client_count + 10)
 
     def test_delayed_obj_save(self):
@@ -141,101 +139,5 @@ class TestDatabaseTasks(EdgeFlipTestCase):
         client = models.relational.Client(name="testy")
         matching_clients = models.relational.Client.objects.filter(name="testy")
         assert not matching_clients.exists()
-        db.delayed_save(client)
+        tasks.delayed_save(client)
         assert matching_clients.exists()
-
-    def test_delayed_item_save(self):
-        user = models.dynamo.User({'fbid': 1234})
-
-        def existing():
-            results = models.dynamo.User.items.batch_get(keys=[user.get_keys()])
-            return tuple(results)
-
-        self.assertFalse(existing())
-        db.delayed_save(user)
-        self.assertTrue(existing())
-
-    def test_delayed_item_save_conflict(self):
-        """Dynamo race conditions are caught and data merged"""
-        # Provision item:
-        alice = models.dynamo.User({
-            'fbid': 1234,
-            'fname': 'Alice',
-            'lname': 'Apples',
-            'email': 'aliceapples@yahoo.com',
-            'gender': 'Female',
-        })
-        alice.save()
-
-        # Make changes:
-        alice['lname'] = 'Applesauce'
-        alice['email'] = 'aliceapplesauce@yahoo.com'
-
-        # Make those changes stale:
-        alice_fresh = models.dynamo.User.items.get_item(**alice.get_keys())
-        alice_fresh['fname'] = 'Ally'
-        alice_fresh['email'] = 'allyapples@yahoo.com'
-        alice_fresh.partial_save()
-
-        # Attempt to save stale changes:
-        db.delayed_save(alice)
-        alice_final = models.dynamo.User.items.get_item(**alice.get_keys())
-        # Winner of race condition trumps loser:
-        self.assertEqual(alice_final['fname'], 'Ally')
-        self.assertEqual(alice_final['email'], 'allyapples@yahoo.com')
-        # But loser's novel changes make it through:
-        self.assertEqual(alice_final['lname'], 'Applesauce')
-
-    def test_delayed_bulk_item_upsert(self):
-        # Provision item:
-        alice = models.dynamo.User({
-            'fbid': 1234,
-            'fname': 'Alice',
-            'lname': 'Apples',
-            'email': 'aliceapples@yahoo.com',
-            'gender': 'Female',
-            'birthday': timezone.datetime(1945, 4, 14, tzinfo=timezone.utc),
-        })
-        alice.save()
-
-        # Modify existing item:
-        alice['email'] = ''
-        alice['fname'] = "Ally"
-
-        # Start new item:
-        evan = models.dynamo.User({
-            'fbid': 2000,
-            'fname': 'Evan',
-            'lname': 'Escarole',
-            'email': 'evanescarole@hotmail.com',
-            'gender': 'Male',
-            'birthday': None,
-        })
-
-        # Upsert:
-        db.bulk_upsert([evan, alice])
-
-        alice = models.dynamo.User.items.get_item(**alice.get_keys())
-        evan = models.dynamo.User.items.get_item(**evan.get_keys())
-
-        data_a = dict(alice)
-        data_a.pop('updated')
-        self.assertEqual(data_a, {
-            'fbid': 1234,
-            'fname': 'Ally', # fname updated
-            'lname': 'Apples',
-            'email': 'aliceapples@yahoo.com', # Email update ignored (null-y)
-            'gender': 'Female',
-            'birthday': timezone.datetime(1945, 4, 14, tzinfo=timezone.utc),
-        })
-
-        data_e = dict(evan)
-        data_e.pop('updated')
-        self.assertEqual(data_e, {
-            'fbid': 2000,
-            'fname': 'Evan',
-            'lname': 'Escarole',
-            'email': 'evanescarole@hotmail.com',
-            'gender': 'Male',
-            # birthday ignored
-        })

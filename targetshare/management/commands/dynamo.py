@@ -1,10 +1,8 @@
 import logging
-import sys
 
 from django.core.management.base import CommandError, LabelCommand
 
-from targetshare.models.dynamo import db, utils
-from targetshare import database_compat as database
+from targetshare import database_compat as database, models
 
 
 class Command(LabelCommand):
@@ -16,24 +14,22 @@ class Command(LabelCommand):
         logger = logging.getLogger('mysql_to_dynamo')
 
         if label == 'create':
-            utils.database.create_all_tables(
+            models.dynamo.create_all_tables(
                 timeout=(60 * 3), # 3 minutes per table
-                console=sys.stdout,
             )
             self.stdout.write("Created all Dynamo tables. "
                               "This make take several minutes to take effect.")
         elif label == 'destroy':
-            done = utils.database.drop_all_tables(confirm=True)
-            if done:
-                self.stdout.write("Dropped all Dynamo tables. "
-                                  "This make take several minutes to take effect.")
+            models.dynamo.drop_all_tables()
+            self.stdout.write("Dropped all Dynamo tables. "
+                              "This make take several minutes to take effect.")
         elif label == 'migrate':
             conn = database.getConn()
             curs = conn.cursor()
 
             # TOKENS
             logger.debug('Loading tokens')
-            table = db.get_table('tokens')
+            table = models.dynamo.get_table('tokens')
             curs.execute("""SELECT ownerid, appid, token,
                                 unix_timestamp(expires),
                                 unix_timestamp(updated)
@@ -49,7 +45,7 @@ class Command(LabelCommand):
 
             # USERS
             logger.debug('Loading users')
-            table = db.get_table('users')
+            table = models.dynamo.get_table('users')
             curs.execute("""SELECT fbid, fname, lname email, gender, birthday, city, state,
                                 unix_timestamp(updated)
                             FROM users;""")
@@ -63,8 +59,8 @@ class Command(LabelCommand):
 
             # EDGES
             logger.debug('Loading edges')
-            incoming = db.get_table('edges_incoming')
-            outgoing = db.get_table('edges_outgoing')
+            incoming = models.dynamo.get_table('edges_incoming')
+            outgoing = models.dynamo.get_table('edges_outgoing')
 
             curs.execute("""SELECT fbid_source, fbid_target, post_likes, post_comms,
                                 stat_likes, stat_comms, wall_posts, wall_comms,
