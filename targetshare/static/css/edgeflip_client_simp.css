@@ -1,3 +1,11 @@
+/***************************************************
+ Main styling
+*/
+
+
+/* modify and uncomment to include external css font sheets */
+/*@import url("http://fonts.googleapis.com/css?family=Press+Start+2P");*/
+
 body {
     font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
 }
@@ -6,6 +14,7 @@ body {
 #faces_form_container {
     background-color: #f7f7f7;
     border: 2px solid #7C889B;
+    /*border: 2px solid lightgrey;*/
     border-radius: 10px;
     padding: 25px;
     margin: 20px auto;
