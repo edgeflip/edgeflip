@@ -20,6 +20,9 @@
 
 label {float:right;}
 
+.google-visualization-table-table {
+    margin: 20px 0;
+    }
 
 /* something, somewhere, is overriding font-sizes */
 .ui-widget {

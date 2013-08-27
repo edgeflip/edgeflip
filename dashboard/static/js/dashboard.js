@@ -21,7 +21,7 @@ function init() {
     window.chart = true;
     $('#chart').button().click( function () {
         window.chart = window.chart ? false:true;
-        $('#chart').button( "option", "label", "Viewing as: "+(window.chart? "Charts":"Tables"));
+        $('#chart').button( "option", "label", "View as: "+(window.chart? "Tables":"Charts"));
         draw();
         });
 
@@ -66,8 +66,11 @@ function draw() {
 
 
 function drawtables() {
-    window.dailychart.clearChart();
+    window.dailychart.clearChart();  // maybe unnecessary actually
     window.monthlychart.clearChart();
+
+    // hide the datepicker widget, it's awkward in the middle
+    $('#datepicker').hide();
 
     window.dailychart = new google.visualization.Table( $('#daily')[0] );
     window.dailychart.draw(window.dailydata, {
@@ -81,10 +84,15 @@ function drawtables() {
         titleTextStyle: {fontSize:18},
         });
 
+
     }
 
 
 function drawcharts() {
+
+    // turn on our datepicker if we're coming from tables
+    $('#datepicker').show();
+
     // redraw charts
     var dailyopts = {
         title: 'Hourly Volume - '+window.response.dailyday, 
@@ -99,7 +107,7 @@ function drawcharts() {
         legend: {position: 'none'}, // kill this legend, we'll hack into the bigger one below
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'} },
-        hAxis: {gridlines: {color:'#FFF', count:13}, format:'H'},
+        hAxis: {gridlines: {color:'#FFF', count:13}, format:'H', title:'Time', titleTextStyle:{fontSize:13}},
         };
 
     window.dailychart = new google.visualization.LineChart( $('#daily')[0] );
@@ -119,7 +127,7 @@ function drawcharts() {
 
         // "turn off" the gridlines, but keep unit labels on axes
         vAxis: {gridlines: {color:'#FFF'}, logScale:window.logscale},
-        hAxis: {gridlines: {color:'#FFF', count:7}, format:'M/dd'},
+        hAxis: {gridlines: {color:'#FFF', count:7}, format:'M/dd', title:'Date', titleTextStyle:{fontSize:13}},
         });
     }
 
