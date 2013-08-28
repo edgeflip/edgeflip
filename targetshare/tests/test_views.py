@@ -7,6 +7,7 @@ from django.utils import timezone
 from mock import patch, Mock
 
 from targetshare import models
+from targetshare.models.dynamo import db as dynamo
 
 from . import EdgeFlipTestCase
 
@@ -389,7 +390,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         ''' Test views.record_event with authorized event_type '''
         fb_mock.extendToken.return_value = None
         expires0 = timezone.now() - timedelta(days=5)
-        models.dynamo.save_token(
+        dynamo.save_token(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
             token='test-token',
@@ -410,7 +411,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         self.assertStatusCode(response, 200)
-        refreshed_token = models.dynamo.fetch_token(1111111, self.test_client.fb_app_id)
+        refreshed_token = dynamo.fetch_token(1111111, self.test_client.fb_app_id)
         self.assertGreater(refreshed_token['expires'], expires0)
         events = models.Event.objects.filter(
             event_type='authorized',

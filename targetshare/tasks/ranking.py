@@ -13,17 +13,10 @@ from targetshare import (
     ranking,
     utils,
 )
+from targetshare.tasks import db
 
 MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
-
-
-@celery.task
-def add(x, y):
-    ''' Not really used, but helpful if you're testing out some of the
-    zanier Celery tools.
-    '''
-    return x + y
 
 
 def proximity_rank_three(mock_mode, fbid, token, **kwargs):
@@ -315,62 +308,5 @@ def proximity_rank_four(mockMode, fbid, token):
         requireIncoming=True,
         requireOutgoing=False,
     )
-    update_database(user, token, edgesRanked)
+    db.update_database(user, token, edgesRanked)
     return edgesRanked
-
-
-@celery.task
-def bulk_create(objects):
-    ''' Handles bulk create objects in the background, so that we're not
-    stopping up the request/response cycle with irrelevant database writes.
-
-    Arguments:
-        objects: A list of model objects
-    '''
-    model, = set(type(obj) for obj in objects)
-    model.objects.bulk_create(objects)
-
-
-@celery.task
-def delayed_save(model_obj):
-    ''' Very simple task for delaying the save() of an object for the
-    background to keep the write out of the request/response cycle. Can
-    certainly take new or existing objects, but keep in mind that this comes
-    with a certain level of inherent danger.
-
-    Via this method, you can't guarentee the timing of when the object is saved
-    so this method is best reserved for things that won't need to be read back
-    from the database in a very quick fashion. In other words, use with some
-    appropriate level of caution
-    '''
-    model_obj.save()
-
-
-@celery.task
-def update_users(users):
-    """async wrapper for `edgeflip.database.compat.updateUsersDb`"""
-    database.updateUsersDb(users)
-
-
-@celery.task
-def update_tokens(token):
-    """async wrapper for `edgeflip.database.compat.updateTokensDb`"""
-    database.updateTokensDb(token)
-
-
-@celery.task
-def update_edges(edges):
-    """async wrapper for `edgeflip.database.compat.updateFriendEdgesDb`"""
-    database.updateFriendEdgesDb(edges)
-
-
-def update_database(user, token, edges):
-    """async version of `edgeflip.database_compat.updateDb"""
-    tasks = []
-    tasks.append(update_tokens.delay(token))
-    tasks.append(update_users.delay(([user])))
-    tasks.append(update_users.delay([e.secondary for e in edges]))
-    tasks.append(update_edges.delay(edges))
-    ids = [t.id for t in tasks]
-
-    logger.debug("updateDb() using background celery tasks %r for user %d", ids, user.id)
