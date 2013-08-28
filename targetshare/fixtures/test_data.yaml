@@ -137,27 +137,27 @@
     model: targetshare.campaignglobalfilter
     pk: 5
 -   fields: {campaign: 1, client_error_url: 'https://donate.demandaction.org/act/donate',
-        client_faces_url: 'http://mockclient.edgeflip.com:5000/guncontrol_share',
+        client_faces_url: 'http://local.edgeflip.com:8080/mocks/guncontrol_share',
         client_thanks_url: 'https://donate.demandaction.org/act/donate', end_dt: null,
         fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
         min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignproperties
     pk: 1
 -   fields: {campaign: 2, client_error_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
-        client_faces_url: 'http://mockclient.edgeflip.com:5000/immigration_share',
+        client_faces_url: 'http://local.edgeflip.com:8080/mocks/immigration_share',
         client_thanks_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
         min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignproperties
     pk: 2
 -   fields: {campaign: 3, client_error_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
-        client_faces_url: 'http://mockclient.edgeflip.com:5000/ofa_share', client_thanks_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
+        client_faces_url: 'http://local.edgeflip.com:8080/mocks/ofa_share', client_thanks_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
         min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignproperties
     pk: 3
 -   fields: {campaign: 4, client_error_url: 'https://donate.terrymcauliffe.com/page/contribute/thanks-donate',
-        client_faces_url: 'http://mockclient.edgeflip.com:5000/mcauliffe_share', client_thanks_url: 'https://donate.terrymcauliffe.com/page/contribute/thanks-donate',
+        client_faces_url: 'http://local.edgeflip.com:8080/mocks/mcauliffe_share', client_thanks_url: 'https://donate.terrymcauliffe.com/page/contribute/thanks-donate',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
         min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignproperties
@@ -193,19 +193,19 @@
     model: targetshare.choicesetfilter
     pk: 6
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-         is_deleted: false, name: Support Gun Control, url: 'http://mockclient.edgeflip.com:5000/guncontrol'}
+         is_deleted: false, name: Support Gun Control, url: 'http://local.edgeflip.com:8080/mocks/guncontrol'}
     model: targetshare.clientcontent
     pk: 1
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-         is_deleted: false, name: Support Immigration Reform, url: 'http://mockclient.edgeflip.com:5000/immigration'}
+         is_deleted: false, name: Support Immigration Reform, url: 'http://local.edgeflip.com:8080/mocks/immigration'}
     model: targetshare.clientcontent
     pk: 2
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-         is_deleted: false, name: OFA Enviro pages, url: 'http://mockclient.edgeflip.com:5000/ofa_landing?state={{choice_set_slug}}'}
+         is_deleted: false, name: OFA Enviro pages, url: 'http://local.edgeflip.com:8080/mocks/ofa_landing?state={{choice_set_slug}}'}
     model: targetshare.clientcontent
     pk: 3
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-         is_deleted: false, name: Support Terry McAuliffe, url: 'http://mockclient.edgeflip.com:5000/mcauliffe'}
+         is_deleted: false, name: Support Terry McAuliffe, url: 'http://local.edgeflip.com:8080/mocks/mcauliffe'}
     model: targetshare.clientcontent
     pk: 4
 -   fields: {button_style: null, choice_set: 1, choice_set_algorithm: null, client: 1,
