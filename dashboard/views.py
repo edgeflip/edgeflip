@@ -79,7 +79,10 @@ def chartdata(request):
 
     out = {}
 
-    # look for a campaign id, default to the newest (or aggregate?)
+    if ('campaign' in request.POST) and (request.POST['campaign'] == 'aggregate'):
+        return aggregate(request)
+
+    # look for a campaign id, default is whatever order we load the template
     monthly = CampaignSum.objects.get(campaign=request.POST['campaign'])
     out['monthly'] = monthly.mkGoog()
 
@@ -120,6 +123,21 @@ def chartdata(request):
 
     out['monthly_cols'] = MONTHLY_METRICS
     out['daily_cols'] = DAILY_METRICS
+
+    return HttpResponse(json.dumps(out), content_type="application/json")
+
+
+def aggregate(request):
+    aggdata = []
+    for row in CampaignSum.objects.all():
+        googdata = [row.campaign,] + [sum(i) for i in zip(*json.loads(row.data).values())] 
+        if len(googdata) == 10:
+            aggdata.append( {'c':googdata} )
+
+    metrics = MONTHLY_METRICS[:]
+    metrics[0] = {'type':'string', 'id':'campname', 'label':'Campaign Name'}
+
+    out = {'cols': metrics, 'rows': aggdata}
 
     return HttpResponse(json.dumps(out), content_type="application/json")
 

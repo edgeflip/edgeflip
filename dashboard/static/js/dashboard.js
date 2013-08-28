@@ -32,8 +32,13 @@ function getData() {
     // no need to post client, the server can pick that out of whatever user
     day = $.datepicker.formatDate('mm/dd/yy', $('#datepicker').datepicker('getDate'));
     campaign = $('#campaignpicker select').val();
-    $.post('/dashboard/chartdata/', {'campaign':campaign, 'day':day}, onData);
+
+    var callback = campaign=='aggregate'? onAggData : onData
+
+    $.post('/dashboard/chartdata/', {'campaign':campaign, 'day':day}, callback);
     }
+
+
 
 
 function onData(response) {
@@ -57,6 +62,22 @@ function onData(response) {
     shorthour.format( dailydata, 0);
 
     draw();
+    }
+
+
+function onAggData(response) {
+    window.response = response;
+
+    // clear the canvases.. canvii ?
+    window.dailychart.clearChart(); 
+    window.monthlychart.clearChart();
+    $('#datepicker').hide();
+   
+    // load the data into the now woefully named dailydata 
+    window.dailydata = new google.visualization.DataTable( {'cols':response.cols, 'rows':response.rows});
+    window.dailychart = new google.visualization.Table( $('#daily')[0] );
+
+    window.dailychart.draw(window.dailydata, {});
     }
 
 

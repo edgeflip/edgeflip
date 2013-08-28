@@ -9,10 +9,7 @@ class CampaignSum(models.Model):
 
     # ForeignKey to proper campaigns in the near future
     campaign = models.CharField(max_length=256, blank=True)
-
-
     data = models.TextField(max_length=500)  # and we jam our data in here as json
-
 
     class Meta(object):
         db_table = 'sum_campaign'
@@ -47,7 +44,6 @@ class DaySum(models.Model):
 
     day = models.DateField()
     data = models.TextField(max_length=500)  # ghetto json field .. fixed size, we could CharField here
-
 
     class Meta(object):
         db_table = 'sum_day'
