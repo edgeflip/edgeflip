@@ -130,7 +130,7 @@ def chartdata(request):
 def aggregate(request):
     aggdata = []
     for row in CampaignSum.objects.all():
-        googdata = [row.campaign,] + [sum(i) for i in zip(*json.loads(row.data).values())] 
+        googdata = [{'v':row.campaign},] + [{'v':sum(i)} for i in zip(*json.loads(row.data).values())] 
         if len(googdata) == 10:
             aggdata.append( {'c':googdata} )
 

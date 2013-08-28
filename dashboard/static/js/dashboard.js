@@ -72,6 +72,7 @@ function onAggData(response) {
     window.dailychart.clearChart(); 
     window.monthlychart.clearChart();
     $('#datepicker').hide();
+    $('label').hide();
    
     // load the data into the now woefully named dailydata 
     window.dailydata = new google.visualization.DataTable( {'cols':response.cols, 'rows':response.rows});
@@ -82,6 +83,7 @@ function onAggData(response) {
 
 
 function draw() {
+    $('label').show();
     window.chart?drawcharts():drawtables();
     }
 
@@ -104,8 +106,6 @@ function drawtables() {
         title: 'Daily Volume '+response.minday+' - '+response.maxday, 
         titleTextStyle: {fontSize:18},
         });
-
-
     }
 
 
