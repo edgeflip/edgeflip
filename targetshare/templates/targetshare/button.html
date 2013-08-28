@@ -33,7 +33,7 @@
             var appid = {{ fb_params.fb_app_id }};
             var content = '{{ fb_params.fb_app_name }}:button {{ goto|safe }}';
 
-            var params = JSON.stringify({
+            var params = {
                 userid: fbid,
                 appid: appid,
                 content: content,
@@ -42,12 +42,11 @@
                 campaignid: campaignid,
                 contentid: contentid,
                 token: accessToken
-            });
+            };
 
             $.ajax({
                 type: "POST",
                 url: "{% url 'record-event' %}",
-                contentType: "application/json",
                 dataType: 'html',
                 data: params,
                 error: function(jqXHR, textStatus, errorThrown) {
