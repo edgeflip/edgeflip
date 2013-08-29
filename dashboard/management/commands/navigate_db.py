@@ -24,7 +24,7 @@ class PySql(object):
             tables = [i[0] for i in self._cur.fetchall()]
             return tables
         except:
-            print "Error fetching the requested tables."
+            raise
 
     def show_columns(self,table):
         try:
@@ -32,7 +32,7 @@ class PySql(object):
             columns = [i[0] for i in self._cur.fetchall()]
             return columns
         except:
-            print "There is no table called %s" % table
+            raise
 
     def query(self,query_string):
         try:
@@ -41,7 +41,7 @@ class PySql(object):
             res_list = [[e for e in i] for i in res]
             return res_list    
         except:
-            print "You have a syntactical error in your SQL"
+            raise
 
     """
     json_ify takes as input a table name in the format of a string and a 

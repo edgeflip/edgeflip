@@ -4,22 +4,30 @@ import json
 from navigate_db import PySql
 from time import strftime
 
+from django.conf import settings
+
 # should be able to just do
-# from models import CampaignSum, DaySum and use them
+from dashboard.models import CampaignSum, DaySum
 
-f = open('dbcreds.txt', 'r')
-d = f.read().split('\n')
-f.close()
 
-tool = PySql(d[0], d[1], d[2], d[3])
-tool.connect()
+from django.core.management.base import BaseCommand, CommandError
+class Command(BaseCommand):
+    def handle(self, *args, **options):
+
+        dbcreds = settings.DASHBOARD
+
+        global tool
+        tool = PySql(dbcreds['host'], dbcreds['user'], dbcreds['secret'], dbcreds['db'])
+        tool.connect()
+        make_all_object()
+
 
 # this will rely on Django models CampaignSum and DaySum being accessible
-
 def make_all_object():
     all_campaigns = tool.query("select client_id, name from clients") 
     days_for_month = create_unix_time_for_each_day()
     days_for_month = [ datetime.datetime.fromtimestamp(d) for d in days_for_month ]
+
     all_data = all_hour_query()
     our_object = {}
     for client in all_campaigns:
@@ -31,34 +39,37 @@ def make_all_object():
             our_object[ client_name ][ campaign[1] ] = {}
             our_object[ client_name ][ campaign[1] ]["days"] = {}
             our_object[ client_name ][ campaign[1] ]["hours"] = {}
+
             # get all data that is for this campaign
             this_campaign_data = [ _set for _set in all_data if _set[0] == campaign[0] ]
             days_we_have = list( set( [ str( datetime.datetime(int(e[1]), int(e[2]), int(e[3])) ) for e in this_campaign_data ] ) )
             not_accounted_days = [
-                                     str(datetime.datetime(d.year, d.month, d.day))
-                                     for d in days_for_month if str(datetime.datetime(d.year, d.month, d.day)) not in days_we_have
-                                 ]
+                str(datetime.datetime(d.year, d.month, d.day))
+                for d in days_for_month if str(datetime.datetime(d.year, d.month, d.day)) not in days_we_have
+                ]
+
             for day in days_we_have:
                 # the day data for each day
                 day_data = [
-                               e for e in [
-                                              j[5:] for j in this_campaign_data if str(datetime.datetime(int(j[1]), int(j[2]), int(j[3]))) == day
-                                          ]
-                           ]
+                    e for e in [
+                        j[5:] for j in this_campaign_data if str(datetime.datetime(int(j[1]), int(j[2]), int(j[3]))) == day
+                        ]
+                    ]
 
                 day_data_new = []
                 for each in day_data:
-                    day_data_new.append( [ int(j) for j in each ] )
+                    day_data_new.append([ int(j) for j in each ])
                 sums = []
-                for i in range( len( day_data_new[0] ) ):
-                    sums.append( sum([ x[i] for x in day_data_new ]) )
-                our_object[ client_name ][ campaign[1] ]["days"][day] = sums
+                for i in range( len( day_data_new[0])):
+                    sums.append( sum([ x[i] for x in day_data_new ]))
+                our_object[client_name][ campaign[1] ]["days"][day] = sums
                 # hour data portion
                 hour_data = [
-                                e for e in [
-                                               j[4:] for j in this_campaign_data if str(datetime.datetime(int(j[1]), int(j[2]), int(j[3]))) == day
-                                           ]
-                            ]
+                    e for e in [
+                        j[4:] for j in this_campaign_data if str(datetime.datetime(int(j[1]), int(j[2]), int(j[3]))) == day
+                        ]
+                    ]
+
                 hour_data_new = []
                 # convert our days to integers
                 for each in hour_data:
@@ -69,6 +80,7 @@ def make_all_object():
 
                 #hour_data_new += [ [i] + [0 for j in range(9)] for i in range(24) if i not in [e[0] for e in hour_data_new] ] 
                 our_object[ client_name ][ campaign[1] ]["hours"][day] = hour_data_new
+
             # for all the days over the past month that we don't have data for for the current iteration's campaign...
             for day in not_accounted_days:
                 our_object[ client_name ][ campaign[1] ]["days"][day] = [ 0 for i in range(9) ]
@@ -78,9 +90,10 @@ def make_all_object():
     for client in our_object.keys():
         for campaign in our_object[client].keys():
             ddata = our_object[client][campaign]["days"]
-        #    for k in ddata.keys():
-        #        if sum(ddata[k]) == 0:
-        #            del ddata[k]
+
+            #    for k in ddata.keys():
+            #        if sum(ddata[k]) == 0:
+            #            del ddata[k]
 
             C = CampaignSum( campaign=campaign, data=json.dumps(ddata) )
             C.save()
@@ -88,11 +101,12 @@ def make_all_object():
             for day in our_object[client][campaign]["hours"].keys():
                 hdata = our_object[client][campaign]["hours"][day]
 
-            # if [sum(row) for row in hdata] == range(24): continue
-            # d = datetime.strptime(d, "%Y-%m-%d %H:%M:%S")
-
+                # if [sum(row) for row in hdata] == range(24): continue
+                # d = datetime.strptime(d, "%Y-%m-%d %H:%M:%S")
+                day = day.split(' ')[0]
                 D = DaySum( campaign=campaign, data=json.dumps(hdata), day=day )
                 D.save()
+
     print "Data successfully ported to Django Models"
 
 
@@ -133,31 +147,59 @@ def keep_updated():
 
 # SQL QUERIES
 
-main_query_hour_by_hour_new ="""SELECT                                                         
-         e4.campaign_id,
-         YEAR(t.updated),
-         MONTH(t.updated),
-         DAY(t.updated),
-         HOUR(t.updated),
-         SUM(CASE WHEN t.type='button_load' THEN 1 ELSE 0 END) as Visits,       
-         SUM(CASE WHEN t.type='button_click' THEN 1 ELSE 0 END) as Clicks, 
-         SUM(CASE WHEN t.type='authorized' THEN 1 ELSE 0 END) as Authorizations,
-         COUNT(DISTINCT CASE WHEN t.type='authorized' THEN t.fbid ELSE NULL END) as "Distinct Facebook Users Authorized",
-         COUNT(DISTINCT CASE WHEN t.type='shown' THEN t.fbid ELSE NULL END) as "# Users Shown Friends",
-         COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.fbid ELSE NULL END) as "# Users Who Shared",
-         SUM(CASE WHEN t.type='shared' THEN 1 ELSE 0 END) as "# Friends Shared with",
-         COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.friend_fbid ELSE NULL END) as "# Distinct Friends Shared",
-         COUNT(DISTINCT CASE WHEN t.type='clickback' THEN t.cb_session_id ELSE NULL END) as "# Clickbacks"
-     FROM                                                                       
-         (SELECT e1.*,NULL as cb_session_id FROM events e1 WHERE type <> 'clickback'
-         UNION                                                                  
-         SELECT e3.session_id,e3.campaign_id, e2.content_id,e2.ip,e3.fbid,e3.friend_fbid,e2.type,e2.appid,e2.content,e2.activity_id, e2.session_id as cb_session_id,e2.updated FROM events e2 LEFT JOIN events e3 USING (activity_id)  WHERE e2.type='clickback' AND e3.type='shared')
-     t                     
-         LEFT JOIN (SELECT session_id,campaign_id FROM events WHERE type='button_load')
-     e4                                                                         
-         USING (session_id)
-         WHERE t.updated > FROM_UNIXTIME({0}) 
-         GROUP BY e4.campaign_id, YEAR(t.updated), MONTH(t.updated), DAY(t.updated), HOUR(t.updated);"""
+main_query_hour_by_hour_new ="""
+    SELECT
+        e4.campaign_id,
+        YEAR(t.updated),
+        MONTH(t.updated),
+        DAY(t.updated),
+        HOUR(t.updated),
+        SUM(CASE WHEN t.type='button_load' THEN 1 ELSE 0 END) as Visits,
+        SUM(CASE WHEN t.type='button_click' THEN 1 ELSE 0 END) as Clicks, 
+        SUM(CASE WHEN t.type='authorized' THEN 1 ELSE 0 END) as Authorizations,
+        COUNT(DISTINCT CASE WHEN t.type='authorized' THEN t.fbid ELSE NULL END) as "Distinct Facebook Users Authorized",
+        COUNT(DISTINCT CASE WHEN t.type='shown' THEN t.fbid ELSE NULL END) as "# Users Shown Friends",
+        COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.fbid ELSE NULL END) as "# Users Who Shared",
+        SUM(CASE WHEN t.type='shared' THEN 1 ELSE 0 END) as "# Friends Shared with",
+        COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.friend_fbid ELSE NULL END) as "# Distinct Friends Shared",
+        COUNT(DISTINCT CASE WHEN t.type='clickback' THEN t.cb_session_id ELSE NULL END) as "# Clickbacks"
+
+    FROM
+        (
+            SELECT e1.session_id,
+                e1.campaign_id,
+                e1.content_id,
+                e1.ip,
+                e1.fbid,
+                e1.friend_fbid,
+                e1.type,
+                e1.appid,
+                e1.content,
+                e1.activity_id,
+                NULL AS cb_session_id,
+                e1.updated
+            FROM events e1 
+                WHERE type <> 'clickback' 
+                AND e1.updated > NOW() - INTERVAL 1 DAY
+            UNION                                                                  
+            SELECT e3.session_id,
+                e3.campaign_id, 
+                e2.content_id,
+                e2.ip,
+                e3.fbid,
+                e3.friend_fbid,
+                e2.type,
+                e2.appid,
+                e2.content,
+                e2.activity_id, 
+                e2.session_id AS cb_session_id, 
+                e2.updated
+            FROM events e2 LEFT JOIN events e3 USING (activity_id)  
+            WHERE e2.type='clickback' AND e3.type='shared' 
+        ) t
+    LEFT JOIN (SELECT session_id,campaign_id FROM events WHERE type='button_load') e4
+        USING (session_id)
+    GROUP BY e4.campaign_id, YEAR(t.updated), MONTH(t.updated), DAY(t.updated), HOUR(t.updated);"""
 
 def all_hour_query():
     month = month_ago()
