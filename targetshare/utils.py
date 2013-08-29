@@ -110,8 +110,8 @@ def civis_filter(edges, feature, operator, score_value):
 
     valid_ids = []
     for key, value in results.items():
-        scores = getattr(value, 'scores', None)
-        filter_feature = scores.get(feature) if scores and scores.get(feature) else {}
+        scores = getattr(value, 'scores', None) or {}
+        filter_feature = scores.get(feature) or {}
         if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
             valid_ids.append(str(key))
 
