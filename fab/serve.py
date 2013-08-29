@@ -18,7 +18,7 @@ CELERY_QUEUES = (
     'celery',
     'delayed_save',
     'bulk_create',
-    'update_users',
+    'bulk_upsert',
     'update_tokens',
     'update_edges',
 )
