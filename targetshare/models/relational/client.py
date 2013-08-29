@@ -45,7 +45,7 @@ class Client(models.Model):
             template = find_template('targetshare/clients/%s/%s' % (
                 self.subdomain,
                 template_name
-            ))[0]
+            ))[0].name
         except TemplateDoesNotExist:
             template = 'targetshare/%s' % template_name
 

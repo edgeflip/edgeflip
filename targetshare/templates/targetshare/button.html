@@ -33,7 +33,7 @@
             var appid = {{ fb_params.fb_app_id }};
             var content = '{{ fb_params.fb_app_name }}:button {{ goto|safe }}';
 
-            var params = JSON.stringify({
+            var params = {
                 userid: fbid,
                 appid: appid,
                 content: content,
@@ -42,12 +42,11 @@
                 campaignid: campaignid,
                 contentid: contentid,
                 token: accessToken
-            });
+            };
 
             $.ajax({
                 type: "POST",
                 url: "{% url 'record-event' %}",
-                contentType: "application/json",
                 dataType: 'html',
                 data: params,
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -118,7 +117,7 @@
 {% endblock %}
 {% block body %}
     {% block button %}
-        <div id="share_button" class="button_big active_button" style="width: 250px;" onclick="doFBLogin();">Support us on Facebook</div>
+        <div id="share_button" class="button_big button_active" style="width: 250px;" onclick="doFBLogin();">Support us on Facebook</div>
     {% endblock button %}
     <div id="fb-root"></div>
     <script type="text/javascript">
