@@ -2,7 +2,6 @@
 import MySQLdb as mysql
 
 
-
 # pass a new PySql object a cursor for instantiation
 
 class PySql(object):

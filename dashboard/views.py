@@ -145,25 +145,6 @@ def aggregate(request):
 def mkdata(request):
     """one off that should be a management command to dump wes's json into django"""
 
-    with open('dashboard/VAdump.json') as f:
-        data = json.loads(f.read())
-
-    for campaign in data.keys():
-        logging.info(campaign)
-        daily_data = data[campaign]['days']
-        for k in daily_data.keys():
-            if sum(daily_data[k]) == 0:
-                del daily_data[k]
-
-        C = CampaignSum( campaign=campaign, data=json.dumps(daily_data))
-        C.save()
-
-        for day in data[campaign]['hours'].keys():
-            hourly_data = data[campaign]['hours'][day]
-
-            if [sum(row) for row in hourly_data] == range(24): continue
-            day = datetime.strptime(day, "%Y-%m-%d %H:%M:%S")
-
-            D = DaySum( campaign=campaign, data=json.dumps(hourly_data), day=day)
-            D.save()
+    from dash_data import make_all_object
+    make_all_object()
 

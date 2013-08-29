@@ -5,13 +5,16 @@ from navigate_db import PySql
 from time import strftime
 
 from django.conf import settings
+from logging import debug, info, warning
 
-# should be able to just do
 from dashboard.models import CampaignSum, DaySum
 
+from django.db import transaction
 
 from django.core.management.base import BaseCommand, CommandError
 class Command(BaseCommand):
+
+    @transaction.commit_on_success
     def handle(self, *args, **options):
 
         dbcreds = settings.DASHBOARD
@@ -19,7 +22,13 @@ class Command(BaseCommand):
         global tool
         tool = PySql(dbcreds['host'], dbcreds['user'], dbcreds['secret'], dbcreds['db'])
         tool.connect()
+        self.clearsums()
         make_all_object()
+
+    def clearsums(self):
+        """ Clear out the existing summary tables """
+        CampaignSum.objects.raw("DELETE FROM sum_campaign WHERE 1")
+        CampaignSum.objects.raw("DELETE FROM sum_day WHERE 1")
 
 
 # this will rely on Django models CampaignSum and DaySum being accessible
@@ -36,6 +45,7 @@ def make_all_object():
         our_object[client_name] = {}
         campaigns = get_campaign_stuff_for_client(client_id)
         for campaign in campaigns:
+
             our_object[ client_name ][ campaign[1] ] = {}
             our_object[ client_name ][ campaign[1] ]["days"] = {}
             our_object[ client_name ][ campaign[1] ]["hours"] = {}
@@ -43,6 +53,7 @@ def make_all_object():
             # get all data that is for this campaign
             this_campaign_data = [ _set for _set in all_data if _set[0] == campaign[0] ]
             days_we_have = list( set( [ str( datetime.datetime(int(e[1]), int(e[2]), int(e[3])) ) for e in this_campaign_data ] ) )
+
             not_accounted_days = [
                 str(datetime.datetime(d.year, d.month, d.day))
                 for d in days_for_month if str(datetime.datetime(d.year, d.month, d.day)) not in days_we_have
@@ -86,14 +97,11 @@ def make_all_object():
                 our_object[ client_name ][ campaign[1] ]["days"][day] = [ 0 for i in range(9) ]
                 hour_data = [ [j] + [0 for i in range(9)] for j in range(24) ]
                 our_object[ client_name ][ campaign[1] ]["hours"][day] = hour_data
+
     # port data to django models
     for client in our_object.keys():
         for campaign in our_object[client].keys():
             ddata = our_object[client][campaign]["days"]
-
-            #    for k in ddata.keys():
-            #        if sum(ddata[k]) == 0:
-            #            del ddata[k]
 
             C = CampaignSum( campaign=campaign, data=json.dumps(ddata) )
             C.save()
@@ -107,7 +115,7 @@ def make_all_object():
                 D = DaySum( campaign=campaign, data=json.dumps(hdata), day=day )
                 D.save()
 
-    print "Data successfully ported to Django Models"
+    info( "Data successfully ported to Django Models")
 
 
 
@@ -147,7 +155,7 @@ def keep_updated():
 
 # SQL QUERIES
 
-main_query_hour_by_hour_new ="""
+main_query_hour_by_hour_new = dataquery ="""
     SELECT
         e4.campaign_id,
         YEAR(t.updated),
@@ -166,21 +174,10 @@ main_query_hour_by_hour_new ="""
 
     FROM
         (
-            SELECT e1.session_id,
-                e1.campaign_id,
-                e1.content_id,
-                e1.ip,
-                e1.fbid,
-                e1.friend_fbid,
-                e1.type,
-                e1.appid,
-                e1.content,
-                e1.activity_id,
-                NULL AS cb_session_id,
-                e1.updated
+            SELECT e1.session_id, e1.campaign_id, e1.content_id, e1.ip, e1.fbid, e1.friend_fbid,
+                e1.type, e1.appid, e1.content, e1.activity_id, NULL AS cb_session_id, e1.updated
             FROM events e1 
                 WHERE type <> 'clickback' 
-                AND e1.updated > NOW() - INTERVAL 1 DAY
             UNION                                                                  
             SELECT e3.session_id,
                 e3.campaign_id, 
@@ -201,12 +198,12 @@ main_query_hour_by_hour_new ="""
         USING (session_id)
     GROUP BY e4.campaign_id, YEAR(t.updated), MONTH(t.updated), DAY(t.updated), HOUR(t.updated);"""
 
+#                AND e1.updated > NOW() - INTERVAL 1 DAY
+
 def all_hour_query():
     month = month_ago()
     res = tool.query(main_query_hour_by_hour_new.format(month))
     return res
-
-
 
 # HELPER FUNCTIONS
 
