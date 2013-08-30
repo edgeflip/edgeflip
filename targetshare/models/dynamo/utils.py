@@ -35,8 +35,8 @@ class DynamoDB(object):
         self.tables.add(sender.items.table)
 
     @property
-    def _table_names(self):
-        return tuple(table.short_name for table in self.tables)
+    def named_tables(self):
+        return {table.short_name: table for table in self.tables}
 
     @staticmethod
     def create_table(table):
@@ -109,7 +109,7 @@ class DynamoDB(object):
             continue_ = _confirm(
                 "Drop tables [{tables}] with prefix '{prefix}' from dynamo"
                 .format(
-                    tables=', '.join(self._table_names),
+                    tables=', '.join(self.named_tables),
                     prefix=settings.DYNAMO.prefix,
                 )
             )
@@ -130,7 +130,7 @@ class DynamoDB(object):
         if not _confirm(
             "Truncate all data from tables [{tables}] with prefix '{prefix}'"
             .format(
-                tables=', '.join(self._table_names),
+                tables=', '.join(self.named_tables),
                 prefix=settings.DYNAMO.prefix,
             )
         ):
