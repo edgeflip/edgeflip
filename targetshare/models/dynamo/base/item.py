@@ -131,9 +131,9 @@ class DeclarativeItemBase(type):
                   if isinstance(field, basefields.BaseSchemaField)]
         item_table = Table(
             table_name=cls._meta.table_name,
+            item=cls,
             schema=schema,
             indexes=cls._meta.indexes,
-            item=cls,
         )
         for value in attrs.values():
             if isinstance(value, ItemManagerDescriptor) and value.manager.table is None:

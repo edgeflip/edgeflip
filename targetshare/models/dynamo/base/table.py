@@ -55,9 +55,8 @@ class Table(table.Table):
     Models definition and interactions with a table in DynamoDB.
 
     """
-    def __init__(self, table_name, schema=None, throughput=None, indexes=None,
-                 connection=None,
-                 item=None): # Add "item" to inherited interface
+    def __init__(self, table_name, item, # Add "item" to inherited interface
+                 schema=None, throughput=None, indexes=None, connection=None):
         # Default to global (thread-local) connection:
         connection = connection or db.connection
         super(Table, self).__init__(table_name, schema, throughput, indexes, connection)
