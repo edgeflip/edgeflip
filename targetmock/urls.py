@@ -2,6 +2,8 @@ from django.conf.urls import patterns, url
 from django.views.generic.base import TemplateView
 
 urlpatterns = patterns('',
+    url(r'^$', TemplateView.as_view(template_name='targetmock/index.html'),
+        name='mock-landing'),
     url(r'^guncontrol/$',
         TemplateView.as_view(template_name='targetmock/mayors_share_wrapper.html'),
          name='mayors-auth'),
