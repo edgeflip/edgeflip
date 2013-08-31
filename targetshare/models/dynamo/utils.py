@@ -43,11 +43,18 @@ class DynamoDB(object):
         LOG.info("Creating table %s", table.table_name)
         return table.create(
             table_name=table.table_name,
+            item=table.item,
             schema=table.schema,
             throughput=table.throughput,
             indexes=table.indexes,
             connection=table.connection,
         )
+
+    def status(self):
+        for table in self.tables:
+            description = table.describe()
+            status = description['Table']['TableStatus']
+            print("Table '{}' status: {}".format(table.table_name, status))
 
     def create_all_tables(self, timeout=0, wait=2, console=DummyIO()):
         """Create all tables in Dynamo.
@@ -142,3 +149,27 @@ class DynamoDB(object):
                     batch.delete_item(**item.get_keys())
 
 database = DynamoDB()
+
+
+def doc_inheritor(cls):
+    """Apply inherited __doc__ strings to subclass and proxy methods.
+
+        inherits_docs = doc_inheritor(MyBaseClass)
+
+        class MySubClass(MyBaseClass):
+
+            @inherits_docs
+            def overwrite_method(self):
+                ...
+
+    """
+    def inheritor(func):
+        if func.__doc__ is None:
+            try:
+                inherited = getattr(cls, func.__name__)
+            except AttributeError:
+                pass
+            else:
+                func.__doc__ = inherited.__doc__
+        return func
+    return inheritor
