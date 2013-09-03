@@ -1,5 +1,6 @@
 import logging
 import sys
+from optparse import make_option
 
 from django.core.management.base import CommandError, LabelCommand
 
@@ -11,14 +12,33 @@ class Command(LabelCommand):
     args = '<subcommand0 subcommand1 ...>'
     label = 'subcommand'
     help = "Subcommands: create, migrate, destroy"
+    option_list = LabelCommand.option_list + (
+        make_option(
+            '-r', '--read-throughput',
+            dest='read_throughput',
+            default=5,
+            help='Sets the read throughput when creating tables. Default 5.'
+        ),
+        make_option(
+            '-w', '--write-throughput',
+            dest='write_throughput',
+            default=5,
+            help='Sets the write throughput when creating tables. Default 5.'
+        ),
+    )
 
     def handle_label(self, label, **options):
         logger = logging.getLogger('mysql_to_dynamo')
 
         if label == 'create':
+            throughput = {
+                'read': options.get('read_throughput', 5),
+                'write': options.get('write_throughput', 5)
+            }
             utils.database.create_all_tables(
                 timeout=(60 * 3), # 3 minutes per table
                 console=sys.stdout,
+                throughput=throughput,
             )
             self.stdout.write("Created all Dynamo tables. "
                               "This make take several minutes to take effect.")
