@@ -6,6 +6,12 @@ Item classes may extend ItemManager with class-specific methods, override the de
 manager and/or specify alternative managers. (See `Item`.)
 
 """
+from targetshare.models.dynamo import utils
+
+from .table import Table
+
+
+inherits_docs = utils.doc_inheritor(Table)
 
 
 class ItemManager(object):
@@ -20,30 +26,39 @@ class ItemManager(object):
 
     # Simple proxies -- provide subset of Table interface #
 
+    @inherits_docs
     def get_item(self, *args, **kws):
         return self.table.get_item(*args, **kws)
 
+    @inherits_docs
     def put_item(self, *args, **kws):
         return self.table.put_item(*args, **kws)
 
+    @inherits_docs
     def delete_item(self, *args, **kws):
         return self.table.delete_item(*args, **kws)
 
+    @inherits_docs
     def batch_get(self, *args, **kws):
         return self.table.batch_get(*args, **kws)
 
+    @inherits_docs
     def batch_write(self, *args, **kws):
         return self.table.batch_write(*args, **kws)
 
+    @inherits_docs
     def count(self):
         return self.table.count()
 
+    @inherits_docs
     def query_count(self, *args, **kws):
         return self.table.query_count(*args, **kws)
 
+    @inherits_docs
     def query(self, *args, **kws):
         return self.table.query(*args, **kws)
 
+    @inherits_docs
     def scan(self, *args, **kws):
         return self.table.scan(*args, **kws)
 

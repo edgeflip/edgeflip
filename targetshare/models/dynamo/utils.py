@@ -35,19 +35,26 @@ class DynamoDB(object):
         self.tables.add(sender.items.table)
 
     @property
-    def _table_names(self):
-        return tuple(table.short_name for table in self.tables)
+    def named_tables(self):
+        return {table.short_name: table for table in self.tables}
 
     @staticmethod
     def create_table(table):
         LOG.info("Creating table %s", table.table_name)
         return table.create(
             table_name=table.table_name,
+            item=table.item,
             schema=table.schema,
             throughput=table.throughput,
             indexes=table.indexes,
             connection=table.connection,
         )
+
+    def status(self):
+        for table in self.tables:
+            description = table.describe()
+            status = description['Table']['TableStatus']
+            print("Table '{}' status: {}".format(table.table_name, status))
 
     def create_all_tables(self, timeout=0, wait=2, console=DummyIO()):
         """Create all tables in Dynamo.
@@ -109,7 +116,7 @@ class DynamoDB(object):
             continue_ = _confirm(
                 "Drop tables [{tables}] with prefix '{prefix}' from dynamo"
                 .format(
-                    tables=', '.join(self._table_names),
+                    tables=', '.join(self.named_tables),
                     prefix=settings.DYNAMO.prefix,
                 )
             )
@@ -130,7 +137,7 @@ class DynamoDB(object):
         if not _confirm(
             "Truncate all data from tables [{tables}] with prefix '{prefix}'"
             .format(
-                tables=', '.join(self._table_names),
+                tables=', '.join(self.named_tables),
                 prefix=settings.DYNAMO.prefix,
             )
         ):
@@ -142,3 +149,27 @@ class DynamoDB(object):
                     batch.delete_item(**item.get_keys())
 
 database = DynamoDB()
+
+
+def doc_inheritor(cls):
+    """Apply inherited __doc__ strings to subclass and proxy methods.
+
+        inherits_docs = doc_inheritor(MyBaseClass)
+
+        class MySubClass(MyBaseClass):
+
+            @inherits_docs
+            def overwrite_method(self):
+                ...
+
+    """
+    def inheritor(func):
+        if func.__doc__ is None:
+            try:
+                inherited = getattr(cls, func.__name__)
+            except AttributeError:
+                pass
+            else:
+                func.__doc__ = inherited.__doc__
+        return func
+    return inheritor
