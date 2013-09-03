@@ -11,6 +11,7 @@ from targetshare.models import dynamo
 class Command(LabelCommand):
     args = '<subcommand0 subcommand1 ...>'
     label = 'subcommand'
+    help = "Subcommands: create, migrate, destroy, status"
     option_list = LabelCommand.option_list + (
         make_option(
             '-r', '--read-throughput',
