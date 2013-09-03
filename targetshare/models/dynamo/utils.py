@@ -39,13 +39,13 @@ class DynamoDB(object):
         return {table.short_name: table for table in self.tables}
 
     @staticmethod
-    def create_table(table):
+    def create_table(table, throughput=None):
         LOG.info("Creating table %s", table.table_name)
         return table.create(
             table_name=table.table_name,
             item=table.item,
             schema=table.schema,
-            throughput=table.throughput,
+            throughput=throughput if throughput else table.throughput,
             indexes=table.indexes,
             connection=table.connection,
         )
@@ -56,7 +56,7 @@ class DynamoDB(object):
             status = description['Table']['TableStatus']
             print("Table '{}' status: {}".format(table.table_name, status))
 
-    def create_all_tables(self, timeout=0, wait=2, console=DummyIO()):
+    def create_all_tables(self, timeout=0, wait=2, console=DummyIO(), throughput=None):
         """Create all tables in Dynamo.
 
         Table creation commands cannot be issued for two tables with secondary keys at
@@ -74,7 +74,7 @@ class DynamoDB(object):
 
         for table_number, table_defn in enumerate(tables, 1):
             # Issue creation directive to AWS:
-            table = self.create_table(table_defn)
+            table = self.create_table(table_defn, throughput)
 
             # Monitor job status:
             console.write("Table '{}' status: ".format(table.table_name))
