@@ -17,12 +17,14 @@ class Command(LabelCommand):
             '-r', '--read-throughput',
             dest='read_throughput',
             default=5,
+            type='int',
             help='Sets the read throughput when creating tables. Default 5.'
         ),
         make_option(
             '-w', '--write-throughput',
             dest='write_throughput',
             default=5,
+            type='int',
             help='Sets the write throughput when creating tables. Default 5.'
         ),
     )
@@ -32,8 +34,8 @@ class Command(LabelCommand):
 
         if label == 'create':
             throughput = {
-                'read': options.get('read_throughput', 5),
-                'write': options.get('write_throughput', 5)
+                'read': options.get('read_throughput') or 5,
+                'write': options.get('write_throughput') or 5,
             }
             utils.database.create_all_tables(
                 timeout=(60 * 3), # 3 minutes per table
