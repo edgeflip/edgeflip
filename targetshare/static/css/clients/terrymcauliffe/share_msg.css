@@ -11,14 +11,18 @@
 }
 
 .share_prompt {
-	display: block;
-	margin-bottom: 20px;
-	color: #2a2a2a;
-	font-size: 36px;
-	font-style: normal;
-	font-weight: 700;
-	text-transform: uppercase;
-	font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
+/*
+	display: table;
+	width: 70%;
+	text-align: center;
+	margin: 0px auto 18px auto;
+*/
+	margin-bottom: 18px;
+	padding-bottom: 2px;
+	color: #0f2446;
+	font-size: 22px;
+	font-family: "Open Sans", Helvetica, sans-serif;
+	font-weight: 600;
 }
 
 .msg_friend_name {
@@ -26,10 +30,9 @@
 	font-family: sans-serif;
 	font-weight: 200;
 	color: black;
-	border: thin solid black;
+	border: thin solid #89A8BD;
 	padding: 1px 2px 1px 2px;
-	/*background-color: #fff147;*/
-	background-color: #fff89A;
+	background-color: #E6F2FF;
 	border-radius: 4px;
 	-moz-border-radius: 4px;
 	vertical-align: middle;
@@ -38,7 +41,7 @@
 
 .msg-txt-friend {
 	font-size: 12px;
-	line-height: 16px;
+	line-height: 18px;
 }
 
 .msg-sugg-friend {
@@ -48,13 +51,13 @@
 
 .msg_x {
 	font-weight: 900;
-	color: black;
+	color: #89A8BD;
 	margin-left: 3px;
 	cursor: pointer;
 }
 
 .msg_x:hover {
-	color: #CC0000;
+	color: #0270A0;
 }
 
 .msg_picker,
@@ -63,21 +66,12 @@
 }
 
 .msg_title {
+	font-size: 18px;
 	text-align: left;
+	color: #0f2446;
+	font-family: "Open Sans", Helvetica, sans-serif;
+	font-weight: 400;
 	float: left;
-    font-weight: normal;
-    font-size: 16pt;
-    line-height: 1.2;
-    font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;
-    color: #2a2a2a;
-	line-height: 30px;
-	vertical-align: middle;
-}
-
-.step_icon {
-	height: 25px;
-	vertical-align: middle;
-	margin-top: -4px;
 }
 
 .msg_picker {
@@ -142,7 +136,6 @@
     outline: none;
 }
 
-
 span#helper_txt:empty:before {
     content:"Click the button above to use a suggested message, or write your own here.";
 }
@@ -156,6 +149,6 @@ span#helper_txt:empty:before {
 	display: block;
 	position: absolute;
 	right: 0px;
+	color: white; 
 	cursor: pointer; 
 }
-
