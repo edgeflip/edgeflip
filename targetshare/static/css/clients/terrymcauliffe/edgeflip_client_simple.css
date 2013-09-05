@@ -24,6 +24,7 @@
     border: 2px solid #7C889B;
     border-radius: 10px;
     padding: 15px;
+    margin: 0px auto;
 }
 
 #friends_table {
@@ -191,6 +192,8 @@
     font-size: 22px;
     font-family: "Open Sans", Helvetica, sans-serif;
     font-weight: 600;
+    text-align: left;
+    padding: 0px;
 }
 
 .text_instructions {
@@ -203,9 +206,9 @@
     float: left;
 }
 
-.message_form {
-    padding-bottom: 15px;
+#message_form {
     clear: both;
+    width: 520px;
 }
 
 #message_form_editable {
@@ -218,7 +221,6 @@
     /*margin-left: 2%;*/
     min-height: 90px;
     line-height: 25px;
-
 }
 
 .message_friend_name {
@@ -234,3 +236,5 @@
     vertical-align: middle;
     white-space: nowrap;
 }
+
+
