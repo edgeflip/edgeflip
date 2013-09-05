@@ -135,5 +135,7 @@
         }());
             
     </script>
-    {% include 'targetshare/privacy_policy.html' %}
+    {% block privacy_policy %}
+        {% include 'targetshare/privacy_policy.html' %}
+    {% endblock %}
 {% endblock %}
