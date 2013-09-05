@@ -34,6 +34,7 @@ class Command(BaseCommand):
         """)
 
         if not self.pcur.fetchall():
+
             self.pcur.execute("""
             CREATE TABLE events (
                 session_id VARCHAR(128),
@@ -49,6 +50,19 @@ class Command(BaseCommand):
                 updated TIMESTAMP
                 )
             """)
+
+        self.pcur.execute( """
+        SELECT * FROM information_schema.tables WHERE table_schema='public' AND table_name='sum_day';
+        """)
+
+        if not self.pcur.fetchall():
+            self.pcur.execute("""
+            CREATE TABLE sum_day (
+                campaign_id INTEGER,
+                )
+            """)
+
+
 
     def get_events(self):
         tstart = time()
@@ -89,7 +103,62 @@ class Command(BaseCommand):
         """ 
         in theory we'd know which events we just added and could recalc summary tables atomically
         """
-        import pdb;pdb.set_trace()
 
+        megaquery = """
 
+    CREATE TABLE clientstats AS 
+    SELECT 
+        e4.campaign_id,
+        date_trunc('hour', t.updated) as time,
+        SUM(CASE WHEN t.type='button_load' THEN 1 ELSE 0 END) AS visits,
+        SUM(CASE WHEN t.type='button_click' THEN 1 ELSE 0 END) AS clicks,
+        SUM(CASE WHEN t.type='authorized' THEN 1 ELSE 0 END) AS auths,
+        COUNT(DISTINCT CASE WHEN t.type='authorized' THEN t.fbid ELSE NULL END) AS uniq_auths,
+        COUNT(DISTINCT CASE WHEN t.type='shown' THEN t.fbid ELSE NULL END) AS shown,
+        COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.fbid ELSE NULL END) AS shares,
+        COUNT(DISTINCT CASE WHEN t.type='shared' THEN t.friend_fbid ELSE NULL END) AS audience,
+        COUNT(DISTINCT CASE WHEN t.type='clickback' THEN t.cb_session_id ELSE NULL END) AS clickbacks
+
+    FROM
+        (
+            SELECT e1.session_id, e1.campaign_id, e1.content_id, e1.ip, e1.fbid, e1.friend_fbid,
+                e1.type, e1.appid, e1.content, e1.activity_id, NULL AS cb_session_id, e1.updated
+            FROM events e1
+                WHERE type <> 'clickback'
+            UNION
+            SELECT e3.session_id,
+                e3.campaign_id,
+                e2.content_id,
+                e2.ip,
+                e3.fbid,
+                e3.friend_fbid,
+                e2.type,
+                e2.appid,
+                e2.content,
+                e2.activity_id,
+                e2.session_id AS cb_session_id,
+                e2.updated
+            FROM events e2 LEFT JOIN events e3 USING (activity_id)
+            WHERE e2.type='clickback' AND e3.type='shared'
+        ) t
+    LEFT JOIN (SELECT session_id,campaign_id FROM events WHERE type='button_load') e4
+        USING (session_id)
+    GROUP BY e4.campaign_id, date_trunc('hour', t.updated);
+        """
+
+    # GROUP BY e4.campaign_id, extract(year from t.updated), extract(month from t.updated), extract(day from t.updated);
+
+"""
+    CREATE TABLE foo AS
+    SELECT
+        to_timestamp( (
+            cast(extract(year FROM now()) as text) 
+                ||' '||
+            cast(extract(month from now()) as text) 
+                ||' '||
+            cast(extract(day from now()) as text)
+                ||' '||
+            cast(extract(hour from now()) as text)
+            ), 'YYYY MM DD HH24') as time,
+"""
 

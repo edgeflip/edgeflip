@@ -16,6 +16,7 @@ class Command(BaseCommand):
 
     @transaction.commit_on_success
     def handle(self, *args, **options):
+        self.tstart = time.time()
 
         dbcreds = settings.DASHBOARD
 
@@ -25,8 +26,11 @@ class Command(BaseCommand):
         self.clearsums()
         make_all_object()
 
+        info( "Summary tables completed in {}".format(time.time()-self.tstart))
+
     def clearsums(self):
         """ Clear out the existing summary tables """
+        info('Wiping existing summary tables')
         CampaignSum.objects.raw("DELETE FROM sum_campaign WHERE 1")
         CampaignSum.objects.raw("DELETE FROM sum_day WHERE 1")
 
@@ -37,6 +41,7 @@ def make_all_object():
     days_for_month = create_unix_time_for_each_day()
     days_for_month = [ datetime.datetime.fromtimestamp(d) for d in days_for_month ]
 
+    info('Querying for data')
     all_data = all_hour_query()
     our_object = {}
     for client in all_campaigns:
@@ -46,6 +51,7 @@ def make_all_object():
         campaigns = get_campaign_stuff_for_client(client_id)
         for campaign in campaigns:
 
+            info('Building rows for campaign {}'.format(campaign))
             our_object[ client_name ][ campaign[1] ] = {}
             our_object[ client_name ][ campaign[1] ]["days"] = {}
             our_object[ client_name ][ campaign[1] ]["hours"] = {}
@@ -114,8 +120,6 @@ def make_all_object():
                 day = day.split(' ')[0]
                 D = DaySum( campaign=campaign, data=json.dumps(hdata), day=day )
                 D.save()
-
-    info( "Data successfully ported to Django Models")
 
 
 

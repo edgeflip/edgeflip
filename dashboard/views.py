@@ -11,6 +11,9 @@ from django.contrib.auth import logout
 
 from models import CampaignSum, DaySum
 
+import psycopg2
+import psycopg2.extras
+
 def dashlogout(request):
     logout(request)
 
@@ -20,13 +23,13 @@ def dashlogout(request):
 @require_GET
 @login_required(login_url='/dashboard/login/')
 def dashboard(request):
-    user = request.user  # really seems like this should automagically happen
 
     # so normally.. look up campaigns available to this user.
     # for now, we have only one client with data, so:
     campaigns = [row.campaign for row in CampaignSum.objects.all()]
 
 
+    user = request.user  # really seems like this should automagically happen
     context = {
         'user': user,
         'campaigns': campaigns,
@@ -42,10 +45,9 @@ MONTHLY_METRICS = [
     {'id': 'clicks', 'label': 'Clicks', 'type': 'number'},
     {'id': 'auths', 'label': 'Authorizations', 'type': 'number'},
     {'id': 'uniq_auths', 'label': 'Unique Authorizations', 'type': 'number'},
-    {'id': 'shown_friends', 'label': 'Users Shown Friends', 'type': 'number'},
+    {'id': 'shown', 'label': 'Users Shown Friends', 'type': 'number'},
     {'id': 'shares', 'label': 'Users Who Shared', 'type': 'number'},
-    {'id': 'share_reach', 'label': 'Friends Shared With', 'type': 'number'},
-    {'id': 'uniq_share_reach', 'label': 'Unique Friends Shared With', 'type': 'number'},
+    {'id': 'audience', 'label': 'Unique Friends Shared With', 'type': 'number'},
     {'id': 'clickbacks', 'label': 'Clickbacks', 'type': 'number'},
     ]
 
@@ -73,12 +75,61 @@ def fakedata(now, client_id=None):
     return {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly, 'daily':daily}
 
 
-@require_POST
-@login_required(login_url='/dashboard/login/')
 def chartdata(request):
 
     out = {}
 
+    # check for an aggregate request
+    if ('campaign' in request.POST) and (request.POST['campaign'] == 'aggregate'):
+        return aggregate(request)
+
+    pconn = psycopg2.connect(host='wes-rs-inst.cd5t1q8wfrkk.us-east-1.redshift.amazonaws.com',
+            user='edgeflip', database='edgeflip', port=5439, password='XzriGDp2FfVy9K')
+    pcur = pconn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+    # minor security hole/TODO: make sure the user is authorized to request stats for this campaign
+    camp_name = request.POST['campaign']  # and.. hope psycopg2 checking for sql injection
+  
+    # join, but really just send the campaign id from the client side 
+    pcur.execute("""SELECT campaign_id, client_id FROM campaigns WHERE name=%s""", (camp_name,)) 
+    camp_id = pcur.fetchone()[0]
+    
+    pcur.execute("""SELECT * FROM clientstats WHERE campaign_id=%s ORDER BY time ASC""",(camp_id,))
+    data = [row for row in pcur.fetchall()]
+
+    days = [row[1] for row in data]
+
+
+    # find min and max days ... this needs to be elsewhere
+    minday,maxday = min(days), max(days)
+
+    # send min and max days to restrict selectable days in the jquery widget
+    out['minday'] = minday.strftime( '%m/%d/%y')
+    out['maxday'] = maxday.strftime( '%m/%d/%y')
+
+    # pick the day we're going to look up data for, by POST or default
+    if 'day' in request.POST and request.POST['day']:
+        #catch errors on this as malicious POSTs
+        d = datetime.strptime( request.POST['day'], '%m/%d/%Y')
+        if not minday < d < maxday:
+            d = maxday
+    else:
+        d = maxday
+
+    def date2goog(dt):
+        # make the date this goofy ass 0 based string
+        return 'Date({},{},{})'.format(dt.year, dt.month-1, dt.day)
+
+    import pdb;pdb.set_trace()
+
+
+@require_POST
+@login_required(login_url='/dashboard/login/')
+def oldchartdata(request):
+
+    out = {}
+
+    # check for an aggregate request
     if ('campaign' in request.POST) and (request.POST['campaign'] == 'aggregate'):
         return aggregate(request)
 
@@ -94,15 +145,6 @@ def chartdata(request):
     # send min and max days to restrict selectable days in the jquery widget
     out['minday'] = minday.strftime( '%m/%d/%y')
     out['maxday'] = maxday.strftime( '%m/%d/%y')
-
-    # pick the day we're going to look up data for, by POST or default
-    if 'day' in request.POST and request.POST['day']:
-        #catch errors on this as malicious POSTs
-        t = datetime.strptime( request.POST['day'], '%m/%d/%Y')
-        if not minday < t < maxday:
-            t = maxday
-    else:
-        t = maxday
 
     """
     sometimes there are gaps in the data, but jquery only lets us limit between one set
