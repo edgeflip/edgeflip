@@ -164,6 +164,10 @@
     box-shadow: 2px 2px 3px #0f2446;
 }
 
+#button_sugg_msg {
+    margin: -2px 4px 6px 4px;
+}
+
 .button_small.button_active {
     background-color: #01a652;
     border: thin solid #016431;
