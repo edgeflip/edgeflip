@@ -223,10 +223,15 @@ body {
  Manual add box
 */
 
-#manual_add, .ui-autocomplete, .ui-menu, .ui-menu-item {
+#manual_add {
     font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
     font-size: 11px;
     padding-left: 50px;
+}
+
+.ui-autocomplete, .ui-menu, .ui-menu-item {
+    font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
+    font-size: 11px;
 }
 
 #manual_add {
