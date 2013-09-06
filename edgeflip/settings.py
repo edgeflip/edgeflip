@@ -76,6 +76,7 @@ discouraged, as it cannot be ensured that these settings will be identical to
 those seen otherwise.
 
 """
+import json
 import os
 
 import djcelery
@@ -91,16 +92,19 @@ REPO_ROOT = os.path.dirname(PROJECT_ROOT)
 
 
 # Determine release #
-# TODO: This should be determined by the release process and written to file,
-# TODO: rather than shipping the repo itself and reading this value on start.
-git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
 try:
-    RELEASE_VERSION = git_repo.describe().strip()
-except Exception:
-    # This exception comes when celery starts up outside of the app's repo.
-    # Catching that exception and setting a dummy value. Celery doesn't need
-    # to know the version number
-    RELEASE_VERSION = '0.0'
+    # Check for app info JSON file shipped with release artifact:
+    app_info = json.load(open(os.path.join(REPO_ROOT, 'app_info.json')))
+    RELEASE_VERSION = app_info['version']
+except (IOError, ValueError, KeyError):
+    # App info file missing or malformed.
+    # Fall back to git repo revision (for dev):
+    git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
+    try:
+        RELEASE_VERSION = git_repo.describe().strip()
+    except Exception:
+        # Nothing to fall back on. Go with default:
+        RELEASE_VERSION = '0.0'
 
 
 # Load configuration from conf.d directories #
