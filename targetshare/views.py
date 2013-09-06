@@ -332,6 +332,16 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                     models.Event(
                         session_id=session_id, campaign_id=tier_campaignId,
                         client_content_id=tier_contentId, ip=ip, fbid=fbid,
+                        friend_fbid=friend.secondary.id, event_type='generated',
+                        app_id=fb_params['fb_app_id'], content=content_str,
+                        activity_id=None
+                    )
+                )
+            for friend in edges_list[:num_face]:
+                events.append(
+                    models.Event(
+                        session_id=session_id, campaign_id=tier_campaignId,
+                        client_content_id=tier_contentId, ip=ip, fbid=fbid,
                         friend_fbid=friend.secondary.id, event_type='shown',
                         app_id=fb_params['fb_app_id'], content=content_str,
                         activity_id=None

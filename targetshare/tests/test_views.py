@@ -209,6 +209,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
+        assert models.Event.objects.get(event_type='generated')
+        assert models.Event.objects.get(event_type='shown')
 
     def test_button_no_recs(self):
         ''' Tests views.button without style recs '''
