@@ -20,6 +20,10 @@ def dashlogout(request):
     return redirect('/dashboard/login/')
 
 
+def date2goog(dt):
+    # make the date this goofy ass 0 based string
+    return 'Date({},{},{})'.format(dt.year, dt.month-1, dt.day)
+
 @require_GET
 @login_required(login_url='/dashboard/login/')
 def dashboard(request):
@@ -75,6 +79,72 @@ def fakedata(now, client_id=None):
     return {'monthly_cols':MONTHLY_METRICS, 'daily_cols':DAILY_METRICS, 'monthly':monthly, 'daily':daily}
 
 
+def sum_campaign(data):
+    out = []  # the final list of data points
+
+    day = data[0][1]  # to track what day we're building
+    tmp = []  # stuff everything in here then sum
+
+    def sumday(row, tmp, day):
+        """ on to tomorrow, sum tmp, append it and start a new day """
+        daysum = [sum(i) for i in zip(*tmp)]
+        daysum.insert(0, date2goog(day))  # set the day's timestamp in goog format
+        daysum = [{'v':v} for v in daysum]
+        daysum = {'c':daysum}
+
+        #set up the new day and move on 
+        day = row[1]
+        tmp = [row[2:],]
+
+        return daysum, tmp, day
+
+    for row in data:
+        """ hrm.. see the defaultdict approach below for a probably much easier approach """
+        tdelta = row[1]-day
+        if tdelta.days == 0:
+            # hourly data to be added to this day's row
+            tmp.append(row[2:])
+
+        elif tdelta.days == 1:
+            daysum,tmp,day = sumday(row,tmp,day)
+            out.append(daysum)
+
+        elif tdelta.days > 1:
+            # gaps in the daily data!
+
+            # close out the day
+            _day = day
+            daysum,tmp,day = sumday(row,tmp,day)
+            out.append(daysum)
+
+            #pad with zeros
+            for i in range(tdelta.days-1):
+                daysum = [date2goog( _day + timedelta(days=i+1)),]
+                daysum += [0 for j in range(8)]  # TODO: link this to length of metrics
+                daysum = [{'v':v} for v in daysum]
+                daysum = {'c':daysum}
+                out.append(daysum)
+
+    return out 
+
+
+from collections import defaultdict
+def pad_day(data, day):
+    """ pull out the data for just this day, pad with zeros for the off hours """
+    data = [r for r in data if (r[1]-day).days == 0]
+    logging.info(data)
+
+    hours = defaultdict(lambda: [{'v':0} for j in range(8)])
+    for row in data:
+        # index the data we have by hour basically
+        hours[row[1].hour] = [{'v':v} for v in row[2:]]  # and throw out the campaign_id / timestamp
+
+    out = [hours[i] for i in range(1,25)]
+    out = [{'c':i} for i in out]
+
+    return out
+
+
 def chartdata(request):
 
     out = {}
@@ -116,11 +186,14 @@ def chartdata(request):
     else:
         d = maxday
 
-    def date2goog(dt):
-        # make the date this goofy ass 0 based string
-        return 'Date({},{},{})'.format(dt.year, dt.month-1, dt.day)
+    # pad our data with zeros, stuff it into google format
+    out['monthly'] = sum_campaign(data)
+    out['dailyday'] = d.strftime( '%m/%d/%y')
+    out['daily'] = pad_day(data, d)
+    out['monthly_cols'] = MONTHLY_METRICS
+    out['daily_cols'] = DAILY_METRICS
 
-    import pdb;pdb.set_trace()
+    return HttpResponse(json.dumps(out), content_type="application/json")
 
 
 @require_POST
