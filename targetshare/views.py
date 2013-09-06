@@ -94,7 +94,7 @@ def button(request, campaign_id, content_id):
         )
         db.delayed_save.delay(assignment)
         button_style = models.ButtonStyle.objects.get(pk=style_id)
-        style_template = button_style.buttonstylefile_set.get().html_template
+        style_template = button_style.buttonstylefiles.get().html_template
     except:
         style_template = client.locate_template('button.html')
 
