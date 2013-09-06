@@ -5,7 +5,9 @@
 {% block style_includes %}
     <!-- edgeflip stylesheets -->
     <link rel="stylesheet" type="text/css" href="{{ client_css }}" />
-    <link rel="stylesheet" type="text/css" href="{{ client_css_simp }}" />
+    {% if client_css_simple %}
+        <link rel="stylesheet" type="text/css" href="{{ client_css_simple }}" />
+    {% endif %}
     <!-- edgeflip stylesheets -->
 {% endblock %}
 

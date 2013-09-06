@@ -57,12 +57,13 @@ class Client(models.Model):
         '''
         css_path = os.path.join(
             settings.STATIC_ROOT,
+            'css',
             'clients',
             self.subdomain,
             css_name
         )
         if os.path.exists(css_path):
-            return '%sclients/%s/css/%s' % (
+            return '%scss/clients/%s/%s' % (
                 settings.STATIC_URL,
                 self.subdomain,
                 css_name
