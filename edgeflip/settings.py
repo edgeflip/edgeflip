@@ -96,7 +96,7 @@ try:
     # Check for app info JSON file shipped with release artifact:
     app_info = json.load(open(os.path.join(REPO_ROOT, 'app_info.json')))
     RELEASE_VERSION = app_info['version']
-except (IOError, ValueError, KeyError):
+except (IOError, ValueError, TypeError, KeyError):
     # App info file missing or malformed.
     # Fall back to git repo revision (for dev):
     git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
