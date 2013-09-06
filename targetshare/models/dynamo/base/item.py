@@ -31,26 +31,18 @@ class Meta(object):
     indexes = ()
     table_name = None # Defaults to lowercased, pluralized version of class name
 
-    @classmethod
-    def defaults(cls):
-        return tuple(
-            (key, value) for key, value in vars(cls).items()
-            # Attribute is considered a default setting if it is not "hidden" with
-            # initial underscores and it is not a descriptor (commonly, methods):
-            if not key.startswith('_') and not hasattr(value, '__get__')
-        )
+    # "Hide" methods with "_" to avoid appearance of available options #
 
     @classmethod
-    def from_user(cls, name, fields, user):
-        """Build a new Meta instance from Item declaration information and the
+    def _from_user(cls, name, fields, user):
+        """Build a new Meta instance from class declaration information and the
         user metadata class (if supplied).
 
         """
         meta = cls(name, fields)
         if user:
-            defaults = {key for key, _value in cls.defaults()}
             vars(meta).update((key, value) for key, value in vars(user).items()
-                              if key in defaults)
+                              if key in vars(cls) and not key.startswith('_'))
         return meta
 
     def __init__(self, name, fields):
@@ -58,17 +50,23 @@ class Meta(object):
         self.fields = fields
 
     @property
-    def merged(self):
+    def _merged(self):
         """View of metadata, which are based on instance attribute retrieval, built
         by merging instance attribute dict on top of class attribute dict.
 
         """
-        return dict(itertools.chain(self.defaults(), vars(self).items()))
+        return dict(itertools.chain(
+            # Defaults:
+            ((key, value) for key, value in vars(type(self)).items()
+             if not key.startswith('_')),
+            # User specifications:
+            vars(self).items()
+        ))
 
     def __repr__(self):
         return "<{}({})>".format(
             type(self).__name__,
-            ", ".join("{}={!r}".format(key, value) for key, value in self.merged.items())
+            ", ".join("{}={!r}".format(key, value) for key, value in self._merged.items())
         )
 
 
@@ -113,7 +111,7 @@ class DeclarativeItemBase(type):
             item_fields[mcs.update_field] = ItemField(data_type=DATETIME)
 
         # Set meta:
-        attrs['_meta'] = Meta.from_user(name, item_fields, user=user_meta)
+        attrs['_meta'] = Meta._from_user(name, item_fields, user=user_meta)
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})
