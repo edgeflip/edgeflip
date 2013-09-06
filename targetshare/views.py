@@ -206,8 +206,9 @@ def faces(request):
                 campaign_id,
                 content_id,
             ) = px3_result_result
-            campaign = models.Campaign.objects.get(pk=campaign_id)
-            content = models.ClientContent.objects.get(pk=content_id)
+            if campaign_id and content_id:
+                campaign = models.Campaign.objects.get(pk=campaign_id)
+                content = models.ClientContent.objects.get(pk=content_id)
             px4_edges = px4_result.result if px4_result.successful() else ()
             if not all([edges_ranked, edges_filtered]):
                 return http.HttpResponse('No friends identified for you.', status=500)
