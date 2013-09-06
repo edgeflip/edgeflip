@@ -334,6 +334,16 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                     models.Event(
                         session_id=session_id, campaign_id=tier_campaignId,
                         client_content_id=tier_contentId, ip=ip, fbid=fbid,
+                        friend_fbid=friend.secondary.id, event_type='generated',
+                        app_id=fb_params['fb_app_id'], content=content_str,
+                        activity_id=None
+                    )
+                )
+            for friend in edges_list[:num_face]:
+                events.append(
+                    models.Event(
+                        session_id=session_id, campaign_id=tier_campaignId,
+                        client_content_id=tier_contentId, ip=ip, fbid=fbid,
                         friend_fbid=friend.secondary.id, event_type='shown',
                         app_id=fb_params['fb_app_id'], content=content_str,
                         activity_id=None
@@ -501,13 +511,23 @@ def record_event(request):
         )
 
     events = []
-    for friend in friends:
+    if friends:
+        for friend in friends:
+            events.append(
+                models.Event(
+                    session_id=session_id, campaign_id=campaign_id,
+                    client_content_id=content_id, ip=ip, fbid=user_id,
+                    friend_fbid=friend, event_type=event_type,
+                    app_id=app_id, content=content, activity_id=action_id
+                )
+            )
+    else:
         events.append(
             models.Event(
                 session_id=session_id, campaign_id=campaign_id,
-                client_content_id=content_id, ip=ip, fbid=user_id,
-                friend_fbid=friend, event_type=event_type,
-                app_id=app_id, content=content, activity_id=action_id
+                client_content_id=content_id, ip=ip, fbid=user_id or None,
+                event_type=event_type, app_id=app_id, content=content,
+                activity_id=action_id, friend_fbid=None
             )
         )
 
@@ -523,14 +543,12 @@ def record_event(request):
             client = None
 
         if client:
-            user_client = models.UserClient(
-                fbid=user_id, client=client
-            )
-            db.delayed_save.delay(user_client)
+            models.UserClient.objects.get_or_create(
+                fbid=user_id, client=client)
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
-            token = facebook.extendToken(user_id, token, int(app_id)) or token
+            token = facebook.extendTokenFb(user_id, token, int(app_id) or token)
             dynamo.save_token(
                 fbid=user_id,
                 appid=token.appId,
