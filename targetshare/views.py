@@ -291,7 +291,8 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'msg2_pre': fb_attrs.msg2_pre,
         'msg2_post': fb_attrs.msg2_post,
     }
-    fb_object_url = '%s?cssslug=%s' % (
+    fb_object_url = 'https://%s%s?cssslug=%s' % (
+        request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object_id, 'content_id': content.pk
         }),
@@ -380,7 +381,8 @@ def objects(request, fb_object_id, content_id):
     if not redirect_url:
         return http.HttpResponseNotFound()
 
-    fb_object_url = '%s?cssslug=%s' % (
+    fb_object_url = 'https://%s%s?cssslug=%s' % (
+        request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object_id, 'content_id': content_id
         }),
