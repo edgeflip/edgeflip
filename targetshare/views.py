@@ -155,6 +155,7 @@ def frame_faces(request, campaign_id, content_id):
 
 
 @require_POST
+@csrf_exempt
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
