@@ -489,7 +489,6 @@ def record_event(request):
         request.session.save()
     session_id = request.session.session_key
 
-    print event_type
     if event_type not in [
         'button_load', 'button_click', 'authorized', 'auth_fail',
         'select_all_click', 'suggest_message_click',
