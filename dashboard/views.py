@@ -139,9 +139,10 @@ def pad_day(data, day):
         # index the data we have by hour basically
         hours[row[1].hour] = [{'v':v} for v in row[2:]]  # and throw out the campaign_id / timestamp
 
-    out = [hours[i] for i in range(1,25)]
+    out = [[{'v':[i,0,0]},]+hours[i] for i in range(0,24)]  # grab the default and set the time at [0]
     out = [{'c':i} for i in out]
 
+    logging.info(out)
     return out
 
 
@@ -181,8 +182,10 @@ def chartdata(request):
     if 'day' in request.POST and request.POST['day']:
         #catch errors on this as malicious POSTs
         d = datetime.strptime( request.POST['day'], '%m/%d/%Y')
-        if not minday < d < maxday:
-            d = maxday
+       
+        # we should do this but.. the day comes in as midnight, so the min/max comp fails 
+        # if not minday <= d <= maxday:
+        #    d = maxday
     else:
         d = maxday
 

@@ -39,8 +39,6 @@ function getData() {
     }
 
 
-
-
 function onData(response) {
     window.response = response;
 
