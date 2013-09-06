@@ -385,10 +385,32 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             content_id=1, message='Testing Share'
         ).exists()
 
+    def test_record_event_button_click(self):
+        ''' Test views.record_event with shared event_type '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_click',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        assert models.Event.objects.get(event_type='button_click')
+
     @patch('targetshare.views.facebook')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
-        fb_mock.extendToken.return_value = None
+        fb_mock.extendTokenFb.return_value = models.datastructs.TokenInfo(
+            'test-token',
+            1111111,
+            self.test_client.fb_app_id,
+            timezone.now()
+        )
         expires0 = timezone.now() - timedelta(days=5)
         dynamo.save_token(
             fbid=1111111,
