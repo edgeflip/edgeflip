@@ -505,7 +505,7 @@ def record_event(request):
     #        of these params and now just give the dictionary
     #        (containing the friends array) to the ajax call directly.
     #        See line 501 of faces_and_msg.js
-    friends = [int(f) for f in request.POST.getlist('friends')]
+    friends = [int(f) for f in request.POST.getlist('friends[]')]
 
     event_type = request.POST.get('eventType')
     ip = get_client_ip(request)
