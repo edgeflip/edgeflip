@@ -498,7 +498,15 @@ def record_event(request):
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
+
+    # FIXME: friends never seems to be coming through??
+    #        I'm not sure how to fix this, but think it relates
+    #        to the fact that we used to be sending JSON.stringify()
+    #        of these params and now just give the dictionary
+    #        (containing the friends array) to the ajax call directly.
+    #        See line 501 of faces_and_msg.js
     friends = [int(f) for f in request.POST.getlist('friends')]
+
     event_type = request.POST.get('eventType')
     ip = get_client_ip(request)
     if not request.session.session_key:
