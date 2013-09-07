@@ -350,7 +350,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'contentid': 1,
                 'content': 'Testing',
                 'actionid': 100,
-                'friends': [10, 11, 12],
+                'friends[]': [10, 11, 12],
                 'event_type': 'fake-event'
             }
         )
@@ -366,7 +366,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'contentid': 1,
                 'content': 'Testing',
                 'actionid': 100,
-                'friends': [10, 11, 12],
+                'friends[]': [10, 11, 12],
                 'eventType': 'shared',
                 'shareMsg': 'Testing Share'
             }
@@ -428,7 +428,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'contentid': 1,
                 'content': 'Testing',
                 'actionid': 100,
-                'friends': [10, 11, 12],
+                'friends[]': [10, 11, 12], # jQuery thinks it's clever with []
                 'eventType': 'authorized',
                 'shareMsg': 'Testing Share',
                 'token': 'test-token'
