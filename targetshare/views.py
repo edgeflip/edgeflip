@@ -320,6 +320,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     )
 
     num_gen = max_faces
+    events = []
     for tier in edges_filtered:
         edges_list = tier['edges']
         tier_campaignId = tier['campaignId']
@@ -329,7 +330,6 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             edges_list = edges_list[:num_gen]
 
         if edges_list:
-            events = []
             for friend in edges_list:
                 events.append(
                     models.Event(
@@ -340,21 +340,24 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
                         activity_id=None
                     )
                 )
-            for friend in edges_list[:num_face]:
-                events.append(
-                    models.Event(
-                        session_id=session_id, campaign_id=tier_campaignId,
-                        client_content_id=tier_contentId, ip=ip, fbid=fbid,
-                        friend_fbid=friend.secondary.id, event_type='shown',
-                        app_id=fb_params['fb_app_id'], content=content_str,
-                        activity_id=None
-                    )
-                )
-            db.bulk_create.delay(events)
+
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
             break
+
+    for friend in face_friends[:num_face]:
+        events.append(
+            models.Event(
+                session_id=session_id, campaign_id=campaign.pk,
+                client_content_id=content.pk, ip=ip, fbid=fbid,
+                friend_fbid=friend['id'], event_type='shown',
+                app_id=fb_params['fb_app_id'], content=content_str,
+                activity_id=None
+            )
+        )
+
+    db.bulk_create.delay(events)
 
     return http.HttpResponse(
         json.dumps({
