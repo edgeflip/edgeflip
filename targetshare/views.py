@@ -415,7 +415,7 @@ def objects(request, fb_object_id, content_id):
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
-    content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
+    content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
@@ -426,7 +426,8 @@ def objects(request, fb_object_id, content_id):
     else:
         event = models.Event(
             session_id=session_id, campaign=None,
-            content=content, ip=ip, fbid=None,
+            client_content_id=content_id,
+            content=content_str, ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=action_id
         )
@@ -435,7 +436,7 @@ def objects(request, fb_object_id, content_id):
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
         'redirect_url': redirect_url,
-        'content': content
+        'content': content_str
     })
 
 
