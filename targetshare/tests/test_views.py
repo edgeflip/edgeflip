@@ -7,6 +7,7 @@ from django.utils import timezone
 from mock import patch, Mock
 
 from targetshare import models
+from targetshare.models.dynamo import db as dynamo
 
 from . import EdgeFlipTestCase
 
@@ -208,6 +209,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
+        assert models.Event.objects.get(event_type='generated')
+        assert models.Event.objects.get(event_type='shown')
 
     def test_button_no_recs(self):
         ''' Tests views.button without style recs '''
@@ -384,12 +387,34 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             content_id=1, message='Testing Share'
         ).exists()
 
+    def test_record_event_button_click(self):
+        ''' Test views.record_event with shared event_type '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_click',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        assert models.Event.objects.get(event_type='button_click')
+
     @patch('targetshare.views.facebook')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
-        fb_mock.extendToken.return_value = None
+        fb_mock.extendTokenFb.return_value = models.datastructs.TokenInfo(
+            'test-token',
+            1111111,
+            self.test_client.fb_app_id,
+            timezone.now()
+        )
         expires0 = timezone.now() - timedelta(days=5)
-        models.dynamo.save_token(
+        dynamo.save_token(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
             token='test-token',
@@ -410,7 +435,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         self.assertStatusCode(response, 200)
-        refreshed_token = models.dynamo.fetch_token(1111111, self.test_client.fb_app_id)
+        refreshed_token = dynamo.fetch_token(1111111, self.test_client.fb_app_id)
         self.assertGreater(refreshed_token['expires'], expires0)
         events = models.Event.objects.filter(
             event_type='authorized',

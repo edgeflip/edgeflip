@@ -22,9 +22,6 @@
             <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
         {% endblock %}
 
-        {% block js_inline %}
-        {% endblock %}
-
         {% comment %} CSRF Stuff {% endcomment %}
         {% csrf_token %} {% comment %} Ensures the token/cookie is available {% endcomment %}
         <script type="text/javascript">
@@ -57,6 +54,9 @@
                 }
             });
         </script>
+
+        {% block js_inline %}
+        {% endblock %}
 
     </head>
     <body>

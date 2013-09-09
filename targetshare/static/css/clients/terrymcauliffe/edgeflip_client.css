@@ -1,5 +1,6 @@
 body {
-    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+    /*font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;*/
+    margin: 0px;
 }
 
 .h2_container {
@@ -79,14 +80,12 @@ body {
     padding: 4px;
     font-size: 20px;
     font-weight:200;
-    letter-spacing: 1.5px;
     line-height: 30px;
     border-radius: 7px;
     -moz-border-radius: 7px;
 }
 .button_small {
     width: 140px;
-    height: 20px;
     padding: 3px;
     font-size: 14px;
     font-weight: 200;
@@ -223,7 +222,14 @@ body {
  Manual add box
 */
 
-#manual_add, .ui-autocomplete, .ui-menu, .ui-menu-item {
+#manual_add {
+    font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
+    font-size: 11px;
+    padding-left: 50px;
+}
+
+.ui-autocomplete, .ui-menu, .ui-menu-item {
+    font-family: "Trebuchet MS", "Helvetica", "Arial",  "Verdana", "sans-serif";
     font-size: 11px;
 }
 
@@ -234,6 +240,9 @@ body {
     margin: 0px auto 30px auto;
     display: table;
     position: relative;
+}
+
+#manual_add_text {
 }
 
 #manual_input {
@@ -315,7 +324,7 @@ body {
 #message_preview {
     width: 321px;
     height: 60px;
-    padding: 10px;
+    padding-left: 10px;
     font-family: "lucida grande", tahoma, verdana, arial, sans-serif;
     float: left;
 }
@@ -372,8 +381,12 @@ body {
  Share button
 */
 
+#message_container {
+    padding-bottom: 15px;
+}
+
 #button_share_container {
-    margin-top: 20px;
-    overflow: auto;
+    position: relative;
+    height: 75px;
 }
 

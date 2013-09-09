@@ -1,0 +1,9 @@
+{% extends 'targetmock/base.html' %}
+{% block title %}Mock Land{% endblock %}
+{% block body %}
+<ul>
+    <li><a href="{% url 'mayors-auth' %}">GunControl</a></li>
+    <li><a href="{% url 'ofa-auth' %}">OFA</a></li>
+    <li><a href="{% url 'immigration-auth' %}">Immigration Reform</a></li>
+</ul>
+{% endblock %}
