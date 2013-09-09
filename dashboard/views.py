@@ -39,10 +39,9 @@ def dashboard(request):
         SELECT campaign_id, name FROM campaigns WHERE client_id=2 AND campaign_id IN 
             (SELECT DISTINCT(campaign_id) FROM events WHERE type='button_load')
         """)
+
     campaigns = pcur.fetchall() 
-    user = request.user  # really seems like this should automagically happen
     context = {
-        'user': user,
         'campaigns': campaigns,
         }
 
