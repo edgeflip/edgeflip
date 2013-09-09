@@ -32,8 +32,8 @@
         <input type="checkbox" id="chart" /><label for="chart">View as: Tables</label>
         <h2>Campaign:
         <select onchange="getData();">
-            {% for campaign in campaigns %}
-            <option value="{{ campaign }}">{{ campaign }}</option>
+            {% for id,name in campaigns %}
+            <option value="{{ id }}">{{ name }}</option>
             {% endfor %}
             <option value="aggregate">Summary</option>
         </select>

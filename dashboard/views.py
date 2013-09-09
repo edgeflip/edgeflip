@@ -24,15 +24,23 @@ def date2goog(dt):
     # make the date this goofy ass 0 based string
     return 'Date({},{},{})'.format(dt.year, dt.month-1, dt.day)
 
+
 @require_GET
 @login_required(login_url='/dashboard/login/')
 def dashboard(request):
 
     # so normally.. look up campaigns available to this user.
     # for now, we have only one client with data, so:
-    campaigns = [row.campaign for row in CampaignSum.objects.all()]
 
-
+    pconn = psycopg2.connect(host='wes-rs-inst.cd5t1q8wfrkk.us-east-1.redshift.amazonaws.com',
+            user='edgeflip', database='edgeflip', port=5439, password='XzriGDp2FfVy9K')
+    pcur = pconn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+    # campaigns = [row.campaign for row in CampaignSum.objects.all()]
+    pcur.execute("""
+        SELECT campaign_id, name FROM campaigns WHERE client_id=2 AND campaign_id IN 
+            (SELECT DISTINCT(campaign_id) FROM events WHERE type='button_load')
+        """)
+    campaigns = pcur.fetchall() 
     user = request.user  # really seems like this should automagically happen
     context = {
         'user': user,
@@ -56,6 +64,7 @@ MONTHLY_METRICS = [
     ]
 
 DAILY_METRICS = [{'id':'label', 'label': 'time', 'type':'timeofday'},] + MONTHLY_METRICS[1:]
+
 
 def fakedata(now, client_id=None):
     """ generate fake hourly / daily data in GOOG vis format """
@@ -132,7 +141,6 @@ from collections import defaultdict
 def pad_day(data, day):
     """ pull out the data for just this day, pad with zeros for the off hours """
     data = [r for r in data if (r[1]-day).days == 0]
-    logging.info(data)
 
     hours = defaultdict(lambda: [{'v':0} for j in range(8)])
     for row in data:
@@ -142,7 +150,6 @@ def pad_day(data, day):
     out = [[{'v':[i,0,0]},]+hours[i] for i in range(0,24)]  # grab the default and set the time at [0]
     out = [{'c':i} for i in out]
 
-    logging.info(out)
     return out
 
 
@@ -159,11 +166,11 @@ def chartdata(request):
     pcur = pconn.cursor(cursor_factory = psycopg2.extras.DictCursor)
 
     # minor security hole/TODO: make sure the user is authorized to request stats for this campaign
-    camp_name = request.POST['campaign']  # and.. hope psycopg2 checking for sql injection
+    camp_id = int(request.POST['campaign'])  # and.. hope psycopg2 checking for sql injection
   
     # join, but really just send the campaign id from the client side 
-    pcur.execute("""SELECT campaign_id, client_id FROM campaigns WHERE name=%s""", (camp_name,)) 
-    camp_id = pcur.fetchone()[0]
+    # pcur.execute("""SELECT campaign_id, client_id FROM campaigns WHERE name=%s""", (camp_name,)) 
+    # camp_id = pcur.fetchone()[0]
     
     pcur.execute("""SELECT * FROM clientstats WHERE campaign_id=%s ORDER BY time ASC""",(camp_id,))
     data = [row for row in pcur.fetchall()]
@@ -199,52 +206,6 @@ def chartdata(request):
     return HttpResponse(json.dumps(out), content_type="application/json")
 
 
-@require_POST
-@login_required(login_url='/dashboard/login/')
-def oldchartdata(request):
-
-    out = {}
-
-    # check for an aggregate request
-    if ('campaign' in request.POST) and (request.POST['campaign'] == 'aggregate'):
-        return aggregate(request)
-
-    # look for a campaign id, default is whatever order we load the template
-    monthly = CampaignSum.objects.get(campaign=request.POST['campaign'])
-    out['monthly'] = monthly.mkGoog()
-
-    # grab min and max dates, TODO: this should be in the summary table
-    monthdata = json.loads( monthly.data)
-    days = [datetime.strptime(day, "%Y-%m-%d %H:%M:%S") for day in monthdata.keys()]
-    minday,maxday = min(days), max(days)
-
-    # send min and max days to restrict selectable days in the jquery widget
-    out['minday'] = minday.strftime( '%m/%d/%y')
-    out['maxday'] = maxday.strftime( '%m/%d/%y')
-
-    """
-    sometimes there are gaps in the data, but jquery only lets us limit between one set
-    of dates!  so, if we don't have the Day object, just send back zeros
-    """
-    try:
-        daily = DaySum.objects.get(day=t, campaign=monthly.campaign)
-        out['daily'] = daily.mkGoog()
-        out['dailyday'] = daily.day.strftime( '%m/%d/%y')
-    except DaySum.DoesNotExist:
-        blah = []
-        for i in range(24):
-            r = [{'v':0} for i in range(10)]
-            r[0] = {'v':[i,0,0]}
-            blah.append(r)
-        out['daily'] = [{'c':blah}]
-        out['dailyday'] = t.strftime( '%m/%d/%y')
-
-    out['monthly_cols'] = MONTHLY_METRICS
-    out['daily_cols'] = DAILY_METRICS
-
-    return HttpResponse(json.dumps(out), content_type="application/json")
-
-
 def aggregate(request):
     aggdata = []
     for row in CampaignSum.objects.all():
@@ -258,11 +219,3 @@ def aggregate(request):
     out = {'cols': metrics, 'rows': aggdata}
 
     return HttpResponse(json.dumps(out), content_type="application/json")
-
-
-def mkdata(request):
-    """one off that should be a management command to dump wes's json into django"""
-
-    from dash_data import make_all_object
-    make_all_object()
-
