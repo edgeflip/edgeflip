@@ -161,7 +161,7 @@ def chartdata(request):
     if ('campaign' in request.POST) and (request.POST['campaign'] == 'aggregate'):
         return aggregate(request)
 
-    # really all of this should be a django db connection, probably
+    # really all of this should be a django db connection
     dbcreds = settings.DASHBOARD
     dbcreds['port'] = 5439
     pconn = psycopg2.connect( **dbcreds)
@@ -206,11 +206,35 @@ def chartdata(request):
 
 
 def aggregate(request):
+
+    # really all of this should be a django db connection
+    dbcreds = settings.DASHBOARD
+    dbcreds['port'] = 5439
+    pconn = psycopg2.connect( **dbcreds)
+    pcur = pconn.cursor(cursor_factory = psycopg2.extras.DictCursor)
+
+    q = """
+    SELECT meta.campaign_id, meta.name, visits, clicks, auths, uniq_auths, 
+                shown, shares, audience, clickbacks
+    FROM 
+        (SELECT campaign_id, SUM(visits) AS visits, SUM(clicks) AS clicks, SUM(auths) AS auths,
+                SUM(uniq_auths) AS uniq_auths, SUM(shown) AS shown, SUM(shares) AS shares, 
+                SUM(audience) AS audience, SUM(clickbacks) AS clickbacks, max(time) AS max_time
+            FROM clientstats 
+            GROUP BY campaign_id
+        ) AS stats, 
+        (SELECT campaign_id, name FROM campaigns WHERE client_id=2) AS meta 
+    WHERE stats.campaign_id=meta.campaign_id
+    ORDER BY stats.max_time DESC;
+    """
+    # the ORDER BY max_time.. should put newer campaigns on top, but might be confusing honestly
+
+    pcur.execute(q)
+
+
     aggdata = []
-    for row in CampaignSum.objects.all():
-        googdata = [{'v':row.campaign},] + [{'v':sum(i)} for i in zip(*json.loads(row.data).values())] 
-        if len(googdata) == 10:
-            aggdata.append( {'c':googdata} )
+    for row in pcur.fetchall():
+        aggdata.append( {'c': [{'v':x} for x in row[1:]]})
 
     metrics = MONTHLY_METRICS[:]
     metrics[0] = {'type':'string', 'id':'campname', 'label':'Campaign Name'}
@@ -218,3 +242,5 @@ def aggregate(request):
     out = {'cols': metrics, 'rows': aggdata}
 
     return HttpResponse(json.dumps(out), content_type="application/json")
+
+

@@ -14,8 +14,6 @@ class Command(BaseCommand):
 
         
         dbcreds = settings.DASHBOARD
-        # self.mconn = mysql.connect(dbcreds['host'], dbcreds['user'], dbcreds['secret'], dbcreds['db'])
-        # self.mcur = self.mconn.cursor(mysql.cursors.DictCursor)
         dbcreds['port'] = 5439
 
         self.pconn = psycopg2.connect( **dbcreds)
