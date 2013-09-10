@@ -1,18 +1,72 @@
 # -*- coding: utf-8 -*-
+from south.db import db
 from south.v2 import SchemaMigration
+
+
+TIMESTAMP_COLUMNS = (
+    # table, timestamp column
+    ('button_style_files', 'end_dt'),
+    ('button_style_meta', 'end_dt'),
+    ('button_styles', 'delete_dt'),
+    ('campaign_button_styles', 'end_dt'),
+    ('campaign_choice_set_algoritm', 'end_dt'),
+    ('campaign_choice_sets', 'end_dt'),
+    ('campaign_faces_styles', 'end_dt'),
+    ('campaign_fb_objects', 'end_dt'),
+    ('campaign_generic_fb_objects', 'end_dt'),
+    ('campaign_global_filters', 'end_dt'),
+    ('campaign_meta', 'end_dt'),
+    ('campaign_mix_models', 'end_dt'),
+    ('campaign_propensity_models', 'end_dt'),
+    ('campaign_properties', 'end_dt'),
+    ('campaign_proximity_models', 'end_dt'),
+    ('campaigns', 'delete_dt'),
+    ('choice_set_algoritm_definitions', 'end_dt'),
+    ('choice_set_algoritm_meta', 'end_dt'),
+    ('choice_set_algoritms', 'delete_dt'),
+    ('choice_set_filters', 'end_dt'),
+    ('choice_set_meta', 'end_dt'),
+    ('choice_sets', 'delete_dt'),
+    ('client_content', 'delete_dt'),
+    ('client_defaults', 'end_dt'),
+    ('faces_style_files', 'end_dt'),
+    ('faces_style_meta', 'end_dt'),
+    ('faces_styles', 'delete_dt'),
+    ('fb_object_attributes', 'end_dt'),
+    ('fb_object_meta', 'end_dt'),
+    ('fb_objects', 'delete_dt'),
+    ('filter_features', 'end_dt'),
+    ('filter_meta', 'end_dt'),
+    ('filters', 'delete_dt'),
+    ('mix_model_definitions', 'end_dt'),
+    ('mix_model_meta', 'end_dt'),
+    ('mix_models', 'delete_dt'),
+    ('propensity_model_definitions', 'end_dt'),
+    ('propensity_model_meta', 'end_dt'),
+    ('propensity_models', 'delete_dt'),
+    ('proximity_model_definitions', 'end_dt'),
+    ('proximity_model_meta', 'end_dt'),
+    ('proximity_models', 'delete_dt'),
+)
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        db.execute_many('\n'.join(
+            "ALTER TABLE {table_name} MODIFY COLUMN {column_name} datetime;".format(
+                table_name=table_name,
+                column_name=column_name,
+            ) for table_name, column_name in TIMESTAMP_COLUMNS
+        ))
 
     def backwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        db.execute_many('\n'.join(
+            "ALTER TABLE {table_name} MODIFY COLUMN {column_name} timestamp;".format(
+                table_name=table_name,
+                column_name=column_name,
+            ) for table_name, column_name in TIMESTAMP_COLUMNS
+        ))
 
     models = {
         'targetshare.assignment': {
