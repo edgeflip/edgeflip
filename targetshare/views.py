@@ -51,6 +51,22 @@ def get_client_ip(request):
     return ip
 
 
+def generate_session(request, campaign_id, content_id, fbid, app_id,
+                     content_str=''):
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+        event = models.Event(
+            session_id=request.session.session_key, campaign_id=campaign_id,
+            client_content_id=content_id, ip=get_client_ip(request),
+            fbid=fbid, friend_fbid=None, event_type='session_start',
+            app_id=app_id, content=content_str, activity_id=None
+        )
+        db.delayed_save.delay(event)
+
+    return request.session.session_key
+
+
 def button_encoded(request, campaign_slug):
 
     try:
@@ -75,10 +91,8 @@ def button(request, campaign_id, content_id):
     params_dict = {
         'fb_app_name': client.fb_app_name, 'fb_app_id': client.fb_app_id
     }
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = generate_session(
+        request, campaign.pk, content.pk, None, client.fb_app_id)
 
     style_template = None
     try:
@@ -109,6 +123,7 @@ def button(request, campaign_id, content_id):
     })
 
 
+@csrf_exempt
 def frame_faces_encoded(request, campaign_slug):
 
     try:
@@ -122,7 +137,7 @@ def frame_faces_encoded(request, campaign_slug):
 
 
 @csrf_exempt # FB posts directly to this view
-def frame_faces(request, campaign_id, content_id):
+def frame_faces(request, campaign_id, content_id, canvas=False):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
 
@@ -136,6 +151,8 @@ def frame_faces(request, campaign_id, content_id):
         test_token = request.GET.get('token')
 
     client = campaign.client
+    generate_session(
+        request, campaign.pk, content.pk, None, client.fb_app_id)
     params_dict = {
         'fb_app_name': client.fb_app_name,
         'fb_app_id': client.fb_app_id
@@ -150,7 +167,8 @@ def frame_faces(request, campaign_id, content_id):
         'client_css_simple': client.locate_css('edgeflip_client_simple.css'),
         'test_mode': test_mode,
         'test_token': test_token,
-        'test_fbid': test_fbid
+        'test_fbid': test_fbid,
+        'canvas': canvas
     })
 
 
@@ -177,14 +195,14 @@ def faces(request):
         fbmodule = facebook
 
     subdomain = request.get_host().split('.')[0]
-    if not session_id:
-        request.session.save()
-        session_id = request.session.session_key
-    ip = get_client_ip(request)
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     properties = campaign.campaignproperties_set.get()
     client = campaign.client
+    if not session_id:
+        session_id = generate_session(
+            request, campaign_id, content_id, fbid, client.fb_app_id)
+    ip = get_client_ip(request)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return http.HttpResponseForbidden(
@@ -389,10 +407,6 @@ def objects(request, fb_object_id, content_id):
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
     redirect_url = content.url
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
 
     if not redirect_url:
         return http.HttpResponseNotFound()
@@ -417,6 +431,8 @@ def objects(request, fb_object_id, content_id):
     }
     content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = get_client_ip(request)
+    session_id = generate_session(
+        request, None, content_id, None, client.fb_app_id, content_str)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
         LOG.info(
@@ -449,10 +465,8 @@ def suppress(request):
     content = request.POST.get('content')
     old_id = request.POST.get('oldid')
     ip = get_client_ip(request)
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = generate_session(
+        request, campaign_id, content_id, user_id, app_id)
 
     new_id = request.POST.get('newid')
     fname = request.POST.get('fname')
@@ -502,10 +516,8 @@ def record_event(request):
 
     event_type = request.POST.get('eventType')
     ip = get_client_ip(request)
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = generate_session(
+        request, campaign_id, content_id, user_id, app_id)
 
     if event_type not in [
         'button_load', 'button_click', 'authorized', 'auth_fail',
@@ -607,6 +619,25 @@ def record_event(request):
 def canvas(request):
 
     return render(request, 'targetshare/canvas.html')
+
+
+@csrf_exempt
+def canvas_faces(request, campaign_id, content_id):
+
+    return frame_faces(request, campaign_id, content_id, canvas=True)
+
+
+@csrf_exempt
+def canvas_encoded(request, campaign_slug):
+
+    try:
+        decoded = utils.decodeDES(campaign_slug)
+        campaign_id, content_id = [int(i) for i in decoded.split('/') if i]
+    except:
+        LOG.exception('Exception on decrypting frame_faces')
+        return http.HttpResponseNotFound()
+
+    return frame_faces(request, campaign_id, content_id, canvas=True)
 
 
 def health_check(request):

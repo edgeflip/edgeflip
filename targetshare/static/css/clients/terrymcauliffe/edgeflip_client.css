@@ -32,6 +32,10 @@ body {
     margin: 20px auto;
 }
 
+.canvas_friends_div {
+    margin-top: 30px;
+}
+
 #progress {
     /*width: 250px;*/
     background-color: white;

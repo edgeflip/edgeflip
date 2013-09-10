@@ -92,7 +92,7 @@
 
     </div>
 
-    <div id="friends_div" style="display:none; width: 100%;">
+    <div id="friends_div" {% if canvas %}class="canvas_friends_div" {% endif %} style="display:none; width: 100%;">
         
         <div id="your-friends-here"></div> <!-- your-friends-here -->
 
@@ -135,7 +135,7 @@
         }());
             
     </script>
-    {% block privacy_policy %}
+    {% if canvas %}
         {% include 'targetshare/privacy_policy.html' %}
-    {% endblock %}
+    {% endif %}
 {% endblock %}

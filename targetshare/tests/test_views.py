@@ -243,6 +243,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
         )
         assert models.Assignment.objects.exists()
+        assert models.Event.objects.get(event_type='session_start')
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
@@ -271,6 +272,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'fb_app_id': client.fb_app_id
             }
         )
+        assert models.Event.objects.get(event_type='session_start')
 
     def test_frame_faces_test_mode_bad_request(self):
         ''' Tests views.frame_faces with test_mode enabled, but without
@@ -289,7 +291,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             HTTP_USER_AGENT='facebookexternalhit'
         )
         self.assertStatusCode(response, 200)
-        assert not models.Event.objects.exists()
+        assert not models.Event.objects.filter(event_type='clickback').exists()
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
@@ -308,6 +310,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
+        assert models.Event.objects.filter(event_type='clickback').exists()
 
     def test_suppress(self):
         ''' Test suppressing a user that was recommended '''
