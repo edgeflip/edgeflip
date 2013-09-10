@@ -518,15 +518,21 @@ def record_event(request):
     ip = get_client_ip(request)
     session_id = generate_session(
         request, campaign_id, content_id, user_id, app_id)
+    single_occurrence_events = ['button_load', 'authorized']
+    multi_occurrence_events = [
+        'button_click', 'auth_fail', 'select_all_click',
+        'share_click', 'share_fail', 'shared', 'clickback',
+        'suggest_message_click',
+    ]
 
-    if event_type not in [
-        'button_load', 'button_click', 'authorized', 'auth_fail',
-        'select_all_click', 'suggest_message_click',
-        'share_click', 'share_fail', 'shared', 'clickback'
-    ]:
+    if event_type not in single_occurrence_events + multi_occurrence_events:
         return http.HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
+
+    if event_type in single_occurrence_events and event_type in request.session:
+        # Already logged it
+        return http.HttpResponse()
 
     events = []
     if friends:
@@ -551,6 +557,10 @@ def record_event(request):
 
     if events:
         db.bulk_create.delay(events)
+
+        if event_type in single_occurrence_events:
+            # Prevent dupe logging
+            request.session[event_type] = True
 
     if event_type == 'authorized':
         tok = request.POST.get('token')

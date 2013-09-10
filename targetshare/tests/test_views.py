@@ -407,6 +407,46 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertStatusCode(response, 200)
         assert models.Event.objects.get(event_type='button_click')
 
+    def test_record_event_button_load_dupe(self):
+        ''' Test that views.record_event will not create duplicate
+        button_load events
+        '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_load',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            models.Event.objects.filter(event_type='button_load').count(),
+            1
+        )
+        # Now round 2, shouldn't produce a new event
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_load',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            models.Event.objects.filter(event_type='button_load').count(),
+            1
+        )
+
     @patch('targetshare.views.facebook')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
