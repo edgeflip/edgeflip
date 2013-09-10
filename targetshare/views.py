@@ -28,6 +28,7 @@ LOG = logging.getLogger(__name__)
 
 
 def _get_client_ip(request):
+    """Return the user agent IP address for the given request."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
         ip = x_forwarded_for.split(',')[0]
@@ -53,6 +54,7 @@ def _encoded_endpoint(view):
                 LOG.exception('Failed to decrypt: %r', campaign_slug)
                 return http.HttpResponseNotFound()
         elif keys == {'campaign_id', 'content_id'}:
+            # TODO: Require _test_mode for this endpoint
             campaign_id, content_id = kws['campaign_id'], kws['content_id']
         else:
             raise TypeError(
@@ -96,6 +98,11 @@ def _locate_client_css(client, css_name):
         return os.path.join(settings.STATIC_URL, client_path)
     else:
         return os.path.join(settings.STATIC_URL, 'css', css_name)
+
+
+def _test_mode(request):
+    """Return whether the request may be put into "test mode"."""
+    return request.GET.get('secret') == settings.TEST_MODE_SECRET
 
 
 @_encoded_endpoint
@@ -156,7 +163,7 @@ def button(request, campaign_id, content_id):
 def frame_faces(request, campaign_id, content_id):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-    test_mode = 'test_mode' in request.GET
+    test_mode = _test_mode(request)
     client = campaign.client
 
     if test_mode:

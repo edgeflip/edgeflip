@@ -312,6 +312,7 @@ CELERY_IMPORTS = (
 
 # App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
+TEST_MODE_SECRET = 'sunwahduck'
 
 
 # Test settings #
