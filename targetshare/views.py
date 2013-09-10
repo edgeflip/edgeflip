@@ -26,21 +26,6 @@ from targetshare.tasks import db, ranking
 LOG = logging.getLogger(__name__)
 
 
-def _validate_client_subdomain(campaign, content, subdomain):
-    ''' Verifies that the content and campaign clients are the same, and that
-    the subdomain received matches what we expect on the client model
-
-    '''
-    valid = True
-    if campaign.client_id != content.client_id:
-        valid = False
-
-    if campaign.client.subdomain != subdomain:
-        valid = False
-
-    return valid
-
-
 def _get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -100,13 +85,9 @@ def _locate_client_css(client, css_name):
 
 
 def button(request, campaign_id, content_id):
-    subdomain = request.get_host().split('.')[0]
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    # FIXME: should we be doing this validation?
-    if not _validate_client_subdomain(campaign, content, subdomain):
-        return http.HttpResponseNotFound()
 
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
     params_dict = {
@@ -293,15 +274,15 @@ def faces(request):
     if px4_edges:
         edges_filtered = edges_filtered.reranked(px4_edges)
 
-    return apply_campaign(request, edges_ranked, edges_filtered,
-                          best_cs_filter_id, choice_set_slug, subdomain,
-                          campaign, content, session_id, ip, fbid,
-                          int(num_face), properties)
+    return _apply_campaign(request, edges_ranked, edges_filtered,
+                           best_cs_filter_id, choice_set_slug, subdomain,
+                           campaign, content, session_id, ip, fbid,
+                           int(num_face), properties)
 
 
-def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
-                   choice_set_slug, subdomain, campaign, content, session_id,
-                   ip, fbid, num_face, properties):
+def _apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
+                    choice_set_slug, subdomain, campaign, content, session_id,
+                    ip, fbid, num_face, properties):
 
     max_faces = 50
     friend_dicts = [e.toDict() for e in edges_filtered.edges]
