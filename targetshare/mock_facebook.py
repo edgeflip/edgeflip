@@ -17,7 +17,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from targetshare import utils
-from targetshare.models import datastructs
+from targetshare.models import datastructs, dynamo
 
 
 logger = logging.getLogger(__name__)
@@ -97,17 +97,11 @@ def dateFromFb(dateStr):
     return None
 
 
-def extendTokenFb(user, token, appid):
-    """extends lifetime of a user token from FB, which doesn't return JSON
-    """
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=%s' % token.tok
-    url += '&client_id=' + str(appid) + '&client_secret=' + settings.FACEBOOK.secrets[appid]
-    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
-    # even if you try passing &format=json in the URL.
+def extendTokenFb(fbid, appid, token):
+    """Extend lifetime of a user token from FB."""
     ts = time.time()
-
     # just return the current token without talking to FB...
-    responseDict = {'access_token': [token.tok], 'expires': ['5184000']}
+    responseDict = {'access_token': [token], 'expires': ['5184000']}
     tokNew = responseDict['access_token'][0]
     expiresIn = int(responseDict['expires'][0])
     logging.debug("Mocked extended access token %s expires in %s seconds." % (tokNew, expiresIn))
@@ -115,7 +109,12 @@ def extendTokenFb(user, token, appid):
         datetime.datetime.utcfromtimestamp(ts + expiresIn),
         timezone.utc
     )
-    return datastructs.TokenInfo(tokNew, user, appid, expDate)
+    return dynamo.Token({
+        'fbid': fbid,
+        'appid': appid,
+        'expires': expDate,
+        'token': tokNew,
+    })
 
 
 def fakeUserInfo(fbid, friend=False, numFriends=0):

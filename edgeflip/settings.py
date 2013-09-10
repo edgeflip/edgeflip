@@ -265,9 +265,9 @@ CELERY_QUEUES = (
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
+    Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
     Queue('bulk_upsert', routing_key='bulk.upsert', queue_arguments=QUEUE_ARGS),
-    Queue('update_tokens', routing_key='update.tokens', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
@@ -287,13 +287,13 @@ CELERY_ROUTES = {
         'queue': 'bulk_create',
         'routing_key': 'bulk.create'
     },
+    'targetshare.tasks.db.partial_save': {
+        'queue': 'partial_save',
+        'routing_key': 'partial.save'
+    },
     'targetshare.tasks.db.delayed_save': {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
-    },
-    'targetshare.tasks.db.update_tokens': {
-        'queue': 'update_tokens',
-        'routing_key': 'update.tokens',
     },
     'targetshare.tasks.db.bulk_upsert': {
         'queue': 'bulk_upsert',

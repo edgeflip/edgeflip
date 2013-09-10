@@ -36,7 +36,7 @@ def px3_crawl(mockMode, fbid, token):
     try:
         edgesUnranked = fbmodule.getFriendEdgesFb(
             fbid,
-            token.tok,
+            token['token'],
             requireIncoming=False,
             requireOutgoing=False
         )
@@ -283,7 +283,7 @@ def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
     fbmodule = mock_facebook if mockMode else facebook
     try:
-        user = fbmodule.getUserFb(fbid, token.tok)
+        user = fbmodule.getUserFb(fbid, token['token'])
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
@@ -296,7 +296,7 @@ def proximity_rank_four(mockMode, fbid, token):
         if not edgesUnranked:
             edgesUnranked = fbmodule.getFriendEdgesFb(
                 fbid,
-                token.tok,
+                token['token'],
                 requireIncoming=True,
                 requireOutgoing=False
             )
