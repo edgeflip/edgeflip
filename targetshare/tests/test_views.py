@@ -2,6 +2,7 @@ import json
 from decimal import Decimal
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
@@ -276,7 +277,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         providing a test FB ID or Token
         '''
         response = self.client.get(reverse('frame-faces', args=[1, 1]), {
-            'test_mode': True
+            'secret': settings.TEST_MODE_SECRET,
         })
         self.assertStatusCode(response, 400)
 
