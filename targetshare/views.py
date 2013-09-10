@@ -1,3 +1,4 @@
+import functools
 import json
 import logging
 import os.path
@@ -36,21 +37,34 @@ def _get_client_ip(request):
 
 
 def _encoded_endpoint(view):
-    """Manufacture an endpoint for the given view which accepts a slug encoding the
-    campaign and content IDs.
+    """Decorator manufacturing an endpoint for the given view which additionally
+    accepts a slug encoding the campaign and content IDs.
 
     """
-    def wrapped_view(request, campaign_slug):
-        try:
-            decoded = utils.decodeDES(campaign_slug)
-            campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
-        except (ValueError, TypeError):
-            LOG.exception('Failed to decrypt: %r', campaign_slug)
-            return http.HttpResponseNotFound()
+    @functools.wraps(view)
+    def wrapped_view(request, **kws):
+        keys = set(kws)
+        if keys == {'campaign_slug'}:
+            campaign_slug = kws['campaign_slug']
+            try:
+                decoded = utils.decodeDES(campaign_slug)
+                campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
+            except (ValueError, TypeError):
+                LOG.exception('Failed to decrypt: %r', campaign_slug)
+                return http.HttpResponseNotFound()
+        elif keys == {'campaign_id', 'content_id'}:
+            campaign_id, content_id = kws['campaign_id'], kws['content_id']
+        else:
+            raise TypeError(
+                "{}() takes keyword argument 'campaign_slug' or arguments "
+                "'campaign_id' and 'content_id' ({} given)".format(
+                    view.__name__,
+                    ', '.join(repr(key) for key in keys),
+                )
+            )
 
         return view(request, campaign_id, content_id)
 
-    wrapped_view.__name__ = view.__name__ + "_encoded"
     return wrapped_view
 
 
@@ -84,6 +98,7 @@ def _locate_client_css(client, css_name):
         return os.path.join(settings.STATIC_URL, 'css', css_name)
 
 
+@_encoded_endpoint
 def button(request, campaign_id, content_id):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
@@ -135,31 +150,30 @@ def button(request, campaign_id, content_id):
         'session_id': session_id
     })
 
-button_encoded = _encoded_endpoint(button)
-
 
 @csrf_exempt # FB posts directly to this view
+@_encoded_endpoint
 def frame_faces(request, campaign_id, content_id):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-
-    test_mode = False
-    test_fbid = test_token = None
-    if request.GET.get('test_mode'):
-        test_mode = True
-        if 'fbid' not in request.GET or 'token' not in request.GET:
-            return http.HttpResponseBadRequest('Test mode requires ID and Token')
-        test_fbid = int(request.GET.get('fbid'))
-        test_token = request.GET.get('token')
-
+    test_mode = 'test_mode' in request.GET
     client = campaign.client
-    params_dict = {
-        'fb_app_name': client.fb_app_name,
-        'fb_app_id': client.fb_app_id
-    }
+
+    if test_mode:
+        try:
+            test_fbid = int(request.GET['fbid'])
+            test_token = request.GET['token']
+        except (KeyError, ValueError):
+            return http.HttpResponseBadRequest('Test mode requires numeric ID ("fbid") '
+                                               'and Token ("token")')
+    else:
+        test_fbid = test_token = None
 
     return render(request, _locate_client_template(client, 'frame_faces.html'), {
-        'fb_params': params_dict,
+        'fb_params': {
+            'fb_app_name': client.fb_app_name,
+            'fb_app_id': client.fb_app_id,
+        },
         'campaign': campaign,
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
@@ -169,8 +183,6 @@ def frame_faces(request, campaign_id, content_id):
         'test_token': test_token,
         'test_fbid': test_fbid
     })
-
-frame_faces_encoded = _encoded_endpoint(frame_faces)
 
 
 @require_POST
