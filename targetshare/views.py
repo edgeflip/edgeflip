@@ -37,35 +37,47 @@ def _get_client_ip(request):
     return ip
 
 
+def _generate_session(request, campaign_id, content_id, fbid, app_id,
+                     content_str=''):
+    if not request.session.session_key:
+        # Force a key to be created if it doesn't exist
+        request.session.save()
+        event = models.Event(
+            session_id=request.session.session_key, campaign_id=campaign_id,
+            client_content_id=content_id, ip=_get_client_ip(request),
+            fbid=fbid, friend_fbid=None, event_type='session_start',
+            app_id=app_id, content=content_str, activity_id=None
+        )
+        db.delayed_save.delay(event)
+
+    return request.session.session_key
+
+
 def _encoded_endpoint(view):
     """Decorator manufacturing an endpoint for the given view which additionally
     accepts a slug encoding the campaign and content IDs.
 
     """
     @functools.wraps(view)
-    def wrapped_view(request, **kws):
-        keys = set(kws)
-        if keys == {'campaign_slug'}:
-            campaign_slug = kws['campaign_slug']
-            try:
-                decoded = utils.decodeDES(campaign_slug)
-                campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
-            except (ValueError, TypeError):
-                LOG.exception('Failed to decrypt: %r', campaign_slug)
-                return http.HttpResponseNotFound()
-        elif keys == {'campaign_id', 'content_id'}:
-            # TODO: Require _test_mode for this endpoint
-            campaign_id, content_id = kws['campaign_id'], kws['content_id']
-        else:
-            raise TypeError(
-                "{}() takes keyword argument 'campaign_slug' or arguments "
-                "'campaign_id' and 'content_id' ({} given)".format(
-                    view.__name__,
-                    ', '.join(repr(key) for key in keys),
+    def wrapped_view(request, campaign_id=None, content_id=None,
+                     campaign_slug=None, **kws):
+        if not campaign_id or not content_id:
+            if campaign_slug:
+                try:
+                    decoded = utils.decodeDES(campaign_slug)
+                    campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
+                except (ValueError, TypeError):
+                    LOG.exception('Failed to decrypt: %r', campaign_slug)
+                    return http.HttpResponseNotFound()
+            else:
+                raise TypeError(
+                    "{}() takes keyword argument 'campaign_slug' or arguments "
+                    "'campaign_id' and 'content_id'".format(
+                        view.__name__,
+                    )
                 )
-            )
 
-        return view(request, campaign_id, content_id)
+        return view(request, campaign_id=campaign_id, content_id=content_id, **kws)
 
     return wrapped_view
 
@@ -115,10 +127,8 @@ def button(request, campaign_id, content_id):
     params_dict = {
         'fb_app_name': client.fb_app_name, 'fb_app_id': client.fb_app_id
     }
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = _generate_session(
+        request, campaign.pk, content.pk, None, client.fb_app_id)
 
     # Use campaign-custom button style template name if one exists:
     try:
@@ -160,11 +170,20 @@ def button(request, campaign_id, content_id):
 
 @csrf_exempt # FB posts directly to this view
 @_encoded_endpoint
-def frame_faces(request, campaign_id, content_id):
+def frame_faces(request, campaign_id, content_id, canvas=False):
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     test_mode = _test_mode(request)
     client = campaign.client
+    session_id = _generate_session(
+        request, campaign.pk, content.pk, None, client.fb_app_id)
+    event = models.Event(
+        session_id=session_id, campaign_id=campaign_id,
+        client_content_id=content_id, ip=_get_client_ip(request),
+        fbid=None, friend_fbid=None, event_type='faces_page_load',
+        app_id=client.fb_app_id, content='', activity_id=None
+    )
+    db.delayed_save.delay(event)
 
     if test_mode:
         try:
@@ -188,7 +207,8 @@ def frame_faces(request, campaign_id, content_id):
         'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
         'test_mode': test_mode,
         'test_token': test_token,
-        'test_fbid': test_fbid
+        'test_fbid': test_fbid,
+        'canvas': canvas,
     })
 
 
@@ -215,14 +235,14 @@ def faces(request):
         fbmodule = facebook
 
     subdomain = request.get_host().split('.')[0]
-    if not session_id:
-        request.session.save()
-        session_id = request.session.session_key
-    ip = _get_client_ip(request)
     content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     properties = campaign.campaignproperties_set.get()
     client = campaign.client
+    if not session_id:
+        session_id = _generate_session(
+            request, campaign_id, content_id, fbid, client.fb_app_id)
+    ip = _get_client_ip(request)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return http.HttpResponseForbidden(
@@ -425,10 +445,6 @@ def objects(request, fb_object_id, content_id):
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
     redirect_url = content.url
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
 
     if not redirect_url:
         return http.HttpResponseNotFound()
@@ -453,6 +469,8 @@ def objects(request, fb_object_id, content_id):
     }
     content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = _get_client_ip(request)
+    session_id = _generate_session(
+        request, None, content_id, None, client.fb_app_id, content_str)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
         LOG.info(
@@ -485,10 +503,8 @@ def suppress(request):
     content = request.POST.get('content')
     old_id = request.POST.get('oldid')
     ip = _get_client_ip(request)
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = _generate_session(
+        request, campaign_id, content_id, user_id, app_id)
 
     new_id = request.POST.get('newid')
     fname = request.POST.get('fname')
@@ -538,19 +554,23 @@ def record_event(request):
 
     event_type = request.POST.get('eventType')
     ip = _get_client_ip(request)
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-    session_id = request.session.session_key
+    session_id = _generate_session(
+        request, campaign_id, content_id, user_id, app_id)
+    single_occurrence_events = ['button_load', 'authorized']
+    multi_occurrence_events = [
+        'button_click', 'auth_fail', 'select_all_click',
+        'share_click', 'share_fail', 'shared', 'clickback',
+        'suggest_message_click',
+    ]
 
-    if event_type not in [
-        'button_load', 'button_click', 'authorized', 'auth_fail',
-        'select_all_click', 'suggest_message_click',
-        'share_click', 'share_fail', 'shared', 'clickback'
-    ]:
+    if event_type not in single_occurrence_events + multi_occurrence_events:
         return http.HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
+
+    if event_type in single_occurrence_events and event_type in request.session:
+        # Already logged it
+        return http.HttpResponse()
 
     events = []
     if friends:
@@ -575,6 +595,10 @@ def record_event(request):
 
     if events:
         db.bulk_create.delay(events)
+
+        if event_type in single_occurrence_events:
+            # Prevent dupe logging
+            request.session[event_type] = True
 
     if event_type == 'authorized':
         try:
@@ -642,6 +666,12 @@ def record_event(request):
 @csrf_exempt
 def canvas(request):
     return render(request, 'targetshare/canvas.html')
+
+
+@csrf_exempt
+def canvas_faces(request, **kws):
+
+    return frame_faces(request, canvas=True, **kws)
 
 
 def health_check(request):

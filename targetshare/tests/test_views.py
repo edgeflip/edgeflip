@@ -243,6 +243,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
         assert models.Assignment.objects.exists()
+        assert models.Event.objects.get(event_type='session_start')
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
@@ -271,6 +272,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'fb_app_id': client.fb_app_id
             }
         )
+        assert models.Event.objects.get(event_type='session_start')
+        assert models.Event.objects.get(event_type='faces_page_load')
 
     def test_frame_faces_test_mode_bad_request(self):
         ''' Tests views.frame_faces with test_mode enabled, but without
@@ -289,7 +292,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             HTTP_USER_AGENT='facebookexternalhit'
         )
         self.assertStatusCode(response, 200)
-        assert not models.Event.objects.exists()
+        assert not models.Event.objects.filter(event_type='clickback').exists()
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
@@ -308,6 +311,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
+        assert models.Event.objects.filter(event_type='clickback').exists()
 
     def test_suppress(self):
         ''' Test suppressing a user that was recommended '''
@@ -403,6 +407,46 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.get(event_type='button_click')
+
+    def test_record_event_button_load_dupe(self):
+        ''' Test that views.record_event will not create duplicate
+        button_load events
+        '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_load',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            models.Event.objects.filter(event_type='button_load').count(),
+            1
+        )
+        # Now round 2, shouldn't produce a new event
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'button_load',
+                'shareMsg': 'Testing Share'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            models.Event.objects.filter(event_type='button_load').count(),
+            1
+        )
 
     @patch('targetshare.views.facebook')
     def test_record_event_authorized(self, fb_mock):

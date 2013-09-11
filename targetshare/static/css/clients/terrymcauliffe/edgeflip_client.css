@@ -32,6 +32,10 @@ body {
     margin: 20px auto;
 }
 
+.canvas_friends_div {
+    margin-top: 30px;
+}
+
 #progress {
     /*width: 250px;*/
     background-color: white;
@@ -113,6 +117,16 @@ body {
     color: inherit;
 }
 
+#reconnect_button {
+    width: 250px; 
+    float: left; 
+    margin-left: 250px; 
+    background-color: #0f2446;
+}
+
+#reconnect_button:hover {
+    background-color: #094163;
+}
 
 
 /***************************************************
