@@ -10,6 +10,7 @@ class FBObjectAttribute(models.Model):
     og_title = models.CharField(max_length=128, blank=True)
     og_image = models.CharField(max_length=2096, blank=True)
     og_description = models.CharField(max_length=1024, blank=True)
+    org_name = models.CharField(max_length=1024, blank=True)
     page_title = models.CharField(max_length=256, blank=True)
     sharing_prompt = models.CharField(max_length=2096, blank=True)
     msg1_pre = models.CharField(max_length=1024, blank=True)
