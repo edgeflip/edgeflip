@@ -118,7 +118,16 @@ body {
     color: inherit;
 }
 
+#reconnect_button {
+    width: 250px; 
+    float: left; 
+    margin-left: 250px; 
+    background-color: #0f2446;
+}
 
+#reconnect_button:hover {
+    background-color: #094163;
+}
 
 /***************************************************
  Styling for friend picker buttons (new_face.html)

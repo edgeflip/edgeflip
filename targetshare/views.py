@@ -151,8 +151,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         test_token = request.GET.get('token')
 
     client = campaign.client
-    generate_session(
+    session_id = generate_session(
         request, campaign.pk, content.pk, None, client.fb_app_id)
+    event = models.Event(
+        session_id=session_id, campaign_id=campaign_id,
+        client_content_id=content_id, ip=get_client_ip(request),
+        fbid=None, friend_fbid=None, event_type='faces_page_load',
+        app_id=client.fb_app_id, content='', activity_id=None
+    )
+    db.delayed_save.delay(event)
     params_dict = {
         'fb_app_name': client.fb_app_name,
         'fb_app_id': client.fb_app_id
@@ -168,7 +175,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid,
-        'canvas': canvas
+        'canvas': canvas,
+        'request': request
     })
 
 

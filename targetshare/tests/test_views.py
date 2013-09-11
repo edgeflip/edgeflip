@@ -273,6 +273,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         assert models.Event.objects.get(event_type='session_start')
+        assert models.Event.objects.get(event_type='faces_page_load')
 
     def test_frame_faces_test_mode_bad_request(self):
         ''' Tests views.frame_faces with test_mode enabled, but without
