@@ -17,9 +17,9 @@ CELERY_QUEUES = (
     'px4',
     'celery',
     'delayed_save',
+    'partial_save',
     'bulk_create',
     'bulk_upsert',
-    'update_tokens',
     'update_edges',
 )
 

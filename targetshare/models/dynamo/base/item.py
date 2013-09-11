@@ -182,11 +182,12 @@ class Item(baseitems.Item):
         new._post_load()
         return new
 
-    def __init__(self, data=None, loaded=False):
-        if data:
-            # Validate data before populating it
-            for key, value in data.items():
-                self._pre_set(key, value)
+    def __init__(self, data=None, loaded=False, **kwdata):
+        data = {} if data is None else data
+        data.update(kwdata)
+        # Validate data before populating it
+        for key, value in data.items():
+            self._pre_set(key, value)
 
         table = type(self).items.table
         super(Item, self).__init__(table, data, loaded)

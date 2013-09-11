@@ -2,12 +2,12 @@ import json
 from decimal import Decimal
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
 
 from targetshare import models
-from targetshare.models.dynamo import db as dynamo
 
 from . import EdgeFlipTestCase
 
@@ -218,7 +218,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
+            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
         assert not models.Assignment.objects.exists()
 
@@ -230,7 +230,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         bs = models.ButtonStyle.objects.create(
             client=client, name='test')
         models.ButtonStyleFile.objects.create(
-            html_template='targetshare/button.html', button_style=bs)
+            html_template='button.html', button_style=bs)
         models.CampaignButtonStyle.objects.create(
             campaign=campaign, button_style=bs,
             rand_cdf=Decimal('1.000000')
@@ -240,7 +240,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': '471727162864364'}
+            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
         assert models.Assignment.objects.exists()
         assert models.Event.objects.get(event_type='session_start')
@@ -280,7 +280,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         providing a test FB ID or Token
         '''
         response = self.client.get(reverse('frame-faces', args=[1, 1]), {
-            'test_mode': True
+            'secret': settings.TEST_MODE_SECRET,
         })
         self.assertStatusCode(response, 400)
 
@@ -451,18 +451,19 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     @patch('targetshare.views.facebook')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
-        fb_mock.extendTokenFb.return_value = models.datastructs.TokenInfo(
-            'test-token',
-            1111111,
-            self.test_client.fb_app_id,
-            timezone.now()
+        fb_mock.extendTokenFb.return_value = models.dynamo.Token(
+            token='test-token',
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            expires=timezone.now()
         )
         expires0 = timezone.now() - timedelta(days=5)
-        dynamo.save_token(
+        models.dynamo.Token.items.put_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
             token='test-token',
             expires=expires0,
+            overwrite=True,
         )
         response = self.client.post(
             '%s?token=1' % reverse('record-event'), {
@@ -479,7 +480,10 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             }
         )
         self.assertStatusCode(response, 200)
-        refreshed_token = dynamo.fetch_token(1111111, self.test_client.fb_app_id)
+        refreshed_token = models.dynamo.Token.items.get_item(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+        )
         self.assertGreater(refreshed_token['expires'], expires0)
         events = models.Event.objects.filter(
             event_type='authorized',

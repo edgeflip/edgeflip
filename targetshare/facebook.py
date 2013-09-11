@@ -17,7 +17,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from targetshare import utils
-from targetshare.models import datastructs
+from targetshare.models import datastructs, dynamo
 
 
 logger = logging.getLogger(__name__)
@@ -108,34 +108,48 @@ def _threadFbURL(url, results):
     return len(responseJson['data'])
 
 
-def extendTokenFb(user, token, appid):
-    """extends lifetime of a user token from FB, which doesn't return JSON
-    """
-    url = 'https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token' + '&fb_exchange_token=' + token.tok
-    url += '&client_id=' + str(appid) + '&client_secret=' + settings.FACEBOOK.secrets[appid]
+def extendTokenFb(fbid, appid, token):
+    """Extend lifetime of a user token from FB."""
+    url = 'https://graph.facebook.com/oauth/access_token?' + urllib.urlencode({
+        'grant_type': 'fb_exchange_token',
+        'fb_exchange_token': token,
+        'client_id': appid,
+        'client_secret': settings.FACEBOOK.secrets[appid],
+    })
+    ts = time.time()
+
     # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
     # even if you try passing &format=json in the URL.
-    ts = time.time()
     try:
-        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as responseFile:
-            responseDict = urlparse.parse_qs(responseFile.read())
-            tokNew = responseDict['access_token'][0]
-            expiresIn = int(responseDict['expires'][0])
-            logging.debug("Extended access token %s expires in %s seconds." % (tokNew, expiresIn))
-            expDate = timezone.make_aware(
-                datetime.datetime.utcfromtimestamp(ts + expiresIn),
-                timezone.utc
-            )
-        return datastructs.TokenInfo(tokNew, user, appid, expDate)
+        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as response:
+            params = urlparse.parse_qs(response.read())
+        token1 = params['access_token'][0]
+        expires = int(params['expires'][0])
+        logging.debug("Extended access token %s expires in %s seconds", token1, expires)
+        expires1 = ts + expires
+    except (IOError, IndexError, KeyError) as exc:
+        if hasattr(exc, 'read'): # built-in hasattr won't overwrite exc_info
+            error_response = exc.read()
+        else:
+            error_response = ''
+        logger.warning(
+            "Failed to extend token %s%s",
+            token,
+            error_response and ': %r' % error_response,
+            exc_info=True,
+        )
+        token1 = token
+        expires1 = ts
 
-    except (urllib2.URLError, urllib2.HTTPError, IndexError, KeyError) as e:
-        logger.info("error extending token %s: %s" % (token.tok, str(e)))
-        try:
-            # If we actually got an error back from a server, should be able to read the message here
-            logger.error("returned error was: %s", e.read())
-        except:
-            pass
-        return None
+    return dynamo.Token(
+        fbid=fbid,
+        appid=appid,
+        expires=timezone.make_aware(
+            datetime.datetime.utcfromtimestamp(expires1),
+            timezone.utc
+        ),
+        token=token1,
+    )
 
 
 def getFriendsFb(userId, token):
