@@ -24,7 +24,6 @@ function setDropdown(friends) {
             var fbid = parseInt(ui.item.value);
 
             if (getRecipFbids().length >= 10) {
-                console.log("zzz too many friends " + fbid);
                 alert("Sorry: only ten friends can be tagged.");
             }
             else if (!isRecip(fbid)) {

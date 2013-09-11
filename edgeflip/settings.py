@@ -76,6 +76,7 @@ discouraged, as it cannot be ensured that these settings will be identical to
 those seen otherwise.
 
 """
+import json
 import os
 
 import djcelery
@@ -91,16 +92,19 @@ REPO_ROOT = os.path.dirname(PROJECT_ROOT)
 
 
 # Determine release #
-# TODO: This should be determined by the release process and written to file,
-# TODO: rather than shipping the repo itself and reading this value on start.
-git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
 try:
-    RELEASE_VERSION = git_repo.describe().strip()
-except Exception:
-    # This exception comes when celery starts up outside of the app's repo.
-    # Catching that exception and setting a dummy value. Celery doesn't need
-    # to know the version number
-    RELEASE_VERSION = '0.0'
+    # Check for app info JSON file shipped with release artifact:
+    app_info = json.load(open(os.path.join(REPO_ROOT, 'app_info.json')))
+    RELEASE_VERSION = app_info['version']
+except (IOError, ValueError, TypeError, KeyError):
+    # App info file missing or malformed.
+    # Fall back to git repo revision (for dev):
+    git_repo = sh.git.bake(git_dir=os.path.join(REPO_ROOT, '.git'))
+    try:
+        RELEASE_VERSION = git_repo.describe().strip()
+    except Exception:
+        # Nothing to fall back on. Go with default:
+        RELEASE_VERSION = '0.0'
 
 
 # Load configuration from conf.d directories #
@@ -262,46 +266,47 @@ CELERY_QUEUES = (
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
-    Queue('update_users', routing_key='update.users', queue_arguments=QUEUE_ARGS),
+    Queue('bulk_upsert', routing_key='bulk.upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_tokens', routing_key='update.tokens', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
-    'targetshare.tasks.px3_crawl': {
+    'targetshare.tasks.ranking.px3_crawl': {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
-    'targetshare.tasks.perform_filtering': {
+    'targetshare.tasks.ranking.perform_filtering': {
         'queue': 'px3_filter',
         'routing_key': 'px3.filter'
     },
-    'targetshare.tasks.proximity_rank_four': {
+    'targetshare.tasks.ranking.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
     },
-    'targetshare.tasks.bulk_create': {
+    'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',
         'routing_key': 'bulk.create'
     },
-    'targetshare.tasks.delayed_save': {
+    'targetshare.tasks.db.delayed_save': {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
-    'targetshare.tasks.update_tokens': {
+    'targetshare.tasks.db.update_tokens': {
         'queue': 'update_tokens',
         'routing_key': 'update.tokens',
     },
-    'targetshare.tasks.update_users': {
-        'queue': 'update_users',
-        'routing_key': 'update.users',
+    'targetshare.tasks.db.bulk_upsert': {
+        'queue': 'bulk_upsert',
+        'routing_key': 'bulk.upsert',
     },
-    'targetshare.tasks.update_edges': {
+    'targetshare.tasks.db.update_edges': {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
 }
 CELERY_IMPORTS = (
-    'targetshare.tasks',
+    'targetshare.tasks.ranking',
+    'targetshare.tasks.db',
 )
 
 

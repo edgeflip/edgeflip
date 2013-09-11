@@ -18,9 +18,10 @@ from targetshare import (
     facebook,
     mock_facebook,
     models,
-    tasks,
     utils,
 )
+from targetshare.models.dynamo import db as dynamo
+from targetshare.tasks import db, ranking
 
 
 LOG = logging.getLogger(__name__)
@@ -91,9 +92,9 @@ def button(request, campaign_id, content_id):
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[x.button_style_id for x in style_recs]
         )
-        tasks.delayed_save.delay(assignment)
+        db.delayed_save.delay(assignment)
         button_style = models.ButtonStyle.objects.get(pk=style_id)
-        style_template = button_style.buttonstylefile_set.get().html_template
+        style_template = button_style.buttonstylefiles.get().html_template
     except:
         style_template = client.locate_template('button.html')
 
@@ -154,6 +155,7 @@ def frame_faces(request, campaign_id, content_id):
 
 
 @require_POST
+@csrf_exempt
 def faces(request):
     fbid = request.POST.get('fbid')
     tok = request.POST.get('token')
@@ -204,6 +206,9 @@ def faces(request):
                 campaign_id,
                 content_id,
             ) = px3_result_result
+            if campaign_id and content_id:
+                campaign = models.Campaign.objects.get(pk=campaign_id)
+                content = models.ClientContent.objects.get(pk=content_id)
             px4_edges = px4_result.result if px4_result.successful() else ()
             if not all([edges_ranked, edges_filtered]):
                 return http.HttpResponse('No friends identified for you.', status=500)
@@ -223,7 +228,7 @@ def faces(request):
         token = models.datastructs.TokenInfo(
             tok, fbid, int(client.fb_app_id), timezone.now())
         token = fbmodule.extendTokenFb(fbid, token, (int(client.fb_app_id) or token))
-        px3_task_id = tasks.proximity_rank_three(
+        px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
             clientSubdomain=subdomain,
@@ -235,7 +240,7 @@ def faces(request):
             numFace=num_face,
             paramsDB=client
         )
-        px4_task = tasks.proximity_rank_four.delay(mock_mode, fbid, token)
+        px4_task = ranking.proximity_rank_four.delay(mock_mode, fbid, token)
         return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',
@@ -278,7 +283,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         chosen_from_table='campaign_fb_objects',
         chosen_from_rows=[r.pk for r in fb_object_recs]
     )
-    tasks.delayed_save.delay(assignment)
+    db.delayed_save.delay(assignment)
 
     fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
@@ -289,7 +294,8 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         'msg2_pre': fb_attrs.msg2_pre,
         'msg2_post': fb_attrs.msg2_post,
     }
-    fb_object_url = '%s?cssslug=%s' % (
+    fb_object_url = 'https://%s%s?cssslug=%s' % (
+        request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object_id, 'content_id': content.pk
         }),
@@ -314,6 +320,7 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
     )
 
     num_gen = max_faces
+    events = []
     for tier in edges_filtered:
         edges_list = tier['edges']
         tier_campaignId = tier['campaignId']
@@ -323,22 +330,34 @@ def apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             edges_list = edges_list[:num_gen]
 
         if edges_list:
-            events = []
             for friend in edges_list:
                 events.append(
                     models.Event(
                         session_id=session_id, campaign_id=tier_campaignId,
                         client_content_id=tier_contentId, ip=ip, fbid=fbid,
-                        friend_fbid=friend.secondary.id, event_type='shown',
+                        friend_fbid=friend.secondary.id, event_type='generated',
                         app_id=fb_params['fb_app_id'], content=content_str,
                         activity_id=None
                     )
                 )
-            tasks.bulk_create.delay(events)
+
             num_gen = num_gen - len(edges_list)
 
         if (num_gen <= 0):
             break
+
+    for friend in face_friends[:num_face]:
+        events.append(
+            models.Event(
+                session_id=session_id, campaign_id=campaign.pk,
+                client_content_id=content.pk, ip=ip, fbid=fbid,
+                friend_fbid=friend['id'], event_type='shown',
+                app_id=fb_params['fb_app_id'], content=content_str,
+                activity_id=None
+            )
+        )
+
+    db.bulk_create.delay(events)
 
     return http.HttpResponse(
         json.dumps({
@@ -378,7 +397,8 @@ def objects(request, fb_object_id, content_id):
     if not redirect_url:
         return http.HttpResponseNotFound()
 
-    fb_object_url = '%s?cssslug=%s' % (
+    fb_object_url = 'https://%s%s?cssslug=%s' % (
+        request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object_id, 'content_id': content_id
         }),
@@ -395,7 +415,7 @@ def objects(request, fb_object_id, content_id):
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
-    content = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
+    content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = get_client_ip(request)
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     if user_agent.find('facebookexternalhit') != -1:
@@ -406,16 +426,17 @@ def objects(request, fb_object_id, content_id):
     else:
         event = models.Event(
             session_id=session_id, campaign=None,
-            content=content, ip=ip, fbid=None,
+            client_content_id=content_id,
+            content=content_str, ip=ip, fbid=None,
             friend_fbid=None, event_type='clickback',
             app_id=client.fb_app_id, activity_id=action_id
         )
-        tasks.delayed_save.delay(event)
+        db.delayed_save.delay(event)
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
         'redirect_url': redirect_url,
-        'content': content
+        'content': content_str
     })
 
 
@@ -443,13 +464,13 @@ def suppress(request):
         friend_fbid=old_id, event_type='suppress',
         app_id=app_id, content=content, activity_id=None
     )
-    tasks.delayed_save.delay(event)
+    db.delayed_save.delay(event)
     exclusion = models.FaceExclusion(
         fbid=user_id, campaign_id=campaign_id,
         content_id=content_id, friend_fbid=old_id,
         reason='suppressed'
     )
-    tasks.delayed_save.delay(exclusion)
+    db.delayed_save.delay(exclusion)
 
     if new_id != '':
         event = models.Event(
@@ -458,7 +479,7 @@ def suppress(request):
             friend_fbid=new_id, event_type="shown",
             app_id=app_id, content=content, activity_id=None
         )
-        tasks.delayed_save.delay(event)
+        db.delayed_save.delay(event)
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
@@ -477,7 +498,8 @@ def record_event(request):
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
-    friends = [int(f) for f in request.POST.getlist('friends')]
+    friends = [int(fid) for fid in request.POST.getlist('friends[]')]
+
     event_type = request.POST.get('eventType')
     ip = get_client_ip(request)
     if not request.session.session_key:
@@ -495,18 +517,28 @@ def record_event(request):
         )
 
     events = []
-    for friend in friends:
+    if friends:
+        for friend in friends:
+            events.append(
+                models.Event(
+                    session_id=session_id, campaign_id=campaign_id,
+                    client_content_id=content_id, ip=ip, fbid=user_id,
+                    friend_fbid=friend, event_type=event_type,
+                    app_id=app_id, content=content, activity_id=action_id
+                )
+            )
+    else:
         events.append(
             models.Event(
                 session_id=session_id, campaign_id=campaign_id,
-                client_content_id=content_id, ip=ip, fbid=user_id,
-                friend_fbid=friend, event_type=event_type,
-                app_id=app_id, content=content, activity_id=action_id
+                client_content_id=content_id, ip=ip, fbid=user_id or None,
+                event_type=event_type, app_id=app_id, content=content,
+                activity_id=action_id, friend_fbid=None
             )
         )
 
     if events:
-        tasks.bulk_create.delay(events)
+        db.bulk_create.delay(events)
 
     if event_type == 'authorized':
         tok = request.POST.get('token')
@@ -517,15 +549,13 @@ def record_event(request):
             client = None
 
         if client:
-            user_client = models.UserClient(
-                fbid=user_id, client=client
-            )
-            tasks.delayed_save.delay(user_client)
+            models.UserClient.objects.get_or_create(
+                fbid=user_id, client=client)
             token = models.datastructs.TokenInfo(
                 tok, user_id, int(app_id), timezone.now()
             )
-            token = facebook.extendToken(user_id, token, int(app_id)) or token
-            models.dynamo.save_token(
+            token = facebook.extendTokenFb(user_id, token, int(app_id) or token)
+            dynamo.save_token(
                 fbid=user_id,
                 appid=token.appId,
                 token=token.tok,
@@ -551,7 +581,7 @@ def record_event(request):
             )
 
         if exclusions:
-            tasks.bulk_create.delay(exclusions)
+            db.bulk_create.delay(exclusions)
 
     error_msg = request.POST.get('errorMsg')
     if error_msg:
@@ -568,7 +598,7 @@ def record_event(request):
             activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
             content_id=content_id, message=share_msg
         )
-        tasks.delayed_save.delay(share_message)
+        db.delayed_save.delay(share_message)
 
     return http.HttpResponse()
 
@@ -593,7 +623,7 @@ def health_check(request):
     fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
     components['facebook'] = int(fb_resp['id']) == 6963
 
-    users = models.dynamo.get_table('users')
+    users = dynamo.get_table('users')
     components['dynamo'] = bool(users.describe())
 
     return http.HttpResponse(

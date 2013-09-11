@@ -70,7 +70,7 @@ this is the message div and the faces themselves
     </table>
 
     <div id="manual_add">
-        <div>You can add extra friends by typing their names here:&nbsp;
+        <div id="manual_add_text">You can add extra friends by typing their names here:&nbsp;
         <input id="manual_input"/></div>
         <div id="picked_friends_container"></div>
     </div> <!-- manual_add -->
@@ -79,19 +79,43 @@ this is the message div and the faces themselves
         <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
-    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest Message</div>
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div>
 
-    <div id="message_form">
-        <div id="message_form_editable" contentEditable="True">
-            <span id='message_helper_txt' style='color: gray;'></span>
-        </div>
-        <div id='message_preview' valign='middle'>
-            <img src='{{ fb_params.fb_object_image }}'>
-            <div id='message_preview_title'>
-                {{ fb_params.fb_object_title }}
+    <div id="message_container">
+        <div id="message_form">
+            <div id="message_form_editable" contentEditable="True">
+                <span id='message_helper_txt' style='color: gray;'></span>
             </div>
-            <div id='message_preview_desc'>
-                {{ fb_params.fb_object_description }}
+
+            <!-- New, better way of doing things. Nixxed in favor of maintaining current look/feel -->
+            <!--
+            <div id='message_preview' valign='middle'>
+                <img src='{{ fb_params.fb_object_image }}'>
+                <div id='message_preview_title'>
+                    {{ fb_params.fb_object_title }}
+                </div>
+                <div id='message_preview_desc'>
+                    {{ fb_params.fb_object_description }}
+                </div>
+            </div>
+            -->
+            <!-- To my future self, I am so sorry. Below maintains current look/feel -->
+            <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
+                <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
+                    <tr>
+                        <td>
+                            <img src='{{ fb_params.fb_object_image }}' style='margin-right: 7px; height: 60px'>
+                        </td>
+                        <td>
+                            <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px'>
+                                {{ fb_params.fb_object_title }}
+                            </div>
+                            <div style='font-size: 9px; color: gray; font-weight: normal'>
+                                {{ fb_params.fb_object_description }}
+                            </div>
+                        </td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>
