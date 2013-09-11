@@ -63,11 +63,12 @@
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
 
-        var test_mode = false;
         {% if test_mode %}
-            test_mode = true;
+            var test_mode = true;
             var test_fbid = {{ test_fbid }};
             var test_token = '{{ test_token }}';
+        {% else %}
+            var test_mode = false;
         {% endif %}
 
         //zzz Passing these through "safe" probably isn't ideal since it came

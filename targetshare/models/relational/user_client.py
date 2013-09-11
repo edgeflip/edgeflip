@@ -5,7 +5,7 @@ class UserClient(models.Model):
 
     user_client_id = models.AutoField(primary_key=True)
     fbid = models.BigIntegerField()
-    client = models.ForeignKey('Client')
+    client = models.ForeignKey('Client', related_name='userclients')
     create_dt = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):

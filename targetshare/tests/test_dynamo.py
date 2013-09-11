@@ -176,9 +176,11 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
 
                 ]}
 
-    def save_token(self):
+    def save_token(self, fbid=1234, appid=666, token='DECAFBAD'):
         """helper to save a single token, DECAFBAD"""
-        dynamo.db.save_token(1234, 666, 'DECAFBAD', self.expiry)
+        token = dynamo.Token(fbid=fbid, appid=appid, token=token, expires=self.expiry)
+        token.save(overwrite=True)
+        return token
 
     def test_save_token(self):
         """Test saving a new token"""
@@ -195,13 +197,9 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
     def test_save_token_update(self):
         """Test updating a token - overwrites"""
         self.save_token()
-
-        # update token
-        dynamo.db.save_token(1234, 666, 'FADEDCAB', self.expiry)
-
-        table = dynamo.db.get_table('tokens')
-        x = table.get_item(fbid=1234, appid=666)
-        self.assertEqual(x['token'], 'FADEDCAB')
+        self.save_token(token='FADEDCAB')
+        token = dynamo.Token.items.get_item(fbid=1234, appid=666)
+        self.assertEqual(token['token'], 'FADEDCAB')
 
     def test_fetch_token(self):
         """Test fetching an existing token"""
@@ -220,7 +218,7 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
     def test_fetch_many_tokens(self):
         """Test fetching many tokens"""
         for d in self.tokens().values():
-            dynamo.db.save_token(**d)
+            dynamo.Token.items.put_item(d)
 
         tokens = list(dynamo.db.fetch_many_tokens(self.tokens().keys()))
 

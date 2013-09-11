@@ -57,7 +57,6 @@ from itertools import imap
 from boto.regioninfo import RegionInfo
 from boto.dynamodb2.layer1 import DynamoDBConnection
 from boto.dynamodb2.table import Table
-from boto.dynamodb2.items import Item
 from boto.dynamodb2.fields import HashKey, RangeKey, IncludeIndex
 from boto.dynamodb2.types import NUMBER
 from django.conf import settings
@@ -281,27 +280,6 @@ SCHEMAS['tokens'] = {
         RangeKey('appid', data_type=NUMBER)
     ]
 }
-
-
-def save_token(fbid, appid, token, expires, updated=None):
-    """save a token to dynamo, overwriting existing.
-
-    :arg int fbid: the facebook id
-    :arg int appid: the app's id
-    :arg str token: the auth token from facebook
-    :arg datetime expires: when the token expires, in GMT
-    :arg updated: you can pass a value you, but it will be
-                  replaced with current timestamp.
-    """
-    table = get_table('tokens')
-    x = Item(table, data=dict(
-        fbid=int(fbid),
-        appid=int(appid),
-        token=token,
-        expires=to_epoch(expires),
-        updated=epoch_now()
-    ))
-    return x.save(overwrite=True)
 
 
 def fetch_token(fbid, appid):

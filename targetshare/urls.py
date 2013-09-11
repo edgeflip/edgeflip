@@ -7,7 +7,7 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(
         r'^button/(?P<campaign_slug>\S+)/$',
-        'button_encoded', name='button-encoded'
+        'button', name='button-encoded'
     ),
     url(
         r'^frame_faces/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
@@ -15,7 +15,7 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(
         r'^frame_faces/(?P<campaign_slug>\S+)/$',
-        'frame_faces_encoded', name='frame-faces-encoded'
+        'frame_faces', name='frame-faces-encoded'
     ),
     url(
         r'^canvas/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
@@ -23,7 +23,7 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(
         r'^canvas/(?P<campaign_slug>\S+)/$',
-        'frame_faces_encoded', name='canvas-faces-encoded'
+        'frame_faces', name='canvas-faces-encoded'
     ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
