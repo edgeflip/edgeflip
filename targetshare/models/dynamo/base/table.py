@@ -131,8 +131,8 @@ class Table(table.Table):
         return self.item.from_boto(item)
 
     @inherits_docs
-    def put_item(self, data, overwrite=False):
-        item = self.item(self, data=data)
+    def put_item(self, data=None, overwrite=False, **kwdata):
+        item = self.item(data=data, **kwdata)
         return item.save(overwrite=overwrite)
 
     @inherits_docs
