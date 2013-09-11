@@ -240,6 +240,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.static',
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
+    'django.core.context_processors.request',
     # Edgeflip Processors
     'targetshare.context_processors.context_settings',
 )
@@ -309,6 +310,9 @@ CELERY_IMPORTS = (
     'targetshare.tasks.db',
 )
 
+# Session Settings
+SESSION_COOKIE_AGE = 900 # 15 minutes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']

@@ -17,13 +17,14 @@ urlpatterns = patterns('targetshare.views',
         r'^frame_faces/(?P<campaign_slug>\S+)/$',
         'frame_faces', name='frame-faces-encoded'
     ),
+    url(r'^canvas/$', 'canvas', name='canvas'),
     url(
         r'^canvas/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
-        'frame_faces', name='canvas-faces'
+        'canvas_faces', name='canvas-faces'
     ),
     url(
         r'^canvas/(?P<campaign_slug>\S+)/$',
-        'frame_faces', name='canvas-faces-encoded'
+        'canvas_faces', name='canvas-faces-encoded'
     ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
@@ -32,6 +33,5 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(r'^suppress/$', 'suppress', name='suppress'),
     url(r'^record_event/$', 'record_event', name='record-event'),
-    url(r'^canvas/$', 'canvas', name='canvas'),
     url(r'^health_check/$', 'health_check', name='health-check'),
 )
