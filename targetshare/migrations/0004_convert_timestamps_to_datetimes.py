@@ -4,7 +4,7 @@ from south.v2 import SchemaMigration
 
 
 TIMESTAMP_COLUMNS = (
-    # table, timestamp column
+    # table, null timestamp column
     ('button_style_files', 'end_dt'),
     ('button_style_meta', 'end_dt'),
     ('button_styles', 'delete_dt'),
@@ -62,7 +62,7 @@ class Migration(SchemaMigration):
 
     def backwards(self, orm):
         db.execute_many('\n'.join(
-            "ALTER TABLE {table_name} MODIFY COLUMN {column_name} timestamp;".format(
+            "ALTER TABLE {table_name} MODIFY COLUMN {column_name} timestamp NULL;".format(
                 table_name=table_name,
                 column_name=column_name,
             ) for table_name, column_name in TIMESTAMP_COLUMNS
