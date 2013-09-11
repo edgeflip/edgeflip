@@ -72,9 +72,8 @@ def _encoded_endpoint(view):
             else:
                 raise TypeError(
                     "{}() takes keyword argument 'campaign_slug' or arguments "
-                    "'campaign_id' and 'content_id' ({} given)".format(
+                    "'campaign_id' and 'content_id'".format(
                         view.__name__,
-                        ', '.join(repr(key) for key in keys),
                     )
                 )
 
@@ -670,7 +669,6 @@ def canvas(request):
 
 
 @csrf_exempt
-@_encoded_endpoint
 def canvas_faces(request, **kws):
 
     return frame_faces(request, canvas=True, **kws)
