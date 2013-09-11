@@ -59,33 +59,26 @@ def _encoded_endpoint(view):
 
     """
     @functools.wraps(view)
-    def wrapped_view(request, **kws):
-        kws['canvas'] = kws.get('canvas', False)
-        keys = set(kws)
-        if keys == {'campaign_slug', 'canvas'}:
-            campaign_slug = kws['campaign_slug']
-            try:
-                decoded = utils.decodeDES(campaign_slug)
-                campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
-            except (ValueError, TypeError):
-                LOG.exception('Failed to decrypt: %r', campaign_slug)
-                return http.HttpResponseNotFound()
-        elif keys == {'campaign_id', 'content_id', 'canvas'}:
-            # TODO: Require _test_mode for this endpoint
-            campaign_id, content_id = kws['campaign_id'], kws['content_id']
-        else:
-            raise TypeError(
-                "{}() takes keyword argument 'campaign_slug' or arguments "
-                "'campaign_id' and 'content_id' ({} given)".format(
-                    view.__name__,
-                    ', '.join(repr(key) for key in keys),
+    def wrapped_view(request, campaign_id=None, content_id=None,
+                     campaign_slug=None, **kws):
+        if not campaign_id or not content_id:
+            if campaign_slug:
+                try:
+                    decoded = utils.decodeDES(campaign_slug)
+                    campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
+                except (ValueError, TypeError):
+                    LOG.exception('Failed to decrypt: %r', campaign_slug)
+                    return http.HttpResponseNotFound()
+            else:
+                raise TypeError(
+                    "{}() takes keyword argument 'campaign_slug' or arguments "
+                    "'campaign_id' and 'content_id' ({} given)".format(
+                        view.__name__,
+                        ', '.join(repr(key) for key in keys),
+                    )
                 )
-            )
 
-        if kws['canvas']:
-            return view(request, campaign_id, content_id, kws['canvas'])
-        else:
-            return view(request, campaign_id, content_id)
+        return view(request, campaign_id=campaign_id, content_id=content_id, **kws)
 
     return wrapped_view
 
@@ -217,7 +210,6 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'test_token': test_token,
         'test_fbid': test_fbid,
         'canvas': canvas,
-        'request': request
     })
 
 
@@ -679,9 +671,9 @@ def canvas(request):
 
 @csrf_exempt
 @_encoded_endpoint
-def canvas_faces(request, campaign_id, content_id, canvas=True):
+def canvas_faces(request, **kws):
 
-    return frame_faces(request, campaign_id=campaign_id, content_id=content_id, canvas=canvas)
+    return frame_faces(request, canvas=True, **kws)
 
 
 def health_check(request):
