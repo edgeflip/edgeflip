@@ -538,7 +538,7 @@ class Migration(SchemaMigration):
         },
         'targetshare.userclient': {
             'Meta': {'unique_together': "(('fbid', 'client'),)", 'object_name': 'UserClient', 'db_table': "'user_clients'"},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']"}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'userclients'", 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'user_client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
