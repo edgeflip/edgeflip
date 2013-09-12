@@ -30,7 +30,7 @@ function doFBLogin() {
             });
         } else {
             $('#your-friends-here').html(
-                '<div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
+                '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
             );
             $('#progress').hide();
             $('#friends_div').css('display', 'table');
