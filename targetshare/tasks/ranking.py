@@ -223,14 +223,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             # zzz ideally, want this to be the full URL with
             #     flask.url_for(), but complicated with Celery...
             thisContent = '%s:button %s' % (
-                paramsDB[0],
+                paramsDB.fb_app_name,
                 '/frame_faces/%s/%s' % (campaignId, contentId)
             )
             models.Event.objects.create(
                 session_id=sessionId, campaign_id=campaignId,
                 client_content_id=contentId, ip=ip, fbid=fbid,
                 friend_fbid=None, event_type='no_friends_error',
-                app_id=int(paramsDB[1]), content=thisContent,
+                app_id=paramsDB.fb_app_id, content=thisContent,
                 activity_id=None
             )
             return (None, None, None, None, campaignId, contentId)
