@@ -223,7 +223,6 @@ def faces(request):
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
-    session_id = request.POST.get('session_id')
     last_call = True if request.POST.get('last_call') else False
     edges_ranked = fbmodule = px4_edges = None
 
@@ -239,9 +238,8 @@ def faces(request):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     properties = campaign.campaignproperties_set.get()
     client = campaign.client
-    if not session_id:
-        session_id = _generate_session(
-            request, campaign_id, content_id, fbid, client.fb_app_id)
+    session_id = _generate_session(
+        request, campaign_id, content_id, fbid, client.fb_app_id)
     ip = _get_client_ip(request)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
