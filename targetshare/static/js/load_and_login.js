@@ -30,7 +30,7 @@ function doFBLogin() {
             });
         } else {
             $('#your-friends-here').html(
-                '<div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
+                '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
             );
             $('#progress').hide();
             $('#friends_div').css('display', 'table');
@@ -48,6 +48,11 @@ function doFBLogin() {
                     content: '',
                     token: tok
                 }
+            });
+            $('#reconnect_button').click(function(){
+                $('#progress').show();
+                $('#reconnect_button').hide();
+                $('#reconnect_text').hide();
             });
         }
     }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
