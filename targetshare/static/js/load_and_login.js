@@ -49,6 +49,11 @@ function doFBLogin() {
                     token: tok
                 }
             });
+            $('#reconnect_button').click(function(){
+                $('#progress').show();
+                $('#reconnect_button').hide();
+                $('#reconnect_text').hide();
+            });
         }
     }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
