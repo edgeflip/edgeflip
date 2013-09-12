@@ -111,7 +111,7 @@ def bulk_upsert(items):
         partial_save.delay(item)
 
 
-@celery.task
+@celery.task(task_time_limit=600)
 def update_edges(edges):
     """update edges table
 
