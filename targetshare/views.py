@@ -466,7 +466,7 @@ def objects(request, fb_object_id, content_id):
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description,
-        'org_name': fb_attrs.org_name,
+        'fb_org_name': fb_attrs.org_name,
     }
     content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
     ip = _get_client_ip(request)
@@ -491,7 +491,8 @@ def objects(request, fb_object_id, content_id):
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
         'redirect_url': redirect_url,
-        'content': content_str
+        'content': content_str,
+        'client': client,
     })
 
 
@@ -644,7 +645,7 @@ def record_event(request):
         if exclusions:
             db.bulk_create.delay(exclusions)
 
-    error_msg = request.POST.get('errorMsg')
+    error_msg = request.POST.get('errorMsg[message]')
     if error_msg:
         # may want to push these to the DB at some point, but at least for now,
         # dump them to the logs to ensure we keep the data.
