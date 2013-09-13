@@ -1,5 +1,5 @@
 import celery
-from boto.dynamodb2.items import Item, NEWVALUE
+from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
 
@@ -22,7 +22,7 @@ def bulk_create(objects):
 
 
 @celery.task
-def delayed_save(model_obj, overwrite=False):
+def delayed_save(model_obj, **kws):
     """Save the given object in a background task process.
 
     Be aware that via this method, you can't guarantee the timing of the object
@@ -32,13 +32,11 @@ def delayed_save(model_obj, overwrite=False):
 
     Arguments:
         model_obj: A Django or boto model object
-        overwrite: The boto Item.save() directive
+
+    Any remaining keyword arguments are passed to the object's save method.
 
     """
-    if isinstance(model_obj, Item):
-        model_obj.save(overwrite=overwrite)
-    else:
-        model_obj.save()
+    model_obj.save(**kws)
 
 
 @celery.task
