@@ -18,7 +18,7 @@ class TestRankingTasks(EdgeFlipTestCase):
     def setUp(self):
         super(TestRankingTasks, self).setUp()
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        self.token = models.datastructs.TokenInfo('1', '1', '1', expires)
+        self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
 
     def test_proximity_rank_three(self):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
@@ -178,7 +178,7 @@ class TestDatabaseTasks(EdgeFlipTestCase):
         alice_fresh.partial_save()
 
         # Attempt to save stale changes:
-        db.delayed_save(alice)
+        db.partial_save(alice)
         alice_final = models.dynamo.User.items.get_item(**alice.get_keys())
         # Winner of race condition trumps loser:
         self.assertEqual(alice_final['fname'], 'Ally')

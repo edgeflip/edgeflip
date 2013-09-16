@@ -31,6 +31,10 @@ body {
     margin: 20px auto;
 }
 
+.canvas_friends_div {
+    margin-top: 30px;
+}
+
 #progress {
     /*width: 250px;*/
     background-color: white;
@@ -114,7 +118,24 @@ body {
     color: inherit;
 }
 
+#reconnect_button {
+    width: 250px; 
+    margin: 0px auto;
+    background-color: #0f2446;
+    float: none;
+}
 
+#reconnect_button:hover {
+    background-color: #094163;
+}
+
+#reconnect_text {
+    font-size: 18px;
+    font-family: arial,sans-serif;
+    margin: 0px auto;
+    display: table;
+    padding-bottom: 5px;
+}
 
 /***************************************************
  Styling for friend picker buttons (new_face.html)

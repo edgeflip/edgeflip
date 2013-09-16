@@ -36,7 +36,7 @@ def px3_crawl(mockMode, fbid, token):
     try:
         edgesUnranked = fbmodule.getFriendEdgesFb(
             fbid,
-            token.tok,
+            token['token'],
             requireIncoming=False,
             requireOutgoing=False
         )
@@ -223,14 +223,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             # zzz ideally, want this to be the full URL with
             #     flask.url_for(), but complicated with Celery...
             thisContent = '%s:button %s' % (
-                paramsDB[0],
+                paramsDB.fb_app_name,
                 '/frame_faces/%s/%s' % (campaignId, contentId)
             )
             models.Event.objects.create(
                 session_id=sessionId, campaign_id=campaignId,
                 client_content_id=contentId, ip=ip, fbid=fbid,
                 friend_fbid=None, event_type='no_friends_error',
-                app_id=int(paramsDB[1]), content=thisContent,
+                app_id=paramsDB.fb_app_id, content=thisContent,
                 activity_id=None
             )
             return (None, None, None, None, campaignId, contentId)
@@ -283,7 +283,7 @@ def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
     fbmodule = mock_facebook if mockMode else facebook
     try:
-        user = fbmodule.getUserFb(fbid, token.tok)
+        user = fbmodule.getUserFb(fbid, token['token'])
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
@@ -296,7 +296,7 @@ def proximity_rank_four(mockMode, fbid, token):
         if not edgesUnranked:
             edgesUnranked = fbmodule.getFriendEdgesFb(
                 fbid,
-                token.tok,
+                token['token'],
                 requireIncoming=True,
                 requireOutgoing=False
             )

@@ -1,18 +1,23 @@
 # -*- coding: utf-8 -*-
+import datetime
+from south.db import db
 from south.v2 import SchemaMigration
+from django.db import models
 
 
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        # Adding field 'FBObjectAttribute.org_name'
+        db.add_column('fb_object_attributes', 'org_name',
+                      self.gf('django.db.models.fields.CharField')(default='', max_length=1024, blank=True),
+                      keep_default=False)
+
 
     def backwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        # Deleting field 'FBObjectAttribute.org_name'
+        db.delete_column('fb_object_attributes', 'org_name')
+
 
     models = {
         'targetshare.assignment': {
@@ -350,6 +355,7 @@ class Migration(SchemaMigration):
             'og_image': ('django.db.models.fields.CharField', [], {'max_length': '2096', 'blank': 'True'}),
             'og_title': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'og_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
+            'org_name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'page_title': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
             'sharing_prompt': ('django.db.models.fields.CharField', [], {'max_length': '2096', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -484,7 +490,7 @@ class Migration(SchemaMigration):
         },
         'targetshare.userclient': {
             'Meta': {'unique_together': "(('fbid', 'client'),)", 'object_name': 'UserClient', 'db_table': "'user_clients'"},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']"}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'userclients'", 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'user_client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})

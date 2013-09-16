@@ -1,18 +1,28 @@
 # -*- coding: utf-8 -*-
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 
 
-class Migration(SchemaMigration):
+def template_name(path):
+    """Return the basename of the given path."""
+    return path.rsplit('/', 1)[-1]
+
+
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        """Trim button style files from full path to just the template name."""
+        for style_file in orm.ButtonStyleFile.objects.all():
+            style_file.html_template = template_name(style_file.html_template)
+            style_file.save()
 
     def backwards(self, orm):
-        ''' Passing on this one, nothing actually changed in the database,
-        just the attribute of the fb_app_id and fb_app_name
-        '''
+        """Reproduce the full button style file paths."""
+        for style_file in orm.ButtonStyleFile.objects.all():
+            style_file.html_template = "targetshare/clients/%s/%s" % (
+                style_file.button_style.client.subdomain,
+                template_name(style_file.html_template),
+            )
+            style_file.save()
 
     models = {
         'targetshare.assignment': {
@@ -484,7 +494,7 @@ class Migration(SchemaMigration):
         },
         'targetshare.userclient': {
             'Meta': {'unique_together': "(('fbid', 'client'),)", 'object_name': 'UserClient', 'db_table': "'user_clients'"},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']"}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'userclients'", 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
             'user_client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
@@ -492,3 +502,4 @@ class Migration(SchemaMigration):
     }
 
     complete_apps = ['targetshare']
+    symmetrical = True

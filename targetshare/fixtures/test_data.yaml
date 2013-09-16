@@ -27,7 +27,7 @@
          is_deleted: false, name: VA Share Button}
     model: targetshare.buttonstyle
     pk: 1
--   fields: {button_style: 1,  end_dt: null, html_template: clients/terrymcauliffe/share_button.html,
+-   fields: {button_style: 1,  end_dt: null, html_template: share_button.html,
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.buttonstylefile
     pk: 1

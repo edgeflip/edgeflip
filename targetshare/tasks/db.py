@@ -11,40 +11,52 @@ LOG = get_task_logger(__name__)
 
 @celery.task
 def bulk_create(objects):
-    ''' Handles bulk create objects in the background, so that we're not
-    stopping up the request/response cycle with irrelevant database writes.
+    """Bulk-create objects in a background task process.
 
     Arguments:
-        objects: A list of model objects
-    '''
+        objects: A sequence of model objects
+
+    """
     model, = set(type(obj) for obj in objects)
     model.objects.bulk_create(objects)
 
 
 @celery.task
-def delayed_save(model_obj, _attempt=0):
-    ''' Very simple task for delaying the save() of an object for the
-    background to keep the write out of the request/response cycle. Can
-    certainly take new or existing objects, but keep in mind that this comes
-    with a certain level of inherent danger.
+def delayed_save(model_obj, overwrite=False):
+    """Save the given object in a background task process.
 
-    Via this method, you can't guarentee the timing of when the object is saved
-    so this method is best reserved for things that won't need to be read back
-    from the database in a very quick fashion. In other words, use with some
-    appropriate level of caution
+    Be aware that via this method, you can't guarantee the timing of the object
+    save; so, this method is best reserved for things that don't need to be read
+    back from the database "soon", and race conditions are possible. Use with some
+    caution.
 
-    '''
+    Arguments:
+        model_obj: A Django or boto model object
+        overwrite: The boto Item.save() directive
+
+    """
     if isinstance(model_obj, Item):
-        _dynamo_partial_save(model_obj, attempt=_attempt)
+        model_obj.save(overwrite=overwrite)
     else:
         model_obj.save()
 
 
-def _dynamo_partial_save(item, attempt):
+@celery.task
+def partial_save(item, _attempt=0):
+    """Save the given boto Item in a background process, using its partial_save method.
+
+    This task handles ConditionalCheckFailedExceptions from AWS, and in the event of a
+    collision, attempts to merge the losing thread's novel data with that of the
+    winning thread, before retrying via a new task.
+
+    Arguments:
+        item: A boto Item
+
+    """
     try:
         item.partial_save()
     except ConditionalCheckFailedException:
-        if attempt == 4:
+        if _attempt == 4:
             LOG.exception(
                 'Failed to handle save conflict on item %r', dict(item)
             )
@@ -65,12 +77,18 @@ def _dynamo_partial_save(item, attempt):
             else:
                 del fresh[key]
 
-    delayed_save.delay(fresh, attempt + 1)
+    partial_save.delay(fresh, _attempt + 1)
 
 
 @celery.task
 def bulk_upsert(items):
-    """Upsert the given dynamo Items."""
+    """Upsert the given boto Items.
+
+    Arguments:
+        items: A sequence of boto Items to update, if they already exist in Dynamo,
+            or insert, if they don't
+
+    """
     items_data = {item.pk: item for item in items}
     if not items_data:
         return
@@ -86,29 +104,14 @@ def bulk_upsert(items):
         for key, value in item.items():
             existing[key] = value
 
-        delayed_save.delay(existing)
+        partial_save.delay(existing)
 
     # Remaining items are new. Save them:
     for item in items_data.values():
-        delayed_save.delay(item)
+        partial_save.delay(item)
 
 
-@celery.task
-def update_tokens(token):
-    """update tokens table
-
-        :arg token: a `datastruct.TokenInfo`
-
-    """
-    try:
-        ownerId = int(token.ownerId)
-    except (ValueError, TypeError):
-        LOG.warn("Bad ownerId %r, token %s not updated", token.ownerId, token.tok)
-    else:
-        dynamo.save_token(ownerId, int(token.appId), token.tok, token.expires)
-
-
-@celery.task
+@celery.task(task_time_limit=600)
 def update_edges(edges):
     """update edges table
 
@@ -116,7 +119,8 @@ def update_edges(edges):
 
     """
     # pick out all the non-None EdgeCounts from all the edges
-    counts = [c for e in edges for c in (e.countsIn, e.countsOut) if c is not None]
+    counts = [count for edge in edges for count in (edge.countsIn, edge.countsOut)
+              if count is not None]
     dynamo.save_many_edges(
         {
             'fbid_source': count.sourceId,
@@ -137,12 +141,13 @@ def update_edges(edges):
 
 
 def update_database(user, token, edges):
-    """async version of `edgeflip.database_compat.updateDb"""
-    tasks = []
-    tasks.append(update_tokens.delay(token))
-    tasks.append(bulk_upsert.delay([user.to_dynamo()] +
-                                   [edge.secondary.to_dynamo() for edge in edges]))
-    tasks.append(update_edges.delay(edges))
+    """Update the given User, its Token, its User network and Edges."""
+    tasks = [
+        delayed_save.delay(token, overwrite=True),
+        bulk_upsert.delay([user.to_dynamo()] +
+                          [edge.secondary.to_dynamo() for edge in edges]),
+        update_edges.delay(edges),
+    ]
     ids = [t.id for t in tasks]
 
-    LOG.debug("updateDb() using background celery tasks %r for user %d", ids, user.id)
+    LOG.debug("update_database using background celery tasks %r for user %d", ids, user.id)

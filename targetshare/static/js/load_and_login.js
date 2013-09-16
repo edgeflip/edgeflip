@@ -10,29 +10,50 @@ var myfbid; // The FB ID of the current user to be filled in upon auth.
 /* loads a bunch of images
 */
 function preload(arrayOfImages) {
-	$(arrayOfImages).each(function () {
-		$('<img />').attr('src',this);
-	});
+    $(arrayOfImages).each(function () {
+        $('<img />').attr('src',this);
+    });
 }
 
 
 /* pops up facebook's signin page in a _top window */
 function doFBLogin() {
 
-	// Should never get here since we should only send someone to the faces page upon authorizing...
-	// Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
-	// a button to click on instead?
-	FB.login(function(response) {
-		if (response.authResponse) {
-			// Not sure we need this call -- can't we just grab the id from the response, too?
-			FB.api('/me', function(info) {
-				login(info.id, response.authResponse.accessToken, response);
-			});
-		} else {
-			// alert("Rocco, sit on the other side. You block the rearview mirror.");
-
-            // zzz Probably not the right thing to do in this case, but better than nothing...
-            commError();
+    // Should never get here since we should only send someone to the faces page upon authorizing...
+    // Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
+    // a button to click on instead?
+    FB.login(function(response) {
+        if (response.authResponse) {
+            // Not sure we need this call -- can't we just grab the id from the response, too?
+            FB.api('/me', function(info) {
+                login(info.id, response.authResponse.accessToken, response);
+            });
+        } else {
+            $('#your-friends-here').html(
+                '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
+            );
+            $('#progress').hide();
+            $('#friends_div').css('display', 'table');
+            $.ajax({
+                type: "POST",
+                url: "/record_event/",
+                data: {
+                    userid: myfbid,
+                    appid: appid,
+                    friends: [],
+                    eventType: "auth_fail",
+                    sessionid: sessionid,
+                    campaignid: campaignid,
+                    contentid: contentid,
+                    content: '',
+                    token: tok
+                }
+            });
+            $('#reconnect_button').click(function(){
+                $('#progress').show();
+                $('#reconnect_button').hide();
+                $('#reconnect_text').hide();
+            });
         }
     }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
