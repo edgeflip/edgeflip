@@ -123,7 +123,7 @@ class CampaignForm(forms.Form):
         queryset=relational.ChoiceSet.objects.none(),
         required=False
     )
-    allow_generic = forms.BooleanField()
+    allow_generic = forms.BooleanField(required=False)
     generic_url_slug = forms.CharField(required=False)
     generic_fb_object = forms.ModelChoiceField(
         queryset=relational.FBObject.objects.none(),
@@ -132,6 +132,15 @@ class CampaignForm(forms.Form):
     fb_object = forms.ModelChoiceField(
         queryset=relational.FBObject.objects.none()
     )
+
+    def clean_generic_fb_object(self):
+        gen_fb_obj = self.cleaned_data.get('generic_fb_object')
+        if self.cleaned_data.get('allow_generic') and not gen_fb_obj:
+            raise forms.ValidationError(
+                'Generic FB Object not selected, but Allow Generic specified as True'
+            )
+        else:
+            return gen_fb_obj
 
     def save(self):
         ''' Currently only supports creating, not editing, campaigns '''
@@ -148,9 +157,6 @@ class CampaignForm(forms.Form):
         choice_set = relational.CampaignChoiceSet(campaign=campaign)
         button_style = relational.CampaignButtonStyle(campaign=campaign)
         global_filter = relational.CampaignGlobalFilter(campaign=campaign)
-        cfb_objs = [
-            relational.CampaignFBObjects(campaign=campaign) for x in range(2)
-        ]
 
         # Campaign Properties
         properties.client_faces_url = data.get('faces_url')
@@ -178,17 +184,20 @@ class CampaignForm(forms.Form):
         choice_set.save()
 
         # FB Objects
-        # TODO: Have some questions about whether or not this is correct here.
-        # The old site is a bit confusing around this, so I'll need to check
-        # with Kit at some point
-        cfb_objs[0].filter = data.get('global_filter')
-        cfb_objs[0].fb_object = data.get('generic_fb_object')
-        cfb_objs[0].rand_cdf = 1.0
-        cfb_objs[0].save()
-        cfb_objs[1].filter = data.get('global_filter')
-        cfb_objs[1].fb_object = data.get('fb_object')
-        cfb_objs[1].rand_cdf = 1.0
-        cfb_objs[1].save()
+        if data.get('generic_fb_object'):
+            relational.CampaignFBObjects.objects.create(
+                campaign=campaign,
+                filter=data.get('global_filter'),
+                fb_object=data.get('generic_fb_object'),
+                rand_cdf=1.0
+            )
+
+        relational.CampaignFBObjects.objects.create(
+            campaign=campaign,
+            filter=data.get('global_filter'),
+            fb_object=data.get('fb_object'),
+            rand_cdf=1.0
+        )
 
         return campaign
 
