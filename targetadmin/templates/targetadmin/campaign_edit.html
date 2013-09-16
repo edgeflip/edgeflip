@@ -7,3 +7,13 @@
         <input class="btn btn-large" type="submit" value="Submit" />
     </form>
 {% endblock %}
+{% block extrascript %}
+    <script> 
+        $('#id_generic_fb_object').hide();
+        $("label[for='id_generic_fb_object']").hide();
+        $('#id_allow_generic').click(function(){
+            $("label[for='id_generic_fb_object']").toggle(this.checked);
+            $('#id_generic_fb_object').toggle(this.checked);
+        });
+    </script>
+{% endblock %}

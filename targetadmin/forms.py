@@ -125,10 +125,11 @@ class CampaignForm(forms.Form):
     )
     allow_generic = forms.BooleanField()
     generic_url_slug = forms.CharField(required=False)
-    fb_object = forms.ModelChoiceField(
+    generic_fb_object = forms.ModelChoiceField(
         queryset=relational.FBObject.objects.none(),
+        required=False,
     )
-    fb_object_two = forms.ModelChoiceField(
+    fb_object = forms.ModelChoiceField(
         queryset=relational.FBObject.objects.none()
     )
 
@@ -181,11 +182,11 @@ class CampaignForm(forms.Form):
         # The old site is a bit confusing around this, so I'll need to check
         # with Kit at some point
         cfb_objs[0].filter = data.get('global_filter')
-        cfb_objs[0].fb_object = data.get('fb_object')
+        cfb_objs[0].fb_object = data.get('generic_fb_object')
         cfb_objs[0].rand_cdf = 1.0
         cfb_objs[0].save()
         cfb_objs[1].filter = data.get('global_filter')
-        cfb_objs[1].fb_object = data.get('fb_object_two')
+        cfb_objs[1].fb_object = data.get('fb_object')
         cfb_objs[1].rand_cdf = 1.0
         cfb_objs[1].save()
 
@@ -199,4 +200,4 @@ class CampaignForm(forms.Form):
         self.fields['button_style'].queryset = self.client.buttonstyle_set.all()
         self.fields['choice_set'].queryset = self.client.choicesets.all()
         self.fields['fb_object'].queryset = self.client.fbobject_set.all()
-        self.fields['fb_object_two'].queryset = self.client.fbobject_set.all()
+        self.fields['generic_fb_object'].queryset = self.client.fbobject_set.all()
