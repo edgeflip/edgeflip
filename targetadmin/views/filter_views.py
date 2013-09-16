@@ -37,6 +37,7 @@ class FilterFormView(ClientRelationFormView):
     queryset = relational.Filter.objects.all()
     success_url = 'filter-detail'
     object_string = 'Filter'
+    template_name = 'targetadmin/filter_create.html'
 
 
 filter_new = internal(FilterFormView.as_view())

@@ -1,12 +1,21 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Edit Filter{% endblock %}
 {% block content %}
+    <h2>Edit Filter: {{ filter_obj.name }}</h2>
     <form action="" method="post">
         {% csrf_token %}
         {{ filter_form.as_p }}
         <hr>
         {{ formset.management_form }}
-        {% for form in formset %}
+        {% if formset.initial_forms %}
+            <h4>Existing Features</h4>
+                {% for form in formset.initial_forms %}
+                    {{ form }}
+                {% endfor %}
+            </hr>
+        {% endif %}
+        <h4>Add Filter Features</h4>
+        {% for form in formset.extra_forms %}
             {{ form }}
             <hr>
         {% endfor %}

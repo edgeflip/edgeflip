@@ -5,6 +5,7 @@
         <h2>Edit {{ object.name }}</h2>
     {% else %}
         <h2>Create New {{ obj_str }}</h2>
+    <p>Name and describe your filter, and then you'll be prompted to add features</p>
     {% endif %}
     <form action="" method="post">
         {% csrf_token %}
