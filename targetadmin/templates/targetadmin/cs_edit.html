@@ -1,12 +1,21 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Edit Choice Set{% endblock %}
 {% block content %}
+    <h2>Edit Choice Set: {{ choice_set.name }}</h2>
     <form action="" method="post">
         {% csrf_token %}
         {{ cs_form.as_p }}
         <hr>
         {{ formset.management_form }}
-        {% for form in formset %}
+        {% if formset.initial_forms %}
+            <h4>Existing Choice Sets</h4>
+                {% for form in formset.initial_forms %}
+                    {{ form }}
+                {% endfor %}
+            </hr>
+        {% endif %}
+        <h4>Add Choice Sets</h4>
+        {% for form in formset.extra_forms %}
             {{ form }}
             <hr>
         {% endfor %}
