@@ -228,23 +228,27 @@ def button(request, campaign_id, content_id):
     except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
         template_name = 'button.html'
+
+        # Set empties for the Assignment below:
+        style_id = None
+        style_recs = []
     else:
         template_name = button_style_file.html_template
 
-        # Record assignment:
-        db.delayed_save.delay(
-            models.Assignment(
-                session_id=request.visit.session_id,
-                campaign=campaign,
-                content=content,
-                feature_type='button_style_id',
-                feature_row=style_id,
-                random_assign=True,
-                chosen_from_table='campaign_button_styles',
-                chosen_from_rows=[campaign_button_style.button_style_id
-                                  for campaign_buton_style in style_recs],
-            )
+    # Record assignment:
+    db.delayed_save.delay(
+        models.Assignment(
+            session_id=request.visit.session_id,
+            campaign=campaign,
+            content=content,
+            feature_type='button_style_id',
+            feature_row=style_id,
+            random_assign=True,
+            chosen_from_table='campaign_button_styles',
+            chosen_from_rows=[campaign_button_style.button_style_id
+                              for campaign_buton_style in style_recs],
         )
+    )
 
     return render(request, _locate_client_template(client, template_name), {
         'goto': faces_url,
