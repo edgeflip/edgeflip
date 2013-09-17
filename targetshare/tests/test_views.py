@@ -214,13 +214,20 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
 
     def test_button_no_recs(self):
         ''' Tests views.button without style recs '''
+        assert not models.Assignment.objects.exists()
+
         response = self.client.get(reverse('button', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
-        assert not models.Assignment.objects.exists()
+
+        assignments = models.Assignment.objects.all()
+        assert len(assignments) == 1
+
+        #this field is how we know the assignment came from a default
+        assert assignments[0].feature_row == None
 
     def test_button_with_recs(self):
         ''' Tests views.button with style recs '''
