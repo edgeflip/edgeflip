@@ -255,7 +255,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
-        client = models.Client.objects.get(campaign__pk=1)
+        client = models.Client.objects.get(campaigns__pk=1)
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['campaign'],
@@ -331,13 +331,13 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(
-            fbid=1, friend_fbid=2, event_type='suppress'
+            visit__fbid=1, friend_fbid=2, event_type='suppress'
         ).exists()
         assert models.FaceExclusion.objects.filter(
             fbid=1, friend_fbid=2
         ).exists()
         assert models.Event.objects.filter(
-            fbid=1, friend_fbid=3, event_type='shown'
+            visit__fbid=1, friend_fbid=3, event_type='shown'
         ).exists()
         self.assertEqual(int(response.context['fbid']), 3)
         self.assertEqual(response.context['firstname'], 'Suppress')

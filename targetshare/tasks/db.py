@@ -17,7 +17,7 @@ def bulk_create(objects):
         objects: A sequence of model objects
 
     """
-    model, = set(type(obj) for obj in objects)
+    (model,) = set(type(obj) for obj in objects)
     model.objects.bulk_create(objects)
 
 
