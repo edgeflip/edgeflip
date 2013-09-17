@@ -48,10 +48,26 @@ def cs_edit(request, client_pk, pk):
     cs = get_object_or_404(relational.ChoiceSet, pk=pk)
     cs_form = forms.ChoiceSetForm(instance=cs)
     extra_forms = 2
+
+    def csf_field_callback(f, **kwargs):
+        ''' Callback method for modelformset_factory to leverage and ask us for
+        the form field that should be used for various model fields. Using it here
+        to filter down the filters in a choice set filter object by client
+        '''
+        if f.name == 'filter':
+            return forms.forms.ModelChoiceField(
+                queryset=relational.Filter.objects.filter(
+                    client=client
+                )
+            )
+        else:
+            return f.formfield(**kwargs)
+
     cs_set = modelformset_factory(
         relational.ChoiceSetFilter,
         extra=extra_forms,
-        exclude=('end_dt', 'propensity_model_type')
+        exclude=('end_dt', 'propensity_model_type'),
+        formfield_callback=csf_field_callback
     )
     formset = cs_set(
         queryset=relational.ChoiceSetFilter.objects.filter(choice_set=cs),

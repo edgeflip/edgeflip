@@ -11,7 +11,7 @@ class ClientForm(forms.ModelForm):
 
 class ContentForm(forms.ModelForm):
 
-    description = forms.CharField(widget=forms.Textarea)
+    description = forms.CharField(required=False, widget=forms.Textarea)
 
     class Meta:
         model = relational.ClientContent

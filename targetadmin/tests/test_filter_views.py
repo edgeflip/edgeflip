@@ -63,7 +63,6 @@ class TestFilterViews(TestAdminBase):
                 'form-0-filter_feature_id': ff.pk,
                 'form-0-feature': relational.FilterFeature.AGE,
                 'form-0-value': 25,
-                'form-0-value_type': 'int',
                 'form-0-operator': 'eq',
                 'form-0-end_dt': '2010-1-1',
                 'form-1-filter': self.filter_obj.pk,
@@ -71,7 +70,6 @@ class TestFilterViews(TestAdminBase):
                 'form-1-feature': relational.FilterFeature.STATE,
                 'form-1-value': 'Illinois',
                 'form-1-operator': 'in',
-                'form-1-value_type': 'string',
                 'form-1-end_dt': '2010-1-1',
                 'form-INITIAL_FORMS': 1,
                 'form-TOTAL_FORMS': 2,
@@ -90,6 +88,8 @@ class TestFilterViews(TestAdminBase):
         self.assertEqual(filter_obj.filterfeatures.count(), 2)
         # Feature Changes
         self.assertEqual(ff.value, '25')
+        self.assertEqual(ff.value_type, 'int')
         # New Feature
         new_ff = filter_obj.filterfeatures.get(value='Illinois')
         self.assertEqual(new_ff.operator, 'in')
+        self.assertEqual(new_ff.value_type, 'string')

@@ -41,10 +41,14 @@ class FBObjectFormView(ClientRelationFormView):
             form_kwargs['initial'] = {
                 'name': self.object.name,
                 'description': self.object.description,
-                'client': self.object.client
+                'client': self.object.client,
             }
         else:
             form_kwargs['client'] = self.client
+            form_kwargs['initial'] = {
+                'og_action': 'support',
+                'og_type': 'cause',
+            }
         return form_class(**form_kwargs)
 
 
