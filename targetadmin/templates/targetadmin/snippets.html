@@ -61,4 +61,8 @@
         &lt;/div&gt;
         &lt;!-- SHARE FACES --&gt;
         </code></pre>
+    <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
+{% endblock %}
+{% block extrascript %}
+    <script>doUpdate();</script>
 {% endblock %}

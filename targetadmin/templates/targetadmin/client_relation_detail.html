@@ -9,6 +9,7 @@
             <li>URL: {{ object.url }}</li>
         </ul>
         {% block extra_content %}{% endblock %}
-        <a href="{% url edit_url_name client.pk object.pk %}" class="btn btn-small">Edit</a>
+        <a href="{% url edit_url_name client.pk object.pk %}" class="btn btn-small btn-primary">Edit</a>
+        <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
      </div>
 {% endblock %}

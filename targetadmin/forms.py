@@ -93,6 +93,7 @@ class ButtonStyleForm(forms.ModelForm):
 
     class Meta:
         model = relational.ButtonStyleFile
+        exclude = ('button_style',)
 
 
 class CampaignForm(forms.Form):
@@ -175,19 +176,20 @@ class CampaignForm(forms.Form):
 
         # Button Style
         button_style.button_style = data.get('button_style')
+        button_style.rand_cdf = 1.0
         button_style.save()
 
         # Choice Set
         choice_set.choice_set = data.get('choice_set')
         choice_set.allow_generic = data.get('allow_generic', False)
         choice_set.generic_url_slug = data.get('generic_url_slug')
+        choice_set.rand_cdf = 1.0
         choice_set.save()
 
         # FB Objects
         if data.get('generic_fb_object'):
-            relational.CampaignFBObjects.objects.create(
+            relational.CampaignGenericFBObjects.objects.create(
                 campaign=campaign,
-                filter=data.get('global_filter'),
                 fb_object=data.get('generic_fb_object'),
                 rand_cdf=1.0
             )
