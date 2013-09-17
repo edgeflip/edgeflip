@@ -135,23 +135,26 @@ def button(request, campaign_id, content_id):
 
     # Use campaign-custom button style template name if one exists:
     try:
-        # rand_assign raises ValueError if list is empty:
         style_recs = campaign.campaignbuttonstyle_set.all()
         style_exp_tupes = [
             (campaign_button_style.button_style_id, campaign_button_style.rand_cdf)
             for campaign_button_style in style_recs
         ]
+        # rand_assign raises ValueError if list is empty:
         style_id = int(utils.rand_assign(style_exp_tupes))
-        button_style_file = models.ButtonStyleFile.objects.get(button_style=style_id)
-    except (ValueError, models.ButtonStyleFile.DoesNotExist):
+        filenames = models.ButtonStyleFile.objects.get(button_style=style_id)
+    except (ValueError, models.ButtonStyleFile.DoesNotExist) as e:
+        LOG.debug('in exception block: {}'.format(e) )
         # The default template name will do:
-        template_name = 'button.html'
+        html_template = 'button.html'
+        css_template = 'edgeflip_client_simple.css'
 
         #set NULLs for the Assignment below
         style_id = None
         style_recs = []
     else:
-        template_name = button_style_file.html_template
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
 
     # Record assignment:
     assignment = models.Assignment(
@@ -163,11 +166,11 @@ def button(request, campaign_id, content_id):
     )
     db.delayed_save.delay(assignment)
 
-    return render(request, _locate_client_template(client, template_name), {
+    return render(request, _locate_client_template(client, html_template), {
         'fb_params': params_dict,
         'goto': faces_url,
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
         'campaign': campaign,
         'content': content,
         'session_id': session_id
