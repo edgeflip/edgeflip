@@ -10,13 +10,13 @@
         {% if formset.initial_forms %}
             <h4>Existing Features</h4>
                 {% for form in formset.initial_forms %}
-                    {{ form }}
+                    {{ form.as_p }}
+                    <hr>
                 {% endfor %}
-            </hr>
         {% endif %}
         <h4>Add Filter Features</h4>
         {% for form in formset.extra_forms %}
-            {{ form }}
+            {{ form.as_p }}
             <hr>
         {% endfor %}
         <input class="btn btn-small btn-primary" type="submit" value="Submit" />

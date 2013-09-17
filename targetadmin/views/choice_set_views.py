@@ -50,7 +50,8 @@ def cs_edit(request, client_pk, pk):
     extra_forms = 2
     cs_set = modelformset_factory(
         relational.ChoiceSetFilter,
-        extra=extra_forms
+        extra=extra_forms,
+        exclude=('end_dt', 'propensity_model_type')
     )
     formset = cs_set(
         queryset=relational.ChoiceSetFilter.objects.filter(choice_set=cs),

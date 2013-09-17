@@ -8,8 +8,8 @@ class FBObjectAttribute(models.Model):
     og_action = models.CharField('Action', max_length=64, blank=True)
     og_type = models.CharField('Type', max_length=64, blank=True)
     og_title = models.CharField('Title', max_length=128, blank=True)
-    og_image = models.CharField('Image', max_length=2096, blank=True)
-    og_description = models.CharField('Description',
+    og_image = models.CharField('Image URL', max_length=2096, blank=True)
+    og_description = models.CharField('FB Object Description',
                                       max_length=1024, blank=True)
     org_name = models.CharField('Organization Name',
                                 max_length=1024, blank=True)

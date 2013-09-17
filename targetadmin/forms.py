@@ -11,6 +11,8 @@ class ClientForm(forms.ModelForm):
 
 class ContentForm(forms.ModelForm):
 
+    description = forms.CharField(widget=forms.Textarea)
+
     class Meta:
         model = relational.ClientContent
         exclude = ('is_deleted', 'delete_dt')
@@ -19,7 +21,12 @@ class ContentForm(forms.ModelForm):
 class FBObjectAttributeForm(forms.ModelForm):
 
     name = forms.CharField()
-    description = forms.CharField(required=False)
+    description = forms.CharField(required=False, widget=forms.Textarea)
+    og_description = forms.CharField(
+        label='FB Object Description',
+        required=False,
+        widget=forms.Textarea
+    )
 
     def save(self, commit=True):
         fb_obj_attr = super(FBObjectAttributeForm, self).save(False)
@@ -46,10 +53,12 @@ class FBObjectAttributeForm(forms.ModelForm):
 
     class Meta:
         model = relational.FBObjectAttribute
-        exclude = ('is_deleted', 'delete_dt', 'fb_object')
+        exclude = ('is_deleted', 'delete_dt', 'fb_object', 'end_dt',)
 
 
 class FilterForm(forms.ModelForm):
+
+    description = forms.CharField(required=False, widget=forms.Textarea)
 
     class Meta:
         model = relational.Filter
@@ -57,6 +66,8 @@ class FilterForm(forms.ModelForm):
 
 
 class ChoiceSetForm(forms.ModelForm):
+
+    description = forms.CharField(required=False, widget=forms.Textarea)
 
     class Meta:
         model = relational.ChoiceSet
@@ -66,7 +77,7 @@ class ChoiceSetForm(forms.ModelForm):
 class ButtonStyleForm(forms.ModelForm):
 
     name = forms.CharField()
-    description = forms.CharField(required=False)
+    description = forms.CharField(required=False, widget=forms.Textarea)
 
     def save(self, commit=True):
         bsf = super(ButtonStyleForm, self).save(False)
@@ -93,13 +104,13 @@ class ButtonStyleForm(forms.ModelForm):
 
     class Meta:
         model = relational.ButtonStyleFile
-        exclude = ('button_style',)
+        exclude = ('button_style', 'end_dt')
 
 
 class CampaignForm(forms.Form):
 
     name = forms.CharField()
-    description = forms.CharField(required=False)
+    description = forms.CharField(required=False, widget=forms.Textarea)
     faces_url = forms.CharField()
     thanks_url = forms.CharField()
     error_url = forms.CharField()

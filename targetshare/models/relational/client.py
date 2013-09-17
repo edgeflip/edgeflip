@@ -7,11 +7,13 @@ class Client(models.Model):
     client_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True, blank=True)
     _fb_app_name = models.CharField(
+        'FB App Namespace',
         max_length=256,
         db_column='fb_app_name',
         blank=True
     )
     _fb_app_id = models.CharField(
+        'FB App ID',
         max_length=256,
         db_column='fb_app_id',
         blank=True
