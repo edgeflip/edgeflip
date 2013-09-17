@@ -143,8 +143,7 @@ def button(request, campaign_id, content_id):
         # rand_assign raises ValueError if list is empty:
         style_id = int(utils.rand_assign(style_exp_tupes))
         filenames = models.ButtonStyleFile.objects.get(button_style=style_id)
-    except (ValueError, models.ButtonStyleFile.DoesNotExist) as e:
-        LOG.debug('in exception block: {}'.format(e) )
+    except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
         html_template = 'button.html'
         css_template = 'edgeflip_client_simple.css'
@@ -210,16 +209,17 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         style_recs = campaign.campaignfacesstyle_set.all()
         style_exp_tupes = [(style.faces_style_id, style.rand_cdf) for style in style_recs ]
         style_id = int(utils.rand_assign(style_exp_tupes))
-        face_style_file = models.FacesStyleFiles.objects.get(faces_style=style_id)
+        filenames = models.FacesStyleFiles.objects.get(faces_style=style_id)
     except (ValueError, models.FacesStyleFiles.DoesNotExist):
         # The default template name will do:
-        template_name = 'frame_faces.html'
+        html_template = 'frame_faces.html'
 
         #set NULLs for the Assignment below
         style_id = None
         style_recs = []
     else:
-        template_name = face_style_file.html_template
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
 
     # Record assignment:
     assignment = models.Assignment(
@@ -231,7 +231,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     )
     db.delayed_save.delay(assignment)
 
-    return render(request, _locate_client_template(client, template_name), {
+    return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
@@ -240,7 +240,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid,
