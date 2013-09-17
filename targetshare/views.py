@@ -93,8 +93,11 @@ def _locate_client_template(client, template_name):
             client.subdomain,
             template_name
         ))
+
     except TemplateDoesNotExist:
+        # hopefully template_name is correctly set
         return 'targetshare/%s' % template_name
+            
     else:
         return templates[0].name
 
@@ -156,8 +159,7 @@ def button(request, campaign_id, content_id):
         content=content, feature_type='button_style_id',
         feature_row=style_id, random_assign=True,
         chosen_from_table='campaign_button_styles',
-        chosen_from_rows=[campaign_button_style.button_style_id
-                          for campaign_buton_style in style_recs],
+        chosen_from_rows=[style.button_style_id for style in style_recs],
     )
     db.delayed_save.delay(assignment)
 
@@ -199,7 +201,34 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     else:
         test_fbid = test_token = None
 
-    return render(request, _locate_client_template(client, 'frame_faces.html'), {
+    # Use campaign-custom template name if one exists:
+    try:
+        # rand_assign raises ValueError if list is empty:
+        style_recs = campaign.campaignfacesstyle_set.all()
+        style_exp_tupes = [(style.faces_style_id, style.rand_cdf) for style in style_recs ]
+        style_id = int(utils.rand_assign(style_exp_tupes))
+        face_style_file = models.FacesStyleFiles.objects.get(faces_style=style_id)
+    except (ValueError, models.FacesStyleFiles.DoesNotExist):
+        # The default template name will do:
+        template_name = 'frame_faces.html'
+
+        #set NULLs for the Assignment below
+        style_id = None
+        style_recs = []
+    else:
+        template_name = face_style_file.html_template
+
+    # Record assignment:
+    assignment = models.Assignment(
+        session_id=session_id, campaign=campaign,
+        content=content, feature_type='frame_faces_style_id',
+        feature_row=style_id, random_assign=True,
+        chosen_from_table='campaign_faces_style',
+        chosen_from_rows=[style.faces_style_id for style in style_recs],
+    )
+    db.delayed_save.delay(assignment)
+
+    return render(request, _locate_client_template(client, template_name), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
