@@ -64,21 +64,18 @@ def filter_edit(request, client_pk, pk):
             data=request.POST,
             queryset=relational.FilterFeature.objects.filter(filter=filter_obj)
         )
-        valid_formset = formset.is_valid()
-        valid_forms = []
-        if valid_formset:
-            valid_forms = formset.forms
-        else:
-            # Let's make sure our initial data isn't the cause of this
-            valid_formset = True
-            for form in formset.forms:
-                if form.is_valid():
-                    valid_forms.append(form)
-                else:
-                    if form._changed_data != ['filter']:
-                        valid_formset = False
+
+        # Filter Features are inherently nully things, but we know we should
+        # expect at least a value back from the form.
+        formset.is_valid()
+        filled_forms = [x for x in formset.forms if x.cleaned_data.get('value')]
+        valid_formset = True
+        for form in filled_forms:
+            if not form.is_valid() and form._changed_data != ['filter']:
+                valid_formset = False
+
         if valid_formset and filter_form.is_valid():
-            for form in valid_forms:
+            for form in filled_forms:
                 form.save()
             filter_form.save()
             return redirect('filter-detail', client.pk, filter_obj.pk)
