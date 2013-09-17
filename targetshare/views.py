@@ -145,8 +145,8 @@ def _encoded_endpoint(view):
     @functools.wraps(view)
     def wrapped_view(request, campaign_id=None, content_id=None,
                      campaign_slug=None, **kws):
-        # TODO: Require _test_mode to come in on non-campaign_slug route
-        # TODO: (i.e. with campaign_id+content_id).
+        # TODO: Disallow non-campaign_slug route (i.e. with campaign_id+content_id)
+        # TODO: except in _test_mode.
         if not campaign_id or not content_id:
             if campaign_slug:
                 try:
