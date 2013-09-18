@@ -43,6 +43,8 @@ class TestRankingTasks(EdgeFlipTestCase):
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
+        visit = models.relational.Visit.objects.create(
+            session_id='123', app_id=123, ip='127.0.0.1')
         # FIXME: Because the px3 mock crawl yields random results, this may in
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
@@ -50,14 +52,11 @@ class TestRankingTasks(EdgeFlipTestCase):
         ranked_edges = ranking.px3_crawl(True, 1, self.token)
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
-            'local',
-            1,
-            1,
-            'fake-session-id',
-            '127.0.0.1',
-            1,
-            10,
-            ('sharing-social-good', '471727162864364')
+            campaignId=1,
+            contentId=1,
+            fbid=1,
+            visit_id=visit.pk,
+            numFace=10,
         )
         assert all((isinstance(x, models.datastructs.Edge) for x in edges_ranked))
         assert isinstance(edges_filtered, models.datastructs.TieredEdges)
@@ -107,18 +106,17 @@ class TestRankingTasks(EdgeFlipTestCase):
             None
         )
         test_edge2.score = 0.4
+        visit = models.relational.Visit.objects.create(
+            session_id='123', app_id=123, ip='127.0.0.1', fbid=1)
 
         ranked_edges = [test_edge2, test_edge1]
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
-            'local',
-            5,
-            1,
-            'fake-session-id',
-            '127.0.0.1',
-            1,
-            10,
-            ('sharing-social-good', '471727162864364')
+            campaignId=5,
+            contentId=1,
+            fbid=1,
+            visit_id=visit.pk,
+            numFace=10,
         )
 
         self.assertEquals(edges_filtered.secondary_ids, (1, 2))
