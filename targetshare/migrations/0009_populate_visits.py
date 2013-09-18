@@ -18,12 +18,15 @@ class Migration(DataMigration):
             # Ensure fbid is unique across visit:
             fbids = {event.fbid for event in events if event.fbid}
             try:
-                (fbid,) = fbids
+                (fbid,) = fbids or (None,)
             except ValueError:
-                fbid = events[0].fbid
-                if fbid is not None:
-                    print "WARNING: multiple fbid recorded for %s, %s: %s" % (
-                        session_id, app_id, fbids)
+                # Must be multiple fbids; use the "first":
+                fbid = next(iter(fbids))
+                print "WARNING: multiple fbid recorded for %s, %s: %s" % (
+                    session_id,
+                    app_id,
+                    fbids,
+                )
             # Create visit:
             visit = orm.Visit.objects.create(
                 session_id=session_id,
