@@ -218,7 +218,7 @@ def button(request, campaign_id, content_id):
     # Use campaign-custom button style template name if one exists:
     try:
         # rand_assign raises ValueError if list is empty:
-        style_recs = campaign.campaignbuttonstyle_set.all()
+        style_recs = campaign.campaignbuttonstyles.all()
         style_exp_tupes = [
             (campaign_button_style.button_style_id, campaign_button_style.rand_cdf)
             for campaign_button_style in style_recs
