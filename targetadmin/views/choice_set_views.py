@@ -47,7 +47,7 @@ def cs_edit(request, client_pk, pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     cs = get_object_or_404(relational.ChoiceSet, pk=pk)
     cs_form = forms.ChoiceSetForm(instance=cs)
-    extra_forms = 2
+    extra_forms = 5
 
     def csf_field_callback(f, **kwargs):
         ''' Callback method for modelformset_factory to leverage and ask us for

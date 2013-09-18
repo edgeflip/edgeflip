@@ -48,7 +48,7 @@ def filter_edit(request, client_pk, pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     filter_obj = get_object_or_404(relational.Filter, pk=pk)
     filter_form = forms.FilterForm(instance=filter_obj)
-    extra_forms = 2
+    extra_forms = 5
     ff_set = modelformset_factory(
         relational.FilterFeature,
         extra=extra_forms,
