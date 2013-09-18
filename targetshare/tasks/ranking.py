@@ -102,8 +102,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     ).values_list('filter_id', 'rand_cdf'), key=lambda t: t[1])
     utils.check_cdf(filter_exp_tupes)
     global_filter_id = utils.rand_assign(filter_exp_tupes)
-    models.Assignment.objects.create(
-        session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+    visit.assignments.create(
+        campaign_id=campaignId, content_id=contentId,
         feature_type='filter_id', feature_row=global_filter_id,
         random_assign=True, chosen_from_table='campaign_global_filters',
         chosen_from_rows=[r[0] for r in filter_exp_tupes]
@@ -122,8 +122,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
     ]
     choice_set_id = utils.rand_assign(choice_set_exp_tupes)
-    models.Assignment.objects.create(
-        session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+    visit.assignments.create(
+        campaign_id=campaignId, content_id=contentId,
         feature_type='choice_set_id', feature_row=choice_set_id,
         random_assign=True, chosen_from_table='campaign_choice_sets',
         chosen_from_rows=[r.pk for r in choice_set_recs]
@@ -160,16 +160,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         if bestCSFilter[0] is None:
             # We got generic...
             logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
-            models.Assignment.objects.create(
-                session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+            visit.assignments.create(
+                campaign_id=campaignId, content_id=contentId,
                 feature_type='generic choice set filter',
                 feature_row=None, random_assign=False,
                 chosen_from_table='choice_set_filters',
                 chosen_from_rows=[x.pk for x in choice_set.choicesetfilter_set.all()]
             )
         else:
-            models.Assignment.objects.create(
-                session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+            visit.assignments.create(
+                campaign_id=campaignId, content_id=contentId,
                 feature_type='filter_id', feature_row=bestCSFilter[0].filter_id,
                 random_assign=False, chosen_from_table='choice_set_filters',
                 chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
@@ -181,15 +181,15 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # We still have slots to fill and can fallback to do so
 
         # write "fallback" assignments to DB
-        models.Assignment.objects.create(
-            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+        visit.assignments.create(
+            campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk,
             random_assign=False, chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
-        models.Assignment.objects.create(
-            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+        visit.assignments.create(
+            campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback content ',
             feature_row=fallback_content_id,
             random_assign=False, chosen_from_table='campaign_properties',
@@ -237,15 +237,14 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
-        models.Assignment.objects.create(
-            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
+        visit.assignments.create(
+            campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk,
             random_assign=False, chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
-        models.Assignment.objects.create(
-            session_id=visit.session_id,
+        visit.assignments.create(
             campaign_id=campaignId,
             content_id=contentId,
             feature_type='fallback campaign',
