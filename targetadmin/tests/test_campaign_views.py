@@ -10,7 +10,7 @@ class TestCampaignViews(TestAdminBase):
 
     def setUp(self):
         super(TestCampaignViews, self).setUp()
-        self.campaign = self.test_client.campaign_set.create(
+        self.campaign = self.test_client.campaigns.create(
             name='test campaign')
 
     def test_campaign_list_view(self):

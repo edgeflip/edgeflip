@@ -17,3 +17,4 @@ class ButtonStyle(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'button_styles'
+        ordering = ('-create_dt',)

@@ -19,7 +19,7 @@
         <div class="span4">
             <h4>Campaigns</h4>
             <ul>
-                {% for campaign in client.campaign_set.all|slice:"5" %}
+                {% for campaign in client.campaigns.all|slice:"5" %}
                     <li><a href="{% url 'campaign-detail' client.pk campaign.pk %}">{{ campaign }}</a></li>
                 {% endfor %}
             </ul>
@@ -59,7 +59,7 @@
         <div class="span4">
             <h4>FaceBook Objects</h4>
             <ul>
-                {% for fbo in client.fbobject_set.all|slice:"5" %}
+                {% for fbo in client.fbobjects.all|slice:"5" %}
                     <li><a href="{% url 'fb-obj-detail' client.pk fbo.pk %}">{{ fbo.name }}</a></li>
                 {% endfor %}
             </ul>

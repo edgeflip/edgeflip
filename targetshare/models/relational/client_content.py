@@ -18,3 +18,4 @@ class ClientContent(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'client_content'
+        ordering = ('-create_dt',)

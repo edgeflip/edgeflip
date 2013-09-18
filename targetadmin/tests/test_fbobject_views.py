@@ -10,7 +10,7 @@ class TestFBObjectViews(TestAdminBase):
 
     def setUp(self):
         super(TestFBObjectViews, self).setUp()
-        self.fb_obj = self.test_client.fbobject_set.create(name='test object')
+        self.fb_obj = self.test_client.fbobjects.create(name='test object')
 
     def test_fb_obj_list_view(self):
         ''' Test viewing a list of fb_objs '''

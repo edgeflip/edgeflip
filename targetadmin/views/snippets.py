@@ -11,7 +11,7 @@ def snippets(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     return render(request, 'targetadmin/snippets.html', {
         'client': client,
-        'first_campaign': client.campaign_set.all()[0],
+        'first_campaign': client.campaigns.all()[0],
         'first_content': client.clientcontent_set.all()[0]
     })
 

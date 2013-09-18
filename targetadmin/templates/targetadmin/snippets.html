@@ -28,7 +28,7 @@
 
     Campaign: 
     <select id="campaign" onChange="doUpdate();">
-      {% for campaign in client.campaign_set.all %}
+      {% for campaign in client.campaigns.all %}
       <option value="{{campaign.pk}}">{{ campaign.pk }} -- {{campaign.name}}</option>
       {% endfor %}
     </select> 
@@ -41,7 +41,7 @@
     </select><br />
     <br />
 
-    {% with first_camp=client.campaign_set.all|slice:":1" first_content=client.clientcontent_set.all|slice:":1" %}
+    {% with first_camp=client.campaigns.all|slice:":1" first_content=client.clientcontent_set.all|slice:":1" %}
         <span style="text-decoration: underline;">Button Snippet</span> (<span id="cmpg">{{first_camp.pk}}</span>/<span id="cnt">{{first_content.pk}}</span>):<br />
             <pre><code>
             &lt;!-- SHARE BUTTON --&gt;

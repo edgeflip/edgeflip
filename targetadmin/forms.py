@@ -217,9 +217,9 @@ class CampaignForm(forms.Form):
     def __init__(self, client, *args, **kwargs):
         super(CampaignForm, self).__init__(*args, **kwargs)
         self.client = client
-        self.fields['fallback_campaign'].queryset = self.client.campaign_set.all()
+        self.fields['fallback_campaign'].queryset = self.client.campaigns.all()
         self.fields['global_filter'].queryset = self.client.filters.all()
         self.fields['button_style'].queryset = self.client.buttonstyle_set.all()
         self.fields['choice_set'].queryset = self.client.choicesets.all()
-        self.fields['fb_object'].queryset = self.client.fbobject_set.all()
-        self.fields['generic_fb_object'].queryset = self.client.fbobject_set.all()
+        self.fields['fb_object'].queryset = self.client.fbobjects.all()
+        self.fields['generic_fb_object'].queryset = self.client.fbobjects.all()
