@@ -592,7 +592,7 @@ def suppress(request):
             client_content_id=content_id,
             friend_fbid=old_id,
             content=content,
-            event_type='suppress',
+            event_type='suppressed',
         )
     )
     db.delayed_save.delay(
