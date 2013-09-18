@@ -1,16 +1,23 @@
 (function() {
 	var efDiv = document.getElementById('ef_frame_div');
 
-	// Determine appropriate frame_faces URL base -- PROTOCOL://HOST/frame_faces
+	// Determine appropriate frame_faces URL base -- PROTOCOL//HOST/frame_faces
 	var efFrameURL = (function() {
-		var child, host;
-		var parser = document.createElement('a');
+		var child, url, host, protocol;
+		var parse = (function(url) {
+			var parser = document.createElement('a');
+			parser.href = url;
+			return parser;
+		});
 		for (var childIndex = 0; childIndex < efDiv.children.length; childIndex++) {
 			child = efDiv.children[childIndex];
-			parser.href = child.src;
-			host = parser.host;
+			url = parse(child.src);
+			host = url.host;
 			if (host.indexOf('edgeflip.com') != -1) {
-				return parser.protocol + "//" + host + "/frame_faces";
+				protocol = url.protocol;
+				// IE likes to return an invalid ":" for the protocol
+				protocol = protocol == ':' ? '' : protocol;
+				return protocol + "//" + host + "/frame_faces";
 			}
 		}
 	})();
