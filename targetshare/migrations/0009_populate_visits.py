@@ -10,13 +10,20 @@ class Migration(DataMigration):
         # Sort events into groupable stream according to unique key
         # (session_id, app_id):
         for (session_id, app_id), events in itertools.groupby(
-            orm.Event.objects.order_by('session_id', 'app_id'),
+            orm.Event.objects.order_by('session_id', 'app_id', 'updated'),
             lambda event: (event.session_id, event.app_id)
         ):
             # Avoid iterator issues:
             events = tuple(events)
             # Ensure fbid is unique across visit:
-            (fbid,) = {event.fbid for event in events if event.fbid} or (None,)
+            fbids = {event.fbid for event in events if event.fbid}
+            try:
+                (fbid,) = fbids
+            except ValueError:
+                fbid = events[0].fbid
+                if fbid is not None:
+                    print "WARNING: multiple fbid recorded for %s, %s: %s" % (
+                        session_id, app_id, fbids)
             # Create visit:
             visit = orm.Visit.objects.create(
                 session_id=session_id,
