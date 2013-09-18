@@ -365,7 +365,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(
-            visit__fbid=1, friend_fbid=2, event_type='suppress'
+            visit__fbid=1, friend_fbid=2, event_type='suppressed'
         ).exists()
         assert models.FaceExclusion.objects.filter(
             fbid=1, friend_fbid=2
