@@ -3,17 +3,46 @@
 {% block content %}
     <form action="" method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        <p>{{ form.name.errors }}<label for='id_name'>{{ form.name.label }}: </label>{{ form.name }}</p> 
+        <p>{{ form.description.errors }}<label for='id_description'>{{ form.description.label }}: </label>{{ form.description }}</p>
+        <p>{{ form.faces_url.errors }}<label for='id_faces_url'>{{ form.faces_url.label}}: </label>{{ form.faces_url }}</p>
+        <p>{{ form.thanks_url.errors }}<label for='id_thanks_url'>{{ form.thanks_url.label}}: <span id="thanks-url-copy" class="btn btn-inverse btn-mini">Copy Previous URL</span></label>{{ form.thanks_url}}</p>
+        <p>{{ form.error_url.errors }}<label for='id_error_url'>{{ form.error_url.label}}: <span id="error-url-copy" class="btn btn-inverse btn-mini">Copy Previous URL</span></label>{{ form.error_url}}</p>
+        <p>{{ form.fallback_campaign.errors }}<label for='id_fallback_campaign'>{{ form.fallback_campaign.label }}: </label>{{ form.fallback_campaign }}</p>
+        <p>{{ form.fallback_content.errors }}<label for='id_fallback_content'>{{ form.fallback_content.label }}: </label>{{ form.fallback_content }}</p>
+        <p>{{ form.cascading_fallback.errors }}<label for='id_cascading_fallback'>{{ form.cascading_fallback.label }}: </label>{{ form.cascading_fallback }}</p>
+        <p>{{ form.min_friends_to_show.errors }}<label for='id_min_friends_to_show'>{{ form.min_friends_to_show.label }}: </label>{{ form.min_friends_to_show }}</p>
+        <p>{{ form.global_filter.errors }}<label for='id_global_filter'>{{ form.global_filter.label }}: </label> {{ form.global_filter }}</p>
+        <p>{{ form.button_style.errors }}<label for='id_button_style'>{{ form.button_style.label }}: </label> {{ form.button_style }}</p>
+        <p>{{ form.choice_set.errors }}<label for='id_choice_set'>{{ form.choice_set.label }}: </label> {{ form.choice_set }}</p>
+        <p>{{ form.allow_generic.errors }}<label for='id_allow_generic'>{{ form.allow_generic.label }}: </label> {{ form.allow_generic }}</p>
+        <p>{{ form.generic_url_slug.errors }}<label for='id_generic_url_slug'>{{ form.generic_url_slug.label }}: </label> {{ form.generic_url_slug }}</p>
+        <p>{{ form.generic_fb_object.errors }}<label for='id_generic_fb_object'>{{ form.generic_fb_object.label }}: </label> {{ form.generic_fb_object }}</p>
+        <p>{{ form.fb_object.errors }}<label for='id_fb_object'>{{ form.fb_object.label }}: </label> {{ form.fb_object }}</p>
         <input class="btn btn-large" type="submit" value="Submit" />
     </form>
 {% endblock %}
 {% block extrascript %}
     <script> 
+        // Allow Generic checkbox toggles generic slug and fb object
         $('#id_generic_fb_object').hide();
         $("label[for='id_generic_fb_object']").hide();
+        $("label[for='id_generic_url_slug']").hide();
+        $('#id_generic_url_slug').hide();
         $('#id_allow_generic').click(function(){
             $("label[for='id_generic_fb_object']").toggle(this.checked);
             $('#id_generic_fb_object').toggle(this.checked);
+            $("label[for='id_generic_url_slug']").toggle(this.checked);
+            $('#id_generic_url_slug').toggle(this.checked);
+        });
+    </script>
+
+    <script>
+        $('#thanks-url-copy').click(function(){
+            $('#id_thanks_url').val($('#id_faces_url').val());
+        });
+        $('#error-url-copy').click(function(){
+            $('#id_error_url').val($('#id_faces_url').val());
         });
     </script>
 {% endblock %}
