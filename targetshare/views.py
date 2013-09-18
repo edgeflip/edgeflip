@@ -250,7 +250,7 @@ def button(request, campaign_id, content_id):
             feature_row=style_id,
             random_assign=True,
             chosen_from_table='campaign_button_styles',
-            chosen_from_rows=[style.faces_style_id for style in style_recs],
+            chosen_from_rows=[style.button_style_id for style in style_recs],
         )
     )
 
@@ -304,8 +304,9 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     except (ValueError, models.FacesStyleFiles.DoesNotExist):
         # The default template name will do:
         html_template = 'frame_faces.html'
+        css_template = 'edgeflip_client_simple.css'
 
-        #set NULLs for the Assignment below
+        #set empties for the Assignment below
         style_id = None
         style_recs = []
     else:
