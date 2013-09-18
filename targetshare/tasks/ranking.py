@@ -52,18 +52,19 @@ def px3_crawl(mockMode, fbid, token):
 
 
 @celery.task
-def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
-                      sessionId, ip, fbid, numFace, paramsDB,
+def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
                       fallbackCount=0, already_picked=None):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
 
     '''
-    already_picked = already_picked or models.datastructs.TieredEdges()
-
     if (fallbackCount > MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
+
+    visit = models.Visit.objects.get(visit_id=visit_id)
+    client = models.Client.objects.get(campaigns__campaign_id=campaignId)
+    already_picked = already_picked or models.datastructs.TieredEdges()
 
     # Get fallback & threshold info about this campaign from the DB
     properties = models.CampaignProperties.objects.get(campaign__pk=campaignId)
@@ -102,7 +103,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     utils.check_cdf(filter_exp_tupes)
     global_filter_id = utils.rand_assign(filter_exp_tupes)
     models.Assignment.objects.create(
-        session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+        session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
         feature_type='filter_id', feature_row=global_filter_id,
         random_assign=True, chosen_from_table='campaign_global_filters',
         chosen_from_rows=[r[0] for r in filter_exp_tupes]
@@ -122,7 +123,7 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     ]
     choice_set_id = utils.rand_assign(choice_set_exp_tupes)
     models.Assignment.objects.create(
-        session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+        session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
         feature_type='choice_set_id', feature_row=choice_set_id,
         random_assign=True, chosen_from_table='campaign_choice_sets',
         chosen_from_rows=[r.pk for r in choice_set_recs]
@@ -153,19 +154,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
     except utils.TooFewFriendsError as e:
         logger.info(
             "Too few friends found for %s with campaign %s. Checking for fallback.",
-            fbid,
-            campaignId
-        )
-        pass
+            fbid, campaignId)
 
     if bestCSFilter:
-        if (bestCSFilter[0] is None):
+        if bestCSFilter[0] is None:
             # We got generic...
-            logger.debug("Generic returned for %s with campaign %s." % (
-                fbid, campaignId
-            ))
+            logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
             models.Assignment.objects.create(
-                session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+                session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
                 feature_type='generic choice set filter',
                 feature_row=None, random_assign=False,
                 chosen_from_table='choice_set_filters',
@@ -173,27 +169,27 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             )
         else:
             models.Assignment.objects.create(
-                session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+                session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
                 feature_type='filter_id', feature_row=bestCSFilter[0].filter_id,
                 random_assign=False, chosen_from_table='choice_set_filters',
                 chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
             )
 
-    slotsLeft = int(numFace) - len(already_picked)
+    slotsLeft = numFace - len(already_picked)
 
     if slotsLeft > 0 and fallback_cascading:
         # We still have slots to fill and can fallback to do so
 
         # write "fallback" assignments to DB
         models.Assignment.objects.create(
-            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk,
             random_assign=False, chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
         models.Assignment.objects.create(
-            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback content ',
             feature_row=fallback_content_id,
             random_assign=False, chosen_from_table='campaign_properties',
@@ -203,9 +199,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # Recursive call with new fallbackCampaignId & fallback_content_id,
         # incrementing fallbackCount
         return perform_filtering(
-            edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
-            fallback_content_id, sessionId, ip, fbid, numFace,
-            paramsDB, fallbackCount + 1, already_picked
+            edgesRanked,
+            properties.fallback_campaign.pk,
+            fallback_content_id,
+            fbid,
+            visit.pk,
+            numFace,
+            fallbackCount + 1,
+            already_picked,
         )
 
     elif len(already_picked) < minFriends:
@@ -222,33 +223,36 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
             )
             # zzz ideally, want this to be the full URL with
             #     flask.url_for(), but complicated with Celery...
-            thisContent = '%s:button %s' % (
-                paramsDB.fb_app_name,
-                '/frame_faces/%s/%s' % (campaignId, contentId)
+            thisContent = '%s:button /frame_faces/%s/%s' % (
+                client.fb_app_name,
+                campaignId,
+                contentId
             )
-            models.Event.objects.create(
-                session_id=sessionId, campaign_id=campaignId,
-                client_content_id=contentId, ip=ip, fbid=fbid,
-                friend_fbid=None, event_type='no_friends_error',
-                app_id=paramsDB.fb_app_id, content=thisContent,
-                activity_id=None
+            visit.events.create(
+                campaign_id=campaignId,
+                client_content_id=contentId,
+                content=thisContent,
+                event_type='no_friends_error',
             )
             return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
         models.Assignment.objects.create(
-            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            session_id=visit.session_id, campaign_id=campaignId, content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk,
             random_assign=False, chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
         models.Assignment.objects.create(
-            session_id=sessionId, campaign_id=campaignId, content_id=contentId,
+            session_id=visit.session_id,
+            campaign_id=campaignId,
+            content_id=contentId,
             feature_type='fallback campaign',
             feature_row=fallback_content_id,
-            random_assign=False, chosen_from_table='campaign_properties',
-            chosen_from_rows=[properties.pk]
+            random_assign=False,
+            chosen_from_table='campaign_properties',
+            chosen_from_rows=[properties.pk],
         )
 
         # If we're not cascading, no one is already picked.
@@ -259,9 +263,14 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         # Recursive call with new fallbackCampaignId & fallback_content_id,
         # incrementing fallbackCount
         return perform_filtering(
-            edgesRanked, clientSubdomain, properties.fallback_campaign.pk,
-            fallback_content_id, sessionId, ip, fbid, numFace,
-            paramsDB, fallbackCount + 1, already_picked
+            edgesRanked,
+            properties.fallback_campaign.pk,
+            fallback_content_id,
+            fbid,
+            visit.pk,
+            numFace,
+            fallbackCount + 1,
+            already_picked,
         )
 
     else:
@@ -272,9 +281,12 @@ def perform_filtering(edgesRanked, clientSubdomain, campaignId, contentId,
         last_tier = already_picked[-1]
 
         return (
-            edgesRanked, already_picked,
-            last_tier['bestCSFilterId'], last_tier['choiceSetSlug'],
-            last_tier['campaignId'], last_tier['contentId']
+            edgesRanked,
+            already_picked,
+            last_tier['bestCSFilterId'],
+            last_tier['choiceSetSlug'],
+            last_tier['campaignId'],
+            last_tier['contentId'],
         )
 
 

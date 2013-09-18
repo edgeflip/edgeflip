@@ -37,20 +37,104 @@ def _get_client_ip(request):
     return ip
 
 
-def _generate_session(request, campaign_id, content_id, fbid, app_id,
-                     content_str=''):
-    if not request.session.session_key:
-        # Force a key to be created if it doesn't exist
-        request.session.save()
-        event = models.Event(
-            session_id=request.session.session_key, campaign_id=campaign_id,
-            client_content_id=content_id, ip=_get_client_ip(request),
-            fbid=fbid, friend_fbid=None, event_type='session_start',
-            app_id=app_id, content=content_str, activity_id=None
-        )
-        db.delayed_save.delay(event)
+def _get_visit(request, app_id, fbid=None, start_event=None):
+    """Return the Visit object for the request.
 
-    return request.session.session_key
+    Visits are unique per session (`session_key`) and application (`app_id`), and
+    are required to log Events. This helper ensures a session, a Visit and a
+    "session start" event have been created, and updates the Visit with data that
+    may not be supplied on session start (such as `fbid`).
+
+    Arguments:
+        request: The Django request object
+        app_id: The Facebook application identifier
+        fbid: The Facebook user identifier (optional)
+        start_event: A dict of additional data for the session start event,
+            (e.g. `campaign`) (optional)
+
+    """
+    if not request.session.session_key:
+        # Force a key to be created:
+        request.session.save()
+
+    visit, created = models.relational.Visit.objects.get_or_create(
+        session_id=request.session.session_key,
+        app_id=long(app_id),
+        defaults={
+            'ip': _get_client_ip(request),
+            'fbid': fbid,
+        },
+    )
+    if created:
+        # Add start event:
+        db.delayed_save.delay(
+            models.Event(
+                visit=visit,
+                event_type='session_start',
+                **(start_event or {})
+            )
+        )
+    elif fbid and not visit.fbid:
+        # fbid was not known on creation; update visit:
+        visit.fbid = fbid
+        db.delayed_save.delay(visit, update_fields=['fbid'])
+
+    return visit
+
+
+def _require_visit(view):
+    """Decorator manufacturing a view wrapper, which requires a Visit for the request.
+
+    The Visit is added to the request at attribute "visit"::
+
+        @_require_visit
+        def my_view(request, campaign_id, content_id):
+            visit = request.visit
+            ...
+
+    An app, Campaign, ClientContent or FBObject must be specified via the path or query
+    string, for identification of Client app. Facebook ID (fbid) is retrieved from the
+    query string, if available.
+
+    Campaign and ClientContent, if appropriate, are recommended, for completeness of the
+    new Visit's "session start" Event.
+
+    """
+    @functools.wraps(view)
+    def wrapped_view(request, *args, **kws):
+        # Gather info from path and query string
+        campaign_id = kws.get('campaign_id', request.REQUEST.get('campaignid'))
+        content_id = kws.get('content_id', request.REQUEST.get('contentid'))
+        fb_object_id = kws.get('fb_object_id')
+        fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
+        app_id = request.REQUEST.get('appid')
+
+        # Determine client, and campaign & client content if available
+        client = campaign = client_content = None
+
+        if campaign_id:
+            campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+            client = campaign.client
+        if content_id:
+            client_content = get_object_or_404(models.ClientContent, content_id=content_id)
+            client = client_content.client if client is None else client
+        if fb_object_id and client is None:
+            client = get_object_or_404(models.Client, fbobjects__fb_object_id=fb_object_id)
+
+        if not app_id:
+            if client is None:
+                return http.HttpResponseBadRequest("The application could not be determined")
+            else:
+                app_id = client.fb_app_id
+
+        # Initialize Visit and add to request
+        request.visit = _get_visit(request, app_id, fbid, {
+            'campaign': campaign,
+            'client_content': client_content,
+        })
+        return view(request, *args, **kws)
+
+    return wrapped_view
 
 
 def _encoded_endpoint(view):
@@ -61,6 +145,8 @@ def _encoded_endpoint(view):
     @functools.wraps(view)
     def wrapped_view(request, campaign_id=None, content_id=None,
                      campaign_slug=None, **kws):
+        # TODO: Disallow non-campaign_slug route (i.e. with campaign_id+content_id)
+        # TODO: except in _test_mode.
         if not campaign_id or not content_id:
             if campaign_slug:
                 try:
@@ -71,10 +157,8 @@ def _encoded_endpoint(view):
                     return http.HttpResponseNotFound()
             else:
                 raise TypeError(
-                    "{}() takes keyword argument 'campaign_slug' or arguments "
-                    "'campaign_id' and 'content_id'".format(
-                        view.__name__,
-                    )
+                    "{}() requires keyword argument 'campaign_slug' or arguments "
+                    "'campaign_id' and 'content_id'".format(view.__name__)
                 )
 
         return view(request, campaign_id=campaign_id, content_id=content_id, **kws)
@@ -118,17 +202,12 @@ def _test_mode(request):
 
 
 @_encoded_endpoint
+@_require_visit
 def button(request, campaign_id, content_id):
-    content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-
+    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
-    params_dict = {
-        'fb_app_name': client.fb_app_name, 'fb_app_id': client.fb_app_id
-    }
-    session_id = _generate_session(
-        request, campaign.pk, content.pk, None, client.fb_app_id)
 
     # Use campaign-custom button style template name if one exists:
     try:
@@ -143,47 +222,57 @@ def button(request, campaign_id, content_id):
     except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
         template_name = 'button.html'
+
+        # Set empties for the Assignment below:
+        style_id = None
+        style_recs = []
     else:
         template_name = button_style_file.html_template
 
-        # Record assignment:
-        assignment = models.Assignment(
-            session_id=session_id, campaign=campaign,
-            content=content, feature_type='button_style_id',
-            feature_row=style_id, random_assign=True,
+    # Record assignment:
+    db.delayed_save.delay(
+        models.Assignment(
+            session_id=request.visit.session_id,
+            campaign=campaign,
+            content=content,
+            feature_type='button_style_id',
+            feature_row=style_id,
+            random_assign=True,
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[campaign_button_style.button_style_id
-                              for campaign_buton_style in style_recs],
+                                for campaign_buton_style in style_recs],
         )
-        db.delayed_save.delay(assignment)
+    )
 
     return render(request, _locate_client_template(client, template_name), {
-        'fb_params': params_dict,
         'goto': faces_url,
-        'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
         'campaign': campaign,
         'content': content,
-        'session_id': session_id
+        'fb_params': {
+            'fb_app_name': client.fb_app_name,
+            'fb_app_id': client.fb_app_id
+        },
+        'client_css': _locate_client_css(client, 'edgeflip_client.css'),
+        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
     })
 
 
 @csrf_exempt # FB posts directly to this view
 @_encoded_endpoint
+@_require_visit
 def frame_faces(request, campaign_id, content_id, canvas=False):
-    content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-    test_mode = _test_mode(request)
     client = campaign.client
-    session_id = _generate_session(
-        request, campaign.pk, content.pk, None, client.fb_app_id)
-    event = models.Event(
-        session_id=session_id, campaign_id=campaign_id,
-        client_content_id=content_id, ip=_get_client_ip(request),
-        fbid=None, friend_fbid=None, event_type='faces_page_load',
-        app_id=client.fb_app_id, content='', activity_id=None
+    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    test_mode = _test_mode(request)
+    db.delayed_save.delay(
+        models.Event(
+            visit=request.visit,
+            campaign=campaign,
+            client_content=content,
+            event_type='faces_page_load',
+        )
     )
-    db.delayed_save.delay(event)
 
     if test_mode:
         try:
@@ -214,16 +303,17 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 
 @require_POST
 @csrf_exempt
+@_require_visit
 def faces(request):
     fbid = request.POST.get('fbid')
-    tok = request.POST.get('token')
-    num_face = request.POST.get('num')
+    token_string = request.POST.get('token')
+    num_face = int(request.POST['num'])
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
-    last_call = True if request.POST.get('last_call') else False
+    last_call = bool(request.POST.get('last_call'))
     edges_ranked = fbmodule = px4_edges = None
 
     if settings.ENV != 'production' and mock_mode:
@@ -234,17 +324,12 @@ def faces(request):
         fbmodule = facebook
 
     subdomain = request.get_host().split('.')[0]
-    content = get_object_or_404(models.ClientContent, content_id=content_id)
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-    properties = campaign.campaignproperties_set.get()
     client = campaign.client
-    session_id = _generate_session(
-        request, campaign_id, content_id, fbid, client.fb_app_id)
-    ip = _get_client_ip(request)
+    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
-        return http.HttpResponseForbidden(
-            'Mock mode only allowed for the mock client')
+        return http.HttpResponseForbidden('Mock mode only allowed for the mock client')
 
     if px3_task_id and px4_task_id:
         px3_result = celery.current_app.AsyncResult(px3_task_id)
@@ -266,7 +351,7 @@ def faces(request):
                 campaign = models.Campaign.objects.get(pk=campaign_id)
                 content = models.ClientContent.objects.get(pk=content_id)
             px4_edges = px4_result.result if px4_result.successful() else ()
-            if not all([edges_ranked, edges_filtered]):
+            if not edges_ranked or not edges_filtered:
                 return http.HttpResponse('No friends identified for you.', status=500)
         else:
             return http.HttpResponse(
@@ -281,18 +366,15 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = fbmodule.extendTokenFb(fbid, client.fb_app_id, tok)
+        token = fbmodule.extendTokenFb(fbid, client.fb_app_id, token_string)
         px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
-            clientSubdomain=subdomain,
+            fbid=fbid,
+            visit_id=request.visit.pk,
             campaignId=campaign_id,
             contentId=content_id,
-            sessionId=session_id,
-            ip=ip,
-            fbid=fbid,
             numFace=num_face,
-            paramsDB=client
         )
         px4_task = ranking.proximity_rank_four.delay(mock_mode, fbid, token)
         return http.HttpResponse(json.dumps(
@@ -311,43 +393,29 @@ def faces(request):
     if px4_edges:
         edges_filtered = edges_filtered.reranked(px4_edges)
 
-    return _apply_campaign(request, edges_ranked, edges_filtered,
-                           best_cs_filter_id, choice_set_slug, subdomain,
-                           campaign, content, session_id, ip, fbid,
-                           int(num_face), properties)
-
-
-def _apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
-                    choice_set_slug, subdomain, campaign, content, session_id,
-                    ip, fbid, num_face, properties):
-
+    # Apply campaign
     max_faces = 50
     friend_dicts = [e.toDict() for e in edges_filtered.edges]
     face_friends = friend_dicts[:max_faces]
     all_friends = [e.toDict() for e in edges_ranked]
-    client = campaign.client
 
     fb_object_recs = campaign.campaignfbobjects_set.all()
     fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
     fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
-    assignment = models.Assignment(
-        session_id=session_id, campaign=campaign,
-        content=content, feature_type='fb_object_id',
-        feature_row=fb_object_id, random_assign=True,
-        chosen_from_table='campaign_fb_objects',
-        chosen_from_rows=[r.pk for r in fb_object_recs]
+    db.delayed_save.delay(
+        models.Assignment(
+            session_id=request.visit.session_id,
+            campaign=campaign,
+            content=content,
+            feature_type='fb_object_id',
+            feature_row=fb_object_id,
+            random_assign=True,
+            chosen_from_table='campaign_fb_objects',
+            chosen_from_rows=[r.pk for r in fb_object_recs],
+        )
     )
-    db.delayed_save.delay(assignment)
-
     fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
-    msg_params = {
-        'sharing_prompt': fb_attrs.sharing_prompt,
-        'msg1_pre': fb_attrs.msg1_pre,
-        'msg1_post': fb_attrs.msg1_post,
-        'msg2_pre': fb_attrs.msg2_pre,
-        'msg2_post': fb_attrs.msg2_post,
-    }
     fb_object_url = 'https://%s%s?cssslug=%s' % (
         request.get_host(),
         reverse('objects', kwargs={
@@ -387,27 +455,28 @@ def _apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
             for friend in edges_list:
                 events.append(
                     models.Event(
-                        session_id=session_id, campaign_id=tier_campaignId,
-                        client_content_id=tier_contentId, ip=ip, fbid=fbid,
-                        friend_fbid=friend.secondary.id, event_type='generated',
-                        app_id=fb_params['fb_app_id'], content=content_str,
-                        activity_id=None
+                        visit=request.visit,
+                        campaign_id=tier_campaignId,
+                        client_content_id=tier_contentId,
+                        friend_fbid=friend.secondary.id,
+                        event_type='generated',
+                        content=content_str,
                     )
                 )
-
             num_gen = num_gen - len(edges_list)
 
-        if (num_gen <= 0):
+        if num_gen <= 0:
             break
 
     for friend in face_friends[:num_face]:
         events.append(
             models.Event(
-                session_id=session_id, campaign_id=campaign.pk,
-                client_content_id=content.pk, ip=ip, fbid=fbid,
-                friend_fbid=friend['id'], event_type='shown',
-                app_id=fb_params['fb_app_id'], content=content_str,
-                activity_id=None
+                visit=request.visit,
+                campaign_id=campaign.pk,
+                client_content_id=content.pk,
+                friend_fbid=friend['id'],
+                content=content_str,
+                event_type='shown',
             )
         )
 
@@ -417,7 +486,13 @@ def _apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
         json.dumps({
             'status': 'success',
             'html': render_to_string(_locate_client_template(client, 'faces_table.html'), {
-                'msg_params': msg_params,
+                'msg_params': {
+                    'sharing_prompt': fb_attrs.sharing_prompt,
+                    'msg1_pre': fb_attrs.msg1_pre,
+                    'msg1_post': fb_attrs.msg1_post,
+                    'msg2_pre': fb_attrs.msg2_pre,
+                    'msg2_post': fb_attrs.msg2_post,
+                },
                 'fb_params': fb_params,
                 'all_friends': all_friends,
                 'face_friends': face_friends,
@@ -432,19 +507,18 @@ def _apply_campaign(request, edges_ranked, edges_filtered, best_cs_filter,
 
 
 def objects(request, fb_object_id, content_id):
-
+    """FBObject endpoint provided to Facebook to crawl and users to click."""
     fb_object = get_object_or_404(models.FBObject, fb_object_id=fb_object_id)
-    content = get_object_or_404(
-        models.ClientContent, content_id=content_id
-    )
     client = fb_object.client
+    content = get_object_or_404(models.ClientContent,
+                                content_id=content_id,
+                                client=client)
     fb_attrs = fb_object.fbobjectattribute_set.get()
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
-    redirect_url = content.url
 
-    if not redirect_url:
+    if not content.url:
         return http.HttpResponseNotFound()
 
     fb_object_url = 'https://%s%s?cssslug=%s' % (
@@ -460,115 +534,121 @@ def objects(request, fb_object_id, content_id):
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
         'fb_app_name': client.fb_app_name,
-        'fb_app_id': int(client.fb_app_id),
+        'fb_app_id': client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description,
         'fb_org_name': fb_attrs.org_name,
     }
     content_str = '%(fb_app_name)s:%(fb_object_type)s %(fb_object_url)s' % obj_params
-    ip = _get_client_ip(request)
-    session_id = _generate_session(
-        request, None, content_id, None, client.fb_app_id, content_str)
-    user_agent = request.META.get('HTTP_USER_AGENT', '')
-    if user_agent.find('facebookexternalhit') != -1:
+
+    if 'facebookexternalhit' in request.META.get('HTTP_USER_AGENT', ''):
         LOG.info(
             'Facebook crawled object %s with content %s from IP %s',
-            fb_object_id, content_id, ip
+            fb_object_id, content_id, _get_client_ip(request)
         )
     else:
-        event = models.Event(
-            session_id=session_id, campaign=None,
-            client_content_id=content_id,
-            content=content_str, ip=ip, fbid=None,
-            friend_fbid=None, event_type='clickback',
-            app_id=client.fb_app_id, activity_id=action_id
+        visit = _get_visit(request, client.fb_app_id,
+                           start_event={'client_content': content})
+        db.delayed_save.delay(
+            models.Event(
+                visit=visit,
+                client_content=content,
+                content=content_str,
+                activity_id=action_id,
+                event_type='clickback',
+            )
         )
-        db.delayed_save.delay(event)
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
-        'redirect_url': redirect_url,
+        'redirect_url': content.url,
         'content': content_str,
         'client': client,
     })
 
 
 @require_POST
+@_require_visit
 def suppress(request):
     user_id = request.POST.get('userid')
-    app_id = request.POST.get('appid')
     campaign_id = request.POST.get('campaignid')
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     old_id = request.POST.get('oldid')
-    ip = _get_client_ip(request)
-    session_id = _generate_session(
-        request, campaign_id, content_id, user_id, app_id)
 
     new_id = request.POST.get('newid')
     fname = request.POST.get('fname')
     lname = request.POST.get('lname')
 
-    event = models.Event(
-        session_id=session_id, campaign_id=campaign_id,
-        client_content_id=content_id, ip=ip, fbid=user_id,
-        friend_fbid=old_id, event_type='suppress',
-        app_id=app_id, content=content, activity_id=None
-    )
-    db.delayed_save.delay(event)
-    exclusion = models.FaceExclusion(
-        fbid=user_id, campaign_id=campaign_id,
-        content_id=content_id, friend_fbid=old_id,
-        reason='suppressed'
-    )
-    db.delayed_save.delay(exclusion)
-
-    if new_id != '':
-        event = models.Event(
-            session_id=session_id, campaign_id=campaign_id,
-            client_content_id=content_id, ip=ip, fbid=user_id,
-            friend_fbid=new_id, event_type="shown",
-            app_id=app_id, content=content, activity_id=None
+    db.delayed_save.delay(
+        models.Event(
+            visit=request.visit,
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            friend_fbid=old_id,
+            content=content,
+            event_type='suppress',
         )
-        db.delayed_save.delay(event)
+    )
+    db.delayed_save.delay(
+        models.FaceExclusion(
+            fbid=user_id,
+            campaign_id=campaign_id,
+            content_id=content_id,
+            friend_fbid=old_id,
+            reason='suppressed',
+        )
+    )
+
+    if new_id:
+        db.delayed_save.delay(
+            models.Event(
+                visit=request.visit,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                friend_fbid=new_id,
+                content=content,
+                event_type="shown",
+            )
+        )
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
-            'lastname': lname
+            'lastname': lname,
         })
     else:
         return http.HttpResponse()
 
 
 @require_POST
+@_require_visit
 def record_event(request):
-
+    """Endpoint to record user events (asynchronously)."""
     user_id = request.POST.get('userid')
     app_id = request.POST.get('appid')
     campaign_id = request.POST.get('campaignid')
     content_id = request.POST.get('contentid')
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
+    event_type = request.POST.get('eventType')
     friends = [int(fid) for fid in request.POST.getlist('friends[]')]
 
-    event_type = request.POST.get('eventType')
-    ip = _get_client_ip(request)
-    session_id = _generate_session(
-        request, campaign_id, content_id, user_id, app_id)
-    single_occurrence_events = ['button_load', 'authorized']
-    multi_occurrence_events = [
+    single_occurrence_events = {'button_load', 'authorized'}
+    multi_occurrence_events = {
         'button_click', 'auth_fail', 'select_all_click',
         'share_click', 'share_fail', 'shared', 'clickback',
         'suggest_message_click',
-    ]
+    }
 
-    if event_type not in single_occurrence_events + multi_occurrence_events:
+    if event_type not in single_occurrence_events | multi_occurrence_events:
         return http.HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
 
-    if event_type in single_occurrence_events and event_type in request.session:
+    logged_events = request.session.setdefault('events', {})
+    app_events = logged_events.setdefault(request.visit.app_id, set())
+    if event_type in single_occurrence_events and event_type in app_events:
         # Already logged it
         return http.HttpResponse()
 
@@ -577,19 +657,24 @@ def record_event(request):
         for friend in friends:
             events.append(
                 models.Event(
-                    session_id=session_id, campaign_id=campaign_id,
-                    client_content_id=content_id, ip=ip, fbid=user_id,
-                    friend_fbid=friend, event_type=event_type,
-                    app_id=app_id, content=content, activity_id=action_id
+                    visit=request.visit,
+                    campaign_id=campaign_id,
+                    client_content_id=content_id,
+                    friend_fbid=friend,
+                    content=content,
+                    activity_id=action_id,
+                    event_type=event_type,
                 )
             )
     else:
         events.append(
             models.Event(
-                session_id=session_id, campaign_id=campaign_id,
-                client_content_id=content_id, ip=ip, fbid=user_id or None,
-                event_type=event_type, app_id=app_id, content=content,
-                activity_id=action_id, friend_fbid=None
+                visit=request.visit,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                content=content,
+                activity_id=action_id,
+                event_type=event_type,
             )
         )
 
@@ -598,7 +683,7 @@ def record_event(request):
 
         if event_type in single_occurrence_events:
             # Prevent dupe logging
-            request.session[event_type] = True
+            app_events.add(event_type)
 
     if event_type == 'authorized':
         try:
@@ -614,7 +699,7 @@ def record_event(request):
             return http.HttpResponseBadRequest(msg)
 
         try:
-            client = models.Client.objects.get(campaign__campaign_id=campaign_id)
+            client = models.Client.objects.get(campaigns__campaign_id=campaign_id)
         except models.Client.DoesNotExist:
             LOG.exception(
                 "Failed to write authorization for fbid %r and token %r under "
@@ -634,9 +719,11 @@ def record_event(request):
         for friend in friends:
             exclusions.append(
                 models.FaceExclusion(
-                    fbid=user_id, campaign_id=campaign_id,
-                    content_id=content_id, friend_fbid=friend,
-                    reason='shared'
+                    fbid=user_id,
+                    campaign_id=campaign_id,
+                    content_id=content_id,
+                    friend_fbid=friend,
+                    reason='shared',
                 )
             )
 
@@ -654,11 +741,15 @@ def record_event(request):
 
     share_msg = request.POST.get('shareMsg')
     if share_msg:
-        share_message = models.ShareMessage(
-            activity_id=action_id, fbid=user_id, campaign_id=campaign_id,
-            content_id=content_id, message=share_msg
+        db.delayed_save.delay(
+            models.ShareMessage(
+                activity_id=action_id,
+                fbid=user_id,
+                campaign_id=campaign_id,
+                content_id=content_id,
+                message=share_msg,
+            )
         )
-        db.delayed_save.delay(share_message)
 
     return http.HttpResponse()
 
@@ -670,20 +761,36 @@ def canvas(request):
 
 @csrf_exempt
 def canvas_faces(request, **kws):
-
     return frame_faces(request, canvas=True, **kws)
 
 
 def health_check(request):
+
     if 'elb' in request.GET:
         return http.HttpResponse("It's Alive!", status=200)
 
-    fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
+    try:
+        fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
+    except Exception:
+        facebook_up = False
+    else:
+        facebook_up = int(fb_resp['id']) == 6963
+
+    try:
+        database_up = models.relational.Client.objects.exists()
+    except Exception:
+        database_up = False
+
+    try:
+        dynamo_up = bool(models.dynamo.User.items.table.describe())
+    except Exception:
+        dynamo_up = False
+
     return http.HttpResponse(
         json.dumps({
-            'database': models.relational.Client.objects.exists(),
-            'dynamo': bool(models.dynamo.User.items.table.describe()),
-            'facebook': int(fb_resp['id']) == 6963,
+            'database': database_up,
+            'dynamo': dynamo_up,
+            'facebook': facebook_up,
         }),
         content_type='application/json',
     )

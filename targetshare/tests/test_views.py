@@ -214,13 +214,20 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
 
     def test_button_no_recs(self):
         ''' Tests views.button without style recs '''
+        assert not models.Assignment.objects.exists()
+
         response = self.client.get(reverse('button', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
-        assert not models.Assignment.objects.exists()
+
+        assignments = models.Assignment.objects.all()
+        assert len(assignments) == 1
+
+        #this field is how we know the assignment came from a default
+        assert assignments[0].feature_row == None
 
     def test_button_with_recs(self):
         ''' Tests views.button with style recs '''
@@ -255,7 +262,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
-        client = models.Client.objects.get(campaign__pk=1)
+        client = models.Client.objects.get(campaigns__pk=1)
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['campaign'],
@@ -331,13 +338,13 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(
-            fbid=1, friend_fbid=2, event_type='suppress'
+            visit__fbid=1, friend_fbid=2, event_type='suppress'
         ).exists()
         assert models.FaceExclusion.objects.filter(
             fbid=1, friend_fbid=2
         ).exists()
         assert models.Event.objects.filter(
-            fbid=1, friend_fbid=3, event_type='shown'
+            visit__fbid=1, friend_fbid=3, event_type='shown'
         ).exists()
         self.assertEqual(int(response.context['fbid']), 3)
         self.assertEqual(response.context['firstname'], 'Suppress')
