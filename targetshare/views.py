@@ -57,13 +57,15 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         # Force a key to be created:
         request.session.save()
 
+    defaults = {
+        'fbid': fbid,
+        'source': request.REQUEST.get('efsrc', ''),
+        'ip': _get_client_ip(request),
+    }
     visit, created = models.relational.Visit.objects.get_or_create(
         session_id=request.session.session_key,
         app_id=long(app_id),
-        defaults={
-            'ip': _get_client_ip(request),
-            'fbid': fbid,
-        },
+        defaults=defaults,
     )
     if created:
         # Add start event:
@@ -74,10 +76,14 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
                 **(start_event or {})
             )
         )
-    elif fbid and not visit.fbid:
-        # fbid was not known on creation; update visit:
-        visit.fbid = fbid
-        db.delayed_save.delay(visit, update_fields=['fbid'])
+    else:
+        # Update visit with values not known on creation:
+        updates = {key: value for key, value in defaults.items()
+                   if value and not getattr(visit, key)}
+        if updates:
+            for key, value in updates.items():
+                setattr(visit, key, value)
+            db.delayed_save.delay(visit, update_fields=updates.keys())
 
     return visit
 
@@ -206,7 +212,7 @@ def _test_mode(request):
 def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
 
     # Use campaign-custom button style template name if one exists:
@@ -240,7 +246,7 @@ def button(request, campaign_id, content_id):
             random_assign=True,
             chosen_from_table='campaign_button_styles',
             chosen_from_rows=[campaign_button_style.button_style_id
-                                for campaign_buton_style in style_recs],
+                              for campaign_button_style in style_recs],
         )
     )
 
@@ -263,7 +269,7 @@ def button(request, campaign_id, content_id):
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = _test_mode(request)
     db.delayed_save.delay(
         models.Event(
@@ -326,7 +332,7 @@ def faces(request):
     subdomain = request.get_host().split('.')[0]
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return http.HttpResponseForbidden('Mock mode only allowed for the mock client')
@@ -510,9 +516,7 @@ def objects(request, fb_object_id, content_id):
     """FBObject endpoint provided to Facebook to crawl and users to click."""
     fb_object = get_object_or_404(models.FBObject, fb_object_id=fb_object_id)
     client = fb_object.client
-    content = get_object_or_404(models.ClientContent,
-                                content_id=content_id,
-                                client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()

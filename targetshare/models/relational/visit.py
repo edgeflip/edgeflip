@@ -8,6 +8,7 @@ class Visit(models.Model):
     app_id = models.BigIntegerField(db_column='appid')
     ip = models.GenericIPAddressField()
     fbid = models.BigIntegerField(null=True, blank=True)
+    source = models.CharField(blank=True, default='', db_index=True, max_length=256)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta(object):
