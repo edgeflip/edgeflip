@@ -16,3 +16,6 @@ class Event(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'events'
+
+    def __unicode__(self):
+        return u"{} [{}]".format(self.event_type, self.visit_id)

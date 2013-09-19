@@ -15,3 +15,6 @@ class Visit(models.Model):
         app_label = 'targetshare'
         db_table = 'visits'
         unique_together = ('session_id', 'app_id')
+
+    def __unicode__(self):
+        return u"{} [{}]".format(self.session_id, self.app_id)
