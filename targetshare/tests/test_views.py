@@ -242,6 +242,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
 
         assert not models.Assignment.objects.exists()
         response = self.client.get(reverse('button', args=[1, 1]))
+
         self.assertStatusCode(response, 200)
         self.assertEqual(response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good',
@@ -252,6 +253,28 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertEqual({int(choice) for choice in chosen_from_rows},
                          set(campaign.campaignbuttonstyles.values_list('pk', flat=True)))
         self.assertEqual(models.Event.objects.filter(event_type='session_start').count(), 1)
+
+    def test_frame_faces_with_recs(self):
+        ''' Tests views.frame_faces '''
+        campaign = models.Campaign.objects.get(pk=1)
+        client = campaign.client
+        fs = models.FacesStyle.objects.create(client=client, name='test')
+        models.FacesStyleFiles.objects.create(
+            html_template='frame_faces.html', faces_style=fs)
+        models.CampaignFacesStyle.objects.create(
+            campaign=campaign, faces_style=fs,
+            rand_cdf=Decimal('1.000000')
+        )
+        assert not models.Assignment.objects.exists()
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+
+        # copied from test_button_with_recs, unclear why this check means success
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
+        )
+        assert models.Assignment.objects.exists()
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
