@@ -243,7 +243,7 @@ def button(request, campaign_id, content_id):
     # Record assignment:
     db.delayed_save.delay(
         models.Assignment(
-            session_id=request.visit.session_id,
+            visit=request.visit,
             campaign=campaign,
             content=content,
             feature_type='button_style_id',
@@ -447,7 +447,7 @@ def faces(request):
     fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
     db.delayed_save.delay(
         models.Assignment(
-            session_id=request.visit.session_id,
+            visit=request.visit,
             campaign=campaign,
             content=content,
             feature_type='fb_object_id',
