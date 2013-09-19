@@ -183,8 +183,11 @@ def _locate_client_template(client, template_name):
             client.subdomain,
             template_name
         ))
+
     except TemplateDoesNotExist:
+        # hopefully template_name is correctly set
         return 'targetshare/%s' % template_name
+            
     else:
         return templates[0].name
 
@@ -217,23 +220,25 @@ def button(request, campaign_id, content_id):
 
     # Use campaign-custom button style template name if one exists:
     try:
-        # rand_assign raises ValueError if list is empty:
         style_recs = campaign.campaignbuttonstyle_set.all()
         style_exp_tupes = [
             (campaign_button_style.button_style_id, campaign_button_style.rand_cdf)
             for campaign_button_style in style_recs
         ]
+        # rand_assign raises ValueError if list is empty:
         style_id = int(utils.rand_assign(style_exp_tupes))
-        button_style_file = models.ButtonStyleFile.objects.get(button_style=style_id)
+        filenames = models.ButtonStyleFile.objects.get(button_style=style_id)
     except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
-        template_name = 'button.html'
+        html_template = 'button.html'
+        css_template = 'edgeflip_client_simple.css'
 
         # Set empties for the Assignment below:
         style_id = None
         style_recs = []
     else:
-        template_name = button_style_file.html_template
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
 
     # Record assignment:
     db.delayed_save.delay(
@@ -245,12 +250,11 @@ def button(request, campaign_id, content_id):
             feature_row=style_id,
             random_assign=True,
             chosen_from_table='campaign_button_styles',
-            chosen_from_rows=[campaign_button_style.button_style_id
-                              for campaign_button_style in style_recs],
+            chosen_from_rows=[style.button_style_id for style in style_recs],
         )
     )
 
-    return render(request, _locate_client_template(client, template_name), {
+    return render(request, _locate_client_template(client, html_template), {
         'goto': faces_url,
         'campaign': campaign,
         'content': content,
@@ -259,7 +263,7 @@ def button(request, campaign_id, content_id):
             'fb_app_id': client.fb_app_id
         },
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
     })
 
 
@@ -290,7 +294,40 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     else:
         test_fbid = test_token = None
 
-    return render(request, _locate_client_template(client, 'frame_faces.html'), {
+    # Use campaign-custom template name if one exists:
+    try:
+        # rand_assign raises ValueError if list is empty:
+        style_recs = campaign.campaignfacesstyle_set.all()
+        style_exp_tupes = [(style.faces_style_id, style.rand_cdf) for style in style_recs ]
+        style_id = int(utils.rand_assign(style_exp_tupes))
+        filenames = models.FacesStyleFiles.objects.get(faces_style=style_id)
+    except (ValueError, models.FacesStyleFiles.DoesNotExist):
+        # The default template name will do:
+        html_template = 'frame_faces.html'
+        css_template = 'edgeflip_client_simple.css'
+
+        #set empties for the Assignment below
+        style_id = None
+        style_recs = []
+    else:
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
+
+    # Record assignment:
+    db.delayed_save.delay(
+        models.Assignment(
+            session_id=request.visit.session_id,
+            campaign=campaign,
+            content=content, 
+            feature_type='frame_faces_style_id',
+            feature_row=style_id, 
+            random_assign=True,
+            chosen_from_table='campaign_faces_style',
+            chosen_from_rows=[style.faces_style_id for style in style_recs],
+        )
+    )
+
+    return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
@@ -299,7 +336,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid,
