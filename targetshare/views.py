@@ -316,7 +316,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     # Record assignment:
     db.delayed_save.delay(
         models.Assignment(
-            session_id=request.visit.session_id,
+            visit=request.visit,
             campaign=campaign,
             content=content,
             feature_type='frame_faces_style_id',
