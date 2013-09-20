@@ -1,4 +1,5 @@
 import json
+import re
 from decimal import Decimal
 from datetime import timedelta
 
@@ -218,39 +219,62 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
 
         response = self.client.get(reverse('button', args=[1, 1]))
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
+        self.assertEqual(response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good',
+             'fb_app_id': 471727162864364}
         )
 
-        assignments = models.Assignment.objects.all()
-        assert len(assignments) == 1
-
-        #this field is how we know the assignment came from a default
-        assert assignments[0].feature_row == None
+        assignment = models.Assignment.objects.get()
+        # This field is how we know the assignment came from a default:
+        self.assertIsNone(assignment.feature_row)
 
     def test_button_with_recs(self):
         ''' Tests views.button with style recs '''
         # Create Button Styles
         campaign = models.Campaign.objects.get(pk=1)
         client = campaign.client
-        bs = models.ButtonStyle.objects.create(
-            client=client, name='test')
-        models.ButtonStyleFile.objects.create(
-            html_template='button.html', button_style=bs)
-        models.CampaignButtonStyle.objects.create(
-            campaign=campaign, button_style=bs,
+        for prob in xrange(1, 3):
+            bs = client.buttonstyles.create(name='test')
+            bs.buttonstylefiles.create(html_template='button.html')
+            true_prob = prob / 2.0 # [0.5, 1]
+            campaign.campaignbuttonstyles.create(
+                button_style=bs, rand_cdf=Decimal(true_prob))
+
+        assert not models.Assignment.objects.exists()
+        response = self.client.get(reverse('button', args=[1, 1]))
+
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good',
+             'fb_app_id': 471727162864364}
+        )
+        assignment = models.Assignment.objects.get()
+        chosen_from_rows = re.findall(r'\d+', assignment.chosen_from_rows)
+        self.assertEqual({int(choice) for choice in chosen_from_rows},
+                         set(campaign.campaignbuttonstyles.values_list('pk', flat=True)))
+        self.assertEqual(models.Event.objects.filter(event_type='session_start').count(), 1)
+
+    def test_frame_faces_with_recs(self):
+        ''' Tests views.frame_faces '''
+        campaign = models.Campaign.objects.get(pk=1)
+        client = campaign.client
+        fs = models.FacesStyle.objects.create(client=client, name='test')
+        models.FacesStyleFiles.objects.create(
+            html_template='frame_faces.html', faces_style=fs)
+        models.CampaignFacesStyle.objects.create(
+            campaign=campaign, faces_style=fs,
             rand_cdf=Decimal('1.000000')
         )
         assert not models.Assignment.objects.exists()
-        response = self.client.get(reverse('button', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+
+        # copied from test_button_with_recs, unclear why this check means success
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
         assert models.Assignment.objects.exists()
-        assert models.Event.objects.get(event_type='session_start')
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
@@ -338,7 +362,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(
-            visit__fbid=1, friend_fbid=2, event_type='suppress'
+            visit__fbid=1, friend_fbid=2, event_type='suppressed'
         ).exists()
         assert models.FaceExclusion.objects.filter(
             fbid=1, friend_fbid=2
