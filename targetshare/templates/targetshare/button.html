@@ -25,49 +25,6 @@
 {% endblock %}
 {% block js_inline %}
     <SCRIPT>
-
-        var sessionid = '{{ session_id }}';
-        var campaignid = {{ campaign.pk }};
-        var contentid = {{ content.pk }};
-
-        function recordEvent(eventType, fbid, redirect, accessToken) {
-
-            var appid = {{ fb_params.fb_app_id }};
-            var content = '{{ fb_params.fb_app_name }}:button {{ goto|safe }}';
-
-            var params = {
-                userid: fbid,
-                appid: appid,
-                content: content,
-                eventType: eventType,
-                sessionid: sessionid,
-                campaignid: campaignid,
-                contentid: contentid,
-                token: accessToken
-            };
-
-            $.ajax({
-                type: "POST",
-                url: "{% url 'record-event' %}",
-                dataType: 'html',
-                data: params,
-                error: function(jqXHR, textStatus, errorThrown) {
-                    // Even if the event writing failed, still send the user on their way...
-                    if (redirect) {
-                        top.location = redirect;
-                    }
-                },
-                success: function(data, textStatus, jqXHR) {
-                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-                    sessionid = header_efsid || sessionid;
-                    if (redirect) {
-                        top.location = redirect;
-                    }
-                }
-            });
-
-        }
-
         // Initial call on page load
         recordEvent('button_load', '');
 
