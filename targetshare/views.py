@@ -14,6 +14,7 @@ from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.db import IntegrityError
 
 from targetshare import (
     facebook,
@@ -53,20 +54,27 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
             (e.g. `campaign`) (optional)
 
     """
-    if not request.session.session_key:
-        # Force a key to be created:
-        request.session.save()
+    # Ensure we have a valid session
+    request.session._session_cache = request.session.load()
 
     defaults = {
         'fbid': fbid,
         'source': request.REQUEST.get('efsrc', ''),
         'ip': _get_client_ip(request),
     }
-    visit, created = models.relational.Visit.objects.get_or_create(
-        session_id=request.session.session_key,
-        app_id=long(app_id),
-        defaults=defaults,
-    )
+    try:
+        visit, created = models.relational.Visit.objects.get_or_create(
+            session_id=request.session.session_key,
+            app_id=long(app_id),
+            defaults=defaults,
+        )
+    except IntegrityError:
+        visit = models.relational.Visit.objects.get(
+            session_id=request.session.session_key,
+            app_id=long(app_id)
+        )
+        created = False
+
     if created:
         # Add start event:
         db.delayed_save.delay(
