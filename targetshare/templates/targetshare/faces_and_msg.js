@@ -529,39 +529,6 @@ function recordShare(actionid, shareMsg, recips) {
 
 }
 
-// record events other than the share (so, no redirect).
-// should obviously combine with above at some point, but
-// just want to have something working now...
-function recordEvent(eventType, errorMsg) {
-    var userid = myfbid;
-
-    var params = {
-        userid: userid,
-        appid: FB_APP_ID,
-        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-        eventType: eventType,
-        sessionid: sessionid,   // global session id was pulled in from query string above
-        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid,
-        errorMsg: errorMsg
-    };
-
-    $.ajax({
-        type: "POST",
-        url: '/record_event/',
-        dataType: 'html',
-        data: params,
-        error: function(jqXHR, textStatus, errorThrown) {
-            // Nothing to do here...
-        },
-        success: function(data, textStatus, jqXHR) {
-            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-            sessionid = header_efsid || sessionid;
-        }
-    });
-
-}
-
 function helperTextDisappear() {
     $('#message_helper_txt').remove();
 }
