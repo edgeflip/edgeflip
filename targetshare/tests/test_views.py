@@ -617,6 +617,19 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('canvas'))
         self.assertStatusCode(response, 200)
 
+    def test_canvas_encoded(self):
+        ''' Testing the views.frame_faces_encoded method '''
+        response = self.client.get(
+            reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        )
+        self.assertStatusCode(response, 200)
+
+    def test_canvas_encoded_noslash(self):
+        """Encoded canvas endpoint responds with 200 without trailing slash."""
+        url = reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        response = self.client.get(url.rstrip('/'))
+        self.assertStatusCode(response, 200)
+
     @patch('targetshare.views.facebook')
     def test_health_check(self, fb_mock):
         ''' Tests views.health_check '''
