@@ -55,7 +55,12 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
 
     """
     # Ensure we have a valid session
-    request.session._session_cache = request.session.load()
+    if request.session.session_key:
+        # Don't trust existing; ensure unexpired session has loaded:
+        request.session._get_session()
+    else:
+        # Force a session and key to be created:
+        request.session.save()
 
     defaults = {
         'fbid': fbid,
@@ -69,9 +74,11 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
             defaults=defaults,
         )
     except IntegrityError:
+        # get_or_create() should be doing this already; but, let's see if this
+        # helps resolve IntegrityErrors
         visit = models.relational.Visit.objects.get(
             session_id=request.session.session_key,
-            app_id=long(app_id)
+            app_id=long(app_id),
         )
         created = False
 
