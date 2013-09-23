@@ -23,12 +23,7 @@ function doFBLogin() {
     // Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
     // a button to click on instead?
     FB.login(function(response) {
-        if (response.authResponse) {
-            // Not sure we need this call -- can't we just grab the id from the response, too?
-            FB.api('/me', function(info) {
-                login(info.id, response.authResponse.accessToken, response);
-            });
-        } else {
+        if (response.status != 'connected') {
             $('#your-friends-here').html(
                 '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
             );

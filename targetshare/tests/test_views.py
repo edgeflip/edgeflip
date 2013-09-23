@@ -55,16 +55,37 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('faces'))
         self.assertStatusCode(response, 405)
 
-    def test_faces_initial_entry(self):
+    @patch('targetshare.views.mock_facebook')
+    def test_faces_initial_entry(self, fb_mock):
         ''' Tests a users first request to the Faces endpoint. We expect to
         receive a JSON response with a status of waiting along with the
-        tasks IDs of the Celery jobs we started
+        tasks IDs of the Celery jobs we started. We also expect to see an
+        extended token saved to Dynamo
         '''
+        fb_mock.extendTokenFb.return_value = models.dynamo.Token(
+            token='test-token',
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            expires=timezone.now()
+        )
+        expires0 = timezone.now() - timedelta(days=5)
+        models.dynamo.Token.items.put_item(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            token='test-token',
+            expires=expires0,
+            overwrite=True,
+        )
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
         data = json.loads(response.content)
         assert data['px3_task_id']
         assert data['px4_task_id']
+        refreshed_token = models.dynamo.Token.items.get_item(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+        )
+        self.assertGreater(refreshed_token['expires'], expires0)
 
     @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
@@ -507,7 +528,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'friends[]': [10, 11, 12], # jQuery thinks it's clever with []
                 'eventType': 'authorized',
                 'shareMsg': 'Testing Share',
-                'token': 'test-token'
+                'token': 'test-token',
+                'extend_token': True
             }
         )
         self.assertStatusCode(response, 200)

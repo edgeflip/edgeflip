@@ -132,7 +132,8 @@
                             campaignid: {{ campaign.pk }},
                             contentid: {{ content.pk }},
                             content: '',
-                            token: tok
+                            token: tok,
+                            extend_token: false
                        }
                    });
                    login(uid, tok, response, null);

@@ -417,7 +417,9 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = fbmodule.extendTokenFb(fbid, client.fb_app_id, token_string)
+        token = fbmodule.extendTokenFb(long(fbid), client.fb_app_id,
+                                       token_string)
+        db.delayed_save(token, overwrite=True)
         px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
@@ -681,6 +683,7 @@ def record_event(request):
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
+    extend_token = request.POST.get('extend_token', False)
     friends = [int(fid) for fid in request.POST.getlist('friends[]')]
 
     single_occurrence_events = {'button_load', 'authorized'}
@@ -758,8 +761,9 @@ def record_event(request):
             raise
 
         client.userclients.get_or_create(fbid=fbid)
-        token = facebook.extendTokenFb(fbid, appid, token_string)
-        token.save(overwrite=True)
+        if extend_token:
+            token = facebook.extendTokenFb(fbid, appid, token_string)
+            token.save(overwrite=True)
 
     if event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so
