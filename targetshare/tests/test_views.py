@@ -136,7 +136,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             appid=self.test_client.fb_app_id,
             expires=timezone.now()
         )
-        expires0 = timezone.now() - timedelta(days=5)
+        expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
@@ -597,7 +597,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'eventType': 'authorized',
                 'shareMsg': 'Testing Share',
                 'token': 'test-token',
-                'extend_token': True
+                'extend_token': 'True'
             }
         )
         self.assertStatusCode(response, 200)
