@@ -35,7 +35,7 @@
 
     Content: 
     <select id="content" onChange="doUpdate();">
-      {% for con in client.clientcontent_set.all %}
+      {% for con in client.clientcontent.all %}
       <option value="{{con.pk}}">{{ con.pk }} -- {{con.name}}</option>
       {% endfor %}
     </select><br />

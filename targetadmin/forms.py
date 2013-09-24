@@ -219,7 +219,7 @@ class CampaignForm(forms.Form):
         self.client = client
         self.fields['fallback_campaign'].queryset = self.client.campaigns.all()
         self.fields['global_filter'].queryset = self.client.filters.all()
-        self.fields['button_style'].queryset = self.client.buttonstyle_set.all()
+        self.fields['button_style'].queryset = self.client.buttonstyles.all()
         self.fields['choice_set'].queryset = self.client.choicesets.all()
         self.fields['fb_object'].queryset = self.client.fbobjects.all()
         self.fields['generic_fb_object'].queryset = self.client.fbobjects.all()

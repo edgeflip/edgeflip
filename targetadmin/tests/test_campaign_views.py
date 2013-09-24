@@ -72,7 +72,7 @@ class TestCampaignViews(TestAdminBase):
         global_filter = campaign.campaignglobalfilter_set.get()
         self.assertEqual(global_filter.filter, filter_obj)
 
-        campaign_style = campaign.campaignbuttonstyle_set.get()
+        campaign_style = campaign.campaignbuttonstyles.get()
         self.assertEqual(campaign_style.button_style, button_style)
 
         fb_objs = campaign.campaignfbobjects_set.all()
@@ -122,7 +122,7 @@ class TestCampaignViews(TestAdminBase):
         global_filter = campaign.campaignglobalfilter_set.get()
         self.assertEqual(global_filter.filter, filter_obj)
 
-        campaign_style = campaign.campaignbuttonstyle_set.get()
+        campaign_style = campaign.campaignbuttonstyles.get()
         self.assertEqual(campaign_style.button_style, button_style)
 
         fb_objs = campaign.campaignfbobjects_set.all()

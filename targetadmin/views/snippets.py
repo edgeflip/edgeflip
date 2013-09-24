@@ -12,7 +12,7 @@ def snippets(request, client_pk):
     return render(request, 'targetadmin/snippets.html', {
         'client': client,
         'first_campaign': client.campaigns.all()[0],
-        'first_content': client.clientcontent_set.all()[0]
+        'first_content': client.clientcontent.all()[0]
     })
 
 

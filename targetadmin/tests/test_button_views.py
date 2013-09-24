@@ -10,7 +10,7 @@ class TestButtonViews(TestAdminBase):
 
     def setUp(self):
         super(TestButtonViews, self).setUp()
-        self.button = self.test_client.buttonstyle_set.create(
+        self.button = self.test_client.buttonstyles.create(
             name='test object')
 
     def test_button_list_view(self):

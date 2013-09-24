@@ -28,7 +28,7 @@
         <div class="span4">
             <h4>Content Objects</h4>
             <ul>
-                {% for content in client.clientcontent_set.all|slice:"5" %}
+                {% for content in client.clientcontent.all|slice:"5" %}
                     <li><a href="{% url 'content-detail' client.pk content.pk %}">{{ content.name }}</a></li>
                 {% endfor %}
             </ul>
@@ -68,7 +68,7 @@
         <div class="span4">
             <h4>Button Styles</h4>
             <ul>
-                {% for button in client.buttonstyle_set.all|slice:"5" %}
+                {% for button in client.buttonstyles.all|slice:"5" %}
                     <li><a href="{% url 'button-detail' client.pk button.pk %}">{{ button.name }}</a></li>
                 {% endfor %}
             </ul>
