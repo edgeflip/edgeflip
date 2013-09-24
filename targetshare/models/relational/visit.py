@@ -10,6 +10,7 @@ class Visit(models.Model):
     fbid = models.BigIntegerField(null=True, blank=True)
     source = models.CharField(blank=True, default='', db_index=True, max_length=256)
     updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
 
     class Meta(object):
         app_label = 'targetshare'

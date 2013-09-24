@@ -23,7 +23,8 @@ urlpatterns = patterns('targetshare.views',
         'canvas_faces', name='canvas-faces'
     ),
     url(
-        r'^canvas/(?P<campaign_slug>\S+)/$',
+        # Allow FB to leave off trailing slash without redirection:
+        r'^canvas/(?P<campaign_slug>\S+)/?$',
         'canvas_faces', name='canvas-faces-encoded'
     ),
     url(r'^faces/$', 'faces', name='faces'),

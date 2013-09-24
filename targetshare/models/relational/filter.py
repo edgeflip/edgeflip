@@ -61,3 +61,4 @@ class Filter(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'filters'
+        ordering = ('-create_dt',)

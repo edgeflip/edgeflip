@@ -1,0 +1,10 @@
+{% extends 'targetadmin/client_relation_detail.html' %}
+{% block extra_content %}
+    <h4>Choice Sets</h4>
+    <ul>
+        {% for csf in object.choicesetfilters.all %}
+            <li>{{ csf.filter.name }}</li>
+        {% endfor %}
+    </ul>
+    <p>Click edit below to add Choice Set Filters</p>
+{% endblock %}

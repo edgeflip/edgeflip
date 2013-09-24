@@ -1,0 +1,15 @@
+-   fields:
+        date_joined: 2013-08-19 18:58:26+00:00
+        email: test@example.com
+        first_name: ''
+        groups: []
+        is_active: true
+        is_staff: true
+        is_superuser: true
+        last_login: 2013-08-19 18:59:21+00:00
+        last_name: ''
+        password: pbkdf2_sha256$10000$sFY5wGtm14LB$5brwMgWFR2krPslH5lsLRvX4+84c9cmELGbRXXp6iHQ=
+        user_permissions: []
+        username: tester
+    model: auth.user
+    pk: 1

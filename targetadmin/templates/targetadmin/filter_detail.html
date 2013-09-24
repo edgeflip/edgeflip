@@ -1,0 +1,10 @@
+{% extends 'targetadmin/client_relation_detail.html' %}
+{% block extra_content %}
+    <h4>Features</h4>
+    <ul>
+        {% for f in object.filterfeatures.all %}
+            <li>{{ f.feature }}, {{ f.operator }}, {{ f.value }}</li>
+        {% endfor %}
+    </ul>
+    <p>Click edit below to add features to this filter</p>
+{% endblock %}

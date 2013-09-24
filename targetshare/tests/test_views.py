@@ -136,7 +136,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             appid=self.test_client.fb_app_id,
             expires=timezone.now()
         )
-        expires0 = timezone.now() - timedelta(days=5)
+        expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
@@ -597,7 +597,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'eventType': 'authorized',
                 'shareMsg': 'Testing Share',
                 'token': 'test-token',
-                'extend_token': True
+                'extend_token': 'True'
             }
         )
         self.assertStatusCode(response, 200)
@@ -615,6 +615,19 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_canvas(self):
         ''' Tests views.canvas '''
         response = self.client.get(reverse('canvas'))
+        self.assertStatusCode(response, 200)
+
+    def test_canvas_encoded(self):
+        ''' Testing the views.frame_faces_encoded method '''
+        response = self.client.get(
+            reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        )
+        self.assertStatusCode(response, 200)
+
+    def test_canvas_encoded_noslash(self):
+        """Encoded canvas endpoint responds with 200 without trailing slash."""
+        url = reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        response = self.client.get(url.rstrip('/'))
         self.assertStatusCode(response, 200)
 
     @patch('targetshare.views.facebook')

@@ -21,10 +21,40 @@ class FilterFeature(models.Model):
 
     FILTER_LIST_DELIM = '||'
 
+    AGE = 'age'
+    GENDER = 'gender'
+    STATE = 'state'
+    CITY = 'city'
+    TURNOUT_SCORE = 'turnout_2013'
+    SUPPORT_SCORE = 'support_cand_2013'
+    PERSUASION_SCORE = 'persuasion_score'
+    GOTV_SCORE = 'gotv_score'
+    PERSUASION_TURNOUT = 'persuasion_turnout_2013'
+
+    FEATURE_CHOICES = (
+        (AGE, 'Age'),
+        (GENDER, 'Gender'),
+        (STATE, 'State'),
+        (CITY, 'City'),
+        (TURNOUT_SCORE, 'Turnout Score'),
+        (PERSUASION_SCORE, 'Persuasion Score'),
+        (GOTV_SCORE, 'GOTV Score'),
+        (PERSUASION_TURNOUT, 'Persuasion x Turnout Score')
+    )
+
+    OPERATOR_CHOICES = (
+        ('in', 'In'),
+        ('eq', 'Equal'),
+        ('min', 'Min'),
+        ('max', 'Max')
+    )
+
     filter_feature_id = models.AutoField(primary_key=True)
     filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
-    feature = models.CharField(max_length=64, blank=True)
-    operator = models.CharField(max_length=32, blank=True)
+    feature = models.CharField(max_length=64, blank=True,
+                               choices=FEATURE_CHOICES)
+    operator = models.CharField(max_length=32, blank=True,
+                                choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=1024, blank=True)
     value_type = models.CharField(max_length=32, blank=True,
                                   choices=VALUE_TYPE_CHOICES)

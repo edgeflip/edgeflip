@@ -1,0 +1,14 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block content %}
+    <h2>{{ client.name }}</h2>
+    <div class="span9">
+        <ul>
+            <li>Name: {{ object.name }}</li>
+            <li>Desc: {{ object.description }}</li>
+            <li>URL: {{ object.url }}</li>
+        </ul>
+        {% block extra_content %}{% endblock %}
+        <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
+     </div>
+{% endblock %}

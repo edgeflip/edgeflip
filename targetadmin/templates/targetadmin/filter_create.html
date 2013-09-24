@@ -1,0 +1,15 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} {{ obj_str }}{% endblock %}
+{% block content %}
+    {% if object %}
+        <h2>Edit {{ object.name }}</h2>
+    {% else %}
+        <h2>Create New {{ obj_str }}</h2>
+    <p>Name and describe your filter, and then you'll be prompted to add features</p>
+    {% endif %}
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="submit" value="Submit" class='btn btn-small btn-primary'/>
+    </form>
+{% endblock %}
