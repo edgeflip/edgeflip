@@ -1,15 +1,84 @@
+import datetime
 import json
+import re
 from decimal import Decimal
-from datetime import timedelta
 
 from django.conf import settings
+from django.contrib.sessions.models import Session
 from django.core.urlresolvers import reverse
+from django.test import RequestFactory
 from django.utils import timezone
+from django.utils.importlib import import_module
 from mock import patch, Mock
 
 from targetshare import models
+from targetshare.views import _get_visit
 
 from . import EdgeFlipTestCase
+
+
+class TestVisit(EdgeFlipTestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.session_engine = import_module(settings.SESSION_ENGINE)
+
+    def setUp(self):
+        super(TestVisit, self).setUp()
+        self.factory = RequestFactory()
+
+    def get_request(self, path='/'):
+        cookie = self.factory.cookies.get(settings.SESSION_COOKIE_NAME, None)
+        session_key = cookie and cookie.value
+        request = self.factory.get(path)
+        request.session = self.session_engine.SessionStore(session_key)
+        return request
+
+    def test_new_visit(self):
+        visit = _get_visit(self.get_request(), 1)
+        self.assertTrue(visit.session_id)
+        self.assertEqual(visit.app_id, 1)
+        start_event = visit.events.get()
+        self.assertEqual(start_event.event_type, 'session_start')
+
+    def test_update_visit(self):
+        visit = _get_visit(self.get_request(), 1)
+        session_id = visit.session_id
+        self.assertTrue(session_id)
+        self.assertIsNone(visit.fbid)
+
+        self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
+        visit = _get_visit(self.get_request(), 1, fbid=9)
+        self.assertEqual(visit.session_id, session_id)
+        self.assertEqual(visit.fbid, 9)
+
+    def test_visit_expiration(self):
+        request0 = self.get_request()
+        visit0 = _get_visit(request0, 1)
+        session_id0 = visit0.session_id
+        self.assertTrue(session_id0)
+
+        # Make session old:
+        session0 = Session.objects.get(session_key=session_id0)
+        session0.expire_date = datetime.datetime(1, 1, 1, 0, 0, tzinfo=timezone.utc)
+        session0.save()
+
+        self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id0
+        request1 = self.get_request()
+        visit1 = _get_visit(request1, 1)
+        session_id1 = visit1.session_id
+        self.assertTrue(session_id1)
+        self.assertEqual(session_id1, request1.session.session_key)
+
+        # Play with session to ensure this it's valid:
+        request1.session['foo'] = 'bar'
+        request1.session.save()
+        self.assertEqual(session_id1, request1.session.session_key)
+        self.assertEqual(request1.session['foo'], 'bar')
+
+        self.assertNotEqual(visit1, visit0)
+        self.assertNotEqual(session_id1, session_id0)
+        self.assertEqual(models.relational.Visit.objects.count(), 2)
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
@@ -54,16 +123,37 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('faces'))
         self.assertStatusCode(response, 405)
 
-    def test_faces_initial_entry(self):
+    @patch('targetshare.views.mock_facebook')
+    def test_faces_initial_entry(self, fb_mock):
         ''' Tests a users first request to the Faces endpoint. We expect to
         receive a JSON response with a status of waiting along with the
-        tasks IDs of the Celery jobs we started
+        tasks IDs of the Celery jobs we started. We also expect to see an
+        extended token saved to Dynamo
         '''
+        fb_mock.extendTokenFb.return_value = models.dynamo.Token(
+            token='test-token',
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            expires=timezone.now()
+        )
+        expires0 = timezone.now() - datetime.timedelta(days=5)
+        models.dynamo.Token.items.put_item(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+            token='test-token',
+            expires=expires0,
+            overwrite=True,
+        )
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
         data = json.loads(response.content)
         assert data['px3_task_id']
         assert data['px4_task_id']
+        refreshed_token = models.dynamo.Token.items.get_item(
+            fbid=1111111,
+            appid=self.test_client.fb_app_id,
+        )
+        self.assertGreater(refreshed_token['expires'], expires0)
 
     @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
@@ -218,39 +308,62 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
 
         response = self.client.get(reverse('button', args=[1, 1]))
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
+        self.assertEqual(response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good',
+             'fb_app_id': 471727162864364}
         )
 
-        assignments = models.Assignment.objects.all()
-        assert len(assignments) == 1
-
-        #this field is how we know the assignment came from a default
-        assert assignments[0].feature_row == None
+        assignment = models.Assignment.objects.get()
+        # This field is how we know the assignment came from a default:
+        self.assertIsNone(assignment.feature_row)
 
     def test_button_with_recs(self):
         ''' Tests views.button with style recs '''
         # Create Button Styles
         campaign = models.Campaign.objects.get(pk=1)
         client = campaign.client
-        bs = models.ButtonStyle.objects.create(
-            client=client, name='test')
-        models.ButtonStyleFile.objects.create(
-            html_template='button.html', button_style=bs)
-        models.CampaignButtonStyle.objects.create(
-            campaign=campaign, button_style=bs,
+        for prob in xrange(1, 3):
+            bs = client.buttonstyles.create(name='test')
+            bs.buttonstylefiles.create(html_template='button.html')
+            true_prob = prob / 2.0 # [0.5, 1]
+            campaign.campaignbuttonstyles.create(
+                button_style=bs, rand_cdf=Decimal(true_prob))
+
+        assert not models.Assignment.objects.exists()
+        response = self.client.get(reverse('button', args=[1, 1]))
+
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params'],
+            {'fb_app_name': 'sharing-social-good',
+             'fb_app_id': 471727162864364}
+        )
+        assignment = models.Assignment.objects.get()
+        chosen_from_rows = re.findall(r'\d+', assignment.chosen_from_rows)
+        self.assertEqual({int(choice) for choice in chosen_from_rows},
+                         set(campaign.campaignbuttonstyles.values_list('pk', flat=True)))
+        self.assertEqual(models.Event.objects.filter(event_type='session_start').count(), 1)
+
+    def test_frame_faces_with_recs(self):
+        ''' Tests views.frame_faces '''
+        campaign = models.Campaign.objects.get(pk=1)
+        client = campaign.client
+        fs = models.FacesStyle.objects.create(client=client, name='test')
+        models.FacesStyleFiles.objects.create(
+            html_template='frame_faces.html', faces_style=fs)
+        models.CampaignFacesStyle.objects.create(
+            campaign=campaign, faces_style=fs,
             rand_cdf=Decimal('1.000000')
         )
         assert not models.Assignment.objects.exists()
-        response = self.client.get(reverse('button', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+
+        # copied from test_button_with_recs, unclear why this check means success
         self.assertStatusCode(response, 200)
         self.assertEqual(
             response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
         )
         assert models.Assignment.objects.exists()
-        assert models.Event.objects.get(event_type='session_start')
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
@@ -338,7 +451,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(
-            visit__fbid=1, friend_fbid=2, event_type='suppress'
+            visit__fbid=1, friend_fbid=2, event_type='suppressed'
         ).exists()
         assert models.FaceExclusion.objects.filter(
             fbid=1, friend_fbid=2
@@ -464,7 +577,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             appid=self.test_client.fb_app_id,
             expires=timezone.now()
         )
-        expires0 = timezone.now() - timedelta(days=5)
+        expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
@@ -483,7 +596,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'friends[]': [10, 11, 12], # jQuery thinks it's clever with []
                 'eventType': 'authorized',
                 'shareMsg': 'Testing Share',
-                'token': 'test-token'
+                'token': 'test-token',
+                'extend_token': 'True'
             }
         )
         self.assertStatusCode(response, 200)

@@ -8,9 +8,13 @@ class Visit(models.Model):
     app_id = models.BigIntegerField(db_column='appid')
     ip = models.GenericIPAddressField()
     fbid = models.BigIntegerField(null=True, blank=True)
+    source = models.CharField(blank=True, default='', db_index=True, max_length=256)
     updated = models.DateTimeField(auto_now=True)
 
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'visits'
         unique_together = ('session_id', 'app_id')
+
+    def __unicode__(self):
+        return u"{} [{}]".format(self.session_id, self.app_id)

@@ -14,6 +14,7 @@ from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from django.db import IntegrityError
 
 from targetshare import (
     facebook,
@@ -53,18 +54,34 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
             (e.g. `campaign`) (optional)
 
     """
-    if not request.session.session_key:
-        # Force a key to be created:
+    # Ensure we have a valid session
+    if request.session.session_key:
+        # Don't trust existing; ensure unexpired session has loaded:
+        request.session._get_session()
+    else:
+        # Force a session and key to be created:
         request.session.save()
 
-    visit, created = models.relational.Visit.objects.get_or_create(
-        session_id=request.session.session_key,
-        app_id=long(app_id),
-        defaults={
-            'ip': _get_client_ip(request),
-            'fbid': fbid,
-        },
-    )
+    defaults = {
+        'fbid': fbid,
+        'source': request.REQUEST.get('efsrc', ''),
+        'ip': _get_client_ip(request),
+    }
+    try:
+        visit, created = models.relational.Visit.objects.get_or_create(
+            session_id=request.session.session_key,
+            app_id=long(app_id),
+            defaults=defaults,
+        )
+    except IntegrityError:
+        # get_or_create() should be doing this already; but, let's see if this
+        # helps resolve IntegrityErrors
+        visit = models.relational.Visit.objects.get(
+            session_id=request.session.session_key,
+            app_id=long(app_id),
+        )
+        created = False
+
     if created:
         # Add start event:
         db.delayed_save.delay(
@@ -74,10 +91,14 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
                 **(start_event or {})
             )
         )
-    elif fbid and not visit.fbid:
-        # fbid was not known on creation; update visit:
-        visit.fbid = fbid
-        db.delayed_save.delay(visit, update_fields=['fbid'])
+    else:
+        # Update visit with values not known on creation:
+        updates = {key: value for key, value in defaults.items()
+                   if value and not getattr(visit, key)}
+        if updates:
+            for key, value in updates.items():
+                setattr(visit, key, value)
+            db.delayed_save.delay(visit, update_fields=updates.keys())
 
     return visit
 
@@ -177,8 +198,11 @@ def _locate_client_template(client, template_name):
             client.subdomain,
             template_name
         ))
+
     except TemplateDoesNotExist:
+        # hopefully template_name is correctly set
         return 'targetshare/%s' % template_name
+
     else:
         return templates[0].name
 
@@ -206,45 +230,46 @@ def _test_mode(request):
 def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
 
     # Use campaign-custom button style template name if one exists:
     try:
-        # rand_assign raises ValueError if list is empty:
-        style_recs = campaign.campaignbuttonstyle_set.all()
+        style_recs = campaign.campaignbuttonstyles.all()
         style_exp_tupes = [
             (campaign_button_style.button_style_id, campaign_button_style.rand_cdf)
             for campaign_button_style in style_recs
         ]
+        # rand_assign raises ValueError if list is empty:
         style_id = int(utils.rand_assign(style_exp_tupes))
-        button_style_file = models.ButtonStyleFile.objects.get(button_style=style_id)
+        filenames = models.ButtonStyleFile.objects.get(button_style=style_id)
     except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
-        template_name = 'button.html'
+        html_template = 'button.html'
+        css_template = 'edgeflip_client_simple.css'
 
         # Set empties for the Assignment below:
         style_id = None
         style_recs = []
     else:
-        template_name = button_style_file.html_template
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
 
     # Record assignment:
     db.delayed_save.delay(
         models.Assignment(
-            session_id=request.visit.session_id,
+            visit=request.visit,
             campaign=campaign,
             content=content,
             feature_type='button_style_id',
             feature_row=style_id,
             random_assign=True,
             chosen_from_table='campaign_button_styles',
-            chosen_from_rows=[campaign_button_style.button_style_id
-                                for campaign_buton_style in style_recs],
+            chosen_from_rows=[style.button_style_id for style in style_recs],
         )
     )
 
-    return render(request, _locate_client_template(client, template_name), {
+    return render(request, _locate_client_template(client, html_template), {
         'goto': faces_url,
         'campaign': campaign,
         'content': content,
@@ -253,7 +278,7 @@ def button(request, campaign_id, content_id):
             'fb_app_id': client.fb_app_id
         },
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
     })
 
 
@@ -263,7 +288,7 @@ def button(request, campaign_id, content_id):
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = _test_mode(request)
     db.delayed_save.delay(
         models.Event(
@@ -284,7 +309,40 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     else:
         test_fbid = test_token = None
 
-    return render(request, _locate_client_template(client, 'frame_faces.html'), {
+    # Use campaign-custom template name if one exists:
+    try:
+        # rand_assign raises ValueError if list is empty:
+        style_recs = campaign.campaignfacesstyle_set.all()
+        style_exp_tupes = [(style.faces_style_id, style.rand_cdf) for style in style_recs]
+        style_id = int(utils.rand_assign(style_exp_tupes))
+        filenames = models.FacesStyleFiles.objects.get(faces_style=style_id)
+    except (ValueError, models.FacesStyleFiles.DoesNotExist):
+        # The default template name will do:
+        html_template = 'frame_faces.html'
+        css_template = 'edgeflip_client_simple.css'
+
+        #set empties for the Assignment below
+        style_id = None
+        style_recs = []
+    else:
+        html_template = filenames.html_template if filenames.html_template else 'button.html'
+        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
+
+    # Record assignment:
+    db.delayed_save.delay(
+        models.Assignment(
+            visit=request.visit,
+            campaign=campaign,
+            content=content,
+            feature_type='frame_faces_style_id',
+            feature_row=style_id,
+            random_assign=True,
+            chosen_from_table='campaign_faces_style',
+            chosen_from_rows=[style.faces_style_id for style in style_recs],
+        )
+    )
+
+    return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
@@ -293,7 +351,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'content': content,
         'properties': campaign.campaignproperties_set.get(),
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css_simple': _locate_client_css(client, css_template),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid,
@@ -326,7 +384,7 @@ def faces(request):
     subdomain = request.get_host().split('.')[0]
     campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
     client = campaign.client
-    content = get_object_or_404(models.ClientContent, content_id=content_id, client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
 
     if mock_mode and subdomain != settings.WEB.mock_subdomain:
         return http.HttpResponseForbidden('Mock mode only allowed for the mock client')
@@ -366,7 +424,9 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = fbmodule.extendTokenFb(fbid, client.fb_app_id, token_string)
+        token = fbmodule.extendTokenFb(long(fbid), client.fb_app_id,
+                                       token_string)
+        db.delayed_save(token, overwrite=True)
         px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
             token=token,
@@ -404,7 +464,7 @@ def faces(request):
     fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
     db.delayed_save.delay(
         models.Assignment(
-            session_id=request.visit.session_id,
+            visit=request.visit,
             campaign=campaign,
             content=content,
             feature_type='fb_object_id',
@@ -510,9 +570,7 @@ def objects(request, fb_object_id, content_id):
     """FBObject endpoint provided to Facebook to crawl and users to click."""
     fb_object = get_object_or_404(models.FBObject, fb_object_id=fb_object_id)
     client = fb_object.client
-    content = get_object_or_404(models.ClientContent,
-                                content_id=content_id,
-                                client=client)
+    content = get_object_or_404(client.clientcontent, content_id=content_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
@@ -588,7 +646,7 @@ def suppress(request):
             client_content_id=content_id,
             friend_fbid=old_id,
             content=content,
-            event_type='suppress',
+            event_type='suppressed',
         )
     )
     db.delayed_save.delay(
@@ -632,6 +690,7 @@ def record_event(request):
     content = request.POST.get('content')
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
+    extend_token = request.POST.get('extend_token', False)
     friends = [int(fid) for fid in request.POST.getlist('friends[]')]
 
     single_occurrence_events = {'button_load', 'authorized'}
@@ -709,8 +768,9 @@ def record_event(request):
             raise
 
         client.userclients.get_or_create(fbid=fbid)
-        token = facebook.extendTokenFb(fbid, appid, token_string)
-        token.save(overwrite=True)
+        if extend_token:
+            token = facebook.extendTokenFb(fbid, appid, token_string)
+            token.save(overwrite=True)
 
     if event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so

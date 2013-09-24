@@ -4,7 +4,7 @@ from django.db import models
 class ClientContent(models.Model):
 
     content_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client', null=True, blank=True)
+    client = models.ForeignKey('Client', null=True, blank=True, related_name='clientcontent')
     name = models.CharField(max_length=256, blank=True)
     description = models.CharField(max_length=1024, blank=True)
     url = models.CharField(max_length=2048, blank=True)

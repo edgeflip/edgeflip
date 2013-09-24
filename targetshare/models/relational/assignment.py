@@ -4,7 +4,7 @@ from django.db import models
 class Assignment(models.Model):
 
     assignment_id = models.AutoField(primary_key=True)
-    session_id = models.CharField(max_length=128, blank=True)
+    visit = models.ForeignKey('Visit', related_name='assignments')
     campaign = models.ForeignKey('Campaign', null=True, blank=True)
     content = models.ForeignKey('ClientContent', null=True, blank=True)
     feature_type = models.CharField(max_length=128, blank=True)

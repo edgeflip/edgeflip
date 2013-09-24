@@ -1,49 +1,25 @@
 # -*- coding: utf-8 -*-
-import itertools
-from south.v2 import DataMigration
+from south.db import db
+from south.v2 import SchemaMigration
 
 
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        """Populate Visits for all existing Events."""
-        # Sort events into groupable stream according to unique key
-        # (session_id, app_id):
-        for (session_id, app_id), events in itertools.groupby(
-            orm.Event.objects.order_by('session_id', 'app_id', 'updated'),
-            lambda event: (event.session_id, event.app_id)
-        ):
-            # Avoid iterator issues:
-            events = tuple(events)
-            # Ensure fbid is unique across visit:
-            fbids = {event.fbid for event in events if event.fbid}
-            try:
-                (fbid,) = fbids or (None,)
-            except ValueError:
-                # Must be multiple fbids; use the "first":
-                fbid = next(iter(fbids))
-                print "WARNING: multiple fbid recorded for %s, %s: %s" % (
-                    session_id,
-                    app_id,
-                    fbids,
-                )
-            # Create visit:
-            visit = orm.Visit.objects.create(
-                session_id=session_id,
-                app_id=app_id,
-                fbid=fbid,
-                ip=events[0].ip,
-            )
-            # Set visit in "single" swoop:
-            orm.Event.objects.filter(
-                session_id=session_id,
-                app_id=app_id,
-            ).update(visit=visit)
+        # Deleting field 'Assignment.session_id'
+        db.delete_column('assignments', 'session_id')
+
+        # Changing field 'Assignment.visit'
+        db.alter_column('assignments', 'visit_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Visit']))
 
     def backwards(self, orm):
-        """Remove Visits."""
-        orm.Event.objects.update(visit=None)
-        orm.Visit.objects.all().delete()
+        # Adding field 'Assignment.session_id'
+        db.add_column('assignments', 'session_id',
+                      self.gf('django.db.models.fields.CharField')(default='', max_length=128, blank=True),
+                      keep_default=False)
+
+        # Changing field 'Assignment.visit'
+        db.alter_column('assignments', 'visit_id', self.gf('django.db.models.fields.related.ForeignKey')(null=True, to=orm['targetshare.Visit']))
 
     models = {
         'targetshare.assignment': {
@@ -57,7 +33,7 @@ class Migration(DataMigration):
             'feature_row': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'feature_type': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'random_assign': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
-            'session_id': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'})
+            'visit': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignments'", 'to': "orm['targetshare.Visit']"})
         },
         'targetshare.buttonstyle': {
             'Meta': {'object_name': 'ButtonStyle', 'db_table': "'button_styles'"},
@@ -90,7 +66,7 @@ class Migration(DataMigration):
         'targetshare.campaign': {
             'Meta': {'object_name': 'Campaign', 'db_table': "'campaigns'"},
             'campaign_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']", 'null': 'True', 'blank': 'True'}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaigns'", 'null': 'True', 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'delete_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'blank': 'True'}),
@@ -280,7 +256,7 @@ class Migration(DataMigration):
         },
         'targetshare.clientcontent': {
             'Meta': {'object_name': 'ClientContent', 'db_table': "'client_content'"},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']", 'null': 'True', 'blank': 'True'}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'clientcontent'", 'null': 'True', 'to': "orm['targetshare.Client']"}),
             'content_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'delete_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
@@ -307,18 +283,14 @@ class Migration(DataMigration):
         'targetshare.event': {
             'Meta': {'object_name': 'Event', 'db_table': "'events'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'app_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'db_column': "'appid'", 'blank': 'True'}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),
             'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "'content_id'"}),
             'content': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True', 'db_column': "'type'", 'blank': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'ip': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
-            'session_id': ('django.db.models.fields.CharField', [], {'max_length': '128'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'visit': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Visit']", 'null': 'True'})
+            'visit': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'to': "orm['targetshare.Visit']"})
         },
         'targetshare.faceexclusion': {
             'Meta': {'unique_together': "(('fbid', 'campaign', 'content', 'friend_fbid'),)", 'object_name': 'FaceExclusion', 'db_table': "'face_exclusions'"},
@@ -360,7 +332,7 @@ class Migration(DataMigration):
         },
         'targetshare.fbobject': {
             'Meta': {'object_name': 'FBObject', 'db_table': "'fb_objects'"},
-            'client': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Client']", 'null': 'True', 'blank': 'True'}),
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'fbobjects'", 'null': 'True', 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'delete_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'description': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
@@ -528,10 +500,10 @@ class Migration(DataMigration):
             'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'ip': ('django.db.models.fields.GenericIPAddressField', [], {'max_length': '39'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'}),
+            'source': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '256', 'db_index': 'True', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'visit_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         }
     }
 
     complete_apps = ['targetshare']
-    symmetrical = True

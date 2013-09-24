@@ -4,7 +4,7 @@ from django.db import models
 class ButtonStyle(models.Model):
 
     button_style_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client', null=True, blank=True)
+    client = models.ForeignKey('Client', null=True, blank=True, related_name='buttonstyles')
     name = models.CharField(max_length=256, blank=True)
     description = models.TextField(blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
