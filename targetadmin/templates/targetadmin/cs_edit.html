@@ -1,0 +1,39 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Edit Choice Set{% endblock %}
+{% block content %}
+    <h2>Edit Choice Set: {{ choice_set.name }}</h2>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ cs_form.as_p }}
+        <hr>
+        {{ formset.management_form }}
+        {% if formset.initial_forms %}
+            <h4>Existing Choice Sets</h4>
+                {% for form in formset.initial_forms %}
+                    {{ form.as_p }}
+                    <hr>
+                {% endfor %}
+        {% endif %}
+        <h4>Add Choice Sets</h4>
+        {% for form in formset.extra_forms %}
+            <div id="new-form-{{ forloop.counter0}}" class="new-choice-sets">
+                {{ form.as_p }}
+                <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addChoiceSet({{ forloop.counter }})">Add More</span>
+                <hr>
+            </div>
+        {% endfor %}
+        <input class="btn btn-large btn-primary" type="submit" value="Submit" />
+        <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+    </form>
+{% endblock %}
+{% block extrascript %}
+    <script>
+        $('.new-choice-sets').hide();
+        $('#new-form-0').show();
+
+        function addChoiceSet(form_number){
+            $('#new-form-' + form_number).show();
+            $('#add-more-' + (form_number - 1)).hide();
+        }
+    </script>
+{% endblock %}

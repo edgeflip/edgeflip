@@ -17,3 +17,4 @@ class FBObject(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'fb_objects'
+        ordering = ('-create_dt',)

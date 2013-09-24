@@ -1,0 +1,83 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Edit Filter{% endblock %}
+{% block content %}
+    <h2>Edit Filter: {{ filter_obj.name }}</h2>
+    <form action="" method="post">
+        {% csrf_token %}
+        {{ filter_form.as_p }}
+        <hr>
+        {{ formset.management_form }}
+        {% if formset.initial_forms %}
+            <h4>Existing Features</h4>
+                {% for form in formset.initial_forms %}
+                    {{ form.as_p }}
+                    <hr>
+                {% endfor %}
+        {% endif %}
+        <h4>Add Filters</h4>
+        {% for form in formset.extra_forms %}
+            <div id="new-form-{{ forloop.counter0}}" class="new-filters">
+                <p>{{ form.filter.errors }}<label for="id_{{ form.prefix }}-filter">{{ form.filter.label }}: </label>{{ form.filter }}</p>
+                <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
+                <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>
+                <p style="display: none;">{{ form.value }}</p>
+                <p id="{{ form.prefix }}-value-p">{{ form.value.errors }}
+                    <label for="id_{{ form.prefix }}-value-split-1">{{ form.value.label }}</label>
+                    <input id="id_{{ form.prefix }}-value-split-1" maxlength="1024" name="{{ form.prefix }}-value-split-1" type="text" class="{{ form.prefix }}-filter-val-input">
+                    <span id="{{ form.prefix }}-value-span"></span><a id="{{ form.prefix }}-value" class="icon-plus" href="#id_{{ form.prefix }}-value" style="display:none;"></a>
+                </p>
+                <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addFilterFeature({{ forloop.counter }})">Add More</span>
+                <hr>
+            </div>
+        {% endfor %}
+        <input class="btn btn-large btn-primary" type="submit" value="Submit" />
+        <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+    </form>
+{% endblock %}
+{% block extrascript %}
+    <script>
+        $('.new-filters').hide();
+        $('#new-form-0').show();
+
+        function addFilterFeature(form_number){
+            $('#new-form-' + form_number).show();
+            $('#add-more-' + (form_number - 1)).hide();
+        }
+
+        var input_dict = {};
+
+        {% for form in formset.extra_forms %}
+            input_dict['{{ form.prefix }}'] = 1;
+            $('.new-filters').on('change', '#id_{{ form.prefix }}-operator', function(e){
+                $('#{{ form.prefix }}-value').toggle();
+            });
+            $('.new-filters').on('change', '.{{ form.prefix }}-filter-val-input', function(e){
+                var filter_values = '';
+                $('.{{ form.prefix }}-filter-val-input').each(function(index){
+                    value = $('#' + this.id).val();
+                    if (value) {
+                        if (filter_values === ''){
+                            filter_values = value;
+                        } else {
+                            filter_values += '||' + value;
+                        }
+                    }
+                });
+                if (filter_values.slice(-2) === '||'){
+                    filter_values = filter_values.substr(0, filter_values.length - 2);
+                }
+                $('#id_{{ form.prefix }}-value').val(filter_values);
+            });
+        {% endfor %}
+
+        $('.icon-plus').click(function(e){
+            split_id = e.target.id.split('-');
+            form_tag = split_id[0] + '-' + split_id[1];
+            input_dict[form_tag] += 1;
+            input_count = input_dict[form_tag];
+            new_id = 'id_' + form_tag + '-value-split-' + input_count;
+            dest_id = '#' + e.target.id + '-span';
+            $(dest_id).append('<input id="' + new_id + '" maxlength="1024" name="' + new_id + '" type="text" class="' + form_tag + '-filter-val-input">');
+        });
+    </script>
+{% endblock %}

@@ -4,8 +4,8 @@
     <h2>Choose a Client</h2>
     <ul>
         {% for client in client_list %}
-            <li><a href="/clients/{{ client.pk }}">{{ client.name }}</a></li>
+            <li><a href="{% url 'client-detail' client.pk %}">{{ client.name }}</a></li>
         {% endfor %}
     </ul>
-    Or, <a href="/new_client">Create a Client</a>
+    Or, <a href="{% url 'client-new' %}">Create a Client</a>
 {% endblock %}
