@@ -18,12 +18,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError
 from django.utils import timezone
 
-from targetshare import (
-    facebook,
-    mock_facebook,
-    models,
-    utils,
-)
+from targetshare import models, utils
+from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
 
 
@@ -87,7 +83,7 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
     if created:
         # Add start event:
         db.delayed_save.delay(
-            models.Event(
+            models.relational.Event(
                 visit=visit,
                 event_type='session_start',
                 **(start_event or {})
@@ -230,7 +226,7 @@ def _test_mode(request):
 @_encoded_endpoint
 @_require_visit
 def button(request, campaign_id, content_id):
-    campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
@@ -240,7 +236,7 @@ def button(request, campaign_id, content_id):
         # rand_assign raises ValueError if list is empty:
         button_style = campaign.campaignbuttonstyles.random_assign()
         filenames = button_style.buttonstylefiles.get()
-    except (ValueError, models.ButtonStyleFile.DoesNotExist):
+    except (ValueError, models.relational.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
         button_style = None
         html_template = 'button.html'
@@ -251,7 +247,7 @@ def button(request, campaign_id, content_id):
 
     # Record assignment:
     db.delayed_save.delay(
-        models.Assignment.make_managed(
+        models.relational.Assignment.make_managed(
             visit=request.visit,
             campaign=campaign,
             content=content,
@@ -277,12 +273,12 @@ def button(request, campaign_id, content_id):
 @_encoded_endpoint
 @_require_visit
 def frame_faces(request, campaign_id, content_id, canvas=False):
-    campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = _test_mode(request)
     db.delayed_save.delay(
-        models.Event(
+        models.relational.Event(
             visit=request.visit,
             campaign=campaign,
             client_content=content,
@@ -305,7 +301,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         # rand_assign raises ValueError if list is empty:
         faces_style = campaign.campaignfacesstyles.random_assign()
         filenames = faces_style.facesstylefiles.get()
-    except (ValueError, models.FacesStyleFiles.DoesNotExist):
+    except (ValueError, models.relational.FacesStyleFiles.DoesNotExist):
         # The default template name will do:
         faces_style = None
         html_template = 'frame_faces.html'
@@ -316,7 +312,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 
     # Record assignment:
     db.delayed_save.delay(
-        models.Assignment.make_managed(
+        models.relational.Assignment.make_managed(
             visit=request.visit,
             campaign=campaign,
             content=content,
@@ -356,17 +352,17 @@ def faces(request):
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
     last_call = bool(request.POST.get('last_call'))
-    edges_ranked = fbmodule = px4_edges = None
+    edges_ranked = px4_edges = None
 
     if settings.ENV != 'production' and mock_mode:
         LOG.info('Running in mock mode')
-        fbmodule = mock_facebook
+        fb_client = facebook.mock_client
         fbid = 100000000000 + random.randint(1, 10000000)
     else:
-        fbmodule = facebook
+        fb_client = facebook.client
 
     subdomain = request.get_host().split('.')[0]
-    campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+    campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
 
@@ -390,8 +386,8 @@ def faces(request):
                 content_id,
             ) = px3_result_result
             if campaign_id and content_id:
-                campaign = models.Campaign.objects.get(pk=campaign_id)
-                content = models.ClientContent.objects.get(pk=content_id)
+                campaign = models.relational.Campaign.objects.get(pk=campaign_id)
+                content = models.relational.ClientContent.objects.get(pk=content_id)
             px4_edges = px4_result.result if px4_result.successful() else ()
             if not edges_ranked or not edges_filtered:
                 return http.HttpResponse('No friends identified for you.', status=500)
@@ -408,8 +404,7 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = fbmodule.extendTokenFb(long(fbid), client.fb_app_id,
-                                       token_string)
+        token = fb_client.extendTokenFb(long(fbid), client.fb_app_id, token_string)
         db.delayed_save(token, overwrite=True)
         px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
@@ -466,7 +461,7 @@ def faces(request):
     else:
         fb_object = campaign.campaignfbobjects.random_assign()
         db.delayed_save.delay(
-            models.Assignment.make_managed(
+            models.relational.Assignment.make_managed(
                 visit=request.visit,
                 campaign=campaign,
                 content=content,
@@ -513,7 +508,7 @@ def faces(request):
         if edges_list:
             for friend in edges_list:
                 events.append(
-                    models.Event(
+                    models.relational.Event(
                         visit=request.visit,
                         campaign_id=tier_campaignId,
                         client_content_id=tier_contentId,
@@ -529,7 +524,7 @@ def faces(request):
 
     for friend in face_friends[:num_face]:
         events.append(
-            models.Event(
+            models.relational.Event(
                 visit=request.visit,
                 campaign_id=campaign.pk,
                 client_content_id=content.pk,
@@ -567,7 +562,7 @@ def faces(request):
 
 def objects(request, fb_object_id, content_id):
     """FBObject endpoint provided to Facebook to crawl and users to click."""
-    fb_object = get_object_or_404(models.FBObject, fb_object_id=fb_object_id)
+    fb_object = get_object_or_404(models.relational.FBObject, fb_object_id=fb_object_id)
     client = fb_object.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
@@ -608,7 +603,7 @@ def objects(request, fb_object_id, content_id):
         visit = _get_visit(request, client.fb_app_id,
                            start_event={'client_content': content})
         db.delayed_save.delay(
-            models.Event(
+            models.relational.Event(
                 visit=visit,
                 client_content=content,
                 content=content_str,
@@ -639,7 +634,7 @@ def suppress(request):
     lname = request.POST.get('lname')
 
     db.delayed_save.delay(
-        models.Event(
+        models.relational.Event(
             visit=request.visit,
             campaign_id=campaign_id,
             client_content_id=content_id,
@@ -649,7 +644,7 @@ def suppress(request):
         )
     )
     db.delayed_save.delay(
-        models.FaceExclusion(
+        models.relational.FaceExclusion(
             fbid=user_id,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -660,7 +655,7 @@ def suppress(request):
 
     if new_id:
         db.delayed_save.delay(
-            models.Event(
+            models.relational.Event(
                 visit=request.visit,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
@@ -714,7 +709,7 @@ def record_event(request):
     if friends:
         for friend in friends:
             events.append(
-                models.Event(
+                models.relational.Event(
                     visit=request.visit,
                     campaign_id=campaign_id,
                     client_content_id=content_id,
@@ -726,7 +721,7 @@ def record_event(request):
             )
     else:
         events.append(
-            models.Event(
+            models.relational.Event(
                 visit=request.visit,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
@@ -768,7 +763,7 @@ def record_event(request):
 
         client.userclients.get_or_create(fbid=fbid)
         if extend_token:
-            token = facebook.extendTokenFb(fbid, appid, token_string)
+            token = facebook.client.extendTokenFb(fbid, appid, token_string)
             token.save(overwrite=True)
 
     if event_type == 'shared':
@@ -777,7 +772,7 @@ def record_event(request):
         exclusions = []
         for friend in friends:
             exclusions.append(
-                models.FaceExclusion(
+                models.relational.FaceExclusion(
                     fbid=user_id,
                     campaign_id=campaign_id,
                     content_id=content_id,
@@ -801,7 +796,7 @@ def record_event(request):
     share_msg = request.POST.get('shareMsg')
     if share_msg:
         db.delayed_save.delay(
-            models.ShareMessage(
+            models.relational.ShareMessage(
                 activity_id=action_id,
                 fbid=user_id,
                 campaign_id=campaign_id,
@@ -829,7 +824,7 @@ def health_check(request):
         return http.HttpResponse("It's Alive!", status=200)
 
     try:
-        fb_resp = facebook.getUrlFb("http://graph.facebook.com/6963")
+        fb_resp = facebook.client.getUrlFb("http://graph.facebook.com/6963")
     except Exception:
         facebook_up = False
     else:

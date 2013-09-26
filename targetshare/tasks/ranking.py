@@ -7,12 +7,10 @@ from django.conf import settings
 
 from targetshare import (
     database_compat as database,
-    facebook,
-    mock_facebook,
     models,
     ranking,
-    utils,
 )
+from targetshare.integration import facebook
 from targetshare.tasks import db
 
 MAX_FALLBACK_COUNT = 5
@@ -32,9 +30,9 @@ def proximity_rank_three(mock_mode, fbid, token, **kwargs):
 @celery.task(default_retry_delay=1, max_retries=3)
 def px3_crawl(mockMode, fbid, token):
     ''' Performs the standard px3 crawl '''
-    fbmodule = mock_facebook if mockMode else facebook
+    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        edgesUnranked = fbmodule.getFriendEdgesFb(
+        edgesUnranked = fb_client.getFriendEdgesFb(
             fbid,
             token['token'],
             requireIncoming=False,
@@ -62,10 +60,10 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
 
-    visit = models.Visit.objects.get(visit_id=visit_id)
-    campaign = models.Campaign.objects.get(campaign_id=campaignId)
+    visit = models.relational.Visit.objects.get(visit_id=visit_id)
+    campaign = models.relational.Campaign.objects.get(campaign_id=campaignId)
     client = campaign.client
-    client_content = models.ClientContent.objects.get(content_id=contentId)
+    client_content = models.relational.ClientContent.objects.get(content_id=contentId)
     already_picked = already_picked or models.datastructs.TieredEdges()
 
     # Get fallback & threshold info about this campaign from the DB
@@ -89,7 +87,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     minFriends = 1 if fallback_cascading else properties.min_friends
 
     # Check if any friends should be excluded for this campaign/content combination
-    exclude_friends = set(models.FaceExclusion.objects.filter(
+    exclude_friends = set(models.relational.FaceExclusion.objects.filter(
         fbid=fbid,
         campaign=campaign,
         content=client_content,
@@ -145,10 +143,9 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             campaignId=campaignId,
             contentId=contentId
         )
-    except utils.TooFewFriendsError as e:
-        logger.info(
-            "Too few friends found for %s with campaign %s. Checking for fallback.",
-            fbid, campaignId)
+    except models.relational.ChoiceSet.TooFewFriendsError:
+        logger.info("Too few friends found for %s with campaign %s. Checking for fallback.",
+                    fbid, campaignId)
 
     if bestCSFilter:
         if bestCSFilter[0] is None:
@@ -286,9 +283,9 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 @celery.task(default_retry_delay=1, max_retries=3)
 def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
-    fbmodule = mock_facebook if mockMode else facebook
+    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fbmodule.getUserFb(fbid, token['token'])
+        user = fb_client.getUserFb(fbid, token['token'])
         # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
@@ -299,7 +296,7 @@ def proximity_rank_four(mockMode, fbid, token):
             maxAge=timedelta(days=settings.FRESHNESS),
         )
         if not edgesUnranked:
-            edgesUnranked = fbmodule.getFriendEdgesFb(
+            edgesUnranked = fb_client.getFriendEdgesFb(
                 fbid,
                 token['token'],
                 requireIncoming=True,

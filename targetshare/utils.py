@@ -118,11 +118,6 @@ def civis_filter(edges, feature, operator, score_value):
     return [x for x in edges if str(x.secondary.id) in valid_ids]
 
 
-class TooFewFriendsError(Exception):
-    """Too few friends found in picking best choice set filter"""
-    pass
-
-
 class Timer(object):
     """used for inline profiling & debugging
 

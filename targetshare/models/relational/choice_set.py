@@ -1,7 +1,5 @@
 from django.db import models
 
-from targetshare import utils
-
 
 class ChoiceSet(models.Model):
 
@@ -13,6 +11,10 @@ class ChoiceSet(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
+
+    class TooFewFriendsError(Exception):
+        """Too few friends found in picking best choice set filter"""
+        pass
 
     def __unicode__(self):
         return u'%s' % self.name
@@ -30,6 +32,7 @@ class ChoiceSet(models.Model):
         eligibleProportion specifies the top fraction (based on score) of friends
           that should even be considered here (if we want to restrict only to
           those friends with a reasonable proximity to the primary).
+
         """
         sort_func = lambda el: (len(el), sum([e.score for e in el]) / len(el) if el else 0)
         edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
@@ -45,12 +48,12 @@ class ChoiceSet(models.Model):
         if (len(sortedFilters[0][1]) < minFriends):
 
             if (not useGeneric):
-                raise utils.TooFewFriendsError(
+                raise self.TooFewFriendsError(
                     "Too few friends were available after filtering")
 
             genericFriends = set(e.secondary.id for t in sortedFilters for e in t[1])
             if (len(genericFriends) < minFriends):
-                raise utils.TooFewFriendsError(
+                raise self.TooFewFriendsError(
                     "Too few friends were available after filtering")
             else:
                 return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
