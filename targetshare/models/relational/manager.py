@@ -56,7 +56,7 @@ class AssignedObjectQuerySet(QuerySet):
                             .format(self.assigned_object, meta=self.model._meta))
 
         options = self.values_list(self.assigned_object, self.rand_cdf)
-        object_id = utils.rand_assign(options)
+        object_id = utils.random_assign(options)
         return assigned_class.objects.get(pk=object_id)
 
 
