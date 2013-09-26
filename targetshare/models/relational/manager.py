@@ -2,7 +2,99 @@ import operator
 from collections import defaultdict
 
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
+
+from targetshare import utils
+
+
+class TransitoryObjectQuerySet(QuerySet):
+
+    def for_datetime(self, datetime=None):
+        datetime = datetime or timezone.now()
+        return self.filter(
+            models.Q(end_dt=None) | models.Q(end_dt__lt=datetime),
+            start_dt__lte=datetime,
+        )
+
+
+class TransitoryObjectManager(models.Manager):
+
+    def get_query_set(self):
+        return TransitoryObjectQuerySet(self.model, using=self._db)
+
+    def for_datetime(self, datetime=None):
+        return self.get_query_set().for_datetime(datetime)
+
+
+class AssignedObjectQuerySet(QuerySet):
+
+    # Field of related object to assign:
+    assigned_object = None
+    rand_cdf = 'rand_cdf'
+
+    def __init__(self, model=None, query=None, using=None, assigned_object=None):
+        super(AssignedObjectQuerySet, self).__init__(model, query, using)
+        self.assigned_object = assigned_object
+
+    def _clone(self, klass=None, setup=False, **kwargs):
+        clone = super(AssignedObjectQuerySet, self)._clone(klass, setup, **kwargs)
+        if hasattr(clone, 'assigned_object'):
+            clone.assigned_object = self.assigned_object
+        return clone
+
+    def random_assign(self):
+        if not self.assigned_object:
+            raise TypeError("Assigned object field not set")
+
+        for field in self.model._meta.fields:
+            if field.name == self.assigned_object:
+                assigned_class = field.related.parent_model
+                break
+        else:
+            raise TypeError("Field {!r} not found on model {meta.app_label}.{meta.object_name}"
+                            .format(self.assigned_object, meta=self.model._meta))
+
+        options = self.values_list(self.assigned_object, self.rand_cdf)
+        object_id = utils.rand_assign(options)
+        return assigned_class.objects.get(pk=object_id)
+
+
+class AssignedObjectManager(models.Manager):
+
+    assigned_object = None
+
+    def get_query_set(self):
+        return AssignedObjectQuerySet(self.model,
+            using=self._db, assigned_object=self.assigned_object)
+
+    def random_assign(self):
+        return self.get_query_set().random_assign()
+
+
+class AssignedFilterManager(AssignedObjectManager):
+
+    assigned_object = 'filter'
+
+
+class AssignedChoiceSetManager(AssignedObjectManager):
+
+    assigned_object = 'choice_set'
+
+
+class AssignedButtonStyleManager(AssignedObjectManager):
+
+    assigned_object = 'button_style'
+
+
+class AssignedFacesStyleManager(AssignedObjectManager):
+
+    assigned_object = 'faces_style'
+
+
+class AssignedFBObjectManager(AssignedObjectManager):
+
+    assigned_object = 'fb_object'
 
 
 class StartStopManager(models.Manager):

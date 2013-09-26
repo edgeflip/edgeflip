@@ -63,16 +63,19 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         raise RuntimeError("Exceeded maximum fallback count")
 
     visit = models.Visit.objects.get(visit_id=visit_id)
-    client = models.Client.objects.get(campaigns__campaign_id=campaignId)
+    campaign = models.Campaign.objects.get(campaign_id=campaignId)
+    client = campaign.client
+    client_content = models.ClientContent.objects.get(content_id=contentId)
     already_picked = already_picked or models.datastructs.TieredEdges()
 
     # Get fallback & threshold info about this campaign from the DB
-    properties = models.CampaignProperties.objects.get(campaign__pk=campaignId)
+    properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
 
     if properties.fallback_is_cascading and (properties.fallback_campaign is None):
-        logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.", campaignId)
+        logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                     campaignId)
         fallback_cascading = None
 
     # if fallback content_id IS NULL, defer to current content_id
@@ -88,8 +91,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     # Check if any friends should be excluded for this campaign/content combination
     exclude_friends = set(models.FaceExclusion.objects.filter(
         fbid=fbid,
-        campaign__pk=campaignId,
-        content__pk=contentId
+        campaign=campaign,
+        content=client_content,
     ).values_list('friend_fbid', flat=True))
     exclude_friends = exclude_friends.union(already_picked.secondary_ids)    # avoid re-adding if already picked
     edges_eligible = [
@@ -97,43 +100,34 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     ]
 
     # Get filter experiments, do assignment (and write DB)
-    filter_exp_tupes = sorted(models.CampaignGlobalFilter.objects.filter(
-        campaign__pk=campaignId
-    ).values_list('filter_id', 'rand_cdf'), key=lambda t: t[1])
-    utils.check_cdf(filter_exp_tupes)
-    global_filter_id = utils.rand_assign(filter_exp_tupes)
-    visit.assignments.create(
-        campaign_id=campaignId, content_id=contentId,
-        feature_type='filter_id', feature_row=global_filter_id,
-        random_assign=True, chosen_from_table='campaign_global_filters',
-        chosen_from_rows=[r[0] for r in filter_exp_tupes]
-    )
+    global_filter = campaign.campaignglobalfilters.random_assign()
+    models.relational.Assignment.make_managed(
+        visit=visit,
+        campaign=campaign,
+        content=client_content,
+        assignment=global_filter,
+        manager=campaign.campaignglobalfilters,
+    ).save()
 
     # apply filter
-    global_filter = models.Filter.objects.get(
-        pk=global_filter_id)
     filtered_edges = global_filter.filter_edges_by_sec(edges_eligible)
 
     # Get choice set experiments, do assignment (and write DB)
-    choice_set_recs = models.CampaignChoiceSet.objects.filter(
-        campaign__pk=campaignId
-    )
-    choice_set_exp_tupes = [
-        (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
-    ]
-    choice_set_id = utils.rand_assign(choice_set_exp_tupes)
-    visit.assignments.create(
-        campaign_id=campaignId, content_id=contentId,
-        feature_type='choice_set_id', feature_row=choice_set_id,
-        random_assign=True, chosen_from_table='campaign_choice_sets',
-        chosen_from_rows=[r.pk for r in choice_set_recs]
-    )
+    campaign_choice_sets = campaign.campaignchoicesets.all()
+    choice_set = campaign_choice_sets.random_assign()
+    models.relational.Assignment.make_managed(
+        visit=visit,
+        campaign=campaign,
+        content=client_content,
+        assignment=choice_set,
+        options=campaign_choice_sets,
+    ).save()
     allow_generic = {
-        r.choice_set.pk: [r.allow_generic, r.generic_url_slug] for r in choice_set_recs
-    }[choice_set_id]
+        option.choice_set.pk: [option.allow_generic, option.generic_url_slug]
+        for option in campaign_choice_sets
+    }[choice_set.pk]
 
     # pick best choice set filter (and write DB)
-    choice_set = models.ChoiceSet.objects.get(pk=choice_set_id)
     bestCSFilter = None
     try:
         bestCSFilter = choice_set.choose_best_filter(

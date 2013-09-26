@@ -1,5 +1,27 @@
 from django.db import models
 
+from .manager import TransitoryObjectManager
+
+
+class FBObjectAttributeManager(TransitoryObjectManager):
+
+    # Consider: combine with StartStopManager somehow?
+    def source(self, meta):
+        try:
+            fb_object = self.instance
+        except AttributeError:
+            raise TypeError("source is intended for use with RelatedManagers")
+
+        try:
+            fb_object_attrs = self.for_datetime().get()
+        except FBObjectAttribute.DoesNotExist:
+            # Nothing to update; create a new one:
+        else:
+            # Check if updates needed:
+            ...
+
+        # TODO: ...
+
 
 class FBObjectAttribute(models.Model):
 
@@ -22,6 +44,8 @@ class FBObjectAttribute(models.Model):
     url_slug = models.CharField(max_length=64, blank=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
+
+    objects = FBObjectAttributeManager()
 
     class Meta(object):
         app_label = 'targetshare'

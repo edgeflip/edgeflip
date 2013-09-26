@@ -1,3 +1,4 @@
+import datetime
 import functools
 import json
 import logging
@@ -15,6 +16,7 @@ from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError
+from django.utils import timezone
 
 from targetshare import (
     facebook,
@@ -235,37 +237,26 @@ def button(request, campaign_id, content_id):
 
     # Use campaign-custom button style template name if one exists:
     try:
-        style_recs = campaign.campaignbuttonstyles.all()
-        style_exp_tupes = [
-            (campaign_button_style.button_style_id, campaign_button_style.rand_cdf)
-            for campaign_button_style in style_recs
-        ]
         # rand_assign raises ValueError if list is empty:
-        style_id = int(utils.rand_assign(style_exp_tupes))
-        filenames = models.ButtonStyleFile.objects.get(button_style=style_id)
+        button_style = campaign.campaignbuttonstyles.random_assign()
+        filenames = button_style.buttonstylefiles.get()
     except (ValueError, models.ButtonStyleFile.DoesNotExist):
         # The default template name will do:
+        button_style = None
         html_template = 'button.html'
         css_template = 'edgeflip_client_simple.css'
-
-        # Set empties for the Assignment below:
-        style_id = None
-        style_recs = []
     else:
-        html_template = filenames.html_template if filenames.html_template else 'button.html'
-        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
+        html_template = filenames.html_template or 'button.html'
+        css_template = filenames.css_file or 'edgeflip_client_simple.css'
 
     # Record assignment:
     db.delayed_save.delay(
-        models.Assignment(
+        models.Assignment.make_managed(
             visit=request.visit,
             campaign=campaign,
             content=content,
-            feature_type='button_style_id',
-            feature_row=style_id,
-            random_assign=True,
-            chosen_from_table='campaign_button_styles',
-            chosen_from_rows=[style.button_style_id for style in style_recs],
+            assignment=button_style,
+            manager=campaign.campaignbuttonstyles,
         )
     )
 
@@ -312,33 +303,25 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     # Use campaign-custom template name if one exists:
     try:
         # rand_assign raises ValueError if list is empty:
-        style_recs = campaign.campaignfacesstyle_set.all()
-        style_exp_tupes = [(style.faces_style_id, style.rand_cdf) for style in style_recs]
-        style_id = int(utils.rand_assign(style_exp_tupes))
-        filenames = models.FacesStyleFiles.objects.get(faces_style=style_id)
+        faces_style = campaign.campaignfacesstyles.random_assign()
+        filenames = faces_style.facesstylefiles.get()
     except (ValueError, models.FacesStyleFiles.DoesNotExist):
         # The default template name will do:
+        faces_style = None
         html_template = 'frame_faces.html'
         css_template = 'edgeflip_client_simple.css'
-
-        #set empties for the Assignment below
-        style_id = None
-        style_recs = []
     else:
-        html_template = filenames.html_template if filenames.html_template else 'button.html'
-        css_template = filenames.css_file if filenames.css_file else 'edgeflip_client_simple.css'
+        html_template = filenames.html_template or 'button.html'
+        css_template = filenames.css_file or 'edgeflip_client_simple.css'
 
     # Record assignment:
     db.delayed_save.delay(
-        models.Assignment(
+        models.Assignment.make_managed(
             visit=request.visit,
             campaign=campaign,
             content=content,
-            feature_type='frame_faces_style_id',
-            feature_row=style_id,
-            random_assign=True,
-            chosen_from_table='campaign_faces_style',
-            chosen_from_rows=[style.faces_style_id for style in style_recs],
+            assignment=faces_style,
+            manager=campaign.campaignfacesstyles,
         )
     )
 
@@ -368,6 +351,7 @@ def faces(request):
     num_face = int(request.POST['num'])
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
+    fbobject_source_url = request.POST.get('fbobjectsrc')
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
@@ -459,31 +443,46 @@ def faces(request):
     face_friends = friend_dicts[:max_faces]
     all_friends = [e.toDict() for e in edges_ranked]
 
-    fb_object_recs = campaign.campaignfbobjects_set.all()
-    fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
-    fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
-    db.delayed_save.delay(
-        models.Assignment(
-            visit=request.visit,
-            campaign=campaign,
-            content=content,
-            feature_type='fb_object_id',
-            feature_row=fb_object_id,
-            random_assign=True,
-            chosen_from_table='campaign_fb_objects',
-            chosen_from_rows=[r.pk for r in fb_object_recs],
+    if fbobject_source_url:
+        fb_object, _created = client.fbobjects.get_or_create(
+            source_url=fbobject_source_url,
+            delete_dt=None,
         )
-    )
-    fb_object = models.FBObject.objects.get(pk=fb_object_id)
-    fb_attrs = fb_object.fbobjectattribute_set.get()
+        now = timezone.now()
+        yesterday = now - datetime.timedelta(days=1)
+        if fb_object.sourced is None or fb_object.sourced <= yesterday:
+            # Consider: should this be asynchronous as well?
+            # ...should it go in targetshare.integration.facebook.third_party?
+            # TODO: retrieve page
+            # ...check if any attrs have changed (or no attrs to begin with)
+            # ...retire old attrs object and create new one (e.g. get_or_create and retrire old if created)
+            # ...update fb_object.sourced
+            # Do we need to populate defaults from the fallback or something?
+            meta = facebook.third_party.get_fbobject_meta(fb_object.source_url)
+            fb_attrs = fb_object.fbobjectattribute_set.source(meta)
+        else:
+            fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
+        # TODO: make assignment(?)
+    else:
+        fb_object = campaign.campaignfbobjects.random_assign()
+        db.delayed_save.delay(
+            models.Assignment.make_managed(
+                visit=request.visit,
+                campaign=campaign,
+                content=content,
+                assignment=fb_object,
+                manager=campaign.campaignfbobjects,
+            )
+        )
+        fb_attrs = fb_object.fbobjectattribute_set.get()
+
     fb_object_url = 'https://%s%s?cssslug=%s' % (
         request.get_host(),
         reverse('objects', kwargs={
-            'fb_object_id': fb_object_id, 'content_id': content.pk
+            'fb_object_id': fb_object.pk, 'content_id': content.pk
         }),
         choice_set_slug
     )
-
     fb_params = {
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
