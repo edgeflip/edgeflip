@@ -317,6 +317,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
 TEST_MODE_SECRET = 'sunwahduck'
+MAX_FALLBACK_COUNT = 5
 
 
 # Test settings #

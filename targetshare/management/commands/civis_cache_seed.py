@@ -1,4 +1,3 @@
-import json
 import logging
 from decimal import Decimal
 from optparse import make_option
@@ -10,6 +9,7 @@ import requests
 import boto
 from boto.exception import S3ResponseError
 
+from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 
 from civis_matcher import matcher
@@ -54,7 +54,10 @@ class Command(BaseCommand):
         self.client = relational.Client.objects.get(pk=args[0])
         self.filter_obj = relational.Filter.objects.get(pk=args[1])
         self.cache_age = datetime.now() - timedelta(days=options['days'])
-        self.s3_conn = boto.connect_s3()
+        self.s3_conn = boto.connect_s3(
+            settings.AWS.AWS_ACCESS_KEY_ID,
+            settings.AWS.AWS_SECRET_ACCESS_KEY
+        )
         logger.info(
             'Start cache seed with bucket %s, client %s, filter %s.',
             options['bucket'], self.client.name, self.filter_obj.name
@@ -62,9 +65,7 @@ class Command(BaseCommand):
         self.bucket = self._get_bucket(options['bucket'])
         self.edges = self._retrieve_users()
         logger.info('Performing matches')
-        match_results = self._perform_matching(self.edges)
-        logger.info('Storing matches')
-        self._store_match_results(match_results)
+        self._perform_matching(self.edges)
         logger.info('Cache successfully seeded')
 
     def _retrieve_users(self):
@@ -139,7 +140,10 @@ class Command(BaseCommand):
                 people_dict['people'][str(user.id)] = user_dict
 
             try:
-                cm = matcher.CivisMatcher()
+                cm = matcher.S3CivisMatcher(
+                    settings.AWS.AWS_ACCESS_KEY_ID,
+                    settings.AWS.AWS_SECRET_ACCESS_KEY
+                )
                 results = cm.bulk_match(people_dict, raw=True)
             except requests.RequestException:
                 logger.exception('Failed to contact Civis')
@@ -149,24 +153,3 @@ class Command(BaseCommand):
                 return []
 
             return results
-
-    def _store_match_results(self, results):
-        for fbid, match in results.iteritems():
-            match_key = self.bucket.get_key(fbid)
-            if match_key:
-                stored_json = json.loads(match_key.get_contents_as_string())
-            else:
-                match_key = self.bucket.new_key(fbid)
-                stored_json = {}
-
-            people_count = stored_json.get('result', {}).get('people_count', 0)
-            match_count = match.get('result', {}).get('people_count', 0)
-            cache_time = datetime.strptime(
-                stored_json.get('timestamp', datetime.now().strftime(TIME_FORMAT)),
-                TIME_FORMAT
-            )
-            if (not stored_json or
-                    match_count > people_count or
-                    cache_time < self.cache_age):
-                match['timestamp'] = datetime.now().strftime(TIME_FORMAT)
-                match_key.set_contents_from_string(json.dumps(match))

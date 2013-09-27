@@ -39,16 +39,21 @@ class Filter(models.Model):
         elif operator == 'in':
             return user_val in value
 
-    def filter_edges_by_sec(self, edges):
+    def filter_edges_by_sec(self, edges, faces_email=False):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
         if not self.filterfeatures.exists():
             return edges
         for f in self.filterfeatures.all():
             if f.feature in settings.CIVIS_FILTERS:
-                edges = utils.civis_filter(
-                    edges, f.feature, f.operator, f.value
-                )
+                if faces_email:
+                    utils.civis_s3_filter(
+                        edges, f.feature, f.operator, f.value
+                    )
+                else:
+                    edges = utils.civis_filter(
+                        edges, f.feature, f.operator, f.value
+                    )
             # Standard min/max/eq/in filters below
             else:
                 edges = [x for x in edges if self._standard_filter(

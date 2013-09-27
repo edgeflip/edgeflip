@@ -15,7 +15,6 @@ from targetshare import (
 )
 from targetshare.tasks import db
 
-MAX_FALLBACK_COUNT = 5
 logger = get_task_logger(__name__)
 
 
@@ -53,12 +52,12 @@ def px3_crawl(mockMode, fbid, token):
 
 @celery.task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
-                      fallbackCount=0, already_picked=None):
+                      fallbackCount=0, already_picked=None, faces_email=False):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
 
     '''
-    if (fallbackCount > MAX_FALLBACK_COUNT):
+    if (fallbackCount > settings.MAX_FALLBACK_COUNT):
         # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
 
@@ -138,7 +137,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     try:
         bestCSFilter = choice_set.choose_best_filter(
             filtered_edges, useGeneric=allow_generic[0],
-            minFriends=minFriends, eligibleProportion=1.0
+            minFriends=minFriends, eligibleProportion=1.0,
+            faces_email=faces_email
         )
 
         choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]

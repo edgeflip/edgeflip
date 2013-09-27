@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 PADDING = ' '
 BLOCK_SIZE = 8
+MAX_MISSING_CIVIS_MATCHES = 20
 
 pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 
@@ -116,6 +117,27 @@ def civis_filter(edges, feature, operator, score_value):
             valid_ids.append(str(key))
 
     return [x for x in edges if str(x.secondary.id) in valid_ids]
+
+
+def civis_s3_filter(edges, feature, operator, score_value):
+    cm = matcher.S3CivisMatcher(
+        settings.AWS.AWS_ACCESS_KEY_ID, settings.AWS.AWS_SECRET_ACCESS_KEY
+    )
+    results, missing_count = cm.cache_match(
+        [x.secondary.id for x in edges]
+    )
+    logger.debug('Missed the cache %s times', str(missing_count))
+    if missing_count > MAX_MISSING_CIVIS_MATCHES:
+        return civis_filter(edges, feature, operator, score_value)
+    else:
+        valid_ids = []
+        for key, value in results.items():
+            scores = getattr(value, 'scores', None) or {}
+            score = scores.get(feature) or {}
+            if score and float(score.get(operator, 0)) >= float(score_value):
+                valid_ids.append(str(key))
+
+        return [x for x in edges if str(x.secondary.id) in valid_ids]
 
 
 class TooFewFriendsError(Exception):
