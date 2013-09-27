@@ -62,7 +62,6 @@ class Command(BaseCommand):
             'Start cache seed with bucket %s, client %s, filter %s.',
             options['bucket'], self.client.name, self.filter_obj.name
         )
-        self.bucket = self._get_bucket(options['bucket'])
         self.edges = self._retrieve_users()
         logger.info('Performing matches')
         self._perform_matching(self.edges)
@@ -87,21 +86,6 @@ class Command(BaseCommand):
                 )
             )
         return edge_collection
-
-    def _get_bucket(self, bucket_name):
-        ''' Retrieves bucket if it exists, otherwise creates it '''
-        try:
-            bucket = self.s3_conn.get_bucket(bucket_name)
-        except S3ResponseError:
-            try:
-                bucket = self.s3_conn.create_bucket(bucket_name)
-            except S3ResponseError:
-                self.stderr.write(
-                    'Failed to obtain connection to bucket: %s' % bucket_name
-                )
-                raise
-
-        return bucket
 
     def _perform_matching(self, edge_collection):
         for primary in edge_collection:

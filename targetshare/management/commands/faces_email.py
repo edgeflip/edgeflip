@@ -85,7 +85,6 @@ class Command(BaseCommand):
         self.civis_count = options['civis_count']
         self.num_face = options['num_face']
         self.filename = options.get('output') or 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
-        print self.filename
         self.task_list = []
         self.edge_collection = []
 

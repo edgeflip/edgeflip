@@ -91,10 +91,8 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
     def test_handle_method(self, boto_mock):
         ''' Test the ensures the handle method behaves appropriately '''
         methods_to_mock = [
-            '_get_bucket',
             '_retrieve_users',
             '_perform_matching',
-            '_store_match_results'
         ]
         pre_mocks = []
         for method in methods_to_mock:
@@ -125,32 +123,19 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         self.assertEqual(len(users), 1)
         assert users[0] # Assert we have edges
 
-    def test_get_bucket_failure(self):
-        ''' Test the S3 bucket retrieval failure '''
-        self.command.s3_conn.get_bucket.side_effect = S3ResponseError('o', 'w')
-        self.command.s3_conn.create_bucket.side_effect = S3ResponseError('oh', 'no')
-        self.command.stderr = Mock()
-        with self.assertRaises(S3ResponseError):
-            self.command._get_bucket('bad bucket')
-
-        assert self.command.stderr.write.called
-
-    def test_get_bucket_success(self):
-        ''' Test a successful bucket retrieval '''
-        self.command.s3_conn.get_bucket.return_value = 'mrbucket_rocks'
-        self.assertEqual(
-            self.command._get_bucket('mrbucket'),
-            'mrbucket_rocks'
-        )
-
     @patch('civis_matcher.matcher.requests.post')
-    def test_perform_matching(self, requests_mock):
+    @patch('civis_matcher.matcher.S3CivisMatcher._get_bucket')
+    @patch('civis_matcher.matcher.boto')
+    def test_perform_matching(self, boto_mock, get_bucket_mock, requests_mock):
         ''' Tests the _perform_matching method '''
         requests_mock.return_value = Mock(
             status_code=200,
-            url='http://example.com/test-failure',
+            url='http://example.com/test',
             content=json.dumps(self.civis_result)
         )
+        bucket_mock = Mock()
+        bucket_mock.get_key.return_value = None
+        get_bucket_mock.return_value = bucket_mock
         users = self.command._retrieve_users()
         # Give our primary some legit data
         users[0][0].primary.city = 'Chicago'
@@ -158,51 +143,3 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         matches = self.command._perform_matching(users)
         assert matches['123456']
         self.assertEqual(matches['123456']['result']['people_count'], 1)
-
-    def test_store_match_results_new_key(self):
-        ''' Tests the _store_match_results method with a new key'''
-        self.command.bucket = Mock()
-        self.command.bucket.get_key.return_value = None
-        create_key_mock = Mock()
-        self.command.bucket.new_key.return_value = create_key_mock
-        self.command._store_match_results(self.civis_result)
-        assert create_key_mock.set_contents_from_string.called
-        store_data = json.loads(
-            create_key_mock.set_contents_from_string.call_args_list[0][0][0]
-        )
-        self.assertEqual(
-            store_data['result'],
-            self.civis_result['123456']['result']
-        )
-
-    def test_store_match_results_existing_key(self):
-        ''' Test of the result storage where we update an existing key '''
-        self.command.bucket = Mock()
-        key_mock = Mock()
-        key_data = self.civis_result.copy()
-        key_data['timestamp'] = (datetime.now() - timedelta(days=100)).strftime(
-            civis_cache_seed.TIME_FORMAT
-        )
-        key_mock.get_contents_as_string.return_value = json.dumps(key_data)
-        self.command.bucket.get_key.return_value = key_mock
-        self.command._store_match_results(self.civis_result)
-        assert key_mock.get_contents_as_string.called
-        assert key_mock.set_contents_from_string.called
-
-    def test_store_match_results_key_too_fresh(self):
-        ''' Test result storage where an object is found to be new enough to be
-        trusted
-        '''
-        self.command.bucket = Mock()
-        key_mock = Mock()
-        key_data = self.civis_result.copy()
-        key_data['123456']['timestamp'] = datetime.now().strftime(
-            civis_cache_seed.TIME_FORMAT
-        )
-        key_mock.get_contents_as_string.return_value = json.dumps(
-            key_data['123456']
-        )
-        self.command.bucket.get_key.return_value = key_mock
-        self.command._store_match_results(self.civis_result)
-        assert key_mock.get_contents_as_string.called
-        assert not key_mock.set_contents_from_string.called
