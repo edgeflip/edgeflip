@@ -60,12 +60,16 @@ class AssignedObjectQuerySet(QuerySet):
         return assigned_class.objects.get(pk=object_id)
 
 
-class AssignedObjectManager(models.Manager):
+class AssignedTransitoryObjectQuerySet(AssignedObjectQuerySet, TransitoryObjectQuerySet):
+    pass
+
+
+class AssignedObjectManager(TransitoryObjectManager):
 
     assigned_object = None
 
     def get_query_set(self):
-        return AssignedObjectQuerySet(self.model,
+        return AssignedTransitoryObjectQuerySet(self.model,
             using=self._db, assigned_object=self.assigned_object)
 
     def random_assign(self):

@@ -15,7 +15,7 @@ from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from targetshare import models, utils
@@ -347,7 +347,7 @@ def faces(request):
     num_face = int(request.POST['num'])
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
-    fbobject_source_url = request.POST.get('fbobjectsrc')
+    fbobject_source_url = request.POST.get('fbobjectsrc') # FIXME: efobjectsrc?
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
@@ -385,8 +385,9 @@ def faces(request):
                 campaign_id,
                 content_id,
             ) = px3_result_result
-            if campaign_id and content_id:
+            if campaign_id:
                 campaign = models.relational.Campaign.objects.get(pk=campaign_id)
+            if content_id:
                 content = models.relational.ClientContent.objects.get(pk=content_id)
             px4_edges = px4_result.result if px4_result.successful() else ()
             if not edges_ranked or not edges_filtered:
@@ -428,7 +429,7 @@ def faces(request):
             content_type='application/json'
         )
 
-    campaign.client.userclients.get_or_create(fbid=fbid)
+    client.userclients.get_or_create(fbid=fbid)
     if px4_edges:
         edges_filtered = edges_filtered.reranked(px4_edges)
 
@@ -439,24 +440,46 @@ def faces(request):
     all_friends = [e.toDict() for e in edges_ranked]
 
     if fbobject_source_url:
-        fb_object, _created = client.fbobjects.get_or_create(
+        # Retrieve CampaignFBObject sourced from URL
+        campaign_fb_object, _created = campaign.campaignfbobjects.for_datetime().get_or_create(
             source_url=fbobject_source_url,
-            delete_dt=None,
         )
+        if campaign_fb_object.fb_object is None:
+            # Created or created by competing by thread;
+            # safely update CampaignFBObject with new FBObject
+            with transaction.commit_on_success():
+                # Block row from competitors with FOR UPDATE:
+                campaign_fb_object = models.CampaignFBObject.objects.select_for_update().get(
+                    pk=campaign_fb_object.pk
+                )
+                if campaign_fb_object.fb_object is None:
+                    # Let winner fill in FBObject
+                    campaign_fb_object.fb_object = client.fbobjects.create()
+                    campaign_fb_object.save()
+
+        # (Re)-retrieve FBObjectAttributes from URL (if haven't recently)
         now = timezone.now()
         yesterday = now - datetime.timedelta(days=1)
-        if fb_object.sourced is None or fb_object.sourced <= yesterday:
-            # Consider: should this be asynchronous as well?
-            # ...should it go in targetshare.integration.facebook.third_party?
-            # TODO: retrieve page
-            # ...check if any attrs have changed (or no attrs to begin with)
-            # ...retire old attrs object and create new one (e.g. get_or_create and retrire old if created)
-            # ...update fb_object.sourced
-            # Do we need to populate defaults from the fallback or something?
-            meta = facebook.third_party.get_fbobject_meta(fb_object.source_url)
-            fb_attrs = fb_object.fbobjectattribute_set.source(meta)
-        else:
+        fb_object = campaign_fb_object.fb_object
+        if campaign_fb_object.sourced and campaign_fb_object.sourced > yesterday:
             fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
+        else:
+            generic_campaign_fbobject = campaign.campaigngenericfbobjects.for_datetime().get()
+            generic_fb_object = generic_campaign_fbobject.fb_object
+            default_attrs = generic_fb_object.fbobjectattribute_set.for_datetime().get()
+            try:
+                raw_fb_attrs = facebook.third_party.get_fbobject_attributes(campaign_fb_object)
+            except facebook.third_party.RetrievalError:
+                LOG.warning(
+                    "Failed to retrieve Facebook object attributes from %s (will use defaults)",
+                    campaign_fb_object.source_url,
+                    exc_info=True,
+                )
+                fb_attrs = default_attrs
+            else:
+                fb_attrs = fb_object.fbobjectattribute_set.source(raw_fb_attrs, default_attrs)
+                campaign_fb_object.sourced = timezone.now()
+                campaign_fb_object.save()
         # TODO: make assignment(?)
     else:
         fb_object = campaign.campaignfbobjects.random_assign()

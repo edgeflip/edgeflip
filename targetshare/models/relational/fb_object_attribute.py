@@ -1,26 +1,64 @@
 from django.db import models
+from django.utils import functional, timezone
 
-from .manager import TransitoryObjectManager
+from . import manager
 
 
-class FBObjectAttributeManager(TransitoryObjectManager):
+class FBObjectAttributeManager(manager.TransitoryObjectManager):
 
-    # Consider: combine with StartStopManager somehow?
-    def source(self, meta):
+    @functional.cached_property
+    def _sourced_model_fields(self):
+        return tuple(field.name for field in self.model._meta.fields
+                     if isinstance(field, models.CharField))
+
+    def source(self, raw_fb_attrs, default_attrs=None):
+        """Conditionally store the given object, retiring any active, attribute-
+        conflicting objects in the related object's set.
+
+        Object default attributes may be specified, to be written to the given
+        raw object.
+
+        The up-to-date object is returned, (which, in case of a match, may be the
+        pre-existing rather than the specified object).
+
+        """
         try:
             fb_object = self.instance
         except AttributeError:
             raise TypeError("source is intended for use with RelatedManagers")
 
+        if not isinstance(raw_fb_attrs, self.model):
+            raise TypeError("Model mismatch")
+
+        if raw_fb_attrs.fb_object is None:
+            raw_fb_attrs.fb_object = fb_object
+        elif raw_fb_attrs.fb_object != fb_object:
+            raise ValueError("Facebook object mismatch")
+
+        # Fill in defaults:
+        if default_attrs is not None:
+            for field in self._sourced_model_fields:
+                if not getattr(raw_fb_attrs, field):
+                    default_value = getattr(default_attrs, field)
+                    setattr(raw_fb_attrs, field, default_value)
+
         try:
             fb_object_attrs = self.for_datetime().get()
-        except FBObjectAttribute.DoesNotExist:
-            # Nothing to update; create a new one:
+        except self.model.DoesNotExist:
+            pass
         else:
-            # Check if updates needed:
-            ...
+            if all(
+                getattr(raw_fb_attrs, field) == getattr(fb_object_attrs, field)
+                for field in self._sourced_model_fields
+            ):
+                # Update unnecessary
+                return fb_object_attrs
 
-        # TODO: ...
+        # Store new attrs:
+        raw_fb_attrs.save()
+        # Retire old, at end, and expansively, to handle races:
+        self.for_datetime().exclude(pk=raw_fb_attrs.pk).update(end_dt=timezone.now())
+        return raw_fb_attrs
 
 
 class FBObjectAttribute(models.Model):

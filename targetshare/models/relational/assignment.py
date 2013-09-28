@@ -22,7 +22,7 @@ class Assignment(models.Model):
 
     @classmethod
     def make_managed(cls, visit, campaign, content, assignment,
-             manager=None, options=None, random_assign=True):
+                     manager=None, options=None, random_assign=True):
         """Construct an Assignment instance from the given values.
 
             * At least one of `manager` and `options` is required

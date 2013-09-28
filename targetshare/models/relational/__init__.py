@@ -10,7 +10,7 @@ from .choice_set_algorithm import ChoiceSetAlgorithm
 from .campaign_choice_set_algorithm import CampaignChoiceSetAlgorithm
 from .campaign_choice_set import CampaignChoiceSet
 from .campaign_faces_style import CampaignFacesStyle
-from .campaign_fb_objects import CampaignFBObjects
+from .campaign_fb_objects import CampaignFBObject
 from .campaign_generic_fb_objects import CampaignGenericFBObjects
 from .campaign_global_filter import CampaignGlobalFilter
 from .campaign_meta import CampaignMeta
