@@ -65,38 +65,36 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         'source': request.REQUEST.get('efsrc', ''),
         'ip': _get_client_ip(request),
     }
-    try:
-        visit, created = models.relational.Visit.objects.get_or_create(
-            session_id=request.session.session_key,
-            app_id=long(app_id),
-            defaults=defaults,
-        )
-    except IntegrityError:
-        # get_or_create() should be doing this already; but, let's see if this
-        # helps resolve IntegrityErrors
-        visit = models.relational.Visit.objects.get(
-            session_id=request.session.session_key,
-            app_id=long(app_id),
-        )
-        created = False
 
-    if created:
-        # Add start event:
-        db.delayed_save.delay(
-            models.relational.Event(
-                visit=visit,
-                event_type='session_start',
-                **(start_event or {})
+    with transaction.commit_on_success():
+        try:
+            visit = models.relational.Visit.objects.create(
+                session_id=request.session.session_key,
+                app_id=long(app_id),
+                **defaults
             )
-        )
-    else:
-        # Update visit with values not known on creation:
-        updates = {key: value for key, value in defaults.items()
-                   if value and not getattr(visit, key)}
-        if updates:
-            for key, value in updates.items():
-                setattr(visit, key, value)
-            db.delayed_save.delay(visit, update_fields=updates.keys())
+        except IntegrityError:
+            transaction.commit()
+            visit = models.relational.Visit.objects.get(
+                session_id=request.session.session_key,
+                app_id=long(app_id),
+            )
+            # Update visit with values not known on creation:
+            updates = {key: value for key, value in defaults.items()
+                       if value and not getattr(visit, key)}
+            if updates:
+                for key, value in updates.items():
+                    setattr(visit, key, value)
+                db.delayed_save.delay(visit, update_fields=updates.keys())
+        else:
+            # Add start event:
+            db.delayed_save.delay(
+                models.relational.Event(
+                    visit=visit,
+                    event_type='session_start',
+                    **(start_event or {})
+                )
+            )
 
     return visit
 
