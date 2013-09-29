@@ -1,4 +1,3 @@
-import datetime
 import functools
 import json
 import logging
@@ -15,8 +14,6 @@ from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
-from django.db import IntegrityError, transaction
-from django.utils import timezone
 
 from targetshare import models, utils
 from targetshare.integration import facebook
@@ -66,35 +63,28 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         'ip': _get_client_ip(request),
     }
 
-    with transaction.commit_on_success():
-        try:
-            visit = models.relational.Visit.objects.create(
-                session_id=request.session.session_key,
-                app_id=long(app_id),
-                **defaults
+    visit, created = models.relational.Visit.objects.get_or_create(
+        session_id=request.session.session_key,
+        app_id=long(app_id),
+        defaults=defaults,
+    )
+    if created:
+        # Add start event:
+        db.delayed_save.delay(
+            models.relational.Event(
+                visit=visit,
+                event_type='session_start',
+                **(start_event or {})
             )
-        except IntegrityError:
-            transaction.commit()
-            visit = models.relational.Visit.objects.get(
-                session_id=request.session.session_key,
-                app_id=long(app_id),
-            )
-            # Update visit with values not known on creation:
-            updates = {key: value for key, value in defaults.items()
-                       if value and not getattr(visit, key)}
-            if updates:
-                for key, value in updates.items():
-                    setattr(visit, key, value)
-                db.delayed_save.delay(visit, update_fields=updates.keys())
-        else:
-            # Add start event:
-            db.delayed_save.delay(
-                models.relational.Event(
-                    visit=visit,
-                    event_type='session_start',
-                    **(start_event or {})
-                )
-            )
+        )
+    else:
+        # Update visit with values not known on creation:
+        updates = {key: value for key, value in defaults.items()
+                   if value and not getattr(visit, key)}
+        if updates:
+            for key, value in updates.items():
+                setattr(visit, key, value)
+            db.delayed_save.delay(visit, update_fields=updates.keys())
 
     return visit
 
@@ -438,46 +428,8 @@ def faces(request):
     all_friends = [e.toDict() for e in edges_ranked]
 
     if fbobject_source_url:
-        # Retrieve CampaignFBObject sourced from URL
-        campaign_fb_object, _created = campaign.campaignfbobjects.for_datetime().get_or_create(
-            source_url=fbobject_source_url,
-        )
-        if campaign_fb_object.fb_object is None:
-            # Created or created by competing by thread;
-            # safely update CampaignFBObject with new FBObject
-            with transaction.commit_on_success():
-                # Block row from competitors with FOR UPDATE:
-                campaign_fb_object = models.CampaignFBObject.objects.select_for_update().get(
-                    pk=campaign_fb_object.pk
-                )
-                if campaign_fb_object.fb_object is None:
-                    # Let winner fill in FBObject
-                    campaign_fb_object.fb_object = client.fbobjects.create()
-                    campaign_fb_object.save()
-
-        # (Re)-retrieve FBObjectAttributes from URL (if haven't recently)
-        now = timezone.now()
-        yesterday = now - datetime.timedelta(days=1)
-        fb_object = campaign_fb_object.fb_object
-        if campaign_fb_object.sourced and campaign_fb_object.sourced > yesterday:
-            fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
-        else:
-            generic_campaign_fbobject = campaign.campaigngenericfbobjects.for_datetime().get()
-            generic_fb_object = generic_campaign_fbobject.fb_object
-            default_attrs = generic_fb_object.fbobjectattribute_set.for_datetime().get()
-            try:
-                raw_fb_attrs = facebook.third_party.get_fbobject_attributes(campaign_fb_object)
-            except facebook.third_party.RetrievalError:
-                LOG.warning(
-                    "Failed to retrieve Facebook object attributes from %s (will use defaults)",
-                    campaign_fb_object.source_url,
-                    exc_info=True,
-                )
-                fb_attrs = default_attrs
-            else:
-                fb_attrs = fb_object.fbobjectattribute_set.source(raw_fb_attrs, default_attrs)
-                campaign_fb_object.sourced = timezone.now()
-                campaign_fb_object.save()
+        fb_object = facebook.third_party.get_campaign_fbobject(campaign, fbobject_source_url)
+        fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
         # TODO: make assignment(?)
     else:
         fb_object = campaign.campaignfbobjects.random_assign()
