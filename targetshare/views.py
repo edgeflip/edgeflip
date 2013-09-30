@@ -592,6 +592,14 @@ def faces_email_friends(request, campaign_id, content_id):
             user, models.datastructs.UserInfo.from_dynamo(x), None, None
         ).toDict() for x in friend_objs
     ]
+    db.delayed_save.delay(
+        models.Event(
+            visit=request.visit,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
+            event_type='faces_email_page_load',
+        )
+    )
 
     # FBObj setup
     fb_object_recs = campaign.campaignfbobjects_set.all()
@@ -641,13 +649,13 @@ def faces_email_friends(request, campaign_id, content_id):
         fb_params['fb_object_url']
     )
     events = []
-    for friend in friend_objs:
+    for friend in face_friends[:num_face]:
         events.append(
             models.Event(
                 visit=request.visit,
                 campaign_id=campaign.pk,
                 client_content_id=content.pk,
-                friend_fbid=friend['fbid'],
+                friend_fbid=friend['id'],
                 content=content_str,
                 event_type='shown',
             )

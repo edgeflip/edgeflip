@@ -681,3 +681,11 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             response.context['user'].id,
             1
         )
+        self.assertEqual(
+            models.Event.objects.filter(event_type='faces_email_page_load').count(),
+            1
+        )
+        self.assertEqual(
+            models.Event.objects.filter(event_type='shown').count(),
+            3
+        )
