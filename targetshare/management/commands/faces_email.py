@@ -7,9 +7,11 @@ from datetime import datetime
 
 import celery
 
-from django.core.management.base import BaseCommand, CommandError
 from django.db import connections
+from django.core.urlresolvers import reverse
+from django.core.management.base import BaseCommand, CommandError
 
+from targetshare import utils
 from targetshare.models import dynamo, relational
 from targetshare.tasks import ranking
 
@@ -26,19 +28,6 @@ class Command(BaseCommand):
             action='store_true',
             dest='mock',
             default=False
-        ),
-        make_option(
-            '-c', '--civis-threshold',
-            help='Threshold of missing friends in civis cache [5]',
-            dest='civis_count',
-            default=5,
-            type='int',
-        ),
-        make_option(
-            '-b', '--bucket',
-            help='S3 Bucket to check for cache [civis_cache]',
-            dest='bucket',
-            default='civis_cache'
         ),
         make_option(
             '-n', '--num-face',
@@ -82,7 +71,6 @@ class Command(BaseCommand):
 
         # Settings
         self.mock = options['mock']
-        self.civis_count = options['civis_count']
         self.num_face = options['num_face']
         self.filename = options.get('output') or 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
         self.task_list = []
@@ -137,18 +125,84 @@ class Command(BaseCommand):
             str(error_count)
         )
 
+    def _build_table(self, edges):
+        faces_base_url = reverse('faces-email-encoded', args=[
+            utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk))
+        ])
+        query_string = ''.join(
+            ['friend_fbid={}&'.format(x.secondary.id) for x in edges]
+        ).rstrip('&')
+        query_string = '{}&fbid={}'.format(
+            query_string, edges[0].primary.id
+        )
+        faces_url = 'http://{}.{}{}?{}'.format(
+            self.client.subdomain,
+            self.client.domain,
+            faces_base_url,
+            query_string
+        )
+        table_str = """
+            <table align='center' border='0' cellpadding='0' style='border:5px solid #e4e6e0;background-color:#e4e6e0'
+                <tbody>
+        """
+        user_cell = """
+            <td style='border:6px solid #e4e6e0;background-color:#07304e'>
+                <table border='0'>
+                    <tbody>
+                        <tr>
+                            <td style='padding:6px;vertical-align:middle'>
+                                <a href='{}' style='color:white;text-decoration:none' target='_blank'><img src='http://graph.facebook.com/{}/picture' border='0/'></a>
+                            </td>
+                            <td style='padding:6px'>
+                                <a href='{}' style='text-decoration:none' target='_blank'><font color='white'>{} {}</font></a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </td>
+        """
+        count = 0
+        table_str = "{}<tr>".format(table_str)
+        for edge in edges:
+            if count == 3:
+                table_str = "{}</tr><tr>".format(table_str)
+                count = 0
+
+            user_str = user_cell.format(
+                faces_url, edge.secondary.id, faces_url,
+                edge.secondary.fname, edge.secondary.lname
+            )
+            table_str = "{}{}".format(table_str, user_str)
+            count += 1
+
+        table_str = "{}</tr></tbody></table>".format(table_str)
+
+        return table_str
+
     def _build_csv(self):
         with open(self.filename, 'wb') as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow([
-                'primary_fbid', 'email', 'friend_fbids'
+                'primary_fbid', 'email', 'friend_fbids', 'names', 'html_table'
             ])
             for collection in self.edge_collection:
                 primary = collection[0].primary
                 row = [primary.id, primary.email]
                 friend_list = []
                 for edge in collection[:self.num_face]:
-                    friend_list.append(edge.secondary.id)
+                    friend_list.append(edge.secondary)
 
-                row.append(friend_list)
+                fbids = [x.id for x in friend_list]
+                names = [x.fname for x in friend_list]
+
+                row.append(fbids)
+                name_str = ''
+                if len(names) == 1:
+                    name_str = names[0]
+                elif len(names) == 2:
+                    name_str = ' and '.join(names)
+                else:
+                    name_str = '%s, %s, and %s' % (names[0], names[1], names[2])
+                row.append(name_str)
+                row.append(self._build_table(collection[:self.num_face]))
                 csv_writer.writerow(row)
