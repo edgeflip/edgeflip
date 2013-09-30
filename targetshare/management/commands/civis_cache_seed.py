@@ -7,7 +7,6 @@ import us
 import requests
 
 import boto
-from boto.exception import S3ResponseError
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
@@ -22,7 +21,7 @@ TIME_FORMAT = '%m-%d-%y_%H:%M:%S'
 
 
 class Command(BaseCommand):
-    args = '<client_id> <filter_id>'
+    args = '<client_id>'
     help = 'Command for seeding cache for Faces email'
     option_list = BaseCommand.option_list + (
         make_option(
@@ -41,26 +40,26 @@ class Command(BaseCommand):
     )
 
     def handle(self, *args, **options):
-        # TODO: Verify if the Filter ID plays any role at all. Hard to see
-        # how it would. Why filter people out? Just match and cache it all.
-        if len(args) != 2:
+        # At some point we may wish to add a filtering element to this, which
+        # could take some load off of Civis servers. For the time being,
+        # we're holding off.
+        if len(args) != 1:
             raise CommandError(
-                'Command expects 2 args, 1 client ID and 1 filter ID. '
+                'Command expects 1 arg: 1 client ID'
                 '%d args provided: %s' % (
                     len(args),
                     ' '.join(str(x) for x in args)
                 )
             )
         self.client = relational.Client.objects.get(pk=args[0])
-        self.filter_obj = relational.Filter.objects.get(pk=args[1])
         self.cache_age = datetime.now() - timedelta(days=options['days'])
         self.s3_conn = boto.connect_s3(
             settings.AWS.AWS_ACCESS_KEY_ID,
             settings.AWS.AWS_SECRET_ACCESS_KEY
         )
         logger.info(
-            'Start cache seed with bucket %s, client %s, filter %s.',
-            options['bucket'], self.client.name, self.filter_obj.name
+            'Start cache seed with bucket %s, client %s.',
+            options['bucket'], self.client.name
         )
         self.edges = self._retrieve_users()
         logger.info('Performing matches')

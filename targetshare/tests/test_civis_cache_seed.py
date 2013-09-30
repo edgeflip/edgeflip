@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timedelta
 
 from mock import patch, Mock
-from boto.exception import S3ResponseError
 from django.core.management.base import CommandError
 
 from targetshare import models
@@ -99,7 +98,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             pre_mocks.append(getattr(self.command, method))
             setattr(self.command, method, Mock())
 
-        self.command.handle(1, 1, days=5, bucket='testing')
+        self.command.handle(1, days=5, bucket='testing')
         for count, method in enumerate(methods_to_mock):
             assert getattr(self.command, method).called
             setattr(self.command, method, pre_mocks[count])
@@ -113,8 +112,8 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             self.command.handle()
 
         with self.assertRaises(CommandError):
-            # 1 arg, still not good enough
-            self.command.handle(1)
+            # 2 args, too many!
+            self.command.handle(1, 2)
 
     def test_retrieve_users(self):
         ''' Test the user retrieval method of the command '''

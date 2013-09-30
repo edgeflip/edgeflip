@@ -175,6 +175,7 @@ class Command(BaseCommand):
         table_str = "{}<tr>".format(table_str)
         for edge in edges:
             if count == 3:
+                # end the row and start a new one
                 table_str = "{}</tr><tr>".format(table_str)
                 count = 0
 
