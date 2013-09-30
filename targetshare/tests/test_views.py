@@ -647,3 +647,37 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('health-check'), {'elb': True})
         self.assertStatusCode(response, 200)
         self.assertEqual(response.content, "It's Alive!")
+
+    def test_faces_email_friends(self):
+        ''' Test for the faces_email_friends endpoint '''
+        for x in range(0, 7):
+            user = models.User(
+                fbid=x,
+                fname='Test_%s' % x,
+                lname='User_%s' % x,
+                email='test+%s@example.com' % x,
+                gender='male',
+                birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+                city='Chicago',
+                state='Illinois',
+            )
+            user.save()
+        response = self.client.get(
+            reverse('faces-email', args=[1, 1]), {
+                'fbid': 1,
+                'friend_fbid': [2, 3, 4, 5, 6]
+            }
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            len(response.context['show_faces']),
+            3
+        )
+        self.assertEqual(
+            len(response.context['all_friends']),
+            5
+        )
+        self.assertEqual(
+            response.context['user'].id,
+            1
+        )
