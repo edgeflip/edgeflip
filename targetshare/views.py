@@ -569,6 +569,11 @@ def faces(request):
 @_encoded_endpoint
 @_require_visit
 def faces_email_friends(request, campaign_id, content_id):
+    ''' A view that's fairly similar to our Faces/Frame Faces views, except
+    that this will not perform any crawls. We've already done the crawling
+    in the background, so we can skip that here, and instead leverage the
+    friends passed in via GET params.
+    '''
     # Campaign setup
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     content = get_object_or_404(models.ClientContent, pk=content_id)

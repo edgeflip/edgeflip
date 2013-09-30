@@ -82,6 +82,9 @@ class Command(BaseCommand):
         self._build_csv()
 
     def _crawl_and_filter(self):
+        ''' Grabs all of the tokens for a given UserClient, and throws them
+        through the px3 crawl again
+        '''
         logger.info('Gathering list of users to crawl')
         user_fbids = [{
             'fbid': Decimal(x),
@@ -104,6 +107,9 @@ class Command(BaseCommand):
         logger.info('Crawling %s users', str(len(self.task_list)))
 
     def _crawl_status_handler(self):
+        ''' Simple method for watching the tasks we're waiting on to complete.
+        Just iterates over the list of tasks and reports their status
+        '''
         error_count = 0
         conn = connections.all()[0]
         while self.task_list:
@@ -117,7 +123,7 @@ class Command(BaseCommand):
                     else:
                         error_count += 1
                         logger.error('Task Failed: %s' % task.traceback)
-                    self.task_list.remove(task)
+                    self.task_list.remove(task_id)
                     logger.info('Finished task')
                 time.sleep(1)
         logger.info(
@@ -126,6 +132,10 @@ class Command(BaseCommand):
         )
 
     def _build_table(self, edges):
+        ''' Method to build the HTML table that'll be included in the CSV
+        that we send to clients. This table will later be embedded in an
+        email that is sent to primaries, thus all the inline styles
+        '''
         faces_base_url = reverse('faces-email-encoded', args=[
             utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk))
         ])
@@ -180,6 +190,7 @@ class Command(BaseCommand):
         return table_str
 
     def _build_csv(self):
+        ''' Handles building out the CSV '''
         with open(self.filename, 'wb') as csv_file:
             csv_writer = csv.writer(csv_file)
             csv_writer.writerow([
