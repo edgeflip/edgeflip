@@ -15,11 +15,11 @@ class FBObjectAttributeManager(manager.TransitoryObjectManager):
         """Conditionally store the given object, retiring any active, attribute-
         conflicting objects in the related object's set.
 
-        Object default attributes may be specified, to be written to the given
+        Object default attributes may be specified, which are written to the given
         raw object.
 
         The up-to-date object is returned, (which, in case of a match, may be the
-        pre-existing rather than the specified object).
+        pre-existing, rather than the specified, object).
 
         """
         try:

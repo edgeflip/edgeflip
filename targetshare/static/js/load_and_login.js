@@ -37,7 +37,6 @@ function doFBLogin() {
                     appid: appid,
                     friends: [],
                     eventType: "auth_fail",
-                    sessionid: sessionid,
                     campaignid: campaignid,
                     contentid: contentid,
                     content: '',
@@ -82,18 +81,19 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             fbid: ajax_fbid,
             token: ajax_token,
             num: num,
-            sessionid: sessionid,    // global session id was pulled in from query string above
             campaignid: campaignid,
             contentid: contentid,
             px3_task_id: px3_task_id,
             px4_task_id: px4_task_id,
             last_call: last_call
         };
+	if (LocationQuery.window.efobjsrc) {
+		params.efobjsrc = LocationQuery.window.efobjsrc;
+	}
 
         $.ajax({
             type: "POST",
             url: '/faces/',
-            //contentType: "application/json",
             dataType: 'json',
             data: params,
             error: function(jqXHR, textStatus, errorThrown) {
@@ -106,8 +106,6 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             success: function(data, textStatus, jqXHR) {
                 campaignid = data.campaignid;
                 contentid = data.contentid;
-                var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-                sessionid = header_efsid || sessionid;
                 if (data.status === 'waiting') {
                     if (pollingTimer) {
                         if (pollingCount > 40) {

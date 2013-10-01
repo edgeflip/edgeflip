@@ -3,6 +3,8 @@ import datetime
 import HTMLParser
 
 import requests
+from django.conf import settings
+from django.core.cache import cache
 from django.db import transaction
 from django.utils import timezone
 
@@ -55,9 +57,11 @@ CUSTOM_ATTRIBUTE_NAMES = {
 }
 
 
-def get_fbobject_attributes(source_url, fb_object=None):
-    """Retrieve Facebook object attributes from the meta tags of the given
-    URL's HTML source document.
+def _retrieve_fbobject_meta(source_url):
+    """Return the Facebook object attributes specified by the <meta> tags of the HTML
+    document at `source_url`.
+
+    Returns: a dict of raw Facebook object attributes
 
     """
     try:
@@ -67,26 +71,65 @@ def get_fbobject_attributes(source_url, fb_object=None):
 
     if not response.ok:
         raise RetrievalError("Resource responded with status code {}: {}"
-                             .format(response.status_code, source_url))
+                            .format(response.status_code, source_url))
 
     parser = FBMetaParser()
     try:
         parser.feed(response.text)
     except HTMLParser.HTMLParseError as exc:
         raise RetrievalParseError(exc)
+    else:
+        return parser.meta
 
-    attrs = {} # TODO: cache me under source_url
+
+def get_fbobject_attributes(source_url, fb_object=None):
+    """Retrieve Facebook object attributes from the meta tags of the given
+    URL's HTML source document.
+
+    Note: Relevant source document meta tags are cached according to
+    `retrieval_cache_timeout` (see `settings.CLIENT_FBOBJECT`).
+
+    Returns: a ready-to-save FBObjectAttribute object
+
+    """
+    cache_key = 'fbobject|{}'.format(source_url)
+    meta = cache.get(cache_key)
+    if meta is None:
+        meta = _retrieve_fbobject_meta(source_url)
+        cache.set(cache_key, meta, settings.CLIENT_FBOBJECT['retrieval_cache_timeout'])
+
+    attrs = {}
     for field in models.relational.FBObjectAttribute._meta.fields:
         meta_name = CUSTOM_ATTRIBUTE_NAMES.get(field.name,
                                                field.name.replace('_', ':'))
-        if meta_name in parser.meta:
-            attrs[field.name] = parser.meta[meta_name]
+        try:
+            attrs[field.name] = meta[meta_name]
+        except KeyError:
+            pass
 
     return models.relational.FBObjectAttribute(fb_object=fb_object, **attrs)
 
 
 def get_campaign_fbobject(campaign, source_url):
-    # TODO: docstring
+    """For a given Campaign and client Facebook object source URL, ensure the existence
+    of an active CampaignFBObject, FBObject and FBObjectAttribute.
+
+    FBObject attributes are gathered from the <meta> tags of the HTML document at
+    `source_url`, either for a new Campaign FBObject or for that which has not been
+    updated within `campaign_max_age` (see `settings.CLIENT_FBOBJECT`).
+
+    Any attributes missing from `source_url`'s document but present in the
+    CampaignGenericFBObject will be populated from the latter.
+
+    On update, invalidated FBObjectAttributes are made inactive by setting `end_dt`.
+
+    Note: this method makes use of a managed transaction, and as such expects to be called
+    from a scope in autocommit mode, or which will not be affected by its transaction
+    being committed.
+
+    Returns: the Campaign FBObject populated from `source_url`
+
+    """
     # Retrieve CampaignFBObject sourced from URL
     campaign_fb_object, _created = campaign.campaignfbobjects.for_datetime().get_or_create(
         source_url=source_url,
@@ -108,8 +151,8 @@ def get_campaign_fbobject(campaign, source_url):
 
     # (Re)-retrieve FBObjectAttributes from URL (if haven't recently)
     now = timezone.now()
-    yesterday = now - datetime.timedelta(days=1)
-    if not campaign_fb_object.sourced or campaign_fb_object.sourced <= yesterday:
+    too_old = now - datetime.timedelta(seconds=settings.CLIENT_FBOBJECT['campaign_max_age'])
+    if not campaign_fb_object.sourced or campaign_fb_object.sourced <= too_old:
         raw_fb_attrs = get_fbobject_attributes(campaign_fb_object.source_url, fb_object)
         generic_campaign_fbobject = campaign.campaigngenericfbobjects.for_datetime().get()
         generic_fb_object = generic_campaign_fbobject.fb_object

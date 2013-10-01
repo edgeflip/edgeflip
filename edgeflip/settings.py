@@ -317,6 +317,10 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 # App settings #
 CIVIS_FILTERS = ['gotv_score', 'persuasion_score']
 TEST_MODE_SECRET = 'sunwahduck'
+CLIENT_FBOBJECT = {
+    'retrieval_cache_timeout': (3600 * 23), # 23 hours
+    'campaign_max_age': (3600 * 24), # 24 hours
+}
 
 
 # Test settings #

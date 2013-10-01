@@ -63,7 +63,7 @@ class TestCampaignViews(TestAdminBase):
             response,
             reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
-        properties = campaign.campaignproperties_set.get()
+        properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
 
         cs = campaign.campaignchoicesets.get()
@@ -113,7 +113,7 @@ class TestCampaignViews(TestAdminBase):
             response,
             reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
-        properties = campaign.campaignproperties_set.get()
+        properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
 
         cs = campaign.campaignchoicesets.get()

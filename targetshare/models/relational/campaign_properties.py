@@ -24,13 +24,8 @@ class CampaignProperties(models.Model):
 
     def faces_url(self, content_id):
         url = self.client_faces_url
-        if (url.find('?') == -1):
-            url += '?'
-        else:
-            url += '&'
-
+        url += '&' if '?' in url else '?'
         slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
-
         return url + 'efcmpgslug=' + str(slug)
 
     class Meta(object):

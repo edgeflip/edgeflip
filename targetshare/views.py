@@ -62,7 +62,6 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         'source': request.REQUEST.get('efsrc', ''),
         'ip': _get_client_ip(request),
     }
-
     visit, created = models.relational.Visit.objects.get_or_create(
         session_id=request.session.session_key,
         app_id=long(app_id),
@@ -217,7 +216,7 @@ def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
-    faces_url = campaign.campaignproperties_set.get().faces_url(content_id)
+    faces_url = campaign.campaignproperties.get().faces_url(content_id)
 
     # Use campaign-custom button style template name if one exists:
     try:
@@ -316,7 +315,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         },
         'campaign': campaign,
         'content': content,
-        'properties': campaign.campaignproperties_set.get(),
+        'properties': campaign.campaignproperties.get(),
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
         'client_css_simple': _locate_client_css(client, css_template),
         'test_mode': test_mode,
@@ -335,7 +334,7 @@ def faces(request):
     num_face = int(request.POST['num'])
     content_id = request.POST.get('contentid')
     campaign_id = request.POST.get('campaignid')
-    fbobject_source_url = request.POST.get('fbobjectsrc') # FIXME: efobjectsrc?
+    fbobject_source_url = request.POST.get('efobjsrc')
     mock_mode = request.POST.get('mockmode', False)
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
@@ -430,7 +429,7 @@ def faces(request):
     if fbobject_source_url:
         fb_object = facebook.third_party.get_campaign_fbobject(campaign, fbobject_source_url)
         fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
-        # TODO: make assignment(?)
+        # TODO: make assignment
     else:
         fb_object = campaign.campaignfbobjects.random_assign()
         db.delayed_save.delay(
@@ -538,7 +537,7 @@ def objects(request, fb_object_id, content_id):
     fb_object = get_object_or_404(models.relational.FBObject, fb_object_id=fb_object_id)
     client = fb_object.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
-    fb_attrs = fb_object.fbobjectattribute_set.get()
+    fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     choice_set_slug = request.GET.get('cssslug', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
