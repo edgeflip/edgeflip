@@ -428,10 +428,19 @@ def faces(request):
 
     if fbobject_source_url:
         fb_object = facebook.third_party.get_campaign_fbobject(campaign, fbobject_source_url)
-        fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
-        # TODO: make assignment
+        db.delayed_save.delay(
+            models.relational.Assignment.make_managed(
+                visit=request.visit,
+                campaign=campaign,
+                content=content,
+                assignment=fb_object,
+                manager=campaign.campaignfbobjects,
+                options=None,
+                random_assign=False,
+            )
+        )
     else:
-        fb_object = campaign.campaignfbobjects.random_assign()
+        fb_object = campaign.campaignfbobjects.for_datetime().random_assign()
         db.delayed_save.delay(
             models.relational.Assignment.make_managed(
                 visit=request.visit,
@@ -441,8 +450,8 @@ def faces(request):
                 manager=campaign.campaignfbobjects,
             )
         )
-        fb_attrs = fb_object.fbobjectattribute_set.get()
 
+    fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     fb_object_url = 'https://%s%s?cssslug=%s' % (
         request.get_host(),
         reverse('objects', kwargs={

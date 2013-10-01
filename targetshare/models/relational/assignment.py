@@ -3,6 +3,9 @@ from django.db import models
 from .manager import AssignedObjectQuerySet
 
 
+Empty = object()
+
+
 class Assignment(models.Model):
 
     assignment_id = models.AutoField(primary_key=True)
@@ -22,14 +25,14 @@ class Assignment(models.Model):
 
     @classmethod
     def make_managed(cls, visit, campaign, content, assignment,
-                     manager=None, options=None, random_assign=True):
+                     manager=None, options=Empty, random_assign=True):
         """Construct an Assignment instance from the given values.
 
             * At least one of `manager` and `options` is required
             * If `options` is not an AssignedObjectQuerySet, the AssignedObjectManager
               `manager` must be supplied
-            * If `options` is not supplied at all, `chosen_from_rows` will be the
-              queried, unfiltered, from the `manager`
+            * `options` may be None; but, if it is not supplied at all, `chosen_from_rows`
+              will be queried, unfiltered, from the `manager`
 
         """
         # Determine feature_type and model:
@@ -48,6 +51,8 @@ class Assignment(models.Model):
 
         # Determine chosen_from_rows:
         if options is None:
+            chosen_from_rows = options
+        elif options is Empty:
             if manager is None:
                 raise TypeError("Could not determine Assignment options; "
                                 "supply options or an object manager")
@@ -55,12 +60,7 @@ class Assignment(models.Model):
         elif isinstance(options, AssignedObjectQuerySet):
             chosen_from_rows = list(options.values_list(feature_type, flat=True))
         else:
-            def cascade_getattr(obj):
-                try:
-                    return getattr(obj, feature_type)
-                except AttributeError:
-                    return getattr(obj, 'pk', obj)
-            chosen_from_rows = [cascade_getattr(obj) for obj in options]
+            chosen_from_rows = [_find_attr(obj, feature_type) for obj in options]
 
         return cls(
             visit=visit,
@@ -72,3 +72,10 @@ class Assignment(models.Model):
             chosen_from_table=model._meta.db_table,
             chosen_from_rows=chosen_from_rows,
         )
+
+
+def _find_attr(obj, feature_type):
+    try:
+        return getattr(obj, feature_type)
+    except AttributeError:
+        return getattr(obj, 'pk', obj)
