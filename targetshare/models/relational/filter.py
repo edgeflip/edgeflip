@@ -45,7 +45,7 @@ class Filter(models.Model):
         if not self.filterfeatures.exists():
             return edges
         for f in self.filterfeatures.all():
-            if f.feature in settings.CIVIS_FILTERS:
+            if f.feature in settings.FILTERING.civis_filters:
                 if faces_email:
                     utils.civis_s3_filter(
                         edges, f.feature, f.operator, f.value
