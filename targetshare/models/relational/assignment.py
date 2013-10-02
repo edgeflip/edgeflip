@@ -3,7 +3,7 @@ from django.db import models
 from .manager import assigned
 
 
-Empty = object()
+Unset = object()
 
 
 class Assignment(models.Model):
@@ -25,7 +25,7 @@ class Assignment(models.Model):
 
     @classmethod
     def make_managed(cls, visit, campaign, content, assignment,
-                     manager=None, options=Empty, random_assign=True):
+                     manager=None, options=Unset, random_assign=True):
         """Construct an Assignment instance from the given values.
 
             * At least one of `manager` and `options` is required
@@ -52,7 +52,7 @@ class Assignment(models.Model):
         # Determine chosen_from_rows:
         if options is None:
             chosen_from_rows = options
-        elif options is Empty:
+        elif options is Unset:
             if manager is None:
                 raise TypeError("Could not determine Assignment options; "
                                 "supply options or an object manager")
