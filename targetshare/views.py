@@ -743,6 +743,7 @@ def record_event(request):
         if event_type in single_occurrence_events:
             # Prevent dupe logging
             app_events.add(event_type)
+            request.session.modified = True
 
     if event_type == 'authorized':
         try:
