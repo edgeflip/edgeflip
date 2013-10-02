@@ -39,14 +39,14 @@ class Filter(models.Model):
         elif operator == 'in':
             return user_val in value
 
-    def filter_edges_by_sec(self, edges, faces_email=False):
+    def filter_edges_by_sec(self, edges, s3_match=False):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
         if not self.filterfeatures.exists():
             return edges
         for f in self.filterfeatures.all():
             if f.feature in settings.FILTERING.civis_filters:
-                if faces_email:
+                if s3_match:
                     utils.civis_s3_filter(
                         edges, f.feature, f.operator, f.value
                     )

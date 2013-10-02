@@ -130,11 +130,11 @@ class Command(BaseCommand):
         email that is sent to primaries, thus all the inline styles
         '''
         faces_base_url = reverse('faces-email-encoded', args=[
-            utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk))
+            utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk)),
+            edges[0].primary.id
         ])
         query_string = urllib.urlencode(
-            [('friend_fbid', x.secondary.id) for x in edges] +
-            [('fbid', edges[0].primary.id)]
+            [('friend_fbid', x.secondary.id) for x in edges]
         )
         faces_url = 'http://{}.{}{}?{}'.format(
             self.client.subdomain,

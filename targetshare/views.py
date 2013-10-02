@@ -568,7 +568,7 @@ def faces(request):
 
 @_encoded_endpoint
 @_require_visit
-def faces_email_friends(request, campaign_id, content_id):
+def faces_email_friends(request, campaign_id, content_id, fbid):
     ''' A view that's fairly similar to our Faces/Frame Faces views, except
     that this will not perform any crawls. We've already done the crawling
     in the background, so we can skip that here, and instead leverage the
@@ -581,7 +581,7 @@ def faces_email_friends(request, campaign_id, content_id):
     num_face = 3
 
     # Gather friend data
-    user_obj = models.User.items.get_item(fbid=int(request.GET.get('fbid')))
+    user_obj = models.User.items.get_item(fbid=int(fbid))
     friend_objs = models.User.items.batch_get(
         keys=[{'fbid': int(x)} for x in request.GET.getlist('friend_fbid')]
     )

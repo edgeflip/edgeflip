@@ -29,11 +29,11 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
-        r'^faces-email/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        r'^faces-email/(?P<campaign_id>\d+)/(?P<content_id>\d+)/(?P<fbid>\d+)/$',
         'faces_email_friends', name='faces-email',
     ),
     url(
-        r'^faces-email/(?P<campaign_slug>\S+)/$',
+        r'^faces-email/(?P<campaign_slug>\S+)/(?P<fbid>\d+)/$',
         'faces_email_friends', name='faces-email-encoded'
     ),
     url(
