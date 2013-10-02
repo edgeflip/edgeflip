@@ -1,6 +1,6 @@
 from django.db import models
 
-from .manager import AssignedFilterManager
+from . import manager
 
 
 class CampaignGlobalFilter(models.Model):
@@ -14,7 +14,7 @@ class CampaignGlobalFilter(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
-    objects = AssignedFilterManager()
+    objects = manager.AssignedObjectManager.make(filter)
 
     class Meta(object):
         app_label = 'targetshare'

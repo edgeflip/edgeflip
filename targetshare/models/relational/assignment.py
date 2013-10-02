@@ -1,6 +1,6 @@
 from django.db import models
 
-from .manager import AssignedObjectQuerySet
+from .manager import assigned
 
 
 Empty = object()
@@ -36,7 +36,7 @@ class Assignment(models.Model):
 
         """
         # Determine feature_type and model:
-        if isinstance(options, AssignedObjectQuerySet):
+        if isinstance(options, assigned.AssignedObjectQuerySet):
             feature_type = options.assigned_object
             model = options.model
         elif manager:
@@ -57,7 +57,7 @@ class Assignment(models.Model):
                 raise TypeError("Could not determine Assignment options; "
                                 "supply options or an object manager")
             chosen_from_rows = list(manager.values_list(feature_type, flat=True))
-        elif isinstance(options, AssignedObjectQuerySet):
+        elif isinstance(options, assigned.AssignedObjectQuerySet):
             chosen_from_rows = list(options.values_list(feature_type, flat=True))
         else:
             chosen_from_rows = [_find_attr(obj, feature_type) for obj in options]

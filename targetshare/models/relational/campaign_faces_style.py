@@ -1,6 +1,6 @@
 from django.db import models
 
-from .manager import AssignedFacesStyleManager
+from . import manager
 
 
 class CampaignFacesStyle(models.Model):
@@ -14,7 +14,7 @@ class CampaignFacesStyle(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
 
-    objects = AssignedFacesStyleManager()
+    objects = manager.AssignedObjectManager.make(faces_style)
 
     class Meta(object):
         app_label = 'targetshare'

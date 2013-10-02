@@ -1,6 +1,6 @@
 from django.db import models
 
-from .manager import AssignedFBObjectManager
+from . import manager
 
 
 class CampaignGenericFBObjects(models.Model):
@@ -14,7 +14,7 @@ class CampaignGenericFBObjects(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
 
-    objects = AssignedFBObjectManager()
+    objects = manager.AssignedObjectManager.make(fb_object)
 
     class Meta(object):
         app_label = 'targetshare'
