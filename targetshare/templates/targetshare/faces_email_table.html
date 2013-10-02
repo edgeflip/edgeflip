@@ -1,0 +1,29 @@
+<table align='center' border='0' cellpadding='0' style='border:5px solid #e4e6e0;background-color:#e4e6e0'>
+    <tbody>
+        <tr>
+            {% for edge in edges %}
+                <td style='border:6px solid #e4e6e0;background-color:#07304e'>
+                    <table border='0'>
+                        <tbody>
+                            <tr>
+                                <td style='padding:6px;vertical-align:middle'>
+                                    <a href='{{ faces_url }}' style='color:white;text-decoration:none' target='_blank'><img src='http://graph.facebook.com/{{ edge.secondary.id }}/picture' border='0/'></a>
+                                </td>
+                                <td style='padding:6px'>
+                                    <a href='{{ faces_url }}' style='text-decoration:none' target='_blank'><font color='white'>{{ edge.secondary.fname }} {{ edge.secondary.lname }}</font></a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+                {% if forloop.counter0 == 2 and num_face > 3 %}
+                    </tr><tr>
+                {% elif forloop.counter0 == 5 and num_face > 6 %}
+                    </tr><tr>
+                {% elif forloop.last %}
+                    </tr><tr>
+                {% endif %}
+            {% endfor %}
+        <!-- End User Section -->
+    </tbody>
+</table>

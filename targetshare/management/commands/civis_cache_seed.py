@@ -9,7 +9,7 @@ import requests
 import boto
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 
 from civis_matcher import matcher
 
@@ -39,31 +39,22 @@ class Command(BaseCommand):
         ),
     )
 
-    def handle(self, *args, **options):
+    def handle(self, client_id, bucket, days, **options):
         # At some point we may wish to add a filtering element to this, which
         # could take some load off of Civis servers. For the time being,
         # we're holding off.
-        if len(args) != 1:
-            raise CommandError(
-                'Command expects 1 arg: 1 client ID'
-                '%d args provided: %s' % (
-                    len(args),
-                    ' '.join(str(x) for x in args)
-                )
-            )
-        self.client = relational.Client.objects.get(pk=args[0])
-        self.cache_age = datetime.now() - timedelta(days=options['days'])
+        self.client = relational.Client.objects.get(pk=client_id)
+        self.cache_age = datetime.now() - timedelta(days=days)
         self.s3_conn = boto.connect_s3(
             settings.AWS.AWS_ACCESS_KEY_ID,
             settings.AWS.AWS_SECRET_ACCESS_KEY
         )
         logger.info(
             'Start cache seed with bucket %s, client %s.',
-            options['bucket'], self.client.name
+            bucket, self.client.name
         )
-        self.edges = self._retrieve_users()
         logger.info('Performing matches')
-        self._perform_matching(self.edges)
+        self._perform_matching(self._retrieve_users())
         logger.info('Cache successfully seeded')
 
     def _retrieve_users(self):
@@ -73,18 +64,14 @@ class Command(BaseCommand):
             'appid': self.client.fb_app_id,
         } for x in self.client.userclients.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-        edge_collection = []
         logger.info('Retrieving edges for %s users', len(user_fbids))
         for ut in user_tokens:
-            edge_collection.append(
-                facebook.getFriendEdgesFb(
-                    ut['fbid'],
-                    ut['token'],
-                    requireIncoming=False,
-                    requireOutgoing=False
-                )
+            yield facebook.getFriendEdgesFb(
+                ut['fbid'],
+                ut['token'],
+                requireIncoming=False,
+                requireOutgoing=False
             )
-        return edge_collection
 
     def _perform_matching(self, edge_collection):
         for primary in edge_collection:
@@ -103,7 +90,7 @@ class Command(BaseCommand):
                     'birth_year': str(prim_user.birthday.year),
                     'birth_day': '%02d' % prim_user.birthday.day,
                 })
-            people_dict[str(prim_user.id)] = prim_dict
+            people_dict['people'][str(prim_user.id)] = prim_dict
             for edge in primary:
                 user = edge.secondary
                 user_dict = {}

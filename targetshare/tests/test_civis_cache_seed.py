@@ -2,7 +2,6 @@ import json
 from datetime import datetime, timedelta
 
 from mock import patch, Mock
-from django.core.management.base import CommandError
 
 from targetshare import models
 from targetshare import mock_facebook
@@ -103,24 +102,13 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             assert getattr(self.command, method).called
             setattr(self.command, method, pre_mocks[count])
 
-    def test_handle_method_invalid_args(self):
-        ''' Tests the civis_cache_seed command being called with invalid
-        arguments
-        '''
-        with self.assertRaises(CommandError):
-            # No args, no dice
-            self.command.handle()
-
-        with self.assertRaises(CommandError):
-            # 2 args, too many!
-            self.command.handle(1, 2)
-
     def test_retrieve_users(self):
         ''' Test the user retrieval method of the command '''
         users = self.command._retrieve_users()
-        # Should only have one valid user
-        self.assertEqual(len(users), 1)
-        assert users[0] # Assert we have edges
+        edges = users.next()
+        assert edges
+        with self.assertRaises(StopIteration):
+            users.next()
 
     @patch('civis_matcher.matcher.requests.post')
     @patch('civis_matcher.matcher.S3CivisMatcher._get_bucket')
@@ -136,9 +124,6 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         bucket_mock.get_key.return_value = None
         get_bucket_mock.return_value = bucket_mock
         users = self.command._retrieve_users()
-        # Give our primary some legit data
-        users[0][0].primary.city = 'Chicago'
-        users[0][0].primary.state = 'Illinois'
         matches = self.command._perform_matching(users)
         assert matches['123456']
         self.assertEqual(matches['123456']['result']['people_count'], 1)

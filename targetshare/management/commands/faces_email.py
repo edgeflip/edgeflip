@@ -1,15 +1,17 @@
 import csv
 import logging
 import time
+import urllib
 from decimal import Decimal
 from optparse import make_option
 from datetime import datetime
 
 import celery
 
-from django.db import connections
+from django.db import transaction
 from django.core.urlresolvers import reverse
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
+from django.template.loader import find_template, render_to_string
 
 from targetshare import utils
 from targetshare.models import dynamo, relational
@@ -43,25 +45,16 @@ class Command(BaseCommand):
         ),
     )
 
-    def handle(self, *args, **options):
-        if len(args) != 2:
-            raise CommandError(
-                'Command expects 2 args, 1 campaign ID and 1 content ID. '
-                '%s args provided: %s' % (
-                    len(args),
-                    ' '.join(str(x) for x in args)
-                )
-            )
-
+    def handle(self, campaign_id, content_id, mock, num_face, output, **options):
         # DB objects
-        self.campaign = relational.Campaign.objects.get(pk=args[0])
-        self.content = relational.ClientContent.objects.get(pk=args[1])
+        self.campaign = relational.Campaign.objects.get(pk=campaign_id)
+        self.content = relational.ClientContent.objects.get(pk=content_id)
         self.client = self.campaign.client
         self.visit = relational.Visit.objects.create(
             session_id='%s-%s-%s' % (
                 datetime.now().strftime('%m-%d-%y_%H:%M:%S'),
-                args[0],
-                args[1]
+                campaign_id,
+                content_id
             ),
             app_id=self.client.fb_app_id,
             ip='127.0.0.1',
@@ -70,9 +63,9 @@ class Command(BaseCommand):
         )
 
         # Settings
-        self.mock = options['mock']
-        self.num_face = options['num_face']
-        self.filename = options.get('output') or 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
+        self.mock = mock
+        self.num_face = num_face
+        self.filename = output if output else 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
         self.task_list = []
         self.edge_collection = []
 
@@ -111,11 +104,10 @@ class Command(BaseCommand):
         Just iterates over the list of tasks and reports their status
         '''
         error_count = 0
-        conn = connections.all()[0]
         while self.task_list:
             logger.info('Checking status of %s tasks', str(len(self.task_list)))
             for task_id in self.task_list:
-                conn.commit_unless_managed()
+                transaction.commit_unless_managed()
                 task = celery.current_app.AsyncResult(task_id)
                 if task.ready():
                     if task.successful():
@@ -124,8 +116,8 @@ class Command(BaseCommand):
                         error_count += 1
                         logger.error('Task Failed: %s' % task.traceback)
                     self.task_list.remove(task_id)
-                    logger.info('Finished task')
-                time.sleep(1)
+                    logger.debug('Finished task: %s' % task_id)
+            time.sleep(1)
         logger.info(
             'Completed crawling users with %s failed tasks',
             str(error_count)
@@ -139,11 +131,9 @@ class Command(BaseCommand):
         faces_base_url = reverse('faces-email-encoded', args=[
             utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk))
         ])
-        query_string = ''.join(
-            ['friend_fbid={}&'.format(x.secondary.id) for x in edges]
-        ).rstrip('&')
-        query_string = '{}&fbid={}'.format(
-            query_string, edges[0].primary.id
+        query_string = urllib.urlencode(
+            [('friend_fbid', x.secondary.id) for x in edges] +
+            [('fbid', edges[0].primary.id)]
         )
         faces_url = 'http://{}.{}{}?{}'.format(
             self.client.subdomain,
@@ -151,42 +141,11 @@ class Command(BaseCommand):
             faces_base_url,
             query_string
         )
-        table_str = """
-            <table align='center' border='0' cellpadding='0' style='border:5px solid #e4e6e0;background-color:#e4e6e0'
-                <tbody>
-        """
-        user_cell = """
-            <td style='border:6px solid #e4e6e0;background-color:#07304e'>
-                <table border='0'>
-                    <tbody>
-                        <tr>
-                            <td style='padding:6px;vertical-align:middle'>
-                                <a href='{}' style='color:white;text-decoration:none' target='_blank'><img src='http://graph.facebook.com/{}/picture' border='0/'></a>
-                            </td>
-                            <td style='padding:6px'>
-                                <a href='{}' style='text-decoration:none' target='_blank'><font color='white'>{} {}</font></a>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </td>
-        """
-        count = 0
-        table_str = "{}<tr>".format(table_str)
-        for edge in edges:
-            if count == 3:
-                # end the row and start a new one
-                table_str = "{}</tr><tr>".format(table_str)
-                count = 0
-
-            user_str = user_cell.format(
-                faces_url, edge.secondary.id, faces_url,
-                edge.secondary.fname, edge.secondary.lname
-            )
-            table_str = "{}{}".format(table_str, user_str)
-            count += 1
-
-        table_str = "{}</tr></tbody></table>".format(table_str)
+        table_str = render_to_string('targetshare/faces_email_table.html', {
+            'edges': edges,
+            'faces_url': faces_url,
+            'num_face': self.num_face
+        })
 
         return table_str
 
