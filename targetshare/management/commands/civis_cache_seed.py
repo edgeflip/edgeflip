@@ -77,7 +77,7 @@ class Command(BaseCommand):
         for primary in edge_collection:
             people_dict = {'people': {}}
             prim_user = primary[0].primary
-            prim_state = us.states.lookup(prim_user.state)
+            prim_state = us.states.lookup(prim_user.state) if prim_user.state else ''
             prim_dict = {
                 'state': prim_state.abbr if prim_state else None,
                 'city': prim_user.city,

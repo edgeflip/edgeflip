@@ -11,11 +11,12 @@ import celery
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
-from django.template.loader import find_template, render_to_string
+from django.template.loader import render_to_string
 
 from targetshare import utils
 from targetshare.models import dynamo, relational
 from targetshare.tasks import ranking
+from targetshare.templatetags.string_format import lexical_list
 
 logger = logging.getLogger(__name__)
 
@@ -164,16 +165,8 @@ class Command(BaseCommand):
                     friend_list.append(edge.secondary)
 
                 fbids = [x.id for x in friend_list]
-                names = [x.fname for x in friend_list]
 
                 row.append(fbids)
-                name_str = ''
-                if len(names) == 1:
-                    name_str = names[0]
-                elif len(names) == 2:
-                    name_str = ' and '.join(names)
-                else:
-                    name_str = '%s, %s, and %s' % (names[0], names[1], names[2])
-                row.append(name_str)
+                row.append(lexical_list([x.fname for x in friend_list[:3]]))
                 row.append(self._build_table(collection[:self.num_face]))
                 csv_writer.writerow(row)
