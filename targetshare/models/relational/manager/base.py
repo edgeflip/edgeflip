@@ -66,7 +66,7 @@ class Manager(models.Manager):
 
 ## Configurable RelatedManagers ##
 
-class ConfigurableManager(models.Manager):
+class ConfigurableManager(Manager):
     """Manager base class supporting configuration of its instances and QuerySets,
     upon instantiation, without modification of its inherited instantiation signature
     (no arguments), thereby retaining its use as a RelatedManager.
@@ -98,19 +98,18 @@ class ConfigurableManager(models.Manager):
 
         class MyManager(ConfigurableManager):
 
-            queryset = MyQuerySet
-
             @classmethod
             def configure(cls, instance, my_arg1, my_arg2=None):
                 instance.my_arg1 = my_arg1
                 instance.my_arg2 = my_arg2
 
-    The `configure` method will be applied to instances of the manager's `queryset`
-    as well.
+            def get_query_set(self):
+                return MyQuerySet.make(self)
+
+    MyManager's `configure` method will now be applied to instances of the manager's
+    queryset, MyQuerySet, as well.
 
     """
-    queryset = RepeatableReadQuerySet
-
     @classmethod
     def configure(cls, instance, *args, **kws):
         raise NotImplementedError
@@ -136,14 +135,6 @@ class ConfigurableManager(models.Manager):
                 self.configurer(self)
 
         return ConfiguredManager()
-
-    def get_query_set(self):
-        try:
-            make = self.queryset.make
-        except AttributeError:
-            return self.queryset(self.model, using=self._db)
-        else:
-            return make(self)
 
 
 class ConfigurableQuerySet(RepeatableReadQuerySet):
