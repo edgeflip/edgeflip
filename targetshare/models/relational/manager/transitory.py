@@ -62,7 +62,7 @@ class TransitoryObjectQuerySet(base.ConfigurableQuerySet):
 
         source_fields = [getattr(field, 'name', field) for field in source_fields]
 
-        parent = getattr(self, 'instance', None)
+        parent = getattr(self.manager, 'instance', None)
         if not parent:
             raise TypeError("method intended for use with RelatedManagers")
 
@@ -172,7 +172,7 @@ class TransitoryObjectQuerySet(base.ConfigurableQuerySet):
         signature_fields = [getattr(field, 'name', field) for field in signature_fields]
 
         # Avoid accidental application to all instances of parent model:
-        if not getattr(self, 'instance', None):
+        if not getattr(self.manager, 'instance', None):
             raise TypeError("method intended for use with RelatedManagers")
 
         # Normalize data:

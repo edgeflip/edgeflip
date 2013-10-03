@@ -46,6 +46,7 @@ class Assignment(models.Model):
             raise TypeError("Could not determine feature type; supply an "
                             "AssignedObjectQuerySet or AssignedObjectManager")
 
+        feature_type = getattr(feature_type, 'name', feature_type)
         if not feature_type.endswith('_id'):
             feature_type += '_id'
 

@@ -1,5 +1,6 @@
 import datetime
 import json
+import os.path
 import re
 from decimal import Decimal
 
@@ -15,6 +16,9 @@ from targetshare import models
 from targetshare.views import _get_visit
 
 from . import EdgeFlipTestCase
+
+
+DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 class TestVisit(EdgeFlipTestCase):
@@ -123,7 +127,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('faces'))
         self.assertStatusCode(response, 405)
 
-    @patch('targetshare.views.mock_facebook')
+    @patch('targetshare.views.facebook.mock_client')
     def test_faces_initial_entry(self, fb_mock):
         ''' Tests a users first request to the Faces endpoint. We expect to
         receive a JSON response with a status of waiting along with the
@@ -155,21 +159,59 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         )
         self.assertGreater(refreshed_token['expires'], expires0)
 
+    def patch_ranking(self, celery_mock,
+                      px3_ready=True, px3_successful=True,
+                      px4_ready=True, px4_successful=True):
+        if px3_ready:
+            px3_failed = not px3_successful
+        else:
+            px3_successful = px3_failed = False
+
+        if px4_ready:
+            px4_failed = not px4_successful
+        else:
+            px4_successful = px4_failed = False
+
+        error = ValueError('Ruh-Roh!')
+
+        px3_result_mock = Mock()
+        px3_result_mock.ready.return_value = px3_ready
+        px3_result_mock.successful.return_value = px3_successful
+        px3_result_mock.failed.return_value = px3_failed
+        if px3_ready:
+            px3_result_mock.result = (
+                [self.test_edge],
+                models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+                self.test_filter.filter_id,
+                self.test_filter.url_slug,
+                1,
+                1
+            ) if px3_successful else error
+        else:
+            px3_result_mock.result = None
+
+        px4_result_mock = Mock()
+        px4_result_mock.ready.return_value = px4_ready
+        px4_result_mock.successful.return_value = px4_successful
+        px4_result_mock.failed.return_value = px4_failed
+        if px4_ready:
+            px4_result_mock.result = [self.test_edge] if px4_successful else error
+        else:
+            px4_result_mock.result = None
+
+        async_mock = Mock()
+        async_mock.side_effect = [
+            px3_result_mock,
+            px4_result_mock
+        ]
+        celery_mock.current_app.AsyncResult = async_mock
+
     @patch('targetshare.views.celery')
     def test_faces_px3_wait(self, celery_mock):
         ''' Tests that we receive a JSON status of "waiting" when our px3
         task isn't yet complete
         '''
-        result_mock = Mock()
-        result_mock.ready.return_value = False
-        result_mock.successful.return_value = False
-        result_mock.failed.return_value = False
-        async_mock = Mock()
-        async_mock.side_effect = [
-            result_mock,
-            result_mock
-        ]
-        celery_mock.current_app.AsyncResult = async_mock
+        self.patch_ranking(celery_mock, px3_ready=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -184,18 +226,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         ''' Test that even if px3 is done, we'll wait on px4 if we're not
         ready to give up on it yet
         '''
-        px3_result_mock = Mock()
-        px3_result_mock.ready.return_value = True
-        px3_result_mock.successful.return_value = True
-        px3_result_mock.failed.return_value = False
-        px4_result_mock = Mock()
-        px4_result_mock.ready.return_value = False
-        async_mock = Mock()
-        async_mock.side_effect = [
-            px3_result_mock,
-            px4_result_mock
-        ]
-        celery_mock.current_app.AsyncResult = async_mock
+        self.patch_ranking(celery_mock, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -210,19 +241,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         ''' Test that if px3 fails, we'll return an error even if we're
         still waiting on px4 and not on the last call
         '''
-        px3_result_mock = Mock()
-        px3_result_mock.ready.return_value = True
-        px3_result_mock.successful.return_value = False
-        px3_result_mock.failed.return_value = True
-        px3_result_mock.result = ValueError('Ruh-Roh!')
-        px4_result_mock = Mock()
-        px4_result_mock.ready.return_value = False
-        async_mock = Mock()
-        async_mock.side_effect = [
-            px3_result_mock,
-            px4_result_mock
-        ]
-        celery_mock.current_app.AsyncResult = async_mock
+        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -236,25 +255,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
         '''
-        px3_result_mock = Mock()
-        px3_result_mock.ready.return_value = True
-        px3_result_mock.result = (
-            [self.test_edge],
-            models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
-            self.test_filter.filter_id,
-            self.test_filter.url_slug,
-            1,
-            1
-        )
-        px4_result_mock = Mock()
-        px4_result_mock.ready.return_value = False
-        px4_result_mock.successful.return_value = False
-        async_mock = Mock()
-        async_mock.side_effect = [
-            px3_result_mock,
-            px4_result_mock
-        ]
-        celery_mock.current_app.AsyncResult = async_mock
+        self.patch_ranking(celery_mock, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -269,26 +270,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     @patch('targetshare.views.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
-        px3_result_mock = Mock()
-        px3_result_mock.ready.return_value = True
-        px3_result_mock.result = (
-            [self.test_edge],
-            models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
-            self.test_filter.filter_id,
-            self.test_filter.url_slug,
-            1,
-            1
-        )
-        px4_result_mock = Mock()
-        px4_result_mock.ready.return_value = True
-        px4_result_mock.successful.return_value = True
-        px4_result_mock.result = [self.test_edge]
-        async_mock = Mock()
-        async_mock.side_effect = [
-            px3_result_mock,
-            px4_result_mock
-        ]
-        celery_mock.current_app.AsyncResult = async_mock
+        self.patch_ranking(celery_mock)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -301,6 +283,55 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert data['html']
         assert models.Event.objects.get(event_type='generated')
         assert models.Event.objects.get(event_type='shown')
+
+    @patch('targetshare.integration.facebook.third_party.requests.get')
+    @patch('targetshare.views.celery')
+    def test_faces_client_fbobject(self, celery_mock, get_mock):
+        self.patch_ranking(celery_mock)
+        with open(os.path.join(DATA_PATH, 'gg.html')) as rh:
+            get_mock.return_value = Mock(text=rh.read())
+
+        source_url = 'http://somedomain/somepath/'
+        campaign_objs = models.CampaignFBObject.objects.filter(source_url=source_url)
+        self.assertFalse(campaign_objs.exists())
+
+        self.params.update(
+            px3_task_id='dummypx3taskid',
+            px4_task_id='dummypx4taskid',
+            efobjsrc=source_url,
+        )
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['status'], 'success')
+
+        # Check second request doesn't hit client site:
+        self.assertEqual(get_mock.call_count, 1)
+        self.patch_ranking(celery_mock)
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        data1 = json.loads(response.content)
+        self.assertEqual(data1['status'], 'success')
+        self.assertEqual(get_mock.call_count, 1)
+
+        campaign_obj = campaign_objs.get()
+        self.assertTrue(campaign_obj.sourced)
+        obj_attrs = campaign_obj.fb_object.fbobjectattribute_set.get()
+        # Sourced attributes:
+        self.assertEqual(obj_attrs.og_title, "Scholarship for Filipino Midwife Student")
+        self.assertEqual(obj_attrs.og_description[:22], "The Philippines, like ")
+        self.assertEqual(obj_attrs.og_image,
+            "https://dpqe0zkrjo0ak.cloudfront.net/pfil/14426/pict_grid7.jpg")
+        self.assertEqual(obj_attrs.og_type, 'non_profit')
+        self.assertEqual(obj_attrs.org_name, "GlobalGiving.org")
+        # Default attributes:
+        self.assertEqual(obj_attrs.og_action, "support")
+        self.assertEqual(obj_attrs.page_title, "Support Gun Control")
+        self.assertEqual(obj_attrs.sharing_prompt[:25], "Ask your Facebook friends")
+
+        # Check html:
+        self.assertIn(obj_attrs.og_image, data['html'])
+        self.assertIn(obj_attrs.og_image, data1['html'])
 
     def test_button_no_recs(self):
         ''' Tests views.button without style recs '''
@@ -568,7 +599,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             1
         )
 
-    @patch('targetshare.views.facebook')
+    @patch('targetshare.views.facebook.client')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
         fb_mock.extendTokenFb.return_value = models.dynamo.Token(
@@ -630,7 +661,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(url.rstrip('/'))
         self.assertStatusCode(response, 200)
 
-    @patch('targetshare.views.facebook')
+    @patch('targetshare.views.facebook.client')
     def test_health_check(self, fb_mock):
         ''' Tests views.health_check '''
         fb_mock.getUrlFb.return_value = {'id': 6963}

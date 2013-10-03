@@ -26,7 +26,7 @@ class FBMetaParser(HTMLParser.HTMLParser):
     }
 
     def reset(self):
-        super(FBMetaParser, self).reset()
+        HTMLParser.HTMLParser.reset(self)
         self.meta = {}
 
     def handle_starttag(self, tag, attrs):
@@ -131,7 +131,8 @@ def get_campaign_fbobject(campaign, source_url):
 
     """
     # Retrieve CampaignFBObject sourced from URL
-    campaign_fb_object, _created = campaign.campaignfbobjects.for_datetime().get_or_create(
+    campaign_fb_object, _created = models.CampaignFBObject.objects.for_datetime().get_or_create(
+        campaign=campaign,
         source_url=source_url,
     )
     if campaign_fb_object.fb_object is None:

@@ -70,35 +70,35 @@
     pk: 5
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, filter: 2, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 1
 -   fields: {campaign: 2, end_dt: null, fb_object: 2, filter: 1, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 2
 -   fields: {campaign: 3, end_dt: null, fb_object: 3, filter: 3, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 3
 -   fields: {campaign: 3, end_dt: null, fb_object: 4, filter: 4, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 4
 -   fields: {campaign: 3, end_dt: null, fb_object: 5, filter: 5, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 5
 -   fields: {campaign: 3, end_dt: null, fb_object: 6, filter: 6, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 6
 -   fields: {campaign: 4, end_dt: null, fb_object: 1, filter: 1, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 7
 -   fields: {campaign: 5, end_dt: null, fb_object: 1, filter: 3, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignfbobjects
+    model: targetshare.campaignfbobject
     pk: 8
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15
             11:38:28'}

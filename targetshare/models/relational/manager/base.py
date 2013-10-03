@@ -149,7 +149,12 @@ class ConfigurableQuerySet(RepeatableReadQuerySet):
     def _clone(self, klass=None, setup=False, **kwargs):
         kwargs.update(manager=self.manager)
         clone = super(ConfigurableQuerySet, self)._clone(klass, setup, **kwargs)
-        clone.configure()
+        try:
+            configure = clone.configure
+        except AttributeError:
+            pass
+        else:
+            configure()
         return clone
 
     def configure(self):

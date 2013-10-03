@@ -78,7 +78,7 @@ class TestCampaignViews(TestAdminBase):
         fb_objs = campaign.campaignfbobjects.all()
         self.assertEqual(fb_objs.count(), 1)
 
-        assert campaign.campaigngenericfbobjects_set.exists()
+        assert campaign.campaigngenericfbobjects.exists()
 
     def test_campaign_creation_without_generic_fb_obj(self):
         ''' Test creating a campaign without specifying a generic FB object '''

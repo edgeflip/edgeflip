@@ -25,9 +25,23 @@ class FBObjectAttribute(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
 
-    objects = manager.TransitoryObjectManager.make(source_fields=[
-        field for field in locals().values() if isinstance(field, models.CharField)
-    ])
+    objects = manager.TransitoryObjectManager.make(
+        source_fields=(
+            og_action,
+            og_type,
+            og_title,
+            og_image,
+            og_description,
+            org_name,
+            page_title,
+            sharing_prompt,
+            msg1_pre,
+            msg1_post,
+            msg2_pre,
+            msg2_post,
+            url_slug,
+        )
+    )
 
     class Meta(object):
         app_label = 'targetshare'
