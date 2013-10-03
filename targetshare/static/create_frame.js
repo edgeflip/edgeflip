@@ -30,7 +30,7 @@
 	var urlparams = {};
 	window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
 		// Note -- if our param appears multiple times in the URL, this will only take the last one!
-		urlparams[key] = value;
+		urlparams[decodeURIComponent(key)] = decodeURIComponent(value);
 	});
 
 	// Complete frame_faces URL path from window URL parameters
