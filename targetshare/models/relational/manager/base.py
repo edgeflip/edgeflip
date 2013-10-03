@@ -73,8 +73,7 @@ class ConfigurableManager(Manager):
 
         class MyManager(ConfigurableManager):
 
-            @classmethod
-            def configure(cls, instance, my_arg1, my_arg2=None):
+            def configure(self, instance, my_arg1, my_arg2=None):
                 instance.my_arg1 = my_arg1
                 instance.my_arg2 = my_arg2
 
@@ -84,7 +83,7 @@ class ConfigurableManager(Manager):
 
             objects = MyManager.make('foo')
 
-    By defining a `configure` class method, rather than extending __init__, and
+    By defining a `configure` method, rather than extending __init__, and by
     instantiating via the manager class's `make` method, a manager configured to the
     model's needs is constructed on-the-fly, and which supports subclassing by Django's
     RelatedManager without loss of configuration.
@@ -98,8 +97,7 @@ class ConfigurableManager(Manager):
 
         class MyManager(ConfigurableManager):
 
-            @classmethod
-            def configure(cls, instance, my_arg1, my_arg2=None):
+            def configure(self, instance, my_arg1, my_arg2=None):
                 instance.my_arg1 = my_arg1
                 instance.my_arg2 = my_arg2
 
@@ -110,8 +108,26 @@ class ConfigurableManager(Manager):
     queryset, MyQuerySet, as well.
 
     """
-    @classmethod
-    def configure(cls, instance, *args, **kws):
+    def configure(self, instance, *args, **kws):
+        """Configure the given object with parameters specified to `make`.
+
+        `configure` stands in for __init__, whose interface cannot otherwise be
+        extended without breaking support for RelatedManagers. Additionally,
+        `configure` is applied to ConfigurableQuerySets constructed via their own
+        `make`.
+
+        Made concrete by user.
+
+        """
+        raise NotImplementedError
+
+    def configure_object(self, instance):
+        """Configure the given object by passing `make` parameters to the user-
+        defined `configure` method.
+
+        Made concrete by `make`.
+
+        """
         raise NotImplementedError
 
     @classmethod
@@ -122,17 +138,20 @@ class ConfigurableManager(Manager):
         """
         class ConfiguredManager(cls):
 
+            def configure_object(self, instance):
+                """Configure the given object by passing `make` parameters to the user-
+                defined `configure` method.
+
+                """
+                return self.configure(instance, *args, **kws)
+
+            # For debugging:
+            configure_object.args = args
+            configure_object.kws = kws
+
             def __init__(self):
                 super(ConfiguredManager, self).__init__()
-
-                def configurer(instance):
-                    return cls.configure(instance, *args, **kws)
-                configurer.func = cls.configure
-                configurer.args = args
-                configurer.kws = kws
-                self.configurer = configurer
-
-                self.configurer(self)
+                self.configure_object(self)
 
         return ConfiguredManager()
 
@@ -142,20 +161,22 @@ class ConfigurableQuerySet(RepeatableReadQuerySet):
     @classmethod
     def make(cls, manager):
         instance = cls(manager.model, using=manager._db)
-        instance.manager = manager
-        instance.configure()
+        instance.configure(manager)
         return instance
 
     def _clone(self, klass=None, setup=False, **kwargs):
-        kwargs.update(manager=self.manager)
         clone = super(ConfigurableQuerySet, self)._clone(klass, setup, **kwargs)
         try:
             configure = clone.configure
         except AttributeError:
+            # _clone is used to create e.g. ValuesQuerySets, which we can't
+            # (and needn't) configure
             pass
         else:
-            configure()
+            configure(self.manager)
         return clone
 
-    def configure(self):
-        self.manager.configurer(self)
+    def configure(self, manager=None):
+        if manager:
+            self.manager = manager
+        self.manager.configure_object(self)

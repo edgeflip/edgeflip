@@ -427,7 +427,7 @@ def faces(request):
     all_friends = [e.toDict() for e in edges_ranked]
 
     if fbobject_source_url:
-        fb_object = facebook.third_party.get_campaign_fbobject(campaign, fbobject_source_url)
+        fb_object = facebook.third_party.source_campaign_fbobject(campaign, fbobject_source_url)
         db.delayed_save.delay(
             models.relational.Assignment.make_managed(
                 visit=request.visit,

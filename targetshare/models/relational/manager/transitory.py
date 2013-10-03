@@ -226,11 +226,9 @@ class TransitoryObjectManager(base.ConfigurableManager):
     that the object is no longer active.
 
     """
-    @classmethod
-    def configure(cls, instance, signature_fields=None, source_fields=None):
+    def configure(self, instance, signature_fields=None, source_fields=None):
         instance.signature_fields = signature_fields
         instance.source_fields = source_fields
-        return instance
 
     def get_query_set(self):
         return TransitoryObjectQuerySet.make(self)

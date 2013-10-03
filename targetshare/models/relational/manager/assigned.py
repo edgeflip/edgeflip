@@ -35,11 +35,9 @@ class AssignedObjectQuerySet(transitory.TransitoryObjectQuerySet):
 
 class AssignedObjectManager(transitory.TransitoryObjectManager):
 
-    @classmethod
-    def configure(cls, instance, assigned_object, signature_fields=None, source_fields=None):
-        super(AssignedObjectManager, cls).configure(instance, signature_fields, source_fields)
+    def configure(self, instance, assigned_object, signature_fields=None, source_fields=None):
+        super(AssignedObjectManager, self).configure(instance, signature_fields, source_fields)
         instance.assigned_object = assigned_object
-        return instance
 
     def get_query_set(self):
         return AssignedObjectQuerySet.make(self)

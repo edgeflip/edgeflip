@@ -110,7 +110,7 @@ def get_fbobject_attributes(source_url, fb_object=None):
     return models.relational.FBObjectAttribute(fb_object=fb_object, **attrs)
 
 
-def get_campaign_fbobject(campaign, source_url):
+def source_campaign_fbobject(campaign, source_url):
     """For a given Campaign and client Facebook object source URL, ensure the existence
     of an active CampaignFBObject, FBObject and FBObjectAttribute.
 
