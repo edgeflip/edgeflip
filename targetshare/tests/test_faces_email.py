@@ -2,7 +2,9 @@ import random
 from datetime import datetime
 
 from mock import Mock, patch
+
 from django.utils import timezone
+from django.utils.datastructures import SortedDict
 
 from targetshare import mock_facebook
 from targetshare.models import dynamo, relational
@@ -11,12 +13,12 @@ from targetshare.management.commands import faces_email
 from . import EdgeFlipTestCase
 
 
-class TestCivisCacheSeed(EdgeFlipTestCase):
+class TestFacesEmail(EdgeFlipTestCase):
 
     fixtures = ['test_data']
 
     def setUp(self):
-        super(TestCivisCacheSeed, self).setUp()
+        super(TestFacesEmail, self).setUp()
         self.command = faces_email.Command()
         self.command.mock = True
         self.command.campaign = relational.Campaign.objects.get(pk=1)
@@ -35,8 +37,12 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         )
         self.command.num_face = 3
         self.command.filename = 'faces_email_test.csv'
-        self.command.task_list = []
-        self.command.edge_collection = []
+        self.command.task_list = {}
+        self.command.edge_collection = {}
+        self.notification = relational.Notification.objects.create(
+            campaign_id=1, content_id=1, fbid=1, uuid='1',
+            app_id=self.command.client.fb_app_id,
+        )
 
     def test_handle(self):
         ''' Test to ensure the handle method behaves properly '''
@@ -52,7 +58,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             setattr(command, method, Mock())
 
         command.handle(
-            1, 1, num_face=4, output='testing.csv', mock=True
+            1, 1, num_face=4, output='testing.csv', mock=True, purge=True,
         )
         for count, method in enumerate(methods_to_mock):
             assert getattr(command, method).called
@@ -63,7 +69,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         assert self.command.mock
         self.assertEqual(command.num_face, 4)
         self.assertEqual(command.filename, 'testing.csv')
-        assert command.visit
+        assert not relational.Notification.objects.exists()
 
     @patch('targetshare.management.commands.faces_email.ranking')
     def test_crawl_and_filter(self, ranking_mock):
@@ -97,7 +103,10 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         bad_result.successful.return_value = False
         bad_result.result = ['', 'bad_result']
 
-        self.command.task_list = [1, 2]
+        self.command.task_list = SortedDict({
+            self.notification.uuid: 1,
+            '2': 2,
+        })
         celery_mock.current_app.AsyncResult.side_effect = [
             good_result,
             bad_result
@@ -106,7 +115,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
 
         self.assertEqual(
             self.command.edge_collection,
-            [[1, 2, 3]]
+            {self.notification.uuid: [1, 2, 3]}
         )
 
     @patch('targetshare.management.commands.faces_email.csv')
@@ -114,9 +123,9 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         ''' Tests the build_csv method '''
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
-        self.command.edge_collection = [
-            mock_facebook.getFriendEdgesFb(1, 1)
-        ]
+        self.command.edge_collection = {
+            self.notification.uuid: mock_facebook.getFriendEdgesFb(1, 1)
+        }
         self.command._build_csv()
         assert writer_mock.writerow.called
         assert writer_mock.writerow.call_args[0][0][4].strip().startswith('<table')
@@ -124,3 +133,10 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             writer_mock.writerow.call_args[0][0][1],
             'fake@fake.com'
         )
+        self.assertEqual(
+            relational.NotificationEvent.objects.filter(
+                event_type='shown').count(),
+            3
+        )
+        assert relational.NotificationEvent.objects.filter(
+            event_type='generated').exists()

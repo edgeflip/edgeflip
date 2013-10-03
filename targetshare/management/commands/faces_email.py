@@ -2,6 +2,7 @@ import csv
 import logging
 import time
 import urllib
+import hashlib
 from decimal import Decimal
 from optparse import make_option
 from datetime import datetime
@@ -13,9 +14,8 @@ from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
 
-from targetshare import utils
 from targetshare.models import dynamo, relational
-from targetshare.tasks import ranking
+from targetshare.tasks import db, ranking
 from targetshare.templatetags.string_format import lexical_list
 
 logger = logging.getLogger(__name__)
@@ -44,31 +44,36 @@ class Command(BaseCommand):
             help='Name of file to dump CSV contents into',
             dest='output',
         ),
+        make_option(
+            '-p', '--purge',
+            help='Purges previous runs matching the same criteria as the '
+                 'current run. Defaults to False',
+            default=False,
+            action='store_true',
+            dest='purge'
+        ),
     )
 
-    def handle(self, campaign_id, content_id, mock, num_face, output, **options):
+    def handle(self, campaign_id, content_id, mock, num_face, output, purge,
+               **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
         self.client = self.campaign.client
-        self.visit = relational.Visit.objects.create(
-            session_id='%s-%s-%s' % (
-                datetime.now().strftime('%m-%d-%y_%H:%M:%S'),
-                campaign_id,
-                content_id
-            ),
-            app_id=self.client.fb_app_id,
-            ip='127.0.0.1',
-            fbid=None,
-            source='faces_email',
-        )
 
         # Settings
         self.mock = mock
         self.num_face = num_face
         self.filename = output if output else 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
-        self.task_list = []
-        self.edge_collection = []
+        self.task_list = {}
+        self.edge_collection = {}
+
+        if purge:
+            relational.Notification.objects.filter(
+                campaign=self.campaign,
+                content=self.content,
+                app_id=self.campaign.client.fb_app_id
+            ).delete()
 
         # Process information
         self._crawl_and_filter()
@@ -86,17 +91,22 @@ class Command(BaseCommand):
         } for x in self.client.userclients.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         for ut in user_tokens:
-            self.task_list.append(
-                ranking.proximity_rank_three(
-                    mock_mode=self.mock,
-                    fbid=ut['fbid'],
-                    token=ut,
-                    visit_id=self.visit.pk,
-                    campaignId=self.campaign.pk,
-                    contentId=self.content.pk,
-                    numFace=self.num_face,
-                    faces_email=True
-                )
+            hash_str = hashlib.md5('{}{}{}'.format(
+                ut['fbid'], self.campaign.pk, self.content.pk
+            )).hexdigest()
+            notification, created = relational.Notification.objects.get_or_create(
+                uuid=hash_str, fbid=ut['fbid'], campaign=self.campaign,
+                content=self.content, app_id=self.client.fb_app_id,
+            )
+            self.task_list[notification.uuid] = ranking.proximity_rank_three(
+                mock_mode=self.mock,
+                fbid=ut['fbid'],
+                token=ut,
+                visit_id=notification.pk,
+                campaignId=self.campaign.pk,
+                contentId=self.content.pk,
+                numFace=self.num_face,
+                faces_email=True
             )
         logger.info('Crawling %s users', str(len(self.task_list)))
 
@@ -107,16 +117,16 @@ class Command(BaseCommand):
         error_count = 0
         while self.task_list:
             logger.info('Checking status of %s tasks', str(len(self.task_list)))
-            for task_id in self.task_list:
+            for uuid, task_id in self.task_list.items():
                 transaction.commit_unless_managed()
                 task = celery.current_app.AsyncResult(task_id)
                 if task.ready():
                     if task.successful():
-                        self.edge_collection.append(task.result[1].edges) # Filtered friends
+                        self.edge_collection[uuid] = task.result[1].edges
                     else:
                         error_count += 1
                         logger.error('Task Failed: %s' % task.traceback)
-                    self.task_list.remove(task_id)
+                    del self.task_list[uuid]
                     logger.debug('Finished task: %s' % task_id)
             time.sleep(1)
         logger.info(
@@ -124,23 +134,16 @@ class Command(BaseCommand):
             str(error_count)
         )
 
-    def _build_table(self, edges):
+    def _build_table(self, uuid, edges):
         ''' Method to build the HTML table that'll be included in the CSV
         that we send to clients. This table will later be embedded in an
         email that is sent to primaries, thus all the inline styles
         '''
-        faces_base_url = reverse('faces-email-encoded', args=[
-            utils.encodeDES('{}/{}'.format(self.campaign.pk, self.content.pk)),
-            edges[0].primary.id
-        ])
-        query_string = urllib.urlencode(
-            [('friend_fbid', x.secondary.id) for x in edges]
-        )
-        faces_url = 'http://{}.{}{}?{}'.format(
+        faces_base_url = reverse('faces-email', args=[uuid])
+        faces_url = 'http://{}.{}{}'.format(
             self.client.subdomain,
             self.client.domain,
             faces_base_url,
-            query_string
         )
         table_str = render_to_string('targetshare/faces_email_table.html', {
             'edges': edges,
@@ -150,6 +153,33 @@ class Command(BaseCommand):
 
         return table_str
 
+    def _write_events(self, uuid, collection):
+        notification = relational.Notification.objects.get(uuid=uuid)
+        events = []
+        for edge in collection[:self.num_face]:
+            events.append(
+                relational.NotificationEvent(
+                    notification_id=notification.pk,
+                    campaign_id=self.campaign.pk,
+                    client_content_id=self.content.pk,
+                    friend_fbid=edge.secondary.id,
+                    event_type='shown',
+                )
+            )
+
+        for edge in collection[self.num_face:]:
+            events.append(
+                relational.NotificationEvent(
+                    notification_id=notification.pk,
+                    campaign_id=self.campaign.pk,
+                    client_content_id=self.content.pk,
+                    friend_fbid=edge.secondary.id,
+                    event_type='generated',
+                )
+            )
+
+        db.bulk_create.delay(events)
+
     def _build_csv(self):
         ''' Handles building out the CSV '''
         with open(self.filename, 'wb') as csv_file:
@@ -157,7 +187,7 @@ class Command(BaseCommand):
             csv_writer.writerow([
                 'primary_fbid', 'email', 'friend_fbids', 'names', 'html_table'
             ])
-            for collection in self.edge_collection:
+            for uuid, collection in self.edge_collection.iteritems():
                 primary = collection[0].primary
                 row = [primary.id, primary.email]
                 friend_list = []
@@ -168,5 +198,6 @@ class Command(BaseCommand):
 
                 row.append(fbids)
                 row.append(lexical_list([x.fname for x in friend_list[:3]]))
-                row.append(self._build_table(collection[:self.num_face]))
+                row.append(self._build_table(uuid, collection[:self.num_face]))
+                self._write_events(uuid, collection)
                 csv_writer.writerow(row)

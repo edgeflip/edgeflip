@@ -566,24 +566,31 @@ def faces(request):
     )
 
 
-@_encoded_endpoint
-@_require_visit
-def faces_email_friends(request, campaign_id, content_id, fbid):
+def faces_email_friends(request, notification_uuid):
     ''' A view that's fairly similar to our Faces/Frame Faces views, except
     that this will not perform any crawls. We've already done the crawling
     in the background, so we can skip that here, and instead leverage the
     friends passed in via GET params.
     '''
     # Campaign setup
-    campaign = get_object_or_404(models.Campaign, pk=campaign_id)
-    content = get_object_or_404(models.ClientContent, pk=content_id)
+    notification = get_object_or_404(
+        models.Notification,
+        uuid=notification_uuid
+    )
+    campaign = notification.campaign
+    content = notification.content
     client = campaign.client
-    num_face = 3
+    request.visit = _get_visit(request, client.fb_app_id, notification.fbid, {
+        'campaign': campaign,
+        'client_content': content,
+    })
 
     # Gather friend data
-    user_obj = models.User.items.get_item(fbid=int(fbid))
+    num_face = notification.events.filter(event_type='shown').count()
+    user_obj = models.User.items.get_item(fbid=notification.fbid)
     friend_objs = models.User.items.batch_get(
-        keys=[{'fbid': int(x)} for x in request.GET.getlist('friend_fbid')]
+        keys=[{'fbid': x.friend_fbid} for x in notification.events.filter(
+            event_type__in=('generated', 'shown'))]
     )
 
     user = models.datastructs.UserInfo.from_dynamo(user_obj)
@@ -649,18 +656,34 @@ def faces_email_friends(request, campaign_id, content_id, fbid):
         fb_params['fb_object_url']
     )
     events = []
-    for friend in face_friends[:num_face]:
+    for event in notification.events.all():
         events.append(
             models.Event(
                 visit=request.visit,
-                campaign_id=campaign.pk,
-                client_content_id=content.pk,
-                friend_fbid=friend['id'],
+                campaign_id=event.campaign.pk,
+                client_content_id=event.client_content.pk,
+                friend_fbid=event.friend_fbid,
                 content=content_str,
-                event_type='shown',
+                event_type=event.event_type,
+            )
+        )
+
+    assignments = []
+    for assignment in notification.assignments.all():
+        assignments.append(
+            models.Assignment(
+                visit=request.visit,
+                campaign=assignment.campaign,
+                content=assignment.content,
+                feature_type=assignment.feature_type,
+                feature_row=assignment.feature_row,
+                random_assign=assignment.random_assign,
+                chosen_from_table=assignment.chosen_from_table,
+                chosen_from_rows=assignment.chosen_from_rows
             )
         )
     db.bulk_create.delay(events)
+    db.bulk_create.delay(assignments)
 
     return render(request, _locate_client_template(client, 'faces_email_friends.html'), {
         'fb_params': fb_params,
