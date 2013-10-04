@@ -12,7 +12,7 @@ class CampaignProperties(models.Model):
     client_error_url = models.CharField(max_length=2096)
     fallback_campaign = models.ForeignKey(
         'Campaign',
-        related_name='fallback_campaign',
+        related_name='fallbackcampaign_properties',
         null=True
     )
     fallback_content = models.ForeignKey('ClientContent', null=True)
