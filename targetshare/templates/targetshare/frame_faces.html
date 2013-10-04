@@ -46,22 +46,14 @@
     </script>
 
     <!-- edgeflip javascript -->
-    <script src="{{ STATIC_URL }}js/url_params.js"></script>
     <script src="{{ STATIC_URL }}js/load_and_login.js?version={{ settings.RELEASE_VERSION }}"></script>
 {% endblock %}
 
 {% block js_inline %}
     <script>
         // Read the session id from the query string if it exists
-        var sessionid = "{{ request.session.session_key }}";
         var tok = '';
         var appid = "{{ fb_params.fb_app_id }}";
-        var urlparams = read_url_params();
-        var efsid = urlparams['efsid'];
-        if (efsid) {
-            sessionid = efsid;
-        }
-
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
 
@@ -128,7 +120,6 @@
                             appid: appid,
                             friends: [],
                             eventType: 'authorized',
-                            sessionid: sessionid,
                             campaignid: {{ campaign.pk }},
                             contentid: {{ content.pk }},
                             content: '',

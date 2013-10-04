@@ -1,5 +1,7 @@
 from django.db import models
 
+from . import manager
+
 
 class UserClient(models.Model):
 
@@ -7,6 +9,8 @@ class UserClient(models.Model):
     fbid = models.BigIntegerField()
     client = models.ForeignKey('Client', related_name='userclients')
     create_dt = models.DateTimeField(auto_now_add=True)
+
+    objects = manager.Manager()
 
     class Meta(object):
         app_label = 'targetshare'

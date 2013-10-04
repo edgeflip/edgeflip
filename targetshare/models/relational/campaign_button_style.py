@@ -1,5 +1,7 @@
 from django.db import models
 
+from . import manager
+
 
 class CampaignButtonStyle(models.Model):
 
@@ -11,6 +13,8 @@ class CampaignButtonStyle(models.Model):
                                    null=True, blank=True)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
+
+    objects = manager.AssignedObjectManager.make(button_style)
 
     class Meta(object):
         app_label = 'targetshare'

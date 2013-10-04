@@ -26,7 +26,6 @@
 {% block js_inline %}
     <SCRIPT>
 
-        var sessionid = '{{ session_id }}';
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
 
@@ -40,7 +39,6 @@
                 appid: appid,
                 content: content,
                 eventType: eventType,
-                sessionid: sessionid,
                 campaignid: campaignid,
                 contentid: contentid,
                 token: accessToken
@@ -58,8 +56,6 @@
                     }
                 },
                 success: function(data, textStatus, jqXHR) {
-                    var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-                    sessionid = header_efsid || sessionid;
                     if (redirect) {
                         top.location = redirect;
                     }
@@ -90,8 +86,11 @@
                     clearInterval(intervalId);
 
                     var gotoURL = "{{ goto|safe }}";
-                    if (sessionid) {
-                        gotoURL = gotoURL + '&efsid=' + sessionid;
+		    var sourceURL = LocationQuery.window.efobjsrc;
+                    if (sourceURL) {
+			if (sourceURL === '1')
+				sourceURL = encodeURIComponent(window.top.location.href);
+                        gotoURL += '&efobjsrc=' + sourceURL;
                     }
                     recordEvent('authorized', authedResponse.authResponse.userID, gotoURL, authedResponse.authResponse.accessToken);
                 

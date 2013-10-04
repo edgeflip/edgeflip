@@ -205,7 +205,7 @@ class CampaignForm(forms.Form):
                 rand_cdf=1.0
             )
 
-        relational.CampaignFBObjects.objects.create(
+        relational.CampaignFBObject.objects.create(
             campaign=campaign,
             filter=data.get('global_filter'),
             fb_object=data.get('fb_object'),

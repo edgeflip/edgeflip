@@ -16,12 +16,59 @@
         {% block style_inline %}
         {% endblock %}
 
+        {# Global help #}
+        <script type="text/javascript">
+            var LocationQuery = (function() {
+                var self = {
+                    parse: (function(query) {
+                        var result = {};
+                        if (query[0] === '?')
+                            query = query.substring(1);
+                        query.split('&').map(function(pair) {
+                            var keyvalue = pair.split('=', 2).map(function(part) {
+                                return decodeURIComponent(part);
+                            });
+                            result[keyvalue[0]] = keyvalue[1];
+                        });
+                        return result;
+                    }),
+                    unparse: (function(query, carryThroughKeys) {
+                        var queryKey, queryValue, queryString, queryPairs = [];
+                        for (queryKey in query) {
+                            if (query.hasOwnProperty(queryKey)) {
+                                if (!carryThroughKeys || carryThroughKeys.indexOf(queryKey) !== -1) {
+                                    queryValue = query[queryKey];
+                                    if (queryValue) {
+                                        queryPairs.push([queryKey, queryValue].map(function (value) {
+                                            return encodeURIComponent(value);
+                                        }).join('='));
+                                    }
+                                }
+                            }
+                        }
+                        queryString = queryPairs.join('&');
+                        if (queryPairs.length > 0) {
+                            queryString = '?' + queryString;
+                        }
+                        return queryString;
+                    })
+                };
+                self.window = self.parse(window.location.search);
+                return self;
+            })();
+        </script>
+
         {% block js_include %}
             <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
             {% comment %} Edgeflip js {% endcomment %}
             <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
         {% endblock %}
 
+        {% block js_inline %}
+        {% endblock %}
+
+    </head>
+    <body>
         {% comment %} CSRF Stuff {% endcomment %}
         {% csrf_token %} {% comment %} Ensures the token/cookie is available {% endcomment %}
         <script type="text/javascript">
@@ -55,14 +102,7 @@
             });
         </script>
 
-        {% block js_inline %}
-        {% endblock %}
-
-    </head>
-    <body>
-
         {% block body %}
-
         {% endblock %}
     </body>
 </html>

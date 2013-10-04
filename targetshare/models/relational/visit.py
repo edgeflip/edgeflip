@@ -1,5 +1,7 @@
 from django.db import models
 
+from . import manager
+
 
 class Visit(models.Model):
 
@@ -11,6 +13,8 @@ class Visit(models.Model):
     source = models.CharField(blank=True, default='', db_index=True, max_length=256)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
+
+    objects = manager.Manager()
 
     class Meta(object):
         app_label = 'targetshare'
