@@ -40,7 +40,11 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.task_list = {}
         self.command.edge_collection = {}
         self.notification = relational.Notification.objects.create(
-            campaign_id=1, content_id=1, fbid=1, uuid='1',
+            campaign_id=1, content_id=1
+        )
+        self.command.notification = self.notification
+        self.notification_user = relational.NotificationUser.objects.create(
+            notification=self.notification, fbid=1, uuid='1',
             app_id=self.command.client.fb_app_id,
         )
 
@@ -69,7 +73,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         assert self.command.mock
         self.assertEqual(command.num_face, 4)
         self.assertEqual(command.filename, 'testing.csv')
-        assert not relational.Notification.objects.exists()
+        self.assertEqual(relational.Notification.objects.count(), 2)
 
     @patch('targetshare.management.commands.faces_email.ranking')
     def test_crawl_and_filter(self, ranking_mock):
@@ -104,7 +108,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         bad_result.result = ['', 'bad_result']
 
         self.command.task_list = SortedDict({
-            self.notification.uuid: 1,
+            self.notification_user.uuid: 1,
             '2': 2,
         })
         celery_mock.current_app.AsyncResult.side_effect = [
@@ -115,7 +119,7 @@ class TestFacesEmail(EdgeFlipTestCase):
 
         self.assertEqual(
             self.command.edge_collection,
-            {self.notification.uuid: [1, 2, 3]}
+            {self.notification_user.uuid: [1, 2, 3]}
         )
 
     @patch('targetshare.management.commands.faces_email.csv')
@@ -124,7 +128,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         self.command.edge_collection = {
-            self.notification.uuid: mock_facebook.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: mock_facebook.getFriendEdgesFb(1, 1)
         }
         self.command._build_csv()
         assert writer_mock.writerow.called

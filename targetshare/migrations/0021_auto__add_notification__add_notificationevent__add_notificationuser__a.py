@@ -8,10 +8,20 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
+        # Adding model 'Notification'
+        db.create_table('notifications', (
+            ('notification_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
+            ('content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'])),
+            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+        ))
+        db.send_create_signal('targetshare', ['Notification'])
+
         # Adding model 'NotificationEvent'
         db.create_table('notification_events', (
             ('notification_event_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('notification', self.gf('django.db.models.fields.related.ForeignKey')(related_name='events', to=orm['targetshare.Notification'])),
+            ('notification_user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='events', to=orm['targetshare.NotificationUser'])),
             ('event_type', self.gf('django.db.models.fields.CharField')(max_length=64, db_column='type')),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'], null=True)),
             ('client_content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True, db_column='content_id')),
@@ -24,10 +34,21 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('targetshare', ['NotificationEvent'])
 
+        # Adding model 'NotificationUser'
+        db.create_table('notification_users', (
+            ('notification_user_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+            ('notification', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Notification'])),
+            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=128, db_index=True)),
+            ('fbid', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
+            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+        ))
+        db.send_create_signal('targetshare', ['NotificationUser'])
+
         # Adding model 'NotificationAssignment'
         db.create_table('notification_assignments', (
             ('notification_assignment_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('notification', self.gf('django.db.models.fields.related.ForeignKey')(related_name='assignments', to=orm['targetshare.Notification'])),
+            ('notification_user', self.gf('django.db.models.fields.related.ForeignKey')(related_name='assignments', to=orm['targetshare.NotificationUser'])),
             ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'], null=True, blank=True)),
             ('content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'], null=True, blank=True)),
             ('feature_type', self.gf('django.db.models.fields.CharField')(max_length=128, blank=True)),
@@ -39,29 +60,19 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('targetshare', ['NotificationAssignment'])
 
-        # Adding model 'Notification'
-        db.create_table('notifications', (
-            ('notification_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-            ('campaign', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.Campaign'])),
-            ('content', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.ClientContent'])),
-            ('uuid', self.gf('django.db.models.fields.CharField')(max_length=128, db_index=True)),
-            ('app_id', self.gf('django.db.models.fields.BigIntegerField')(db_column='appid')),
-            ('fbid', self.gf('django.db.models.fields.BigIntegerField')(null=True, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-        ))
-        db.send_create_signal('targetshare', ['Notification'])
-
 
     def backwards(self, orm):
+        # Deleting model 'Notification'
+        db.delete_table('notifications')
+
         # Deleting model 'NotificationEvent'
         db.delete_table('notification_events')
 
+        # Deleting model 'NotificationUser'
+        db.delete_table('notification_users')
+
         # Deleting model 'NotificationAssignment'
         db.delete_table('notification_assignments')
-
-        # Deleting model 'Notification'
-        db.delete_table('notifications')
 
 
     models = {
@@ -472,14 +483,11 @@ class Migration(SchemaMigration):
         },
         'targetshare.notification': {
             'Meta': {'object_name': 'Notification', 'db_table': "'notifications'"},
-            'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']"}),
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'notification_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '128', 'db_index': 'True'})
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         'targetshare.notificationassignment': {
             'Meta': {'object_name': 'NotificationAssignment', 'db_table': "'notification_assignments'"},
@@ -490,8 +498,8 @@ class Migration(SchemaMigration):
             'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'blank': 'True'}),
             'feature_row': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
             'feature_type': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
-            'notification': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignments'", 'to': "orm['targetshare.Notification']"}),
             'notification_assignment_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'notification_user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignments'", 'to': "orm['targetshare.NotificationUser']"}),
             'random_assign': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'})
         },
         'targetshare.notificationevent': {
@@ -504,9 +512,18 @@ class Migration(SchemaMigration):
             'event_datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'db_column': "'type'"}),
             'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
-            'notification': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'to': "orm['targetshare.Notification']"}),
             'notification_event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'notification_user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'to': "orm['targetshare.NotificationUser']"}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
+        },
+        'targetshare.notificationuser': {
+            'Meta': {'object_name': 'NotificationUser', 'db_table': "'notification_users'"},
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'notification': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Notification']"}),
+            'notification_user_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '128', 'db_index': 'True'})
         },
         'targetshare.propensitymodel': {
             'Meta': {'object_name': 'PropensityModel', 'db_table': "'propensity_models'"},

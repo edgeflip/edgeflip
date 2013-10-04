@@ -7,9 +7,6 @@ class Notification(models.Model):
     notification_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign')
     content = models.ForeignKey('ClientContent')
-    uuid = models.CharField(max_length=128, db_index=True)
-    app_id = models.BigIntegerField(db_column='appid')
-    fbid = models.BigIntegerField(null=True, blank=True)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -17,14 +14,33 @@ class Notification(models.Model):
         app_label = 'targetshare'
         db_table = 'notifications'
 
+
+class NotificationUser(models.Model):
+
+    notification_user_id = models.AutoField(primary_key=True)
+    notification = models.ForeignKey('Notification')
+    uuid = models.CharField(max_length=128, db_index=True)
+    fbid = models.BigIntegerField(null=True, blank=True)
+    updated = models.DateTimeField(auto_now=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta(object):
+        app_label = 'targetshare'
+        db_table = 'notification_users'
+
+    @property
+    def app_id(self):
+        return self.campaign.client.fb_app_id
+
     def __unicode__(self):
-        return u"{} [{}]".format(self.uuid, self.app_id)
+        return u"{}".format(self.uuid)
 
 
 class NotificationAssignment(models.Model):
 
     notification_assignment_id = models.AutoField(primary_key=True)
-    notification = models.ForeignKey('Notification', related_name='assignments')
+    notification_user = models.ForeignKey(
+        'NotificationUser', related_name='assignments')
     campaign = models.ForeignKey('Campaign', null=True, blank=True)
     content = models.ForeignKey('ClientContent', null=True, blank=True)
     feature_type = models.CharField(max_length=128, blank=True)
@@ -42,7 +58,8 @@ class NotificationAssignment(models.Model):
 class NotificationEvent(models.Model):
 
     notification_event_id = models.AutoField(primary_key=True)
-    notification = models.ForeignKey('Notification', related_name='events')
+    notification_user = models.ForeignKey(
+        'NotificationUser', related_name='events')
     event_type = models.CharField(max_length=64, db_column='type')
     campaign = models.ForeignKey('Campaign', null=True)
     client_content = models.ForeignKey('ClientContent', db_column='content_id', null=True)

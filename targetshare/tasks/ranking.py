@@ -4,6 +4,7 @@ from datetime import timedelta
 import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.db.models.loading import get_model
 
 from targetshare import (
     database_compat as database,
@@ -70,7 +71,8 @@ def _write_event(visit_id, notification, **kwargs):
 
 @celery.task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
-                      fallbackCount=0, already_picked=None, faces_email=False):
+                      fallbackCount=0, already_picked=None,
+                      visit_type='targetshare.Visit', s3_match=False):
     ''' Performs the filtering that web.sharing.applyCampaign formerly handled
     in the past.
 
@@ -79,6 +81,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
 
+    app, model_name = visit_type.split('.')
+    visit = get_model(app, model_name).objects.get(pk=visit_id)
     client = models.Client.objects.get(campaigns__campaign_id=campaignId)
     already_picked = already_picked or models.datastructs.TieredEdges()
 
@@ -118,8 +122,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     ).values_list('filter_id', 'rand_cdf'), key=lambda t: t[1])
     utils.check_cdf(filter_exp_tupes)
     global_filter_id = utils.rand_assign(filter_exp_tupes)
-    _write_assignment(
-        visit_id, faces_email, campaign_id=campaignId,
+    visit.assignments.create(
+        campaign_id=campaignId,
         content_id=contentId, feature_type='filter_id',
         feature_row=global_filter_id, random_assign=True,
         chosen_from_table='campaign_global_filters',
@@ -139,8 +143,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         (r.choice_set_id, r.rand_cdf) for r in choice_set_recs
     ]
     choice_set_id = utils.rand_assign(choice_set_exp_tupes)
-    _write_assignment(
-        visit_id, faces_email, campaign_id=campaignId, content_id=contentId,
+    visit.assignments.create(
+        campaign_id=campaignId, content_id=contentId,
         feature_type='choice_set_id', feature_row=choice_set_id,
         random_assign=True, chosen_from_table='campaign_choice_sets',
         chosen_from_rows=[r.pk for r in choice_set_recs]
@@ -156,7 +160,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         bestCSFilter = choice_set.choose_best_filter(
             filtered_edges, useGeneric=allow_generic[0],
             minFriends=minFriends, eligibleProportion=1.0,
-            s3_match=faces_email
+            s3_match=s3_match
         )
 
         choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
@@ -178,16 +182,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         if bestCSFilter[0] is None:
             # We got generic...
             logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
-            _write_assignment(
-                visit_id, faces_email, campaign_id=campaignId,
+            visit.assignments.create(
+                campaign_id=campaignId,
                 content_id=contentId, feature_type='generic choice set filter',
                 feature_row=None, random_assign=False,
                 chosen_from_table='choice_set_filters',
                 chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
             )
         else:
-            _write_assignment(
-                visit_id, faces_email, campaign_id=campaignId,
+            visit.assignments.create(
+                campaign_id=campaignId,
                 content_id=contentId, feature_type='filter_id',
                 feature_row=bestCSFilter[0].filter_id, random_assign=False,
                 chosen_from_table='choice_set_filters',
@@ -200,16 +204,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # We still have slots to fill and can fallback to do so
 
         # write "fallback" assignments to DB
-        _write_assignment(
-            visit_id, faces_email, campaign_id=campaignId,
+        visit.assignments.create(
+            campaign_id=campaignId,
             content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk, random_assign=False,
             chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
-        _write_assignment(
-            visit_id, faces_email, campaign_id=campaignId,
+        visit.assignments.create(
+            campaign_id=campaignId,
             content_id=contentId,
             feature_type='cascading fallback content',
             feature_row=fallback_content_id, random_assign=False,
@@ -249,24 +253,24 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
                 campaignId,
                 contentId
             )
-            _write_event(
-                visit_id, faces_email, campaign_id=campaignId,
+            visit.events.create(
+                campaign_id=campaignId,
                 client_content_id=contentId, content=thisContent,
                 event_type='no_friends_error'
             )
             return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
-        _write_assignment(
-            visit_id, faces_email, campaign_id=campaignId,
+        visit.assignments.create(
+            campaign_id=campaignId,
             content_id=contentId,
             feature_type='cascading fallback campaign',
             feature_row=properties.fallback_campaign.pk, random_assign=False,
             chosen_from_table='campaign_properties',
             chosen_from_rows=[properties.pk]
         )
-        _write_assignment(
-            visit_id, faces_email, campaign_id=campaignId,
+        visit.assignments.create(
+            campaign_id=campaignId,
             content_id=contentId,
             feature_type='fallback campaign',
             feature_row=fallback_content_id, random_assign=False,

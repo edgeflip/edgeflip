@@ -1,7 +1,6 @@
 import csv
 import logging
 import time
-import urllib
 import hashlib
 from decimal import Decimal
 from optparse import make_option
@@ -67,13 +66,10 @@ class Command(BaseCommand):
         self.filename = output if output else 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
         self.task_list = {}
         self.edge_collection = {}
-
-        if purge:
-            relational.Notification.objects.filter(
-                campaign=self.campaign,
-                content=self.content,
-                app_id=self.campaign.client.fb_app_id
-            ).delete()
+        self.notification = relational.Notification.objects.create(
+            campaign=self.campaign,
+            content=self.content
+        )
 
         # Process information
         self._crawl_and_filter()
@@ -91,22 +87,23 @@ class Command(BaseCommand):
         } for x in self.client.userclients.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         for ut in user_tokens:
-            hash_str = hashlib.md5('{}{}{}'.format(
-                ut['fbid'], self.campaign.pk, self.content.pk
+            hash_str = hashlib.md5('{}{}{}{}'.format(
+                ut['fbid'], self.campaign.pk,
+                self.content.pk, self.notification.pk
             )).hexdigest()
-            notification, created = relational.Notification.objects.get_or_create(
-                uuid=hash_str, fbid=ut['fbid'], campaign=self.campaign,
-                content=self.content, app_id=self.client.fb_app_id,
+            notification_user, created = relational.NotificationUser.objects.get_or_create(
+                uuid=hash_str, fbid=ut['fbid'], notification=self.notification
             )
-            self.task_list[notification.uuid] = ranking.proximity_rank_three(
+            self.task_list[notification_user.uuid] = ranking.proximity_rank_three(
                 mock_mode=self.mock,
                 fbid=ut['fbid'],
                 token=ut,
-                visit_id=notification.pk,
+                visit_id=notification_user.pk,
                 campaignId=self.campaign.pk,
                 contentId=self.content.pk,
                 numFace=self.num_face,
-                faces_email=True
+                visit_type='targetshare.NotificationUser',
+                s3_match=True
             )
         logger.info('Crawling %s users', str(len(self.task_list)))
 
@@ -154,12 +151,12 @@ class Command(BaseCommand):
         return table_str
 
     def _write_events(self, uuid, collection):
-        notification = relational.Notification.objects.get(uuid=uuid)
+        notification_user = relational.NotificationUser.objects.get(uuid=uuid)
         events = []
         for edge in collection[:self.num_face]:
             events.append(
                 relational.NotificationEvent(
-                    notification_id=notification.pk,
+                    notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
                     friend_fbid=edge.secondary.id,
@@ -170,7 +167,7 @@ class Command(BaseCommand):
         for edge in collection[self.num_face:]:
             events.append(
                 relational.NotificationEvent(
-                    notification_id=notification.pk,
+                    notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
                     friend_fbid=edge.secondary.id,

@@ -651,8 +651,10 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_faces_email_friends(self):
         ''' Test for the faces_email_friends endpoint '''
         notification = models.Notification.objects.create(
-            campaign_id=1, content_id=1, fbid=100, uuid='100',
-            app_id=self.test_client.fb_app_id,
+            campaign_id=1, content_id=1
+        )
+        notification_user = models.NotificationUser.objects.create(
+            notification=notification, fbid=100, uuid='100',
         )
         prim_user = models.User(
             fbid=100, fname='Primary', lname='User',
@@ -679,11 +681,11 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             print event_type
             models.NotificationEvent.objects.create(
                 campaign_id=1, client_content_id=1, friend_fbid=x,
-                event_type=event_type, notification=notification
+                event_type=event_type, notification_user=notification_user
             )
 
         response = self.client.get(
-            reverse('faces-email', args=[notification.uuid])
+            reverse('faces-email', args=[notification_user.uuid])
         )
         self.assertStatusCode(response, 200)
         self.assertEqual(

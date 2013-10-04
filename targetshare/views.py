@@ -573,23 +573,23 @@ def faces_email_friends(request, notification_uuid):
     friends passed in via GET params.
     '''
     # Campaign setup
-    notification = get_object_or_404(
-        models.Notification,
+    notification_user = get_object_or_404(
+        models.NotificationUser,
         uuid=notification_uuid
     )
-    campaign = notification.campaign
-    content = notification.content
+    campaign = notification_user.notification.campaign
+    content = notification_user.notification.content
     client = campaign.client
-    request.visit = _get_visit(request, client.fb_app_id, notification.fbid, {
+    request.visit = _get_visit(request, client.fb_app_id, notification_user.fbid, {
         'campaign': campaign,
         'client_content': content,
     })
 
     # Gather friend data
-    num_face = notification.events.filter(event_type='shown').count()
-    user_obj = models.User.items.get_item(fbid=notification.fbid)
+    num_face = notification_user.events.filter(event_type='shown').count()
+    user_obj = models.User.items.get_item(fbid=notification_user.fbid)
     friend_objs = models.User.items.batch_get(
-        keys=[{'fbid': x.friend_fbid} for x in notification.events.filter(
+        keys=[{'fbid': x.friend_fbid} for x in notification_user.events.filter(
             event_type__in=('generated', 'shown'))]
     )
 
@@ -656,7 +656,7 @@ def faces_email_friends(request, notification_uuid):
         fb_params['fb_object_url']
     )
     events = []
-    for event in notification.events.all():
+    for event in notification_user.events.all():
         events.append(
             models.Event(
                 visit=request.visit,
@@ -669,7 +669,7 @@ def faces_email_friends(request, notification_uuid):
         )
 
     assignments = []
-    for assignment in notification.assignments.all():
+    for assignment in notification_user.assignments.all():
         assignments.append(
             models.Assignment(
                 visit=request.visit,
