@@ -62,7 +62,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             setattr(command, method, Mock())
 
         command.handle(
-            1, 1, num_face=4, output='testing.csv', mock=True, purge=True,
+            1, 1, num_face=4, output='testing.csv', mock=True
         )
         for count, method in enumerate(methods_to_mock):
             assert getattr(command, method).called
@@ -73,6 +73,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         assert self.command.mock
         self.assertEqual(command.num_face, 4)
         self.assertEqual(command.filename, 'testing.csv')
+        # 1 we created in setUp, the other the command did
         self.assertEqual(relational.Notification.objects.count(), 2)
 
     @patch('targetshare.management.commands.faces_email.ranking')

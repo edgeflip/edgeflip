@@ -51,24 +51,6 @@ def px3_crawl(mockMode, fbid, token):
     return edgesRanked
 
 
-def _write_assignment(visit_id, notification, **kwargs):
-    if notification:
-        visit = models.Notification.objects.get(pk=visit_id)
-    else:
-        visit = models.Visit.objects.get(pk=visit_id)
-
-    visit.assignments.create(**kwargs)
-
-
-def _write_event(visit_id, notification, **kwargs):
-    if notification:
-        visit = models.Notification.objects.get(pk=visit_id)
-    else:
-        visit = models.Visit.objects.get(pk=visit_id)
-
-    visit.events.create(**kwargs)
-
-
 @celery.task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
                       fallbackCount=0, already_picked=None,

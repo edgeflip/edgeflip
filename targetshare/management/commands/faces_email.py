@@ -43,18 +43,9 @@ class Command(BaseCommand):
             help='Name of file to dump CSV contents into',
             dest='output',
         ),
-        make_option(
-            '-p', '--purge',
-            help='Purges previous runs matching the same criteria as the '
-                 'current run. Defaults to False',
-            default=False,
-            action='store_true',
-            dest='purge'
-        ),
     )
 
-    def handle(self, campaign_id, content_id, mock, num_face, output, purge,
-               **options):
+    def handle(self, campaign_id, content_id, mock, num_face, output, **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
