@@ -10,7 +10,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
 
         # Changing field 'FilterFeature.feature_type'
-        db.alter_column('filter_features', 'feature_type_id', self.gf('django.db.models.fields.related.ForeignKey')(default=1, to=orm['targetshare.FilterFeatureType']))
+        db.alter_column('filter_features', 'feature_type_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FilterFeatureType']))
 
     def backwards(self, orm):
 
