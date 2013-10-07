@@ -1,19 +1,16 @@
 import logging
 from decimal import Decimal
 from optparse import make_option
-from datetime import datetime, timedelta
 
 import us
 import requests
-
-import boto
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from civis_matcher import matcher
 
-from targetshare import facebook
+from targetshare.integration.facebook import client as facebook
 from targetshare.models import dynamo, relational
 
 logger = logging.getLogger(__name__)
@@ -44,15 +41,8 @@ class Command(BaseCommand):
         # could take some load off of Civis servers. For the time being,
         # we're holding off.
         self.client = relational.Client.objects.get(pk=client_id)
-        self.cache_age = datetime.now() - timedelta(days=days)
-        self.s3_conn = boto.connect_s3(
-            settings.AWS.AWS_ACCESS_KEY_ID,
-            settings.AWS.AWS_SECRET_ACCESS_KEY
-        )
-        logger.info(
-            'Start cache seed with bucket %s, client %s.',
-            bucket, self.client.name
-        )
+        self.bucket = bucket
+        self.days = days
         logger.info('Performing matches')
         self._perform_matching(self._retrieve_users())
         logger.info('Cache successfully seeded')
@@ -112,7 +102,8 @@ class Command(BaseCommand):
             try:
                 cm = matcher.S3CivisMatcher(
                     settings.AWS.AWS_ACCESS_KEY_ID,
-                    settings.AWS.AWS_SECRET_ACCESS_KEY
+                    settings.AWS.AWS_SECRET_ACCESS_KEY,
+                    bucket=self.bucket, cache_expiry_days=self.days
                 )
                 results = cm.bulk_match(people_dict, raw=True)
             except requests.RequestException:

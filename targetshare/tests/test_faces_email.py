@@ -6,7 +6,7 @@ from mock import Mock, patch
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
-from targetshare import mock_facebook
+from targetshare.integration.facebook import mock_client
 from targetshare.models import dynamo, relational
 from targetshare.management.commands import faces_email
 
@@ -40,7 +40,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.task_list = {}
         self.command.edge_collection = {}
         self.notification = relational.Notification.objects.create(
-            campaign_id=1, content_id=1
+            campaign_id=1, client_content_id=1
         )
         self.command.notification = self.notification
         self.notification_user = relational.NotificationUser.objects.create(
@@ -129,7 +129,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_facebook.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
         }
         self.command._build_csv()
         assert writer_mock.writerow.called

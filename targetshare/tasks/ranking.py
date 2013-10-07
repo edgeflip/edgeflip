@@ -101,13 +101,13 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 
     # Get filter experiments, do assignment (and write DB)
     global_filter = campaign.campaignglobalfilters.random_assign()
-    models.relational.Assignment.make_managed(
-        visit=visit,
-        campaign=campaign,
-        content=client_content,
-        assignment=global_filter,
-        manager=campaign.campaignglobalfilters,
-    ).save()
+    visit.assignments.create(
+        campaign_id=campaignId,
+        content_id=contentId, feature_type='filter_id',
+        feature_row=global_filter.pk, random_assign=True,
+        chosen_from_table='campaign_global_filters',
+        chosen_from_rows=[x.pk for x in campaign.campaignglobalfilters.all()]
+    )
 
     # apply filter
     filtered_edges = global_filter.filter_edges_by_sec(edges_eligible)
@@ -115,13 +115,12 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     # Get choice set experiments, do assignment (and write DB)
     campaign_choice_sets = campaign.campaignchoicesets.all()
     choice_set = campaign_choice_sets.random_assign()
-    models.relational.Assignment.make_managed(
-        visit=visit,
-        campaign=campaign,
-        content=client_content,
-        assignment=choice_set,
-        options=campaign_choice_sets,
-    ).save()
+    visit.assignments.create(
+        campaign_id=campaignId, content_id=contentId,
+        feature_type='choice_set_id', feature_row=choice_set.pk,
+        random_assign=True, chosen_from_table='campaign_choice_sets',
+        chosen_from_rows=[x.pk for x in campaign_choice_sets]
+    )
     allow_generic = {
         option.choice_set.pk: [option.allow_generic, option.generic_url_slug]
         for option in campaign_choice_sets

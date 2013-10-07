@@ -6,7 +6,7 @@ class Notification(models.Model):
 
     notification_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign')
-    content = models.ForeignKey('ClientContent')
+    client_content = models.ForeignKey('ClientContent')
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
@@ -20,7 +20,7 @@ class NotificationUser(models.Model):
     notification_user_id = models.AutoField(primary_key=True)
     notification = models.ForeignKey('Notification')
     uuid = models.CharField(max_length=128, db_index=True)
-    fbid = models.BigIntegerField(null=True, blank=True)
+    fbid = models.BigIntegerField()
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 

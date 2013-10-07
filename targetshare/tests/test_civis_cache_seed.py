@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from mock import patch, Mock
 
 from targetshare import models
-from targetshare import mock_facebook
+from targetshare.integration.facebook import mock_client
 from targetshare.management.commands import civis_cache_seed
 
 from . import EdgeFlipTestCase
@@ -17,7 +17,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
     def setUp(self):
         super(TestCivisCacheSeed, self).setUp()
         self.orig_facebook = civis_cache_seed.facebook
-        civis_cache_seed.facebook = mock_facebook
+        civis_cache_seed.facebook = mock_client
 
         self.command = civis_cache_seed.Command()
         self.command.client = models.Client.objects.get()
@@ -85,8 +85,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         civis_cache_seed.facebook = self.orig_facebook
         super(TestCivisCacheSeed, self).tearDown()
 
-    @patch('targetshare.management.commands.civis_cache_seed.boto')
-    def test_handle_method(self, boto_mock):
+    def test_handle_method(self):
         ''' Test the ensures the handle method behaves appropriately '''
         methods_to_mock = [
             '_retrieve_users',
@@ -112,8 +111,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
 
     @patch('civis_matcher.matcher.requests.post')
     @patch('civis_matcher.matcher.S3CivisMatcher._get_bucket')
-    @patch('civis_matcher.matcher.boto')
-    def test_perform_matching(self, boto_mock, get_bucket_mock, requests_mock):
+    def test_perform_matching(self, get_bucket_mock, requests_mock):
         ''' Tests the _perform_matching method '''
         requests_mock.return_value = Mock(
             status_code=200,
@@ -123,6 +121,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         bucket_mock = Mock()
         bucket_mock.get_key.return_value = None
         get_bucket_mock.return_value = bucket_mock
+        self.command.days = 30
         users = self.command._retrieve_users()
         matches = self.command._perform_matching(users)
         assert matches['123456']

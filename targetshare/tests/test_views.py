@@ -687,7 +687,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
     def test_faces_email_friends(self):
         ''' Test for the faces_email_friends endpoint '''
         notification = models.Notification.objects.create(
-            campaign_id=1, content_id=1
+            campaign_id=1, client_content_id=1
         )
         notification_user = models.NotificationUser.objects.create(
             notification=notification, fbid=100, uuid='100',

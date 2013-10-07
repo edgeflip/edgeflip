@@ -59,7 +59,7 @@ class Command(BaseCommand):
         self.edge_collection = {}
         self.notification = relational.Notification.objects.create(
             campaign=self.campaign,
-            content=self.content
+            client_content=self.content
         )
 
         # Process information

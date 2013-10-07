@@ -558,7 +558,7 @@ def faces_email_friends(request, notification_uuid):
         uuid=notification_uuid
     )
     campaign = notification_user.notification.campaign
-    content = notification_user.notification.content
+    content = notification_user.notification.client_content
     client = campaign.client
     request.visit = _get_visit(request, client.fb_app_id, notification_user.fbid, {
         'campaign': campaign,
@@ -589,28 +589,26 @@ def faces_email_friends(request, notification_uuid):
     )
 
     # FBObj setup
-    fb_object_recs = campaign.campaignfbobjects_set.all()
-    fb_obj_exp_tupes = [(r.fb_object_id, r.rand_cdf) for r in fb_object_recs]
-    fb_object_id = int(utils.rand_assign(fb_obj_exp_tupes))
+    fb_object = campaign.campaignfbobjects.for_datetime().random_assign()
     db.delayed_save.delay(
-        models.Assignment(
+        models.relational.Assignment.make_managed(
             visit=request.visit,
             campaign=campaign,
             content=content,
-            feature_type='fb_object_id',
-            feature_row=fb_object_id,
-            random_assign=True,
-            chosen_from_table='campaign_fb_objects',
-            chosen_from_rows=[r.pk for r in fb_object_recs],
+            assignment=fb_object,
+            manager=campaign.campaignfbobjects,
         )
     )
-    fb_object = models.FBObject.objects.get(pk=fb_object_id)
     fb_attrs = fb_object.fbobjectattribute_set.get()
-    fb_object_url = 'https://%s%s' % (
+    url_params = urllib.urlencode({
+        'campaign_id': campaign.pk
+    })
+    fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
-            'fb_object_id': fb_object_id, 'content_id': content.pk
+            'fb_object_id': fb_object.pk, 'content_id': content.pk
         }),
+        url_params
     )
 
     fb_params = {
@@ -670,7 +668,7 @@ def faces_email_friends(request, notification_uuid):
         'msg_params': msg_params,
         'campaign': campaign,
         'content': content,
-        'properties': campaign.campaignproperties_set.get(),
+        'properties': campaign.campaignproperties.get(),
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
         'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
         'all_friends': all_friends,
