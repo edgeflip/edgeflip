@@ -24,7 +24,7 @@
     </STYLE>
 {% endblock %}
 {% block js_inline %}
-    <SCRIPT>
+    <script type="text/javascript">
 
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
@@ -129,15 +129,12 @@
     <script type="text/javascript">
         
         window.fbAsyncInit = function() {
-
-
             FB.init({ appId: '{{ fb_params.fb_app_id }}', //change the appId to your appId
                 status: true, 
                 cookie: true,
                 xfbml: true,
                 oauth: true});
-
-        }; // fbAsyncInit
+        };
 
         (function() {
             var e = document.createElement('script'); e.async = true;
