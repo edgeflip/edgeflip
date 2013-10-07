@@ -1,6 +1,8 @@
 from django.db import models
 from django.utils import timezone
 
+from . import manager
+
 
 class Event(models.Model):
 
@@ -15,6 +17,8 @@ class Event(models.Model):
     event_datetime = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
+
+    objects = manager.Manager()
 
     class Meta(object):
         app_label = 'targetshare'

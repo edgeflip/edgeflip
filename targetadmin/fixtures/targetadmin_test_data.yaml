@@ -13,3 +13,23 @@
         username: tester
     model: auth.user
     pk: 1
+-   fields: {code: gender, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Gender, sort_order: 0}
+    model: targetshare.filterfeaturetype
+    pk: 1
+-   fields: {code: age, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Age, sort_order: 1}
+    model: targetshare.filterfeaturetype
+    pk: 2
+-   fields: {code: state, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: State, sort_order: 2}
+    model: targetshare.filterfeaturetype
+    pk: 3
+-   fields: {code: city, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: City, sort_order: 3}
+    model: targetshare.filterfeaturetype
+    pk: 4
+-   fields: {code: matching, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Matching, sort_order: 4}
+    model: targetshare.filterfeaturetype
+    pk: 5

@@ -1,6 +1,5 @@
 import logging
 
-from django.conf import settings
 from django.db import models
 
 from targetshare import utils
@@ -45,7 +44,7 @@ class Filter(models.Model):
         if not self.filterfeatures.exists():
             return edges
         for f in self.filterfeatures.all():
-            if f.feature in settings.FILTERING.civis_filters:
+            if f.feature_type.code == f.feature_type.MATCHING:
                 if s3_match:
                     utils.civis_s3_filter(
                         edges, f.feature, f.operator, f.value

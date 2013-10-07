@@ -52,7 +52,7 @@ def filter_edit(request, client_pk, pk):
     ff_set = modelformset_factory(
         relational.FilterFeature,
         extra=extra_forms,
-        exclude=('end_dt', 'value_type')
+        exclude=('end_dt', 'value_type', 'feature_type')
     )
     formset = ff_set(
         queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
