@@ -409,11 +409,9 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         ''' Testing views.frame_faces '''
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
         client = models.Client.objects.get(campaigns__pk=1)
+        campaign = models.Campaign.objects.get(pk=1)
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            response.context['campaign'],
-            models.Campaign.objects.get(pk=1)
-        )
+        self.assertEqual(response.context['campaign'], campaign)
         self.assertEqual(
             response.context['content'],
             models.ClientContent.objects.get(pk=1)
@@ -425,8 +423,26 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
                 'fb_app_id': client.fb_app_id
             }
         )
+        properties = response.context['properties']
+        campaign_properties = campaign.campaignproperties.get()
+        self.assertEqual(properties['client_thanks_url'],
+                         campaign_properties.client_thanks_url)
+        self.assertEqual(properties['client_error_url'],
+                         campaign_properties.client_error_url)
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
+
+    def test_frame_faces_configurable_urls(self):
+        success_url = '//disney.com/'
+        error_url = 'http://www.google.com/foo/bar'
+        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+            'efsuccessurl': success_url,
+            'eferrorurl': error_url,
+        })
+        self.assertStatusCode(response, 200)
+        properties = response.context['properties']
+        self.assertEqual(properties['client_thanks_url'], success_url)
+        self.assertEqual(properties['client_error_url'], error_url)
 
     def test_frame_faces_test_mode_bad_request(self):
         ''' Tests views.frame_faces with test_mode enabled, but without
