@@ -10,22 +10,38 @@ class Migration(DataMigration):
                 'client_content_id', flat=True)
         for content_id in content_ids:
             campaign_ids = orm.Event.objects.filter(
-                client_content_id=content_id
+                client_content_id=content_id,
+                campaign__isnull=False
             ).distinct().values_list('campaign_id', flat=True)
             campaigns = orm.Campaign.objects.filter(
                 pk__in=campaign_ids, fallbackcampaign_properties=None
             )
+            if not campaigns.exists():
+                # We have contents paired/mixed with campaigns that are
+                # fallbacks.
+                campaigns = orm.Campaign.objects.filter(
+                    pk__in=campaign_ids
+                )
             if campaigns.count() > 1:
                 print 'Found %s campaigns for content_id %s. Campaigns: %s' % (
                     campaigns.count(), content_id, [x.pk for x in campaigns]
                 )
-            else:
+            elif campaigns.exists():
                 campaign = campaigns.get()
-                orm.Event.objects.filter(
+                event_count = 0
+                for event in orm.Event.objects.filter(
                     event_type='clickback',
                     client_content_id=content_id,
                     campaign_id=None
-                ).update(campaign_id=campaign.pk)
+                ):
+                    event.campaign = campaign
+                    event.save()
+                    event_count += 1
+                print "Updated %s events for content %s to campaign %s" % (
+                    event_count, content_id, campaign.pk
+                )
+            else:
+                print 'No campaigns found for content id %s' % content_id
 
     def backwards(self, orm):
         "Write your backwards methods here."
