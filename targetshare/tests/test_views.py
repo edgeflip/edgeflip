@@ -457,14 +457,17 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert not models.Event.objects.exists()
         response = self.client.get(
             reverse('objects', args=[1, 1]),
-            data={'fb_action_ids': 1}
+            data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(activity_id=1).exists()
         assert response.context['fb_params']
         assert response.context['content']
         assert response.context['redirect_url']
-        assert models.Event.objects.filter(event_type='clickback').exists()
+        assert models.Event.objects.filter(
+            event_type='clickback',
+            campaign_id=1
+        ).exists()
 
     def test_suppress(self):
         ''' Test suppressing a user that was recommended '''

@@ -3,6 +3,7 @@ import json
 import logging
 import os.path
 import random
+import urllib
 
 import celery
 
@@ -451,13 +452,17 @@ def faces(request):
             )
         )
 
+    url_params = urllib.urlencode({
+        'cssslug': choice_set_slug,
+        'campaign_id': campaign_id
+    })
     fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
-    fb_object_url = 'https://%s%s?cssslug=%s' % (
+    fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object.pk, 'content_id': content.pk
         }),
-        choice_set_slug
+        url_params
     )
     fb_params = {
         'fb_action_type': fb_attrs.og_action,
@@ -548,18 +553,23 @@ def objects(request, fb_object_id, content_id):
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     choice_set_slug = request.GET.get('cssslug', '')
+    campaign_id = request.GET.get('campaign_id', '')
     action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
     action_id = int(action_id) if action_id else None
 
     if not content.url:
         return http.HttpResponseNotFound()
 
-    fb_object_url = 'https://%s%s?cssslug=%s' % (
+    url_params = urllib.urlencode({
+        'cssslug': choice_set_slug,
+        'campaign_id': campaign_id
+    })
+    fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
             'fb_object_id': fb_object_id, 'content_id': content_id
         }),
-        choice_set_slug
+        url_params
     )
     obj_params = {
         'page_title': fb_attrs.page_title,
@@ -590,6 +600,7 @@ def objects(request, fb_object_id, content_id):
                 content=content_str,
                 activity_id=action_id,
                 event_type='clickback',
+                campaign_id=campaign_id,
             )
         )
 
