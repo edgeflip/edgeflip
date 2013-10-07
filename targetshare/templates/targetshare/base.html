@@ -25,10 +25,12 @@
                         if (query[0] === '?')
                             query = query.substring(1);
                         query.split('&').map(function(pair) {
-                            var keyvalue = pair.split('=', 2).map(function(part) {
-                                return decodeURIComponent(part);
-                            });
-                            result[keyvalue[0]] = keyvalue[1];
+                            if (pair) {
+                                var keyvalue = pair.split('=', 2).map(function(part) {
+                                    return decodeURIComponent(part);
+                                });
+                                result[keyvalue[0]] = keyvalue[1];
+                            }
                         });
                         return result;
                     }),

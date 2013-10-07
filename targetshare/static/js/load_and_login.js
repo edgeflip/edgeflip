@@ -96,12 +96,11 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             url: '/faces/',
             dataType: 'json',
             data: params,
-            error: function(jqXHR, textStatus, errorThrown) {
-                // your_friends_div.html('Error pants: ' + textStatus + ' ' + errorThrown);
+            error: function() {
                 your_friends_div.show();
                 progress.hide();
                 clearTimeout(pollingTimer);
-                commError();
+		top.location = errorURL; // set in frame_faces.html
             },
             success: function(data, textStatus, jqXHR) {
                 campaignid = data.campaignid;
@@ -138,9 +137,4 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-}
-
-function commError(){
-    //alert("Sorry - an error occured communicating with Facebook.");
-    top.location = errorURL; // set in frame_faces.html via Jinja
 }

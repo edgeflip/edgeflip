@@ -309,6 +309,17 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         )
     )
 
+    campaign_properties = campaign.campaignproperties.get()
+    properties = {key: value for key, value in vars(campaign_properties).items()
+                  if not key.startswith('_')}
+    for override_key, override_field in [
+        ('efsuccessurl', 'client_thanks_url'),
+        ('eferrorurl', 'client_error_url'),
+    ]:
+        override_value = request.REQUEST.get(override_key)
+        if override_value:
+            properties[override_field] = override_value
+
     return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
@@ -316,7 +327,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         },
         'campaign': campaign,
         'content': content,
-        'properties': campaign.campaignproperties.get(),
+        'properties': properties,
         'client_css': _locate_client_css(client, 'edgeflip_client.css'),
         'client_css_simple': _locate_client_css(client, css_template),
         'test_mode': test_mode,

@@ -86,14 +86,19 @@
                     clearInterval(intervalId);
 
                     var gotoURL = "{{ goto|safe }}";
-		    var sourceURL = LocationQuery.window.efobjsrc;
-                    if (sourceURL) {
-			if (sourceURL === '1')
-				sourceURL = encodeURIComponent(window.top.location.href);
-                        gotoURL += '&efobjsrc=' + sourceURL;
-                    }
+                    var gotoParts = gotoURL.split('?', 2);
+                    var gotoParams = LocationQuery.parse(gotoParts[1] || "");
+                    $.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
+                        var carryThroughValue = LocationQuery.window[this];
+                        if (carryThroughValue)
+                            gotoParams[this] = carryThroughValue;
+                    });
+                    {# Allow efobjsrc to be current document trivially #}
+                    if (gotoParams.efobjsrc === '1')
+                        gotoParams.efobjsrc = encodeURIComponent(window.top.location.href);
+                    gotoURL = gotoParts[0] + LocationQuery.unparse(gotoParams);
+
                     recordEvent('authorized', authedResponse.authResponse.userID, gotoURL, authedResponse.authResponse.accessToken);
-                
                 }
             }, 200 );
 
