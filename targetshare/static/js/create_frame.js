@@ -22,11 +22,12 @@
 		}
 	})();
 
+	// TODO: Use common JavaScript, e.g. in base.html
 	// Collect window URL parameters
 	var urlparams = {};
 	window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
 		// Note -- if our param appears multiple times in the URL, this will only take the last one!
-		urlparams[key] = value;
+		urlparams[decodeURIComponent(key)] = decodeURIComponent(value);
 	});
 
 	// Complete frame_faces URL path from window URL parameters
@@ -38,8 +39,7 @@
 
 	// Carry certain URL parameters through
 	efFrameURL += (function() {
-		// TODO: session id's will eventually migrate to cookies
-		var carryThroughKeys = ['efsid', 'efsrc'];
+		var carryThroughKeys = ['efsrc', 'efobjsrc'];
 		var paramKey, paramValue, queryPairs = [];
 		for (var paramIndex = 0; paramIndex < carryThroughKeys.length; paramIndex++) {
 			paramKey = carryThroughKeys[paramIndex];

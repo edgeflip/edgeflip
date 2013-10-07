@@ -1,8 +1,8 @@
+import base64
 import datetime
-import time
 import logging
 import random
-import base64
+import time
 import urllib
 from Crypto.Cipher import DES
 
@@ -30,31 +30,33 @@ class CDFProbsError(Exception):
     pass
 
 
-def rand_assign(tupes):
-    """takes a set of tuples of (id, cdf probability) and chooses one id randomly"""
+def check_cdf(sequence):
+    """Takes tuples of (id, CDF Probability) and ensures the CDF is well-defined"""
+    probs = sorted(pair[1] for pair in sequence)
+    if min(probs) <= 0:
+        raise CDFProbsError("Zero or negative probabilities detected")
+    if max(probs) != 1.0:
+        raise CDFProbsError("Max probability is not 1.0")
+    if len(probs) != len(set(probs)):
+        raise CDFProbsError("Duplicate values found in CDF")
 
-    tupes = sorted(tupes, key=lambda t: t[1])   # ensure sorted by CDF Probability
-    check_cdf(tupes)
 
+def random_assign(sequence):
+    """Randomly assign an element from a sequence of elements paired with their
+    CDF probabilities.
+
+    """
+    # Ensure sorted by CDF probability:
+    sorted_ = sorted(sequence, key=lambda pair: pair[1])
+    check_cdf(sorted_)
+
+    # Pick out smallest probability greater than or equal to random number:
     rand = random.random()
-
-    # Pick out smallest probability greater than (or equal to) random number
-    for obj_id, prob in tupes:
+    for obj_id, prob in sorted_:
         if prob >= rand:
             return obj_id
 
     raise CDFProbsError("Math must be broken if we got here...")
-
-
-def check_cdf(tupes):
-    """Takes tuples of (id, CDF Probability) and ensures the CDF is well-defined"""
-    probs = sorted(t[1] for t in tupes)
-    if (min(probs) <= 0):
-        raise CDFProbsError("Zero or negative probabilities detected")
-    if (max(probs) != 1.0):
-        raise CDFProbsError("Max probability is not 1.0")
-    if (len(probs) != len(set(probs))):
-        raise CDFProbsError("Duplicate values found in CDF")
 
 
 def encodeDES(message):
@@ -116,11 +118,6 @@ def civis_filter(edges, feature, operator, score_value):
             valid_ids.append(str(key))
 
     return [x for x in edges if str(x.secondary.id) in valid_ids]
-
-
-class TooFewFriendsError(Exception):
-    """Too few friends found in picking best choice set filter"""
-    pass
 
 
 class Timer(object):

@@ -63,22 +63,22 @@ class TestCampaignViews(TestAdminBase):
             response,
             reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
-        properties = campaign.campaignproperties_set.get()
+        properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
 
-        cs = campaign.campaignchoiceset_set.get()
+        cs = campaign.campaignchoicesets.get()
         self.assertEqual(cs.choice_set, choice_set)
 
-        global_filter = campaign.campaignglobalfilter_set.get()
+        global_filter = campaign.campaignglobalfilters.get()
         self.assertEqual(global_filter.filter, filter_obj)
 
         campaign_style = campaign.campaignbuttonstyles.get()
         self.assertEqual(campaign_style.button_style, button_style)
 
-        fb_objs = campaign.campaignfbobjects_set.all()
+        fb_objs = campaign.campaignfbobjects.all()
         self.assertEqual(fb_objs.count(), 1)
 
-        assert campaign.campaigngenericfbobjects_set.exists()
+        assert campaign.campaigngenericfbobjects.exists()
 
     def test_campaign_creation_without_generic_fb_obj(self):
         ''' Test creating a campaign without specifying a generic FB object '''
@@ -113,19 +113,19 @@ class TestCampaignViews(TestAdminBase):
             response,
             reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
-        properties = campaign.campaignproperties_set.get()
+        properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
 
-        cs = campaign.campaignchoiceset_set.get()
+        cs = campaign.campaignchoicesets.get()
         self.assertEqual(cs.choice_set, choice_set)
 
-        global_filter = campaign.campaignglobalfilter_set.get()
+        global_filter = campaign.campaignglobalfilters.get()
         self.assertEqual(global_filter.filter, filter_obj)
 
         campaign_style = campaign.campaignbuttonstyles.get()
         self.assertEqual(campaign_style.button_style, button_style)
 
-        fb_objs = campaign.campaignfbobjects_set.all()
+        fb_objs = campaign.campaignfbobjects.all()
         self.assertEqual(fb_objs.count(), 1)
 
     def test_campaign_creation_genric_fb_obj_error(self):
