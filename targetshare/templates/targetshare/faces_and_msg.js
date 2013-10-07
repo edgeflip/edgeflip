@@ -396,8 +396,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
         newid: id,
         fname: fname,
         lname: lname,
-        sessionid: sessionid,    // global session id was pulled in from query string above
-        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
+        campaignid: campaignid, // campaignid and contentid set in frame_faces.html
         contentid: contentid
     };
 
@@ -422,13 +421,9 @@ function friendHTML(oldid, id, fname, lname, div_id) {
                 // no new friend coming in (otherwise, a select all will still add this friend...)
                 $(div_id).remove();
             }
-            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-            sessionid = header_efsid || sessionid;
         }
     });
 }
-
-
 
 
 /* hits facebook API */
@@ -481,7 +476,7 @@ function doShare() {
                 //alert('Error occured ' + response.error.message);
                 //console.log('Error occured ' + response.error.message);
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
-                recordEvent('share_fail', response.error);
+                recordEvent('share_fail', {errorMsg: response.error});
                 alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                 top.location = errorURL; // set in frame_faces.html via Jinja
             } else {
@@ -493,73 +488,40 @@ function doShare() {
     );
 }
 
-/* records share event on edgeflip servers; redirects user to thank you page */
 function recordShare(actionid, shareMsg, recips) {
-    var new_html;
-    var userid = myfbid; // myfbid should get set globablly upon login/auth
-
-    var params = {
-        userid: userid,
+    /* records share event on edgeflip servers; redirects user to thank you page */
+    recordEvent('shared', {
         actionid: actionid,
-        appid: FB_APP_ID,
-        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
         friends: recips,
-        eventType: 'shared',
-        sessionid: sessionid,    // global session id was pulled in from query string above
-        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid,
-        shareMsg: shareMsg
-    };
-
-    $.ajax({
-        type: "POST",
-        url: '/record_event/',
-        dataType: 'html',
-        data: params,
-        error: function(jqXHR, textStatus, errorThrown) {
-            // Even if recording the event on our servers failed, we should send them on their way...
-            top.location = thanksURL; // set in frame_faces.html via Jinja
-        },
-        success: function(data, textStatus, jqXHR) {
-            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-            sessionid = header_efsid || sessionid;
-            top.location = thanksURL; // set in frame_faces.html via Jinja
+        shareMsg: shareMsg,
+        complete: function() {
+            top.location = thanksURL; // set in frame_faces.html
         }
     });
-
 }
 
-// record events other than the share (so, no redirect).
-// should obviously combine with above at some point, but
-// just want to have something working now...
-function recordEvent(eventType, errorMsg) {
-    var userid = myfbid;
-
-    var params = {
-        userid: userid,
-        appid: FB_APP_ID,
-        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-        eventType: eventType,
-        sessionid: sessionid,   // global session id was pulled in from query string above
-        campaignid: campaignid, // similarly, campaignid and contentid pulled into frame_faces.html from jinja
-        contentid: contentid,
-        errorMsg: errorMsg
-    };
-
+function recordEvent(eventType, options) {
+    var options = options || {};
     $.ajax({
         type: "POST",
         url: '/record_event/',
         dataType: 'html',
-        data: params,
-        error: function(jqXHR, textStatus, errorThrown) {
-            // Nothing to do here...
-        },
-        success: function(data, textStatus, jqXHR) {
-            var header_efsid = jqXHR.getResponseHeader('X-EF-SessionID');
-            sessionid = header_efsid || sessionid;
+        data: {
+            userid: myfbid, // set in load_and_login.js
+            campaignid: campaignid, // set in frame_faces.html
+            contentid: contentid, // set in frame_faces.html
+            appid: FB_APP_ID,
+            content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+            eventType: eventType,
+            actionid: options.actionid,
+            friends: options.friends,
+            shareMsg: options.shareMsg,
+            errorMsg: options.errorMsg,
+            error: options.error,
+            success: options.success,
+            complete: options.complete
         }
     });
-
 }
 
 function helperTextDisappear() {
