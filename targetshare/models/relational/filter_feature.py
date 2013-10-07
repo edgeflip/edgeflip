@@ -3,6 +3,29 @@ from django.db import models
 from . import manager
 
 
+class FilterFeatureType(models.Model):
+
+    AGE = 'age'
+    GENDER = 'gender'
+    STATE = 'state'
+    CITY = 'city'
+    MATCHING = 'matching'
+
+    name = models.CharField(max_length=64)
+    code = models.CharField(max_length=64, unique=True)
+    sort_order = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+    modified = models.DateTimeField(auto_now=True)
+
+    def __unicode__(self):
+        return u'{}'.format(self.name)
+
+    class Meta(object):
+        app_label = 'targetshare'
+        db_table = 'filter_feature_types'
+        ordering = ('sort_order',)
+
+
 class FilterFeature(models.Model):
 
     # value_types:
@@ -31,6 +54,11 @@ class FilterFeature(models.Model):
     GOTV_SCORE = 'gotv_score'
     PERSUASION_TURNOUT = 'persuasion_turnout_2013'
 
+    CIVIS_FEATURES = (
+        TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE,
+        PERSUASION_TURNOUT
+    )
+
     FEATURE_CHOICES = (
         (AGE, 'Age'),
         (GENDER, 'Gender'),
@@ -53,6 +81,7 @@ class FilterFeature(models.Model):
     filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True,
                                choices=FEATURE_CHOICES)
+    feature_type = models.ForeignKey('FilterFeatureType')
     operator = models.CharField(max_length=32, blank=True,
                                 choices=OPERATOR_CHOICES)
     value = models.CharField(max_length=1024, blank=True)
@@ -68,6 +97,7 @@ class FilterFeature(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'filter_features'
+        ordering = ('feature_type__sort_order',)
 
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""
@@ -85,7 +115,17 @@ class FilterFeature(models.Model):
         else:
             raise ValueError("Can't filter on type of %s" % self.value)
 
+    def determine_filter_type(self):
+        if self.feature in self.CIVIS_FEATURES:
+            self.feature_type = FilterFeatureType.objects.get(
+                code=FilterFeatureType.MATCHING)
+        else:
+            self.feature_type = FilterFeatureType.objects.get(
+                code=self.feature)
+
     def save(self, *args, **kws):
         if not self.value_type:
             self.determine_value_type()
+        if not self.feature_type_id:
+            self.determine_filter_type()
         return super(FilterFeature, self).save(*args, **kws)

@@ -343,24 +343,44 @@
          is_deleted: false, name: McAuliffe Infographic}
     model: targetshare.fbobject
     pk: 8
+-   fields: {code: gender, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Gender, sort_order: 0}
+    model: targetshare.filterfeaturetype
+    pk: 1
+-   fields: {code: age, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Age, sort_order: 1}
+    model: targetshare.filterfeaturetype
+    pk: 2
+-   fields: {code: state, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: State, sort_order: 2}
+    model: targetshare.filterfeaturetype
+    pk: 3
+-   fields: {code: city, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: City, sort_order: 3}
+    model: targetshare.filterfeaturetype
+    pk: 4
+-   fields: {code: matching, created: !!timestamp '2013-10-01 17:04:53+00:00', modified: !!timestamp '2013-10-01
+            17:04:53+00:00', name: Matching, sort_order: 4}
+    model: targetshare.filterfeaturetype
+    pk: 5
 -   fields: {end_dt: null, feature: state, filter: 2, operator: in, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Illinois||California||Massachusetts||New York, value_type: list}
+            11:38:28', value: Illinois||California||Massachusetts||New York, value_type: list, feature_type: 3}
     model: targetshare.filterfeature
     pk: 1
 -   fields: {end_dt: null, feature: state, filter: 3, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Illinois, value_type: string}
+            11:38:28', value: Illinois, value_type: string, feature_type: 3}
     model: targetshare.filterfeature
     pk: 2
 -   fields: {end_dt: null, feature: state, filter: 4, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Massachusetts, value_type: string}
+            11:38:28', value: Massachusetts, value_type: string, feature_type: 3}
     model: targetshare.filterfeature
     pk: 3
 -   fields: {end_dt: null, feature: state, filter: 5, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: California, value_type: string}
+            11:38:28', value: California, value_type: string, feature_type: 3}
     model: targetshare.filterfeature
     pk: 4
 -   fields: {end_dt: null, feature: state, filter: 6, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: New York, value_type: string}
+            11:38:28', value: New York, value_type: string, feature_type: 3}
     model: targetshare.filterfeature
     pk: 5
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
