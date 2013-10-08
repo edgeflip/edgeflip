@@ -1,54 +1,18 @@
 # -*- coding: utf-8 -*-
-from south.v2 import DataMigration
+from south.db import db
+from south.v2 import SchemaMigration
 
 
-class Migration(DataMigration):
+class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        content_ids = orm.Event.objects.filter(
-            event_type='clickback').distinct().values_list(
-                'client_content_id', flat=True)
-        for content_id in content_ids:
-            campaign_ids = orm.Event.objects.filter(
-                client_content_id=content_id,
-                campaign__isnull=False
-            ).distinct().values_list('campaign_id', flat=True)
-            campaigns = orm.Campaign.objects.filter(
-                pk__in=campaign_ids, fallbackcampaign_properties=None
-            )
-            if not campaigns.exists():
-                # We have contents paired/mixed with campaigns that are
-                # fallbacks.
-                campaigns = orm.Campaign.objects.filter(
-                    pk__in=campaign_ids
-                )
-            if campaigns.count() > 1:
-                print 'Found %s campaigns for content_id %s. Campaigns: %s' % (
-                    campaigns.count(), content_id, [x.pk for x in campaigns]
-                )
-            elif campaigns.exists():
-                campaign = campaigns.get()
-                event_count = 0
-                for event in orm.Event.objects.filter(
-                    event_type='clickback',
-                    client_content_id=content_id,
-                    campaign_id=None
-                ):
-                    event.campaign = campaign
-                    event.save()
-                    event_count += 1
-                print "Updated %s events for content %s to campaign %s" % (
-                    event_count, content_id, campaign.pk
-                )
-            else:
-                print 'No campaigns found for content id %s' % content_id
+        # Adding field 'Client.source_parameter'
+        db.add_column('clients', 'source_parameter',
+                      self.gf('django.db.models.fields.CharField')(default='rs', max_length=15, blank=True))
 
     def backwards(self, orm):
-        "Write your backwards methods here."
-        orm.Event.objects.filter(
-            event_type='clickback',
-            campaign_id__isnull=False
-        ).update(campaign_id=None)
+        # Deleting field 'Client.source_parameter'
+        db.delete_column('clients', 'source_parameter')
 
     models = {
         'targetshare.assignment': {
@@ -283,6 +247,7 @@ class Migration(DataMigration):
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'domain': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'blank': 'True'}),
+            'source_parameter': ('django.db.models.fields.CharField', [], {'default': "'rs'", 'max_length': '15', 'blank': 'True'}),
             'subdomain': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'})
         },
         'targetshare.clientcontent': {
@@ -551,4 +516,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['targetshare']
-    symmetrical = True

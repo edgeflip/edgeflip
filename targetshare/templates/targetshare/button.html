@@ -85,20 +85,17 @@
                 if( hasAuthed ) {
                     clearInterval(intervalId);
 
-                    var gotoURL = "{{ goto|safe }}";
-                    var gotoParts = gotoURL.split('?', 2);
-                    var gotoParams = LocationQuery.parse(gotoParts[1] || "");
+                    var gotoURL = new Url("{{ goto }}");
                     $.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
                         var carryThroughValue = LocationQuery.window[this];
                         if (carryThroughValue)
-                            gotoParams[this] = carryThroughValue;
+                            gotoURL.query[this] = carryThroughValue;
                     });
                     {# Allow efobjsrc to be current document trivially #}
-                    if (gotoParams.efobjsrc === '1')
-                        gotoParams.efobjsrc = encodeURIComponent(window.top.location.href);
-                    gotoURL = gotoParts[0] + LocationQuery.unparse(gotoParams);
+                    if (gotoURL.query.efobjsrc === '1')
+                        gotoURL.query.efobjsrc = encodeURIComponent(window.top.location.href);
 
-                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL, authedResponse.authResponse.accessToken);
+                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL.href(), authedResponse.authResponse.accessToken);
                 }
             }, 200 );
 

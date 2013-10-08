@@ -65,13 +65,23 @@
             var test_mode = false;
         {% endif %}
 
-        //zzz Passing these through "safe" probably isn't ideal since it came
-        //    from something a client entered in the control panel, but right
-        //    now we're setting these parameters in the DB by hand and I don't
-        //    want Jinja trying to escape URL characters. Let's find a better
-        //    solution going forward...
-        var thanksURL = '{{ properties.client_thanks_url|safe }}';
-        var errorURL = '{{ properties.client_error_url|safe }}';
+        var thanksURL = '{{ properties.client_thanks_url }}';
+        var errorURL = '{{ properties.client_error_url }}';
+
+        (function() {
+            {# Add Edgeflip partner parameter to outgoing URLs #}
+            var parameterName = '{{ campaign.client.source_parameter }}';
+            if (!parameterName)
+                return;
+
+            var addEF = function(urlString) {
+                url = new Url(urlString);
+                url.query[parameterName] = 'ef' + campaignid;
+                return url.href();
+            };
+            thanksURL = addEF(thanksURL);
+            errorURL = addEF(errorURL);
+        })();
 
     </script>
     <!-- edgeflip javascript -->
