@@ -51,7 +51,6 @@
 
 {% block js_inline %}
     <script>
-        // Read the session id from the query string if it exists
         var tok = '';
         var appid = "{{ fb_params.fb_app_id }}";
         var campaignid = {{ campaign.pk }};

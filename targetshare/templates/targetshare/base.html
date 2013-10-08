@@ -65,14 +65,10 @@
             {% comment %} Edgeflip js {% endcomment %}
             <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
         {% endblock %}
-
-        {% block js_inline %}
-        {% endblock %}
-
     </head>
     <body>
-        {% comment %} CSRF Stuff {% endcomment %}
-        {% csrf_token %} {% comment %} Ensures the token/cookie is available {% endcomment %}
+	{# CSRF Stuff #}
+        {% csrf_token %} {# Ensures the token/cookie is available #}
         <script type="text/javascript">
             function getCookie(name) {
                 var cookieValue = null;
@@ -103,6 +99,7 @@
                 }
             });
         </script>
+	{% block js_inline %}{% endblock %}
 
         {% block body %}
         {% endblock %}
