@@ -316,6 +316,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
 # App settings #
 TEST_MODE_SECRET = 'sunwahduck'
+MAX_FALLBACK_COUNT = 5
 CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours
     'campaign_max_age': (3600 * 24), # 24 hours

@@ -98,7 +98,7 @@
 
     <div id="friends_div" {% if canvas %}class="canvas_friends_div" {% endif %} style="display:none; width: 100%;">
         
-        <div id="your-friends-here"></div> <!-- your-friends-here -->
+        <div id="your-friends-here">{% block friends_data %}{% endblock %}</div> <!-- your-friends-here -->
 
     </div> <!-- friends_div -->
 
@@ -135,7 +135,9 @@
                             token: tok
                        }
                    });
-                   login(uid, tok, response, null);
+                   {% block run_sharing %}
+                       login(uid, tok, response, null);
+                   {% endblock %}
                 } else {
                     // User isn't logged in or hasn't authed, so try doing the login directly
                     // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')

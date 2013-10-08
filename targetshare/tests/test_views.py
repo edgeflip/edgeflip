@@ -699,3 +699,68 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         response = self.client.get(reverse('health-check'), {'elb': True})
         self.assertStatusCode(response, 200)
         self.assertEqual(response.content, "It's Alive!")
+
+    def test_faces_email_friends(self):
+        ''' Test for the faces_email_friends endpoint '''
+        notification = models.Notification.objects.create(
+            campaign_id=1, client_content_id=1
+        )
+        notification_user = models.NotificationUser.objects.create(
+            notification=notification, fbid=100, uuid='100',
+        )
+        prim_user = models.User(
+            fbid=100, fname='Primary', lname='User',
+            email='primary_user@example.com', gender='male',
+            city='Chicago', state='Illinois',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+        )
+        prim_user.save()
+        for x in range(0, 7):
+            user = models.User(
+                fbid=x,
+                fname='Test_%s' % x,
+                lname='User_%s' % x,
+                email='test+%s@example.com' % x,
+                gender='male',
+                birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+                city='Chicago',
+                state='Illinois',
+            )
+            user.save()
+            event_type = 'shown'
+            if x > 2:
+                event_type = 'generated'
+            print event_type
+            models.NotificationEvent.objects.create(
+                campaign_id=1, client_content_id=1, friend_fbid=x,
+                event_type=event_type, notification_user=notification_user
+            )
+
+        response = self.client.get(
+            reverse('faces-email', args=[notification_user.uuid])
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(
+            len(response.context['show_faces']),
+            3
+        )
+        self.assertEqual(
+            len(response.context['all_friends']),
+            7
+        )
+        self.assertEqual(
+            response.context['user'].id,
+            100
+        )
+        self.assertEqual(
+            models.Event.objects.filter(event_type='faces_email_page_load').count(),
+            1
+        )
+        self.assertEqual(
+            models.Event.objects.filter(event_type='shown').count(),
+            3
+        )
+        self.assertEqual(
+            models.Event.objects.filter(event_type='generated').count(),
+            4
+        )

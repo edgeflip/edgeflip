@@ -555,6 +555,140 @@ def faces(request):
     )
 
 
+def faces_email_friends(request, notification_uuid):
+    ''' A view that's fairly similar to our Faces/Frame Faces views, except
+    that this will not perform any crawls. We've already done the crawling
+    in the background, so we can skip that here, and instead leverage the
+    friends passed in via GET params.
+    '''
+    # Campaign setup
+    notification_user = get_object_or_404(
+        models.NotificationUser,
+        uuid=notification_uuid
+    )
+    campaign = notification_user.notification.campaign
+    content = notification_user.notification.client_content
+    client = campaign.client
+    request.visit = _get_visit(request, client.fb_app_id, notification_user.fbid, {
+        'campaign': campaign,
+        'client_content': content,
+    })
+
+    # Gather friend data
+    num_face = notification_user.events.filter(event_type='shown').count()
+    user_obj = models.User.items.get_item(fbid=notification_user.fbid)
+    friend_objs = models.User.items.batch_get(
+        keys=[{'fbid': x} for x in notification_user.events.filter(
+            event_type__in=('generated', 'shown')).values_list(
+                'friend_fbid', flat=True).distinct()]
+    )
+
+    user = models.datastructs.UserInfo.from_dynamo(user_obj)
+    face_friends = all_friends = [
+        models.datastructs.Edge(
+            user, models.datastructs.UserInfo.from_dynamo(x), None, None
+        ).toDict() for x in friend_objs
+    ]
+    db.delayed_save.delay(
+        models.Event(
+            visit=request.visit,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
+            event_type='faces_email_page_load',
+        )
+    )
+
+    # FBObj setup
+    fb_object = campaign.campaignfbobjects.for_datetime().random_assign()
+    db.delayed_save.delay(
+        models.relational.Assignment.make_managed(
+            visit=request.visit,
+            campaign=campaign,
+            content=content,
+            assignment=fb_object,
+            manager=campaign.campaignfbobjects,
+        )
+    )
+    fb_attrs = fb_object.fbobjectattribute_set.get()
+    url_params = urllib.urlencode({
+        'campaign_id': campaign.pk
+    })
+    fb_object_url = 'https://%s%s?%s' % (
+        request.get_host(),
+        reverse('objects', kwargs={
+            'fb_object_id': fb_object.pk, 'content_id': content.pk
+        }),
+        url_params
+    )
+
+    fb_params = {
+        'fb_action_type': fb_attrs.og_action,
+        'fb_object_type': fb_attrs.og_type,
+        'fb_object_url': fb_object_url,
+        'fb_app_name': client.fb_app_name,
+        'fb_app_id': client.fb_app_id,
+        'fb_object_title': fb_attrs.og_title,
+        'fb_object_image': fb_attrs.og_image,
+        'fb_object_description': fb_attrs.og_description
+    }
+    msg_params = {
+        'sharing_prompt': fb_attrs.sharing_prompt,
+        'msg1_pre': fb_attrs.msg1_pre,
+        'msg1_post': fb_attrs.msg1_post,
+        'msg2_pre': fb_attrs.msg2_pre,
+        'msg2_post': fb_attrs.msg2_post,
+    }
+    content_str = '%s:%s %s' % (
+        fb_params['fb_app_name'],
+        fb_params['fb_object_type'],
+        fb_params['fb_object_url']
+    )
+    events = []
+    for event in notification_user.events.all():
+        events.append(
+            models.Event(
+                visit=request.visit,
+                campaign_id=event.campaign.pk,
+                client_content_id=event.client_content.pk,
+                friend_fbid=event.friend_fbid,
+                content=content_str,
+                event_type=event.event_type,
+            )
+        )
+
+    assignments = []
+    for assignment in notification_user.assignments.all():
+        assignments.append(
+            models.Assignment(
+                visit=request.visit,
+                campaign=assignment.campaign,
+                content=assignment.content,
+                feature_type=assignment.feature_type,
+                feature_row=assignment.feature_row,
+                random_assign=assignment.random_assign,
+                chosen_from_table=assignment.chosen_from_table,
+                chosen_from_rows=assignment.chosen_from_rows
+            )
+        )
+    db.bulk_create.delay(events)
+    db.bulk_create.delay(assignments)
+
+    return render(request, _locate_client_template(client, 'faces_email_friends.html'), {
+        'fb_params': fb_params,
+        'msg_params': msg_params,
+        'campaign': campaign,
+        'content': content,
+        'properties': campaign.campaignproperties.get(),
+        'client_css': _locate_client_css(client, 'edgeflip_client.css'),
+        'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
+        'all_friends': all_friends,
+        'face_friends': face_friends,
+        'show_faces': face_friends[:num_face],
+        'user': user,
+        'num_face': num_face,
+    })
+
+
 def objects(request, fb_object_id, content_id):
     """FBObject endpoint provided to Facebook to crawl and users to click."""
     fb_object = get_object_or_404(models.relational.FBObject, fb_object_id=fb_object_id)
