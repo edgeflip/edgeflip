@@ -569,8 +569,9 @@ def faces_email_friends(request, notification_uuid):
     num_face = notification_user.events.filter(event_type='shown').count()
     user_obj = models.User.items.get_item(fbid=notification_user.fbid)
     friend_objs = models.User.items.batch_get(
-        keys=[{'fbid': x.friend_fbid} for x in notification_user.events.filter(
-            event_type__in=('generated', 'shown'))]
+        keys=[{'fbid': x} for x in notification_user.events.filter(
+            event_type__in=('generated', 'shown')).values_list(
+                'friend_fbid', flat=True).distinct()]
     )
 
     user = models.datastructs.UserInfo.from_dynamo(user_obj)
