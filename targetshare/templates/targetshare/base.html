@@ -19,6 +19,7 @@
         {# Global help #}
         <script type="text/javascript">
             var LocationQuery = (function() {
+                /* Define and return LocationQuery module */
                 var self = {
                     parse: (function(query) {
                         var result = {};
@@ -58,6 +59,37 @@
                 self.window = self.parse(window.location.search);
                 return self;
             })();
+
+            var Url = function (url) {
+                /* Constructor for Url objects */
+                var parser = document.createElement('a');
+                var attr, attrs = [
+                    'protocol', // http:
+                    'host',     // example.com:3000
+                    'pathname', // /pathname/
+                    'hash',     // #hash
+                ];
+                parser.href = url;
+                for (var index = 0; index < attrs.length; index++) {
+                    attr = attrs[index];
+                    this[attr] = parser[attr];
+                }
+                // IE likes to return an invalid ":" for the protocol
+                this.protocol = this.protocol == ':' ? '' : this.protocol;
+                this.query = LocationQuery.parse(parser.search);
+            };
+            Url.prototype.hostname = function() {
+                return this.host.split(':', 2)[0];
+            };
+            Url.prototype.port = function() {
+                return this.host.split(':', 2)[1];
+            };
+            Url.prototype.search = function() {
+                return LocationQuery.unparse(this.query);
+            };
+            Url.prototype.href = function() {
+                return this.protocol + '//' + this.host + this.pathname + this.search() + this.hash;
+            };
         </script>
 
         {% block js_include %}

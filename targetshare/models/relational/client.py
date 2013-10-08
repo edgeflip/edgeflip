@@ -20,6 +20,13 @@ class Client(models.Model):
     )
     domain = models.CharField(max_length=256, blank=True)
     subdomain = models.CharField(max_length=256, blank=True)
+    source_parameter = models.CharField(
+        "Query string key, if any, with which Edgeflip identifies itself "
+        "on links outgoing to client",
+        blank=True,
+        default='rs',
+        max_length=15,
+    )
     create_dt = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):
