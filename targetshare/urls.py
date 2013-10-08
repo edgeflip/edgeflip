@@ -29,6 +29,10 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(r'^faces/$', 'faces', name='faces'),
     url(
+        r'^faces-email/(?P<notification_uuid>\S+)/$',
+        'faces_email_friends', name='faces-email'
+    ),
+    url(
         r'^objects/(?P<fb_object_id>\d+)/(?P<content_id>\d+)/$',
         'objects', name='objects'
     ),
