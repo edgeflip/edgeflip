@@ -309,9 +309,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         )
     )
 
-    campaign_properties = campaign.campaignproperties.get()
-    properties = {key: value for key, value in vars(campaign_properties).items()
-                  if not key.startswith('_')}
+    properties = campaign.campaignproperties.values().get()
     for override_key, override_field in [
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),
