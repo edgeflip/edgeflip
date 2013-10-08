@@ -87,9 +87,8 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
             px4_task_id: px4_task_id,
             last_call: last_call
         };
-	if (LocationQuery.window.efobjsrc) {
-		params.efobjsrc = LocationQuery.window.efobjsrc;
-	}
+        if (Url.window.query.efobjsrc)
+            params.efobjsrc = Url.window.query.efobjsrc;
 
         $.ajax({
             type: "POST",

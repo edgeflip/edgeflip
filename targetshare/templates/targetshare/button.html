@@ -87,7 +87,7 @@
 
                     var gotoURL = new Url("{{ goto }}");
                     $.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
-                        var carryThroughValue = LocationQuery.window[this];
+                        var carryThroughValue = Url.window.query[this];
                         if (carryThroughValue)
                             gotoURL.query[this] = carryThroughValue;
                     });
