@@ -6,8 +6,6 @@ from decimal import Decimal
 from optparse import make_option
 from datetime import datetime
 
-import celery
-
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
