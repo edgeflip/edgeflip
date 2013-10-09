@@ -322,7 +322,7 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertEqual(obj_attrs.og_description[:22], "The Philippines, like ")
         self.assertEqual(obj_attrs.og_image,
             "https://dpqe0zkrjo0ak.cloudfront.net/pfil/14426/pict_grid7.jpg")
-        self.assertEqual(obj_attrs.og_type, 'non_profit')
+        self.assertEqual(obj_attrs.og_type, 'cause')
         self.assertEqual(obj_attrs.org_name, "GlobalGiving.org")
         # Default attributes:
         self.assertEqual(obj_attrs.og_action, "support")

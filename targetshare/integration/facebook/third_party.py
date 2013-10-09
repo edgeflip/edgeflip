@@ -17,7 +17,6 @@ class FBMetaParser(HTMLParser.HTMLParser):
     # meta tags whose "content" is of interest:
     meta_attrs = {
         'property': (
-            'og:type',
             'og:title',
             'og:image',
             'og:description',
