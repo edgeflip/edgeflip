@@ -24,7 +24,7 @@ def proximity_rank_three(mock_mode, fbid, token, **kwargs):
         perform_filtering.s(fbid=fbid, **kwargs)
     )
     task = chain.apply_async()
-    return task.id
+    return task
 
 
 @celery.task(default_retry_delay=1, max_retries=3)

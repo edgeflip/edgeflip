@@ -105,17 +105,26 @@ class Command(BaseCommand):
         error_count = 0
         while self.task_list:
             logger.info('Checking status of %s tasks', str(len(self.task_list)))
-            for uuid, task_id in self.task_list.items():
+            for uuid, task in self.task_list.items():
                 transaction.commit_unless_managed()
-                task = celery.current_app.AsyncResult(task_id)
                 if task.ready():
                     if task.successful():
                         self.edge_collection[uuid] = task.result[1].edges
                     else:
                         error_count += 1
-                        logger.error('Task Failed: %s' % task.traceback)
+                        logger.error('Task %s Failed: %s',
+                            task.id, task.traceback)
                     del self.task_list[uuid]
-                    logger.debug('Finished task: %s' % task_id)
+                    logger.debug('Finished task: %s' % task.id)
+                else:
+                    if task.parent and task.parent.ready() and not task.parent.successful():
+                        # Tripped an error somewhere in the chain
+                        # but the chain task has no idea
+                        # See: https://github.com/celery/celery/issues/1014
+                        error_count += 1
+                        logger.error('Task %s Failed: %s',
+                            task.parent.id, task.parent.traceback)
+                        del self.task_list[uuid]
             time.sleep(1)
         logger.info(
             'Completed crawling users with %s failed tasks',
