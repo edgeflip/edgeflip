@@ -95,8 +95,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.assertEqual(ranking_mock.proximity_rank_three.call_count, 3)
         self.assertEqual(len(self.command.task_list), 3)
 
-    @patch('targetshare.management.commands.faces_email.celery')
-    def test_crawl_status_handler(self, celery_mock):
+    def test_crawl_status_handler(self):
         ''' Tests the _crawl_status_handler method '''
         good_result = Mock()
         good_result.ready.return_value = True
