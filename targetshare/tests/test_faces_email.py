@@ -95,8 +95,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.assertEqual(ranking_mock.proximity_rank_three.call_count, 3)
         self.assertEqual(len(self.command.task_list), 3)
 
-    @patch('targetshare.management.commands.faces_email.celery')
-    def test_crawl_status_handler(self, celery_mock):
+    def test_crawl_status_handler(self):
         ''' Tests the _crawl_status_handler method '''
         good_result = Mock()
         good_result.ready.return_value = True
@@ -108,14 +107,19 @@ class TestFacesEmail(EdgeFlipTestCase):
         bad_result.successful.return_value = False
         bad_result.result = ['', 'bad_result']
 
+        pending_result = Mock()
+        pending_result.ready.return_value = False
+        pending_result.successful.return_value = False
+        parent_mock = Mock()
+        parent_mock.ready.return_value = True
+        parent_mock.successful.return_value = False
+        pending_result.parent = parent_mock
+
         self.command.task_list = SortedDict({
-            self.notification_user.uuid: 1,
-            '2': 2,
+            self.notification_user.uuid: good_result,
+            '2': bad_result,
+            '3': pending_result,
         })
-        celery_mock.current_app.AsyncResult.side_effect = [
-            good_result,
-            bad_result
-        ]
         self.command._crawl_status_handler()
 
         self.assertEqual(
