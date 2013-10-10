@@ -575,9 +575,9 @@ def faces_email_friends(request, notification_uuid):
     })
 
     # Gather friend data
-    shown_events = notification_user.events.filter(
-        event_type='shown').values_list('friend_fbid', flat=True)
-    num_face = shown_events.count()
+    shown_events = set(notification_user.events.filter(
+        event_type='shown').values_list('friend_fbid', flat=True))
+    num_face = len(shown_events)
     user_obj = models.User.items.get_item(fbid=notification_user.fbid)
     friend_objs = models.User.items.batch_get(
         keys=[{'fbid': x} for x in notification_user.events.filter(
