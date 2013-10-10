@@ -478,6 +478,8 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         self.assertStatusCode(response, 200)
         assert models.Event.objects.filter(activity_id=1).exists()
         assert response.context['fb_params']
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
         assert response.context['content']
         assert response.context['redirect_url']
         assert models.Event.objects.filter(
