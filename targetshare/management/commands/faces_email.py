@@ -6,8 +6,6 @@ from decimal import Decimal
 from optparse import make_option
 from datetime import datetime
 
-import celery
-
 from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
@@ -43,9 +41,15 @@ class Command(BaseCommand):
             help='Name of file to dump CSV contents into',
             dest='output',
         ),
+        make_option(
+            '-u', '--url',
+            help='Overrides default URL builder with given url',
+            dest='url'
+        ),
     )
 
-    def handle(self, campaign_id, content_id, mock, num_face, output, **options):
+    def handle(self, campaign_id, content_id, mock, num_face,
+               output, url, **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
@@ -54,7 +58,11 @@ class Command(BaseCommand):
         # Settings
         self.mock = mock
         self.num_face = num_face
-        self.filename = output if output else 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
+        if output:
+            self.filename = output
+        else:
+            self.filename = 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
+        self.url = url
         self.task_list = {}
         self.edge_collection = {}
         self.notification = relational.Notification.objects.create(
@@ -105,17 +113,26 @@ class Command(BaseCommand):
         error_count = 0
         while self.task_list:
             logger.info('Checking status of %s tasks', str(len(self.task_list)))
-            for uuid, task_id in self.task_list.items():
+            for uuid, task in self.task_list.items():
                 transaction.commit_unless_managed()
-                task = celery.current_app.AsyncResult(task_id)
                 if task.ready():
                     if task.successful():
                         self.edge_collection[uuid] = task.result[1].edges
                     else:
                         error_count += 1
-                        logger.error('Task Failed: %s' % task.traceback)
+                        logger.error('Task %s Failed: %s',
+                            task.id, task.traceback)
                     del self.task_list[uuid]
-                    logger.debug('Finished task: %s' % task_id)
+                    logger.debug('Finished task: %s' % task.id)
+                else:
+                    if task.parent and task.parent.ready() and not task.parent.successful():
+                        # Tripped an error somewhere in the chain
+                        # but the chain task has no idea
+                        # See: https://github.com/celery/celery/issues/1014
+                        error_count += 1
+                        logger.error('Task %s Failed: %s',
+                            task.parent.id, task.parent.traceback)
+                        del self.task_list[uuid]
             time.sleep(1)
         logger.info(
             'Completed crawling users with %s failed tasks',
@@ -127,12 +144,15 @@ class Command(BaseCommand):
         that we send to clients. This table will later be embedded in an
         email that is sent to primaries, thus all the inline styles
         '''
-        faces_base_url = reverse('faces-email', args=[uuid])
-        faces_url = 'http://{}.{}{}'.format(
-            self.client.subdomain,
-            self.client.domain,
-            faces_base_url,
-        )
+        faces_path = reverse('faces-email', args=[uuid])
+        if not self.url:
+            faces_url = 'http://{}.{}{}'.format(
+                self.client.subdomain,
+                self.client.domain,
+                faces_path,
+            )
+        else:
+            faces_url = '{}?efuuid={}'.format(self.url, uuid)
         table_str = render_to_string('targetshare/faces_email_table.html', {
             'edges': edges,
             'faces_url': faces_url,
