@@ -2,6 +2,7 @@ import datetime
 import json
 import os.path
 import re
+import urllib
 from decimal import Decimal
 
 from django.conf import settings
@@ -467,25 +468,61 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert response.context['redirect_url']
 
     def test_objects(self):
-        ''' Test hitting the views.object endpoint with an activity id as a
+        '''Test hitting the views.object endpoint with an activity id as a
         normal, non-fb bot, user
+
         '''
-        assert not models.Event.objects.exists()
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
             reverse('objects', args=[1, 1]),
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
-        assert models.Event.objects.filter(activity_id=1).exists()
-        assert response.context['fb_params']
+        self.assertTrue(models.Event.objects.filter(activity_id=1).exists())
+        self.assertTrue(response.context['fb_params'])
         self.assertEqual(response.context['fb_params']['fb_object_url'],
                          'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
-        assert response.context['content']
-        assert response.context['redirect_url']
-        assert models.Event.objects.filter(
-            event_type='clickback',
-            campaign_id=1
-        ).exists()
+        self.assertEqual(response.context['redirect_url'],
+                         models.ClientContent.objects.get(pk=1).url)
+        self.assertTrue(response.context['content'])
+        self.assertTrue(
+            models.Event.objects.filter(
+                event_type='clickback',
+                campaign_id=1,
+            ).exists()
+        )
+
+    def test_objects_source_url(self):
+        fb_object = models.FBObject.objects.get(pk=1)
+        campaign_fb_object = fb_object.campaignfbobjects.all()[0]
+        campaign_fb_object.source_url = 'http://www.google.com/'
+        campaign_fb_object.save()
+        fb_object.campaignfbobjects.exclude(pk=campaign_fb_object.pk).delete()
+
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            data={'fb_action_ids': 1, 'campaign_id': 1}
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+        self.assertEqual(response.context['redirect_url'], 'http://www.google.com/')
+
+    def test_objects_ambiguous_source_url(self):
+        fb_object = models.FBObject.objects.get(pk=1)
+        fb_object.campaignfbobjects.create(
+            campaign_id=1,
+            source_url='http://www.google.com/',
+        )
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            data={'fb_action_ids': 1, 'campaign_id': 1}
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+        self.assertGreater(fb_object.campaignfbobjects.count(), 1)
+        self.assertEqual(response.context['redirect_url'], 'http://www.google.com/')
 
     def test_suppress(self):
         ''' Test suppressing a user that was recommended '''
@@ -766,3 +803,10 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             models.Event.objects.filter(event_type='generated').count(),
             4
         )
+
+    def test_outgoing_url(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector)
+        # TODO

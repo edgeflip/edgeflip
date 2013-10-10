@@ -11,7 +11,7 @@ class Event(models.Model):
     event_type = models.CharField(max_length=64, db_column='type')
     campaign = models.ForeignKey('Campaign', null=True)
     client_content = models.ForeignKey('ClientContent', db_column='content_id', null=True)
-    content = models.CharField(max_length=128, blank=True)
+    content = models.CharField(max_length=1028, blank=True)
     friend_fbid = models.BigIntegerField(null=True, blank=True)
     activity_id = models.BigIntegerField(null=True, blank=True)
     event_datetime = models.DateTimeField(default=timezone.now)

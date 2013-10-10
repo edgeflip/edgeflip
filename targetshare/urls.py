@@ -41,6 +41,7 @@ urlpatterns = patterns('targetshare.views',
         'objects', name='objects'
     ),
     url(r'^suppress/$', 'suppress', name='suppress'),
+    url(r'^outgoing/(?P<app_id>\d+)/(?P<url>[^/]+)/$', 'outgoing', name='outgoing'),
     url(r'^record_event/$', 'record_event', name='record-event'),
     url(r'^health_check/$', 'health_check', name='health-check'),
 )
