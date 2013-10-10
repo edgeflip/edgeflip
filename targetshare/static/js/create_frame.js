@@ -17,7 +17,7 @@
 				protocol = url.protocol;
 				// IE likes to return an invalid ":" for the protocol
 				protocol = protocol == ':' ? '' : protocol;
-				return protocol + "//" + host + "/frame_faces";
+				return protocol + "//" + host;
 			}
 		}
 	})();
@@ -32,9 +32,12 @@
 
 	// Complete frame_faces URL path from window URL parameters
 	if (urlparams['efcmpgslug']) {
-		efFrameURL += '/' + urlparams['efcmpgslug'];
+		efFrameURL += '/frame_faces/' + urlparams['efcmpgslug'];
+  }
+  else if (urlparams['efuuid']){
+    efFrameURL += '/faces-email/' + urlparams['efuuid'];
 	} else {
-		efFrameURL += '/' + urlparams['efcmpg'] + '/' + urlparams['efcnt'];
+		efFrameURL += '/frame_faces/' + urlparams['efcmpg'] + '/' + urlparams['efcnt'];
 	}
 
 	// Carry certain URL parameters through
