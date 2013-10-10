@@ -575,7 +575,9 @@ def faces_email_friends(request, notification_uuid):
     })
 
     # Gather friend data
-    num_face = notification_user.events.filter(event_type='shown').count()
+    shown_events = set(notification_user.events.filter(
+        event_type='shown').values_list('friend_fbid', flat=True))
+    num_face = len(shown_events)
     user_obj = models.User.items.get_item(fbid=notification_user.fbid)
     friend_objs = models.User.items.batch_get(
         keys=[{'fbid': x} for x in notification_user.events.filter(
@@ -588,6 +590,9 @@ def faces_email_friends(request, notification_uuid):
         models.datastructs.Edge(
             user, models.datastructs.UserInfo.from_dynamo(x), None, None
         ).toDict() for x in friend_objs
+    ]
+    show_faces = [
+        x for x in face_friends if x['id'] in shown_events
     ]
     db.delayed_save.delay(
         models.Event(
@@ -683,7 +688,7 @@ def faces_email_friends(request, notification_uuid):
         'client_css_simple': _locate_client_css(client, 'edgeflip_client_simple.css'),
         'all_friends': all_friends,
         'face_friends': face_friends,
-        'show_faces': face_friends[:num_face],
+        'show_faces': show_faces,
         'user': user,
         'num_face': num_face,
     })

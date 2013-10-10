@@ -62,7 +62,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             setattr(command, method, Mock())
 
         command.handle(
-            1, 1, num_face=4, output='testing.csv', mock=True
+            1, 1, num_face=4, output='testing.csv', mock=True, url=None
         )
         for count, method in enumerate(methods_to_mock):
             assert getattr(command, method).called
@@ -135,9 +135,33 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.edge_collection = {
             self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
         }
+        self.command.url = None
         self.command._build_csv()
         assert writer_mock.writerow.called
         assert writer_mock.writerow.call_args[0][0][4].strip().startswith('<table')
+        self.assertEqual(
+            writer_mock.writerow.call_args[0][0][1],
+            'fake@fake.com'
+        )
+        self.assertEqual(
+            relational.NotificationEvent.objects.filter(
+                event_type='shown').count(),
+            3
+        )
+        assert relational.NotificationEvent.objects.filter(
+            event_type='generated').exists()
+
+    @patch('targetshare.management.commands.faces_email.csv')
+    def test_build_csv_custom_url(self, csv_mock):
+        writer_mock = Mock()
+        csv_mock.writer.return_value = writer_mock
+        self.command.url = 'http://www.google.com'
+        self.command.edge_collection = {
+            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
+        }
+        self.command._build_csv()
+        assert writer_mock.writerow.called
+        assert 'http://www.google.com?efuuid=1' in writer_mock.writerow.call_args[0][0][4]
         self.assertEqual(
             writer_mock.writerow.call_args[0][0][1],
             'fake@fake.com'

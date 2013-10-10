@@ -75,4 +75,4 @@ class NotificationEvent(models.Model):
         db_table = 'notification_events'
 
     def __unicode__(self):
-        return u"{} [{}]".format(self.event_type, self.notification_id)
+        return u"{} [{}]".format(self.event_type, self.notification_user_id)
