@@ -1,3 +1,4 @@
+import os
 import random
 from datetime import datetime
 
@@ -47,6 +48,14 @@ class TestFacesEmail(EdgeFlipTestCase):
             notification=self.notification, fbid=1, uuid='1',
             app_id=self.command.client.fb_app_id,
         )
+
+    def tearDown(self):
+        try:
+            os.remove(self.command.filename)
+        except OSError:
+            pass
+
+        super(TestFacesEmail, self).tearDown()
 
     def test_handle(self):
         ''' Test to ensure the handle method behaves properly '''
