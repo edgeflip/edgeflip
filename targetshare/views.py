@@ -1,5 +1,4 @@
 import functools
-import itertools
 import json
 import logging
 import os.path
@@ -12,7 +11,7 @@ import celery
 from django import http
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, _get_queryset, get_object_or_404
 from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
 from django.views.decorators.http import require_GET, require_POST
@@ -91,6 +90,14 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
     return visit
 
 
+def _get_object_or_none(klass, **kws):
+    queryset = _get_queryset(klass)
+    try:
+        return queryset.get(**kws)
+    except (queryset.model.DoesNotExist, ValueError):
+        return None
+
+
 def _require_visit(view):
     """Decorator manufacturing a view wrapper, which requires a Visit for the request.
 
@@ -122,13 +129,13 @@ def _require_visit(view):
         client = campaign = client_content = None
 
         if campaign_id:
-            campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-            client = campaign.client
+            campaign = _get_object_or_none(models.Campaign, campaign_id=campaign_id)
+            client = campaign and campaign.client
         if content_id:
-            client_content = get_object_or_404(models.ClientContent, content_id=content_id)
-            client = client_content.client if client is None else client
+            client_content = _get_object_or_none(models.ClientContent, content_id=content_id)
+            client = client_content.client if (client_content and not client) else client
         if fb_object_id and client is None:
-            client = get_object_or_404(models.Client, fbobjects__fb_object_id=fb_object_id)
+            client = _get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
 
         if not app_id:
             if client is None:
@@ -312,13 +319,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     )
 
     properties = campaign.campaignproperties.values().get()
-    for override_key, override_field in [ # TODO
+    for override_key, field in [
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),
     ]:
-        override_value = request.REQUEST.get(override_key)
-        if override_value:
-            properties[override_field] = override_value
+        value = request.REQUEST.get(override_key) or properties[field]
+        properties[field] = "{}?{}".format(
+            reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(value)]),
+            urllib.urlencode({'campaignid': campaign_id}),
+        )
 
     return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
@@ -731,9 +740,9 @@ def objects(request, fb_object_id, content_id):
             return http.HttpResponseNotFound()
         redirect_url = content.url
 
-    full_redirect_path = "{}?campaignid={}".format(
-        reverse('outgoing', args=[client.fb_app_id, redirect_url]), # TODO: check/test
-        campaign_id,
+    full_redirect_path = "{}?{}".format(
+        reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(redirect_url)]),
+        urllib.urlencode({'campaignid': campaign_id}),
     )
 
     # Build FBObject parameters for document:
@@ -796,6 +805,7 @@ def objects(request, fb_object_id, content_id):
 def outgoing(request, app_id, url):
     campaign_id = request.GET.get('campaignid', '')
     try:
+        # '1' => True, '0' => False; default to '1':
         source = bool(int(request.GET.get('source') or '1'))
     except ValueError:
         return http.HttpResponseBadRequest('Invalid "source" flag')
@@ -808,9 +818,9 @@ def outgoing(request, app_id, url):
         source_parameter = campaign.client.source_parameter
         if source_parameter:
             parsed_url = urlparse.urlparse(url)
-            sourced_qs = itertools.chain(
-                urlparse.parse_qsl(parsed_url.query),
-                [(source_parameter, 'ef{}'.format(campaign.pk))],
+            sourced_qs = (
+                urlparse.parse_qsl(parsed_url.query) +
+                [(source_parameter, 'ef{}'.format(campaign.pk))]
             )
             sourced_url = parsed_url._replace(
                 query=urllib.urlencode(sourced_qs)
@@ -820,7 +830,7 @@ def outgoing(request, app_id, url):
     db.delayed_save.delay(
         models.relational.Event(
             visit=request.visit,
-            content=url[:1028], # FIXME: encoding?
+            content=url[:1028],
             event_type='outgoing_redirect',
         )
     )
