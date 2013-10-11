@@ -66,22 +66,6 @@
 
         var thanksURL = '{{ properties.client_thanks_url }}';
         var errorURL = '{{ properties.client_error_url }}';
-
-        (function() {
-            {# Add Edgeflip partner parameter to outgoing URLs #}
-            var parameterName = '{{ campaign.client.source_parameter }}';
-            if (!parameterName)
-                return;
-
-            var addEF = function(urlString) {
-                url = new Url(urlString);
-                url.query[parameterName] = 'ef' + campaignid;
-                return url.href();
-            };
-            thanksURL = addEF(thanksURL);
-            errorURL = addEF(errorURL);
-        })();
-
     </script>
     <!-- edgeflip javascript -->
 {% endblock %}

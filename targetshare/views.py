@@ -4,16 +4,17 @@ import logging
 import os.path
 import random
 import urllib
+import urlparse
 
 import celery
 
 from django import http
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, _get_queryset, get_object_or_404
 from django.template import RequestContext, TemplateDoesNotExist
 from django.template.loader import find_template, render_to_string
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 from django.views.decorators.csrf import csrf_exempt
 
 from targetshare import models, utils
@@ -89,6 +90,14 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
     return visit
 
 
+def _get_object_or_none(klass, **kws):
+    queryset = _get_queryset(klass)
+    try:
+        return queryset.get(**kws)
+    except (queryset.model.DoesNotExist, ValueError):
+        return None
+
+
 def _require_visit(view):
     """Decorator manufacturing a view wrapper, which requires a Visit for the request.
 
@@ -114,19 +123,19 @@ def _require_visit(view):
         content_id = kws.get('content_id', request.REQUEST.get('contentid'))
         fb_object_id = kws.get('fb_object_id')
         fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
-        app_id = request.REQUEST.get('appid')
+        app_id = kws.get('app_id', request.REQUEST.get('appid'))
 
         # Determine client, and campaign & client content if available
         client = campaign = client_content = None
 
         if campaign_id:
-            campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
-            client = campaign.client
+            campaign = _get_object_or_none(models.Campaign, campaign_id=campaign_id)
+            client = campaign and campaign.client
         if content_id:
-            client_content = get_object_or_404(models.ClientContent, content_id=content_id)
-            client = client_content.client if client is None else client
+            client_content = _get_object_or_none(models.ClientContent, content_id=content_id)
+            client = client_content.client if (client_content and not client) else client
         if fb_object_id and client is None:
-            client = get_object_or_404(models.Client, fbobjects__fb_object_id=fb_object_id)
+            client = _get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
 
         if not app_id:
             if client is None:
@@ -310,13 +319,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     )
 
     properties = campaign.campaignproperties.values().get()
-    for override_key, override_field in [
+    for override_key, field in [
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),
     ]:
-        override_value = request.REQUEST.get(override_key)
-        if override_value:
-            properties[override_field] = override_value
+        value = request.REQUEST.get(override_key) or properties[field]
+        properties[field] = "{}?{}".format(
+            reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(value)]),
+            urllib.urlencode({'campaignid': campaign_id}),
+        )
 
     return render(request, _locate_client_template(client, html_template), {
         'fb_params': {
@@ -461,17 +472,17 @@ def faces(request):
             )
         )
 
-    url_params = urllib.urlencode({
-        'cssslug': choice_set_slug,
-        'campaign_id': campaign_id
-    })
     fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
-            'fb_object_id': fb_object.pk, 'content_id': content.pk
+            'fb_object_id': fb_object.pk,
+            'content_id': content.pk,
         }),
-        url_params
+        urllib.urlencode({
+            'cssslug': choice_set_slug,
+            'campaign_id': campaign_id,
+        }),
     )
     fb_params = {
         'fb_action_type': fb_attrs.og_action,
@@ -615,15 +626,15 @@ def faces_email_friends(request, notification_uuid):
         )
     )
     fb_attrs = fb_object.fbobjectattribute_set.get()
-    url_params = urllib.urlencode({
-        'campaign_id': campaign.pk
-    })
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
-            'fb_object_id': fb_object.pk, 'content_id': content.pk
+            'fb_object_id': fb_object.pk,
+            'content_id': content.pk,
         }),
-        url_params
+        urllib.urlencode({
+            'campaign_id': campaign.pk,
+        }),
     )
 
     fb_params = {
@@ -702,22 +713,49 @@ def objects(request, fb_object_id, content_id):
     fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     choice_set_slug = request.GET.get('cssslug', '')
     campaign_id = request.GET.get('campaign_id', '')
-    action_id = request.GET.get('fb_action_ids', '').split(',')[0].strip()
-    action_id = int(action_id) if action_id else None
+    action_ids = request.GET.get('fb_action_ids', '').split(',')
 
-    if not content.url:
-        return http.HttpResponseNotFound()
+    try:
+        action_id = int(action_ids[0].strip())
+    except ValueError:
+        action_id = None
 
-    url_params = urllib.urlencode({
-        'cssslug': choice_set_slug,
-        'campaign_id': campaign_id
-    })
+    # Determine user redirect URL:
+    if campaign_id.isdigit():
+        campaign_fbobjects = fb_object.campaignfbobjects.filter(campaign_id=campaign_id)
+    else:
+        campaign_fbobjects = fb_object.campaignfbobjects.all()
+    source_urls = campaign_fbobjects.values_list('source_url', flat=True).distinct()
+
+    if any(source_urls):
+        # FBObject is in use by campaign(s) with dynamic-definition ("source") URL(s)
+        try:
+            (redirect_url,) = source_urls
+        except ValueError:
+            LOG.exception("Ambiguous FBObject source %r", tuple(source_urls))
+            redirect_url = next(source_url for source_url in source_urls if source_url)
+    else:
+        # Traditionally-configured FBObject -- use ClientContent URL for redirect
+        if not content.url:
+            return http.HttpResponseNotFound()
+        redirect_url = content.url
+
+    full_redirect_path = "{}?{}".format(
+        reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(redirect_url)]),
+        urllib.urlencode({'campaignid': campaign_id}),
+    )
+
+    # Build FBObject parameters for document:
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
         reverse('objects', kwargs={
-            'fb_object_id': fb_object_id, 'content_id': content_id
+            'fb_object_id': fb_object_id,
+            'content_id': content_id,
         }),
-        url_params
+        urllib.urlencode({
+            'cssslug': choice_set_slug,
+            'campaign_id': campaign_id,
+        }),
     )
     obj_params = {
         'page_title': fb_attrs.page_title,
@@ -739,8 +777,10 @@ def objects(request, fb_object_id, content_id):
             fb_object_id, content_id, _get_client_ip(request)
         )
     else:
-        visit = _get_visit(request, client.fb_app_id,
-                           start_event={'client_content': content})
+        visit = _get_visit(request, client.fb_app_id, start_event={
+            'client_content': content,
+            'campaign_id': campaign_id,
+        })
         db.delayed_save.delay(
             models.relational.Event(
                 visit=visit,
@@ -754,10 +794,47 @@ def objects(request, fb_object_id, content_id):
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
-        'redirect_url': content.url,
+        'redirect_url': full_redirect_path,
         'content': content_str,
         'client': client,
     })
+
+
+@require_GET
+@_require_visit
+def outgoing(request, app_id, url):
+    campaign_id = request.GET.get('campaignid', '')
+    try:
+        # '1' => True, '0' => False; default to '1':
+        source = bool(int(request.GET.get('source') or '1'))
+    except ValueError:
+        return http.HttpResponseBadRequest('Invalid "source" flag')
+
+    if source and campaign_id:
+        try:
+            campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
+        except ValueError:
+            return http.HttpResponseBadRequest("Invalid campaign identifier")
+        source_parameter = campaign.client.source_parameter
+        if source_parameter:
+            parsed_url = urlparse.urlparse(url)
+            sourced_qs = (
+                urlparse.parse_qsl(parsed_url.query) +
+                [(source_parameter, 'ef{}'.format(campaign.pk))]
+            )
+            sourced_url = parsed_url._replace(
+                query=urllib.urlencode(sourced_qs)
+            )
+            url = urlparse.urlunparse(sourced_url)
+
+    db.delayed_save.delay(
+        models.relational.Event(
+            visit=request.visit,
+            content=url[:1028],
+            event_type='outgoing_redirect',
+        )
+    )
+    return http.HttpResponseRedirect(url)
 
 
 @require_POST
