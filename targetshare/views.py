@@ -312,7 +312,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     )
 
     properties = campaign.campaignproperties.values().get()
-    for override_key, override_field in [
+    for override_key, override_field in [ # TODO
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),
     ]:
@@ -731,6 +731,11 @@ def objects(request, fb_object_id, content_id):
             return http.HttpResponseNotFound()
         redirect_url = content.url
 
+    full_redirect_path = "{}?campaignid={}".format(
+        reverse('outgoing', args=[client.fb_app_id, redirect_url]), # TODO: check/test
+        campaign_id,
+    )
+
     # Build FBObject parameters for document:
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
@@ -780,7 +785,7 @@ def objects(request, fb_object_id, content_id):
 
     return render(request, 'targetshare/fb_object.html', {
         'fb_params': obj_params,
-        'redirect_url': redirect_url,
+        'redirect_url': full_redirect_path,
         'content': content_str,
         'client': client,
     })
@@ -790,7 +795,11 @@ def objects(request, fb_object_id, content_id):
 @_require_visit
 def outgoing(request, app_id, url):
     campaign_id = request.GET.get('campaignid', '')
-    source = bool(request.GET.get('source', '1'))
+    try:
+        source = bool(int(request.GET.get('source') or '1'))
+    except ValueError:
+        return http.HttpResponseBadRequest('Invalid "source" flag')
+
     if source and campaign_id:
         try:
             campaign = get_object_or_404(models.Campaign, campaign_id=campaign_id)
