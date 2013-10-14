@@ -192,3 +192,33 @@ class TestEventViews(EdgeFlipViewTestCase):
             friend_fbid__in=[10, 11, 12]
         )
         self.assertEqual(events.count(), 3)
+
+    def test_record_event_heartbeat(self):
+        ''' Testing the record_event view with a heartbeat event '''
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '1')
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '2')

@@ -95,6 +95,39 @@
             })();
         </script>
 
+        {# recordEvent #}
+        <script>
+            function recordEvent(eventType, options) {
+                var options = options || {};
+                if (typeof FB_APP_ID === 'undefined') {
+                    // Means we've been called before the faces have been
+                    // initialized. That's okay, let's still catch the 
+                    // event.
+                    FB_APP_ID = FB_OBJ_TYPE = FB_OBJ_URL = FB_APP_NAME = '';
+                }
+                $.ajax({
+                    type: "POST",
+                    url: "{% url 'record-event' %}",
+                    dataType: 'html',
+                    data: {
+                        userid: options.myfbid ? options.myfbid : myfbid, // set in load_and_login.js
+                        campaignid: options.campaignid ? options.campaignid : campaignid, // set in frame_faces.html
+                        contentid: options.contentid ? options.contentid : contentid, // set in frame_faces.html
+                        appid: options.fb_app_id ? options.fb_app_id : FB_APP_ID,
+                        content: options.content ? options.content : FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+                        eventType: eventType,
+                        actionid: options.actionid,
+                        friends: options.friends,
+                        shareMsg: options.shareMsg,
+                        errorMsg: options.errorMsg,
+                        error: options.error,
+                        success: options.success,
+                        complete: options.complete
+                    }
+                });
+            }
+        </script>
+
         {% block js_include %}
             <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
             {% comment %} Edgeflip js {% endcomment %}

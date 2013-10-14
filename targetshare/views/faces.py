@@ -99,6 +99,9 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'test_token': test_token,
         'test_fbid': test_fbid,
         'canvas': canvas,
+        # Debug mode currently on for all methods of targetted sharing
+        # However will likely just reflect the canvas var in the future
+        'debug_mode': True,
     })
 
 
