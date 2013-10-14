@@ -31,7 +31,7 @@
         redirect to page on client site
         */
 
-        window.location = '{{ redirect_url | safe }}';
+        window.location = '{{ redirect_url }}';
 
     </script>
 {% endblock %}
@@ -39,7 +39,7 @@
     <h2 style="margin: 0px auto; display: table;">L o a d i n g...</h2>
 
     <div style="display: table; height: 90px; margin: 15px auto; border: thin solid lightgray; padding: 2px; border-radius: 2px;">
-        <table style='width: 490px; height: 90px; background: white; padding-left: 5px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left; cursor: pointer;' valign='middle' onClick="window.location = '{{ redirect_url | safe }}';">
+        <table style='width: 490px; height: 90px; background: white; padding-left: 5px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left; cursor: pointer;' valign='middle' onClick="window.location = '{{ redirect_url }}';">
             <tr>
                 <td>
                     <img src='{{ fb_params.fb_object_image }}' style='margin-right: 7px; height: 90px; border: none;'>

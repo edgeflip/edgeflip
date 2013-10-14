@@ -14,6 +14,7 @@ framework.
 
 """
 import os
+import urllib
 import sys
 
 # Activate Python virtual environment:
@@ -41,7 +42,14 @@ if settings.NEWRELIC.enabled:
 # file. This includes Django's development server, if the WSGI_APPLICATION
 # setting points here.
 from django.core.wsgi import get_wsgi_application
-application = get_wsgi_application()
+
+wsgi_application = get_wsgi_application()
+
+def application(environ, start_response):
+    # wsgi doesn't handle encoded slashes well; decode them for it:
+    raw_path = environ['REQUEST_URI'].split('?', 1)[0]
+    environ['PATH_INFO'] = urllib.unquote_plus(raw_path)
+    return wsgi_application(environ, start_response)
 
 # Apply WSGI middleware here.
 if settings.NEWRELIC.enabled:

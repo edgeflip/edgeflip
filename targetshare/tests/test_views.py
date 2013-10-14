@@ -2,6 +2,7 @@ import datetime
 import json
 import os.path
 import re
+import urllib
 from decimal import Decimal
 
 from django.conf import settings
@@ -121,6 +122,15 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             client=self.test_client, name='Unit Tests')
         self.test_filter = models.ChoiceSetFilter.objects.create(
             filter_id=2, url_slug='all', choice_set=self.test_cs)
+
+    def get_outgoing_url(self, redirect_url, campaign_id=None):
+        if campaign_id:
+            qs = '?' + urllib.urlencode({'campaignid': campaign_id})
+        else:
+            qs = ''
+        url = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                         urllib.quote_plus(redirect_url)])
+        return url + qs
 
     def test_faces_get(self):
         ''' Faces endpoint requires POST, so we expect a 405 here '''
@@ -426,9 +436,9 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         properties = response.context['properties']
         campaign_properties = campaign.campaignproperties.get()
         self.assertEqual(properties['client_thanks_url'],
-                         campaign_properties.client_thanks_url)
+                         self.get_outgoing_url(campaign_properties.client_thanks_url, 1))
         self.assertEqual(properties['client_error_url'],
-                         campaign_properties.client_error_url)
+                         self.get_outgoing_url(campaign_properties.client_error_url, 1))
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
 
@@ -441,8 +451,10 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         })
         self.assertStatusCode(response, 200)
         properties = response.context['properties']
-        self.assertEqual(properties['client_thanks_url'], success_url)
-        self.assertEqual(properties['client_error_url'], error_url)
+        self.assertEqual(properties['client_thanks_url'],
+                         self.get_outgoing_url(success_url, 1))
+        self.assertEqual(properties['client_error_url'],
+                         self.get_outgoing_url(error_url, 1))
 
     def test_frame_faces_test_mode_bad_request(self):
         ''' Tests views.frame_faces with test_mode enabled, but without
@@ -467,23 +479,64 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
         assert response.context['redirect_url']
 
     def test_objects(self):
-        ''' Test hitting the views.object endpoint with an activity id as a
+        '''Test hitting the views.object endpoint with an activity id as a
         normal, non-fb bot, user
+
         '''
-        assert not models.Event.objects.exists()
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
             reverse('objects', args=[1, 1]),
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
-        assert models.Event.objects.filter(activity_id=1).exists()
-        assert response.context['fb_params']
-        assert response.context['content']
-        assert response.context['redirect_url']
-        assert models.Event.objects.filter(
-            event_type='clickback',
-            campaign_id=1
-        ).exists()
+        self.assertTrue(models.Event.objects.filter(activity_id=1).exists())
+        self.assertTrue(response.context['fb_params'])
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+        redirect_url = models.ClientContent.objects.get(pk=1).url
+        self.assertEqual(response.context['redirect_url'],
+                         self.get_outgoing_url(redirect_url, 1))
+        self.assertTrue(response.context['content'])
+        self.assertTrue(
+            models.Event.objects.filter(
+                event_type='clickback',
+                campaign_id=1,
+            ).exists()
+        )
+
+    def test_objects_source_url(self):
+        fb_object = models.FBObject.objects.get(pk=1)
+        campaign_fb_object = fb_object.campaignfbobjects.all()[0]
+        campaign_fb_object.source_url = 'http://www.google.com/'
+        campaign_fb_object.save()
+        fb_object.campaignfbobjects.exclude(pk=campaign_fb_object.pk).delete()
+
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            data={'fb_action_ids': 1, 'campaign_id': 1}
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+        self.assertEqual(response.context['redirect_url'],
+                         self.get_outgoing_url('http://www.google.com/', 1))
+
+    def test_objects_ambiguous_source_url(self):
+        fb_object = models.FBObject.objects.get(pk=1)
+        fb_object.campaignfbobjects.create(
+            campaign_id=1,
+            source_url='http://www.google.com/',
+        )
+        response = self.client.get(
+            reverse('objects', args=[1, 1]),
+            data={'fb_action_ids': 1, 'campaign_id': 1}
+        )
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.context['fb_params']['fb_object_url'],
+                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+        self.assertGreater(fb_object.campaignfbobjects.count(), 1)
+        self.assertEqual(response.context['redirect_url'],
+                         self.get_outgoing_url('http://www.google.com/', 1))
 
     def test_suppress(self):
         ''' Test suppressing a user that was recommended '''
@@ -794,3 +847,58 @@ class TestEdgeFlipViews(EdgeFlipTestCase):
             models.Event.objects.filter(event_type='generated').count(),
             4
         )
+
+    def test_outgoing_url(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector)
+        self.assertStatusCode(response, 302)
+        self.assertEqual(response['Location'], url)
+
+        visit = models.Visit.objects.get(session_id=self.client.session.session_key)
+        self.assertEqual(visit.events.count(), 2)
+        self.assertEqual(set(visit.events.values_list('event_type', flat=True)),
+                         {'session_start', 'outgoing_redirect'})
+        event = visit.events.get(event_type='outgoing_redirect')
+        self.assertEqual(event.content, url)
+
+    def test_outgoing_url_bad_source(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector, {'source': 'true!!1!'})
+        self.assertContains(response, 'Invalid "source" flag', status_code=400)
+
+    def test_outgoing_url_bad_campaign(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector, {'source': '1', 'campaignid': 'two'})
+        self.assertContains(response, 'Invalid campaign identifier', status_code=400)
+
+    def test_outgoing_url_missing_campaign(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        self.assertFalse(models.Campaign.objects.filter(pk=9999).exists())
+        response = self.client.get(redirector, {'source': '1', 'campaignid': '9999'})
+        self.assertStatusCode(response, 404)
+
+    def test_outgoing_url_source(self):
+        url = 'http://www.google.com/path?query=string&string=query'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        campaign = models.Campaign.objects.all()[0]
+        final_url = url + '&rs=ef{}'.format(campaign.pk)
+
+        response = self.client.get(redirector, {'campaignid': campaign.pk})
+        self.assertStatusCode(response, 302)
+        self.assertEqual(response['Location'], final_url)
+
+        visit = models.Visit.objects.get(session_id=self.client.session.session_key)
+        self.assertEqual(visit.events.count(), 2)
+        self.assertEqual(set(visit.events.values_list('event_type', flat=True)),
+                         {'session_start', 'outgoing_redirect'})
+        event = visit.events.get(event_type='outgoing_redirect')
+        self.assertEqual(event.content, final_url)

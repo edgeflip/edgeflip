@@ -58,7 +58,10 @@ class Command(BaseCommand):
         # Settings
         self.mock = mock
         self.num_face = num_face
-        self.filename = output if output else 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
+        if output:
+            self.filename = output
+        else:
+            self.filename = 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
         self.url = url
         self.task_list = {}
         self.edge_collection = {}
