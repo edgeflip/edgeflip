@@ -6,6 +6,7 @@ or show user a button (same behavior)
 */
 
 var myfbid; // The FB ID of the current user to be filled in upon auth.
+var debug_mode;
 
 /* loads a bunch of images
 */
@@ -123,6 +124,9 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
                 } else {
                     displayFriendDiv(data.html, jqXHR);
                     clearTimeout(pollingTimer);
+                    if (debug_mode){
+                        recordEvent('faces_page_rendered');
+                    }
                 }
             }
         });

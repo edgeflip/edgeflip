@@ -332,6 +332,9 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'test_token': test_token,
         'test_fbid': test_fbid,
         'canvas': canvas,
+        # Debug mode currently on for all methods of targetted sharing
+        # However will likely just reflect the canvas var in the future
+        'debug_mode': True,
     })
 
 
@@ -831,10 +834,12 @@ def record_event(request):
     multi_occurrence_events = {
         'button_click', 'auth_fail', 'select_all_click',
         'share_click', 'share_fail', 'shared', 'clickback',
-        'suggest_message_click',
+        'suggest_message_click', 'selected_friend', 'unselected_friend',
+        'faces_page_rendered'
     }
+    updateable_events = {'heartbeat'}
 
-    if event_type not in single_occurrence_events | multi_occurrence_events:
+    if event_type not in single_occurrence_events | multi_occurrence_events | updateable_events:
         return http.HttpResponseForbidden(
             "Ah, ah, ah. You didn't say the magic word"
         )
@@ -846,7 +851,7 @@ def record_event(request):
         return http.HttpResponse()
 
     events = []
-    if friends:
+    if friends and event_type not in updateable_events:
         for friend in friends:
             events.append(
                 models.relational.Event(
@@ -859,6 +864,20 @@ def record_event(request):
                     event_type=event_type,
                 )
             )
+    elif event_type in updateable_events:
+        event, created = models.relational.Event.objects.get_or_create(
+            visit=request.visit,
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            activity_id=action_id,
+            event_type=event_type,
+            defaults={'content': 1}
+        )
+        if not created:
+            # Maybe a count column on events would be useful? Hard to envision
+            # many other events leveraging this
+            event.content = str(int(event.content) + 1)
+            event.save()
     else:
         events.append(
             models.relational.Event(

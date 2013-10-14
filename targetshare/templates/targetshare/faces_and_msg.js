@@ -136,6 +136,9 @@ function selectFriend(fbid) {
 
         syncFriendBoxes();  // update the appearance of the friend box
         activateSuggestButton();  // advance the button highlight
+        if (debug_mode){
+            recordEvent('selected_friend', {friends: [fbid]})
+        }
         return true;
     }
 }
@@ -151,6 +154,9 @@ function unselectFriend(fbid) {
         $('#recipient-'+fbid).remove();    // remove the friend from the message
         syncFriendBoxes();
         reformatRecipsList();
+        if (debug_mode){
+            recordEvent('unselected_friend', {friends: [fbid]})
+        }
         return true;
     } else {
         return false;
@@ -528,6 +534,19 @@ function helperTextDisappear() {
     $('#message_helper_txt').remove();
 }
 
+var heartbeat_timer;
+var heartbeat_count = 0;
+function heartbeat(){
+    if (heartbeat_timer && heartbeat_count > 60) {
+        // User has been here for over a minute, let's leave their CPU alone.
+        clearTimeout(heartbeat_timer);
+    } else {
+        recordEvent('heartbeat');
+        heartbeat_count += 1;
+        heartbeat_timer = setTimeout(function(){heartbeat()}, 1000);
+    }
+}
+
 
 /////////////////////////////////
 
@@ -608,6 +627,11 @@ $(document).ready(function() {
         pickFriends.push({ 'value':friend.fbid, 'label':friend.name });
     }
     setDropdown(pickFriends);
+
+    console.log('kickstart my heart');
+    if (debug_mode){
+        heartbeat();
+    }
 
 }); // document ready
 
