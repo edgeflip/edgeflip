@@ -144,10 +144,7 @@ function displayFriendDiv(data, jqXHR) {
 
 var heartbeat_count = 0;
 function heartbeat(){
-    if (heartbeat_count > 60) {
-        // User has been here for over a minute, let's leave their CPU alone.
-        //clearTimeout(heartbeat_timer);
-    } else {
+    if (heartbeat_count <= 60) {
         recordEvent('heartbeat');
         heartbeat_count += 1;
         setTimeout(heartbeat, 1000);
