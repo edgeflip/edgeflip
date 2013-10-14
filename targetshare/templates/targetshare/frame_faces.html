@@ -55,6 +55,7 @@
         var appid = "{{ fb_params.fb_app_id }}";
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
+        var debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
 
         {% if test_mode %}
             var test_mode = true;
@@ -120,6 +121,9 @@
                        }
                    });
                    {% block run_sharing %}
+                        if (debug_mode){
+                            heartbeat();
+                        }
                        login(uid, tok, response, null);
                    {% endblock %}
                 } else {

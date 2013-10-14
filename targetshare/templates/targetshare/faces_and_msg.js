@@ -136,6 +136,9 @@ function selectFriend(fbid) {
 
         syncFriendBoxes();  // update the appearance of the friend box
         activateSuggestButton();  // advance the button highlight
+        if (debug_mode){
+            recordEvent('selected_friend', {friends: [fbid]})
+        }
         return true;
     }
 }
@@ -151,6 +154,9 @@ function unselectFriend(fbid) {
         $('#recipient-'+fbid).remove();    // remove the friend from the message
         syncFriendBoxes();
         reformatRecipsList();
+        if (debug_mode){
+            recordEvent('unselected_friend', {friends: [fbid]})
+        }
         return true;
     } else {
         return false;
@@ -439,6 +445,9 @@ function doShare() {
         if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
             selectAll(true);
         } else {
+            if (debug_mode){
+                recordEvent('empty_share');
+            }
             return;
         }
     }
@@ -500,35 +509,9 @@ function recordShare(actionid, shareMsg, recips) {
     });
 }
 
-function recordEvent(eventType, options) {
-    var options = options || {};
-    $.ajax({
-        type: "POST",
-        url: '/record_event/',
-        dataType: 'html',
-        data: {
-            userid: myfbid, // set in load_and_login.js
-            campaignid: campaignid, // set in frame_faces.html
-            contentid: contentid, // set in frame_faces.html
-            appid: FB_APP_ID,
-            content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-            eventType: eventType,
-            actionid: options.actionid,
-            friends: options.friends,
-            shareMsg: options.shareMsg,
-            errorMsg: options.errorMsg,
-            error: options.error,
-            success: options.success,
-            complete: options.complete
-        }
-    });
-}
-
 function helperTextDisappear() {
     $('#message_helper_txt').remove();
 }
-
-
 /////////////////////////////////
 
 // on load stuff

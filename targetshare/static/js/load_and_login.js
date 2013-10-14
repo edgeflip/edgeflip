@@ -6,6 +6,7 @@ or show user a button (same behavior)
 */
 
 var myfbid; // The FB ID of the current user to be filled in upon auth.
+var debug_mode;
 
 /* loads a bunch of images
 */
@@ -123,6 +124,9 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
                 } else {
                     displayFriendDiv(data.html, jqXHR);
                     clearTimeout(pollingTimer);
+                    if (debug_mode){
+                        recordEvent('faces_page_rendered');
+                    }
                 }
             }
         });
@@ -136,4 +140,13 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
+}
+
+var heartbeat_count = 0;
+function heartbeat(){
+    if (heartbeat_count <= 60) {
+        recordEvent('heartbeat');
+        heartbeat_count += 1;
+        setTimeout(heartbeat, 1000);
+    }
 }
