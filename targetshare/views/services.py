@@ -52,12 +52,6 @@ def outgoing(request, app_id, url):
     return http.HttpResponseRedirect(url)
 
 
-
-
-
-
-
-
 def health_check(request):
 
     if 'elb' in request.GET:
