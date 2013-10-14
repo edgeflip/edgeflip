@@ -31,12 +31,14 @@ CURRENT_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.abspath(os.path.join(CURRENT_PATH, '../')))
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "edgeflip.settings")
 
+
 # Initialize new relic:
 from django.conf import settings
 if settings.NEWRELIC.enabled:
     import newrelic.agent
     newrelic.agent.initialize(settings.NEWRELIC.inifile,
                               settings.NEWRELIC.environment)
+
 
 # This application object is used by any WSGI server configured to use this
 # file. This includes Django's development server, if the WSGI_APPLICATION
@@ -45,11 +47,17 @@ from django.core.wsgi import get_wsgi_application
 
 wsgi_application = get_wsgi_application()
 
+
 def application(environ, start_response):
-    # wsgi doesn't handle encoded slashes well; decode them for it:
-    raw_path = environ['REQUEST_URI'].split('?', 1)[0]
-    environ['PATH_INFO'] = urllib.unquote_plus(raw_path)
+    # mod_wsgi doesn't handle encoded slashes well; decode them for it by
+    # intercepting requests coming through Apache,
+    # (which should be configured to AllowEncodedSlashes NoDecode).
+    if 'REQUEST_URI' in environ:
+        # Must be in Apache, (not runserver). Fix PATH_INFO.
+        raw_path = environ['REQUEST_URI'].split('?', 1)[0]
+        environ['PATH_INFO'] = urllib.unquote_plus(raw_path)
     return wsgi_application(environ, start_response)
+
 
 # Apply WSGI middleware here.
 if settings.NEWRELIC.enabled:
