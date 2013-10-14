@@ -141,3 +141,16 @@ function displayFriendDiv(data, jqXHR) {
     $('#progress').hide();
     $('#do_share_button').show()
 }
+
+var heartbeat_timer;
+var heartbeat_count = 0;
+function heartbeat(){
+    if (heartbeat_timer && heartbeat_count > 60) {
+        // User has been here for over a minute, let's leave their CPU alone.
+        clearTimeout(heartbeat_timer);
+    } else {
+        recordEvent('heartbeat');
+        heartbeat_count += 1;
+        heartbeat_timer = setTimeout(function(){heartbeat()}, 1000);
+    }
+}
