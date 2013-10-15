@@ -69,6 +69,7 @@ class TransitoryObjectQuerySet(base.ConfigurableQuerySet):
         if not isinstance(obj, self.model):
             raise TypeError("Model mismatch")
 
+        # TODO: Could use related_objects_descriptor property like AssignmentManager
         rel_fields = [field for field in self.model._meta.fields
                       if field.rel and isinstance(parent, field.rel.to)]
         try:

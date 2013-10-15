@@ -33,8 +33,8 @@ def button(request, campaign_id, content_id):
             visit=request.visit,
             campaign=campaign,
             content=content,
-            assignment=button_style,
-            manager=campaign.campaignbuttonstyles,
+            feature_row=button_style,
+            chosen_from_rows=campaign.campaignbuttonstyles,
         )
     )
 
