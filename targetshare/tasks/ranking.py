@@ -62,7 +62,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         raise RuntimeError("Exceeded maximum fallback count")
 
     app, model_name = visit_type.split('.')
-    visit = get_model(app, model_name).objects.get(pk=visit_id)
+    interaction = get_model(app, model_name).objects.get(pk=visit_id)
+
     campaign = models.relational.Campaign.objects.get(campaign_id=campaignId)
     client = campaign.client
     client_content = models.relational.ClientContent.objects.get(content_id=contentId)
@@ -101,12 +102,11 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 
     # Get filter experiments, do assignment (and write DB)
     global_filter = campaign.campaignglobalfilters.random_assign()
-    visit.assignments.create(
-        campaign_id=campaignId,
-        content_id=contentId, feature_type='filter_id',
-        feature_row=global_filter.pk, random_assign=True,
-        chosen_from_table='campaign_global_filters',
-        chosen_from_rows=[x.pk for x in campaign.campaignglobalfilters.all()]
+    interaction.assignments.create_managed(
+        campaign=campaign,
+        content=client_content,
+        feature_row=global_filter,
+        chosen_from_rows=campaign.campaignglobalfilters,
     )
 
     # apply filter
@@ -115,11 +115,11 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     # Get choice set experiments, do assignment (and write DB)
     campaign_choice_sets = campaign.campaignchoicesets.all()
     choice_set = campaign_choice_sets.random_assign()
-    visit.assignments.create(
-        campaign_id=campaignId, content_id=contentId,
-        feature_type='choice_set_id', feature_row=choice_set.pk,
-        random_assign=True, chosen_from_table='campaign_choice_sets',
-        chosen_from_rows=[x.pk for x in campaign_choice_sets]
+    interaction.assignments.create_managed(
+        campaign=campaign,
+        content=client_content,
+        feature_row=choice_set,
+        chosen_from_rows=campaign.campaignchoicesets,
     )
     allow_generic = {
         option.choice_set.pk: [option.allow_generic, option.generic_url_slug]
@@ -153,20 +153,21 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         if bestCSFilter[0] is None:
             # We got generic...
             logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
-            visit.assignments.create(
-                campaign_id=campaignId,
-                content_id=contentId, feature_type='generic choice set filter',
-                feature_row=None, random_assign=False,
-                chosen_from_table='choice_set_filters',
-                chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
+            interaction.assignments.create_managed(
+                campaign=campaign,
+                content=client_content,
+                feature_row=None,
+                random_assign=False,
+                chosen_from_rows=choice_set.choicesetfilters,
+                feature_type='generic choice set filter',
             )
         else:
-            visit.assignments.create(
-                campaign_id=campaignId,
-                content_id=contentId, feature_type='filter_id',
-                feature_row=bestCSFilter[0].filter_id, random_assign=False,
-                chosen_from_table='choice_set_filters',
-                chosen_from_rows=[x.pk for x in choice_set.choicesetfilters.all()]
+            interaction.assignments.create_managed(
+                campaign=campaign,
+                content=client_content,
+                feature_row=bestCSFilter[0].filter_id,
+                random_assign=False,
+                chosen_from_rows=choice_set.choicesetfilters,
             )
 
     slotsLeft = numFace - len(already_picked)
@@ -175,21 +176,23 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # We still have slots to fill and can fallback to do so
 
         # write "fallback" assignments to DB
-        visit.assignments.create(
-            campaign_id=campaignId,
-            content_id=contentId,
+        interaction.assignments.create(
+            campaign=campaign,
+            content=client_content,
             feature_type='cascading fallback campaign',
-            feature_row=properties.fallback_campaign.pk, random_assign=False,
+            feature_row=properties.fallback_campaign.pk,
             chosen_from_table='campaign_properties',
-            chosen_from_rows=[properties.pk]
+            chosen_from_rows=[properties.pk],
+            random_assign=False,
         )
-        visit.assignments.create(
-            campaign_id=campaignId,
-            content_id=contentId,
+        interaction.assignments.create(
+            campaign=campaign,
+            content=client_content,
             feature_type='cascading fallback content',
-            feature_row=fallback_content_id, random_assign=False,
+            feature_row=fallback_content_id,
             chosen_from_table='campaign_properties',
-            chosen_from_rows=[properties.pk]
+            chosen_from_rows=[properties.pk],
+            random_assign=False,
         )
 
         # Recursive call with new fallbackCampaignId & fallback_content_id,
@@ -224,29 +227,32 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
                 campaignId,
                 contentId
             )
-            visit.events.create(
+            interaction.events.create(
                 campaign_id=campaignId,
-                client_content_id=contentId, content=thisContent,
+                client_content_id=contentId,
+                content=thisContent,
                 event_type='no_friends_error'
             )
             return (None, None, None, None, campaignId, contentId)
 
         # write "fallback" assignments to DB
-        visit.assignments.create(
-            campaign_id=campaignId,
-            content_id=contentId,
+        interaction.assignments.create(
+            campaign=campaign,
+            content=client_content,
             feature_type='cascading fallback campaign',
-            feature_row=properties.fallback_campaign.pk, random_assign=False,
+            feature_row=properties.fallback_campaign.pk,
             chosen_from_table='campaign_properties',
-            chosen_from_rows=[properties.pk]
+            chosen_from_rows=[properties.pk],
+            random_assign=False,
         )
-        visit.assignments.create(
-            campaign_id=campaignId,
-            content_id=contentId,
+        interaction.assignments.create(
+            campaign=campaign,
+            content=client_content,
             feature_type='fallback campaign',
-            feature_row=fallback_content_id, random_assign=False,
+            feature_row=fallback_content_id,
             chosen_from_table='campaign_properties',
-            chosen_from_rows=[properties.pk]
+            chosen_from_rows=[properties.pk],
+            random_assign=False,
         )
 
         # If we're not cascading, no one is already picked.
