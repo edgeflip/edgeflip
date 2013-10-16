@@ -6,7 +6,7 @@ from textwrap import dedent
 
 from django.conf import settings
 from django.core.cache import cache
-from django.core.management.base import NoArgsCommand, CommandError, OutputWrapper
+from django.core.management.base import NoArgsCommand, CommandError
 
 from targetshare.integration import facebook
 from targetshare.models import relational
@@ -35,9 +35,7 @@ class Command(NoArgsCommand):
             http://goofballs.com/1/
             http://goofballs.com/2/ 42
             http://goofballs.com/3/ 42
-            http://goofballs.com/3/ 43
-
-        ''')
+            http://goofballs.com/3/ 43''')
 
     option_list = NoArgsCommand.option_list + (
         make_option('-c', '--campaign',
@@ -63,9 +61,6 @@ class Command(NoArgsCommand):
 
     def handle_noargs(self, campaign_id=None, urls=None, verbosity=1, **options):
         verbosity = int(verbosity) # Comes to us as a str
-
-        # Django is weird about setting up stderr, so ensure it's set:
-        self.stderr = getattr(self, 'stderr', OutputWrapper(sys.stderr, self.style.ERROR))
 
         if campaign_id:
             if not urls:
