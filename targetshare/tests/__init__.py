@@ -1,3 +1,4 @@
+import os.path
 import urllib
 
 from mock import Mock, patch
@@ -11,6 +12,9 @@ from pymlconf import ConfigDict
 
 from targetshare import models
 from targetshare.models.dynamo import utils
+
+
+DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 class EdgeFlipTestCase(TestCase):

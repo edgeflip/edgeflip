@@ -81,19 +81,20 @@ def _retrieve_fbobject_meta(source_url):
         return parser.meta
 
 
-def get_fbobject_attributes(source_url, fb_object=None):
+def get_fbobject_attributes(source_url, fb_object=None, refresh=False):
     """Retrieve Facebook object attributes from the meta tags of the given
     URL's HTML source document.
 
     Note: Relevant source document meta tags are cached according to
-    `retrieval_cache_timeout` (see `settings.CLIENT_FBOBJECT`).
+    `retrieval_cache_timeout` (see `settings.CLIENT_FBOBJECT`). To force the cache
+    to refresh, specify `refresh`.
 
     Returns: a ready-to-save FBObjectAttribute object
 
     """
     cache_key = 'fbobject|{}'.format(source_url)
-    meta = cache.get(cache_key)
-    if meta is None:
+    meta = refresh or cache.get(cache_key)
+    if refresh or meta is None:
         meta = _retrieve_fbobject_meta(source_url)
         cache.set(cache_key, meta, settings.CLIENT_FBOBJECT['retrieval_cache_timeout'])
 
@@ -109,13 +110,15 @@ def get_fbobject_attributes(source_url, fb_object=None):
     return models.relational.FBObjectAttribute(fb_object=fb_object, **attrs)
 
 
-def source_campaign_fbobject(campaign, source_url):
+def source_campaign_fbobject(campaign, source_url, refresh=False):
     """For a given Campaign and client Facebook object source URL, ensure the existence
     of an active CampaignFBObject, FBObject and FBObjectAttribute.
 
     FBObject attributes are gathered from the <meta> tags of the HTML document at
     `source_url`, either for a new Campaign FBObject or for that which has not been
-    updated within `campaign_max_age` (see `settings.CLIENT_FBOBJECT`).
+    updated within `campaign_max_age` (see `settings.CLIENT_FBOBJECT`). To force
+    refresh attributes regardless of how recently they have been sourced, specify
+    `refresh`.
 
     Any attributes missing from `source_url`'s document but present in the
     CampaignGenericFBObject will be populated from the latter.
@@ -152,8 +155,8 @@ def source_campaign_fbobject(campaign, source_url):
     # (Re)-retrieve FBObjectAttributes from URL (if haven't recently)
     now = timezone.now()
     too_old = now - datetime.timedelta(seconds=settings.CLIENT_FBOBJECT['campaign_max_age'])
-    if not campaign_fb_object.sourced or campaign_fb_object.sourced <= too_old:
-        raw_fb_attrs = get_fbobject_attributes(campaign_fb_object.source_url, fb_object)
+    if refresh or not campaign_fb_object.sourced or campaign_fb_object.sourced <= too_old:
+        raw_fb_attrs = get_fbobject_attributes(campaign_fb_object.source_url, fb_object, refresh)
         generic_campaign_fbobject = campaign.campaigngenericfbobjects.for_datetime().get()
         generic_fb_object = generic_campaign_fbobject.fb_object
         default_attrs = generic_fb_object.fbobjectattribute_set.for_datetime().get()
