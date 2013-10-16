@@ -156,7 +156,7 @@ def source_campaign_fbobject(campaign, source_url, refresh=False):
     now = timezone.now()
     too_old = now - datetime.timedelta(seconds=settings.CLIENT_FBOBJECT['campaign_max_age'])
     if refresh or not campaign_fb_object.sourced or campaign_fb_object.sourced <= too_old:
-        raw_fb_attrs = get_fbobject_attributes(campaign_fb_object.source_url, fb_object)
+        raw_fb_attrs = get_fbobject_attributes(campaign_fb_object.source_url, fb_object, refresh)
         generic_campaign_fbobject = campaign.campaigngenericfbobjects.for_datetime().get()
         generic_fb_object = generic_campaign_fbobject.fb_object
         default_attrs = generic_fb_object.fbobjectattribute_set.for_datetime().get()
