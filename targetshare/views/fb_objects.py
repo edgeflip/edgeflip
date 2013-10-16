@@ -1,5 +1,6 @@
 import logging
 import urllib
+import urlparse
 
 from django import http
 from django.core.urlresolvers import reverse
@@ -46,6 +47,12 @@ def objects(request, fb_object_id, content_id):
         if not content.url:
             return http.HttpResponseNotFound()
         redirect_url = content.url
+
+    if action_id:
+        parsed_url = urlparse.urlparse(redirect_url)
+        query_params = urlparse.parse_qsl(parsed_url.query)
+        query_params.append(('fb_action_ids', action_id))
+        redirect_url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
 
     full_redirect_path = "{}?{}".format(
         reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(redirect_url)]),
