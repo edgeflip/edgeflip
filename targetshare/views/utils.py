@@ -179,7 +179,7 @@ def _locate_client_template(client, template_name):
     """
     try:
         templates = find_template('targetshare/clients/%s/%s' % (
-            client.subdomain,
+            client.codename,
             template_name
         ))
 
@@ -197,7 +197,7 @@ def _locate_client_css(client, css_name):
     If none is found, the default is returned.
 
     """
-    client_path = os.path.join('css', 'clients', client.subdomain, css_name)
+    client_path = os.path.join('css', 'clients', client.codename, css_name)
     if os.path.exists(os.path.join(settings.STATIC_ROOT, client_path)):
         return os.path.join(settings.STATIC_URL, client_path)
     else:

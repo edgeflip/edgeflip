@@ -120,7 +120,7 @@
 {% endblock %}
 {% block body %}
     {% block button %}
-        <div id="share_button" class="button_big button_active" onclick="doFBLogin();">Support us on Facebook</div>
+    <div id="share_button" class="button_big button_active" onclick="doFBLogin();">{% block button_text %}Support us on Facebook{% endblock button_text %}</div>
     {% endblock button %}
     <div id="fb-root"></div>
     <script type="text/javascript">
