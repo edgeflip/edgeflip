@@ -39,9 +39,12 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         self.assertTrue(response.context['fb_params'])
         self.assertEqual(response.context['fb_params']['fb_object_url'],
                          'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
-        redirect_url = models.ClientContent.objects.get(pk=1).url
-        self.assertEqual(response.context['redirect_url'],
-                         self.get_outgoing_url(redirect_url, 1))
+        redirect_url = '{}?fb_action_ids=1'.format(
+            models.ClientContent.objects.get(pk=1).url)
+        self.assertEqual(
+            response.context['redirect_url'],
+            self.get_outgoing_url(redirect_url, 1)
+        )
         self.assertTrue(response.context['content'])
         self.assertTrue(
             models.Event.objects.filter(
@@ -64,8 +67,10 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         self.assertStatusCode(response, 200)
         self.assertEqual(response.context['fb_params']['fb_object_url'],
                          'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
-        self.assertEqual(response.context['redirect_url'],
-                         self.get_outgoing_url('http://www.google.com/', 1))
+        self.assertEqual(
+            response.context['redirect_url'],
+            self.get_outgoing_url('http://www.google.com/?fb_action_ids=1', 1)
+        )
 
     def test_objects_ambiguous_source_url(self):
         fb_object = models.FBObject.objects.get(pk=1)
@@ -81,5 +86,7 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         self.assertEqual(response.context['fb_params']['fb_object_url'],
                          'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
         self.assertGreater(fb_object.campaignfbobjects.count(), 1)
-        self.assertEqual(response.context['redirect_url'],
-                         self.get_outgoing_url('http://www.google.com/', 1))
+        self.assertEqual(
+            response.context['redirect_url'],
+            self.get_outgoing_url('http://www.google.com/?fb_action_ids=1', 1)
+        )
