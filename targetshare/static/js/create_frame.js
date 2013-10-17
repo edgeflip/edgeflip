@@ -42,7 +42,7 @@
 
     // Carry certain URL parameters through
     efFrameURL += (function() {
-        var carryThroughKeys = ['efsrc', 'efobjsrc', 'efsuccessurl', 'eferrorurl'];
+        var carryThroughKeys = ['efsrc', 'efobjsrc', 'efsuccessurl', 'eferrorurl', 'code'];
         var paramKey, paramValue, queryPairs = [];
         for (var paramIndex = 0; paramIndex < carryThroughKeys.length; paramIndex++) {
             paramKey = carryThroughKeys[paramIndex];

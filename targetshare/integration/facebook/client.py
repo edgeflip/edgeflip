@@ -13,6 +13,8 @@ from collections import defaultdict
 from contextlib import closing
 from math import ceil
 
+import requests
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -405,6 +407,26 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     logger.debug("got %d friend edges for %d (%s)", len(edges), userId, tim.elapsedPr())
     return edges
+
+
+def verify_oauth_code(fb_app_id, code, redirect_uri):
+    url_params = {
+        'client_id': fb_app_id,
+        'redirect_uri': redirect_uri,
+        'client_secret': settings.FACEBOOK.secrets[fb_app_id],
+        'code': code
+    }
+    try:
+        resp = requests.get(
+            'https://graph.facebook.com/oauth/access_token',
+            params=url_params
+        )
+    except requests.exceptions.RequestException:
+        token = None
+
+    token = urlparse.parse_qs(resp.content).get('access_token')
+    token = token[0] if token else None
+    return token is not None
 
 
 class StreamCounts(object):
