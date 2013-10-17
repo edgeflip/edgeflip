@@ -1,8 +1,14 @@
--   fields: {create_dt: !!timestamp '2013-07-15 11:38:28', domain: 'edgeflip.com:8080',
-        _fb_app_id: '471727162864364', _fb_app_name: sharing-social-good, name: mockclient,
-        subdomain: testserver}
-    model: targetshare.client
+-   model: targetshare.client
     pk: 1
+    fields:
+        create_dt: !!timestamp '2013-07-15 11:38:28'
+        domain: 'edgeflip.com:8080'
+        _fb_app_id: '471727162864364'
+        _fb_app_name: sharing-social-good
+        name: mockclient
+        codename: mockclient
+        subdomain: testserver
+
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
          is_deleted: false, name: Gun Control}
     model: targetshare.campaign

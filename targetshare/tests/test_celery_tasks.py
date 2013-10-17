@@ -128,8 +128,13 @@ class TestDatabaseTasks(EdgeFlipTestCase):
 
     def test_delayed_bulk_create(self):
         """Task bulk_create calls objects.bulk_create with objects passed"""
-        clients = [models.relational.Client(name="Client {}".format(count))
-                   for count in xrange(1, 11)]
+        clients = [
+            models.relational.Client(
+                name="Client {}".format(count),
+                codename='client-{}'.format(count)
+            )
+            for count in xrange(1, 11)
+        ]
         client_count = models.relational.Client.objects.count()
         db.bulk_create(clients)
         self.assertEqual(models.relational.Client.objects.count(), client_count + 10)
