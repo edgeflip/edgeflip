@@ -14,7 +14,8 @@ class ChoiceSetFilter(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True, blank=True)
 
-    objects = manager.TransitoryObjectManager.make(signature_fields=[filter])
+    objects = manager.AssignedObjectManager.make(assigned_object=filter,
+                                                 signature_fields=[filter])
 
     class Meta(object):
         app_label = 'targetshare'

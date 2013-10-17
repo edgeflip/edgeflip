@@ -10,10 +10,7 @@ from mock import patch, Mock
 
 from targetshare import models
 
-from . import EdgeFlipViewTestCase
-
-
-DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+from . import EdgeFlipViewTestCase, DATA_PATH
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')

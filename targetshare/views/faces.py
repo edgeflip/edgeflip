@@ -78,8 +78,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             visit=request.visit,
             campaign=campaign,
             content=content,
-            assignment=faces_style,
-            manager=campaign.campaignfacesstyles,
+            feature_row=faces_style,
+            chosen_from_rows=campaign.campaignfacesstyles,
         )
     )
 
@@ -222,9 +222,9 @@ def faces(request):
                 visit=request.visit,
                 campaign=campaign,
                 content=content,
-                assignment=fb_object,
+                feature_row=fb_object,
+                chosen_from_rows=None,
                 manager=campaign.campaignfbobjects,
-                options=None,
                 random_assign=False,
             )
         )
@@ -235,8 +235,8 @@ def faces(request):
                 visit=request.visit,
                 campaign=campaign,
                 content=content,
-                assignment=fb_object,
-                manager=campaign.campaignfbobjects,
+                feature_row=fb_object,
+                chosen_from_rows=campaign.campaignfbobjects.for_datetime(),
             )
         )
 
@@ -389,8 +389,8 @@ def faces_email_friends(request, notification_uuid):
             visit=request.visit,
             campaign=campaign,
             content=content,
-            assignment=fb_object,
-            manager=campaign.campaignfbobjects,
+            feature_row=fb_object,
+            chosen_from_rows=campaign.campaignfbobjects.for_datetime(),
         )
     )
     fb_attrs = fb_object.fbobjectattribute_set.get()

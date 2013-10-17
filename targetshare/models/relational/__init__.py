@@ -1,4 +1,4 @@
-from .assignment import Assignment
+from .assignment import Assignment, NotificationAssignment
 from .client import Client
 from .campaign import Campaign
 from .button_style import ButtonStyle
@@ -24,7 +24,7 @@ from .choice_set_filter import ChoiceSetFilter
 from .choice_set_meta import ChoiceSetMeta
 from .client_content import ClientContent
 from .client_default import ClientDefault
-from .event import Event
+from .event import Event, NotificationEvent
 from .face_exclusion import FaceExclusion
 from .faces_style import FacesStyle
 from .faces_style_files import FacesStyleFiles
@@ -38,7 +38,7 @@ from .filter import Filter
 from .mix_model_definition import MixModelDefinition
 from .mix_model_meta import MixModelMeta
 from .mix_model import MixModel
-from .notification import Notification, NotificationUser, NotificationAssignment, NotificationEvent
+from .notification import Notification, NotificationUser
 from .propensity_model_definition import PropensityModelDefinition
 from .propensity_model_meta import PropensityModelMeta
 from .propensity_model import PropensityModel

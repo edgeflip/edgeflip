@@ -53,6 +53,6 @@ class TestButtonViews(EdgeFlipViewTestCase):
         chosen_from_rows = re.findall(r'\d+', assignment.chosen_from_rows)
         self.assertEqual(
             {int(choice) for choice in chosen_from_rows},
-            set(campaign.campaignbuttonstyles.values_list('button_style', flat=True))
+            set(campaign.campaignbuttonstyles.values_list('pk', flat=True))
         )
         self.assertEqual(models.Event.objects.filter(event_type='session_start').count(), 1)
