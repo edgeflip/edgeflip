@@ -6,6 +6,7 @@ class Client(models.Model):
 
     client_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True, blank=True)
+    codename = models.SlugField(unique=True)
     _fb_app_name = models.CharField(
         'FB App Namespace',
         max_length=256,
