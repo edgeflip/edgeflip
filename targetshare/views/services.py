@@ -16,7 +16,7 @@ LOG = logging.getLogger(__name__)
 
 
 @require_GET
-@utils._require_visit
+@utils.require_visit
 def outgoing(request, app_id, url):
     campaign_id = request.GET.get('campaignid', '')
     try:

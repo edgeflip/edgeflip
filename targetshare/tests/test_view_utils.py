@@ -7,7 +7,7 @@ from django.utils import timezone
 from django.utils.importlib import import_module
 
 from targetshare import models
-from targetshare.views.utils import _get_visit
+from targetshare.views.utils import set_visit
 
 from . import EdgeFlipViewTestCase
 
@@ -30,27 +30,30 @@ class TestVisit(EdgeFlipViewTestCase):
         return request
 
     def test_new_visit(self):
-        visit = _get_visit(self.get_request(), 1)
-        self.assertTrue(visit.session_id)
-        self.assertEqual(visit.app_id, 1)
-        start_event = visit.events.get()
+        request = self.get_request()
+        set_visit(request, 1)
+        self.assertTrue(request.visit.session_id)
+        self.assertEqual(request.visit.app_id, 1)
+        start_event = request.visit.events.get()
         self.assertEqual(start_event.event_type, 'session_start')
 
     def test_update_visit(self):
-        visit = _get_visit(self.get_request(), 1)
-        session_id = visit.session_id
+        request = self.get_request()
+        set_visit(request, 1)
+        session_id = request.visit.session_id
         self.assertTrue(session_id)
-        self.assertIsNone(visit.fbid)
+        self.assertIsNone(request.visit.fbid)
 
         self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
-        visit = _get_visit(self.get_request(), 1, fbid=9)
-        self.assertEqual(visit.session_id, session_id)
-        self.assertEqual(visit.fbid, 9)
+        request = self.get_request()
+        set_visit(request, 1, fbid=9)
+        self.assertEqual(request.visit.session_id, session_id)
+        self.assertEqual(request.visit.fbid, 9)
 
     def test_visit_expiration(self):
         request0 = self.get_request()
-        visit0 = _get_visit(request0, 1)
-        session_id0 = visit0.session_id
+        set_visit(request0, 1)
+        session_id0 = request0.visit.session_id
         self.assertTrue(session_id0)
 
         # Make session old:
@@ -60,8 +63,8 @@ class TestVisit(EdgeFlipViewTestCase):
 
         self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id0
         request1 = self.get_request()
-        visit1 = _get_visit(request1, 1)
-        session_id1 = visit1.session_id
+        set_visit(request1, 1)
+        session_id1 = request1.visit.session_id
         self.assertTrue(session_id1)
         self.assertEqual(session_id1, request1.session.session_key)
 
@@ -71,6 +74,6 @@ class TestVisit(EdgeFlipViewTestCase):
         self.assertEqual(session_id1, request1.session.session_key)
         self.assertEqual(request1.session['foo'], 'bar')
 
-        self.assertNotEqual(visit1, visit0)
+        self.assertNotEqual(request1.visit, request0.visit)
         self.assertNotEqual(session_id1, session_id0)
         self.assertEqual(models.relational.Visit.objects.count(), 2)
