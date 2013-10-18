@@ -1,12 +1,13 @@
 from django.conf import settings
 from django.db import models
+from django.utils import text
 
 
 class Client(models.Model):
 
     client_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True, blank=True)
-    codename = models.SlugField(unique=True)
+    codename = models.SlugField(unique=True, blank=True, editable=False)
     _fb_app_name = models.CharField(
         'FB App Namespace',
         max_length=256,
@@ -32,6 +33,12 @@ class Client(models.Model):
 
     def __unicode__(self):
         return u'%s' % self.name
+
+    def save(self, *args, **kws):
+        # Ensure codename is set:
+        if not self.codename:
+            self.codename = text.slugify(self.name.decode(settings.DEFAULT_CHARSET))
+        return super(Client, self).save(*args, **kws)
 
     # FIXME: Kill me once the client admin tool is more proper
     @property
