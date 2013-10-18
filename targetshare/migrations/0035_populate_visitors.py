@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-import itertools
 import string
 
 from django.utils.crypto import get_random_string
@@ -22,10 +21,7 @@ class Migration(DataMigration):
             visit.visitor = orm.Visitor.objects.create(uuid=get_new_uuid(orm))
             visit.save()
 
-        for (fbid, visits) in itertools.groupby(
-            orm.Visit.objects.exclude(fbid=None).order_by('fbid'),
-            lambda visit: visit.fbid
-        ):
+        for fbid in orm.Visit.objects.exclude(fbid=None).values_list('fbid', flat=True).distinct():
             visitor = orm.Visitor.objects.create(
                 uuid=get_new_uuid(orm),
                 fbid=fbid,

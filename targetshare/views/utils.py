@@ -25,6 +25,26 @@ def get_client_ip(request):
 
 
 def get_visitor(request, fbid=None):
+    """Return the Visitor object for the request.
+
+    Visitors are unique humans, identified by `fbid`, when available; when the `fbid`
+    is unavailable, the visitor UUID, stored in a long-term cookie (see
+    settings.VISITOR_COOKIE_NAME), is used.
+
+    When neither the `fbid` is known nor a UUID cookie is found, (and in the edge case
+    that the `fbid` is known, is not yet linked to a visitor, and conflicts with the
+    visitor identified by cookie), a new visitor is created. Existing visitors are
+    updated with their `fbid`, once it is discovered.
+
+    As long as the returned visitor is linked to the current visit, and the
+    VisitorMiddleware is installed, the user agent's visitor cookie will be kept up
+    to date.
+
+    Arguments:
+        request: The Django request object
+        fbid: The Facebook user identifier (optional)
+
+    """
     # Ensure fbid type for comparisons:
     fbid = long(fbid) if fbid else None
 
