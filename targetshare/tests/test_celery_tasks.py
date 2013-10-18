@@ -43,8 +43,8 @@ class TestRankingTasks(EdgeFlipTestCase):
 
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
-        visit = models.relational.Visit.objects.create(
-            session_id='123', app_id=123, ip='127.0.0.1')
+        visitor = models.relational.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
         # FIXME: Because the px3 mock crawl yields random results, this may in
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
@@ -106,8 +106,8 @@ class TestRankingTasks(EdgeFlipTestCase):
             None
         )
         test_edge2.score = 0.4
-        visit = models.relational.Visit.objects.create(
-            session_id='123', app_id=123, ip='127.0.0.1', fbid=1)
+        visitor = models.relational.Visitor.objects.create(fbid=1)
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
         ranked_edges = [test_edge2, test_edge1]
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
