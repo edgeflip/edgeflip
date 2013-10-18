@@ -72,9 +72,13 @@ def get_visitor(request, fbid=None):
             return visitor
 
     # Either UUID is empty or points to Visitor with conflicting fbid.
-    # Make a new visitor; get_or_create to avoid race:
-    visitor, _created = models.relational.Visitor.objects.get_or_create(fbid=fbid)
-    return visitor
+    # Make a new visitor.
+    if fbid:
+        # get_or_create to handle race:
+        visitor, _created = models.relational.Visitor.objects.get_or_create(fbid=fbid)
+        return visitor
+    else:
+        return models.relational.Visitor.objects.create()
 
 
 def set_visit(request, app_id, fbid=None, start_event=None):

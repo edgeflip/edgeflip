@@ -7,20 +7,23 @@ from django.utils import timezone
 from django.utils.importlib import import_module
 
 from targetshare import models
-from targetshare.views.utils import set_visit
+from targetshare.views.utils import get_visitor, set_visit
 
-from . import EdgeFlipViewTestCase
+from . import EdgeFlipTestCase
 
 
-class TestVisit(EdgeFlipViewTestCase):
+class VisitTestCase(EdgeFlipTestCase):
+
+    def setUp(self):
+        super(VisitTestCase, self).setUp()
+        self.factory = RequestFactory()
+
+
+class TestVisit(VisitTestCase):
 
     @classmethod
     def setUpClass(cls):
         cls.session_engine = import_module(settings.SESSION_ENGINE)
-
-    def setUp(self):
-        super(EdgeFlipViewTestCase, self).setUp()
-        self.factory = RequestFactory()
 
     def get_request(self, path='/'):
         cookie = self.factory.cookies.get(settings.SESSION_COOKIE_NAME, None)
@@ -36,19 +39,6 @@ class TestVisit(EdgeFlipViewTestCase):
         self.assertEqual(request.visit.app_id, 1)
         start_event = request.visit.events.get()
         self.assertEqual(start_event.event_type, 'session_start')
-
-    def test_update_visit(self):
-        request = self.get_request()
-        set_visit(request, 1)
-        session_id = request.visit.session_id
-        self.assertTrue(session_id)
-        self.assertIsNone(request.visit.fbid)
-
-        self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
-        request = self.get_request()
-        set_visit(request, 1, fbid=9)
-        self.assertEqual(request.visit.session_id, session_id)
-        self.assertEqual(request.visit.fbid, 9)
 
     def test_visit_expiration(self):
         request0 = self.get_request()
@@ -77,3 +67,100 @@ class TestVisit(EdgeFlipViewTestCase):
         self.assertNotEqual(request1.visit, request0.visit)
         self.assertNotEqual(session_id1, session_id0)
         self.assertEqual(models.relational.Visit.objects.count(), 2)
+
+    def test_update_visitor_fbid(self):
+        request = self.get_request()
+        set_visit(request, 1)
+        session_id = request.visit.session_id
+        visitor0 = request.visit.visitor
+        self.assertTrue(session_id)
+        self.assertIsNone(visitor0.fbid)
+
+        self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
+        self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor0.uuid
+        request = self.get_request()
+        set_visit(request, 1, fbid=9)
+        self.assertEqual(request.visit.session_id, session_id)
+        self.assertEqual(request.visit.visitor, visitor0)
+        self.assertEqual(request.visit.visitor.fbid, 9)
+
+    def test_swap_visitor(self):
+        request = self.get_request()
+        set_visit(request, 1)
+        session_id = request.visit.session_id
+        visitor0 = request.visit.visitor
+        self.assertTrue(session_id)
+
+        self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
+        # Don't persist visitor UUID
+        request = self.get_request()
+        set_visit(request, 1)
+        self.assertEqual(request.visit.session_id, session_id)
+        self.assertNotEqual(request.visit.visitor, visitor0)
+
+
+class TestVisitor(VisitTestCase):
+
+    def test_new_visitor(self):
+        self.assertFalse(models.Visitor.objects.exists())
+
+        request = self.factory.get('/')
+        visitor = get_visitor(request)
+
+        self.assertEqual(visitor, models.Visitor.objects.get())
+        self.assertTrue(visitor.uuid)
+        self.assertIsNone(visitor.fbid)
+
+    def test_new_visitor_fbid(self):
+        self.assertFalse(models.Visitor.objects.exists())
+
+        request = self.factory.get('/')
+        visitor = get_visitor(request, fbid=123)
+
+        self.assertEqual(visitor, models.Visitor.objects.get())
+        self.assertTrue(visitor.uuid)
+        self.assertEqual(visitor.fbid, 123)
+
+    def test_retrieve_visitor_from_uuid(self):
+        visitor = models.Visitor.objects.create()
+        self.assertTrue(visitor.uuid)
+        self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor.uuid
+        request = self.factory.get('/')
+        visitor1 = get_visitor(request)
+        self.assertEqual(visitor1, visitor)
+        self.assertEqual(models.Visitor.objects.count(), 1)
+
+    def test_visitor_fbid_trumps_uuid(self):
+        visitor = models.Visitor.objects.create()
+        visitor1 = models.Visitor.objects.create(fbid=123)
+        self.assertTrue(visitor.uuid)
+        self.assertTrue(visitor1.uuid)
+        self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor.uuid
+
+        request = self.factory.get('/')
+        visitor2 = get_visitor(request, fbid=123)
+        self.assertEqual(visitor2, visitor1)
+        self.assertEqual(models.Visitor.objects.count(), 2)
+
+    def test_update_visitor_fbid(self):
+        visitor = models.Visitor.objects.create()
+        self.assertTrue(visitor.uuid)
+        self.assertIsNone(visitor.fbid)
+        self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor.uuid
+        request = self.factory.get('/')
+        visitor1 = get_visitor(request, fbid=123)
+        self.assertEqual(visitor1, visitor)
+        self.assertEqual(models.Visitor.objects.count(), 1)
+        self.assertEqual(visitor1.fbid, 123)
+
+    def test_visitor_fbid_conflict(self):
+        visitor = models.Visitor.objects.create(fbid=123)
+        self.assertTrue(visitor.uuid)
+        self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor.uuid
+        request = self.factory.get('/')
+        visitor1 = get_visitor(request, fbid=321)
+        self.assertNotEqual(visitor1, visitor)
+        self.assertNotEqual(visitor1.uuid, visitor.uuid)
+        self.assertEqual(models.Visitor.objects.count(), 2)
+        self.assertTrue(visitor1.uuid)
+        self.assertEqual(visitor1.fbid, 321)
