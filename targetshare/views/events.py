@@ -14,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 @require_POST
-@utils._require_visit
+@utils.require_visit
 def record_event(request):
     """Endpoint to record user events (asynchronously)."""
     user_id = request.POST.get('userid')
@@ -166,7 +166,7 @@ def record_event(request):
 
 
 @require_POST
-@utils._require_visit
+@utils.require_visit
 def suppress(request):
     user_id = request.POST.get('userid')
     campaign_id = request.POST.get('campaignid')

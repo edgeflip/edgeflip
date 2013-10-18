@@ -33,8 +33,8 @@ class TestFacesEmail(EdgeFlipTestCase):
             ),
             app_id=self.command.client.fb_app_id,
             ip='127.0.0.1',
-            fbid=None,
             source='faces_email',
+            visitor=relational.Visitor.objects.create(),
         )
         self.command.num_face = 3
         self.command.filename = 'faces_email_test.csv'

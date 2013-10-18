@@ -88,16 +88,16 @@ def objects(request, fb_object_id, content_id):
     if 'facebookexternalhit' in request.META.get('HTTP_USER_AGENT', ''):
         LOG.info(
             'Facebook crawled object %s with content %s from IP %s',
-            fb_object_id, content_id, utils._get_client_ip(request)
+            fb_object_id, content_id, utils.get_client_ip(request)
         )
     else:
-        visit = utils._get_visit(request, client.fb_app_id, start_event={
+        utils.set_visit(request, client.fb_app_id, start_event={
             'client_content': content,
             'campaign_id': campaign_id,
         })
         db.delayed_save.delay(
             models.relational.Event(
-                visit=visit,
+                visit=request.visit,
                 client_content=content,
                 content=content_str,
                 activity_id=action_id,
