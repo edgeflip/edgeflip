@@ -1,3 +1,4 @@
+import collections
 import logging
 import itertools
 from unidecode import unidecode
@@ -271,30 +272,93 @@ class EdgeCounts(object):
 _int_or_none = lambda x: int(x) if x is not None else None
 
 
-class Edge(object):
-    """relationship between two users
+EdgeBase = collections.namedtuple('EdgeBase',
+    ('primary', 'secondary', 'incoming', 'outgoing', 'score'))
 
-    just a container for other objects in module
 
-    primary: UserInfo
-    secondary: UserInfo
-    edgeCountsIn: primary to secondary
-    edgeCountsOut: secondary to primary
+class Edge(EdgeBase):
+    """Relationship between a network's primary user and a secondary user.
+
+    Arguments:
+        primary: User
+        secondary: User
+        incoming: IncomingEdge (primary to secondary relationship)
+        outgoing: OutgoingEdge (secondary to primary relationship)
+        score: proximity score (optional)
+
     """
+    __slots__ = () # No need for object __dict__ or stored attributes
 
-    def __init__(self, primInfo, secInfo, edgeCountsIn, edgeCountsOut=None):
-        self.primary = primInfo
-        self.secondary = secInfo
-        self.countsIn = edgeCountsIn
-        self.countsOut = edgeCountsOut
-        self.score = None
+    def __new__(cls, primary, secondary, incoming, outgoing, score=None):
+        return super(Edge, cls).__new__(primary, secondary, incoming, outgoing, score)
 
-    def toDict(self):
-        u = self.secondary
-        d = {
-            'id': u.id, 'fname': u.fname, 'lname': u.lname,
-            'name': u.fname + " " + u.lname, 'gender': u.gender,
-            'age': u.age, 'city': u.city, 'state': u.state,
-            'score': self.score, 'desc': ''
-        }
-        return d
+    @classmethod
+    def get_friend_edges(cls, primary,
+                         require_incoming=False,
+                         require_outgoing=False,
+                         max_age=None):
+        newer_than_date = max_age and (timezone.now() - max_age)
+        edge_filters = {'fbid_target__eq': primary['fbid']}
+        if newer_than_date:
+            edge_filters.update(
+                index='updated',
+                updated__gt=newer_than_date,
+            )
+
+        incoming_edges = dynamo.IncomingEdge.items.query(**edge_filters)
+        secondary_edges_in = {edge['fbid_source']: edge for edge in incoming_edges
+                              if not require_incoming or edge['post_likes'] is not None}
+
+        incoming_users = dynamo.User.items.batch_get(keys=[
+            {'fbid': fbid} for fbid in secondary_edges_in
+        ])
+        secondary_users = {user['fbid']: user for user in incoming_users}
+
+        if require_outgoing:
+            # Build iterator of (secondary's ID, User, incoming edge, outgoing edge),
+            # fetching outgoing edges from Dynamo.
+            outgoing_edges = dynamo.OutgoingEdge.items.query(**edge_filters)
+            secondary_edges_out = dynamo.IncomingEdge.items.batch_get(keys=[
+                edge.get_keys() for edge in outgoing_edges
+            ])
+            data = (
+                (
+                    edge['fbid_target'],
+                    secondary_users.get(edge['fbid_target']),
+                    secondary_edges_in.get(edge['fbid_target']),
+                    edge,
+                )
+                for edge in secondary_edges_out
+            )
+        else:
+            data = (
+                (
+                    fbid,
+                    secondary_users.get(fbid),
+                    edge,
+                    None,
+                )
+                for fbid, edge in secondary_edges_in.items()
+            )
+
+        return tuple(cls(primary, *datum[1:]) for datum in data
+                     if cls._friend_edge_ok(*datum))
+
+    @staticmethod
+    def _friend_edge_ok(fbid, secondary, incoming, outgoing):
+        if secondary is None:
+            LOG.error("Secondary %r found in edges but not in users", fbid)
+            return False
+
+        if incoming is None:
+            LOG.warn("Edge for user %r found in outgoing but not in incoming edges", fbid)
+            return False
+
+        return True
+
+    def __repr__(self):
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join('{}={!r}'.format(key, value)
+                      for key, value in itertools.izip(self._fields, self))
+        )

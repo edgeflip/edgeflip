@@ -1,10 +1,7 @@
-#!/usr/bin/python
 import logging
 
-from . import database_compat as database
 
-
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 class EdgeAggregator(object):
@@ -14,103 +11,108 @@ class EdgeAggregator(object):
     aggregFunc: a function over properties of Edges (usually max)
 
     """
+    inPhotoTarget = None
+    inPhotoOther = None
+    inMutuals = None
+
+    inPostLikes = None
+    inPostComms = None
+    inStatLikes = None
+    inStatComms = None
+    inWallPosts = None
+    inWallComms = None
+    inTags = None
+
+    outPostLikes = None
+    outPostComms = None
+    outStatLikes = None
+    outStatComms = None
+    outWallPosts = None
+    outWallComms = None
+    outTags = None
+    outPhotoTarget = None
+    outPhotoOther = None
+    outMutuals = None
 
     def __init__(self, edgesSource, aggregFunc, requireIncoming=True, requireOutgoing=True):
-        if (len(edgesSource) > 0):
+        if len(edgesSource) == 0:
+            return
 
-            # these are defined even if requireIncoming is False, even though they are stored in countsIn
-            self.inPhotoTarget = aggregFunc([ e.countsIn.photoTarget for e in edgesSource ])
-            self.inPhotoOther = aggregFunc([ e.countsIn.photoOther for e in edgesSource ])
-            self.inMutuals = aggregFunc([ e.countsIn.mutuals for e in edgesSource ])
+        # these are defined even if requireIncoming is False, even though they are stored in incoming
+        self.inPhotoTarget = aggregFunc(e.incoming.photos_target for e in edgesSource)
+        self.inPhotoOther = aggregFunc(e.incoming.photos_other for e in edgesSource)
+        self.inMutuals = aggregFunc(e.incoming.mut_friends for e in edgesSource)
 
-            if (requireIncoming):
-                self.inPostLikes = aggregFunc([ e.countsIn.postLikes for e in edgesSource ])
-                self.inPostComms = aggregFunc([ e.countsIn.postComms for e in edgesSource ])
-                self.inStatLikes = aggregFunc([ e.countsIn.statLikes for e in edgesSource ])
-                self.inStatComms = aggregFunc([ e.countsIn.statComms for e in edgesSource ])
-                self.inWallPosts = aggregFunc([ e.countsIn.wallPosts for e in edgesSource ])
-                self.inWallComms = aggregFunc([ e.countsIn.wallComms for e in edgesSource ])
-                self.inTags = aggregFunc([ e.countsIn.tags for e in edgesSource ])
-            else:
-                self.inPostLikes = None
-                self.inPostComms = None
-                self.inStatLikes = None
-                self.inStatComms = None
-                self.inWallPosts = None
-                self.inWallComms = None
-                self.inTags = None
+        if requireIncoming:
+            self.inPostLikes = aggregFunc(e.incoming.post_likes for e in edgesSource)
+            self.inPostComms = aggregFunc(e.incoming.post_comms for e in edgesSource)
+            self.inStatLikes = aggregFunc(e.incoming.stat_likes for e in edgesSource)
+            self.inStatComms = aggregFunc(e.incoming.stat_comms for e in edgesSource)
+            self.inWallPosts = aggregFunc(e.incoming.wall_posts for e in edgesSource)
+            self.inWallComms = aggregFunc(e.incoming.wall_comms for e in edgesSource)
+            self.inTags = aggregFunc(e.incoming.tags for e in edgesSource)
 
-            if (requireOutgoing):
-                self.outPostLikes = aggregFunc([ e.countsOut.postLikes for e in edgesSource ])
-                self.outPostComms = aggregFunc([ e.countsOut.postComms for e in edgesSource ])
-                self.outStatLikes = aggregFunc([ e.countsOut.statLikes for e in edgesSource ])
-                self.outStatComms = aggregFunc([ e.countsOut.statComms for e in edgesSource ])
-                self.outWallPosts = aggregFunc([ e.countsOut.wallPosts for e in edgesSource ])
-                self.outWallComms = aggregFunc([ e.countsOut.wallComms for e in edgesSource ])
-                self.outTags = aggregFunc([ e.countsOut.tags for e in edgesSource ])
-                self.outPhotoTarget = aggregFunc([ e.countsOut.photoTarget for e in edgesSource ])
-                self.outPhotoOther = aggregFunc([ e.countsOut.photoOther for e in edgesSource ])
-                self.outMutuals = aggregFunc([ e.countsOut.mutuals for e in edgesSource ])
-            else:
-                self.outPostLikes = None
-                self.outPostComms = None
-                self.outStatLikes = None
-                self.outStatComms = None
-                self.outWallPosts = None
-                self.outWallComms = None
-                self.outTags = None
-                self.outPhotoTarget = None
-                self.outPhotoOther = None
-                self.outMutuals = None
+        if requireOutgoing:
+            self.outPostLikes = aggregFunc(e.outgoing.post_likes for e in edgesSource)
+            self.outPostComms = aggregFunc(e.outgoing.post_comms for e in edgesSource)
+            self.outStatLikes = aggregFunc(e.outgoing.stat_likes for e in edgesSource)
+            self.outStatComms = aggregFunc(e.outgoing.stat_comms for e in edgesSource)
+            self.outWallPosts = aggregFunc(e.outgoing.wall_posts for e in edgesSource)
+            self.outWallComms = aggregFunc(e.outgoing.wall_comms for e in edgesSource)
+            self.outTags = aggregFunc(e.outgoing.tags for e in edgesSource)
+            self.outPhotoTarget = aggregFunc(e.outgoing.photos_target for e in edgesSource)
+            self.outPhotoOther = aggregFunc(e.outgoing.photos_other for e in edgesSource)
+            self.outMutuals = aggregFunc(e.outgoing.mut_friends for e in edgesSource)
 
-def prox(e, eMax):
+
+def prox(e, edge_max):
     """proximity - scoring function
 
     e: a single datastructs.Edge
-    eMax: EdgeAggregator
+    edge_max: EdgeAggregator
     rtype: score, float
 
     """
     countMaxWeightTups = []
-    if (e.countsIn is not None):
+    if e.incoming is not None:
         countMaxWeightTups.extend([
             # px3
-            (e.countsIn.mutuals, eMax.inMutuals, 0.5),
-            (e.countsIn.photoTarget, eMax.inPhotoTarget, 2.0),
-            (e.countsIn.photoOther, eMax.inPhotoOther, 1.0),
+            (e.incoming.mut_friends, edge_max.inMutuals, 0.5),
+            (e.incoming.photos_target, edge_max.inPhotoTarget, 2.0),
+            (e.incoming.photos_other, edge_max.inPhotoOther, 1.0),
 
             # px4
-            (e.countsIn.postLikes, eMax.inPostLikes, 1.0),
-            (e.countsIn.postComms, eMax.inPostComms, 1.0),
-            (e.countsIn.statLikes, eMax.inStatLikes, 2.0),
-            (e.countsIn.statComms, eMax.inStatComms, 1.0),
-            (e.countsIn.wallPosts, eMax.inWallPosts, 1.0),        # guessed weight
-            (e.countsIn.wallComms, eMax.inWallComms, 1.0),        # guessed weight
-            (e.countsIn.tags, eMax.inTags, 1.0)
+            (e.incoming.post_likes, edge_max.inPostLikes, 1.0),
+            (e.incoming.post_comms, edge_max.inPostComms, 1.0),
+            (e.incoming.stat_likes, edge_max.inStatLikes, 2.0),
+            (e.incoming.stat_comms, edge_max.inStatComms, 1.0),
+            (e.incoming.wall_posts, edge_max.inWallPosts, 1.0),        # guessed weight
+            (e.incoming.wall_comms, edge_max.inWallComms, 1.0),        # guessed weight
+            (e.incoming.tags, edge_max.inTags, 1.0)
         ])
 
-    if (e.countsOut is not None):
+    if e.outgoing is not None:
         countMaxWeightTups.extend([
             # px3
-            (e.countsOut.mutuals, eMax.outMutuals, 0.5),
-            (e.countsOut.photoTarget, eMax.outPhotoTarget, 1.0),
-            (e.countsOut.photoOther, eMax.outPhotoOther, 1.0),
+            (e.outgoing.mut_friends, edge_max.outMutuals, 0.5),
+            (e.outgoing.photos_target, edge_max.outPhotoTarget, 1.0),
+            (e.outgoing.photos_other, edge_max.outPhotoOther, 1.0),
 
             # px5
-            (e.countsOut.postLikes, eMax.outPostLikes, 2.0),
-            (e.countsOut.postComms, eMax.outPostComms, 3.0),
-            (e.countsOut.statLikes, eMax.outStatLikes, 2.0),
-            (e.countsOut.statComms, eMax.outStatComms, 16.0),
-            (e.countsOut.wallPosts, eMax.outWallPosts, 2.0),    # guessed weight
-            (e.countsOut.wallComms, eMax.outWallComms, 3.0),    # guessed weight
-            (e.countsOut.tags, eMax.outTags, 1.0)
+            (e.outgoing.post_likes, edge_max.outPostLikes, 2.0),
+            (e.outgoing.post_comms, edge_max.outPostComms, 3.0),
+            (e.outgoing.stat_likes, edge_max.outStatLikes, 2.0),
+            (e.outgoing.stat_comms, edge_max.outStatComms, 16.0),
+            (e.outgoing.wall_posts, edge_max.outWallPosts, 2.0),    # guessed weight
+            (e.outgoing.wall_comms, edge_max.outWallComms, 3.0),    # guessed weight
+            (e.outgoing.tags, edge_max.outTags, 1.0)
         ])
 
     pxTotal = 0.0
     weightTotal = 0.0
     for count, countMax, weight in countMaxWeightTups:
-        if (countMax):
-            pxTotal += float(count)/countMax*weight
+        if countMax:
+            pxTotal += float(count) / countMax * weight
             weightTotal += weight
     try:
         return pxTotal / weightTotal
@@ -119,30 +121,15 @@ def prox(e, eMax):
 
 
 def getFriendRanking(edges, requireIncoming=True, requireOutgoing=True):
-    """returns sorted list of edges by score
+    """Construct a list of edges sorted by score, from those given."""
+    LOG.info("ranking %d edges", len(edges))
+    edges_max = EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
+    return sorted(
+        (edge._replace(score=prox(edge, edges_max)) for edge in edges),
+        key=lambda edge: edge.score,
+        reverse=True,
+    )
 
-    mutates Edges!
-
-    edges: list of Edges
-
-    """
-
-    logger.info("ranking %d edges", len(edges))
-    edgesMax = EdgeAggregator(edges, max, requireIncoming, requireOutgoing)
-    # score each one and store it on the edge
-    for e in edges:
-        e.score = prox(e, edgesMax)
-    return sorted(edges, key=lambda x: x.score, reverse=True)
-
-def getFriendRankingDb(userId, requireOutgoing=True):
-    """hits DB, calls getFriendRankingDb
-
-    """
-
-    # zzz Doesn't this function need a requireIncoming parameter to
-    #     pass along to getFriendRanking?
-    edgesDb = database.getFriendEdgesDb(userId, requireOutgoing=requireOutgoing)
-    return getFriendRanking(edgesDb, requireOutgoing=requireOutgoing)
 
 def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
     """conditionally call getFriendRanking
@@ -153,15 +140,7 @@ def getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold=0.5):
 
     edgeCountPart = len(edgesPart)
     edgeCountFull = len(edgesFull)
-    if (edgeCountPart*threshold > edgeCountFull):
+    if edgeCountPart * threshold > edgeCountFull:
         return getFriendRanking(edgesPart, requireOutgoing=False)
     else:
         return getFriendRanking(edgesFull, requireOutgoing=True)
-
-def getFriendRankingBestAvailDb(userId, threshold=0.5):
-    """hit DB & call getFriendRankingBestAvail
-
-    """
-    edgesPart = database.getFriendEdgesDb(userId, requireOutgoing=False)
-    edgesFull = database.getFriendEdgesDb(userId, requireOutgoing=True)
-    return getFriendRankingBestAvail(userId, edgesPart, edgesFull, threshold)

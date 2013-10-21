@@ -7,7 +7,6 @@ from django.conf import settings
 from django.db.models.loading import get_model
 
 from targetshare import (
-    database_compat as database,
     models,
     ranking,
 )
@@ -296,15 +295,15 @@ def proximity_rank_four(mockMode, fbid, token):
     fb_client = facebook.mock_client if mockMode else facebook.client
     try:
         user = fb_client.getUserFb(fbid, token['token'])
-        # FIXME: When PX5 comes online, this getFriendEdgesDb call could return
+        # FIXME: When PX5 comes online, this get_friend_edges call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
-        edgesUnranked = database.getFriendEdgesDb(
-            fbid,
-            requireIncoming=True,
-            requireOutgoing=False,
-            maxAge=timedelta(days=settings.FRESHNESS),
-        )
+        edges_unranked = models.datastructs.Edge.get_friend_edges(
+            user,
+            require_incoming=True,
+            require_outgoing=False,
+            max_age=timedelta(days=settings.FRESHNESS),
+        ) # TODO: ...
         if not edgesUnranked:
             edgesUnranked = fb_client.getFriendEdgesFb(
                 fbid,

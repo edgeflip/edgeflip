@@ -68,11 +68,12 @@ FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, curr
 
 def dateFromFb(dateStr):
     """we would like this to die"""
-    if (dateStr):
+    if dateStr:
         dateElts = dateStr.split('/')
-        if (len(dateElts) == 3):
+        if len(dateElts) == 3:
             m, d, y = dateElts
             return timezone.datetime(int(y), int(m), int(d), tzinfo=timezone.utc)
+
     return None
 
 
@@ -279,14 +280,19 @@ def getUserFb(userId, token):
     """
     fql = FQL_USER_INFO % (userId)
     url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=' + token
-    responseJson = getUrlFb(url)
-    rec = responseJson['data'][0]
-    city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
-    state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
-    email = rec.get('email')
-    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']),
-                                city, state)
-    return user
+    response_data = getUrlFb(url)
+    record = response_data['data'][0]
+    location = record.get('current_location', {})
+    return dynamo.User(
+        fbid=record['uid'],
+        fname=record['first_name'],
+        lname=record['last_name'],
+        email=record.get('email'),
+        gender=record['sex'],
+        birthday=dateFromFb(record['birthday_date']),
+        city=location.get('city'),
+        state=location.get('state'),
+    )
 
 
 def getFriendEdges(userId, tok, friendQueue):
