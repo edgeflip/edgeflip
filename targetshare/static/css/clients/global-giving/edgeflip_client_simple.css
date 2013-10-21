@@ -1,0 +1,117 @@
+body {
+    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+}
+
+/* div around the entire form */
+#faces_form_container {
+    background-color: #f7f7f7;
+    border: 2px solid #7C889B;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 20px auto;
+}
+
+.text_title_prompt {
+    color: #07304e;
+    font-size: 26px;
+}
+
+.text_instructions {
+    font-size: 22px;
+    color: #07304e;
+}
+
+.button_big, .button_small {
+    color: white;
+}
+
+.button_big {
+    width: 200px;
+    height: 25px;
+    padding: 1px;
+    font-size: 16px;
+    font-weight: 400;
+    letter-spacing: 0.5px;
+    line-height: 25px;
+    box-shadow: 3px 3px 2px #888888;
+}
+.button_small {
+    width: 140px;
+    height: 20px;
+    padding: 3px;
+    font-size: 14px;
+    font-weight: 200;
+    letter-spacing: 1px;
+}
+.button_active {
+    background-color: #db8600;
+    border: medium double white;
+}
+.button_active:hover {
+    background-color: #CC0000;
+}
+.button_inactive {
+    background-color: #0270A0;
+    border: thin solid gray;
+}
+.button_inactive:hover {
+    background-color: #094163;
+}
+
+
+/***************************************************
+ Styling for friend picker buttons (new_face.html)
+*/
+
+/* styles the boxes with friend names and pictures */
+.friend_box {
+    border: thin solid gray;
+}
+.friend_box:hover {
+    border: thin #0270A0 solid;
+    color: #0270A0;
+}
+.friend_box_selected {
+    background-color: #07304E;
+    color: white;
+}
+.friend_box_unselected {
+    background-color: #E6F2FF;
+    color: black;
+}
+
+/* styles the check mark image that appears on select */
+.checkmark {
+    display: none;
+    /*background-image: url('/static/checkmark-sm.png');*/
+}
+
+/***************************************************
+ Manual add box
+*/
+.added_friend {
+    font-size: smaller;
+    color: #f0f0f8;
+    border: thin solid gray;
+    background-color: #003F77;
+}
+
+/***************************************************
+ Styling for message input box
+*/
+
+#message_form {
+    padding-bottom: 3px;
+    border: solid thin gray;
+    background-color: white;
+}
+
+#message_helper_txt:empty:before {
+    content:"Click the button above to use a suggested message, or write your own here.";
+}
+
+.message_friend_name {
+    color: black;
+    border: thin solid #89A8BD;
+    background-color: #E6F2FF;
+}

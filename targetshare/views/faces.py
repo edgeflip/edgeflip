@@ -23,8 +23,8 @@ LOG = logging.getLogger(__name__)
 
 
 @csrf_exempt # FB posts directly to this view
-@utils._encoded_endpoint
-@utils._require_visit
+@utils.encoded_endpoint
+@utils.require_visit
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
@@ -94,7 +94,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             urllib.urlencode({'campaignid': campaign_id}),
         )
 
-    return render(request, utils._locate_client_template(client, html_template), {
+    return render(request, utils.locate_client_template(client, html_template), {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
@@ -102,8 +102,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'campaign': campaign,
         'content': content,
         'properties': properties,
-        'client_css': utils._locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': utils._locate_client_css(client, css_template),
+        'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
+        'client_css_simple': utils.locate_client_css(client, css_template),
         'test_mode': test_mode,
         'test_token': test_token,
         'test_fbid': test_fbid,
@@ -116,7 +116,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 
 @require_POST
 @csrf_exempt
-@utils._require_visit
+@utils.require_visit
 def faces(request):
     fbid = request.POST.get('fbid')
     token_string = request.POST.get('token')
@@ -313,7 +313,7 @@ def faces(request):
     return http.HttpResponse(
         json.dumps({
             'status': 'success',
-            'html': render_to_string(utils._locate_client_template(client, 'faces_table.html'), {
+            'html': render_to_string(utils.locate_client_template(client, 'faces_table.html'), {
                 'msg_params': {
                     'sharing_prompt': fb_attrs.sharing_prompt,
                     'msg1_pre': fb_attrs.msg1_pre,
@@ -348,7 +348,7 @@ def faces_email_friends(request, notification_uuid):
     campaign = notification_user.notification.campaign
     content = notification_user.notification.client_content
     client = campaign.client
-    request.visit = utils._get_visit(request, client.fb_app_id, notification_user.fbid, {
+    utils.set_visit(request, client.fb_app_id, notification_user.fbid, {
         'campaign': campaign,
         'client_content': content,
     })
@@ -457,14 +457,14 @@ def faces_email_friends(request, notification_uuid):
     db.bulk_create.delay(events)
     db.bulk_create.delay(assignments)
 
-    return render(request, utils._locate_client_template(client, 'faces_email_friends.html'), {
+    return render(request, utils.locate_client_template(client, 'faces_email_friends.html'), {
         'fb_params': fb_params,
         'msg_params': msg_params,
         'campaign': campaign,
         'content': content,
         'properties': campaign.campaignproperties.get(),
-        'client_css': utils._locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': utils._locate_client_css(client, 'edgeflip_client_simple.css'),
+        'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
+        'client_css_simple': utils.locate_client_css(client, 'edgeflip_client_simple.css'),
         'all_friends': all_friends,
         'face_friends': face_friends,
         'show_faces': show_faces,

@@ -200,6 +200,8 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
     # Uncomment the next line for simple clickjacking protection:
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
+    'targetshare.middleware.VisitorMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'
@@ -312,11 +314,10 @@ CELERY_IMPORTS = (
 
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes
+SESSION_COOKIE_DOMAIN = '.edgeflip.com'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
-# App settings #
-TEST_MODE_SECRET = 'sunwahduck'
-MAX_FALLBACK_COUNT = 5
+# targetshare settings #
 CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours
     'campaign_max_age': (3600 * 24), # 24 hours
@@ -329,7 +330,10 @@ FB_PERMS_LIST = [
     'user_interests', 'friends_interests'
 ]
 FB_PERMS = ','.join(FB_PERMS_LIST)
-
+MAX_FALLBACK_COUNT = 5
+TEST_MODE_SECRET = 'sunwahduck'
+VISITOR_COOKIE_NAME = 'visitorid'
+VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False

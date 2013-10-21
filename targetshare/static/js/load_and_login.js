@@ -147,6 +147,6 @@ function heartbeat(){
     if (heartbeat_count <= 60) {
         recordEvent('heartbeat');
         heartbeat_count += 1;
-        setTimeout(heartbeat, 1000);
+        setTimeout(heartbeat, 2000);
     }
 }

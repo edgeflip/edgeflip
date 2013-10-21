@@ -48,3 +48,4 @@ from .proximity_model import ProximityModel
 from .share_message import ShareMessage
 from .user_client import UserClient
 from .visit import Visit
+from .visitor import Visitor

@@ -41,7 +41,7 @@ class TransitoryObjectQuerySet(base.ConfigurableQuerySet):
     def for_datetime(self, datetime=None):
         datetime = datetime or timezone.now()
         return self.filter(
-            models.Q(end_dt=None) | models.Q(end_dt__lt=datetime),
+            models.Q(end_dt=None) | models.Q(end_dt__gt=datetime),
             start_dt__lte=datetime,
         )
 

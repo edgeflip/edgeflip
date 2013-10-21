@@ -14,7 +14,7 @@ from targetshare.tasks import db
 LOG = logging.getLogger(__name__)
 
 
-def _get_client_ip(request):
+def get_client_ip(request):
     """Return the user agent IP address for the given request."""
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -24,8 +24,65 @@ def _get_client_ip(request):
     return ip
 
 
-def _get_visit(request, app_id, fbid=None, start_event=None):
-    """Return the Visit object for the request.
+def get_visitor(request, fbid=None):
+    """Return the Visitor object for the request.
+
+    Visitors are unique humans, identified by `fbid`, when available; when the `fbid`
+    is unavailable, the visitor UUID, stored in a long-term cookie (see
+    settings.VISITOR_COOKIE_NAME), is used.
+
+    When neither the `fbid` is known nor a UUID cookie is found, (and in the edge case
+    that the `fbid` is known, is not yet linked to a visitor, and conflicts with the
+    visitor identified by cookie), a new visitor is created. Existing visitors are
+    updated with their `fbid`, once it is discovered.
+
+    As long as the returned visitor is linked to the current visit, and the
+    VisitorMiddleware is installed, the user agent's visitor cookie will be kept up
+    to date.
+
+    Arguments:
+        request: The Django request object
+        fbid: The Facebook user identifier (optional)
+
+    """
+    # Ensure fbid type for comparisons:
+    fbid = long(fbid) if fbid else None
+
+    if fbid:
+        # fbid trumps UUID:
+        try:
+            return models.relational.Visitor.objects.get(fbid=fbid)
+        except models.relational.Visitor.DoesNotExist:
+            pass
+
+    uuid = request.COOKIES.get(settings.VISITOR_COOKIE_NAME)
+
+    if uuid:
+        visitor, created = models.relational.Visitor.objects.get_or_create(
+            uuid=uuid,
+            defaults={'fbid': fbid},
+        )
+        if created or not fbid or fbid == visitor.fbid:
+            # No (possibility for) fbid conflict -- we're done.
+            return visitor
+        elif not visitor.fbid:
+            # Update visitor with now-known fbid:
+            visitor.fbid = fbid
+            db.delayed_save.delay(visitor, update_fields=['fbid'])
+            return visitor
+
+    # Either UUID is empty or points to Visitor with conflicting fbid.
+    # Make a new visitor.
+    if fbid:
+        # get_or_create to handle race:
+        visitor, _created = models.relational.Visitor.objects.get_or_create(fbid=fbid)
+        return visitor
+    else:
+        return models.relational.Visitor.objects.create()
+
+
+def set_visit(request, app_id, fbid=None, start_event=None):
+    """Set the Visit object for the request.
 
     Visits are unique per session (`session_key`) and application (`app_id`), and
     are required to log Events. This helper ensures a session, a Visit and a
@@ -49,11 +106,11 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         request.session.save()
 
     defaults = {
-        'fbid': fbid,
+        'ip': get_client_ip(request),
         'source': request.REQUEST.get('efsrc', ''),
-        'ip': _get_client_ip(request),
+        'visitor': get_visitor(request, fbid),
     }
-    visit, created = models.relational.Visit.objects.get_or_create(
+    request.visit, created = models.relational.Visit.objects.get_or_create(
         session_id=request.session.session_key,
         app_id=long(app_id),
         defaults=defaults,
@@ -62,24 +119,22 @@ def _get_visit(request, app_id, fbid=None, start_event=None):
         # Add start event:
         db.delayed_save.delay(
             models.relational.Event(
-                visit=visit,
+                visit=request.visit,
                 event_type='session_start',
                 **(start_event or {})
             )
         )
     else:
-        # Update visit with values not known on creation:
+        # Update visit with values not known on or changed since creation:
         updates = {key: value for key, value in defaults.items()
-                   if value and not getattr(visit, key)}
+                   if value and getattr(request.visit, key) != value}
         if updates:
             for key, value in updates.items():
-                setattr(visit, key, value)
-            db.delayed_save.delay(visit, update_fields=updates.keys())
-
-    return visit
+                setattr(request.visit, key, value)
+            db.delayed_save.delay(request.visit, update_fields=updates.keys())
 
 
-def _get_object_or_none(klass, **kws):
+def get_object_or_none(klass, **kws):
     queryset = _get_queryset(klass)
     try:
         return queryset.get(**kws)
@@ -87,7 +142,7 @@ def _get_object_or_none(klass, **kws):
         return None
 
 
-def _require_visit(view):
+def require_visit(view):
     """Decorator manufacturing a view wrapper, which requires a Visit for the request.
 
     The Visit is added to the request at attribute "visit"::
@@ -118,13 +173,13 @@ def _require_visit(view):
         client = campaign = client_content = None
 
         if campaign_id:
-            campaign = _get_object_or_none(models.Campaign, campaign_id=campaign_id)
+            campaign = get_object_or_none(models.Campaign, campaign_id=campaign_id)
             client = campaign and campaign.client
         if content_id:
-            client_content = _get_object_or_none(models.ClientContent, content_id=content_id)
+            client_content = get_object_or_none(models.ClientContent, content_id=content_id)
             client = client_content.client if (client_content and not client) else client
         if fb_object_id and client is None:
-            client = _get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
+            client = get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
 
         if not app_id:
             if client is None:
@@ -133,7 +188,7 @@ def _require_visit(view):
                 app_id = client.fb_app_id
 
         # Initialize Visit and add to request
-        request.visit = _get_visit(request, app_id, fbid, {
+        set_visit(request, app_id, fbid, {
             'campaign': campaign,
             'client_content': client_content,
         })
@@ -142,7 +197,7 @@ def _require_visit(view):
     return wrapped_view
 
 
-def _encoded_endpoint(view):
+def encoded_endpoint(view):
     """Decorator manufacturing an endpoint for the given view which additionally
     accepts a slug encoding the campaign and content IDs.
 
@@ -171,7 +226,7 @@ def _encoded_endpoint(view):
     return wrapped_view
 
 
-def _locate_client_template(client, template_name):
+def locate_client_template(client, template_name):
     """Attempt to locate a given template in the client's template path.
 
     If none is found, the default template is returned.
@@ -179,7 +234,7 @@ def _locate_client_template(client, template_name):
     """
     try:
         templates = find_template('targetshare/clients/%s/%s' % (
-            client.subdomain,
+            client.codename,
             template_name
         ))
 
@@ -191,19 +246,19 @@ def _locate_client_template(client, template_name):
         return templates[0].name
 
 
-def _locate_client_css(client, css_name):
+def locate_client_css(client, css_name):
     """Attempt to locate a given css file in the static path.
 
     If none is found, the default is returned.
 
     """
-    client_path = os.path.join('css', 'clients', client.subdomain, css_name)
+    client_path = os.path.join('css', 'clients', client.codename, css_name)
     if os.path.exists(os.path.join(settings.STATIC_ROOT, client_path)):
         return os.path.join(settings.STATIC_URL, client_path)
     else:
         return os.path.join(settings.STATIC_URL, 'css', css_name)
 
 
-def _test_mode(request):
+def test_mode(request):
     """Return whether the request may be put into "test mode"."""
     return request.GET.get('secret') == settings.TEST_MODE_SECRET

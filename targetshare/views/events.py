@@ -2,6 +2,7 @@ import logging
 
 from django import http
 from django.shortcuts import render
+from django.db.models import F
 from django.views.decorators.http import require_POST
 
 from targetshare import models
@@ -13,7 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 @require_POST
-@utils._require_visit
+@utils.require_visit
 def record_event(request):
     """Endpoint to record user events (asynchronously)."""
     user_id = request.POST.get('userid')
@@ -72,7 +73,7 @@ def record_event(request):
         if not created:
             # Maybe a count column on events would be useful? Hard to envision
             # many other events leveraging this
-            event.content = str(int(event.content) + 1)
+            event.content = F('content') + 1
             event.save()
     else:
         events.append(
@@ -165,7 +166,7 @@ def record_event(request):
 
 
 @require_POST
-@utils._require_visit
+@utils.require_visit
 def suppress(request):
     user_id = request.POST.get('userid')
     campaign_id = request.POST.get('campaignid')
