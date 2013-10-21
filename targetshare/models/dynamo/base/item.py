@@ -174,6 +174,7 @@ class Item(baseitems.Item):
 
     """
     __metaclass__ = DeclarativeItemBase
+    get_dynamizer = Dynamizer
 
     @classmethod
     def from_boto(cls, item):
@@ -191,7 +192,7 @@ class Item(baseitems.Item):
 
         table = type(self).items.table
         super(Item, self).__init__(table, data, loaded)
-        self._dynamizer = Dynamizer()
+        self._dynamizer = self.get_dynamizer()
 
     def __repr__(self):
         pk = self.pk
