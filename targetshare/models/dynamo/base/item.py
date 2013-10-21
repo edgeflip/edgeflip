@@ -79,6 +79,31 @@ class ItemDoesNotExist(LookupError):
 item_declared = Signal(providing_args=["item"])
 
 
+class FieldProperty(object):
+    """Item field property descriptor, allowing access to the item data dictionary
+    via the attribute interface.
+
+    By applying these to the Item definition, its attribute interface may be
+    preferred, and e.g. typos will raise AttributeError rather than simply returning
+    None.
+
+    """
+    def __init__(self, field_name):
+        self.field_name = field_name
+
+    def __get__(self, instance, cls=None):
+        return self if instance is None else instance[self.field_name]
+
+    def __set__(self, instance, value):
+        instance[self.field_name] = value
+
+    def __delete__(self, instance):
+        del instance[self.field_name]
+
+    def __repr__(self):
+        return "{}({!r})".format(self.__class__.__name__, self.field_name)
+
+
 class DeclarativeItemBase(type):
     """Metaclass which defines subclasses of Item based on their declarations."""
     update_field = 'updated'
@@ -93,7 +118,8 @@ class DeclarativeItemBase(type):
         item_fields, managers = {}, {}
         for key, value in attrs.items():
             if isinstance(value, ItemField):
-                item_fields[key] = attrs.pop(key)
+                item_fields[key] = attrs[key]
+                attrs[key] = FieldProperty(key)
             elif isinstance(value, ItemManager):
                 managers[key] = value
             elif key == 'Meta' and isinstance(value, type):
