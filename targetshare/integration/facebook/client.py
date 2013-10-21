@@ -423,8 +423,9 @@ def verify_oauth_code(fb_app_id, code, redirect_uri):
         )
     except requests.exceptions.RequestException:
         token = None
+    else:
+        token = urlparse.parse_qs(resp.content).get('access_token')
 
-    token = urlparse.parse_qs(resp.content).get('access_token')
     token = token[0] if token else None
     return token is not None
 
