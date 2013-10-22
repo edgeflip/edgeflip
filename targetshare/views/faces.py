@@ -29,6 +29,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
+    code = request.GET.get('code')
+    if code:
+        # Must be using oauth!
+        redirect_url = campaign.campaignproperties.get().faces_url(content_id)
+        if not facebook.client.verify_oauth_code(
+            client.fb_app_id, code, redirect_url
+        ):
+            return http.HttpResponseForbidden('Invalid FB Authentication')
+
     test_mode = utils.test_mode(request)
     db.delayed_save.delay(
         models.relational.Event(
