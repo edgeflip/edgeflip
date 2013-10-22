@@ -38,7 +38,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         ):
             return http.HttpResponseForbidden('Invalid FB Authentication')
 
-    test_mode = utils._test_mode(request)
+    test_mode = utils.test_mode(request)
     db.delayed_save.delay(
         models.relational.Event(
             visit=request.visit,
