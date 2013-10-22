@@ -5,8 +5,8 @@ from targetshare.tasks import db
 from targetshare.views import utils
 
 
-@utils._encoded_endpoint
-@utils._require_visit
+@utils.encoded_endpoint
+@utils.require_visit
 def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
@@ -38,7 +38,7 @@ def button(request, campaign_id, content_id):
         )
     )
 
-    return render(request, utils._locate_client_template(client, html_template), {
+    return render(request, utils.locate_client_template(client, html_template), {
         'goto': faces_url,
         'campaign': campaign,
         'content': content,
@@ -46,6 +46,6 @@ def button(request, campaign_id, content_id):
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id
         },
-        'client_css': utils._locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': utils._locate_client_css(client, css_template),
+        'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
+        'client_css_simple': utils.locate_client_css(client, css_template),
     })
