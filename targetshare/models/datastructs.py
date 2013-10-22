@@ -1,3 +1,4 @@
+import json
 import logging
 import itertools
 from unidecode import unidecode
@@ -133,20 +134,55 @@ class UserInfo(object):
 
     """
 
-    def __init__(self, uid, first_name, last_name, email, sex, birthday, city, state):
-        self.id = uid
-        self.fname = first_name
-        self.lname = last_name
-        self.email = email
-        self.gender = sex
-        self.birthday = birthday
+    # This is a list of fields that we don't *need* to build a UserInfo obj
+    # but we generally hope to have. It's all up to what FB gives us
+    EXTRA_USER_ATTRS = [
+        'activities',
+        'affiliations',
+        'books',
+        'devices',
+        'friend_request_count',
+        'has_timeline',
+        'interests',
+        'languages',
+        'likes_count',
+        'movies',
+        'music',
+        'political',
+        'profile_update_time',
+        'quotes',
+        'relationship_status',
+        'religion',
+        'sports',
+        'tv',
+        'wall_count',
+    ]
+    # These fields come back as lists after loading the JSON
+    # For now, we're converting these back to JSON for storage in Dynamo
+    LIST_FIELDS = [
+        'affiliations', 'devices', 'languages', 'sports'
+    ]
+
+    def __init__(self, user_record):
+        self.id = user_record['uid']
+        self.fname = user_record['first_name']
+        self.lname = user_record['last_name']
+        self.email = user_record['email']
+        self.gender = user_record['sex']
+        self.birthday = user_record['birthday']
         # Birthday is currently a DateTimeField in MySQL, so let's treat
         # our comparisons as such for now. Later this can be fixed, after
         # the Users table moves to Dynamo
         self.age = int(
-            (timezone.now() - self.birthday).days / 365.25) if (birthday) else None
-        self.city = city
-        self.state = state
+            (timezone.now() - self.birthday).days / 365.25) if (user_record.get('birthday')) else None
+        self.city = user_record['city']
+        self.state = user_record['state']
+
+        for attr in self.EXTRA_USER_ATTRS:
+            if attr in self.LIST_FIELDS and user_record.get(attr):
+                setattr(self, attr, json.dumps(user_record.get(attr)))
+            else:
+                setattr(self, attr, user_record.get(attr))
 
     def __str__(self):
         rets = [str(self.id),
@@ -161,17 +197,27 @@ class UserInfo(object):
     @classmethod
     def from_dynamo(cls, x):
         """make a `datastructs.UserInfo` from a `dynamo` dict."""
-        return cls(uid=int(x['fbid']),
-                   first_name=x.get('fname'),
-                   last_name=x.get('lname'),
-                   email=x.get('email'),
-                   sex=x.get('gender'), # XXX aaah!
-                   birthday=x.get('birthday'),
-                   city=x.get('city'),
-                   state=x.get('state'))
+        kwargs = {}
+        for kw in cls.EXTRA_USER_ATTRS:
+            kwargs[kw] = x.get(kw)
+
+        user_record = {
+            'uid': x.get('fbid'),
+            'first_name': x.get('fname'),
+            'last_name': x.get('lname'),
+            'email': x.get('email'),
+            'sex': x.get('gender'),
+            'birthday': x.get('birthday'),
+            'city': x.get('city'),
+            'state': x.get('state'),
+        }
+        for kw in cls.EXTRA_USER_ATTRS:
+            user_record[kw] = x.get(kw)
+
+        return cls(user_record)
 
     def to_dynamo(self):
-        return dynamo.User({
+        user = {
             'fbid': self.id,
             'fname': self.fname,
             'lname': self.lname,
@@ -180,7 +226,11 @@ class UserInfo(object):
             'birthday': self.birthday,
             'city': self.city,
             'state': self.state,
-        })
+        }
+        for attr in self.EXTRA_USER_ATTRS:
+            user[attr] = getattr(self, attr, None)
+
+        return dynamo.User(user)
 
 
 class FriendInfo(UserInfo):
@@ -189,8 +239,8 @@ class FriendInfo(UserInfo):
     target user = idPrimary
     """
 
-    def __init__(self, primId, friendId, first_name, last_name, email, sex, birthday, city, state, primPhotoTags, otherPhotoTags, mutual_friend_count):
-        super(FriendInfo, self).__init__(friendId, first_name, last_name, email, sex, birthday, city, state)
+    def __init__(self, user_record, primId, primPhotoTags, otherPhotoTags, mutual_friend_count):
+        super(FriendInfo, self).__init__(user_record)
         self.idPrimary = primId
         self.primPhotoTags = primPhotoTags
         self.otherPhotoTags = otherPhotoTags

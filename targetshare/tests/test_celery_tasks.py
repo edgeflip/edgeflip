@@ -74,7 +74,7 @@ class TestRankingTasks(EdgeFlipTestCase):
 
     def test_fallback_cascade(self):
         # Some test users and edges
-        test_user1 = models.datastructs.UserInfo(
+        test_user1 = models.datastructs.UserInfo(dict(
             uid=1,
             first_name='Test',
             last_name='User',
@@ -83,8 +83,8 @@ class TestRankingTasks(EdgeFlipTestCase):
             birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Chicago',
             state='Illinois'
-        )
-        test_user2 = models.datastructs.UserInfo(
+        ))
+        test_user2 = models.datastructs.UserInfo(dict(
             uid=2,
             first_name='Test',
             last_name='User',
@@ -93,7 +93,7 @@ class TestRankingTasks(EdgeFlipTestCase):
             birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Toledo',
             state='Ohio'
-        )
+        ))
         test_edge1 = models.datastructs.Edge(
             test_user1,
             test_user1,

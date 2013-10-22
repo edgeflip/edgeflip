@@ -67,11 +67,16 @@ class TestUtils(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
-        )
+        user = datastructs.UserInfo(dict(
+            uid=1,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+            city='Chicago',
+            state='Illinois'
+        ))
         edge = datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score', 'min', 10)
         self.assertEqual(result, [edge])
@@ -130,11 +135,16 @@ class TestUtils(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
-        )
+        user = datastructs.UserInfo(dict(
+            uid=1,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+            city='Chicago',
+            state='Illinois'
+        ))
         edge = datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
         self.assertEqual(result, [])
@@ -190,11 +200,16 @@ class TestUtils(EdgeFlipTestCase):
                 }
             })
         )
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
-        )
+        user = datastructs.UserInfo(dict(
+            uid=1,
+            first_name='Test',
+            last_name='User',
+            email='test@example.com',
+            sex='male',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+            city='Chicago',
+            state='Illinois'
+        ))
         edge = datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score', 'min', 100)
         self.assertEqual(result, [])
