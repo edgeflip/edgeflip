@@ -78,23 +78,18 @@ def dateFromFb(dateStr):
 
 
 def getUrlFb(url):
-    """load JSON blob from facebook. facebook is flakey, this deals with that.
-
-    timeout should be parameter, etc.
-    """
+    """Load data from the given Facebook URL."""
     try:
-        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as responseFile:
-            responseJson = json.load(responseFile)
-    except (urllib2.URLError, urllib2.HTTPError) as e:
-        logger.info("error opening url %s: %s", url, e.reason)
+        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as response:
+            return json.load(response)
+    except IOError as exc:
+        exc_type, exc_value, trace = sys.exc_info()
+        logger.exception("Error opening URL %s %r", url, getattr(exc, 'reason', ''))
         try:
-            # If we actually got an error back from a server, should be able to read the message here
-            logger.error("returned error was: %s", e.read())
-        except:
+            logger.error("Returned error message was: %s", exc.read())
+        except Exception:
             pass
-        raise e
-
-    return responseJson
+        raise exc_type, exc_value, trace
 
 
 def _threadFbURL(url, results):
@@ -154,10 +149,7 @@ def extendTokenFb(fbid, appid, token):
 
 
 def getFriendsFb(userId, token):
-    """retrieve basic info on user's FB friends in a single call,
-
-    returns object from datastructs
-    """
+    """Retrieve basic info on user's FB friends in a single call."""
     tim = utils.Timer()
     logger.debug("getting friends for %d", userId)
 
@@ -166,12 +158,12 @@ def getFriendsFb(userId, token):
     limit = settings.FACEBOOK.friendLoop.fqlLimit
 
     # Get the number of friends from FB to determine how many chunks to run
-    numFriendsFQL = urllib.quote_plus("SELECT friend_count FROM user WHERE uid = %s" % userId)
-    numFriendsURL = 'https://graph.facebook.com/fql?q=' + numFriendsFQL
-    numFriendsURL = numFriendsURL + '&format=json&access_token=' + token
-    numFriendsJson = getUrlFb(numFriendsURL)
-
-    numFriends = float(numFriendsJson['data'][0]['friend_count'])
+    num_friends_response = getUrlFb('https://graph.facebook.com/fql?' + urllib.urlencode({
+        'q': "SELECT friend_count FROM user WHERE uid = {}".format(userId),
+        'format': 'json',
+        'access_token': token,
+    }))
+    numFriends = float(num_friends_response['data'][0]['friend_count'])
     chunks = int(ceil(numFriends / limit)) + 1  # one extra just to be safe
 
     # Set up the threads for reading the friend info
@@ -179,9 +171,11 @@ def getFriendsFb(userId, token):
     friendChunks = []
     for i in range(chunks):
         offset = limit * i
-        url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (userId, limit, offset))
-        url = url + '&format=json&access_token=' + token
-
+        url = 'https://graph.facebook.com/fql/?' + urllib.urlencode({
+            'q': FQL_FRIEND_INFO % (userId, limit, offset),
+            'format': 'json',
+            'access_token': token,
+        })
         t = threading.Thread(target=_threadFbURL, args=(url, friendChunks))
         t.setDaemon(True)
         t.name = "%s-px3-%d" % (userId, i)
@@ -299,24 +293,27 @@ def getFriendEdges(userId, tok, friendQueue):
     friendQueue.sort(key=lambda x: x.mutuals, reverse=True)
     edges = []
     user = getUserFb(userId, tok)
-    for i, friend in enumerate(friendQueue):
-        ecIn = datastructs.EdgeCounts(friend.id,
-                user.id,
-                photoTarg=friend.primPhotoTags,
-                photoOth=friend.otherPhotoTags,
-                muts=friend.mutuals)
-        e = datastructs.Edge(user, friend, ecIn, None)
-
-        edges.append(e)
-        logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
-                                         #     not important enough to fix for mayors, but maybe should one day?
+    for friend in friendQueue:
+        incoming = dynamo.IncomingEdge(
+            fbid_source=friend.id,
+            fbid_target=user.fbid,
+            photos_target=friend.primPhotoTags,
+            photos_other=friend.otherPhotoTags,
+            mut_friends=friend.mutuals,
+        )
+        edge = datastructs.Edge(user, friend, incoming, None)
+        edges.append(edge)
+        logger.debug('friend %s', edge.secondary)
+        logger.debug('edge %s', edge)
     return edges
 
 
 def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
     logger.info('reading stream for user %s, %s', userId, tok)
-    sc = ReadStreamCounts(userId, tok, settings.STREAM_DAYS_IN, settings.STREAM_DAYS_CHUNK_IN, settings.STREAM_THREADCOUNT_IN, loopTimeout=settings.STREAM_READ_TIMEOUT_IN, loopSleep=settings.STREAM_READ_SLEEP_IN)
+    sc = ReadStreamCounts(
+        userId, tok, settings.STREAM_DAYS_IN, settings.STREAM_DAYS_CHUNK_IN, settings.STREAM_THREADCOUNT_IN,
+        loopTimeout=settings.STREAM_READ_TIMEOUT_IN,
+        loopSleep=settings.STREAM_READ_SLEEP_IN)
     logging.debug('got %s', str(sc))
     logger.debug('got %s', str(sc))
 
@@ -329,28 +326,28 @@ def getFriendEdgesIncoming(userId, tok, friendQueue, requireOutGoing=False):
     edges = []
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
-        ecOut = None
-        ecIn = datastructs.EdgeCounts(
-            friend.id,
-            user.id,
-            postLikes=sc.getPostLikes(friend.id),
-            postComms=sc.getPostComms(friend.id),
-            statLikes=sc.getStatLikes(friend.id),
-            statComms=sc.getStatComms(friend.id),
-            wallPosts=sc.getWallPosts(friend.id),
-            wallComms=sc.getWallComms(friend.id),
+        incoming = dynamo.IncomingEdge(
+            fbid_source=friend.id,
+            fbid_target=user.fbid,
+            post_likes=sc.getPostLikes(friend.id),
+            post_comms=sc.getPostComms(friend.id),
+            stat_likes=sc.getStatLikes(friend.id),
+            stat_comms=sc.getStatComms(friend.id),
+            wall_posts=sc.getWallPosts(friend.id),
+            wall_comms=sc.getWallComms(friend.id),
             tags=sc.getTags(friend.id),
-            photoTarg=friend.primPhotoTags,
-            photoOth=friend.otherPhotoTags,
-            muts=friend.mutuals
+            photos_target=friend.primPhotoTags,
+            photos_other=friend.otherPhotoTags,
+            mut_friends=friend.mutuals
         )
+        outgoing = None
         if requireOutGoing:
             logger.info("reading friend stream %d/%d (%s)", i, len(friendQueue), friend.id)
-            ecOut = getFriendEdgesOutGoing(friend, user, tok)
-        e = datastructs.Edge(user, friend, ecIn, ecOut)
-        edges.append(e)
-        logger.debug('friend %s', str(e.secondary))
-        logger.debug('edge %s', str(e))  # zzz Edge class no longer has a __str__() method...
+            outgoing = getFriendEdgesOutGoing(friend, user, tok)
+        edge = datastructs.Edge(user, friend, incoming, outgoing)
+        edges.append(edge)
+        logger.debug('friend %s', edge.secondary)
+        logger.debug('edge %s', edge)
 
     return edges
 
@@ -364,19 +361,16 @@ def getFriendEdgesOutGoing(friend, user, tok):
         return
     logging.debug('got %s', str(scFriend))
 
-    ecOut = datastructs.EdgeCounts(
-        user.id,
-        friend.id,
-        postLikes=scFriend.getPostLikes(friend.id),
-        postComms=scFriend.getPostComms(friend.id),
-        statLikes=scFriend.getStatLikes(friend.id),
-        statComms=scFriend.getStatComms(friend.id),
-        wallPosts=scFriend.getWallPosts(friend.id),
-        wallComms=scFriend.getWallComms(friend.id),
+    outgoing = dynamo.IncomingEdge(
+        fbid_source=user.fbid,
+        fbid_target=friend.id,
+        post_likes=scFriend.getPostLikes(friend.id),
+        post_comms=scFriend.getPostComms(friend.id),
+        stat_likes=scFriend.getStatLikes(friend.id),
+        stat_comms=scFriend.getStatComms(friend.id),
+        wall_posts=scFriend.getWallPosts(friend.id),
+        wall_comms=scFriend.getWallComms(friend.id),
         tags=scFriend.getTags(friend.id),
-        photoTarg=None,
-        photoOth=None,
-        muts=None
     )
 
     # Throttling for Facebook limits
@@ -385,10 +379,11 @@ def getFriendEdgesOutGoing(friend, user, tok):
     # __NOTE__: could still run into trouble there if we have to do multiple tries for several chunks.
     friendSecs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
     secsLeft = friendSecs - timFriend.elapsedSecs()
-    if (secsLeft > 0):
+    if secsLeft > 0:
         logger.debug("Nap time! Waiting %d seconds...", secsLeft)
         time.sleep(secsLeft)
-    return ecOut
+
+    return outgoing
 
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):

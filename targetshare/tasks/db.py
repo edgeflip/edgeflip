@@ -142,6 +142,7 @@ def update_database(user, token, edges):
     """Update the given User, its Token, its User network and Edges."""
     tasks = [
         delayed_save.delay(token, overwrite=True),
+        # TODO
         bulk_upsert.delay([user.to_dynamo()] +
                           [edge.secondary.to_dynamo() for edge in edges]),
         update_edges.delay(edges),
