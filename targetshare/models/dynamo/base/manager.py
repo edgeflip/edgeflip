@@ -94,3 +94,6 @@ class ItemManagerDescriptor(object):
         cls_name = getattr(cls, '__name__', '')
         raise AttributeError("Manager isn't accessible via {}instances"
                              .format(cls_name + ' ' if cls_name else cls_name))
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.name)
