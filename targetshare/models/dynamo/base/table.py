@@ -78,6 +78,7 @@ class Table(table.Table):
         connection = connection or db.connection
         super(Table, self).__init__(table_name, schema, throughput, indexes, connection)
         self.item = item
+        self._dynamizer = self.item.get_dynamizer()
 
     def __repr__(self):
         return "<{}: {}>".format(self.__class__.__name__, self.table_name)
