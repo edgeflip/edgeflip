@@ -107,7 +107,7 @@ class FilterFeature(models.Model):
         elif self.value_type == self.FLOAT:
             return float(self.value)
         elif self.value_type == self.LIST:
-            return self.value.split('||')
+            return self.value.split(self.FILTER_LIST_DELIM)
         else:
             return self.value
 
