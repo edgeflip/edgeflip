@@ -14,7 +14,7 @@
                     alert('Ruh-Roh! ' + errorThrown)
                 },
                 success: function(data, textStatus, jqXHR) {
-                    $('#cmpgslug').html(data);
+                    $('.cmpgslug').html(data);
                     $('#cmpg').html(cmpg);
                     $('#cnt').html(cnt);
                 }
@@ -46,7 +46,7 @@
             <pre><code>
             &lt;!-- SHARE BUTTON --&gt;
             &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
-                &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span id="cmpgslug">{{firstSlug}}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
+                &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span class="cmpgslug">{{firstSlug}}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
             &lt;/div&gt;
             &lt;!-- SHARE BUTTON --&gt;
             </code></pre>
@@ -61,6 +61,10 @@
         &lt;/div&gt;
         &lt;!-- SHARE FACES --&gt;
         </code></pre>
+    <br />
+    <br />
+    <span style="text-decoration: underline;">Canvas URL</span>: <br />
+        <pre><code>https://apps.facebook.com/sharing-social-good/<span class="cmpgslug">{{ firstSlug }}</span>/</pre></code>
     <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
 {% endblock %}
 {% block extrascript %}
