@@ -141,8 +141,9 @@ class TestFacesEmail(EdgeFlipTestCase):
         ''' Tests the build_csv method '''
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
+        user = mock_client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: mock_client.get_friend_edges(user, 1)
         }
         self.command.url = None
         self.command._build_csv()
@@ -165,8 +166,9 @@ class TestFacesEmail(EdgeFlipTestCase):
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         self.command.url = 'http://www.google.com'
+        user = mock_client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: mock_client.get_friend_edges(user, 1)
         }
         self.command._build_csv()
         assert writer_mock.writerow.called

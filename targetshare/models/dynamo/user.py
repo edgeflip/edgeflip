@@ -11,3 +11,7 @@ class User(Item):
     gender = ItemField()
     city = ItemField()
     state = ItemField()
+
+    @property
+    def name(self):
+        return ' '.join(part for part in (self.fname, self.lname) if part)

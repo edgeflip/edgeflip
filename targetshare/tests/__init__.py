@@ -66,12 +66,12 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             'contentid': 1,
             'mockmode': True,
         }
-        self.test_user = models.datastructs.UserInfo(
-            uid=1,
-            first_name='Test',
-            last_name='User',
+        self.test_user = models.User(
+            fbid=1,
+            fname='Test',
+            lname='User',
             email='test@example.com',
-            sex='male',
+            gender='male',
             birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Chicago',
             state='Illinois',

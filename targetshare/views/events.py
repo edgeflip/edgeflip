@@ -120,7 +120,7 @@ def record_event(request):
 
         client.userclients.get_or_create(fbid=fbid)
         if extend_token:
-            token = facebook.client.extendTokenFb(fbid, appid, token_string)
+            token = facebook.client.extend_token(fbid, appid, token_string)
             token.save(overwrite=True)
 
     if event_type == 'shared':

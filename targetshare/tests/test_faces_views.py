@@ -30,7 +30,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         tasks IDs of the Celery jobs we started. We also expect to see an
         extended token saved to Dynamo
         '''
-        fb_mock.extendTokenFb.return_value = models.dynamo.Token(
+        fb_mock.extend_token.return_value = models.dynamo.Token(
             token='test-token',
             fbid=1111111,
             appid=self.test_client.fb_app_id,

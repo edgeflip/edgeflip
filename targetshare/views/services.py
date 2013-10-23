@@ -58,7 +58,7 @@ def health_check(request):
         return http.HttpResponse("It's Alive!", status=200)
 
     try:
-        fb_resp = facebook.client.getUrlFb("http://graph.facebook.com/6963")
+        fb_resp = facebook.client.urlload("http://graph.facebook.com/6963")
     except Exception:
         facebook_up = False
     else:

@@ -17,7 +17,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.services.facebook.client')
     def test_health_check(self, fb_mock):
         ''' Tests views.health_check '''
-        fb_mock.getUrlFb.return_value = {'id': 6963}
+        fb_mock.urlload.return_value = {'id': 6963}
         response = self.client.get(reverse('health-check'))
         self.assertStatusCode(response, 200)
         self.assertEqual(json.loads(response.content), {

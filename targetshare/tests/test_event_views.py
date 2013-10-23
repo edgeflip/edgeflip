@@ -152,7 +152,7 @@ class TestEventViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.events.facebook.client')
     def test_record_event_authorized(self, fb_mock):
         ''' Test views.record_event with authorized event_type '''
-        fb_mock.extendTokenFb.return_value = models.dynamo.Token(
+        fb_mock.extend_token.return_value = models.dynamo.Token(
             token='test-token',
             fbid=1111111,
             appid=self.test_client.fb_app_id,

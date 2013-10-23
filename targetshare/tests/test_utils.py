@@ -5,8 +5,7 @@ from mock import Mock, patch
 
 from django.utils import timezone
 
-from targetshare import utils
-from targetshare.models import datastructs
+from targetshare import models, utils
 
 from . import EdgeFlipTestCase
 
@@ -67,12 +66,12 @@ class TestUtils(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
         )
-        edge = datastructs.Edge(user, user, None)
+        edge = models.datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score', 'min', 10)
         self.assertEqual(result, [edge])
 
@@ -130,12 +129,12 @@ class TestUtils(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
         )
-        edge = datastructs.Edge(user, user, None)
+        edge = models.datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
         self.assertEqual(result, [])
 
@@ -190,11 +189,11 @@ class TestUtils(EdgeFlipTestCase):
                 }
             })
         )
-        user = datastructs.UserInfo(
-            1, u'Test', u'User', 'test@example.com', 'Male',
-            timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
-            u'Chicago', 'Illinois'
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
         )
-        edge = datastructs.Edge(user, user, None)
+        edge = models.datastructs.Edge(user, user, None)
         result = utils.civis_filter([edge], 'persuasion_score', 'min', 100)
         self.assertEqual(result, [])

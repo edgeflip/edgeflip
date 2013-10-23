@@ -41,3 +41,8 @@ class OutgoingEdge(Item):
                        fields.RangeKey('updated', data_type=NUMBER)],
                 includes=['fbid_target', 'fbid_source']),
         )
+
+    @classmethod
+    def from_incoming(cls, incoming):
+        return cls(fbid_source=incoming['fbid_source'],
+                   fbid_target=incoming['fbid_target'])

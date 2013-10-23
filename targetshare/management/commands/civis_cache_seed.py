@@ -56,11 +56,12 @@ class Command(BaseCommand):
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         logger.info('Retrieving edges for %s users', len(user_fbids))
         for ut in user_tokens:
-            yield facebook.getFriendEdgesFb(
-                ut['fbid'],
+            user = facebook.get_user(ut['fbid'], ut['token'])
+            yield facebook.get_friend_edges(
+                user,
                 ut['token'],
-                requireIncoming=False,
-                requireOutgoing=False
+                require_incoming=False,
+                require_outgoing=False,
             )
 
     def _perform_matching(self, edge_collection):

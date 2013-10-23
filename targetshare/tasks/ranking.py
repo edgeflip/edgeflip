@@ -6,10 +6,7 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
 
-from targetshare import (
-    models,
-    ranking,
-)
+from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
@@ -28,35 +25,35 @@ def proximity_rank_three(mock_mode, fbid, token, **kwargs):
 
 @celery.task(default_retry_delay=1, max_retries=3)
 def px3_crawl(mockMode, fbid, token):
-    ''' Performs the standard px3 crawl '''
+    """Crawl and rank a user's network to proximity level three."""
     fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        edgesUnranked = fb_client.getFriendEdgesFb(
-            fbid,
+        user = fb_client.get_user(fbid, token['token'])
+        edges_unranked = fb_client.get_friend_edges(
+            user,
             token['token'],
-            requireIncoming=False,
-            requireOutgoing=False
+            require_incoming=False,
+            require_outgoing=False
         )
     except IOError as exc:
         px3_crawl.retry(exc=exc)
 
-    edgesRanked = ranking.getFriendRanking(
-        edgesUnranked,
-        requireIncoming=False,
-        requireOutgoing=False,
+    return models.datastructs.EdgeAggregate.rank(
+        edges_unranked,
+        require_incoming=False,
+        require_outgoing=False,
     )
-    return edgesRanked
 
 
 @celery.task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
                       fallbackCount=0, already_picked=None,
                       visit_type='targetshare.Visit', s3_match=False):
-    ''' Performs the filtering that web.sharing.applyCampaign formerly handled
-    in the past.
+    """Filter the given, ranked, Edges according to the configuration of the
+    specified Campaign.
 
-    '''
-    if (fallbackCount > settings.MAX_FALLBACK_COUNT):
+    """
+    if fallbackCount > settings.MAX_FALLBACK_COUNT:
         # zzz Be more elegant here if cascading?
         raise RuntimeError("Exceeded maximum fallback count")
 
@@ -294,7 +291,7 @@ def proximity_rank_four(mockMode, fbid, token):
     ''' Performs the px4 crawling '''
     fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.getUserFb(fbid, token['token'])
+        user = fb_client.get_user(fbid, token['token'])
         # FIXME: When PX5 comes online, this get_friend_edges call could return
         # insufficient results from the px5 crawls. We'll need to check the
         # length of the edges list against a friends count from FB.
@@ -303,21 +300,21 @@ def proximity_rank_four(mockMode, fbid, token):
             require_incoming=True,
             require_outgoing=False,
             max_age=timedelta(days=settings.FRESHNESS),
-        ) # TODO: ...
-        if not edgesUnranked:
-            edgesUnranked = fb_client.getFriendEdgesFb(
-                fbid,
+        )
+        if not edges_unranked:
+            edges_unranked = fb_client.get_friend_edges(
+                user,
                 token['token'],
                 requireIncoming=True,
-                requireOutgoing=False
+                requireOutgoing=False,
             )
     except IOError as exc:
         proximity_rank_four.retry(exc=exc)
 
-    edgesRanked = ranking.getFriendRanking(
-        edgesUnranked,
-        requireIncoming=True,
-        requireOutgoing=False,
+    edges_ranked = models.datastructs.EdgeAggregate.rank(
+        edges_unranked,
+        require_incoming=True,
+        require_outgoing=False,
     )
-    db.update_database(user, token, edgesRanked)
-    return edgesRanked
+    db.update_user(user, token, edges_ranked)
+    return edges_ranked

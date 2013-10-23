@@ -172,7 +172,7 @@ def faces(request):
                 content_type='application/json'
             )
     else:
-        token = fb_client.extendTokenFb(long(fbid), client.fb_app_id, token_string)
+        token = fb_client.extend_token(long(fbid), client.fb_app_id, token_string)
         db.delayed_save(token, overwrite=True)
         px3_task_id = ranking.proximity_rank_three(
             mock_mode=mock_mode,
@@ -348,22 +348,15 @@ def faces_email_friends(request, notification_uuid):
     shown_events = set(notification_user.events.filter(
         event_type='shown').values_list('friend_fbid', flat=True))
     num_face = len(shown_events)
-    user_obj = models.User.items.get_item(fbid=notification_user.fbid)
-    friend_objs = models.User.items.batch_get(
+    user = models.User.items.get_item(fbid=notification_user.fbid)
+    friends = models.User.items.batch_get(
         keys=[{'fbid': x} for x in notification_user.events.filter(
             event_type__in=('generated', 'shown')).values_list(
                 'friend_fbid', flat=True).distinct()]
     )
+    face_friends = all_friends = list(friends)
+    show_faces = [x for x in face_friends if x.fbid in shown_events]
 
-    user = models.datastructs.UserInfo.from_dynamo(user_obj)
-    face_friends = all_friends = [
-        models.datastructs.Edge(
-            user, models.datastructs.UserInfo.from_dynamo(x), None, None
-        ).toDict() for x in friend_objs
-    ]
-    show_faces = [
-        x for x in face_friends if x['id'] in shown_events
-    ]
     db.delayed_save.delay(
         models.Event(
             visit=request.visit,

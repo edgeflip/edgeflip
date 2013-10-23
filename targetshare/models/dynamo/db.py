@@ -204,73 +204,6 @@ SCHEMAS['users'] = {
 }
 
 
-def save_user(fbid, fname, lname, email, gender, birthday, city, state, updated=None):
-    """save a user to Dynamo. If user exists, update with new, non-None attrs.
-
-    :arg int fbid: the user's facebook id
-
-    Other args are string or None. You can pass a value for `updated` but it will be replaced with current timestamp.
-    """
-    updated = epoch_now()
-    birthday = to_epoch(birthday)
-
-    data = locals()
-    _remove_null_values(data)
-
-    table = get_table('users')
-    user = table.get_item(fbid=fbid)
-
-    if user['fbid'] is None:
-        # new user
-        table.put_item(data)
-    else:
-        # update existing user. Don't even touch keys (which are unchanged)
-        # because AWS/boto freak out
-        for k, v in data.iteritems():
-            if k != 'fbid':
-                user[k] = v
-        return user.partial_save()
-
-
-def fetch_user(fbid):
-    """Fetch a user. Returns None if user not found.
-
-    :arg int fbid: the users' Facebook ID
-    :rtype: dict
-    """
-    table = get_table('users')
-    x = table.get_item(fbid=int(fbid))
-    if x['fbid'] is None:
-        return None
-    return _make_user(x)
-
-
-def fetch_many_users(fbids):
-    """Retrieve many users.
-
-    :arg ids: list of facebook ID's
-    :rtype: iterator of dict
-    """
-    table = get_table('users')
-    # boto's BatchGetResultSet requires keys to be a list
-    keys = [{'fbid': int(i)} for i in fbids]
-    if not keys:
-        return ()
-    LOG.debug("Retrieving %d users", len(keys))
-    results = table.batch_get(keys=keys)
-    users = (_make_user(x) for x in results if x['fbid'] is not None)
-    return users
-
-
-def _make_user(x):
-    """make a dict from a boto Item. for internal use"""
-    u = dict(x.items())
-    if 'birthday' in x:
-        u['birthday'] = epoch_to_datetime(x['birthday'])
-    u['updated'] = epoch_to_datetime(x['updated'])
-    return u
-
-
 ##### TOKENS #####
 
 SCHEMAS['tokens'] = {
@@ -280,45 +213,6 @@ SCHEMAS['tokens'] = {
         RangeKey('appid', data_type=NUMBER)
     ]
 }
-
-
-def fetch_token(fbid, appid):
-    """retrieve a token from facebook
-
-    :arg int fbid: the facebook id
-    :arg int appid: the app's id
-    :rtype: dict or None if not found
-    """
-    table = get_table('tokens')
-    x = table.get_item(fbid=int(fbid), appid=int(appid))
-    if x['fbid'] is None:
-        return None
-    return _make_token(x)
-
-
-def fetch_many_tokens(ids):
-    """Retrieve many tokens.
-
-    :arg ids: list of (facebook ID, app ID)
-    :rtype: iterator of dict
-    """
-    table = get_table('tokens')
-    # boto's BatchGetResultSet requires a list for keys
-    keys = [{'fbid': i, 'appid': a} for i, a in ids]
-    if not keys:
-        return ()
-    LOG.debug('Retrieving %d tokens', len(keys))
-    results = table.batch_get(keys=keys)
-    tokens = (_make_token(x) for x in results if x['fbid'] is not None)
-    return tokens
-
-
-def _make_token(x):
-    """make a dict from a boto Item. for internal use"""
-    t = dict(x.items())
-    t['expires'] = epoch_to_datetime(t['expires'])
-    t['updated'] = epoch_to_datetime(t['updated'])
-    return t
 
 
 ##### EDGES #####
@@ -350,87 +244,6 @@ SCHEMAS['edges_incoming'] = {
                      includes=['fbid_target', 'fbid_source']),
     ]
 }
-
-
-def save_edge(fbid_source, fbid_target, **kwargs):
-    """Save an edge to dynamo
-
-    :arg int fbid_source: the source's -> facebook id
-    :arg int fbid_target: the -> target's facebook id
-
-    Keyword args int or None, as passed to `save_incoming_edge`. You can pass
-    a value for updated, but it will be replaced with a current timestamp.
-    """
-
-    kwargs['updated'] = updated = epoch_now()
-    save_incoming_edge(fbid_source, fbid_target, **kwargs)
-    save_outgoing_edge(fbid_source, fbid_target, updated)
-
-
-def save_many_edges(edges):
-    """save many edges to dynamo in a batch, overwriting.
-
-    YMMV for consistency. This modifies dicts passed in.
-
-    :arg dicts edges: iterable of dicts describing edges. Keys should be as for `save_edge`.
-    """
-    updated = epoch_now()
-    incoming = get_table('edges_incoming')
-    outgoing = get_table('edges_outgoing')
-
-    with incoming.batch_write() as inc, outgoing.batch_write() as out:
-        for e in edges:
-            e['updated'] = updated
-            _remove_null_values(e)
-            inc.put_item(data=e)
-            out.put_item(data={'fbid_source': e['fbid_source'], 'fbid_target': e['fbid_target'], 'updated': updated})
-
-
-def save_incoming_edge(fbid_source, fbid_target, post_likes, post_comms, stat_likes, stat_comms, wall_posts, wall_comms, tags, photos_target, photos_other, mut_friends, updated):
-    """save an incoming edge and its attributes to dynamo, updating.
-
-    You should probably use `save_edge` in your code instead.
-
-    :arg int fbid_source: the source's -> facebook id
-    :arg int fbid_target: the -> target's facebook id
-
-    Other args int or None.
-    """
-    data = locals()
-    _remove_null_values(data)
-
-    t = 'edges_incoming'
-    table = get_table(t)
-    x = table.get_item(fbid_source=fbid_source, fbid_target=fbid_target)
-    if x['fbid_source'] is None:
-        # new edge
-        LOG.debug("Saving new edge %s -> %s to table %s", fbid_source, fbid_target, t)
-        table.put_item(data)
-    else:
-        # update existing edge. Don't even touch keys (which are
-        # unchanged) because AWS/boto freak out
-        LOG.debug("Updating edge %s -> %s in table %s", fbid_source, fbid_target, t)
-        for k, v in data.iteritems():
-            if k not in ('fbid_source', 'fbid_target'):
-                x[k] = v
-        x.partial_save()
-
-
-def save_outgoing_edge(fbid_source, fbid_target, updated):
-    """save an outgoing edge to dynamo, overwrites
-
-    You should probably use `save_edge` in your code instead.
-
-    :arg int fbid_source: the source's -> facebook id
-    :arg int fbid_target: the -> target's facebook id
-    :arg epoch updated: the timestamp
-    """
-    data = locals()
-
-    t = 'edges_outgoing'
-    table = get_table(t)
-    LOG.debug("Saving edge %s -> %s to table %s", fbid_source, fbid_target, t)
-    table.put_item(data, overwrite=True)
 
 
 def fetch_edge(fbid_source, fbid_target):
