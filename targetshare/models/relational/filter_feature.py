@@ -99,6 +99,18 @@ class FilterFeature(models.Model):
         db_table = 'filter_features'
         ordering = ('feature_type__sort_order',)
 
+    @property
+    def decoded_value(self):
+        ''' Returns the value as the proper value type instance '''
+        if self.value_type == self.INT:
+            return int(self.value)
+        elif self.value_type == self.FLOAT:
+            return float(self.value)
+        elif self.value_type == self.LIST:
+            return self.value.split('||')
+        else:
+            return self.value
+
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""
         if isinstance(self.value, (int, long)):

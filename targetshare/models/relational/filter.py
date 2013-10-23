@@ -19,13 +19,13 @@ class Filter(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
-    def _standard_filter(self, user, feature, operator, value):
+    def _standard_filter(self, user, feature, operator, value, value_type):
         if not hasattr(user, feature):
             return False
 
-        user_val = getattr(user, feature)
-        if not user_val:
-            return
+        user_val = getattr(user, feature, None)
+        if user_val in ('', None):
+            return False
 
         if operator == 'min':
             return user_val >= value
@@ -57,7 +57,8 @@ class Filter(models.Model):
             # Standard min/max/eq/in filters below
             else:
                 edges = [x for x in edges if self._standard_filter(
-                    x.secondary, f.feature, f.operator, f.value)]
+                    x.secondary, f.feature, f.operator, f.decoded_value,
+                    f.value_type)]
         return edges
 
     def __unicode__(self):
