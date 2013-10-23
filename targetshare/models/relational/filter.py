@@ -24,7 +24,8 @@ class Filter(models.Model):
             return False
 
         user_val = getattr(user, feature)
-        user_val = user_val if user_val else ''
+        if not user_val:
+            return
 
         if operator == 'min':
             return user_val >= value
