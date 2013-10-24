@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
-from targetadmin.utils import internal
+from targetadmin.utils import auth_client_required
 from targetadmin import forms
 from targetshare.models import relational
 from targetadmin.views.base import (
@@ -16,7 +16,7 @@ class CampaignListView(ClientRelationListView):
     create_url_name = 'campaign-new'
 
 
-campaign_list = internal(CampaignListView.as_view())
+campaign_list = CampaignListView.as_view()
 
 
 class CampaignDetailView(ClientRelationDetailView):
@@ -26,10 +26,10 @@ class CampaignDetailView(ClientRelationDetailView):
     template_name = 'targetadmin/campaign_detail.html'
 
 
-campaign_detail = internal(CampaignDetailView.as_view())
+campaign_detail = CampaignDetailView.as_view()
 
 
-@internal
+@auth_client_required
 def campaign_create(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     form = forms.CampaignForm(

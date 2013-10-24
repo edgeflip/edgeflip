@@ -1,12 +1,12 @@
 from django.shortcuts import get_object_or_404, render
 from django.http import HttpResponse
 
-from targetadmin.utils import internal
+from targetadmin.utils import auth_client_required
 from targetshare.models import relational
 from targetshare.utils import encodeDES
 
 
-@internal
+@auth_client_required
 def snippets(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     return render(request, 'targetadmin/snippets.html', {
@@ -16,7 +16,7 @@ def snippets(request, client_pk):
     })
 
 
-@internal
+@auth_client_required
 def encode_campaign(request, client_pk, campaign_pk, content_pk):
     get_object_or_404(relational.Client, pk=client_pk)
     get_object_or_404(relational.Campaign, pk=campaign_pk)

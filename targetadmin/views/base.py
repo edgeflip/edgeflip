@@ -4,8 +4,10 @@ from django.views.generic.edit import UpdateView
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
+from django.utils.decorators import method_decorator
 
 from targetshare.models import relational
+from targetadmin import utils
 
 
 class CRUDView(UpdateView):
@@ -29,6 +31,10 @@ class CRUDView(UpdateView):
     success_url = None
     success_object = True
     queryset = None
+
+    @method_decorator(utils.auth_client_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(CRUDView, self).dispatch(request, *args, **kwargs)
 
     def get(self, request, *args, **kwargs):
         self.object = self.get_object() if self.kwargs.get(self.pk_url_kwarg) else None
@@ -70,6 +76,10 @@ class ClientRelationListView(ListView):
     detail_url_name = None
     create_url_name = None
 
+    @method_decorator(utils.auth_client_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ClientRelationListView, self).dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
         queryset = super(ClientRelationListView, self).get_queryset()
         return queryset.filter(client=self.client)
@@ -100,6 +110,10 @@ class ClientRelationDetailView(DetailView):
     template_name = 'targetadmin/client_relation_detail.html'
     edit_url_name = None
 
+    @method_decorator(utils.auth_client_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super(ClientRelationDetailView, self).dispatch(request, *args, **kwargs)
+
     def get_context_data(self, **kwargs):
         context = super(ClientRelationDetailView, self).get_context_data(**kwargs)
         context.update({
@@ -127,6 +141,7 @@ class ClientRelationFormView(CRUDView):
     object_string = None
     template_name = 'targetadmin/client_relation_edit.html'
 
+    @method_decorator(utils.auth_client_required)
     def dispatch(self, request, *args, **kwargs):
         self.client = get_object_or_404(
             relational.Client,

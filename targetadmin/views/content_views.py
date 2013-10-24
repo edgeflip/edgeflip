@@ -1,4 +1,3 @@
-from targetadmin.utils import internal
 from targetadmin import forms
 from targetshare.models import relational
 from targetadmin.views.base import (
@@ -15,7 +14,7 @@ class ContentListView(ClientRelationListView):
     create_url_name = 'content-new'
 
 
-content_list = internal(ContentListView.as_view())
+content_list = ContentListView.as_view()
 
 
 class ContentDetailView(ClientRelationDetailView):
@@ -24,7 +23,7 @@ class ContentDetailView(ClientRelationDetailView):
     edit_url_name = 'content-edit'
 
 
-content_detail = internal(ContentDetailView.as_view())
+content_detail = ContentDetailView.as_view()
 
 
 class ContentFormView(ClientRelationFormView):
@@ -35,4 +34,4 @@ class ContentFormView(ClientRelationFormView):
     object_string = 'Content'
 
 
-content_edit = internal(ContentFormView.as_view())
+content_edit = ContentFormView.as_view()

@@ -1,8 +1,8 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.forms.models import modelformset_factory
 
-from targetadmin.utils import internal
 from targetadmin import forms
+from targetadmin.utils import auth_client_required
 from targetshare.models import relational
 from targetadmin.views.base import (
     ClientRelationListView,
@@ -18,7 +18,7 @@ class FilterObjectListView(ClientRelationListView):
     create_url_name = 'filter-new'
 
 
-filter_list = internal(FilterObjectListView.as_view())
+filter_list = FilterObjectListView.as_view()
 
 
 class FilterObjectDetailView(ClientRelationDetailView):
@@ -28,7 +28,7 @@ class FilterObjectDetailView(ClientRelationDetailView):
     template_name = 'targetadmin/filter_detail.html'
 
 
-filter_detail = internal(FilterObjectDetailView.as_view())
+filter_detail = FilterObjectDetailView.as_view()
 
 
 class FilterFormView(ClientRelationFormView):
@@ -40,9 +40,10 @@ class FilterFormView(ClientRelationFormView):
     template_name = 'targetadmin/filter_create.html'
 
 
-filter_new = internal(FilterFormView.as_view())
+filter_new = FilterFormView.as_view()
 
 
+@auth_client_required
 def filter_edit(request, client_pk, pk):
     """ Creates a filter set """
     client = get_object_or_404(relational.Client, pk=client_pk)
