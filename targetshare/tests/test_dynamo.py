@@ -5,7 +5,7 @@ from django.utils import timezone
 from freezegun import freeze_time
 from nose import tools
 
-from targetshare.models import dynamo
+from targetshare.models import datastructs, dynamo
 
 from . import EdgeFlipTestCase
 
@@ -262,17 +262,9 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
                  tags=6, photos_target=8, photos_other=9, mut_friends=601),
         ]}
 
-    def save_edges(self, edges):
-        incoming_items = dynamo.IncomingEdge.items
-        outgoing_items = dynamo.OutgoingEdge.items
-        with incoming_items.batch_write() as incoming, outgoing_items.batch_write() as outgoing:
-            for edge in edges:
-                incoming.put_item(edge)
-                outgoing.put_item(dynamo.OutgoingEdge.from_incoming(edge))
-
     def save_edge(self):
         """helper to save a single edge, (100, 200)"""
-        self.save_edges([self.edges()[(100, 200)]])
+        datastructs.Edge.write([self.edges()[(100, 200)]])
 
     def test_save_edge(self):
         """Test saving a new edge"""
@@ -305,7 +297,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         e['stat_comms'] = 9001
         e['tags'] = None
         # update edge
-        self.save_edges([e])
+        datastructs.Edge.write([e])
 
         incoming = dynamo.db.get_table('edges_incoming')
         x = incoming.get_item(fbid_source=100, fbid_target=200)
@@ -339,7 +331,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_many_edges(self):
         """Test fetching many edges"""
-        self.save_edges(self.edges().values())
+        datastructs.Edge.write(self.edges().values())
 
         results = list(dynamo.db.fetch_many_edges(self.edges().keys()))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -357,7 +349,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_all_incoming_edges(self):
         """Test fetching all edges"""
-        self.save_edges(self.edges().values())
+        datastructs.Edge.write(self.edges().values())
 
         results = list(dynamo.db.fetch_all_incoming_edges())
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -375,7 +367,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_incoming_edges(self):
         """Test fetching incoming edges"""
-        self.save_edges(self.edges().values())
+        datastructs.Edge.write(self.edges().values())
 
         results = list(dynamo.db.fetch_incoming_edges(200))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -393,7 +385,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_outgoing_edges(self):
         """Test fetching outgoing edges"""
-        self.save_edges(self.edges().values())
+        datastructs.Edge.write(self.edges().values())
 
         results = list(dynamo.db.fetch_outgoing_edges(100))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
@@ -413,12 +405,12 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching incoming edges with newer than date"""
         # save everything with "old" date
         with freeze_time('2013-01-01'):
-            self.save_edges(self.edges().values())
+            datastructs.Edge.write(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
-            self.save_edges([e])
+            datastructs.Edge.write([e])
 
         results = list(dynamo.db.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
 
@@ -441,12 +433,12 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching outgoing edges newer than date"""
         # save everything with "old" date
         with freeze_time('2013-01-01'):
-            self.save_edges(self.edges().values())
+            datastructs.Edge.write(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
-            self.save_edges([e])
+            datastructs.Edge.write([e])
 
         results = list(dynamo.db.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
 

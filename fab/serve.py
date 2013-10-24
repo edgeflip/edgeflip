@@ -19,7 +19,7 @@ CELERY_QUEUES = (
     'delayed_save',
     'partial_save',
     'bulk_create',
-    'bulk_upsert',
+    'upsert',
     'update_edges',
 )
 

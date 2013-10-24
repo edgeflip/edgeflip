@@ -4,7 +4,6 @@ from django.utils import timezone
 from freezegun import freeze_time
 
 from targetshare import models
-from targetshare.models.dynamo import db as dynamo
 from targetshare.tasks import db, ranking
 
 from . import EdgeFlipTestCase
@@ -65,12 +64,13 @@ class TestRankingTasks(EdgeFlipTestCase):
         assert (cs_slug is None) or (isinstance(cs_slug, basestring))
 
     def test_proximity_rank_four(self):
-        ranked_edges = ranking.proximity_rank_four(True, 1, self.token)
-        assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
-        assert all((x.countsIn.postLikes is not None for x in ranked_edges))
+        self.assertFalse(tuple(models.dynamo.IncomingEdge.items.scan(limit=1)))
 
-        # Make sure some edges were created.
-        assert list(dynamo.fetch_all_incoming_edges())
+        ranked_edges = ranking.proximity_rank_four(True, 1, self.token)
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        assert all(x.incoming.post_likes is not None for x in ranked_edges)
+
+        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1).next())
 
     def test_fallback_cascade(self):
         # Some test users and edges
@@ -216,7 +216,7 @@ class TestDatabaseTasks(EdgeFlipTestCase):
         })
 
         # Upsert:
-        db.bulk_upsert([evan, alice])
+        db.upsert([evan, alice])
 
         alice = models.dynamo.User.items.get_item(**alice.get_keys())
         evan = models.dynamo.User.items.get_item(**evan.get_keys())
@@ -244,56 +244,38 @@ class TestDatabaseTasks(EdgeFlipTestCase):
         })
 
     def test_update_edges(self):
-        edges = {
-            (x['fbid_source'], x['fbid_target']): x for x in [
+        edge_data = (
+            dict(fbid_source=100, fbid_target=200, post_likes=42, post_comms=18,
+                stat_likes=None, stat_comms=None, wall_posts=0, wall_comms=10,
+                tags=86, photos_target=None, photos_other=None, mut_friends=200),
 
-                dict(fbid_source=100, fbid_target=200, post_likes=42, post_comms=18,
-                    stat_likes=None, stat_comms=None, wall_posts=0, wall_comms=10,
-                    tags=86, photos_target=None, photos_other=None, mut_friends=200),
+            dict(fbid_source=101, fbid_target=200, post_likes=None, post_comms=None,
+                stat_likes=50, stat_comms=55, wall_posts=138, wall_comms=None,
+                tags=None, photos_target=6, photos_other=4, mut_friends=101),
 
-                dict(fbid_source=101, fbid_target=200, post_likes=None, post_comms=None,
-                    stat_likes=50, stat_comms=55, wall_posts=138, wall_comms=None,
-                    tags=None, photos_target=6, photos_other=4, mut_friends=101),
+            dict(fbid_source=100, fbid_target=202, post_likes=80, post_comms=65,
+                stat_likes=4, stat_comms=44, wall_posts=10, wall_comms=100,
+                tags=22, photos_target=23, photos_other=24, mut_friends=202),
 
-                dict(fbid_source=100, fbid_target=202, post_likes=80, post_comms=65,
-                    stat_likes=4, stat_comms=44, wall_posts=10, wall_comms=100,
-                    tags=22, photos_target=23, photos_other=24, mut_friends=202),
+            dict(fbid_source=500, fbid_target=600, post_likes=None, post_comms=None,
+                stat_likes=102, stat_comms=88, wall_posts=None, wall_comms=None,
+                tags=None, photos_target=33, photos_other=44, mut_friends=600),
 
-                dict(fbid_source=500, fbid_target=600, post_likes=None, post_comms=None,
-                    stat_likes=102, stat_comms=88, wall_posts=None, wall_comms=None,
-                    tags=None, photos_target=33, photos_other=44, mut_friends=600),
-
-                dict(fbid_source=500, fbid_target=601, post_likes=1, post_comms=2,
-                    stat_likes=3, stat_comms=4, wall_posts=5, wall_comms=6,
-                    tags=6, photos_target=8, photos_other=9, mut_friends=601),
-        ]}
+            dict(fbid_source=500, fbid_target=601, post_likes=1, post_comms=2,
+                stat_likes=3, stat_comms=4, wall_posts=5, wall_comms=6,
+                tags=6, photos_target=8, photos_other=9, mut_friends=601),
+        )
+        edges = [models.datastructs.Edge(None, None, edge) for edge in edge_data]
+        edge = edges[0]
+        edge.outgoing = models.IncomingEdge(
+            data=dict(edge),
+            fbid_source=edge.fbid_target,
+            fbid_target=edge.fbid_source,
+        )
+        db.update_edges(edges)
+        incoming = tuple(models.IncomingEdge.items.scan())
+        outgoing = tuple(models.OutgoingEdge.items.scan())
+        self.assertEqual(len(incoming), 6)
+        self.assertEqual(len(outgoing), 6)
+        # TODO: assert data written
         assert 0
-        #db.update_edges(...)
-        # TODO
-
-#        dynamo.db.save_many_edges(self.edges().values())
-#        incoming = dynamo.db.get_table('edges_incoming')
-#
-#        results = list(incoming.batch_get(keys=[{'fbid_source': s, 'fbid_target': t}
-#                                                for s, t in self.edges().keys()]))
-#
-#        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
-#                              self.edges().keys())
-#
-#        for x in results:
-#            d = dict(x.items())
-#            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
-#            dynamo.db._remove_null_values(edge)
-#
-#            # munge the raw dict from dynamo in a compatible way
-#            assert 'updated' in d
-#            del d['updated']
-#            self.assertDictEqual(edge, d)
-#
-#        outgoing = dynamo.db.get_table('edges_outgoing')
-#
-#        results = list(outgoing.batch_get(keys=[{'fbid_source': s, 'fbid_target': t}
-#                                                for s, t in self.edges().keys()]))
-#
-#        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
-#                              self.edges().keys())

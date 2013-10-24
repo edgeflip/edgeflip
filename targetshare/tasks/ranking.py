@@ -305,7 +305,7 @@ def proximity_rank_four(mockMode, fbid, token):
             edges_unranked = fb_client.get_friend_edges(
                 user,
                 token['token'],
-                requireIncoming=True,
+                requireIncoming=True, # FIXME
                 requireOutgoing=False,
             )
     except IOError as exc:
@@ -316,5 +316,10 @@ def proximity_rank_four(mockMode, fbid, token):
         require_incoming=True,
         require_outgoing=False,
     )
-    db.update_user(user, token, edges_ranked)
+
+    db.delayed_save.delay(token, overwrite=True)
+    db.upsert.delay(user)
+    db.upsert.delay([edge.secondary for edge in edges_ranked])
+    db.update_edges.delay(edges_ranked)
+
     return edges_ranked

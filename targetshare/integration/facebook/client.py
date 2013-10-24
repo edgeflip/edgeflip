@@ -68,7 +68,6 @@ FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, curr
 
 
 def decode_date(date):
-    # TODO: we would like this to die
     if date:
         try:
             month, day, year = map(int, date.split('/'))
@@ -169,7 +168,7 @@ def get_user(uid, token):
     response_data = urlload('https://graph.facebook.com/fql',
                             {'q': fql, 'format': 'json', 'access_token': token})
     record = response_data['data'][0]
-    location = record.get('current_location', {})
+    location = record.get('current_location') or {}
     return dynamo.User(
         fbid=record['uid'],
         fname=record['first_name'],
@@ -253,11 +252,11 @@ def _get_friend_edges_simple(user, token):
     primPhotosRef = "#" + primPhotosLabel
     otherPhotosRef = "#" + otherPhotosLabel
 
-    queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (user.fbid))))
-    queryJsons.append('"%s":"%s"' % (primPhotosLabel, urllib.quote_plus(FQL_PRIM_PHOTOS % (tagPhotosRef, user.fbid))))
-    queryJsons.append('"primPhotoTags":"%s"' % (urllib.quote_plus(FQL_PRIM_TAGS % (primPhotosRef, user.fbid))))
-    queryJsons.append('"%s":"%s"' % (otherPhotosLabel, urllib.quote_plus(FQL_OTHER_PHOTOS % (tagPhotosRef, user.fbid))))
-    queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, user.fbid))))
+    queryJsons.append('"%s":"%s"' % (tagPhotosLabel, FQL_TAG_PHOTOS % user.fbid))
+    queryJsons.append('"%s":"%s"' % (primPhotosLabel, FQL_PRIM_PHOTOS % (tagPhotosRef, user.fbid)))
+    queryJsons.append('"primPhotoTags":"%s"' % (FQL_PRIM_TAGS % (primPhotosRef, user.fbid)))
+    queryJsons.append('"%s":"%s"' % (otherPhotosLabel, FQL_OTHER_PHOTOS % (tagPhotosRef, user.fbid)))
+    queryJsons.append('"otherPhotoTags":"%s"' % (FQL_OTHER_TAGS % (otherPhotosRef, user.fbid)))
 
     photoResults = []
     photoThread = threading.Thread(target=_urlload_thread, args=(
@@ -314,7 +313,7 @@ def _get_friend_edges_simple(user, token):
         if friendId in friends:
             continue
 
-        current_location = rec.get('current_location', {})
+        current_location = rec.get('current_location') or {}
         primPhotoTags = primPhotoCounts[friendId]
         otherPhotoTags = otherPhotoCounts[friendId]
 

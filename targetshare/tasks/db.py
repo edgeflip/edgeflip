@@ -79,7 +79,7 @@ def partial_save(item, _attempt=0):
 
 
 @celery.task
-def bulk_upsert(items):
+def upsert(*items):
     """Upsert the given boto Items.
 
     Arguments:
@@ -87,6 +87,10 @@ def bulk_upsert(items):
             or insert, if they don't
 
     """
+    # Support single-argument sequence interface:
+    if len(items) == 1 and isinstance(items[0], (list, tuple)):
+        (items,) = items
+
     items_data = {item.pk: item for item in items}
     if not items_data:
         return
@@ -116,21 +120,4 @@ def update_edges(edges):
     :arg edges: an iterable of `datastruct.Edge`
 
     """
-    # TODO: confirms this actually does what it used to (namely that Edges are
-    # populated as they used to be s.t. this works the same)
-    incoming_items = models.dynamo.IncomingEdge.items
-    outgoing_items = models.dynamo.OutgoingEdge.items
-    with incoming_items.batch_write() as incoming, outgoing_items.batch_write() as outgoing:
-        for composite in edges:
-            for edge in (composite.incoming, composite.outgoing):
-                if edge:
-                    incoming.put_item(edge)
-                    outgoing.put_item(models.dynamo.OutgoingEdge.from_incoming(edge))
-
-
-def update_user(user, token, edges):
-    """Update the given User, its Token, its friends and Edges."""
-    delayed_save.delay(token, overwrite=True)
-    bulk_upsert.delay([user])
-    bulk_upsert.delay([edge.secondary for edge in edges])
-    update_edges.delay(edges)
+    models.datastructs.Edge.write(edges)

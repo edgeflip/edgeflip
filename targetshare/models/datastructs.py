@@ -29,7 +29,7 @@ class Edge(EdgeBase):
 
     # Make outgoing and score default to None:
     def __new__(cls, primary, secondary, incoming, outgoing=None, score=None):
-        return super(Edge, cls).__new__(primary, secondary, incoming, outgoing, score)
+        return super(Edge, cls).__new__(cls, primary, secondary, incoming, outgoing, score)
 
     @classmethod
     def get_friend_edges(cls, primary,
@@ -94,6 +94,18 @@ class Edge(EdgeBase):
             return False
 
         return True
+
+    @staticmethod
+    def write(edges):
+        """Batch-write the given iterable of Edges to the database."""
+        incoming_items = dynamo.IncomingEdge.items
+        outgoing_items = dynamo.OutgoingEdge.items
+        with incoming_items.batch_write() as incoming, outgoing_items.batch_write() as outgoing:
+            for composite in edges:
+                for edge in (composite.incoming, composite.outgoing):
+                    if edge:
+                        incoming.put_item(edge)
+                        outgoing.put_item(dynamo.OutgoingEdge.from_incoming(edge))
 
     def __repr__(self):
         return '{}({})'.format(
