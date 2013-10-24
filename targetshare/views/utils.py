@@ -105,15 +105,20 @@ def set_visit(request, app_id, fbid=None, start_event=None):
         # Force a session and key to be created:
         request.session.save()
 
-    defaults = {
-        'ip': get_client_ip(request),
-        'source': request.REQUEST.get('efsrc', ''),
-        'visitor': get_visitor(request, fbid),
-    }
+    creation_values = [
+        ('ip', get_client_ip(request)),
+        ('referer', request.META.get('HTTP_REFERER', '')[:1028]),
+        ('user_agent', request.META.get('HTTP_USER_AGENT', '')[:1028]),
+    ]
+    updating_values = [
+        ('source', request.REQUEST.get('efsrc', '')),
+        ('visitor', get_visitor(request, fbid)),
+    ]
+
     request.visit, created = models.relational.Visit.objects.get_or_create(
         session_id=request.session.session_key,
         app_id=long(app_id),
-        defaults=defaults,
+        defaults=dict(creation_values + updating_values),
     )
     if created:
         # Add start event:
@@ -126,7 +131,7 @@ def set_visit(request, app_id, fbid=None, start_event=None):
         )
     else:
         # Update visit with values not known on or changed since creation:
-        updates = {key: value for key, value in defaults.items()
+        updates = {key: value for key, value in updating_values
                    if value and getattr(request.visit, key) != value}
         if updates:
             for key, value in updates.items():
