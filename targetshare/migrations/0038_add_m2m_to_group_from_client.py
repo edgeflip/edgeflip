@@ -582,9 +582,11 @@ class Migration(SchemaMigration):
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'ip': ('django.db.models.fields.GenericIPAddressField', [], {'max_length': '39'}),
+            'referer': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '1028', 'blank': 'True'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'}),
             'source': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '256', 'db_index': 'True', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'user_agent': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '1028', 'blank': 'True'}),
             'visit_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'visitor': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'visits'", 'to': "orm['targetshare.Visitor']"})
         },
