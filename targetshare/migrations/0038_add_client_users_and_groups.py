@@ -24,13 +24,12 @@ class Migration(DataMigration):
                 print "Can't find client with codename: %s" % codename
                 continue
 
-            user = orm['auth.User'].objects.create(username=name)
+            user = orm['auth.User'].objects.create_user(
+                username=name, password=password
+            )
             group = orm['auth.Group'].objects.create(name=name)
-            user.set_password(password)
             user.groups.add(group)
             client.auth_groups.add(group)
-            user.save()
-            client.save()
 
     def backwards(self, orm):
         "Write your backwards methods here."
