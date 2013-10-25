@@ -144,7 +144,7 @@ function displayFriendDiv(data, jqXHR) {
 
 var heartbeat_count = 0;
 function heartbeat(){
-    if (heartbeat_count <= 60) {
+    if (heartbeat_count < 60) {
         recordEvent('heartbeat');
         heartbeat_count += 1;
         setTimeout(heartbeat, 2000);

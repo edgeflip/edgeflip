@@ -90,6 +90,10 @@
 
     <div id="fb-root"></div>
     <script type="text/javascript">
+        // Start the debugger heartbeat before FB interation comes into play
+        if (debug_mode){
+            heartbeat();
+        }
         
         /* standard facebook workflow */
 
@@ -121,9 +125,6 @@
                        }
                    });
                    {% block run_sharing %}
-                        if (debug_mode){
-                            heartbeat();
-                        }
                        login(uid, tok, response, null);
                    {% endblock %}
                 } else {
