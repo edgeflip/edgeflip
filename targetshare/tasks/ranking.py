@@ -93,7 +93,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     ).values_list('friend_fbid', flat=True))
     exclude_friends = exclude_friends.union(already_picked.secondary_ids)    # avoid re-adding if already picked
     edges_eligible = [
-        e for e in edgesRanked if e.secondary.id not in exclude_friends
+        edge for edge in edgesRanked if edge.secondary.fbid not in exclude_friends
     ]
 
     # Get filter experiments, do assignment (and write DB)
@@ -288,7 +288,10 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 
 @celery.task(default_retry_delay=1, max_retries=3)
 def proximity_rank_four(mockMode, fbid, token):
-    ''' Performs the px4 crawling '''
+    """Crawl and rank a user's network to proximity level four, and persist the
+    User, secondary Users, Token and Edges to the database.
+
+    """
     fb_client = facebook.mock_client if mockMode else facebook.client
     try:
         user = fb_client.get_user(fbid, token['token'])

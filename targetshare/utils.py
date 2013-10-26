@@ -1,10 +1,14 @@
 import base64
+import copy
 import datetime
+import itertools
 import logging
 import random
+import sys
 import time
 import urllib
 from Crypto.Cipher import DES
+from StringIO import StringIO
 
 import us
 import requests
@@ -176,3 +180,233 @@ class Timer(object):
 
     def stderr(self, txt=""):
         raise NotImplementedError # what is this intended to do? No stderr please!
+
+
+def doc_inheritor(cls):
+    """Apply inherited __doc__ strings to subclass and proxy methods.
+
+        inherits_docs = doc_inheritor(MyBaseClass)
+
+        class MySubClass(MyBaseClass):
+
+            @inherits_docs
+            def overwrite_method(self):
+                ...
+
+    """
+    def inheritor(func):
+        if func.__doc__ is None:
+            try:
+                inherited = getattr(cls, func.__name__)
+            except AttributeError:
+                pass
+            else:
+                func.__doc__ = inherited.__doc__
+        return func
+    return inheritor
+
+
+class DummyIO(StringIO):
+
+    def write(self, _buffer):
+        pass
+
+    def flush(self):
+        pass
+
+
+class LazyList(list):
+
+    REPR_OUTPUT_SIZE = 20
+
+    def __init__(self, iterable=None):
+        super(LazyList, self).__init__()
+        self.iterable = iter(iterable) if iterable else None
+
+    def _consume(self):
+        if self.iterable:
+            super(LazyList, self).extend(self.iterable)
+            self.iterable = None
+
+    def _len_self(self):
+        return super(LazyList, self).__len__()
+
+    def __len__(self):
+        self._consume()
+        return self._len_self()
+
+    def _iter_self(self):
+        return super(LazyList, self).__iter__()
+
+    def _iter_iterable(self):
+        for item in self.iterable or ():
+            super(LazyList, self).append(item)
+            yield item
+        self.iterable = None
+
+    def _advance(self, count=None, index=None):
+        if count is None and index is None:
+            raise TypeError
+        elif count is None:
+            bound = index + 1
+            count = bound - self._len_self()
+
+        iterator = self._iter_iterable()
+        while count > 0:
+            try:
+                next(iterator)
+            except StopIteration:
+                break
+            else:
+                count -= 1
+
+    def __iter__(self):
+        if self.iterable:
+            return itertools.chain(self._iter_self(), self._iter_iterable())
+        return self._iter_self()
+
+    def __bool__(self):
+        try:
+            next(iter(self))
+        except StopIteration:
+            return False
+        else:
+            return True
+
+    __nonzero__ = __bool__
+
+    @staticmethod
+    def _validate_key(key):
+        if not isinstance(key, (slice, int)):
+            raise TypeError
+        elif (
+            (not isinstance(key, slice) and key < 0) or
+            (isinstance(key, slice) and ((key.start is not None and key.start < 0) or
+                                            (key.stop is not None and key.stop < 0)))
+        ):
+            raise ValueError("Negative indexing is not supported.")
+
+    def __getitem__(self, key):
+        self._validate_key(key)
+
+        if isinstance(key, slice):
+            return type(self)(itertools.islice(self, key.start, key.stop, key.step))
+
+        if self.iterable:
+            self._advance(index=key)
+        return super(LazyList, self).__getitem__(key)
+
+    def __setitem__(self, key, value):
+        self._validate_key(key)
+
+        if self.iterable:
+            if isinstance(key, slice):
+                stop = sys.maxint if key.stop is None else key.stop
+                index = stop - 1
+            else:
+                index = key
+            self._advance(index=index)
+
+        super(LazyList, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._validate_key(key)
+
+        if self.iterable:
+            if isinstance(key, slice):
+                stop = sys.maxint if key.stop is None else key.stop
+                index = stop - 1
+            else:
+                index = key
+            self._advance(index=index)
+
+        super(LazyList, self).__delitem__(key)
+
+    def __getslice__(self, start, stop):
+        return self.__getitem__(slice(start, stop))
+
+    def __setslice__(self, start, stop, sequence):
+        self.__setitem__(slice(start, stop), sequence)
+
+    def __delslice__(self, start, stop):
+        self.__delitem__(slice(start, stop))
+
+    def __repr__(self):
+        data = list(self[:self.REPR_OUTPUT_SIZE + 1])
+        if len(data) > self.REPR_OUTPUT_SIZE:
+            data[-1] = "...(remaining elements truncated)..."
+        return repr(data)
+
+    def count(self, value):
+        self._consume()
+        return super(LazyList, self).count(value)
+
+    def index(self, value):
+        try:
+            return super(LazyList, self).index(value)
+        except ValueError:
+            if self.iterable is None:
+                raise
+
+            base_length = self._len_self()
+            for count, item in enumerate(self._iter_iterable()):
+                if item == value:
+                    return base_length + count
+            else:
+                raise
+
+    def __contains__(self, value):
+        try:
+            self.index(value)
+        except ValueError:
+            return False
+        else:
+            return True
+
+    def __add__(self, other):
+        return type(self)(itertools.chain(self, other))
+
+    def __radd__(self, other):
+        return type(other)(itertools.chain(other, self))
+
+    def __mul__(self, other):
+        return type(self)(itertools.chain.from_iterable(itertools.repeat(self, other)))
+
+    __rmul__ = __mul__
+
+    def __deepcopy__(self, memo):
+        return type(self)(copy.deepcopy(item, memo) for item in self)
+
+    def append(self, value):
+        self.extend([value])
+
+    def extend(self, iterable):
+        if self.iterable:
+            self.iterable = itertools.chain(self.iterable, iterable)
+        else:
+            super(LazyList, self).extend(iterable)
+
+    def insert(self, index, value):
+        if self.iterable:
+            self._advance(index=(index - 1))
+        return super(LazyList, self).insert(index, value)
+
+    def pop(self, index=None):
+        if self.iterable:
+            if index is None:
+                self._consume()
+            else:
+                self._advance(index=index)
+        return super(LazyList, self).pop(index)
+
+    def remove(self, value):
+        index = self.index(value)
+        super(LazyList, self).pop(index)
+
+    def reverse(self):
+        self._consume()
+        super(LazyList, self).reverse()
+
+    def sort(self, *args, **kws):
+        self._consume()
+        super(LazyList, self).sort(*args, **kws)

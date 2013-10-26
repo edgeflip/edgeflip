@@ -10,6 +10,14 @@ from targetshare.models import datastructs, dynamo
 from . import EdgeFlipTestCase
 
 
+def _remove_null_values(dict_):
+    """Modify a dict in place by deleting items having null-ish values. For internal use."""
+    considered_types = (basestring, set, tuple, list, dict, types.NoneType)
+    for key, value in dict_.items():
+        if isinstance(value, considered_types) and not value:
+            del dict_[key]
+
+
 def test_remove_null_values():
     '''test internal _remove_null_values'''
     good = {"string": 'wat',
@@ -18,14 +26,14 @@ def test_remove_null_values():
             "set": {1, 2, 3},
             "dict": {'foo': 42}}
     good_ = good.copy()
-    dynamo.db._remove_null_values(good_)
+    _remove_null_values(good_)
     tools.eq_(good_, good)
 
     bad = {"string": '',
            "set": set(),
            "dict": {}}
     bad_ = bad.copy()
-    dynamo.db._remove_null_values(bad_)
+    _remove_null_values(bad_)
     tools.eq_(bad_, {})
 
 
@@ -72,7 +80,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
     def save_alice(self):
         """helper to save a single user alice"""
-        return dynamo.User.items.put_item(
+        item = dynamo.User(
             fbid=1234,
             fname='Alice',
             lname='Apples',
@@ -80,6 +88,8 @@ class DynamoUserTestCase(EdgeFlipTestCase):
             gender='Female',
             birthday=datetime.datetime(1950, 1, 1, tzinfo=timezone.utc),
         )
+        item.save()
+        return item
 
     def save_users(self):
         with dynamo.User.items.batch_write() as batch:
@@ -89,13 +99,11 @@ class DynamoUserTestCase(EdgeFlipTestCase):
     def test_save_user_new(self):
         """Test saving a new user"""
         self.save_alice()
-
-        table = dynamo.db.get_table('users')
-        x = table.get_item(fbid=1234)
+        x = dynamo.User.items.get_item(fbid=1234)
         self.assertEqual(x['fname'], 'Alice')
         self.assertEqual(x['fbid'], 1234)
-        self.assertEqual(x['birthday'], -631152000)
-        self.assertEqual(x['updated'], 1356998400)
+        self.assertEqual(x['birthday'], datetime.datetime(1950, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(x['updated'], datetime.datetime(2013, 1, 1, tzinfo=timezone.utc))
         self.assertIsNone(x['city'])
         self.assertIsNone(x['state'])
 
@@ -120,7 +128,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         alice1 = dynamo.User.items.get_item(fbid=1234)
         self.assertEqual(alice1['fbid'], 1234)
         self.assertEqual(alice1['birthday'], datetime.datetime(1950, 1, 1, tzinfo=timezone.utc))
-        self.assertEqual(alice1['email'], 'alice@ealice1ample.com')
+        self.assertEqual(alice1['email'], 'alice@example.com')
         self.assertEqual(alice1['gender'], 'Female')
         self.assertNotIn('city', alice1)
         self.assertNotIn('state', alice1)
@@ -138,7 +146,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
             user = self.users()[item['fbid']]
 
             # Munge data to be comparable:
-            dynamo.db._remove_null_values(user)
+            _remove_null_values(user)
             data['fbid'] = int(data['fbid'])
             data.pop('updated')
 
@@ -188,13 +196,11 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
     def test_save_token(self):
         """Test saving a new token"""
         self.save_token()
-
-        table = dynamo.db.get_table('tokens')
-        x = table.get_item(fbid=1234, appid=666)
+        x = dynamo.Token.items.get_item(fbid=1234, appid=666)
         self.assertEqual(x['fbid'], 1234)
         self.assertEqual(x['appid'], 666)
         self.assertEqual(x['token'], 'DECAFBAD')
-        self.assertEqual(x['expires'], dynamo.db.to_epoch(self.expiry))
+        self.assertEqual(x['expires'], self.expiry)
         assert 'updated' in x
 
     def test_save_token_update(self):
@@ -225,9 +231,8 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
 
         for token in dynamo.Token.items.batch_get([{'fbid': fbid, 'appid': appid}
                                                    for fbid, appid in tokens]):
-            del token['updated']
             data = tokens[(token['fbid'], token['appid'])]
-            self.assertDictEqual(token, data)
+            self.assertDictEqual(dict(token), data)
 
 
 @freeze_time('2013-01-01')
@@ -262,103 +267,98 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
                  tags=6, photos_target=8, photos_other=9, mut_friends=601),
         ]}
 
+    @staticmethod
+    def save_edges(edges):
+        datastructs.Edge.write(datastructs.Edge(None, None, edge) for edge in edges)
+
     def save_edge(self):
         """helper to save a single edge, (100, 200)"""
-        datastructs.Edge.write([self.edges()[(100, 200)]])
+        self.save_edges([self.edges()[(100, 200)]])
 
     def test_save_edge(self):
         """Test saving a new edge"""
         self.save_edge()
-
-        incoming = dynamo.db.get_table('edges_incoming')
-        x = incoming.get_item(fbid_source=100, fbid_target=200)
+        x = dynamo.IncomingEdge.items.get_item(fbid_source=100, fbid_target=200)
         assert 'updated' in x
         del x['updated']
         d = dict(x.items())
 
         e = self.edges()[(100, 200)]
-        dynamo.db._remove_null_values(e)
+        _remove_null_values(e)
         self.assertDictEqual(d, e)
 
-        outgoing = dynamo.db.get_table('edges_outgoing')
-        x = outgoing.get_item(fbid_source=100, fbid_target=200)
+        x = dynamo.OutgoingEdge.items.get_item(fbid_source=100, fbid_target=200)
         assert 'updated' in x
         del x['updated']
         d = dict(x.items())
         self.assertDictEqual(d, dict(fbid_source=100, fbid_target=200))
 
-    def test_save_token_update(self):
-        """Test updating a edge - overwrites"""
-        self.save_edge()
+    def test_save_many_edges(self):
+        """Test saving many edges"""
+        edges = self.edges()
+        self.save_edges(edges.values())
 
-        e = self.edges()[(100, 200)]
+        results = list(dynamo.IncomingEdge.items.batch_get(keys=[
+            {'fbid_source': s, 'fbid_target': t}
+            for s, t in edges
+        ]))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              edges.keys())
 
-        e['stat_likes'] = 9000
-        e['stat_comms'] = 9001
-        e['tags'] = None
-        # update edge
-        datastructs.Edge.write([e])
+        for x in results:
+            d = dict(x.items())
+            edge = edges.get((x['fbid_source'], x['fbid_target']))
+            _remove_null_values(edge)
+            self.assertDictEqual(edge, d)
 
-        incoming = dynamo.db.get_table('edges_incoming')
-        x = incoming.get_item(fbid_source=100, fbid_target=200)
-        assert 'updated' in x
-        del x['updated']
-        d = dict(x.items())
-
-        e['tags'] = 86 # unchanged, we don't overwrite w/ None/0
-        dynamo.db._remove_null_values(e)
-        self.assertDictEqual(d, e)
-
-        outgoing = dynamo.db.get_table('edges_outgoing')
-        x = outgoing.get_item(fbid_source=100, fbid_target=200)
-        assert 'updated' in x
-        del x['updated']
-        d = dict(x.items())
-        self.assertDictEqual(d, dict(fbid_source=100, fbid_target=200))
+        results = list(dynamo.OutgoingEdge.items.batch_get(keys=[
+            {'fbid_source': s, 'fbid_target': t}
+            for s, t in edges
+        ]))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
+                              edges.keys())
 
     def test_fetch_edge(self):
         """Test fetching a single edge"""
         self.save_edge()
 
-        d = dynamo.db.fetch_edge(100, 200)
-        self.assertIsInstance(d, dict)
-        assert 'updated' in d
-        del d['updated']
+        edge = dynamo.IncomingEdge.items.get_item(fbid_source=100, fbid_target=200)
+        self.assertIn('updated', edge)
+        del edge['updated']
 
-        e = self.edges()[(100, 200)]
-        dynamo.db._remove_null_values(e)
-        self.assertDictEqual(d, e)
+        data = self.edges()[(100, 200)]
+        _remove_null_values(data)
+        self.assertDictEqual(dict(edge), data)
 
     def test_fetch_many_edges(self):
         """Test fetching many edges"""
-        datastructs.Edge.write(self.edges().values())
+        edge_data = self.edges()
+        self.save_edges(edge_data.values())
+        edges_incoming = tuple(dynamo.IncomingEdge.items.batch_get([
+            {'fbid_source': fbid_source, 'fbid_target': fbid_target}
+            for fbid_source, fbid_target in edge_data.keys()
+        ]))
+        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in edges_incoming],
+                              edge_data.keys())
 
-        results = list(dynamo.db.fetch_many_edges(self.edges().keys()))
-        self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
-                              self.edges().keys())
-
-        for x in results:
-            d = dict(x.items())
-            edge = self.edges().get((x['fbid_source'], x['fbid_target']))
-            dynamo.db._remove_null_values(edge)
-
-            # munge the raw dict from dynamo in a compatible way
-            assert 'updated' in d
-            del d['updated']
+        for x in edges_incoming:
+            d = dict(x)
+            edge = edge_data.get((x['fbid_source'], x['fbid_target']))
+            _remove_null_values(edge)
             self.assertDictEqual(edge, d)
 
     def test_fetch_all_incoming_edges(self):
         """Test fetching all edges"""
-        datastructs.Edge.write(self.edges().values())
+        self.save_edges(self.edges().values())
 
-        results = list(dynamo.db.fetch_all_incoming_edges())
+        results = list(dynamo.IncomingEdge.items.scan())
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               self.edges().keys())
 
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
-            dynamo.db._remove_null_values(edge)
+            _remove_null_values(edge)
 
             # munge the raw dict from dynamo in a compatible way
             assert 'updated' in d
@@ -367,16 +367,16 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_incoming_edges(self):
         """Test fetching incoming edges"""
-        datastructs.Edge.write(self.edges().values())
+        self.save_edges(self.edges().values())
 
-        results = list(dynamo.db.fetch_incoming_edges(200))
+        results = tuple(dynamo.IncomingEdge.items.query(fbid_target__eq=200))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200), (101, 200)])
 
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
-            dynamo.db._remove_null_values(edge)
+            _remove_null_values(edge)
 
             # munge the raw dict from dynamo in a compatible way
             assert 'updated' in d
@@ -385,16 +385,16 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     def test_fetch_outgoing_edges(self):
         """Test fetching outgoing edges"""
-        datastructs.Edge.write(self.edges().values())
+        self.save_edges(self.edges().values())
 
-        results = list(dynamo.db.fetch_outgoing_edges(100))
+        results = tuple(dynamo.OutgoingEdge.incoming_edges.query(fbid_source__eq=100))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200), (100, 202)])
 
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
-            dynamo.db._remove_null_values(edge)
+            _remove_null_values(edge)
 
             # munge the raw dict from dynamo in a compatible way
             assert 'updated' in d
@@ -405,54 +405,66 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching incoming edges with newer than date"""
         # save everything with "old" date
         with freeze_time('2013-01-01'):
-            datastructs.Edge.write(self.edges().values())
+            self.save_edges(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
-            datastructs.Edge.write([e])
+            self.save_edges([e])
 
-        results = list(dynamo.db.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
-
+        results = tuple(dynamo.IncomingEdge.items.query(
+            fbid_target__eq=200,
+            index='updated',
+            updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
+        ))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
 
         d = results[0]
-        self.assertIsInstance(d, dict)
         assert 'updated' in d
         del d['updated']
         e = self.edges()[(100, 200)]
-        dynamo.db._remove_null_values(e)
-        self.assertDictEqual(d, e)
+        _remove_null_values(e)
+        self.assertDictEqual(dict(d), e)
 
         # empty results
-        empty = list(dynamo.db.fetch_incoming_edges(200, newer_than=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc)))
-        self.assertItemsEqual(empty, [])
+        empty = tuple(dynamo.IncomingEdge.items.query(
+            fbid_target__eq=200,
+            index='updated',
+            updated__gt=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc),
+        ))
+        self.assertEqual(empty, ())
 
     def test_fetch_outgoing_edges_newer_than(self):
         """Test fetching outgoing edges newer than date"""
         # save everything with "old" date
         with freeze_time('2013-01-01'):
-            datastructs.Edge.write(self.edges().values())
+            self.save_edges(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
             e = self.edges()[(100, 200)]
-            datastructs.Edge.write([e])
+            self.save_edges([e])
 
-        results = list(dynamo.db.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc)))
-
+        results = list(dynamo.OutgoingEdge.incoming_edges.query(
+            fbid_source__eq=100,
+            index='updated',
+            updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
+        ))
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
 
         d = results[0]
-        self.assertIsInstance(d, dict)
         assert 'updated' in d
         del d['updated']
         e = self.edges()[(100, 200)]
-        dynamo.db._remove_null_values(e)
-        self.assertDictEqual(d, e)
+        _remove_null_values(e)
+        self.assertDictEqual(dict(d), e)
 
         # empty results
-        empty = list(dynamo.db.fetch_outgoing_edges(100, newer_than=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc)))
+        empty = list(dynamo.OutgoingEdge.incoming_edges.query(
+            fbid_source__eq=100,
+            index='updated',
+            updated__gt=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc),
+        ))
         self.assertItemsEqual(empty, [])

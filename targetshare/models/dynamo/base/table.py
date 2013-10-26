@@ -6,7 +6,8 @@ Models definition and interactions with a table in DynamoDB.
 from boto.dynamodb2 import table, items
 from django.conf import settings
 
-from targetshare.models.dynamo import db, utils
+from targetshare import utils
+from targetshare.models.dynamo import db
 
 from .results import BatchGetResultSet
 
@@ -112,8 +113,11 @@ class Table(table.Table):
     # Use our BatchGetResultSet rather than boto's #
 
     @inherits_docs
-    def batch_get(self, *args, **kws):
-        result = super(Table, self).batch_get(*args, **kws)
+    def batch_get(self, keys, *args, **kws):
+        if not keys:
+            # boto will pass empty list on to AWS, which responds with an error
+            return iter([])
+        result = super(Table, self).batch_get(keys, *args, **kws)
         return BatchGetResultSet.from_boto(result)
 
     # Use our Item rather than boto's #

@@ -13,7 +13,7 @@ from boto.dynamodb2.types import (
     BINARY_SET,
 )
 
-from targetshare.models.dynamo import db
+from targetshare.models.dynamo import utils
 
 
 # Exotic types to ease (de)serialization #
@@ -44,7 +44,7 @@ class DateType(DataType):
     def load(self, value):
         if isinstance(value, datetime.date):
             return value
-        return db.epoch_to_date(value)
+        return utils.epoch_to_date(value)
 
     def validate(self, value):
         if (
@@ -62,7 +62,7 @@ class DateTimeType(DataType):
     def load(self, value):
         if isinstance(value, datetime.date):
             return value
-        return db.epoch_to_datetime(value)
+        return utils.epoch_to_datetime(value)
 
     def validate(self, value):
         if (
@@ -88,5 +88,5 @@ class Dynamizer(basetypes.Dynamizer):
 
     def _encode_n(self, attr):
         if isinstance(attr, datetime.date):
-            attr = db.to_epoch(attr)
+            attr = utils.to_epoch(attr)
         return super(Dynamizer, self)._encode_n(attr)

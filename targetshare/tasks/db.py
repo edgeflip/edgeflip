@@ -84,7 +84,10 @@ def upsert(*items):
 
     Arguments:
         items: A sequence of boto Items to update, if they already exist in Dynamo,
-            or insert, if they don't
+            or to insert, if they don't.
+
+            May be specified as a single sequence argument or as arbitrary
+            anonymous arguments.
 
     """
     # Support single-argument sequence interface:

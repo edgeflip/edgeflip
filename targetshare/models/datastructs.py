@@ -56,10 +56,7 @@ class Edge(EdgeBase):
         if require_outgoing:
             # Build iterator of (secondary's ID, User, incoming edge, outgoing edge),
             # fetching outgoing edges from Dynamo.
-            outgoing_edges = dynamo.OutgoingEdge.items.query(**edge_filters)
-            secondary_edges_out = dynamo.IncomingEdge.items.batch_get(keys=[
-                edge.get_keys() for edge in outgoing_edges
-            ])
+            secondary_edges_out = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
             data = (
                 (
                     edge['fbid_target'],
@@ -153,7 +150,7 @@ class TieredEdges(tuple):
     @property
     def secondary_ids(self):
         """All edge secondaries' IDs."""
-        return tuple(edge.secondary.id for edge in self._edges())
+        return tuple(edge.secondary.fbid for edge in self._edges())
 
     def copy(self):
         return type(self)(self)

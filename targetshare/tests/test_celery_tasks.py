@@ -1,10 +1,13 @@
 import celery
+import json
 
 from django.utils import timezone
 from freezegun import freeze_time
+from mock import patch
 
 from targetshare import models
 from targetshare.tasks import db, ranking
+from targetshare.integration.facebook import mock_client
 
 from . import EdgeFlipTestCase
 
@@ -25,7 +28,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = ranking.proximity_rank_three(True, 1, self.token)
+        task_id = ranking.proximity_rank_three(False, 1, self.token) # TODO
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
 
@@ -37,10 +40,22 @@ class TestRankingTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = ranking.px3_crawl(True, 1, self.token)
+        ranked_edges = ranking.px3_crawl(False, 1, self.token) # TODO
         assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
 
-    def test_perform_filtering(self):
+    @patch('targetshare.integration.facebook.client.urllib2.urlopen', **{ # FIXME
+        'return_value.read.side_effect': [json.dumps(data) for data in (
+            {'data': [mock_client.fakeUserInfo(1)]},
+            {'data': [
+                {'name' : 'primPhotoTags',
+                 'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 500))]},
+                {'name' : 'otherPhotoTags',
+                 'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25000))]},
+                {'name' : 'friendInfo',
+                 'fql_result_set' : [fakeUserInfo(fbid, friend=True, numFriends=numFakeFriends) for fbid in fakeFriendIds]}]},
+        )],
+    })
+    def test_perform_filtering(self, _urlopen_mock):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
@@ -48,7 +63,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
-        ranked_edges = ranking.px3_crawl(True, 1, self.token)
+        ranked_edges = ranking.px3_crawl(False, 1, self.token) # TODO
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
             campaignId=1,
@@ -66,7 +81,7 @@ class TestRankingTasks(EdgeFlipTestCase):
     def test_proximity_rank_four(self):
         self.assertFalse(tuple(models.dynamo.IncomingEdge.items.scan(limit=1)))
 
-        ranked_edges = ranking.proximity_rank_four(True, 1, self.token)
+        ranked_edges = ranking.proximity_rank_four(False, 1, self.token) # TODO
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
@@ -94,18 +109,8 @@ class TestRankingTasks(EdgeFlipTestCase):
             city='Toledo',
             state='Ohio'
         )
-        test_edge1 = models.datastructs.Edge(
-            test_user1,
-            test_user1,
-            None
-        )
-        test_edge1.score = 0.5
-        test_edge2 = models.datastructs.Edge(
-            test_user1,
-            test_user2,
-            None
-        )
-        test_edge2.score = 0.4
+        test_edge1 = models.datastructs.Edge(test_user1, test_user1, None, score=0.5)
+        test_edge2 = models.datastructs.Edge(test_user1, test_user2, None, score=0.4)
         visitor = models.relational.Visitor.objects.create(fbid=1)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
@@ -242,40 +247,3 @@ class TestDatabaseTasks(EdgeFlipTestCase):
             'gender': 'Male',
             # birthday ignored
         })
-
-    def test_update_edges(self):
-        edge_data = (
-            dict(fbid_source=100, fbid_target=200, post_likes=42, post_comms=18,
-                stat_likes=None, stat_comms=None, wall_posts=0, wall_comms=10,
-                tags=86, photos_target=None, photos_other=None, mut_friends=200),
-
-            dict(fbid_source=101, fbid_target=200, post_likes=None, post_comms=None,
-                stat_likes=50, stat_comms=55, wall_posts=138, wall_comms=None,
-                tags=None, photos_target=6, photos_other=4, mut_friends=101),
-
-            dict(fbid_source=100, fbid_target=202, post_likes=80, post_comms=65,
-                stat_likes=4, stat_comms=44, wall_posts=10, wall_comms=100,
-                tags=22, photos_target=23, photos_other=24, mut_friends=202),
-
-            dict(fbid_source=500, fbid_target=600, post_likes=None, post_comms=None,
-                stat_likes=102, stat_comms=88, wall_posts=None, wall_comms=None,
-                tags=None, photos_target=33, photos_other=44, mut_friends=600),
-
-            dict(fbid_source=500, fbid_target=601, post_likes=1, post_comms=2,
-                stat_likes=3, stat_comms=4, wall_posts=5, wall_comms=6,
-                tags=6, photos_target=8, photos_other=9, mut_friends=601),
-        )
-        edges = [models.datastructs.Edge(None, None, edge) for edge in edge_data]
-        edge = edges[0]
-        edge.outgoing = models.IncomingEdge(
-            data=dict(edge),
-            fbid_source=edge.fbid_target,
-            fbid_target=edge.fbid_source,
-        )
-        db.update_edges(edges)
-        incoming = tuple(models.IncomingEdge.items.scan())
-        outgoing = tuple(models.OutgoingEdge.items.scan())
-        self.assertEqual(len(incoming), 6)
-        self.assertEqual(len(outgoing), 6)
-        # TODO: assert data written
-        assert 0
