@@ -2,6 +2,7 @@ from __future__ import print_function
 import logging
 import time
 from StringIO import StringIO
+from boto.exception import JSONResponseError
 
 from django.conf import settings
 
@@ -74,7 +75,11 @@ class DynamoDB(object):
 
         for table_number, table_defn in enumerate(tables, 1):
             # Issue creation directive to AWS:
-            table = self.create_table(table_defn, throughput)
+            try:
+                table = self.create_table(table_defn, throughput)
+            except JSONResponseError:
+                LOG.exception('Failed to create table')
+                continue
 
             # Monitor job status:
             console.write("Table '{}' status: ".format(table.table_name))

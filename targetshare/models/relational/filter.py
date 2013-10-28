@@ -2,7 +2,7 @@ import logging
 
 from django.db import models
 
-from targetshare import utils
+from targetshare.integration.civis import client
 
 
 logger = logging.getLogger(__name__)
@@ -36,19 +36,20 @@ class Filter(models.Model):
         elif operator == 'in':
             return user_val in value
 
-    def filter_edges_by_sec(self, edges, s3_match=False):
+
+    def filter_edges_by_sec(self, edges, cache_match=False):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
         if not self.filterfeatures.exists():
             return edges
         for f in self.filterfeatures.all():
             if f.feature_type.code == f.feature_type.MATCHING:
-                if s3_match:
-                    utils.civis_s3_filter(
+                if cache_match:
+                    client.civis_cached_filter(
                         edges, f.feature, f.operator, f.value
                     )
                 else:
-                    edges = utils.civis_filter(
+                    edges = client.civis_filter(
                         edges, f.feature, f.operator, f.value
                     )
             # Standard min/max/eq/in filters below

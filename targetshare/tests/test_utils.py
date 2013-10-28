@@ -5,8 +5,8 @@ from mock import Mock, patch
 
 from django.utils import timezone
 
-from targetshare import utils
 from targetshare.models import datastructs
+from targetshare.integration.civis import client
 
 from . import EdgeFlipTestCase
 
@@ -73,7 +73,7 @@ class TestUtils(EdgeFlipTestCase):
             u'Chicago', 'Illinois'
         )
         edge = datastructs.Edge(user, user, None)
-        result = utils.civis_filter([edge], 'persuasion_score', 'min', 10)
+        result = client.civis_filter([edge], 'persuasion_score', 'min', 10)
         self.assertEqual(result, [edge])
 
     @patch('civis_matcher.matcher.requests.post')
@@ -136,7 +136,7 @@ class TestUtils(EdgeFlipTestCase):
             u'Chicago', 'Illinois'
         )
         edge = datastructs.Edge(user, user, None)
-        result = utils.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
+        result = client.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
         self.assertEqual(result, [])
 
     @patch('civis_matcher.matcher.requests.post')
@@ -196,5 +196,5 @@ class TestUtils(EdgeFlipTestCase):
             u'Chicago', 'Illinois'
         )
         edge = datastructs.Edge(user, user, None)
-        result = utils.civis_filter([edge], 'persuasion_score', 'min', 100)
+        result = client.civis_filter([edge], 'persuasion_score', 'min', 100)
         self.assertEqual(result, [])
