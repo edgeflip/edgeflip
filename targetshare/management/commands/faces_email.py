@@ -89,7 +89,10 @@ class Command(BaseCommand):
         logger.info('Starting crawl')
         self._crawl_and_filter()
         self.file_handle.close()
-        logger.info('Faces Email Complete')
+        logger.info(
+            'Faces Email Complete, but failed to process the following FBIDS: %s'.format(
+                self.failed_fbids)
+        )
 
     def _crawl_and_filter(self):
         ''' Grabs all of the tokens for a given UserClient, and throws them
@@ -135,6 +138,11 @@ class Command(BaseCommand):
             except IOError:
                 logger.exception('Failed to filter {}'.format(ut['fbid']))
                 self.failed_fbids.append(ut['fbid'])
+                continue
+            except AttributeError:
+                logger.exception('{} had too few friends'.format(ut['fbid']))
+                self.failed_fbids.append(ut['fbid'])
+                continue
 
             count += 1
             if count > 100:
