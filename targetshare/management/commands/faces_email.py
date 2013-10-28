@@ -210,4 +210,6 @@ class Command(BaseCommand):
             row.append(self._build_table(uuid, collection[:self.num_face]))
             self._write_events(uuid, collection)
             self.csv_writer.writerow(row)
+
+        self.file_handle.flush()
         self.edge_collection = {}
