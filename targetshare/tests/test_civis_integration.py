@@ -11,7 +11,7 @@ from targetshare.integration.civis import client
 from . import EdgeFlipTestCase
 
 
-class TestUtils(EdgeFlipTestCase):
+class TestCivisIntegration(EdgeFlipTestCase):
 
     fixtures = ['test_data']
 
