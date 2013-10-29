@@ -1,3 +1,6 @@
+import functools
+
+from django.utils.decorators import method_decorator
 from django.core.exceptions import PermissionDenied
 from django.contrib.auth import decorators
 from django.http import HttpResponseForbidden
@@ -22,16 +25,25 @@ def internal(view):
 
 
 def auth_client_required(view):
+    @functools.wraps(view)
     def verify_client_auth_relation(request, *args, **kwargs):
-        pk = kwargs.get('client_pk', kwargs.get('pk'))
+        pk = kwargs.get('client_pk')
         if (request.user.is_superuser or
                 models.Client.objects.filter(
                     pk=pk,
-                    auth_groups__in=request.user.groups.all()
+                    auth_groups__user=request.user,
                 ).exists()):
             return view(request, *args, **kwargs)
         else:
             return HttpResponseForbidden(
                 'You do not have access to this area.'
             )
-    return decorators.login_required(verify_client_auth_relation, login_url='login')
+
+    if isinstance(view, type):
+        view.dispatch = method_decorator(verify_client_auth_relation)(view.dispatch)
+        return view
+    else:
+        return decorators.login_required(
+            verify_client_auth_relation,
+            login_url='login'
+        )

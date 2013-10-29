@@ -18,7 +18,7 @@ class ClientListView(ListView):
             return queryset
         else:
             return queryset.filter(
-                auth_groups__in=self.request.user.groups.all()
+                auth_groups__user=self.request.user
             ).distinct()
 
     @method_decorator(decorators.login_required(login_url='login'))
@@ -29,8 +29,9 @@ class ClientListView(ListView):
 class ClientDetailView(DetailView):
     model = relational.Client
     template_name = 'targetadmin/client_home.html'
+    pk_url_kwarg = 'client_pk'
 
-    @method_decorator(utils.auth_client_required)
+    #@method_decorator(utils.auth_client_required)
     def dispatch(self, request, *args, **kwargs):
         return super(ClientDetailView, self).dispatch(request, *args, **kwargs)
 
@@ -42,5 +43,5 @@ class ClientFormView(CRUDView):
     queryset = relational.Client.objects.all()
 
 client_list_view = ClientListView.as_view()
-client_detail_view = ClientDetailView.as_view()
+client_detail_view = utils.auth_client_required(ClientDetailView.as_view())
 client_form_view = ClientFormView.as_view()

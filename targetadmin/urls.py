@@ -4,9 +4,9 @@ from django.conf.urls import patterns, url
 # Client URLS
 urlpatterns = patterns('targetadmin.views',
     url(r'^$', 'client_views.client_list_view', name='client-list'),
-    url(r'^client/(?P<pk>\d+)/$', 'client_views.client_detail_view', name='client-detail'),
+    url(r'^client/(?P<client_pk>\d+)/$', 'client_views.client_detail_view', name='client-detail'),
     url(r'^client/new/$', 'client_views.client_form_view', name='client-new'),
-    url(r'^client/(?P<pk>\d+)/edit/$', 'client_views.client_form_view', name='client-edit'),
+    url(r'^client/(?P<client_pk>\d+)/edit/$', 'client_views.client_form_view', name='client-edit'),
 )
 
 urlpatterns += patterns('targetadmin.views',
