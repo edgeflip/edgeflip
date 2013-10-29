@@ -356,7 +356,7 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
     logger.debug('got %s', sc)
 
     # sort all the friends by their stream rank (if any) and mutual friend count
-    friend_streamrank = dict(enumerate(sc.getFriendRanking()))
+    friend_streamrank = {fbid: position for (position, fbid) in enumerate(sc.getFriendRanking())}
     logger.debug("got %d friends ranked", len(friend_streamrank))
     edges0 = sorted(edges, key=lambda edge:
         (friend_streamrank.get(edge.secondary.fbid, sys.maxint),
