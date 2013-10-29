@@ -103,7 +103,7 @@ def civis_filter(edges, feature, operator, score_value):
         user_dict['city'] = user.city
         user_dict['first_name'] = user.fname
         user_dict['last_name'] = user.lname
-        people_dict['people'][user.id] = user_dict
+        people_dict['people'][user.fbid] = user_dict
 
     try:
         cm = matcher.CivisMatcher()
@@ -122,7 +122,7 @@ def civis_filter(edges, feature, operator, score_value):
         if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
             valid_ids.append(str(key))
 
-    return [x for x in edges if str(x.secondary.id) in valid_ids]
+    return [x for x in edges if str(x.secondary.fbid) in valid_ids]
 
 
 def civis_s3_filter(edges, feature, operator, score_value):
@@ -130,7 +130,7 @@ def civis_s3_filter(edges, feature, operator, score_value):
         settings.AWS.AWS_ACCESS_KEY_ID, settings.AWS.AWS_SECRET_ACCESS_KEY
     )
     results, missing_count = cm.cache_match(
-        [x.secondary.id for x in edges]
+        [x.secondary.fbid for x in edges]
     )
     logger.debug('Missed the cache %s times', str(missing_count))
     if missing_count > MAX_MISSING_CIVIS_MATCHES:
@@ -143,7 +143,7 @@ def civis_s3_filter(edges, feature, operator, score_value):
             if score and float(score.get(operator, 0)) >= float(score_value):
                 valid_ids.append(str(key))
 
-        return [x for x in edges if str(x.secondary.id) in valid_ids]
+        return [x for x in edges if str(x.secondary.fbid) in valid_ids]
 
 
 class Timer(object):

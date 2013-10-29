@@ -10,7 +10,7 @@ from mock import patch, Mock
 
 from targetshare import models
 
-from . import EdgeFlipViewTestCase, DATA_PATH
+from . import EdgeFlipViewTestCase, DATA_PATH, patch_facebook
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
@@ -23,19 +23,14 @@ class TestFacesViews(EdgeFlipViewTestCase):
         response = self.client.get(reverse('faces'))
         self.assertStatusCode(response, 405)
 
-    @patch('targetshare.views.faces.facebook.mock_client')
-    def test_faces_initial_entry(self, fb_mock):
+    @patch_facebook
+    def test_faces_initial_entry(self):
         ''' Tests a users first request to the Faces endpoint. We expect to
         receive a JSON response with a status of waiting along with the
         tasks IDs of the Celery jobs we started. We also expect to see an
         extended token saved to Dynamo
+
         '''
-        fb_mock.extend_token.return_value = models.dynamo.Token(
-            token='test-token',
-            fbid=1111111,
-            appid=self.test_client.fb_app_id,
-            expires=timezone.now()
-        )
         expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
             fbid=1111111,
@@ -328,7 +323,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
             7
         )
         self.assertEqual(
-            response.context['user'].id,
+            response.context['user'].fbid,
             100
         )
         self.assertEqual(

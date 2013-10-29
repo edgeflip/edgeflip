@@ -170,7 +170,7 @@ class Command(BaseCommand):
                     notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
-                    friend_fbid=edge.secondary.id,
+                    friend_fbid=edge.secondary.fbid,
                     event_type='shown',
                 )
             )
@@ -181,7 +181,7 @@ class Command(BaseCommand):
                     notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
-                    friend_fbid=edge.secondary.id,
+                    friend_fbid=edge.secondary.fbid,
                     event_type='generated',
                 )
             )
@@ -197,12 +197,12 @@ class Command(BaseCommand):
             ])
             for uuid, collection in self.edge_collection.iteritems():
                 primary = collection[0].primary
-                row = [primary.id, primary.email]
+                row = [primary.fbid, primary.email]
                 friend_list = []
                 for edge in collection[:self.num_face]:
                     friend_list.append(edge.secondary)
 
-                fbids = [x.id for x in friend_list]
+                fbids = [x.fbid for x in friend_list]
 
                 row.append(fbids)
                 row.append(lexical_list([x.fname for x in friend_list[:3]]))

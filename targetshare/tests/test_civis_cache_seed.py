@@ -4,10 +4,9 @@ from datetime import datetime, timedelta
 from mock import patch, Mock
 
 from targetshare import models
-from targetshare.integration.facebook import mock_client
 from targetshare.management.commands import civis_cache_seed
 
-from . import EdgeFlipTestCase
+from . import EdgeFlipTestCase, patch_facebook
 
 
 class TestCivisCacheSeed(EdgeFlipTestCase):
@@ -16,8 +15,6 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestCivisCacheSeed, self).setUp()
-        self.orig_facebook = civis_cache_seed.facebook
-        civis_cache_seed.facebook = mock_client
 
         self.command = civis_cache_seed.Command()
         self.command.client = models.Client.objects.get()
@@ -81,10 +78,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             }
         }
 
-    def tearDown(self):
-        civis_cache_seed.facebook = self.orig_facebook
-        super(TestCivisCacheSeed, self).tearDown()
-
+    @patch_facebook
     def test_handle_method(self):
         ''' Test the ensures the handle method behaves appropriately '''
         methods_to_mock = [
@@ -101,6 +95,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
             assert getattr(self.command, method).called
             setattr(self.command, method, pre_mocks[count])
 
+    @patch_facebook
     def test_retrieve_users(self):
         ''' Test the user retrieval method of the command '''
         users = self.command._retrieve_users()
@@ -109,6 +104,7 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         with self.assertRaises(StopIteration):
             users.next()
 
+    @patch_facebook
     @patch('civis_matcher.matcher.requests.post')
     @patch('civis_matcher.matcher.S3CivisMatcher._get_bucket')
     def test_perform_matching(self, get_bucket_mock, requests_mock):

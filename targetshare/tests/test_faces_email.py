@@ -7,11 +7,11 @@ from mock import Mock, patch
 from django.utils import timezone
 from django.utils.datastructures import SortedDict
 
-from targetshare.integration.facebook import mock_client
+from targetshare.integration import facebook
 from targetshare.models import dynamo, relational
 from targetshare.management.commands import faces_email
 
-from . import EdgeFlipTestCase
+from . import EdgeFlipTestCase, patch_facebook
 
 
 class TestFacesEmail(EdgeFlipTestCase):
@@ -136,14 +136,15 @@ class TestFacesEmail(EdgeFlipTestCase):
             {self.notification_user.uuid: [1, 2, 3]}
         )
 
+    @patch_facebook
     @patch('targetshare.management.commands.faces_email.csv')
     def test_build_csv(self, csv_mock):
         ''' Tests the build_csv method '''
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
-        user = mock_client.get_user(1, 1)
+        user = facebook.client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.get_friend_edges(user, 1)
+            self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
         self.command.url = None
         self.command._build_csv()
@@ -161,14 +162,15 @@ class TestFacesEmail(EdgeFlipTestCase):
         assert relational.NotificationEvent.objects.filter(
             event_type='generated').exists()
 
+    @patch_facebook
     @patch('targetshare.management.commands.faces_email.csv')
     def test_build_csv_custom_url(self, csv_mock):
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         self.command.url = 'http://www.google.com'
-        user = mock_client.get_user(1, 1)
+        user = facebook.client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.get_friend_edges(user, 1)
+            self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
         self.command._build_csv()
         assert writer_mock.writerow.called

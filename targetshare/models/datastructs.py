@@ -77,8 +77,9 @@ class Edge(EdgeBase):
                 for fbid, edge in secondary_edges_in.items()
             )
 
-        return tuple(cls(primary, *datum[1:]) for datum in data
-                     if cls._friend_edge_ok(*datum))
+        return tuple(cls(primary, secondary, incoming, outgoing)
+                     for fbid, secondary, incoming, outgoing in data
+                     if cls._friend_edge_ok(fbid, secondary, incoming, outgoing))
 
     @staticmethod
     def _friend_edge_ok(fbid, secondary, incoming, outgoing):

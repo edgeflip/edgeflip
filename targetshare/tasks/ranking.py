@@ -308,8 +308,8 @@ def proximity_rank_four(mockMode, fbid, token):
             edges_unranked = fb_client.get_friend_edges(
                 user,
                 token['token'],
-                requireIncoming=True, # FIXME
-                requireOutgoing=False,
+                require_incoming=True,
+                require_outgoing=False,
             )
     except IOError as exc:
         proximity_rank_four.retry(exc=exc)

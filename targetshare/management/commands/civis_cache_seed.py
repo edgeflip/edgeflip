@@ -81,7 +81,7 @@ class Command(BaseCommand):
                     'birth_year': str(prim_user.birthday.year),
                     'birth_day': '%02d' % prim_user.birthday.day,
                 })
-            people_dict['people'][str(prim_user.id)] = prim_dict
+            people_dict['people'][str(prim_user.fbid)] = prim_dict
             for edge in primary:
                 user = edge.secondary
                 user_dict = {}
@@ -98,7 +98,7 @@ class Command(BaseCommand):
                 user_dict['city'] = user.city
                 user_dict['first_name'] = user.fname
                 user_dict['last_name'] = user.lname
-                people_dict['people'][str(user.id)] = user_dict
+                people_dict['people'][str(user.fbid)] = user_dict
 
             try:
                 cm = matcher.S3CivisMatcher(

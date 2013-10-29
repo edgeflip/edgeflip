@@ -1,5 +1,8 @@
+import json
 import os.path
+import random
 import urllib
+import urllib2
 
 from mock import Mock, patch
 
@@ -11,6 +14,7 @@ from django.utils import timezone
 from pymlconf import ConfigDict
 
 from targetshare import models
+from targetshare.integration.facebook import mock_client
 from targetshare.models.dynamo import utils
 
 
@@ -64,7 +68,6 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             'sessionid': 'fake-session',
             'campaignid': 1,
             'contentid': 1,
-            'mockmode': True,
         }
         self.test_user = models.User(
             fbid=1,
@@ -142,3 +145,90 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             px4_result_mock
         ]
         celery_mock.current_app.AsyncResult = async_mock
+
+
+def xrandrange(min_=0, max_=None, start=0, step=1):
+    if max_ is None:
+        raise TypeError
+    return xrange(start, random.randint(min_, max_), step)
+
+
+def crawl_mock():
+    fake_fbids = tuple(set(100000000000 + random.randint(1, 10000000)
+                       for _ in xrandrange(1, 1000)))
+    friend_count = len(fake_fbids)
+    synchronous_results = iter([
+        # get_user:
+        {'data': [mock_client.fakeUserInfo(1)]},
+        # get_friend_edges:
+        {'data': [{'friend_count': friend_count}]},
+    ])
+
+    def urlopen_mock(url):
+        # First two calls are synchronous, should just return these:
+        try:
+            return next(synchronous_results)
+        except StopIteration:
+            pass
+
+        # Threaded results:
+        if isinstance(url, urllib2.Request):
+            # ThreadStreamReader
+            data = [
+                {'name': 'tags', 'fql_result_set': [{'tagged_ids': list(xrandrange(0, 25, 1))}
+                                                    for _ in xrandrange(0, 25)]},
+                {'name': 'stream', 'fql_result_set': []},
+            ] + [
+                {'name': column, 'fql_result_set': [dict.fromkeys(['user_id', 'fromid', 'actor_id'], value)
+                                                for value in xrandrange(0, 25, 1)]}
+                for column in (
+                    'postLikes',
+                    'postComms',
+                    'statLikes',
+                    'statComms',
+                    'wallPosts',
+                    'wallComms',
+                )
+            ]
+            return {'data': data}
+
+        elif 'from+user' in url.lower():
+            # Friend info
+            return {'data': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+                             for fbid in fake_fbids]}
+
+        elif 'from+photo' in url.lower():
+            # Photo info
+            return {'data': [
+                {'name': 'primPhotoTags',
+                 'fql_result_set': [{'subject': str(random.choice(fake_fbids))} for _ in xrandrange(0, 500)]},
+                {'name': 'otherPhotoTags',
+                 'fql_result_set': [{'subject': str(random.choice(fake_fbids))} for _ in xrandrange(0, 25000)]},
+                {'name': 'friendInfo',
+                 'fql_result_set': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+                                    for fbid in fake_fbids]},
+            ]}
+
+    # mock to be patched on urllib2.urlopen:
+    return Mock(side_effect=lambda url, timeout=None:
+        Mock(**{'read.return_value': json.dumps(urlopen_mock(url))})
+    )
+
+
+def patch_facebook(func=None):
+    patches = (
+        patch('targetshare.integration.facebook.client.urllib2.urlopen', crawl_mock()),
+        patch('targetshare.integration.facebook.client.extend_token', Mock(
+            return_value=models.dynamo.Token(
+                token='test-token',
+                fbid=1111111,
+                appid=471727162864364,
+                expires=timezone.now(),
+            )
+        )),
+    )
+    if func:
+        for facebook_patch in patches:
+            func = facebook_patch(func)
+        return func
+    return patches

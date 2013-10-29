@@ -201,11 +201,6 @@ def faces(request):
         edges_filtered = edges_filtered.reranked(px4_edges)
 
     # Apply campaign
-    max_faces = 50
-    friend_dicts = [e.toDict() for e in edges_filtered.edges]
-    face_friends = friend_dicts[:max_faces]
-    all_friends = [e.toDict() for e in edges_ranked]
-
     if fbobject_source_url:
         fb_object = facebook.third_party.source_campaign_fbobject(campaign, fbobject_source_url)
         db.delayed_save.delay(
@@ -260,40 +255,35 @@ def faces(request):
         fb_params['fb_object_url']
     )
 
-    num_gen = max_faces
+    num_gen = max_faces = 50
     events = []
     for tier in edges_filtered:
-        edges_list = tier['edges']
+        edges_list = tier['edges'][:num_gen]
         tier_campaignId = tier['campaignId']
         tier_contentId = tier['contentId']
-
-        if len(edges_list) > num_gen:
-            edges_list = edges_list[:num_gen]
-
-        if edges_list:
-            for friend in edges_list:
-                events.append(
-                    models.relational.Event(
-                        visit=request.visit,
-                        campaign_id=tier_campaignId,
-                        client_content_id=tier_contentId,
-                        friend_fbid=friend.secondary.id,
-                        event_type='generated',
-                        content=content_str,
-                    )
+        for edge in edges_list:
+            events.append(
+                models.relational.Event(
+                    visit=request.visit,
+                    campaign_id=tier_campaignId,
+                    client_content_id=tier_contentId,
+                    friend_fbid=edge.secondary.fbid,
+                    event_type='generated',
+                    content=content_str,
                 )
-            num_gen = num_gen - len(edges_list)
-
+            )
+        num_gen -= len(edges_list)
         if num_gen <= 0:
             break
 
+    face_friends = edges_filtered.secondaries[:max_faces]
     for friend in face_friends[:num_face]:
         events.append(
             models.relational.Event(
                 visit=request.visit,
                 campaign_id=campaign.pk,
                 client_content_id=content.pk,
-                friend_fbid=friend['id'],
+                friend_fbid=friend.fbid,
                 content=content_str,
                 event_type='shown',
             )
@@ -313,7 +303,7 @@ def faces(request):
                     'msg2_post': fb_attrs.msg2_post,
                 },
                 'fb_params': fb_params,
-                'all_friends': all_friends,
+                'all_friends': tuple(edge.secondary for edge in edges_ranked),
                 'face_friends': face_friends,
                 'show_faces': face_friends[:num_face],
                 'num_face': num_face

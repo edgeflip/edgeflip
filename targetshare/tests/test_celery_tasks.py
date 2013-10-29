@@ -1,15 +1,12 @@
 import celery
-import json
 
 from django.utils import timezone
 from freezegun import freeze_time
-from mock import patch
 
 from targetshare import models
 from targetshare.tasks import db, ranking
-from targetshare.integration.facebook import mock_client
 
-from . import EdgeFlipTestCase
+from . import EdgeFlipTestCase, patch_facebook
 
 
 @freeze_time('2013-01-01')
@@ -22,16 +19,18 @@ class TestRankingTasks(EdgeFlipTestCase):
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
 
+    @patch_facebook
     def test_proximity_rank_three(self):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
         method is simply supposed to create a celery Task chain, and return the
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = ranking.proximity_rank_three(False, 1, self.token) # TODO
+        task_id = ranking.proximity_rank_three(False, 1, self.token)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
 
+    @patch_facebook
     def test_px3_crawl(self):
         ''' Run the px3_crawl celery task without throwing it
         through the celery/rabbitmq stack, because we're testing our code,
@@ -40,22 +39,11 @@ class TestRankingTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = ranking.px3_crawl(False, 1, self.token) # TODO
-        assert all((isinstance(x, models.datastructs.Edge) for x in ranked_edges))
+        ranked_edges = ranking.px3_crawl(False, 1, self.token)
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
 
-    @patch('targetshare.integration.facebook.client.urllib2.urlopen', **{ # FIXME
-        'return_value.read.side_effect': [json.dumps(data) for data in (
-            {'data': [mock_client.fakeUserInfo(1)]},
-            {'data': [
-                {'name' : 'primPhotoTags',
-                 'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 500))]},
-                {'name' : 'otherPhotoTags',
-                 'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25000))]},
-                {'name' : 'friendInfo',
-                 'fql_result_set' : [fakeUserInfo(fbid, friend=True, numFriends=numFakeFriends) for fbid in fakeFriendIds]}]},
-        )],
-    })
-    def test_perform_filtering(self, _urlopen_mock):
+    @patch_facebook
+    def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
@@ -63,7 +51,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
-        ranked_edges = ranking.px3_crawl(False, 1, self.token) # TODO
+        ranked_edges = ranking.px3_crawl(False, 1, self.token)
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
             campaignId=1,
@@ -72,16 +60,17 @@ class TestRankingTasks(EdgeFlipTestCase):
             visit_id=visit.pk,
             numFace=10,
         )
-        assert all((isinstance(x, models.datastructs.Edge) for x in edges_ranked))
+        assert all(isinstance(x, models.datastructs.Edge) for x in edges_ranked)
         assert isinstance(edges_filtered, models.datastructs.TieredEdges)
-        assert all((isinstance(x, models.datastructs.Edge) for x in edges_filtered.edges))
+        assert all(isinstance(x, models.datastructs.Edge) for x in edges_filtered.edges)
         assert isinstance(filter_id, long)
-        assert (cs_slug is None) or (isinstance(cs_slug, basestring))
+        assert cs_slug is None or isinstance(cs_slug, basestring)
 
+    @patch_facebook
     def test_proximity_rank_four(self):
         self.assertFalse(tuple(models.dynamo.IncomingEdge.items.scan(limit=1)))
 
-        ranked_edges = ranking.proximity_rank_four(False, 1, self.token) # TODO
+        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
