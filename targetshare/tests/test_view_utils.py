@@ -25,18 +25,21 @@ class TestVisit(VisitTestCase):
     def setUpClass(cls):
         cls.session_engine = import_module(settings.SESSION_ENGINE)
 
-    def get_request(self, path='/'):
+    def get_request(self, path='/', data=(), **extra):
         cookie = self.factory.cookies.get(settings.SESSION_COOKIE_NAME, None)
         session_key = cookie and cookie.value
-        request = self.factory.get(path)
+        request = self.factory.get(path, data, **extra)
         request.session = self.session_engine.SessionStore(session_key)
         return request
 
     def test_new_visit(self):
-        request = self.get_request()
+        request = self.get_request(HTTP_USER_AGENT='testbot',
+                                   HTTP_REFERER='http://client.com/foo')
         set_visit(request, 1)
         self.assertTrue(request.visit.session_id)
         self.assertEqual(request.visit.app_id, 1)
+        self.assertEqual(request.visit.user_agent, 'testbot')
+        self.assertEqual(request.visit.referer, 'http://client.com/foo')
         start_event = request.visit.events.get()
         self.assertEqual(start_event.event_type, 'session_start')
 
@@ -69,20 +72,27 @@ class TestVisit(VisitTestCase):
         self.assertEqual(models.relational.Visit.objects.count(), 2)
 
     def test_update_visitor_fbid(self):
-        request = self.get_request()
+        request = self.get_request(HTTP_USER_AGENT='testbot',
+                                   HTTP_REFERER='http://client.com/foo')
         set_visit(request, 1)
         session_id = request.visit.session_id
         visitor0 = request.visit.visitor
         self.assertTrue(session_id)
         self.assertIsNone(visitor0.fbid)
+        self.assertEqual(request.visit.user_agent, 'testbot')
+        self.assertEqual(request.visit.referer, 'http://client.com/foo')
 
         self.factory.cookies[settings.SESSION_COOKIE_NAME] = session_id
         self.factory.cookies[settings.VISITOR_COOKIE_NAME] = visitor0.uuid
-        request = self.get_request()
+        request = self.get_request(HTTP_USER_AGENT='MESSBOT',
+                                   HTTP_REFERER='http://client.com/BAR')
         set_visit(request, 1, fbid=9)
         self.assertEqual(request.visit.session_id, session_id)
         self.assertEqual(request.visit.visitor, visitor0)
         self.assertEqual(request.visit.visitor.fbid, 9)
+        # user_agent and referrer shouldn't update:
+        self.assertEqual(request.visit.user_agent, 'testbot')
+        self.assertEqual(request.visit.referer, 'http://client.com/foo')
 
     def test_swap_visitor(self):
         request = self.get_request()

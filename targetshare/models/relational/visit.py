@@ -10,6 +10,8 @@ class Visit(models.Model):
     session_id = models.CharField(db_index=True, max_length=40)
     app_id = models.BigIntegerField(db_column='appid')
     ip = models.GenericIPAddressField()
+    user_agent = models.CharField(blank=True, default='', max_length=1028)
+    referer = models.CharField(blank=True, default='', max_length=1028)
     source = models.CharField(blank=True, default='', db_index=True, max_length=256)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)

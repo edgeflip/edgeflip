@@ -67,6 +67,10 @@
         // Initial call on page load
         recordEvent('button_load', '');
 
+        function doOAuthLogin() {
+            window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri={{ goto }}";
+        }
+
         // Called upon clicking the "share" button
         function doFBLogin() {
 
@@ -112,7 +116,7 @@
                     // alert("Rocco, sit on the other side. You block the rearview mirror. "+JSON.stringify(response));
                     alert("Please login to facebook and authorize the app to share with your friends.");
                 }
-            }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
+            }, {scope:'{{ settings.FB_PERMS }}'});
 
         }
 
@@ -120,7 +124,7 @@
 {% endblock %}
 {% block body %}
     {% block button %}
-    <div id="share_button" class="button_big button_active" onclick="doFBLogin();">{% block button_text %}Support us on Facebook{% endblock button_text %}</div>
+        <div id="share_button" class="button_big button_active" onclick="doOAuthLogin();">{% block button_text %}Support us on Facebook{% endblock button_text %}</div>
     {% endblock button %}
     <div id="fb-root"></div>
     <script type="text/javascript">
