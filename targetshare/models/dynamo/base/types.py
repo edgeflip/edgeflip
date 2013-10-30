@@ -88,10 +88,16 @@ class JsonType(DataType):
         return value
 
     def validate(self, value):
-        try:
-            json.dumps(value)
-        except TypeError as exc:
-            raise DataValidationError(str(exc))
+        if isinstance(value, basestring):
+            try:
+                json.loads(value)
+            except ValueError as exc:
+                raise DataValidationError(str(exc))
+        else:
+            try:
+                json.dumps(value)
+            except TypeError as exc:
+                raise DataValidationError(str(exc))
 
 JSON = JsonType()
 
