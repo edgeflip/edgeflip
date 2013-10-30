@@ -1,4 +1,3 @@
-from targetadmin.utils import internal
 from targetadmin import forms
 from targetshare.models import relational
 from targetadmin.views.base import (
@@ -15,7 +14,7 @@ class FBObjectListView(ClientRelationListView):
     create_url_name = 'fb-obj-new'
 
 
-fb_object_list = internal(FBObjectListView.as_view())
+fb_object_list = FBObjectListView.as_view()
 
 
 class FBObjectDetailView(ClientRelationDetailView):
@@ -24,7 +23,7 @@ class FBObjectDetailView(ClientRelationDetailView):
     edit_url_name = 'fb-obj-edit'
 
 
-fb_object_detail = internal(FBObjectDetailView.as_view())
+fb_object_detail = FBObjectDetailView.as_view()
 
 
 class FBObjectFormView(ClientRelationFormView):
@@ -52,4 +51,4 @@ class FBObjectFormView(ClientRelationFormView):
         return form_class(**form_kwargs)
 
 
-fb_object_edit = internal(FBObjectFormView.as_view())
+fb_object_edit = FBObjectFormView.as_view()

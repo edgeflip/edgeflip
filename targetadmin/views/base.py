@@ -4,10 +4,13 @@ from django.views.generic.edit import UpdateView
 from django.core.urlresolvers import reverse
 from django.core.exceptions import ImproperlyConfigured
 from django.http import Http404
+from django.utils.decorators import method_decorator
 
 from targetshare.models import relational
+from targetadmin import utils
 
 
+@utils.auth_client_required
 class CRUDView(UpdateView):
     """ Generic Class Based View which handles creating and updating Model
     objects. The Django built in views handle updating OR creating, while
@@ -60,6 +63,7 @@ class CRUDView(UpdateView):
                 'No URL to redirect to. Provide a success_url.')
 
 
+@utils.auth_client_required
 class ClientRelationListView(ListView):
     """ Simple extension of ListView to inject Client objects into the
     context and to filter the queryset down by objects that match the client
@@ -92,6 +96,7 @@ class ClientRelationListView(ListView):
         return super(ClientRelationListView, self).get(request, *args, **kwargs)
 
 
+@utils.auth_client_required
 class ClientRelationDetailView(DetailView):
     """ Simple extension of DetailView to basically assist in namespacing
     various objects by their relation to a specific Client
@@ -127,6 +132,7 @@ class ClientRelationFormView(CRUDView):
     object_string = None
     template_name = 'targetadmin/client_relation_edit.html'
 
+    @method_decorator(utils.auth_client_required)
     def dispatch(self, request, *args, **kwargs):
         self.client = get_object_or_404(
             relational.Client,

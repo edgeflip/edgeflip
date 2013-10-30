@@ -1,7 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.forms.models import modelformset_factory
 
-from targetadmin.utils import internal
+from targetadmin.utils import auth_client_required
 from targetadmin import forms
 from targetshare.models import relational
 from targetadmin.views.base import (
@@ -18,7 +18,7 @@ class ChoiceSetListView(ClientRelationListView):
     create_url_name = 'cs-new'
 
 
-cs_list = internal(ChoiceSetListView.as_view())
+cs_list = ChoiceSetListView.as_view()
 
 
 class ChoiceSetDetailView(ClientRelationDetailView):
@@ -28,7 +28,7 @@ class ChoiceSetDetailView(ClientRelationDetailView):
     template_name = 'targetadmin/cs_detail.html'
 
 
-cs_detail = internal(ChoiceSetDetailView.as_view())
+cs_detail = ChoiceSetDetailView.as_view()
 
 
 class ChoiceSetFormView(ClientRelationFormView):
@@ -39,9 +39,10 @@ class ChoiceSetFormView(ClientRelationFormView):
     object_string = 'Choice Set'
 
 
-cs_new = internal(ChoiceSetFormView.as_view())
+cs_new = ChoiceSetFormView.as_view()
 
 
+@auth_client_required
 def cs_edit(request, client_pk, pk):
     ''' Choice Set Editing View '''
     client = get_object_or_404(relational.Client, pk=client_pk)
