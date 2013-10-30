@@ -1,4 +1,3 @@
-from targetadmin.utils import internal
 from targetadmin import forms
 from targetadmin.views.base import (
     ClientRelationListView,
@@ -15,7 +14,7 @@ class ButtonListView(ClientRelationListView):
     create_url_name = 'button-new'
 
 
-button_list = internal(ButtonListView.as_view())
+button_list = ButtonListView.as_view()
 
 
 class ButtonDetailView(ClientRelationDetailView):
@@ -24,7 +23,7 @@ class ButtonDetailView(ClientRelationDetailView):
     edit_url_name = 'button-edit'
 
 
-button_detail = internal(ButtonDetailView.as_view())
+button_detail = ButtonDetailView.as_view()
 
 
 class ButtonFormView(ClientRelationFormView):
@@ -48,4 +47,4 @@ class ButtonFormView(ClientRelationFormView):
         return form_class(**form_kwargs)
 
 
-button_edit = internal(ButtonFormView.as_view())
+button_edit = ButtonFormView.as_view()

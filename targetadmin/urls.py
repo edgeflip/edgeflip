@@ -1,26 +1,12 @@
 from django.conf.urls import patterns, url
-from django.views.generic import ListView, DetailView
-
-from targetshare.models import relational
-from targetadmin import utils
 
 
 # Client URLS
 urlpatterns = patterns('targetadmin.views',
-    url(r'^$', utils.internal(
-        ListView.as_view(
-            model=relational.Client,
-            template_name='targetadmin/home.html'
-        )),
-        name='client-list'),
-    url(r'^client/(?P<pk>\d+)/$', utils.internal(
-        DetailView.as_view(
-            model=relational.Client,
-            template_name='targetadmin/client_home.html'
-        )),
-        name='client-detail'),
-    url(r'^client/new/$', 'client_views.client_view', name='client-new'),
-    url(r'^client/(?P<pk>\d+)/edit/$', 'client_views.client_view', name='client-edit'),
+    url(r'^$', 'client_views.client_list_view', name='client-list'),
+    url(r'^client/(?P<client_pk>\d+)/$', 'client_views.client_detail_view', name='client-detail'),
+    url(r'^client/new/$', 'client_views.client_form_view', name='client-new'),
+    url(r'^client/(?P<client_pk>\d+)/edit/$', 'client_views.client_form_view', name='client-edit'),
 )
 
 urlpatterns += patterns('targetadmin.views',
@@ -105,3 +91,4 @@ urlpatterns += patterns('targetadmin.views',
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )
+

@@ -261,37 +261,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
         })
         self.assertStatusCode(response, 400)
 
-    @patch('targetshare.views.faces.facebook.client.requests')
-    def test_frame_faces_with_oauth_code(self, requests_mock):
-        ''' Tests views.faces.frame_faces with a "code" parameter, which will
-        trigger the oauth cycle
-        '''
-        requests_mock.get.return_value = Mock(content='access_token=123')
-        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
-            'code': 'testcode'
-        })
-        self.assertStatusCode(response, 200)
-        assert requests_mock.get.called
-        self.assertEqual(
-            requests_mock.get.call_args[1]['params']['code'],
-            'testcode'
-        )
-
-    @patch('targetshare.views.faces.facebook.client.requests')
-    def test_frame_faces_with_bad_oauth_code(self, requests_mock):
-        ''' Tests views.faces.frame_faces with a "code" parameter, which will
-        trigger the oauth cycle
-        '''
-        requests_mock.get.return_value = Mock(content='')
-        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
-            'code': 'testcode'
-        })
-        self.assertStatusCode(response, 403)
-        self.assertEqual(
-            response.content,
-            'Invalid FB Authentication'
-        )
-
     def test_canvas(self):
         ''' Tests views.canvas '''
         response = self.client.get(reverse('canvas'))
@@ -340,7 +309,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
             event_type = 'shown'
             if x > 2:
                 event_type = 'generated'
-            print event_type
             models.NotificationEvent.objects.create(
                 campaign_id=1, client_content_id=1, friend_fbid=x,
                 event_type=event_type, notification_user=notification_user

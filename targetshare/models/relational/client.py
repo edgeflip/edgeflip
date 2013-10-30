@@ -29,6 +29,7 @@ class Client(models.Model):
         default='rs',
         max_length=15,
     )
+    auth_groups = models.ManyToManyField('auth.Group', blank=True)
     create_dt = models.DateTimeField(auto_now_add=True)
 
     def __unicode__(self):

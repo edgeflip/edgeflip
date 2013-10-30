@@ -73,18 +73,52 @@ FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FR
 FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
 FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + " AND actor_id != %s"
 FQL_WALL_COMMS = "SELECT actor_id FROM %s WHERE post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM %s) AND fromid = %s)"
-FQL_TAGS       = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != " + str(STREAMTYPE.PHOTO)
+FQL_TAGS = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != " + str(STREAMTYPE.PHOTO)
 #zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
 
-FQL_TAG_PHOTOS   = "SELECT object_id FROM photo_tag WHERE subject = %s"
-FQL_PRIM_PHOTOS  = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
-FQL_PRIM_TAGS    = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+FQL_TAG_PHOTOS = "SELECT object_id FROM photo_tag WHERE subject = %s"
+FQL_PRIM_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
+FQL_PRIM_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner != %s"
-FQL_OTHER_TAGS   = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
+FQL_OTHER_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
-FQL_USER_INFO   = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
+PX3_FIELDS = [
+    'uid', 'first_name', 'last_name', 'sex', 'birthday_date',
+    'current_location', 'mutual_friend_count'
+]
+PX3_EXTENDED_FIELDS = [
+    'activities',
+    'affiliations',
+    'books',
+    'devices',
+    'friend_request_count',
+    'has_timeline',
+    'interests',
+    'languages',
+    'likes_count',
+    'movies',
+    'music',
+    'political',
+    'profile_update_time',
+    'quotes',
+    'relationship_status',
+    'religion',
+    'sports',
+    'tv',
+    'wall_count',
+    # The fields below we may want to turn on again later
+    #'is_app_user',
+    #'locale',
+    #'notes_count',
+    #'online_presence',
+    #'status',
+    #'subscriber_count',
+    #'timezone',
+]
+FULL_PX3_FIELDS = ','.join(PX3_FIELDS + PX3_EXTENDED_FIELDS)
+FQL_USER_INFO = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
+FQL_FRIEND_INFO = """SELECT %s FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s)"""
 
 
 def dateFromFb(dateStr):
@@ -164,15 +198,12 @@ def getFriendsFb(userId, token):
     primPhotosRef = "#" + primPhotosLabel
     otherPhotosRef = "#" + otherPhotosLabel
 
-    queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (userId))))
+    queryJsons.append('"friendInfo":"%s"' % (urllib.quote_plus(FQL_FRIEND_INFO % (FULL_PX3_FIELDS, userId))))
     queryJsons.append('"%s":"%s"' % (tagPhotosLabel, urllib.quote_plus(FQL_TAG_PHOTOS % (userId))))
     queryJsons.append('"%s":"%s"' % (primPhotosLabel, urllib.quote_plus(FQL_PRIM_PHOTOS % (tagPhotosRef, userId))))
     queryJsons.append('"primPhotoTags":"%s"' % (urllib.quote_plus(FQL_PRIM_TAGS % (primPhotosRef, userId))))
     queryJsons.append('"%s":"%s"' % (otherPhotosLabel, urllib.quote_plus(FQL_OTHER_PHOTOS % (tagPhotosRef, userId))))
     queryJsons.append('"otherPhotoTags":"%s"' % (urllib.quote_plus(FQL_OTHER_TAGS % (otherPhotosRef, userId))))
-
-    queryJson = '{' + ','.join(queryJsons) + '}'
-    url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=%s' % token
 
     # zzz Should this also wait for a couple of seconds to mock out
     #     tying up the thread while we wait for a resonse from the
@@ -181,30 +212,32 @@ def getFriendsFb(userId, token):
     # use the Mock lib. Then we can drop this check, and
     # stick with using this library for its other real purposes.
     if settings.DEBUG:
-        time.sleep(random.random()*4+0.5)
+        time.sleep(random.random() * 4 + 0.5)
 
     # generate fake id's for between 1 and 1,000 fake friends
     # note - adding 100000000000 because this appears to fall into a gap in read fbid's
     # (just an extra bit of security against accidently overwriting real data...)
-    fakeFriendIds = set([100000000000+random.randint(1,10000000) for i in range(random.randint(1,1000))])
+    fakeFriendIds = set([
+        100000000000 + random.randint(1, 10000000) for i in range(random.randint(1, 1000))
+    ])
     fakeFriendIds = list(fakeFriendIds)
     numFakeFriends = len(fakeFriendIds)
 
-    responseJson = { 'data' :
-      [
-        {
-            'name' : 'primPhotoTags',
-            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 500))]
-        },
-        {
-            'name' : 'otherPhotoTags',
-            'fql_result_set' : [{'subject' : str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25000))]
-        },
-        {
-            'name' : 'friendInfo',
-            'fql_result_set' : [fakeUserInfo(fbid, friend=True, numFriends=numFakeFriends) for fbid in fakeFriendIds]
-        }
-      ]
+    responseJson = {'data':
+        [
+            {
+                'name': 'primPhotoTags',
+                'fql_result_set': [{'subject': str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 500))]
+            },
+            {
+                'name': 'otherPhotoTags',
+                'fql_result_set': [{'subject': str(random.choice(fakeFriendIds))} for i in range(random.randint(0, 25000))]
+            },
+            {
+                'name': 'friendInfo',
+                'fql_result_set': [fakeUserInfo(fbid, friend=True, numFriends=numFakeFriends) for fbid in fakeFriendIds]
+            }
+        ]
     }
 
     lab_recs = {}
@@ -236,7 +269,13 @@ def getFriendsFb(userId, token):
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
-        f = datastructs.FriendInfo(userId, friendId, rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']), city, state, primPhotoTags, otherPhotoTags, rec['mutual_friend_count'])
+        rec.update({
+            'city': city, 'state': state, 'email': email,
+            'birthday': dateFromFb(rec['birthday_date'])
+        })
+        f = datastructs.FriendInfo(
+            rec, friendId, primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
+        )
         friends.append(f)
     logger.debug("returning %d mocked friends for %d (%s)", len(friends), userId, tim.elapsedPr())
     return friends
@@ -246,18 +285,19 @@ def getUserFb(userId, token):
     """gets more info about primary user from FB
 
     """
-    fql = FQL_USER_INFO % (userId)
-    url = 'https://graph.facebook.com/fql?q=' + urllib.quote_plus(fql) + '&format=json&access_token=%s' % token
-
     # mock response from FB API
-    responseJson = {'data' : [fakeUserInfo(userId)] }
+    responseJson = {'data': [fakeUserInfo(userId)]}
     rec = responseJson['data'][0]
     city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
     state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
     email = rec.get('email')
-    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']),
-                                city, state)
+    rec.update({
+        'city': city, 'state': state, 'email': email,
+        'birthday': dateFromFb(rec['birthday_date'])
+    })
+    user = datastructs.UserInfo(rec)
     return user
+
 
 def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, skipFriends=None):
     """retrieves user's FB stream and calcs edges b/w user and her friends.
@@ -279,8 +319,6 @@ def getFriendEdgesFb(userId, tok, requireIncoming=False, requireOutgoing=False, 
 
     # Facebook limits us to 600 calls in 600 seconds, so we need to throttle ourselves
     # relative to the number of calls we're making (the number of chunks) to 1 call / sec.
-    friendSecs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
-
     edges = []
     user = getUserFb(userId, tok)
     for i, friend in enumerate(friendQueue):
