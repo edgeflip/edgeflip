@@ -29,19 +29,6 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
-    code = request.GET.get('code')
-    if code:
-        # Must be using oauth!
-        # Formerly would return a 403 if we couldn't verify the code. Now
-        # going to let them through, and let JS try to auth them if they're
-        # not already authed. This protects us from situations where legit
-        # users refresh the page with the code in their query and would get an
-        # unnecessary 403
-        redirect_url = campaign.campaignproperties.get().faces_url(content_id)
-        facebook.client.verify_oauth_code(
-            client.fb_app_id, code, redirect_url
-        )
-
     test_mode = utils.test_mode(request)
     db.delayed_save.delay(
         models.relational.Event(
