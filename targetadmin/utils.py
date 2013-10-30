@@ -26,6 +26,7 @@ def internal(view):
 
 def auth_client_required(view):
     @functools.wraps(view)
+    @decorators.login_required(login_url='login')
     def verify_client_auth_relation(request, *args, **kwargs):
         pk = kwargs.get('client_pk')
         if (request.user.is_superuser or
@@ -40,10 +41,7 @@ def auth_client_required(view):
             )
 
     if isinstance(view, type):
-        view.dispatch = method_decorator(verify_client_auth_relation)(view.dispatch)
+        view.dispatch = method_decorator(auth_client_required)(view.dispatch)
         return view
     else:
-        return decorators.login_required(
-            verify_client_auth_relation,
-            login_url='login'
-        )
+        return verify_client_auth_relation

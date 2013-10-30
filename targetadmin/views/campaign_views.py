@@ -1,6 +1,6 @@
 from django.shortcuts import get_object_or_404, redirect, render
 
-from targetadmin.utils import auth_client_required
+from targetadmin import utils
 from targetadmin import forms
 from targetshare.models import relational
 from targetadmin.views.base import (
@@ -29,7 +29,7 @@ class CampaignDetailView(ClientRelationDetailView):
 campaign_detail = CampaignDetailView.as_view()
 
 
-@auth_client_required
+@utils.auth_client_required
 def campaign_create(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     form = forms.CampaignForm(

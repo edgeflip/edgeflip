@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
 
 from targetadmin import forms, utils
@@ -32,6 +33,6 @@ class ClientFormView(CRUDView):
     success_url = 'client-detail'
     queryset = relational.Client.objects.all()
 
-client_list_view = utils.auth_client_required(ClientListView.as_view())
+client_list_view = login_required(ClientListView.as_view(), login_url='login')
 client_detail_view = utils.auth_client_required(ClientDetailView.as_view())
 client_form_view = ClientFormView.as_view()

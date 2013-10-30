@@ -91,3 +91,4 @@ urlpatterns += patterns('targetadmin.views',
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )
+
