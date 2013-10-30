@@ -1,4 +1,5 @@
 import datetime
+import json
 import numbers
 
 from boto.dynamodb import types as basetypes
@@ -56,6 +57,8 @@ class DateType(DataType):
         raise DataValidationError(
             "Value is not an appropriate date specification: {!r}".format(value))
 
+DATE = DateType()
+
 
 class DateTimeType(DataType):
 
@@ -74,9 +77,23 @@ class DateTimeType(DataType):
         raise DataValidationError(
             "Value is not an appropriate datetime specification: {!r}".format(value))
 
-
-DATE = DateType()
 DATETIME = DateTimeType()
+
+
+class JsonType(DataType):
+
+    def load(self, value):
+        if isinstance(value, basestring):
+            return json.loads(value)
+        return value
+
+    def validate(self, value):
+        try:
+            json.dumps(value)
+        except TypeError as exc:
+            raise DataValidationError(str(exc))
+
+JSON = JsonType()
 
 
 class Dynamizer(basetypes.Dynamizer):
@@ -84,9 +101,16 @@ class Dynamizer(basetypes.Dynamizer):
     def _get_dynamodb_type(self, attr):
         if isinstance(attr, datetime.date):
             return NUMBER
+        elif isinstance(attr, (list, dict)):
+            return STRING
         return super(Dynamizer, self)._get_dynamodb_type(attr)
 
     def _encode_n(self, attr):
         if isinstance(attr, datetime.date):
             attr = utils.to_epoch(attr)
         return super(Dynamizer, self)._encode_n(attr)
+
+    def _encode_s(self, attr):
+        if isinstance(attr, (list, dict)):
+            attr = json.dumps(attr)
+        return super(Dynamizer, self)._encode_s(attr)
