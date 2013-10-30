@@ -1,3 +1,4 @@
+import json
 import logging
 from decimal import Decimal
 from optparse import make_option
@@ -5,7 +6,6 @@ from optparse import make_option
 import us
 import requests
 
-from django.conf import settings
 from django.core.management.base import BaseCommand
 
 from civis_matcher import matcher
@@ -22,12 +22,6 @@ class Command(BaseCommand):
     help = 'Command for seeding cache for Faces email'
     option_list = BaseCommand.option_list + (
         make_option(
-            '-b', '--bucket',
-            dest='bucket',
-            help='Name of S3 bucket to use. Default "civis_cache"',
-            default='civis_cache'
-        ),
-        make_option(
             '-d', '--days',
             dest='days',
             help='Number of days old a cache object is allowed to be, default 30',
@@ -36,12 +30,11 @@ class Command(BaseCommand):
         ),
     )
 
-    def handle(self, client_id, bucket, days, **options):
+    def handle(self, client_id, days, **options):
         # At some point we may wish to add a filtering element to this, which
         # could take some load off of Civis servers. For the time being,
         # we're holding off.
         self.client = relational.Client.objects.get(pk=client_id)
-        self.bucket = bucket
         self.days = days
         logger.info('Performing matches')
         self._perform_matching(self._retrieve_users())
@@ -56,12 +49,15 @@ class Command(BaseCommand):
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         logger.info('Retrieving edges for %s users', len(user_fbids))
         for ut in user_tokens:
-            yield facebook.getFriendEdgesFb(
-                ut['fbid'],
-                ut['token'],
-                requireIncoming=False,
-                requireOutgoing=False
-            )
+            try:
+                yield facebook.getFriendEdgesFb(
+                    ut['fbid'],
+                    ut['token'],
+                    requireIncoming=False,
+                    requireOutgoing=False
+                )
+            except IOError:
+                continue
 
     def _perform_matching(self, edge_collection):
         for primary in edge_collection:
@@ -93,24 +89,34 @@ class Command(BaseCommand):
                     continue
 
                 state = us.states.lookup(user.state)
-                user_dict['state'] = state.abbr if state else None
+                if state:
+                    user_dict['state'] = state.abbr
                 user_dict['city'] = user.city
                 user_dict['first_name'] = user.fname
                 user_dict['last_name'] = user.lname
                 people_dict['people'][str(user.id)] = user_dict
 
+            results = {}
             try:
-                cm = matcher.S3CivisMatcher(
-                    settings.AWS.AWS_ACCESS_KEY_ID,
-                    settings.AWS.AWS_SECRET_ACCESS_KEY,
-                    bucket=self.bucket, cache_expiry_days=self.days
-                )
-                results = cm.bulk_match(people_dict, raw=True)
+                cm = matcher.CivisMatcher()
+                results = cm.bulk_match(people_dict, True)
             except requests.RequestException:
                 logger.exception('Failed to contact Civis')
-                return []
             except matcher.MatchException:
                 logger.exception('Matcher Error!')
-                return []
+            except Exception:
+                logger.exception('I have no idea what happened')
 
-            return results
+            with dynamo.CivisResult.items.batch_write() as batch:
+                for key, value in results.iteritems():
+                    try:
+                        result = dynamo.CivisResult.items.get_item(
+                            fbid=long(key)
+                        )
+                        result['result'] = json.dumps(value)
+                        result.save()
+                    except dynamo.CivisResult.DoesNotExist:
+                        batch.put_item(dynamo.CivisResult(
+                            fbid=long(key),
+                            result=json.dumps(value)
+                        ))

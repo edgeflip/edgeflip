@@ -1,12 +1,10 @@
 import csv
 import logging
-import time
 import hashlib
 from decimal import Decimal
 from optparse import make_option
 from datetime import datetime
 
-from django.db import transaction
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
@@ -46,10 +44,17 @@ class Command(BaseCommand):
             help='Overrides default URL builder with given url',
             dest='url'
         ),
+        make_option(
+            '-c', '--cache',
+            help='Use the Civis cache or not [True]',
+            action='store_true',
+            dest='cache',
+            default=True
+        ),
     )
 
     def handle(self, campaign_id, content_id, mock, num_face,
-               output, url, **options):
+               output, url, cache, **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
@@ -58,10 +63,19 @@ class Command(BaseCommand):
         # Settings
         self.mock = mock
         self.num_face = num_face
+        self.cache = cache
+
         if output:
             self.filename = output
         else:
-            self.filename = 'faces_email_%s.csv' % datetime.now().strftime('%m-%d-%y_%H:%M:%S')
+            self.filename = 'faces_email_%s.csv' % datetime.now().strftime(
+                '%m-%d-%y_%H:%M:%S')
+        self.file_handle = open(self.filename, 'wb')
+        self.csv_writer = csv.writer(self.file_handle)
+        self.csv_writer.writerow([
+            'primary_fbid', 'email', 'friend_fbids', 'names', 'html_table'
+        ])
+
         self.url = url
         self.task_list = {}
         self.edge_collection = {}
@@ -69,11 +83,16 @@ class Command(BaseCommand):
             campaign=self.campaign,
             client_content=self.content
         )
+        self.failed_fbids = []
 
         # Process information
-        self._crawl_and_filter()
-        self._crawl_status_handler()
-        self._build_csv()
+        logger.info('Starting crawl')
+        self._build_csv(self._crawl_and_filter())
+        self.file_handle.close()
+        logger.info(
+            'Faces Email Complete, but failed to process the following FBIDS: {}'.format(
+                self.failed_fbids)
+        )
 
     def _crawl_and_filter(self):
         ''' Grabs all of the tokens for a given UserClient, and throws them
@@ -85,7 +104,7 @@ class Command(BaseCommand):
             'appid': self.client.fb_app_id,
         } for x in self.client.userclients.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-        for ut in user_tokens:
+        for count, ut in enumerate(user_tokens):
             hash_str = hashlib.md5('{}{}{}{}'.format(
                 ut['fbid'], self.campaign.pk,
                 self.content.pk, self.notification.pk
@@ -93,51 +112,37 @@ class Command(BaseCommand):
             notification_user, created = relational.NotificationUser.objects.get_or_create(
                 uuid=hash_str, fbid=ut['fbid'], notification=self.notification
             )
-            self.task_list[notification_user.uuid] = ranking.proximity_rank_three(
-                mock_mode=self.mock,
-                fbid=ut['fbid'],
-                token=ut,
-                visit_id=notification_user.pk,
-                campaignId=self.campaign.pk,
-                contentId=self.content.pk,
-                numFace=self.num_face,
-                visit_type='targetshare.NotificationUser',
-                s3_match=True
-            )
-        logger.info('Crawling %s users', str(len(self.task_list)))
+            try:
+                edges = ranking.px3_crawl(
+                    mockMode=self.mock,
+                    fbid=ut['fbid'],
+                    token=ut
+                )
+            except IOError:
+                logger.exception('Failed to crawl {}'.format(ut['fbid']))
+                self.failed_fbids.append(ut['fbid'])
+                continue
 
-    def _crawl_status_handler(self):
-        ''' Simple method for watching the tasks we're waiting on to complete.
-        Just iterates over the list of tasks and reports their status
-        '''
-        error_count = 0
-        while self.task_list:
-            logger.info('Checking status of %s tasks', str(len(self.task_list)))
-            for uuid, task in self.task_list.items():
-                transaction.commit_unless_managed()
-                if task.ready():
-                    if task.successful():
-                        self.edge_collection[uuid] = task.result[1].edges
-                    else:
-                        error_count += 1
-                        logger.error('Task %s Failed: %s',
-                            task.id, task.traceback)
-                    del self.task_list[uuid]
-                    logger.debug('Finished task: %s' % task.id)
-                else:
-                    if task.parent and task.parent.ready() and not task.parent.successful():
-                        # Tripped an error somewhere in the chain
-                        # but the chain task has no idea
-                        # See: https://github.com/celery/celery/issues/1014
-                        error_count += 1
-                        logger.error('Task %s Failed: %s',
-                            task.parent.id, task.parent.traceback)
-                        del self.task_list[uuid]
-            time.sleep(1)
-        logger.info(
-            'Completed crawling users with %s failed tasks',
-            str(error_count)
-        )
+            try:
+                edges = ranking.perform_filtering(
+                    edgesRanked=edges,
+                    fbid=ut['fbid'],
+                    campaignId=self.campaign.pk,
+                    contentId=self.content.pk,
+                    numFace=self.num_face,
+                    visit_id=notification_user.pk,
+                    visit_type='targetshare.NotificationUser',
+                    cache_match=self.cache,
+                )[1].edges
+                yield hash_str, edges
+            except IOError:
+                logger.exception('Failed to filter {}'.format(ut['fbid']))
+                self.failed_fbids.append(ut['fbid'])
+                continue
+            except AttributeError:
+                logger.exception('{} had too few friends'.format(ut['fbid']))
+                self.failed_fbids.append(ut['fbid'])
+                continue
 
     def _build_table(self, uuid, edges):
         ''' Method to build the HTML table that'll be included in the CSV
@@ -159,7 +164,7 @@ class Command(BaseCommand):
             'num_face': self.num_face
         })
 
-        return table_str
+        return table_str.encode('utf8', 'ignore')
 
     def _write_events(self, uuid, collection):
         notification_user = relational.NotificationUser.objects.get(uuid=uuid)
@@ -188,24 +193,21 @@ class Command(BaseCommand):
 
         db.bulk_create.delay(events)
 
-    def _build_csv(self):
+    def _build_csv(self, row_data):
         ''' Handles building out the CSV '''
-        with open(self.filename, 'wb') as csv_file:
-            csv_writer = csv.writer(csv_file)
-            csv_writer.writerow([
-                'primary_fbid', 'email', 'friend_fbids', 'names', 'html_table'
-            ])
-            for uuid, collection in self.edge_collection.iteritems():
-                primary = collection[0].primary
-                row = [primary.id, primary.email]
-                friend_list = []
-                for edge in collection[:self.num_face]:
-                    friend_list.append(edge.secondary)
+        for uuid, collection in row_data:
+            primary = collection[0].primary
+            row = [primary.id, primary.email]
+            friend_list = []
+            for edge in collection[:self.num_face]:
+                friend_list.append(edge.secondary)
 
-                fbids = [x.id for x in friend_list]
+            fbids = [x.id for x in friend_list]
 
-                row.append(fbids)
-                row.append(lexical_list([x.fname for x in friend_list[:3]]))
-                row.append(self._build_table(uuid, collection[:self.num_face]))
-                self._write_events(uuid, collection)
-                csv_writer.writerow(row)
+            row.append(fbids)
+            row.append(lexical_list(
+                [x.fname.encode('utf8', 'ignore') for x in friend_list[:3]])
+            )
+            row.append(self._build_table(uuid, collection[:self.num_face]))
+            self._write_events(uuid, collection)
+            self.csv_writer.writerow(row)
