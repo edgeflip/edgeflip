@@ -87,10 +87,10 @@ class Command(BaseCommand):
 
         # Process information
         logger.info('Starting crawl')
-        self._crawl_and_filter()
+        self._build_csv(self._crawl_and_filter())
         self.file_handle.close()
         logger.info(
-            'Faces Email Complete, but failed to process the following FBIDS: %s'.format(
+            'Faces Email Complete, but failed to process the following FBIDS: {}'.format(
                 self.failed_fbids)
         )
 
@@ -104,8 +104,7 @@ class Command(BaseCommand):
             'appid': self.client.fb_app_id,
         } for x in self.client.userclients.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-        count = 0
-        for ut in user_tokens:
+        for count, ut in enumerate(user_tokens):
             hash_str = hashlib.md5('{}{}{}{}'.format(
                 ut['fbid'], self.campaign.pk,
                 self.content.pk, self.notification.pk
@@ -125,7 +124,7 @@ class Command(BaseCommand):
                 continue
 
             try:
-                self.edge_collection[notification_user.uuid] = ranking.perform_filtering(
+                edges = ranking.perform_filtering(
                     edgesRanked=edges,
                     fbid=ut['fbid'],
                     campaignId=self.campaign.pk,
@@ -135,6 +134,7 @@ class Command(BaseCommand):
                     visit_type='targetshare.NotificationUser',
                     cache_match=self.cache,
                 )[1].edges
+                yield hash_str, edges
             except IOError:
                 logger.exception('Failed to filter {}'.format(ut['fbid']))
                 self.failed_fbids.append(ut['fbid'])
@@ -143,13 +143,6 @@ class Command(BaseCommand):
                 logger.exception('{} had too few friends'.format(ut['fbid']))
                 self.failed_fbids.append(ut['fbid'])
                 continue
-
-            count += 1
-            if count > 100:
-                # Send 100 people to the csv and continue
-                self._build_csv()
-
-        self._build_csv()
 
     def _build_table(self, uuid, edges):
         ''' Method to build the HTML table that'll be included in the CSV
@@ -200,9 +193,9 @@ class Command(BaseCommand):
 
         db.bulk_create.delay(events)
 
-    def _build_csv(self):
+    def _build_csv(self, row_data):
         ''' Handles building out the CSV '''
-        for uuid, collection in self.edge_collection.iteritems():
+        for uuid, collection in row_data:
             primary = collection[0].primary
             row = [primary.id, primary.email]
             friend_list = []
@@ -218,6 +211,3 @@ class Command(BaseCommand):
             row.append(self._build_table(uuid, collection[:self.num_face]))
             self._write_events(uuid, collection)
             self.csv_writer.writerow(row)
-
-        self.file_handle.flush()
-        self.edge_collection = {}

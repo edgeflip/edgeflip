@@ -104,19 +104,19 @@ class Command(BaseCommand):
                 logger.exception('Failed to contact Civis')
             except matcher.MatchException:
                 logger.exception('Matcher Error!')
-            except:
+            except Exception:
                 logger.exception('I have no idea what happened')
 
-            with dynamo.CivisResult.items.batch_write():
+            with dynamo.CivisResult.items.batch_write() as batch:
                 for key, value in results.iteritems():
                     try:
                         result = dynamo.CivisResult.items.get_item(
                             fbid=long(key)
                         )
-                        result['json_blob'] = json.dumps(value)
+                        result['score_json'] = json.dumps(value)
                         result.save()
                     except dynamo.CivisResult.DoesNotExist:
-                        dynamo.CivisResult.items.put_item(data={
-                            'fbid': long(key),
-                            'json_blob': json.dumps(value)
-                        })
+                        batch.put_item(dynamo.CivisResult(
+                            fbid=long(key),
+                            score_json=json.dumps(value)
+                        ))

@@ -40,6 +40,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.task_list = {}
         self.command.edge_collection = {}
         self.command.csv_writer = Mock()
+        self.command.file_handle = Mock()
         self.command.failed_fbids = []
         self.command.cache = True
         self.notification = relational.Notification.objects.create(
@@ -63,7 +64,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         ''' Test to ensure the handle method behaves properly '''
         command = faces_email.Command()
         methods_to_mock = [
-            '_crawl_and_filter',
+            '_build_csv',
         ]
         pre_mocks = []
         for method in methods_to_mock:
@@ -101,12 +102,13 @@ class TestFacesEmail(EdgeFlipTestCase):
             )
             token.save()
 
-        self.command._crawl_and_filter()
+        edge_data = list(self.command._crawl_and_filter())
+        # 4, one is pre-existing from the setUp
         self.assertEqual(
             relational.NotificationUser.objects.count(),
             4
         )
-        assert self.command._build_csv.called
+        self.assertEqual(len(edge_data), 3)
 
     def test_build_csv(self):
         ''' Tests the build_csv method '''
@@ -114,7 +116,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
         }
         self.command.url = None
-        self.command._build_csv()
+        self.command._build_csv(self.command.edge_collection.iteritems())
         assert self.command.csv_writer.writerow.called
         assert self.command.csv_writer.writerow.call_args[0][0][4].strip().startswith('<table')
         self.assertEqual(
@@ -134,7 +136,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.edge_collection = {
             self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
         }
-        self.command._build_csv()
+        self.command._build_csv(self.command.edge_collection.iteritems())
         assert self.command.csv_writer.writerow.called
         assert 'http://www.google.com?efuuid=1' in self.command.csv_writer.writerow.call_args[0][0][4]
         self.assertEqual(
