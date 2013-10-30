@@ -280,17 +280,13 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.faces.facebook.client.requests')
     def test_frame_faces_with_bad_oauth_code(self, requests_mock):
         ''' Tests views.faces.frame_faces with a "code" parameter, which will
-        trigger the oauth cycle
+        trigger the oauth cycle. We'll ignore the bad auth code, and move on.
         '''
         requests_mock.get.return_value = Mock(content='')
         response = self.client.get(reverse('frame-faces', args=[1, 1]), {
             'code': 'testcode'
         })
-        self.assertStatusCode(response, 403)
-        self.assertEqual(
-            response.content,
-            'Invalid FB Authentication'
-        )
+        self.assertStatusCode(response, 200)
 
     def test_canvas(self):
         ''' Tests views.canvas '''

@@ -32,11 +32,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     code = request.GET.get('code')
     if code:
         # Must be using oauth!
+        # Formerly would return a 403 if we couldn't verify the code. Now
+        # going to let them through, and let JS try to auth them if they're
+        # not already authed. This protects us from situations where legit
+        # users refresh the page with the code in their query and would get an
+        # unnecessary 403
         redirect_url = campaign.campaignproperties.get().faces_url(content_id)
-        if not facebook.client.verify_oauth_code(
+        facebook.client.verify_oauth_code(
             client.fb_app_id, code, redirect_url
-        ):
-            return http.HttpResponseForbidden('Invalid FB Authentication')
+        )
 
     test_mode = utils.test_mode(request)
     db.delayed_save.delay(
