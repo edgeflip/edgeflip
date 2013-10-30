@@ -1,7 +1,7 @@
-from .base import Item, ItemField, HashKeyField, NUMBER
+from .base import Item, ItemField, HashKeyField, NUMBER, JSON
 
 
 class CivisResult(Item):
 
     fbid = HashKeyField(data_type=NUMBER)
-    score_json = ItemField()
+    result = ItemField(data_type=JSON)

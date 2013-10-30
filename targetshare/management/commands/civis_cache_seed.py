@@ -113,10 +113,10 @@ class Command(BaseCommand):
                         result = dynamo.CivisResult.items.get_item(
                             fbid=long(key)
                         )
-                        result['score_json'] = json.dumps(value)
+                        result['result'] = json.dumps(value)
                         result.save()
                     except dynamo.CivisResult.DoesNotExist:
                         batch.put_item(dynamo.CivisResult(
                             fbid=long(key),
-                            score_json=json.dumps(value)
+                            result=json.dumps(value)
                         ))

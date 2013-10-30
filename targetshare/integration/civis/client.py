@@ -1,5 +1,4 @@
 import us
-import json
 import logging
 import requests
 from civis_matcher import matcher
@@ -43,18 +42,18 @@ def civis_filter(edges, feature, operator, score_value):
         logger.exception('Matcher Error!')
         return []
 
-    valid_ids = []
+    valid_ids = set()
     for key, value in results.items():
         scores = getattr(value, 'scores', None) or {}
         filter_feature = scores.get(feature) or {}
         if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
-            valid_ids.append(str(key))
+            valid_ids.add(long(key))
 
-    return [x for x in edges if str(x.secondary.id) in valid_ids]
+    return [x for x in edges if x.secondary.id in valid_ids]
 
 
 def civis_cached_filter(edges, feature, operator, score_value):
-    valid_ids = []
+    valid_ids = set()
     for edge in edges:
         try:
             cr = dynamo.CivisResult.items.get_item(fbid=edge.secondary.id)
@@ -62,10 +61,10 @@ def civis_cached_filter(edges, feature, operator, score_value):
             logger.info('No civis result for {}'.format(edge.secondary.id))
             continue
 
-        data = json.loads(cr['score_json']).get('result') or {}
+        data = cr['result'].get('result') or {}
         scores = data.get('scores') or {}
         score = scores.get(feature) or {}
         if score and float(score.get(operator, 0)) >= float(score_value):
-            valid_ids.append(edge.secondary.id)
+            valid_ids.add(long(edge.secondary.id))
 
     return [x for x in edges if x.secondary.id in valid_ids]

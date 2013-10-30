@@ -10,4 +10,5 @@ from .types import (
     STRING_SET,
     NUMBER_SET,
     BINARY_SET,
+    JSON,
 )

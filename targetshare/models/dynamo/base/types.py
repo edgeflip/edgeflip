@@ -1,3 +1,4 @@
+import json
 import datetime
 import numbers
 
@@ -75,8 +76,26 @@ class DateTimeType(DataType):
             "Value is not an appropriate datetime specification: {!r}".format(value))
 
 
+class JsonType(DataType):
+
+    def load(self, value):
+        if isinstance(value, dict):
+            return value
+        return json.loads(value)
+
+    def validate(self, value):
+        if is_null(value) or isinstance(value, dict):
+            return
+        try:
+            json.loads(value)
+        except ValueError:
+            raise DataValidationError(
+                "Value is not an appopriate JSON string: {!r}".format(value))
+
+
 DATE = DateType()
 DATETIME = DateTimeType()
+JSON = JsonType()
 
 
 class Dynamizer(basetypes.Dynamizer):
