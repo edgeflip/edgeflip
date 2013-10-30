@@ -4,6 +4,7 @@ from .fields import ItemField, HashKeyField, RangeKeyField
 from .types import (
     DATE,
     DATETIME,
+    JSON,
     STRING,
     NUMBER,
     BINARY,
