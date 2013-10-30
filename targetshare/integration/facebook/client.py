@@ -64,8 +64,43 @@ FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT objec
 FQL_OTHER_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
+PX3_FIELDS = [
+    'uid', 'first_name', 'last_name', 'sex', 'birthday_date',
+    'current_location', 'mutual_friend_count'
+]
+PX3_EXTENDED_FIELDS = [
+    'activities',
+    'affiliations',
+    'books',
+    'devices',
+    'friend_request_count',
+    'has_timeline',
+    'interests',
+    'languages',
+    'likes_count',
+    'movies',
+    'music',
+    'political',
+    'profile_update_time',
+    'quotes',
+    'relationship_status',
+    'religion',
+    'sports',
+    'tv',
+    'wall_count',
+    # The fields below we may want to turn on again later
+    #'is_app_user',
+    #'locale',
+    #'notes_count',
+    #'online_presence',
+    #'status',
+    #'subscriber_count',
+    #'timezone',
+]
+FULL_PX3_FIELDS = ','.join(PX3_FIELDS + PX3_EXTENDED_FIELDS)
+
 FQL_USER_INFO = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
+FQL_FRIEND_INFO = """SELECT %s FROM user WHERE uid IN (SELECT uid2 FROM friend where uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
 
 
 def dateFromFb(dateStr):
@@ -180,7 +215,7 @@ def getFriendsFb(userId, token):
     friendChunks = []
     for i in range(chunks):
         offset = limit * i
-        url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (userId, limit, offset))
+        url = 'https://graph.facebook.com/fql/?q=' + urllib.quote_plus(FQL_FRIEND_INFO % (FULL_PX3_FIELDS, userId, limit, offset))
         url = url + '&format=json&access_token=' + token
 
         t = threading.Thread(target=_threadFbURL, args=(url, friendChunks))
@@ -264,11 +299,12 @@ def getFriendsFb(userId, token):
         if (primPhotoTags + otherPhotoTags > 0):
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags", friendId, primPhotoTags, otherPhotoTags)
 
+        rec.update({
+            'city': city, 'state': state, 'email': email,
+            'birthday': dateFromFb(rec['birthday_date'])
+        })
         f = datastructs.FriendInfo(
-            userId, friendId, rec['first_name'], rec['last_name'],
-            email, rec['sex'], dateFromFb(rec['birthday_date']),
-            city, state,
-            primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
+            rec, friendId, primPhotoTags, otherPhotoTags, rec['mutual_friend_count']
         )
         friends[friendId] = f
     logger.debug("returning %d friends for %d (%s)", len(friends.values()), userId, tim.elapsedPr())
@@ -286,8 +322,11 @@ def getUserFb(userId, token):
     city = rec['current_location'].get('city') if (rec.get('current_location') is not None) else None
     state = rec['current_location'].get('state') if (rec.get('current_location') is not None) else None
     email = rec.get('email')
-    user = datastructs.UserInfo(rec['uid'], rec['first_name'], rec['last_name'], email, rec['sex'], dateFromFb(rec['birthday_date']),
-                                city, state)
+    rec.update({
+        'city': city, 'state': state, 'email': email,
+        'birthday': dateFromFb(rec['birthday_date'])
+    })
+    user = datastructs.UserInfo(rec)
     return user
 
 

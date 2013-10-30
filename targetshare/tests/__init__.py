@@ -66,7 +66,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             'contentid': 1,
             'mockmode': True,
         }
-        self.test_user = models.datastructs.UserInfo(
+        self.test_user = models.datastructs.UserInfo(dict(
             uid=1,
             first_name='Test',
             last_name='User',
@@ -75,7 +75,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
             city='Chicago',
             state='Illinois',
-        )
+        ))
         self.test_edge = models.datastructs.Edge(
             self.test_user,
             self.test_user,
