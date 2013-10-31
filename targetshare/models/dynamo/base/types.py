@@ -159,10 +159,7 @@ class StringSetType(InternalDataTypeExtension):
                 raise DataValidationError(
                     "String set may not contain non-strings: {!r}".format(value))
 
-            if isinstance(value, (set, frozenset)):
-                return value
-            else:
-                return set(value)
+            return value if isinstance(value, (set, frozenset)) else set(value)
 
         raise DataValidationError(
             "Value is not an appropriate string set specification: {!r}".format(value))
@@ -172,6 +169,8 @@ STRING_SET = StringSetType()
 
 # TODO: Make DataTypes responsible for encoding rather than / along with Dynamizer
 # TODO: (which doesn't know the field type)
+# TODO: This would make a big difference below, in saving, and allow for smarter
+# TODO: querying (e.g. get_item(fbid='123'))
 
 class Dynamizer(basetypes.Dynamizer):
 
