@@ -199,19 +199,12 @@ class Item(baseitems.Item):
     __metaclass__ = DeclarativeItemBase
     get_dynamizer = Dynamizer
 
-    @classmethod
-    def from_boto(cls, item):
-        """Convert a boto Item newly loaded from DynamoDB to Item."""
-        new = cls(dict(item), loaded=True)
-        new._post_load()
-        return new
-
     def __init__(self, data=None, loaded=False, **kwdata):
         data = {} if data is None else data
         data.update(kwdata)
-        # Validate data before populating it
-        for key, value in data.items():
-            self._pre_set(key, value)
+
+        # Clean data before populating it
+        data = {key: self._pre_set(key, value) for (key, value) in data.items()}
 
         table = type(self).items.table
         super(Item, self).__init__(table, data, loaded)
@@ -230,29 +223,18 @@ class Item(baseitems.Item):
         return tuple(self.get_keys().values())
 
     def _pre_set(self, key, value):
-        """Validate exotic types (e.g. DATE)."""
+        """Clean exotic types (e.g. DATE)."""
         field = self._meta.fields.get(key)
         if field:
-            field.validate(value)
+            value = field.decode(value)
         elif not self._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, type(self).__name__))
+        return value
 
     def __setitem__(self, key, value):
-        self._pre_set(key, value)
+        value = self._pre_set(key, value)
         super(Item, self).__setitem__(key, value)
-
-    def load(self, data):
-        super(Item, self).load(data)
-        self._post_load()
-
-    def _post_load(self):
-        """Check for exotic datatypes to convert further."""
-        for key, value in self.items():
-            field = self._meta.fields.get(key)
-            if not field:
-                continue
-            self[key] = self._orig_data[key] = field.load(value)
 
     # prepare_full determines data to put for save and BatchTable once they
     # know there's data to put. Insert timestamp for update:

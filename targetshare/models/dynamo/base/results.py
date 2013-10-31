@@ -9,7 +9,7 @@ from boto.dynamodb2 import results as baseresults
 class BatchGetResultSet(baseresults.BatchGetResultSet):
 
     @classmethod
-    def from_boto(cls, result_set):
+    def clone(cls, result_set):
         new = cls()
         new.__dict__ = result_set.__dict__
         return new

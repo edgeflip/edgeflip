@@ -65,8 +65,43 @@ FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT objec
 FQL_OTHER_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
 # Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
 
+PX3_FIELDS = {
+    'uid', 'first_name', 'last_name', 'sex', 'birthday_date',
+    'current_location', 'mutual_friend_count'
+}
+PX3_EXTENDED_FIELDS = {
+    'activities',
+    'affiliations',
+    'books',
+    'devices',
+    'friend_request_count',
+    'has_timeline',
+    'interests',
+    'languages',
+    'likes_count',
+    'movies',
+    'music',
+    'political',
+    'profile_update_time',
+    'quotes',
+    'relationship_status',
+    'religion',
+    'sports',
+    'tv',
+    'wall_count',
+    # The fields below we may want to turn on again later
+    #'is_app_user',
+    #'locale',
+    #'notes_count',
+    #'online_presence',
+    #'status',
+    #'subscriber_count',
+    #'timezone',
+}
+FULL_PX3_FIELDS = ','.join(PX3_FIELDS | PX3_EXTENDED_FIELDS)
+
 FQL_USER_INFO = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT uid, first_name, last_name, sex, birthday_date, current_location, mutual_friend_count FROM user WHERE uid IN (SELECT uid2 FROM friend WHERE uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
+FQL_FRIEND_INFO = """SELECT %s FROM user WHERE uid IN (SELECT uid2 FROM friend where uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
 
 
 def decode_date(date):
@@ -232,7 +267,7 @@ def _get_friend_edges_simple(user, token):
         t = threading.Thread(target=_urlload_thread, args=(
             'https://graph.facebook.com/fql/',
             {
-                'q': FQL_FRIEND_INFO % (user.fbid, limit, offset),
+                'q': FQL_FRIEND_INFO % (FULL_PX3_FIELDS, user.fbid, limit, offset),
                 'format': 'json',
                 'access_token': token,
             },
@@ -331,6 +366,8 @@ def _get_friend_edges_simple(user, token):
             birthday=decode_date(rec['birthday_date']),
             city=current_location.get('city'),
             state=current_location.get('state'),
+            data={key: value for (key, value) in rec.items()
+                  if key in PX3_EXTENDED_FIELDS},
         )
         edge_data = dynamo.IncomingEdge(
             fbid_source=friend.fbid,

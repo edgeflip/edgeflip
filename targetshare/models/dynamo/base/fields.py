@@ -17,21 +17,13 @@ class ItemField(object):
     def make_internal(self, name):
         return self.internal and self.internal(name=name, **self.kws)
 
-    def validate(self, value):
+    def decode(self, value):
         try:
-            validator = self.kws['data_type'].validate
-        except (KeyError, AttributeError):
-            pass
-        else:
-            validator(value)
-
-    def load(self, value):
-        try:
-            loader = self.kws['data_type'].load
+            decoder = self.kws['data_type'].decode
         except (KeyError, AttributeError):
             return value
         else:
-            return loader(value)
+            return decoder(value)
 
 
 class HashKeyField(ItemField):

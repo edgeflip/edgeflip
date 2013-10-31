@@ -304,7 +304,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
             event_type = 'shown'
             if x > 2:
                 event_type = 'generated'
-            print event_type
             models.NotificationEvent.objects.create(
                 campaign_id=1, client_content_id=1, friend_fbid=x,
                 event_type=event_type, notification_user=notification_user
