@@ -346,7 +346,7 @@ NOSE_ARGS = (
     '--cover-package=targetshare',
     '--exclude=^fab$',
     '--http-whitelist=localhost:4444',
-    '--logging-level=CRITICAL',
+    '--logging-level=ERROR',
 )
 
 
