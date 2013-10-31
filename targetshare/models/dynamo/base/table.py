@@ -142,30 +142,30 @@ class Table(table.Table):
         # Let's raise an exception instead:
         if not item.items():
             raise self.item.DoesNotExist
-        return self.item(dict(item), loaded=True)
+        return self.item(item, loaded=True)
 
     @inherits_docs
     def put_item(self, data=None, overwrite=False, **kwdata):
-        item = self.item(data=data, **kwdata)
+        item = self.item(data, **kwdata)
         return item.save(overwrite=overwrite)
 
     @inherits_docs
     def _batch_get(self, *args, **kws):
         result = super(Table, self)._batch_get(*args, **kws)
-        result['results'] = [self.item(dict(item), loaded=True)
+        result['results'] = [self.item(item, loaded=True)
                              for item in result['results']]
         return result
 
     @inherits_docs
     def _query(self, *args, **kws):
         result = super(Table, self)._query(*args, **kws)
-        result['results'] = [self.item(dict(item), loaded=True)
+        result['results'] = [self.item(item, loaded=True)
                              for item in result['results']]
         return result
 
     @inherits_docs
     def _scan(self, *args, **kws):
         result = super(Table, self)._scan(*args, **kws)
-        result['results'] = [self.item(dict(item), loaded=True)
+        result['results'] = [self.item(item, loaded=True)
                              for item in result['results']]
         return result
