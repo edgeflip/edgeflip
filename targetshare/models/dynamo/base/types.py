@@ -55,6 +55,12 @@ class InternalDataTypeExtension(DataType, str):
     def __new__(cls):
         return super(InternalDataTypeExtension, cls).__new__(cls, cls.internal)
 
+    def __getnewargs__(self):
+        # str is pickle-able by returning (self,), s.t. the object is reloaded with
+        # __new__(cls, self); but we have cls.internal & don't accept
+        # initialization arguments:
+        return ()
+
 
 class DateType(DataType):
 
