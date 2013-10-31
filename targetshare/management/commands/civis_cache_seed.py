@@ -96,25 +96,16 @@ class Command(BaseCommand):
                 user_dict['last_name'] = user.lname
                 people_dict['people'][str(user.fbid)] = user_dict
 
-            results = {}
             try:
                 cm = matcher.CivisMatcher()
-                results = cm.bulk_match(people_dict)
+                results = cm.bulk_match(people_dict, raw=True)
             except requests.RequestException:
-                logger.exception('Failed to contact Civis')
+                logger.exception('Failed to contact Civis (%s)', prim_user.fbid)
             except matcher.MatchException:
-                logger.exception('Matcher Error!')
+                logger.exception('Matcher Error! (%s)', prim_user.fbid)
             except Exception:
-                logger.exception('I have no idea what happened')
-
-            with dynamo.CivisResult.items.batch_write() as batch:
-                for key, value in results.iteritems():
-                    try:
-                        result = dynamo.CivisResult.items.get_item(fbid=key)
-                        result['result'] = value
-                        result.save()
-                    except dynamo.CivisResult.DoesNotExist:
-                        batch.put_item({
-                            'fbid': key,
-                            'result': value,
-                        })
+                logger.exception('Unknown error (%s)', prim_user.fbid)
+            else:
+                with dynamo.CivisResult.items.batch_write() as batch:
+                    for fbid, result in results.iteritems():
+                        batch.put_item(fbid=fbid, result=result)
