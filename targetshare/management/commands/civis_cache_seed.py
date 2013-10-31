@@ -100,7 +100,7 @@ class Command(BaseCommand):
             results = {}
             try:
                 cm = matcher.CivisMatcher()
-                results = cm.bulk_match(people_dict, True)
+                results = cm.bulk_match(people_dict)
             except requests.RequestException:
                 logger.exception('Failed to contact Civis')
             except matcher.MatchException:

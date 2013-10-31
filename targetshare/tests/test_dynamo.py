@@ -232,7 +232,9 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
         for token in dynamo.Token.items.batch_get([{'fbid': fbid, 'appid': appid}
                                                    for fbid, appid in tokens]):
             data = tokens[(token['fbid'], token['appid'])]
-            self.assertDictEqual(dict(token), data)
+            token = dict(token)
+            del token['updated']
+            self.assertDictEqual(token, data)
 
 
 @freeze_time('2013-01-01')
@@ -307,6 +309,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
         for x in results:
             d = dict(x.items())
+            del d['updated']
             edge = edges.get((x['fbid_source'], x['fbid_target']))
             _remove_null_values(edge)
             self.assertDictEqual(edge, d)
@@ -343,6 +346,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
         for x in edges_incoming:
             d = dict(x)
+            del d['updated']
             edge = edge_data.get((x['fbid_source'], x['fbid_target']))
             _remove_null_values(edge)
             self.assertDictEqual(edge, d)
