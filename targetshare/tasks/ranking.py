@@ -48,7 +48,7 @@ def px3_crawl(mockMode, fbid, token):
 @celery.task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
                       fallbackCount=0, already_picked=None,
-                      visit_type='targetshare.Visit', s3_match=False):
+                      visit_type='targetshare.Visit', cache_match=False):
     """Filter the given, ranked, Edges according to the configuration of the
     specified Campaign.
 
@@ -128,7 +128,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         bestCSFilter = choice_set.choose_best_filter(
             filtered_edges, useGeneric=allow_generic[0],
             minFriends=minFriends, eligibleProportion=1.0,
-            s3_match=s3_match
+            cache_match=cache_match
         )
 
         choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]

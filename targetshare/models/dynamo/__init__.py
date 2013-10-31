@@ -8,3 +8,4 @@ base.item_declared.connect(utils.database.register_item)
 from .edge import IncomingEdge, OutgoingEdge
 from .token import Token
 from .user import User
+from .civis import CivisResult

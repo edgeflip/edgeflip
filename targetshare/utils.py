@@ -10,9 +10,6 @@ import urllib
 from Crypto.Cipher import DES
 from StringIO import StringIO
 
-import us
-import requests
-from civis_matcher import matcher
 from django.conf import settings
 
 
@@ -80,70 +77,6 @@ def decodeDES(encoded):
     b64decoded = base64.urlsafe_b64decode(unquoted)
     message = cipher.decrypt(b64decoded).rstrip(PADDING)
     return message
-
-
-def civis_filter(edges, feature, operator, score_value):
-    ''' Performs a match against the Civis API and retrieves the score for a
-    given user
-    '''
-    people_dict = {'people': {}}
-    for edge in edges:
-        user = edge.secondary
-        user_dict = {}
-        if user.birthday:
-            user_dict['birth_month'] = '%02d' % user.birthday.month
-            user_dict['birth_year'] = str(user.birthday.year)
-            user_dict['birth_day'] = '%02d' % user.birthday.day
-
-        if not user.state or not user.city:
-            continue
-
-        state = us.states.lookup(user.state)
-        user_dict['state'] = state.abbr if state else None
-        user_dict['city'] = user.city
-        user_dict['first_name'] = user.fname
-        user_dict['last_name'] = user.lname
-        people_dict['people'][user.fbid] = user_dict
-
-    try:
-        cm = matcher.CivisMatcher()
-        results = cm.bulk_match(people_dict)
-    except requests.RequestException:
-        logger.exception('Failed to contact Civis')
-        return []
-    except matcher.MatchException:
-        logger.exception('Matcher Error!')
-        return []
-
-    valid_ids = []
-    for key, value in results.items():
-        scores = getattr(value, 'scores', None) or {}
-        filter_feature = scores.get(feature) or {}
-        if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
-            valid_ids.append(str(key))
-
-    return [x for x in edges if str(x.secondary.fbid) in valid_ids]
-
-
-def civis_s3_filter(edges, feature, operator, score_value):
-    cm = matcher.S3CivisMatcher(
-        settings.AWS.AWS_ACCESS_KEY_ID, settings.AWS.AWS_SECRET_ACCESS_KEY
-    )
-    results, missing_count = cm.cache_match(
-        [x.secondary.fbid for x in edges]
-    )
-    logger.debug('Missed the cache %s times', str(missing_count))
-    if missing_count > MAX_MISSING_CIVIS_MATCHES:
-        return civis_filter(edges, feature, operator, score_value)
-    else:
-        valid_ids = []
-        for key, value in results.items():
-            scores = getattr(value, 'scores', None) or {}
-            score = scores.get(feature) or {}
-            if score and float(score.get(operator, 0)) >= float(score_value):
-                valid_ids.append(str(key))
-
-        return [x for x in edges if str(x.secondary.fbid) in valid_ids]
 
 
 class Timer(object):

@@ -119,6 +119,8 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         get_bucket_mock.return_value = bucket_mock
         self.command.days = 30
         users = self.command._retrieve_users()
-        matches = self.command._perform_matching(users)
-        assert matches['123456']
-        self.assertEqual(matches['123456']['result']['people_count'], 1)
+        self.command._perform_matching(users)
+        match = models.CivisResult.items.get_item(fbid=123456)
+        assert match
+        data = json.loads(match['result'])
+        self.assertEqual(data['result']['people_count'], 1)

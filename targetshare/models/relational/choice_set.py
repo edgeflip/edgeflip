@@ -20,7 +20,7 @@ class ChoiceSet(models.Model):
         return u'%s' % self.name
 
     def choose_best_filter(self, edges, useGeneric=False,
-            minFriends=2, eligibleProportion=0.5, s3_match=False):
+            minFriends=2, eligibleProportion=0.5, cache_match=False):
         """Determine the best choice set filter from a list of edges based on
         the filter that passes the largest number of secondaries (average score
         is used for tie breaking)
@@ -41,7 +41,7 @@ class ChoiceSet(models.Model):
 
         filtered_edges = [
             (csf, csf.filter.filter_edges_by_sec(
-                edgesElg, s3_match)) for csf in self.choicesetfilters.all()
+                edgesElg, cache_match)) for csf in self.choicesetfilters.all()
         ]
         sortedFilters = sorted(filtered_edges, key=lambda t: sort_func(t[1]), reverse=True)
 
