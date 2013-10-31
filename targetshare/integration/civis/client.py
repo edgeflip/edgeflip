@@ -1,4 +1,3 @@
-import json
 import us
 import logging
 import requests
@@ -62,7 +61,7 @@ def civis_cached_filter(edges, feature, operator, score_value):
             logger.info('No civis result for {}'.format(edge.secondary.fbid))
             continue
 
-        data = json.loads(cr['result']).get('result') or {}
+        data = cr.result.get('result') or {}
         scores = data.get('scores') or {}
         score = scores.get(feature) or {}
         if score and float(score.get(operator, 0)) >= float(score_value):

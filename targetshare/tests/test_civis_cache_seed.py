@@ -121,5 +121,4 @@ class TestCivisCacheSeed(EdgeFlipTestCase):
         users = self.command._retrieve_users()
         self.command._perform_matching(users)
         match = models.CivisResult.items.get_item(fbid=123456)
-        data = json.loads(match['result'])
-        self.assertEqual(data['result']['people_count'], 1)
+        self.assertEqual(match['result']['result']['people_count'], 1)

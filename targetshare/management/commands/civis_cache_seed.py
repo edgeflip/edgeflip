@@ -1,4 +1,3 @@
-import json
 import logging
 from decimal import Decimal
 from optparse import make_option
@@ -111,13 +110,11 @@ class Command(BaseCommand):
             with dynamo.CivisResult.items.batch_write() as batch:
                 for key, value in results.iteritems():
                     try:
-                        result = dynamo.CivisResult.items.get_item(
-                            fbid=long(key)
-                        )
-                        result['result'] = json.dumps(value)
+                        result = dynamo.CivisResult.items.get_item(fbid=key)
+                        result['result'] = value
                         result.save()
                     except dynamo.CivisResult.DoesNotExist:
-                        batch.put_item(dynamo.CivisResult(
-                            fbid=long(key),
-                            result=json.dumps(value)
-                        ))
+                        batch.put_item({
+                            'fbid': key,
+                            'result': value,
+                        })
