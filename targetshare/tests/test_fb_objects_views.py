@@ -1,3 +1,5 @@
+import re
+
 from django.core.urlresolvers import reverse
 from mock import patch
 
@@ -72,7 +74,8 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
             self.get_outgoing_url('http://www.google.com/?fb_action_ids=1', 1)
         )
 
-    def test_objects_ambiguous_source_url(self):
+    @patch('targetshare.views.fb_objects.LOG')
+    def test_objects_ambiguous_source_url(self, log_mock):
         fb_object = models.FBObject.objects.get(pk=1)
         fb_object.campaignfbobjects.create(
             campaign_id=1,
@@ -83,6 +86,9 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
+        self.assertTrue(log_mock.exception.called)
+        self.assertRegexpMatches(log_mock.exception.mock_calls[0][1][0],
+                                 re.compile('ambiguous fbobject source', re.I))
         self.assertEqual(response.context['fb_params']['fb_object_url'],
                          'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
         self.assertGreater(fb_object.campaignfbobjects.count(), 1)

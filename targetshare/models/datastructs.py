@@ -325,7 +325,8 @@ class EdgeAggregate(object):
         weightTotal = 0.0
         for count, countMax, weight in countMaxWeightTups:
             if countMax:
-                pxTotal += float(count) / countMax * weight
+                # counts pass thru model & become Decimal; cast to divisible types:
+                pxTotal += float(count) / int(countMax) * weight
                 weightTotal += weight
         try:
             return pxTotal / weightTotal

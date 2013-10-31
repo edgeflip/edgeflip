@@ -22,7 +22,10 @@ class BatchTable(table.BatchTable):
     @inherits_docs
     def put_item(self, data=None, overwrite=False, **kwdata):
         data = {} if data is None else data
-        data.update(kwdata)
+        if kwdata:
+            data = data if hasattr(data, 'update') else dict(data)
+            data.update(kwdata)
+
         super(BatchTable, self).put_item(data, overwrite)
 
     @inherits_docs

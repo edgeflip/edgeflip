@@ -200,7 +200,7 @@ class Item(baseitems.Item):
     get_dynamizer = Dynamizer
 
     def __init__(self, data=None, loaded=False, **kwdata):
-        data = {} if data is None else data
+        data = {} if data is None else dict(data)
         data.update(kwdata)
 
         # Clean data before populating it
