@@ -5,6 +5,7 @@ from django.core.urlresolvers import reverse
 from mock import patch
 
 from targetshare import models
+from targetshare.utils import encodeDES
 
 from . import EdgeFlipViewTestCase
 
@@ -86,3 +87,14 @@ class TestServicesViews(EdgeFlipViewTestCase):
                          {'session_start', 'outgoing_redirect'})
         event = visit.events.get(event_type='outgoing_redirect')
         self.assertEqual(event.content, final_url)
+
+    def test_incoming_url_redirect(self):
+        response = self.client.get(
+            reverse('incoming-encoded', args=[
+                encodeDES('1/1')])
+        )
+        self.assertStatusCode(response, 302)
+        self.assertEqual(
+            response['Location'],
+            'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=t0AGY7FMXjM%3D'
+        )
