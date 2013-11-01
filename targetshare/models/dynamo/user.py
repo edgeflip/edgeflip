@@ -1,3 +1,5 @@
+from django.utils import timezone
+
 from .base import (
     Item,
     ItemField,
@@ -42,6 +44,27 @@ class User(Item):
     sports = ItemField(data_type=JSON)
     tv = ItemField(data_type=STRING_SET)
     wall_count = ItemField(data_type=NUMBER)
+
+    @property
+    def age(self):
+        try:
+            born = self.birthday.date()
+        except AttributeError:
+            # user has no birthday defined
+            return None
+
+        today = timezone.now().date()
+
+        try:
+            birthday = born.replace(year=today.year)
+        except ValueError:
+            # user born Feb 29
+            birthday = born.replace(year=today.year, day=(born.day - 1))
+
+        if birthday > today:
+            return today.year - born.year - 1
+        else:
+            return today.year - born.year
 
     @property
     def name(self):
