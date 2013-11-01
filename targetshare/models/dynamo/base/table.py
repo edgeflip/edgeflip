@@ -119,7 +119,17 @@ class Table(table.Table):
             raise AttributeError("'{}' object has no attribute 'short_name'"
                                  .format(self.__class__.__name__))
 
-    # Use our BatchGetResultSet rather than boto's #
+    # Wrap returned ResultSets in friendlier LazySequences #
+
+    @inherits_docs
+    def query(self, *args, **kws):
+        return utils.LazySequence(super(Table, self).query(*args, **kws))
+
+    @inherits_docs
+    def scan(self, *args, **kws):
+        return utils.LazySequence(super(Table, self).scan(*args, **kws))
+
+    # ...and use our BatchGetResultSet rather than boto's #
 
     @inherits_docs
     def batch_get(self, keys, *args, **kws):
@@ -127,7 +137,8 @@ class Table(table.Table):
             # boto will pass empty list on to AWS, which responds with an error
             return iter([])
         result = super(Table, self).batch_get(keys, *args, **kws)
-        return BatchGetResultSet.clone(result)
+        patched_result = BatchGetResultSet.clone(result)
+        return utils.LazySequence(patched_result)
 
     # Use our Item rather than boto's #
 
