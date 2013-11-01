@@ -285,6 +285,16 @@ class LazyList(LazySequence, list):
     def _results(self):
         return super(LazySequence, self)
 
+    def __eq__(self, other):
+        if self.iterable:
+            self._consume()
+        try:
+            if other.iterable:
+                other._consume()
+        except AttributeError:
+            pass
+        return self._results.__eq__(other)
+
     def __setitem__(self, key, value):
         self._validate_key(key)
 
