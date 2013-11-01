@@ -100,12 +100,12 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         """Test saving a new user"""
         self.save_alice()
         x = dynamo.User.items.get_item(fbid=1234)
-        self.assertEqual(x['fname'], 'Alice')
-        self.assertEqual(x['fbid'], 1234)
-        self.assertEqual(x['birthday'], datetime.datetime(1950, 1, 1, tzinfo=timezone.utc))
-        self.assertEqual(x['updated'], datetime.datetime(2013, 1, 1, tzinfo=timezone.utc))
-        self.assertIsNone(x['city'])
-        self.assertIsNone(x['state'])
+        self.assertEqual(x.fname, 'Alice')
+        self.assertEqual(x.fbid, 1234)
+        self.assertEqual(x.birthday, datetime.datetime(1950, 1, 1, tzinfo=timezone.utc))
+        self.assertEqual(x.updated, datetime.datetime(2013, 1, 1, tzinfo=timezone.utc))
+        self.assertIsNone(x.city)
+        self.assertIsNone(x.state)
 
     def test_save_user_update(self):
         """Test updating an existing user"""
