@@ -62,6 +62,14 @@ class InternalDataTypeExtension(DataType, str):
         return ()
 
 
+class BoolType(DataType):
+
+    def decode(self, value):
+        return value if is_null(value) else bool(value)
+
+BOOL = BoolType()
+
+
 class DateType(DataType):
 
     def decode(self, value):
@@ -158,7 +166,8 @@ class StringSetType(InternalDataTypeExtension):
                 row = csv.reader([line]).next()
                 return {item.decode('utf-8').strip() for item in row}
             else:
-                return set(value.split(self.delimiter))
+                items = (item.strip() for item in value.strip().split(self.delimiter))
+                return set(item for item in items if item)
 
         if hasattr(value, '__iter__'):
             if not all(isinstance(item, basestring) for item in value):

@@ -2,6 +2,7 @@ from .base import (
     Item,
     ItemField,
     HashKeyField,
+    BOOL,
     JSON,
     NUMBER,
     DATETIME,
@@ -27,7 +28,7 @@ class User(Item):
     books = ItemField(data_type=STRING_SET)
     devices = ItemField(data_type=JSON)
     friend_request_count = ItemField(data_type=NUMBER)
-    has_timeline = ItemField(data_type=NUMBER)
+    has_timeline = ItemField(data_type=BOOL)
     interests = ItemField(data_type=STRING_SET)
     languages = ItemField(data_type=JSON)
     likes_count = ItemField(data_type=NUMBER)
