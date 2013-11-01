@@ -46,7 +46,7 @@ class Edge(EdgeBase):
 
         incoming_edges = dynamo.IncomingEdge.items.query(**edge_filters)
         secondary_edges_in = {edge['fbid_source']: edge for edge in incoming_edges
-                              if not require_incoming or edge['post_likes'] is not None}
+                              if not require_incoming or edge.post_likes is not None}
 
         incoming_users = dynamo.User.items.batch_get(keys=[
             {'fbid': fbid} for fbid in secondary_edges_in

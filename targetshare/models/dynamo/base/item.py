@@ -98,7 +98,7 @@ class FieldProperty(object):
         self.field_name = field_name
 
     def __get__(self, instance, cls=None):
-        return self if instance is None else instance[self.field_name]
+        return self if instance is None else instance.get(self.field_name)
 
     def __set__(self, instance, value):
         instance[self.field_name] = value
@@ -221,6 +221,17 @@ class Item(baseitems.Item):
     def pk(self):
         """The Item's signature in key-less, hashable form."""
         return tuple(self.get_keys().values())
+
+    def __getitem__(self, key):
+        # boto's Item[key] is really Item.get(key), but this causes various
+        # problems, and only makes sense for __getitem__ when undeclared fields
+        # are allowed:
+        if self._meta.allow_undeclared_fields:
+            return self._data.get(key)
+
+        # We provide a field property interface to do Item.get(key); there's
+        # no need to lie about our underlying data:
+        return self._data[key]
 
     def _pre_set(self, key, value):
         """Clean exotic types (e.g. DATE)."""

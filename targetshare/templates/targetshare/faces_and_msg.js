@@ -11,7 +11,7 @@ var RECIPS_LIST_CONTAINER = "recips_list";
 // all the friend data here
 var friendFromFbid = {
     {% for friend in all_friends %}
-        {{friend.fbid}}: { 'fbid':{{friend.fbid}}, 'name':"{{friend.name}}", 'fname':"{{friend.fname}}", 'lname':"{{friend.lname}}" },
+        {{friend.fbid}}: {"fbid": {{friend.fbid}}, "name": "{{friend.name}}", "fname": "{{friend.fname}}", "lname": "{{friend.lname}}"}{% if not forloop.last %},{% endif %}
     {% endfor %}
 };
 
