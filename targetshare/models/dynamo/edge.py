@@ -33,32 +33,41 @@ class IncomingEdge(Item):
 
 
 class UnifiedEdgeManager(ItemManager):
+    """ItemManager by which fully-defined edges (IncomingEdges) may be retrieved
+    through the OutgoingEdge table (by fbid_source,fbid_target).
 
+    """
     @staticmethod
     def get_data_manager():
+        """Return the ItemManager by which IncomingEdges are queried."""
         return IncomingEdge.items
 
     def _make_unified_method(method_name):
+        """For the given manager method, (specified by name), manufacture a unified
+        query method, which will query the IncomingEdge/"data" manager for the items
+        referred to by the result of a given OutgoingEdge query.
+
+        """
         @wraps(getattr(ItemManager, method_name), ('__name__', '__doc__'))
         def wrapped(self, *args, **kws):
             inherited_method = getattr(super(UnifiedEdgeManager, self), method_name)
-            outgoing_edges = inherited_method(*args, **kws)
-            # keys must be a list, but don't evaluate until caller initiates:
-            keys = LazyList(outgoing_edge.get_keys() for outgoing_edge in outgoing_edges)
-            return self.get_data_manager().batch_get(keys=keys)
+            result = inherited_method(*args, **kws)
+            try:
+                keys = result.get_keys()
+            except AttributeError:
+                # keys must be a list, but don't evaluate until caller initiates:
+                keys = LazyList(outgoing_edge.get_keys() for outgoing_edge in result)
+                return self.get_data_manager().batch_get(keys=keys)
+            else:
+                return self.get_data_manager().get_item(**keys)
         return wrapped
 
-    # Populate ResultsSet methods with _make_unified_method:
-    for method_name in ('batch_get', 'query', 'scan'):
+    # Populate querying methods with _make_unified_method:
+    for method_name in ('get_item', 'batch_get', 'query', 'scan'):
         locals()[method_name] = _make_unified_method(method_name)
-    del method_name
+    del method_name # Clean up
 
     _make_unified_method = staticmethod(_make_unified_method)
-
-    @wraps(ItemManager.get_item, ('__name__', '__doc__'))
-    def get_item(self, *args, **kws):
-        item = super(UnifiedEdgeManager, self).get_item(*args, **kws)
-        return self.get_data_manager().get_item(**item.get_keys())
 
 
 class OutgoingEdge(Item):
