@@ -126,11 +126,9 @@ class Command(BaseCommand):
             'appid': self.client.fb_app_id,
         } for x in ucs.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-        counter = 0
         for count, ut in enumerate(user_tokens):
-            counter += 1
             logger.info('Crawling user {} of {}'.format(
-                counter, self.end_count - self.offset)
+                count + 1, self.end_count - self.offset)
             )
             hash_str = hashlib.md5('{}{}{}{}'.format(
                 ut['fbid'], self.campaign.pk,
