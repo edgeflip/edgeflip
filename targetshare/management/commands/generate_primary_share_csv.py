@@ -36,6 +36,9 @@ class Command(BaseCommand):
         writer = csv.writer(self.file_handle)
         writer.writerow(['fbid', 'email'])
         for user in dynamo.User.items.batch_get(keys=fbids):
-            writer.writerow([user['fbid'], user['email'].encode('utf8', 'ignore')])
+            if user.email:
+                writer.writerow(
+                    [user.fbid, user.email.encode('utf8', 'ignore')]
+                )
 
         self.file_handle.close()
