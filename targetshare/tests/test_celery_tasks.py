@@ -68,13 +68,13 @@ class TestRankingTasks(EdgeFlipTestCase):
 
     @patch_facebook
     def test_proximity_rank_four(self):
-        self.assertFalse(tuple(models.dynamo.IncomingEdge.items.scan(limit=1)))
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
         ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
-        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1).next())
+        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
 
     def test_fallback_cascade(self):
         # Some test users and edges
@@ -142,15 +142,10 @@ class TestDatabaseTasks(EdgeFlipTestCase):
         assert matching_clients.exists()
 
     def test_delayed_item_save(self):
-        user = models.dynamo.User({'fbid': 1234})
-
-        def existing():
-            results = models.dynamo.User.items.batch_get(keys=[user.get_keys()])
-            return tuple(results)
-
-        self.assertFalse(existing())
+        user = models.dynamo.User(fbid=1234)
+        self.assertFalse(models.dynamo.User.items.batch_get(keys=[user.get_keys()]))
         db.delayed_save(user)
-        self.assertTrue(existing())
+        self.assertTrue(models.dynamo.User.items.batch_get(keys=[user.get_keys()]))
 
     def test_delayed_item_save_conflict(self):
         """Dynamo race conditions are caught and data merged"""

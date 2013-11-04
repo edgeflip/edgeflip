@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
+from targetshare.utils import LazyList
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -335,17 +336,21 @@ def faces_email_friends(request, notification_uuid):
     })
 
     # Gather friend data
-    shown_events = set(notification_user.events.filter(
-        event_type='shown').values_list('friend_fbid', flat=True))
-    num_face = len(shown_events)
     user = models.User.items.get_item(fbid=notification_user.fbid)
-    friends = models.User.items.batch_get(
-        keys=[{'fbid': x} for x in notification_user.events.filter(
-            event_type__in=('generated', 'shown')).values_list(
-                'friend_fbid', flat=True).distinct()]
+    friend_fbids = notification_user.events.filter(
+        event_type__in=('generated', 'shown')
+    ).values_list('friend_fbid', flat=True).distinct()
+    face_friends = all_friends = models.User.items.batch_get(
+        keys=LazyList({'fbid': fbid} for fbid in friend_fbids)
     )
-    face_friends = all_friends = list(friends)
-    show_faces = [x for x in face_friends if x.fbid in shown_events]
+    shown_fbids = set(
+        notification_user.events.filter(
+            event_type='shown',
+        ).values_list('friend_fbid', flat=True)
+    )
+    num_face = len(shown_fbids)
+    show_faces = LazyList(friend for friend in face_friends
+                          if friend.fbid in shown_fbids)
 
     db.delayed_save.delay(
         models.Event(
