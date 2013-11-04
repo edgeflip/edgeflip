@@ -27,30 +27,24 @@ class EdgeFlipTestCase(TestCase):
         super(EdgeFlipTestCase, self).setUp()
 
         # Test settings:
-        self.patches = []
-        self.patches.append(
+        self.patches = [
             patch.multiple(
                 settings,
                 CELERY_ALWAYS_EAGER=True,
                 DYNAMO=ConfigDict({'prefix': 'test', 'engine': 'mock', 'port': 4444}),
             )
-        )
-        # Dynamo tables are created eagerly; force reset of prefix:
-        for table in utils.database.tables:
-            self.patches.append(
-                patch.object(table, 'table_name', table.short_name)
-            )
+        ]
         # Start patches:
-        for p in self.patches:
-            p.start()
+        for patch_ in self.patches:
+            patch_.start()
 
         # Restore dynamo data:
         utils.database.drop_all_tables() # drop if exist
         utils.database.create_all_tables()
 
     def tearDown(self):
-        for patch in self.patches:
-            patch.stop()
+        for patch_ in self.patches:
+            patch_.stop()
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):

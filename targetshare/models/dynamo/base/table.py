@@ -3,6 +3,8 @@
 Models definition and interactions with a table in DynamoDB.
 
 """
+import re
+
 from boto.dynamodb2 import table, items
 from django.conf import settings
 
@@ -66,6 +68,15 @@ class BatchTable(table.BatchTable):
 inherits_docs = utils.doc_inheritor(table.Table)
 
 
+def get_short_name(table_name):
+    return re.sub(r'^{}\.'.format(settings.DYNAMO.prefix), '', table_name)
+
+
+def get_full_name(table_name):
+    short_name = get_short_name(table_name)
+    return '.'.join(part for part in (settings.DYNAMO.prefix, short_name) if part)
+
+
 class Table(table.Table):
     """Extension to the boto Table.
 
@@ -78,7 +89,7 @@ class Table(table.Table):
                  schema=None, throughput=None, indexes=None, connection=None):
         connection = connection or db.connection
         base = table.Table.create(
-            table_name, schema, throughput, indexes, connection)
+            get_full_name(table_name), schema, throughput, indexes, connection)
         return cls(base.table_name, item, base.schema, base.throughput,
                    base.indexes, base.connection)
 
@@ -93,31 +104,20 @@ class Table(table.Table):
     def __repr__(self):
         return "<{}: {}>".format(self.__class__.__name__, self.table_name)
 
-    @property
-    def table_name(self):
-        try:
-            return vars(self)['table_name']
-        except KeyError:
-            raise AttributeError("'{}' object has no attribute 'table_name'"
-                                 .format(self.__class__.__name__))
-
-    @table_name.setter
-    def table_name(self, table_name):
-        """Allow table_name to be specified without global prefix."""
-        if table_name.startswith(settings.DYNAMO.prefix):
-            _prefix, short_name = table_name.split('.', 1)
-        else:
-            short_name = table_name
-            table_name = '{}.{}'.format(settings.DYNAMO.prefix, table_name)
-        vars(self).update(table_name=table_name, short_name=short_name)
+    # Bake (dynamic) dynamo prefix setting into table name -- misdirection, but means
+    # we needn't manage prefix here.
 
     @property
     def short_name(self):
-        try:
-            return vars(self)['short_name']
-        except KeyError:
-            raise AttributeError("'{}' object has no attribute 'short_name'"
-                                 .format(self.__class__.__name__))
+        return vars(self)['table_name']
+
+    @property
+    def table_name(self):
+        return get_full_name(self.short_name)
+
+    @table_name.setter
+    def table_name(self, value):
+        vars(self)['table_name'] = get_short_name(value)
 
     # Wrap returned ResultSets in friendlier LazySequences #
 
@@ -135,7 +135,7 @@ class Table(table.Table):
     def batch_get(self, keys, *args, **kws):
         if not keys:
             # boto will pass empty list on to AWS, which responds with an error
-            return iter([])
+            return utils.LazySequence()
         result = super(Table, self).batch_get(keys, *args, **kws)
         patched_result = BatchGetResultSet.clone(result)
         return utils.LazySequence(patched_result)
