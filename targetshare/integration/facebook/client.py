@@ -26,6 +26,8 @@ from targetshare.models import datastructs, dynamo
 logger = logging.getLogger(__name__)
 
 
+# stock queries for facebook #
+
 class STREAMTYPE:
     """bag of facebook codes"""
     GROUP_CREATED = 11
@@ -42,28 +44,97 @@ class STREAMTYPE:
     CHECKIN = 285
     GROUP_POST = 308
 
-"""stock queries for facebook
 
-these all need to be functions
-"""
+def fql_stream_chunk(uid, min_time, max_time):
+    return ("SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids FROM stream "
+            "WHERE source_id={} AND {} <= created_time AND created_time < {} LIMIT 5000"
+            .format(uid, min_time, max_time))
 
-FQL_STREAM_CHUNK = " ".join("""SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids FROM stream
-                                WHERE source_id=%s AND %d <= created_time AND created_time < %d LIMIT 5000""".split())
-FQL_POST_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_POST_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_STAT_COMMS = "SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_STAT_LIKES = "SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM %s WHERE type = " + str(STREAMTYPE.STATUS_UPDATE) + ")"
-FQL_WALL_POSTS = "SELECT actor_id, post_id FROM %s WHERE type != " + str(STREAMTYPE.STATUS_UPDATE) + " AND actor_id != %s"
-FQL_WALL_COMMS = "SELECT actor_id FROM %s WHERE post_id IN (SELECT post_id FROM comment WHERE post_id IN (SELECT post_id FROM %s) AND fromid = %s)"
-FQL_TAGS = "SELECT tagged_ids FROM %s WHERE actor_id = %s AND type != " + str(STREAMTYPE.PHOTO)
-#zzz perhaps this will tighten these up: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
 
-FQL_TAG_PHOTOS = "SELECT object_id FROM photo_tag WHERE subject = %s"
-FQL_PRIM_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner = %s"
-FQL_PRIM_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
-FQL_OTHER_PHOTOS = "SELECT object_id FROM photo WHERE object_id IN (SELECT object_id FROM %s) AND owner != %s"
-FQL_OTHER_TAGS = "SELECT subject FROM photo_tag WHERE object_id IN (SELECT object_id FROM %s) AND subject != %s"
-# Could probably combine these to get rid of the separate "photo" queries, but then each would contain two nested subqueries. Not sure what's worse with FQL.
+def fql_post_comms(stream):
+    return ("SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+            .format(stream, STREAMTYPE.STATUS_UPDATE))
+
+
+def fql_post_likes(stream):
+    return ("SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+            .format(stream, STREAMTYPE.STATUS_UPDATE))
+
+
+def fql_stat_comms(stream):
+    return ("SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+            .format(stream, STREAMTYPE.STATUS_UPDATE))
+
+
+def fql_stat_likes(stream):
+    return ("SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+            .format(stream, STREAMTYPE.STATUS_UPDATE))
+
+
+def fql_wall_posts(stream, uid):
+    return ("SELECT actor_id, post_id FROM {} WHERE type != {} AND actor_id != {}"
+            .format(stream, STREAMTYPE.STATUS_UPDATE, uid))
+
+
+def fql_wall_comms(wall, uid):
+    return ("SELECT actor_id FROM {0} WHERE post_id IN "
+                "(SELECT post_id FROM comment WHERE "
+                 "post_id IN (SELECT post_id FROM {0}) AND fromid = {1})"
+            .format(wall, uid))
+
+
+def fql_tags(stream, uid):
+    return ("SELECT tagged_ids FROM {} WHERE actor_id = {} AND type != {}"
+            .format(stream, uid, STREAMTYPE.PHOTO))
+
+#TODO: perhaps this will tighten these up:
+#TODO: http://facebook.stackoverflow.com/questions/10836965/get-posts-made-by-facebook-friends-only-on-page-through-graphapi/10837566#10837566
+
+#TODO: Could probably combine these to get rid of the separate "photo" queries;
+#TODO: but then each would contain two nested subqueries. Not sure what's worse with FQL.
+
+
+def fql_tag_photos(fbid):
+    return "SELECT object_id FROM photo_tag WHERE subject = {}".format(fbid)
+
+
+def fql_prim_photos(photos, fbid):
+    return ("SELECT object_id FROM photo WHERE object_id IN "
+                "(SELECT object_id FROM {}) AND owner = {}"
+            .format(photos, fbid))
+
+
+def fql_prim_tags(photos, fbid):
+    return ("SELECT subject FROM photo_tag WHERE object_id IN "
+                "(SELECT object_id FROM {}) AND subject != {}"
+            .format(photos, fbid))
+
+
+def fql_other_photos(photos, fbid):
+    return ("SELECT object_id FROM photo WHERE object_id IN "
+                "(SELECT object_id FROM {}) AND owner != {}"
+            .format(photos, fbid))
+
+
+def fql_other_tags(photos, fbid):
+    return ("SELECT subject FROM photo_tag WHERE object_id IN "
+                "(SELECT object_id FROM {}) AND subject != {}"
+            .format(photos, fbid))
+
+
+def fql_user_info(uid):
+    return ("SELECT uid, first_name, last_name, "
+                "email, sex, birthday_date, current_location "
+            "FROM user WHERE uid={}"
+            .format(uid))
+
+
+def fql_friend_info(fields, fbid, limit, offset):
+    return ("SELECT {} FROM user WHERE uid IN "
+                "(SELECT uid2 FROM friend where uid1 = {} "
+                 "ORDER BY uid2 LIMIT {} OFFSET {})"
+            .format(fields, fbid, limit, offset))
+
 
 PX3_FIELDS = {
     'uid', 'first_name', 'last_name', 'sex', 'birthday_date',
@@ -99,9 +170,6 @@ PX3_EXTENDED_FIELDS = {
     #'timezone',
 }
 FULL_PX3_FIELDS = ','.join(PX3_FIELDS | PX3_EXTENDED_FIELDS)
-
-FQL_USER_INFO = """SELECT uid, first_name, last_name, email, sex, birthday_date, current_location FROM user WHERE uid=%s"""
-FQL_FRIEND_INFO = """SELECT %s FROM user WHERE uid IN (SELECT uid2 FROM friend where uid1 = %s ORDER BY uid2 LIMIT %s OFFSET %s)"""
 
 
 def decode_date(date):
@@ -201,7 +269,7 @@ def get_user(uid, token):
     Returns a User.
 
     """
-    fql = FQL_USER_INFO % uid
+    fql = fql_user_info(uid)
     response_data = urlload('https://graph.facebook.com/fql',
                             {'q': fql, 'format': 'json', 'access_token': token})
     record = response_data['data'][0]
@@ -267,7 +335,7 @@ def _get_friend_edges_simple(user, token):
         t = threading.Thread(target=_urlload_thread, args=(
             'https://graph.facebook.com/fql/',
             {
-                'q': FQL_FRIEND_INFO % (FULL_PX3_FIELDS, user.fbid, limit, offset),
+                'q': fql_friend_info(FULL_PX3_FIELDS, user.fbid, limit, offset),
                 'format': 'json',
                 'access_token': token,
             },
@@ -289,11 +357,11 @@ def _get_friend_edges_simple(user, token):
     primPhotosRef = "#" + primPhotosLabel
     otherPhotosRef = "#" + otherPhotosLabel
 
-    queryJsons.append('"%s":"%s"' % (tagPhotosLabel, FQL_TAG_PHOTOS % user.fbid))
-    queryJsons.append('"%s":"%s"' % (primPhotosLabel, FQL_PRIM_PHOTOS % (tagPhotosRef, user.fbid)))
-    queryJsons.append('"primPhotoTags":"%s"' % (FQL_PRIM_TAGS % (primPhotosRef, user.fbid)))
-    queryJsons.append('"%s":"%s"' % (otherPhotosLabel, FQL_OTHER_PHOTOS % (tagPhotosRef, user.fbid)))
-    queryJsons.append('"otherPhotoTags":"%s"' % (FQL_OTHER_TAGS % (otherPhotosRef, user.fbid)))
+    queryJsons.append('"%s":"%s"' % (tagPhotosLabel, fql_tag_photos(user.fbid)))
+    queryJsons.append('"%s":"%s"' % (primPhotosLabel, fql_prim_photos(tagPhotosRef, user.fbid)))
+    queryJsons.append('"primPhotoTags":"%s"' % (fql_prim_tags(primPhotosRef, user.fbid)))
+    queryJsons.append('"%s":"%s"' % (otherPhotosLabel, fql_other_photos(tagPhotosRef, user.fbid)))
+    queryJsons.append('"otherPhotoTags":"%s"' % (fql_other_tags(otherPhotosRef, user.fbid)))
 
     photoResults = []
     photoThread = threading.Thread(target=_urlload_thread, args=(
@@ -741,16 +809,16 @@ class ThreadStreamReader(threading.Thread):
             queryJsons = []
             streamLabel = "stream"
             wallPostsLabel = "wallPosts"
-            queryJsons.append('"%s":"%s"' % (streamLabel, urllib.quote_plus(FQL_STREAM_CHUNK % (self.userId, ts1, ts2))))
+            queryJsons.append('"%s":"%s"' % (streamLabel, urllib.quote_plus(fql_stream_chunk(self.userId, ts1, ts2))))
             streamRef = "#" + streamLabel
             wallPostsRef = "#" + wallPostsLabel
-            queryJsons.append('"postLikes":"%s"' % (urllib.quote_plus(FQL_POST_LIKES % (streamRef))))
-            queryJsons.append('"postComms":"%s"' % (urllib.quote_plus(FQL_POST_COMMS % (streamRef))))
-            queryJsons.append('"statLikes":"%s"' % (urllib.quote_plus(FQL_STAT_LIKES % (streamRef))))
-            queryJsons.append('"statComms":"%s"' % (urllib.quote_plus(FQL_STAT_COMMS % (streamRef))))
-            queryJsons.append('"%s":"%s"' % (wallPostsLabel, urllib.quote_plus(FQL_WALL_POSTS % (streamRef, self.userId))))
-            queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(FQL_WALL_COMMS % (wallPostsRef, wallPostsRef, self.userId))))
-            queryJsons.append('"tags":"%s"' % (urllib.quote_plus(FQL_TAGS % (streamRef, self.userId))))
+            queryJsons.append('"postLikes":"%s"' % (urllib.quote_plus(fql_post_likes(streamRef))))
+            queryJsons.append('"postComms":"%s"' % (urllib.quote_plus(fql_post_comms(streamRef))))
+            queryJsons.append('"statLikes":"%s"' % (urllib.quote_plus(fql_stat_likes(streamRef))))
+            queryJsons.append('"statComms":"%s"' % (urllib.quote_plus(fql_stat_comms(streamRef))))
+            queryJsons.append('"%s":"%s"' % (wallPostsLabel, urllib.quote_plus(fql_wall_posts(streamRef, self.userId))))
+            queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(fql_wall_comms(wallPostsRef, self.userId))))
+            queryJsons.append('"tags":"%s"' % (urllib.quote_plus(fql_tags(streamRef, self.userId))))
             queryJson = '{' + ','.join(queryJsons) + '}'
 
             url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token
@@ -806,10 +874,5 @@ class ThreadStreamReader(threading.Thread):
         logger.debug("thread %s finishing with %d/%d good (took %s)", self.name, goodCount, (goodCount + errCount), timThread.elapsedPr())
 
 
-class BadChunksError(Exception):
+class BadChunksError(IOError):
     """facebook returned garbage"""
-    def __init__(self, msg):
-        self.msg = msg
-
-    def __str__(self):
-        return self.msg
