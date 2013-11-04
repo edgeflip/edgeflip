@@ -51,10 +51,23 @@ class Command(BaseCommand):
             dest='cache',
             default=True
         ),
+        make_option(
+            '-f', '--offset',
+            help='Offset value of the Userclient table',
+            dest='offset',
+            default=0,
+            type='int',
+        ),
+        make_option(
+            '-p', '--people',
+            help='Number of people to include',
+            dest='count',
+            type='int',
+        ),
     )
 
     def handle(self, campaign_id, content_id, mock, num_face,
-               output, url, cache, **options):
+               output, url, cache, offset, count, **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
@@ -64,6 +77,11 @@ class Command(BaseCommand):
         self.mock = mock
         self.num_face = num_face
         self.cache = cache
+        self.offset = offset
+        if count:
+            self.end_count = self.offset + count
+        else:
+            self.end_count = None
 
         if output:
             self.filename = output
@@ -99,12 +117,21 @@ class Command(BaseCommand):
         through the px3 crawl again
         '''
         logger.info('Gathering list of users to crawl')
+        ucs = self.client.userclients.order_by('fbid')
+        if not self.end_count:
+            self.end_count = ucs.count()
+        ucs = ucs[self.offset:self.end_count]
         user_fbids = [{
             'fbid': Decimal(x),
             'appid': self.client.fb_app_id,
-        } for x in self.client.userclients.values_list('fbid', flat=True)]
+        } for x in ucs.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
+        counter = 0
         for count, ut in enumerate(user_tokens):
+            counter += 1
+            logger.info('Crawling user {} of {}'.format(
+                counter, self.end_count - self.offset)
+            )
             hash_str = hashlib.md5('{}{}{}{}'.format(
                 ut['fbid'], self.campaign.pk,
                 self.content.pk, self.notification.pk
@@ -113,7 +140,7 @@ class Command(BaseCommand):
                 uuid=hash_str, fbid=ut['fbid'], notification=self.notification
             )
             try:
-                edges = ranking.px3_crawl(
+                edges = ranking.proximity_rank_four(
                     mockMode=self.mock,
                     fbid=ut['fbid'],
                     token=ut

@@ -43,6 +43,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.file_handle = Mock()
         self.command.failed_fbids = []
         self.command.cache = True
+        self.command.offset = 0
         self.notification = relational.Notification.objects.create(
             campaign_id=1, client_content_id=1
         )
@@ -73,7 +74,7 @@ class TestFacesEmail(EdgeFlipTestCase):
 
         command.handle(
             1, 1, num_face=4, output='testing.csv',
-            mock=True, url=None, cache=True
+            mock=True, url=None, cache=True, offset=0, count=None
         )
         for count, method in enumerate(methods_to_mock):
             assert getattr(command, method).called
@@ -102,6 +103,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             )
             token.save()
 
+        self.command.end_count = None
         edge_data = list(self.command._crawl_and_filter())
         # 4, one is pre-existing from the setUp
         self.assertEqual(
