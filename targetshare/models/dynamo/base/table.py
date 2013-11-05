@@ -6,7 +6,8 @@ Models definition and interactions with a table in DynamoDB.
 from boto.dynamodb2 import table, items
 from django.conf import settings
 
-from targetshare.models.dynamo import db, utils
+from targetshare import utils
+from targetshare.models.dynamo import db
 
 from .results import BatchGetResultSet
 
@@ -17,6 +18,15 @@ inherits_docs = utils.doc_inheritor(table.BatchTable)
 
 
 class BatchTable(table.BatchTable):
+
+    @inherits_docs
+    def put_item(self, data=None, overwrite=False, **kwdata):
+        data = {} if data is None else data
+        if kwdata:
+            data = data if hasattr(data, 'update') else dict(data)
+            data.update(kwdata)
+
+        super(BatchTable, self).put_item(data, overwrite)
 
     @inherits_docs
     # boto's BatchTable.flush uses its Item right in the middle...
@@ -112,9 +122,12 @@ class Table(table.Table):
     # Use our BatchGetResultSet rather than boto's #
 
     @inherits_docs
-    def batch_get(self, *args, **kws):
-        result = super(Table, self).batch_get(*args, **kws)
-        return BatchGetResultSet.from_boto(result)
+    def batch_get(self, keys, *args, **kws):
+        if not keys:
+            # boto will pass empty list on to AWS, which responds with an error
+            return iter([])
+        result = super(Table, self).batch_get(keys, *args, **kws)
+        return BatchGetResultSet.clone(result)
 
     # Use our Item rather than boto's #
 
@@ -129,27 +142,30 @@ class Table(table.Table):
         # Let's raise an exception instead:
         if not item.items():
             raise self.item.DoesNotExist
-        return self.item.from_boto(item)
+        return self.item(item, loaded=True)
 
     @inherits_docs
     def put_item(self, data=None, overwrite=False, **kwdata):
-        item = self.item(data=data, **kwdata)
+        item = self.item(data, **kwdata)
         return item.save(overwrite=overwrite)
 
     @inherits_docs
     def _batch_get(self, *args, **kws):
         result = super(Table, self)._batch_get(*args, **kws)
-        result['results'] = [self.item.from_boto(item) for item in result['results']]
+        result['results'] = [self.item(item, loaded=True)
+                             for item in result['results']]
         return result
 
     @inherits_docs
     def _query(self, *args, **kws):
         result = super(Table, self)._query(*args, **kws)
-        result['results'] = [self.item.from_boto(item) for item in result['results']]
+        result['results'] = [self.item(item, loaded=True)
+                             for item in result['results']]
         return result
 
     @inherits_docs
     def _scan(self, *args, **kws):
         result = super(Table, self)._scan(*args, **kws)
-        result['results'] = [self.item.from_boto(item) for item in result['results']]
+        result['results'] = [self.item(item, loaded=True)
+                             for item in result['results']]
         return result

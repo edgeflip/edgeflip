@@ -271,7 +271,7 @@ CELERY_QUEUES = (
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
-    Queue('bulk_upsert', routing_key='bulk.upsert', queue_arguments=QUEUE_ARGS),
+    Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
@@ -299,9 +299,9 @@ CELERY_ROUTES = {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
-    'targetshare.tasks.db.bulk_upsert': {
-        'queue': 'bulk_upsert',
-        'routing_key': 'bulk.upsert',
+    'targetshare.tasks.db.upsert': {
+        'queue': 'upsert',
+        'routing_key': 'upsert',
     },
     'targetshare.tasks.db.update_edges': {
         'queue': 'update_edges',
@@ -347,7 +347,7 @@ NOSE_ARGS = (
     '--cover-package=targetshare',
     '--exclude=^fab$',
     '--http-whitelist=localhost:4444',
-    '--logging-level=CRITICAL',
+    '--logging-level=ERROR',
 )
 
 

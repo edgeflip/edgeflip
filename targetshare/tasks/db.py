@@ -3,7 +3,7 @@ from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
 
-from targetshare.models.dynamo import db as dynamo
+from targetshare import models
 
 
 LOG = get_task_logger(__name__)
@@ -79,14 +79,21 @@ def partial_save(item, _attempt=0):
 
 
 @celery.task
-def bulk_upsert(items):
+def upsert(*items):
     """Upsert the given boto Items.
 
     Arguments:
         items: A sequence of boto Items to update, if they already exist in Dynamo,
-            or insert, if they don't
+            or to insert, if they don't.
+
+            May be specified as a single sequence argument or as arbitrary
+            anonymous arguments.
 
     """
+    # Support single-argument sequence interface:
+    if len(items) == 1 and isinstance(items[0], (list, tuple)):
+        (items,) = items
+
     items_data = {item.pk: item for item in items}
     if not items_data:
         return
@@ -111,41 +118,9 @@ def bulk_upsert(items):
 
 @celery.task(task_time_limit=600)
 def update_edges(edges):
-    """update edges table
+    """Update edge tables.
 
-    :arg edges: a list of `datastruct.Edge`
+    :arg edges: an iterable of `datastruct.Edge`
 
     """
-    # pick out all the non-None EdgeCounts from all the edges
-    counts = [count for edge in edges for count in (edge.countsIn, edge.countsOut)
-              if count is not None]
-    dynamo.save_many_edges(
-        {
-            'fbid_source': count.sourceId,
-            'fbid_target': count.targetId,
-            'post_likes': count.postLikes,
-            'post_comms': count.postComms,
-            'stat_likes': count.statLikes,
-            'stat_comms': count.statComms,
-            'wall_posts': count.wallPosts,
-            'wall_comms': count.wallComms,
-            'tags': count.tags,
-            'photos_target': count.photoTarget,
-            'photos_other': count.photoOther,
-            'mut_friends': count.mutuals,
-        }
-        for count in counts
-    )
-
-
-def update_database(user, token, edges):
-    """Update the given User, its Token, its User network and Edges."""
-    tasks = [
-        delayed_save.delay(token, overwrite=True),
-        bulk_upsert.delay([user.to_dynamo()] +
-                          [edge.secondary.to_dynamo() for edge in edges]),
-        update_edges.delay(edges),
-    ]
-    ids = [t.id for t in tasks]
-
-    LOG.debug("update_database using background celery tasks %r for user %d", ids, user.id)
+    models.datastructs.Edge.write(edges)

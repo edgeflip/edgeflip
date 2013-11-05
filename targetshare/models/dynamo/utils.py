@@ -1,22 +1,18 @@
+"""Utilities for interacting with DynamoDB."""
 from __future__ import print_function
+import calendar
+import datetime
 import logging
 import time
-from StringIO import StringIO
-from boto.exception import JSONResponseError
 
+from boto.exception import JSONResponseError
 from django.conf import settings
+from django.utils import timezone
+
+from targetshare.utils import DummyIO
 
 
 LOG = logging.getLogger(__name__)
-
-
-class DummyIO(StringIO):
-
-    def write(self, _buffer):
-        pass
-
-    def flush(self):
-        pass
 
 
 def _confirm(message):
@@ -156,25 +152,29 @@ class DynamoDB(object):
 database = DynamoDB()
 
 
-def doc_inheritor(cls):
-    """Apply inherited __doc__ strings to subclass and proxy methods.
-
-        inherits_docs = doc_inheritor(MyBaseClass)
-
-        class MySubClass(MyBaseClass):
-
-            @inherits_docs
-            def overwrite_method(self):
-                ...
+def to_epoch(date):
+    """Given a datetime.date or datetime.datetime, return seconds since the
+    epoch in UTC.
 
     """
-    def inheritor(func):
-        if func.__doc__ is None:
-            try:
-                inherited = getattr(cls, func.__name__)
-            except AttributeError:
-                pass
-            else:
-                func.__doc__ = inherited.__doc__
-        return func
-    return inheritor
+    if date is None:
+        return None
+    if isinstance(date, datetime.datetime):
+        # Handle datetime timezones:
+        return calendar.timegm(date.utctimetuple())
+    # Naively convert time-less date:
+    return time.mktime(date.timetuple())
+
+
+def epoch_to_datetime(epoch):
+    """given seconds since the epoch in UTC, return a timezone-aware datetime"""
+    if epoch is None:
+        return None
+    return datetime.datetime.fromtimestamp(epoch, timezone.utc)
+
+
+def epoch_to_date(epoch):
+    """given seconds since the epoch, return a date"""
+    if epoch is None:
+        return None
+    return datetime.date.fromtimestamp(epoch)

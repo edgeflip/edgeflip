@@ -51,10 +51,23 @@ class Command(BaseCommand):
             dest='cache',
             default=True
         ),
+        make_option(
+            '-f', '--offset',
+            help='Offset value of the Userclient table',
+            dest='offset',
+            default=0,
+            type='int',
+        ),
+        make_option(
+            '-p', '--people',
+            help='Number of people to include',
+            dest='count',
+            type='int',
+        ),
     )
 
     def handle(self, campaign_id, content_id, mock, num_face,
-               output, url, cache, **options):
+               output, url, cache, offset, count, **options):
         # DB objects
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.content = relational.ClientContent.objects.get(pk=content_id)
@@ -64,6 +77,11 @@ class Command(BaseCommand):
         self.mock = mock
         self.num_face = num_face
         self.cache = cache
+        self.offset = offset
+        if count:
+            self.end_count = self.offset + count
+        else:
+            self.end_count = None
 
         if output:
             self.filename = output
@@ -99,12 +117,19 @@ class Command(BaseCommand):
         through the px3 crawl again
         '''
         logger.info('Gathering list of users to crawl')
+        ucs = self.client.userclients.order_by('fbid')
+        if not self.end_count:
+            self.end_count = ucs.count()
+        ucs = ucs[self.offset:self.end_count]
         user_fbids = [{
             'fbid': Decimal(x),
             'appid': self.client.fb_app_id,
-        } for x in self.client.userclients.values_list('fbid', flat=True)]
+        } for x in ucs.values_list('fbid', flat=True)]
         user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         for count, ut in enumerate(user_tokens):
+            logger.info('Crawling user {} of {}'.format(
+                count + 1, self.end_count - self.offset)
+            )
             hash_str = hashlib.md5('{}{}{}{}'.format(
                 ut['fbid'], self.campaign.pk,
                 self.content.pk, self.notification.pk
@@ -113,7 +138,7 @@ class Command(BaseCommand):
                 uuid=hash_str, fbid=ut['fbid'], notification=self.notification
             )
             try:
-                edges = ranking.px3_crawl(
+                edges = ranking.proximity_rank_four(
                     mockMode=self.mock,
                     fbid=ut['fbid'],
                     token=ut
@@ -175,7 +200,7 @@ class Command(BaseCommand):
                     notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
-                    friend_fbid=edge.secondary.id,
+                    friend_fbid=edge.secondary.fbid,
                     event_type='shown',
                 )
             )
@@ -186,7 +211,7 @@ class Command(BaseCommand):
                     notification_user_id=notification_user.pk,
                     campaign_id=self.campaign.pk,
                     client_content_id=self.content.pk,
-                    friend_fbid=edge.secondary.id,
+                    friend_fbid=edge.secondary.fbid,
                     event_type='generated',
                 )
             )
@@ -197,17 +222,15 @@ class Command(BaseCommand):
         ''' Handles building out the CSV '''
         for uuid, collection in row_data:
             primary = collection[0].primary
-            row = [primary.id, primary.email]
-            friend_list = []
-            for edge in collection[:self.num_face]:
-                friend_list.append(edge.secondary)
+            row = [primary.fbid, primary.email]
 
-            fbids = [x.id for x in friend_list]
-
-            row.append(fbids)
+            friend_list = [edge.secondary for edge in collection[:self.num_face]]
+            row.append([x.fbid for x in friend_list])
             row.append(lexical_list(
                 [x.fname.encode('utf8', 'ignore') for x in friend_list[:3]])
             )
+
             row.append(self._build_table(uuid, collection[:self.num_face]))
+
             self._write_events(uuid, collection)
             self.csv_writer.writerow(row)

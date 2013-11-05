@@ -6,11 +6,11 @@ from mock import Mock, patch
 
 from django.utils import timezone
 
-from targetshare.integration.facebook import mock_client
+from targetshare.integration import facebook
 from targetshare.models import dynamo, relational
 from targetshare.management.commands import faces_email
 
-from . import EdgeFlipTestCase
+from . import EdgeFlipTestCase, patch_facebook
 
 
 class TestFacesEmail(EdgeFlipTestCase):
@@ -43,6 +43,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.command.file_handle = Mock()
         self.command.failed_fbids = []
         self.command.cache = True
+        self.command.offset = 0
         self.notification = relational.Notification.objects.create(
             campaign_id=1, client_content_id=1
         )
@@ -73,7 +74,7 @@ class TestFacesEmail(EdgeFlipTestCase):
 
         command.handle(
             1, 1, num_face=4, output='testing.csv',
-            mock=True, url=None, cache=True
+            mock=True, url=None, cache=True, offset=0, count=None
         )
         for count, method in enumerate(methods_to_mock):
             assert getattr(command, method).called
@@ -102,6 +103,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             )
             token.save()
 
+        self.command.end_count = None
         edge_data = list(self.command._crawl_and_filter())
         # 4, one is pre-existing from the setUp
         self.assertEqual(
@@ -110,10 +112,12 @@ class TestFacesEmail(EdgeFlipTestCase):
         )
         self.assertEqual(len(edge_data), 3)
 
+    @patch_facebook
     def test_build_csv(self):
         ''' Tests the build_csv method '''
+        user = facebook.client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
         self.command.url = None
         self.command._build_csv(self.command.edge_collection.iteritems())
@@ -131,10 +135,12 @@ class TestFacesEmail(EdgeFlipTestCase):
         assert relational.NotificationEvent.objects.filter(
             event_type='generated').exists()
 
+    @patch_facebook
     def test_build_csv_custom_url(self):
         self.command.url = 'http://www.google.com'
+        user = facebook.client.get_user(1, 1)
         self.command.edge_collection = {
-            self.notification_user.uuid: mock_client.getFriendEdgesFb(1, 1)
+            self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
         self.command._build_csv(self.command.edge_collection.iteritems())
         assert self.command.csv_writer.writerow.called

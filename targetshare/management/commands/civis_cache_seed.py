@@ -1,4 +1,3 @@
-import json
 import logging
 from decimal import Decimal
 from optparse import make_option
@@ -50,11 +49,12 @@ class Command(BaseCommand):
         logger.info('Retrieving edges for %s users', len(user_fbids))
         for ut in user_tokens:
             try:
-                yield facebook.getFriendEdgesFb(
-                    ut['fbid'],
+                user = facebook.get_user(ut['fbid'], ut['token'])
+                yield facebook.get_friend_edges(
+                    user,
                     ut['token'],
-                    requireIncoming=False,
-                    requireOutgoing=False
+                    require_incoming=False,
+                    require_outgoing=False,
                 )
             except IOError:
                 continue
@@ -76,7 +76,7 @@ class Command(BaseCommand):
                     'birth_year': str(prim_user.birthday.year),
                     'birth_day': '%02d' % prim_user.birthday.day,
                 })
-            people_dict['people'][str(prim_user.id)] = prim_dict
+            people_dict['people'][str(prim_user.fbid)] = prim_dict
             for edge in primary:
                 user = edge.secondary
                 user_dict = {}
@@ -94,29 +94,18 @@ class Command(BaseCommand):
                 user_dict['city'] = user.city
                 user_dict['first_name'] = user.fname
                 user_dict['last_name'] = user.lname
-                people_dict['people'][str(user.id)] = user_dict
+                people_dict['people'][str(user.fbid)] = user_dict
 
-            results = {}
             try:
                 cm = matcher.CivisMatcher()
-                results = cm.bulk_match(people_dict, True)
+                results = cm.bulk_match(people_dict, raw=True)
             except requests.RequestException:
-                logger.exception('Failed to contact Civis')
+                logger.exception('Failed to contact Civis (%s)', prim_user.fbid)
             except matcher.MatchException:
-                logger.exception('Matcher Error!')
+                logger.exception('Matcher Error! (%s)', prim_user.fbid)
             except Exception:
-                logger.exception('I have no idea what happened')
-
-            with dynamo.CivisResult.items.batch_write() as batch:
-                for key, value in results.iteritems():
-                    try:
-                        result = dynamo.CivisResult.items.get_item(
-                            fbid=long(key)
-                        )
-                        result['result'] = json.dumps(value)
-                        result.save()
-                    except dynamo.CivisResult.DoesNotExist:
-                        batch.put_item(dynamo.CivisResult(
-                            fbid=long(key),
-                            result=json.dumps(value)
-                        ))
+                logger.exception('Unknown error (%s)', prim_user.fbid)
+            else:
+                with dynamo.CivisResult.items.batch_write() as batch:
+                    for fbid, result in results.iteritems():
+                        batch.put_item(fbid=fbid, result=result)

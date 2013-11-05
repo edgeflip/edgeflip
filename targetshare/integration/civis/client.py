@@ -1,4 +1,3 @@
-import json
 import us
 import logging
 import requests
@@ -31,7 +30,7 @@ def civis_filter(edges, feature, operator, score_value):
         user_dict['city'] = user.city
         user_dict['first_name'] = user.fname
         user_dict['last_name'] = user.lname
-        people_dict['people'][user.id] = user_dict
+        people_dict['people'][user.fbid] = user_dict
 
     try:
         cm = matcher.CivisMatcher()
@@ -50,22 +49,22 @@ def civis_filter(edges, feature, operator, score_value):
         if scores and float(filter_feature.get(operator, 0)) >= float(score_value):
             valid_ids.add(long(key))
 
-    return [x for x in edges if x.secondary.id in valid_ids]
+    return [x for x in edges if x.secondary.fbid in valid_ids]
 
 
 def civis_cached_filter(edges, feature, operator, score_value):
     valid_ids = set()
     for edge in edges:
         try:
-            cr = dynamo.CivisResult.items.get_item(fbid=edge.secondary.id)
+            cr = dynamo.CivisResult.items.get_item(fbid=edge.secondary.fbid)
         except dynamo.CivisResult.DoesNotExist:
-            logger.info('No civis result for {}'.format(edge.secondary.id))
+            logger.info('No civis result for {}'.format(edge.secondary.fbid))
             continue
 
-        data = json.loads(cr['result']).get('result') or {}
+        data = cr.result.get('result') or {}
         scores = data.get('scores') or {}
         score = scores.get(feature) or {}
         if score and float(score.get(operator, 0)) >= float(score_value):
-            valid_ids.add(long(edge.secondary.id))
+            valid_ids.add(long(edge.secondary.fbid))
 
-    return [x for x in edges if x.secondary.id in valid_ids]
+    return [x for x in edges if x.secondary.fbid in valid_ids]

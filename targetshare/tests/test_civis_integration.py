@@ -1,11 +1,10 @@
 import json
 from datetime import datetime
 
+from django.utils import timezone
 from mock import Mock, patch
 
-from django.utils import timezone
-
-from targetshare.models import datastructs
+from targetshare import models
 from targetshare.integration.civis import client
 
 from . import EdgeFlipTestCase
@@ -67,17 +66,12 @@ class TestCivisIntegration(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(dict(
-            uid=1,
-            first_name='Test',
-            last_name='User',
-            email='test@example.com',
-            sex='male',
-            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
-            city='Chicago',
-            state='Illinois'
-        ))
-        edge = datastructs.Edge(user, user, None)
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
+        )
+        edge = models.datastructs.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score', 'min', 10)
         self.assertEqual(result, [edge])
 
@@ -135,17 +129,12 @@ class TestCivisIntegration(EdgeFlipTestCase):
             })
         )
 
-        user = datastructs.UserInfo(dict(
-            uid=1,
-            first_name='Test',
-            last_name='User',
-            email='test@example.com',
-            sex='male',
-            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
-            city='Chicago',
-            state='Illinois'
-        ))
-        edge = datastructs.Edge(user, user, None)
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
+        )
+        edge = models.datastructs.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
         self.assertEqual(result, [])
 
@@ -200,16 +189,11 @@ class TestCivisIntegration(EdgeFlipTestCase):
                 }
             })
         )
-        user = datastructs.UserInfo(dict(
-            uid=1,
-            first_name='Test',
-            last_name='User',
-            email='test@example.com',
-            sex='male',
-            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
-            city='Chicago',
-            state='Illinois'
-        ))
-        edge = datastructs.Edge(user, user, None)
+        user = models.User(
+            fbid=1, fname=u'Test', lname=u'User', email='test@example.com', gender='Male',
+            birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
+            city=u'Chicago', state='Illinois'
+        )
+        edge = models.datastructs.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score', 'min', 100)
         self.assertEqual(result, [])

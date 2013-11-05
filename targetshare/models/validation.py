@@ -1,6 +1,8 @@
 import logging
 
-from targetshare import database_compat as db, utils
+from django.db import connection
+
+from targetshare import utils
 
 
 logger = logging.getLogger(__name__)
@@ -60,9 +62,7 @@ def runDbCheck(curs, sql, errorMsg, okMsg, errorRecsFn=None):
 def validateClientDb():
     """Run several validation checks against the DB client schema"""
     logger.debug("=========== Running Client DB Validation ===========")
-
-    conn = db.getConn()
-    curs = conn.cursor()
+    curs = connection.cursor()
 
     # Every client has an app_name and app_id
     sql = """SELECT DISTINCT client_id FROM clients
@@ -330,6 +330,6 @@ def validateClientDb():
         "Missing fallback content associated with campaigns: %s",
         "All fallback content associated with campaigns are accounted for.")
 
-    conn.rollback()
+    connection.rollback()
 
     logger.debug("=========== Finished Client DB Validation ===========")

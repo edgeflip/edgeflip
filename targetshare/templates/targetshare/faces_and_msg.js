@@ -11,14 +11,14 @@ var RECIPS_LIST_CONTAINER = "recips_list";
 // all the friend data here
 var friendFromFbid = {
     {% for friend in all_friends %}
-        {{friend.id}}: { 'fbid':{{friend.id}}, 'name':"{{friend.name}}", 'fname':"{{friend.fname}}", 'lname':"{{friend.lname}}" },
+        {{friend.fbid}}: {"fbid": {{friend.fbid}}, "name": "{{friend.name}}", "fname": "{{friend.fname}}", "lname": "{{friend.lname}}"}{% if not forloop.last %},{% endif %}
     {% endfor %}
 };
 
 // on deck circle for friends who will get slotted in, we shift them off as we go
 var faceFriends = [
     {% for friend in face_friends %}
-        {{friend.id}},
+        {{friend.fbid}},
     {% endfor %}
 ].slice({{ num_face }});
 

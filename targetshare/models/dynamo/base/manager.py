@@ -6,7 +6,7 @@ Item classes may extend ItemManager with class-specific methods, override the de
 manager and/or specify alternative managers. (See `Item`.)
 
 """
-from targetshare.models.dynamo import utils
+from targetshare import utils
 
 from .table import Table
 

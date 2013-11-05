@@ -3,6 +3,7 @@ DynamoDB tables and documents.
 
 """
 import itertools
+import re
 
 from boto.dynamodb2 import fields as basefields, items as baseitems
 from django.dispatch import Signal
@@ -31,10 +32,16 @@ class Meta(object):
     indexes = ()
     table_name = None # Defaults to lowercased, pluralized version of class name
 
-    # "Hide" methods with "_" to avoid appearance of available options #
+    # "Hide" methods with "__ __" to avoid appearance of available options #
 
     @classmethod
-    def _from_user(cls, name, fields, user):
+    def __isoption__(cls, key):
+        """Return whether the given key is a valid configuration option."""
+        return not cls.__isoption__.hidden.match(key) and key in vars(cls)
+    __isoption__.__func__.hidden = re.compile(r'^__.*__$')
+
+    @classmethod
+    def __user__(cls, name, fields, user):
         """Build a new Meta instance from class declaration information and the
         user metadata class (if supplied).
 
@@ -42,7 +49,7 @@ class Meta(object):
         meta = cls(name, fields)
         if user:
             vars(meta).update((key, value) for key, value in vars(user).items()
-                              if key in vars(cls) and not key.startswith('_'))
+                              if cls.__isoption__(key))
         return meta
 
     def __init__(self, name, fields):
@@ -50,15 +57,14 @@ class Meta(object):
         self.fields = fields
 
     @property
-    def _merged(self):
+    def __merged__(self):
         """View of metadata, which are based on instance attribute retrieval, built
         by merging instance attribute dict on top of class attribute dict.
 
         """
         return dict(itertools.chain(
             # Defaults:
-            ((key, value) for key, value in vars(type(self)).items()
-             if not key.startswith('_')),
+            ((key, value) for key, value in vars(type(self)).items() if self.__isoption__(key)),
             # User specifications:
             vars(self).items()
         ))
@@ -66,7 +72,7 @@ class Meta(object):
     def __repr__(self):
         return "<{}({})>".format(
             type(self).__name__,
-            ", ".join("{}={!r}".format(key, value) for key, value in self._merged.items())
+            ", ".join("{}={!r}".format(key, value) for key, value in self.__merged__.items())
         )
 
 
@@ -92,7 +98,7 @@ class FieldProperty(object):
         self.field_name = field_name
 
     def __get__(self, instance, cls=None):
-        return self if instance is None else instance[self.field_name]
+        return self if instance is None else instance.get(self.field_name)
 
     def __set__(self, instance, value):
         instance[self.field_name] = value
@@ -113,31 +119,22 @@ class DeclarativeItemBase(type):
         if not any(isinstance(base, DeclarativeItemBase) for base in bases):
             return super(DeclarativeItemBase, mcs).__new__(mcs, name, bases, attrs)
 
-        # Collect field, manager and options declarations from class definition:
-        user_meta = None
-        item_fields, managers = {}, {}
+        # Set class defaults:
+        attrs.setdefault('items', ItemManager())
+        if mcs.update_field:
+            attrs.setdefault(mcs.update_field, ItemField(data_type=DATETIME))
+
+        # Collect field declarations from class defn, set field properties and wrap managers:
+        item_fields = {}
         for key, value in attrs.items():
             if isinstance(value, ItemField):
-                item_fields[key] = attrs[key]
+                item_fields[key] = value
                 attrs[key] = FieldProperty(key)
             elif isinstance(value, ItemManager):
-                managers[key] = value
-            elif key == 'Meta' and isinstance(value, type):
-                user_meta = attrs.pop(key)
-
-        # Ensure manager:
-        if 'items' not in managers:
-            # Set default manager:
-            managers['items'] = ItemManager()
-        for manager_name, manager in managers.items():
-            attrs[manager_name] = ItemManagerDescriptor(manager, name=manager_name)
-
-        # Ensure update field:
-        if mcs.update_field and mcs.update_field not in item_fields:
-            item_fields[mcs.update_field] = ItemField(data_type=DATETIME)
+                attrs[key] = ItemManagerDescriptor(value, name=key)
 
         # Set meta:
-        attrs['_meta'] = Meta._from_user(name, item_fields, user=user_meta)
+        attrs['_meta'] = Meta.__user__(name, item_fields, attrs.pop('Meta', None))
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})
@@ -202,19 +199,12 @@ class Item(baseitems.Item):
     __metaclass__ = DeclarativeItemBase
     get_dynamizer = Dynamizer
 
-    @classmethod
-    def from_boto(cls, item):
-        """Convert a boto Item newly loaded from DynamoDB to Item."""
-        new = cls(dict(item), loaded=True)
-        new._post_load()
-        return new
-
     def __init__(self, data=None, loaded=False, **kwdata):
-        data = {} if data is None else data
+        data = {} if data is None else dict(data)
         data.update(kwdata)
-        # Validate data before populating it
-        for key, value in data.items():
-            self._pre_set(key, value)
+
+        # Clean data before populating it
+        data = {key: self._pre_set(key, value) for (key, value) in data.items()}
 
         table = type(self).items.table
         super(Item, self).__init__(table, data, loaded)
@@ -232,30 +222,30 @@ class Item(baseitems.Item):
         """The Item's signature in key-less, hashable form."""
         return tuple(self.get_keys().values())
 
+    def __getitem__(self, key):
+        # boto's Item[key] is really Item.get(key), but this causes various
+        # problems, and only makes sense for __getitem__ when undeclared fields
+        # are allowed:
+        if self._meta.allow_undeclared_fields:
+            return self._data.get(key)
+
+        # We provide a field property interface to do Item.get(key); there's
+        # no need to lie about our underlying data:
+        return self._data[key]
+
     def _pre_set(self, key, value):
-        """Validate exotic types (e.g. DATE)."""
+        """Clean exotic types (e.g. DATE)."""
         field = self._meta.fields.get(key)
         if field:
-            field.validate(value)
+            value = field.decode(value)
         elif not self._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, type(self).__name__))
+        return value
 
     def __setitem__(self, key, value):
-        self._pre_set(key, value)
+        value = self._pre_set(key, value)
         super(Item, self).__setitem__(key, value)
-
-    def load(self, data):
-        super(Item, self).load(data)
-        self._post_load()
-
-    def _post_load(self):
-        """Check for exotic datatypes to convert further."""
-        for key, value in self.items():
-            field = self._meta.fields.get(key)
-            if not field:
-                continue
-            self[key] = self._orig_data[key] = field.load(value)
 
     # prepare_full determines data to put for save and BatchTable once they
     # know there's data to put. Insert timestamp for update:

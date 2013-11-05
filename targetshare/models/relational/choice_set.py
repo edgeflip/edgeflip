@@ -34,7 +34,7 @@ class ChoiceSet(models.Model):
           those friends with a reasonable proximity to the primary).
 
         """
-        sort_func = lambda el: (len(el), sum([e.score for e in el]) / len(el) if el else 0)
+        sort_func = lambda el: (len(el), sum(e.score for e in el) / len(el) if el else 0)
         edgesSort = sorted(edges, key=lambda x: x.score, reverse=True)
         elgCount = int(len(edges) * eligibleProportion)
         edgesElg = edgesSort[:elgCount]  # only grab the top x% of the pool
@@ -45,18 +45,13 @@ class ChoiceSet(models.Model):
         ]
         sortedFilters = sorted(filtered_edges, key=lambda t: sort_func(t[1]), reverse=True)
 
-        if (len(sortedFilters[0][1]) < minFriends):
-
-            if (not useGeneric):
-                raise self.TooFewFriendsError(
-                    "Too few friends were available after filtering")
-
-            genericFriends = set(e.secondary.id for t in sortedFilters for e in t[1])
-            if (len(genericFriends) < minFriends):
-                raise self.TooFewFriendsError(
-                    "Too few friends were available after filtering")
-            else:
-                return (None, [e for e in edgesElg if e.secondary.id in genericFriends])
+        if len(sortedFilters[0][1]) < minFriends:
+            if not useGeneric:
+                raise self.TooFewFriendsError("Too few friends were available after filtering")
+            genericFriends = set(e.secondary.fbid for t in sortedFilters for e in t[1])
+            if len(genericFriends) < minFriends:
+                raise self.TooFewFriendsError("Too few friends were available after filtering")
+            return (None, [e for e in edgesElg if e.secondary.fbid in genericFriends])
 
         return sortedFilters[0]
 
