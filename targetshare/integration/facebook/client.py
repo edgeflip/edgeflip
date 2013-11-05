@@ -46,28 +46,28 @@ class STREAMTYPE:
 
 
 def fql_stream_chunk(uid, min_time, max_time):
-    return ("SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids FROM stream "
+    return ("SELECT created_time, post_id, source_id, target_id, type, actor_id, tagged_ids, message FROM stream "
             "WHERE source_id={} AND {} <= created_time AND created_time < {} LIMIT 5000"
             .format(uid, min_time, max_time))
 
 
 def fql_post_comms(stream):
-    return ("SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+    return ("SELECT fromid, post_id FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
-def fql_post_likes(stream):
-    return ("SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+def fql_post_likes(stream): # TODO: add object_id/url for like targeting?
+    return ("SELECT user_id, post_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_stat_comms(stream):
-    return ("SELECT fromid FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+    return ("SELECT fromid, post_id FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_stat_likes(stream):
-    return ("SELECT user_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+    return ("SELECT user_id, post_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
@@ -77,7 +77,7 @@ def fql_wall_posts(stream, uid):
 
 
 def fql_wall_comms(wall, uid):
-    return ("SELECT actor_id FROM {0} WHERE post_id IN "
+    return ("SELECT actor_id, post_id FROM {0} WHERE post_id IN "
                 "(SELECT post_id FROM comment WHERE "
                  "post_id IN (SELECT post_id FROM {0}) AND fromid = {1})"
             .format(wall, uid))
@@ -140,6 +140,7 @@ PX3_FIELDS = {
     'uid', 'first_name', 'last_name', 'sex', 'birthday_date',
     'current_location', 'mutual_friend_count'
 }
+
 PX3_EXTENDED_FIELDS = {
     'activities',
     'affiliations',
@@ -169,6 +170,7 @@ PX3_EXTENDED_FIELDS = {
     #'subscriber_count',
     #'timezone',
 }
+
 FULL_PX3_FIELDS = ','.join(PX3_FIELDS | PX3_EXTENDED_FIELDS)
 
 
@@ -348,26 +350,21 @@ def _get_friend_edges_simple(user, token):
 
     # Photo stuff should return quickly enough that we can grab it at the same time as getting friend info
 
-    queryJsons = []
-
-    tagPhotosLabel = "tag_photos"
-    primPhotosLabel = "prim_photos"
-    otherPhotosLabel = "other_photos"
-    tagPhotosRef = "#" + tagPhotosLabel
-    primPhotosRef = "#" + primPhotosLabel
-    otherPhotosRef = "#" + otherPhotosLabel
-
-    queryJsons.append('"%s":"%s"' % (tagPhotosLabel, fql_tag_photos(user.fbid)))
-    queryJsons.append('"%s":"%s"' % (primPhotosLabel, fql_prim_photos(tagPhotosRef, user.fbid)))
-    queryJsons.append('"primPhotoTags":"%s"' % (fql_prim_tags(primPhotosRef, user.fbid)))
-    queryJsons.append('"%s":"%s"' % (otherPhotosLabel, fql_other_photos(tagPhotosRef, user.fbid)))
-    queryJsons.append('"otherPhotoTags":"%s"' % (fql_other_tags(otherPhotosRef, user.fbid)))
-
+    tag_label = 'tag_photos'
+    primary_label = 'primary_photos'
+    other_label = 'other_photos'
+    query = {
+        tag_label: fql_tag_photos(user.fbid),
+        primary_label: fql_prim_photos('#' + tag_label, user.fbid),
+        other_label: fql_other_photos('#' + tag_label, user.fbid),
+        'primary_photo_tags': fql_prim_tags('#' + primary_label, user.fbid),
+        'other_photo_tags': fql_other_tags('#' + other_label, user.fbid),
+    }
     photoResults = []
     photoThread = threading.Thread(target=_urlload_thread, args=(
         'https://graph.facebook.com/fql',
         {
-            'q': '{' + ','.join(queryJsons) + '}',
+            'q': json.dumps(query, separators=(',', ':')), # compact separators
             'format': 'json',
             'access_token': token,
         },
@@ -402,11 +399,11 @@ def _get_friend_edges_simple(user, token):
     primPhotoCounts = defaultdict(int)
     otherPhotoCounts = defaultdict(int)
 
-    for rec in lab_recs.get('primPhotoTags', []):
+    for rec in lab_recs.get('primary_photo_tags', []):
         if rec['subject']:
             primPhotoCounts[int(rec['subject'])] += 1
 
-    for rec in lab_recs.get('otherPhotoTags', []):
+    for rec in lab_recs.get('other_photo_tags', []):
         if rec['subject']:
             otherPhotoCounts[int(rec['subject'])] += 1
 
@@ -419,12 +416,12 @@ def _get_friend_edges_simple(user, token):
             continue
 
         current_location = rec.get('current_location') or {}
-        primPhotoTags = primPhotoCounts[friendId]
-        otherPhotoTags = otherPhotoCounts[friendId]
+        primary_photo_tags = primPhotoCounts[friendId]
+        other_photo_tags = otherPhotoCounts[friendId]
 
-        if primPhotoTags + otherPhotoTags > 0:
+        if primary_photo_tags + other_photo_tags > 0:
             logger.debug("Friend %d has %d primary photo tags and %d other photo tags",
-                         friendId, primPhotoTags, otherPhotoTags)
+                         friendId, primary_photo_tags, other_photo_tags)
 
         friend = dynamo.User(
             fbid=friendId,
@@ -440,8 +437,8 @@ def _get_friend_edges_simple(user, token):
         edge_data = dynamo.IncomingEdge(
             fbid_source=friend.fbid,
             fbid_target=user.fbid,
-            photos_target=primPhotoTags,
-            photos_other=otherPhotoTags,
+            photos_target=primary_photo_tags,
+            photos_other=other_photo_tags,
             mut_friends=rec['mutual_friend_count'],
         )
 
@@ -796,75 +793,77 @@ class ThreadStreamReader(threading.Thread):
         timThread = utils.Timer()
         goodCount = 0
         errCount = 0
-        while (time.time() < timeStop):
+        while time.time() < timeStop:
             try:
                 ts1, ts2, qcount = self.queue.get_nowait()
-            except Queue.Empty as e:
+            except Queue.Empty:
                 break
 
             tim = utils.Timer()
 
-            logger.debug("reading stream for %s, interval (%s - %s)", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
+            logger.debug("reading stream for %s, interval (%s - %s)",
+                         self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
 
-            queryJsons = []
-            streamLabel = "stream"
-            wallPostsLabel = "wallPosts"
-            queryJsons.append('"%s":"%s"' % (streamLabel, urllib.quote_plus(fql_stream_chunk(self.userId, ts1, ts2))))
-            streamRef = "#" + streamLabel
-            wallPostsRef = "#" + wallPostsLabel
-            queryJsons.append('"postLikes":"%s"' % (urllib.quote_plus(fql_post_likes(streamRef))))
-            queryJsons.append('"postComms":"%s"' % (urllib.quote_plus(fql_post_comms(streamRef))))
-            queryJsons.append('"statLikes":"%s"' % (urllib.quote_plus(fql_stat_likes(streamRef))))
-            queryJsons.append('"statComms":"%s"' % (urllib.quote_plus(fql_stat_comms(streamRef))))
-            queryJsons.append('"%s":"%s"' % (wallPostsLabel, urllib.quote_plus(fql_wall_posts(streamRef, self.userId))))
-            queryJsons.append('"wallComms":"%s"' % (urllib.quote_plus(fql_wall_comms(wallPostsRef, self.userId))))
-            queryJsons.append('"tags":"%s"' % (urllib.quote_plus(fql_tags(streamRef, self.userId))))
-            queryJson = '{' + ','.join(queryJsons) + '}'
-
-            url = 'https://graph.facebook.com/fql?q=' + queryJson + '&format=json&access_token=' + self.token
-
-            req = urllib2.Request(url)
+            stream_label = 'stream'
+            wall_label = 'wallPosts'
+            stream_ref = '#' + stream_label
+            wall_ref = '#' + wall_label
+            query = {
+                stream_label: fql_stream_chunk(self.userId, ts1, ts2),
+                wall_label: fql_wall_posts(stream_ref, self.userId),
+                'post_likes': fql_post_likes(stream_ref),
+                'post_comms': fql_post_comms(stream_ref),
+                'stat_likes': fql_stat_likes(stream_ref),
+                'stat_comms': fql_stat_comms(stream_ref),
+                'wall_comms': fql_wall_comms(wall_ref, self.userId),
+                'tags': fql_tags(stream_ref, self.userId),
+            }
             try:
-                responseFile = urllib2.urlopen(req, timeout=settings.FACEBOOK.api_timeout)
-            except Exception as e:
-                logger.error("error reading stream chunk for user %s (%s - %s): %s", self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)), str(e))
-
-                try:
-                    # If we actually got an error back from a server, should be able to read the message here
-                    logger.error("returned error was: %s", e.read())
-                except:
-                    pass
+                data = urlload('https://graph.facebook.com/fql', {
+                    'q': json.dumps(query, separators=(',', ':')), # compact separators
+                    'format': 'json',
+                    'access_token': self.token,
+                })
+            except IOError:
+                logger.error("error reading stream chunk for user %s (%s - %s)",
+                             self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
                 errCount += 1
                 self.queue.task_done()
                 qcount += 1
-                if (qcount < settings.STREAM_READ_TRYCOUNT):
+                if qcount < settings.STREAM_READ_TRYCOUNT:
                     self.queue.put((ts1, ts2, qcount))
                 continue
 
-            responseJson = json.load(responseFile)
-            responseFile.close()
-
             lab_recs = {}
-            for entry in responseJson['data']:
+            with open('/tmp/stream' + self.name, 'w') as fh: # TODO: REMOVE
+                fh.write(json.dumps(data)) # TODO: REMOVE
+            for entry in data['data']:
                 label = entry['name']
                 records = entry['fql_result_set']
 
                 lab_recs[label] = records
 
-            pLikeIds = [r['user_id'] for r in lab_recs['postLikes']]
-            pCommIds = [r['fromid'] for r in lab_recs['postComms']]
-            sLikeIds = [r['user_id'] for r in lab_recs['statLikes']]
-            sCommIds = [r['fromid'] for r in lab_recs['statComms']]
+            # TODO: classify post messages here? and attach classifications to
+            # secondaries' likes/comments?
+            # TODO: can perhaps take custom classifications as well, which
+            # might require text-search rather than using the search tool
+            # TODO: and if this gets expensive, can instead not default to all
+            # topics, though will want to *be careful not to overwrite* existing
+            # Edge topic data.
+            pLikeIds = [r['user_id'] for r in lab_recs['post_likes']]
+            pCommIds = [r['fromid'] for r in lab_recs['post_comms']]
+            sLikeIds = [r['user_id'] for r in lab_recs['stat_likes']]
+            sCommIds = [r['fromid'] for r in lab_recs['stat_comms']]
             wPostIds = [r['actor_id'] for r in lab_recs['wallPosts']]
-            wCommIds = [r['actor_id'] for r in lab_recs['wallComms']]
+            wCommIds = [r['actor_id'] for r in lab_recs['wall_comms']]
             tagIds = [i for r in lab_recs['tags'] for i in r['tagged_ids']]
-            sc = StreamCounts(self.userId, lab_recs['stream'], pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
+            sc = StreamCounts(self.userId, lab_recs['stream'],
+                              pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
 
             logger.debug("stream counts for %s: %s", self.userId, str(sc))
             logger.debug("chunk took %s", tim.elapsedPr())
 
             goodCount += 1
-
             self.results.append(sc)
             self.queue.task_done()
 
