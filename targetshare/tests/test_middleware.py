@@ -79,7 +79,14 @@ class TestCookieVerificationMiddleware(BaseMiddlewareTestCase):
         response = HttpResponse()
         utils.set_visit(request, 1)
         self.middleware.process_response(request, response)
-        self.assertTrue(
+        self.assertFalse(
             relational.Event.objects.filter(
-                event_type='cookies_failed').exists()
+                event_type='cookies_enabled').exists()
         )
+
+    def test_no_test_cookie_on_ajax(self):
+        request = self.get_request()
+        request.META['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
+        response = HttpResponse()
+        self.middleware.process_response(request, response)
+        assert 'testcookie' not in request.session
