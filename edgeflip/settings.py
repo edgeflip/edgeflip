@@ -202,6 +202,7 @@ MIDDLEWARE_CLASSES = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'targetshare.middleware.VisitorMiddleware',
+    'targetshare.middleware.CookieVerificationMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'

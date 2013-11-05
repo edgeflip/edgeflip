@@ -30,7 +30,6 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = utils.test_mode(request)
-    request.session.set_test_cookie()
     db.delayed_save.delay(
         models.relational.Event(
             visit=request.visit,
@@ -121,17 +120,6 @@ def faces(request):
     px4_task_id = request.POST.get('px4_task_id')
     last_call = bool(request.POST.get('last_call'))
     edges_ranked = px4_edges = None
-
-    if (request.session.test_cookie_worked() and
-            not request.session.get('cookies_verified')):
-        db.delayed_save(models.relational.Event(
-            visit=request.visit,
-            campaign_id=campaign_id,
-            client_content_id=content_id,
-            event_type='cookies_enabled',
-        ))
-        request.session['cookies_verified'] = True
-        request.session.delete_test_cookie()
 
     if settings.ENV != 'production' and mock_mode:
         LOG.info('Running in mock mode')

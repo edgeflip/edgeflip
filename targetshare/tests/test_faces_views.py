@@ -30,7 +30,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
         tasks IDs of the Celery jobs we started. We also expect to see an
         extended token saved to Dynamo
         '''
-        self.client.get(reverse('frame-faces', args=[1, 1]))
         fb_mock.extendTokenFb.return_value = models.dynamo.Token(
             token='test-token',
             fbid=1111111,
@@ -47,10 +46,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
         )
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
-        self.assertTrue(self.client.session['cookies_verified'])
-        self.assertTrue(models.Event.objects.filter(
-            event_type='cookies_enabled').exists()
-        )
         data = json.loads(response.content)
         assert data['px3_task_id']
         assert data['px4_task_id']
@@ -222,7 +217,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
         client = models.Client.objects.get(campaigns__pk=1)
         campaign = models.Campaign.objects.get(pk=1)
         self.assertStatusCode(response, 200)
-        self.assertTrue(self.client.session.test_cookie_worked())
         self.assertEqual(response.context['campaign'], campaign)
         self.assertEqual(
             response.context['content'],
