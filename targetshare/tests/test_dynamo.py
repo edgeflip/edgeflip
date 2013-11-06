@@ -138,9 +138,9 @@ class DynamoUserTestCase(EdgeFlipTestCase):
 
         users = self.users()
         keys = [{'fbid': key} for key in users]
-        results = tuple(dynamo.User.items.batch_get(keys=keys))
+        results = dynamo.User.items.batch_get(keys=keys)
+        self.assertGreater(len(results), 0)
         self.assertItemsEqual((item['fbid'] for item in results), users)
-
         for item in results:
             data = dict(item)
             user = self.users()[item['fbid']]
@@ -300,10 +300,10 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         edges = self.edges()
         self.save_edges(edges.values())
 
-        results = list(dynamo.IncomingEdge.items.batch_get(keys=[
+        results = dynamo.IncomingEdge.items.batch_get(keys=[
             {'fbid_source': s, 'fbid_target': t}
             for s, t in edges
-        ]))
+        ])
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               edges.keys())
 
@@ -314,10 +314,10 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             _remove_null_values(edge)
             self.assertDictEqual(edge, d)
 
-        results = list(dynamo.OutgoingEdge.items.batch_get(keys=[
+        results = dynamo.OutgoingEdge.items.batch_get(keys=[
             {'fbid_source': s, 'fbid_target': t}
             for s, t in edges
-        ]))
+        ])
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               edges.keys())
 
@@ -337,10 +337,10 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching many edges"""
         edge_data = self.edges()
         self.save_edges(edge_data.values())
-        edges_incoming = tuple(dynamo.IncomingEdge.items.batch_get([
+        edges_incoming = dynamo.IncomingEdge.items.batch_get([
             {'fbid_source': fbid_source, 'fbid_target': fbid_target}
             for fbid_source, fbid_target in edge_data.keys()
-        ]))
+        ])
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in edges_incoming],
                               edge_data.keys())
 
@@ -355,10 +355,10 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching all edges"""
         self.save_edges(self.edges().values())
 
-        results = list(dynamo.IncomingEdge.items.scan())
+        results = dynamo.IncomingEdge.items.scan()
+        self.assertGreater(len(results), 0)
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               self.edges().keys())
-
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
@@ -373,10 +373,9 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching incoming edges"""
         self.save_edges(self.edges().values())
 
-        results = tuple(dynamo.IncomingEdge.items.query(fbid_target__eq=200))
+        results = dynamo.IncomingEdge.items.query(fbid_target__eq=200)
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200), (101, 200)])
-
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
@@ -391,10 +390,9 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         """Test fetching outgoing edges"""
         self.save_edges(self.edges().values())
 
-        results = tuple(dynamo.OutgoingEdge.incoming_edges.query(fbid_source__eq=100))
+        results = dynamo.OutgoingEdge.incoming_edges.query(fbid_source__eq=100)
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200), (100, 202)])
-
         for x in results:
             d = dict(x.items())
             edge = self.edges().get((x['fbid_source'], x['fbid_target']))
@@ -416,11 +414,11 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             e = self.edges()[(100, 200)]
             self.save_edges([e])
 
-        results = tuple(dynamo.IncomingEdge.items.query(
+        results = dynamo.IncomingEdge.items.query(
             fbid_target__eq=200,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
-        ))
+        )
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
 
@@ -432,12 +430,12 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         self.assertDictEqual(dict(d), e)
 
         # empty results
-        empty = tuple(dynamo.IncomingEdge.items.query(
+        empty = dynamo.IncomingEdge.items.query(
             fbid_target__eq=200,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc),
-        ))
-        self.assertEqual(empty, ())
+        )
+        self.assertSequenceEqual(empty, ())
 
     def test_fetch_outgoing_edges_newer_than(self):
         """Test fetching outgoing edges newer than date"""
@@ -450,11 +448,11 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             e = self.edges()[(100, 200)]
             self.save_edges([e])
 
-        results = list(dynamo.OutgoingEdge.incoming_edges.query(
+        results = dynamo.OutgoingEdge.incoming_edges.query(
             fbid_source__eq=100,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
-        ))
+        )
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
 
@@ -466,9 +464,9 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
         self.assertDictEqual(dict(d), e)
 
         # empty results
-        empty = list(dynamo.OutgoingEdge.incoming_edges.query(
+        empty = dynamo.OutgoingEdge.incoming_edges.query(
             fbid_source__eq=100,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 10, tzinfo=timezone.utc),
-        ))
-        self.assertItemsEqual(empty, [])
+        )
+        self.assertSequenceEqual(empty, [])
