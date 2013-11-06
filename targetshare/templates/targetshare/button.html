@@ -67,8 +67,19 @@
         // Initial call on page load
         recordEvent('button_load', '');
 
+	var gotoURL = new Url("{{ goto }}");
+	$.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
+	    var carryThroughValue = Url.window.query[this];
+	    if (carryThroughValue)
+		gotoURL.query[this] = carryThroughValue;
+	});
+	{# Allow efobjsrc to be current document trivially #}
+	if (gotoURL.query.efobjsrc === '1')
+	    gotoURL.query.efobjsrc = encodeURIComponent(window.top.location.href);
+	gotoURL = gotoURL.href()
+
         function doOAuthLogin() {
-            window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri={{ goto }}";
+            window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=" + encodeURIComponent(gotoURL);
         }
 
         // Called upon clicking the "share" button
@@ -88,18 +99,7 @@
             var intervalId = setInterval(function() {
                 if( hasAuthed ) {
                     clearInterval(intervalId);
-
-                    var gotoURL = new Url("{{ goto }}");
-                    $.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
-                        var carryThroughValue = Url.window.query[this];
-                        if (carryThroughValue)
-                            gotoURL.query[this] = carryThroughValue;
-                    });
-                    {# Allow efobjsrc to be current document trivially #}
-                    if (gotoURL.query.efobjsrc === '1')
-                        gotoURL.query.efobjsrc = encodeURIComponent(window.top.location.href);
-
-                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL.href(), authedResponse.authResponse.accessToken);
+                    recordEvent('authorized', authedResponse.authResponse.userID, gotoURL, authedResponse.authResponse.accessToken);
                 }
             }, 200 );
 
