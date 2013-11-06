@@ -52,6 +52,24 @@ def outgoing(request, app_id, url):
     return http.HttpResponseRedirect(url)
 
 
+@utils.encoded_endpoint
+@utils.require_visit
+def incoming(request, campaign_id, content_id):
+    campaign = get_object_or_404(models.Campaign, pk=campaign_id)
+    properties = campaign.campaignproperties.get()
+    url = properties.faces_url(content_id)
+    db.delayed_save.delay(
+        models.relational.Event(
+            visit=request.visit,
+            content=url[:1028],
+            event_type='incoming_redirect',
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+        )
+    )
+    return http.HttpResponseRedirect(url)
+
+
 def health_check(request):
 
     if 'elb' in request.GET:
