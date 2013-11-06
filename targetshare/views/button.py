@@ -1,8 +1,10 @@
 from django.shortcuts import render, get_object_or_404
+from django.core.urlresolvers import reverse
 
 from targetshare import models
 from targetshare.tasks import db
 from targetshare.views import utils
+from targetshare.utils import encodeDES
 
 
 @utils.encoded_endpoint
@@ -11,7 +13,11 @@ def button(request, campaign_id, content_id):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
-    faces_url = campaign.campaignproperties.get().faces_url(content_id)
+    faces_url = '{}{}{}'.format(
+        'https://' if request.is_secure() else 'http://',
+        request.get_host(),
+        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (campaign_id, content_id))])
+    )
 
     # Use campaign-custom button style template name if one exists:
     try:
