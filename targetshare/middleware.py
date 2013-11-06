@@ -24,6 +24,10 @@ class VisitorMiddleware(object):
 class CookieVerificationMiddleware(object):
 
     def process_response(self, request, response):
+        # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
+        if not hasattr(request, 'session'):
+            return response
+
         referer = request.META.get('HTTP_REFERER')
         visit = getattr(request, 'visit', None)
         if referer and settings.SESSION_COOKIE_DOMAIN in referer:

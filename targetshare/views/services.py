@@ -63,6 +63,8 @@ def incoming(request, campaign_id, content_id):
             visit=request.visit,
             content=url[:1028],
             event_type='incoming_redirect',
+            campaign_id=campaign_id,
+            client_content_id=content_id,
         )
     )
     return http.HttpResponseRedirect(url)
