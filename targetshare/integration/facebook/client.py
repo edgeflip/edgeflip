@@ -10,6 +10,7 @@ import threading
 import Queue
 from collections import defaultdict
 from contextlib import closing
+from itertools import chain
 from math import ceil
 
 import requests
@@ -84,7 +85,7 @@ def fql_wall_comms(wall, uid):
 
 
 def fql_tags(stream, uid):
-    return ("SELECT tagged_ids FROM {} WHERE actor_id = {} AND type != {}"
+    return ("SELECT tagged_ids, post_id FROM {} WHERE actor_id = {} AND type != {}"
             .format(stream, uid, STREAMTYPE.PHOTO))
 
 #TODO: perhaps this will tighten these up:
@@ -547,82 +548,41 @@ def verify_oauth_code(fb_app_id, code, redirect_uri):
     return token is not None
 
 
-class StreamCounts(object):
-    """data structure representing a single facebook user stream
+class StreamAggregate(dict):
+    """User stream data struct
 
-    intermediary data structure
+    Provides aggregate analysis for data in the form:
 
-    we would like this die
+        action_type: [(friend_id, post_topic), ...]
+
+    Initialize with a primary user ID and dict initialization arguments:
+
+        StreamAggregate(1234, post_likes=[(0987, 'Health')])
+
     """
-    def __init__(self, userId, stream=None, postLikers=None, postCommers=None, statLikers=None, statCommers=None, wallPosters=None, wallCommeds=None, taggeds=None):
-
-        stream = stream if stream is not None else []
-        postLikers = postLikers if postLikers is not None else []
-        postCommers = postCommers if postCommers is not None else []
-        statLikers = statLikers if statLikers is not None else []
-        statCommers = statCommers if statCommers is not None else []
-        wallPosters = wallPosters if wallPosters is not None else []
-        wallCommeds = wallCommeds if wallCommeds is not None else []
-        taggeds = taggeds if taggeds is not None else []
-
-        self.id = userId
-        self.stream = []
-        self.friendId_postLikeCount = defaultdict(int)
-        self.friendId_postCommCount = defaultdict(int)
-        self.friendId_statLikeCount = defaultdict(int)
-        self.friendId_statCommCount = defaultdict(int)
-        self.friendId_wallPostCount = defaultdict(int)
-        self.friendId_wallCommCount = defaultdict(int)
-        self.friendId_tagCount = defaultdict(int)
-        self.friendId_tagCount = defaultdict(int)
-
-        self.stream.extend(stream)
-        self.addPostLikers(postLikers)
-        self.addPostCommers(postCommers)
-        self.addStatLikers(statLikers)
-        self.addStatCommers(statCommers)
-        self.addWallPosters(wallPosters)
-        self.addWallCommeds(wallCommeds)
-        self.addTaggeds(taggeds)
+    def __init__(self, user_id, *args, **kws):
+        super(StreamAggregate, self).__init__(*args, **kws)
+        self.user_id = user_id
 
     def __iadd__(self, other):
-        self.stream.extend(other.stream)
-        for fId, cnt in other.friendId_postLikeCount.items():
-            self.friendId_postLikeCount[fId] += cnt
-        for fId, cnt in other.friendId_postCommCount.items():
-            self.friendId_postCommCount[fId] += cnt
-        for fId, cnt in other.friendId_statLikeCount.items():
-            self.friendId_statLikeCount[fId] += cnt
-        for fId, cnt in other.friendId_statCommCount.items():
-            self.friendId_statCommCount[fId] += cnt
-        for fId, cnt in other.friendId_wallPostCount.items():
-            self.friendId_wallPostCount[fId] += cnt
-        for fId, cnt in other.friendId_wallCommCount.items():
-            self.friendId_wallCommCount[fId] += cnt
-        for fId, cnt in other.friendId_tagCount.items():
-            self.friendId_tagCount[fId] += cnt
-        return self
+        if self.user_id != other.user_id:
+            raise ValueError("StreamAggregates belong to different users")
+        keys = set(self)
+        other_keys = set(other)
+        for action_type in (keys & other_keys):
+            self[action_type] = tuple(chain(self[action_type], other[action_type]))
+        for action_type in (other_keys - keys):
+            self[action_type] = tuple(other[action_type])
+        return self # FIXME: Needed?
 
     def __add__(self, other):
-        """XXX wrong Exception"""
-        if (self.id != other.id):
-            raise Exception("cannot add stream counts for different users (%d, %d)" % (self.id, other.id))
-        sc = StreamCounts(self.id)
-        sc += self
-        sc += other
-        return sc
+        new = type(self)(self.user_id)
+        new += self
+        new += other
+        return new
 
-    def __str__(self):
-        ret = "%d entries" % (len(self.stream))
-        ret += ", %d post likes" % (sum(self.friendId_postLikeCount.values()))
-        ret += ", %d post comments" % (sum(self.friendId_postCommCount.values()))
-        ret += ", %d stat likes" % (sum(self.friendId_statLikeCount.values()))
-        ret += ", %d stat comments" % (sum(self.friendId_statCommCount.values()))
-        ret += ", %d wall posts" % (sum(self.friendId_wallPostCount.values()))
-        ret += ", %d wall comms" % (sum(self.friendId_wallCommCount.values()))
-        ret += ", %d tags" % (sum(self.friendId_tagCount.values()))
-        return ret
-
+    # TODO: start here (replace all these dumb things, probably with a single
+    # method or two):
     def addPostLikers(self, friendIds):
         for friendId in friendIds:
             self.friendId_postLikeCount[friendId] += 1
@@ -700,7 +660,7 @@ class StreamCounts(object):
         return sorted(fIds, key=lambda x: friendId_total[x], reverse=True)
 
 
-class ReadStreamCounts(StreamCounts):
+class ReadStreamCounts(StreamAggregate):
     """does work of reading a single user's stream
 
     i need to be refactored
@@ -736,9 +696,15 @@ class ReadStreamCounts(StreamCounts):
         # create the thread pool
         threads = []
         for i in range(threadCount):
-            t = ThreadStreamReader(userId, token, tsQueue, scChunks, loopTimeout)
+            t = ThreadStreamReader(
+                "%s-%d" % (userId, i),
+                userId,
+                token,
+                tsQueue,
+                scChunks,
+                loopTimeout,
+            )
             t.setDaemon(True)
-            t.name = "%s-%d" % (userId, i)
             threads.append(t)
             t.start()
 
@@ -779,21 +745,22 @@ class ThreadStreamReader(threading.Thread):
     """implements work of ReadStreamCounts
 
     """
-    def __init__(self, userId, token, queue, results, lifespan):
+    def __init__(self, name, primary_id, token, queue, results, lifespan):
         threading.Thread.__init__(self)
-        self.userId = userId
+        self.name = name
+        self.primary_id = primary_id
         self.token = token
         self.queue = queue
         self.results = results
         self.lifespan = lifespan
 
     def run(self):
-        timeStop = time.time() + self.lifespan
+        time_stop = time.time() + self.lifespan
         logger.debug("thread %s starting", self.name)
         timThread = utils.Timer()
         goodCount = 0
         errCount = 0
-        while time.time() < timeStop:
+        while time.time() < time_stop:
             try:
                 ts1, ts2, qcount = self.queue.get_nowait()
             except Queue.Empty:
@@ -802,21 +769,21 @@ class ThreadStreamReader(threading.Thread):
             tim = utils.Timer()
 
             logger.debug("reading stream for %s, interval (%s - %s)",
-                         self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
+                         self.primary_id, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
 
             stream_label = 'stream'
             wall_label = 'wallPosts'
             stream_ref = '#' + stream_label
             wall_ref = '#' + wall_label
             query = {
-                stream_label: fql_stream_chunk(self.userId, ts1, ts2),
-                wall_label: fql_wall_posts(stream_ref, self.userId),
+                stream_label: fql_stream_chunk(self.primary_id, ts1, ts2),
+                wall_label: fql_wall_posts(stream_ref, self.primary_id),
                 'post_likes': fql_post_likes(stream_ref),
                 'post_comms': fql_post_comms(stream_ref),
                 'stat_likes': fql_stat_likes(stream_ref),
                 'stat_comms': fql_stat_comms(stream_ref),
-                'wall_comms': fql_wall_comms(wall_ref, self.userId),
-                'tags': fql_tags(stream_ref, self.userId),
+                'wall_comms': fql_wall_comms(wall_ref, self.primary_id),
+                'tags': fql_tags(stream_ref, self.primary_id),
             }
             try:
                 data = urlload('https://graph.facebook.com/fql', {
@@ -826,7 +793,7 @@ class ThreadStreamReader(threading.Thread):
                 })
             except IOError:
                 logger.error("error reading stream chunk for user %s (%s - %s)",
-                             self.userId, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
+                             self.primary_id, time.strftime("%m/%d", time.localtime(ts1)), time.strftime("%m/%d", time.localtime(ts2)))
                 errCount += 1
                 self.queue.task_done()
                 qcount += 1
@@ -834,15 +801,13 @@ class ThreadStreamReader(threading.Thread):
                     self.queue.put((ts1, ts2, qcount))
                 continue
 
-            lab_recs = {}
             with open('/tmp/stream' + self.name, 'w') as fh: # TODO: REMOVE
                 fh.write(json.dumps(data)) # TODO: REMOVE
-            for entry in data['data']:
-                label = entry['name']
-                records = entry['fql_result_set']
 
-                lab_recs[label] = records
-
+            results = {entry['name']: entry['fql_result_set']
+                       for entry in data['data']}
+            post_topics = {post['post_id']: classify(post['message'])
+                           for post in results['stream']}
             # TODO: classify post messages here? and attach classifications to
             # secondaries' likes/comments?
             # TODO: can perhaps take custom classifications as well, which
@@ -850,17 +815,27 @@ class ThreadStreamReader(threading.Thread):
             # TODO: and if this gets expensive, can instead not default to all
             # topics, though will want to *be careful not to overwrite* existing
             # Edge topic data.
-            pLikeIds = [r['user_id'] for r in lab_recs['post_likes']]
-            pCommIds = [r['fromid'] for r in lab_recs['post_comms']]
-            sLikeIds = [r['user_id'] for r in lab_recs['stat_likes']]
-            sCommIds = [r['fromid'] for r in lab_recs['stat_comms']]
-            wPostIds = [r['actor_id'] for r in lab_recs['wallPosts']]
-            wCommIds = [r['actor_id'] for r in lab_recs['wall_comms']]
-            tagIds = [i for r in lab_recs['tags'] for i in r['tagged_ids']]
-            sc = StreamCounts(self.userId, lab_recs['stream'],
+            post_actions = {
+                action_type: [(result[id_key], post_topics[result['post_id']])
+                              for result in results[action_type]]
+                for (action_type, id_key) in [
+                    ('post_likes', 'user_id'),
+                    ('post_comms', 'fromid'),
+                    ('stat_likes', 'user_id'),
+                    ('stat_comms', 'fromid'),
+                    ('wallPosts', 'actor_id'),
+                    ('wall_comms', 'actor_id'),
+                ]
+            }
+            post_actions['tags'] = [
+                (user, result['post_id'])
+                for result in results['tags']
+                for user in result['tagged_ids']
+            ]
+            sc = StreamAggregate(self.primary_id, results['stream'],
                               pLikeIds, pCommIds, sLikeIds, sCommIds, wPostIds, wCommIds, tagIds)
 
-            logger.debug("stream counts for %s: %s", self.userId, str(sc))
+            logger.debug("stream counts for %s: %s", self.primary_id, str(sc))
             logger.debug("chunk took %s", tim.elapsedPr())
 
             goodCount += 1
@@ -875,3 +850,11 @@ class ThreadStreamReader(threading.Thread):
 
 class BadChunksError(IOError):
     """facebook returned garbage"""
+
+
+def classify(_text):
+    """Dummy text classifier."""
+    # TODO: REMOVE
+    return {'Health:Heart Disease': 8.2,
+            'Sports': 0.3,
+            'Sports:Badmitton': 0.2}
