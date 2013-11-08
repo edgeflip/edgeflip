@@ -9,6 +9,7 @@ class FilterFeatureType(models.Model):
     GENDER = 'gender'
     STATE = 'state'
     CITY = 'city'
+    FULL_LOCATION = 'full_location'
     MATCHING = 'matching'
 
     name = models.CharField(max_length=64)
@@ -48,6 +49,7 @@ class FilterFeature(models.Model):
     GENDER = 'gender'
     STATE = 'state'
     CITY = 'city'
+    FULL_LOCATION = 'full_location'
     TURNOUT_SCORE = 'turnout_2013'
     SUPPORT_SCORE = 'support_cand_2013'
     PERSUASION_SCORE = 'persuasion_score'
@@ -64,6 +66,7 @@ class FilterFeature(models.Model):
         (GENDER, 'Gender'),
         (STATE, 'State'),
         (CITY, 'City'),
+        (FULL_LOCATION, 'Full Location'),
         (TURNOUT_SCORE, 'Turnout Score'),
         (PERSUASION_SCORE, 'Persuasion Score'),
         (GOTV_SCORE, 'GOTV Score'),

@@ -215,6 +215,7 @@ def get_user(uid, token):
         birthday=decode_date(record['birthday_date']),
         city=location.get('city'),
         state=location.get('state'),
+        country=location.get('country'),
     )
 
 
@@ -370,6 +371,7 @@ def _get_friend_edges_simple(user, token):
             birthday=decode_date(rec['birthday_date']),
             city=current_location.get('city'),
             state=current_location.get('state'),
+            country=current_location.get('country'),
             data={key: value for (key, value) in rec.items()
                   if key in PX3_EXTENDED_FIELDS},
         )
