@@ -81,7 +81,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         self.assertIn('Falling back to FB', logger_mock.info.call_args[0][0])
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
-        self.assertTrue(urllib2.urlopen.call_count > 2)
+        self.assertGreater(urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=1, max_friends=99)
     @patch('targetshare.tasks.ranking.logger')
@@ -99,7 +99,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         )
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
-        self.assertTrue(urllib2.urlopen.call_count > 2)
+        self.assertGreater(urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=100, max_friends=100)
     @patch('targetshare.tasks.ranking.logger')
