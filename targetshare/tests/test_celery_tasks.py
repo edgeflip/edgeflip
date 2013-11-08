@@ -6,6 +6,7 @@ from mock import patch
 
 from targetshare import models
 from targetshare.tasks import db, ranking
+from targetshare.integration.facebook.client import urllib2
 
 from . import EdgeFlipTestCase, patch_facebook
 
@@ -78,6 +79,9 @@ class TestRankingTasks(EdgeFlipTestCase):
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
         self.assertIn('Falling back to FB', logger_mock.info.call_args[0][0])
+        # We know we have a call to get the user and the friend count at the
+        # very least. However, hitting FB should spawn many more hits to FB
+        self.assertTrue(urllib2.urlopen.call_count > 2)
 
     @patch_facebook(min_friends=1, max_friends=99)
     @patch('targetshare.tasks.ranking.logger')
@@ -93,6 +97,9 @@ class TestRankingTasks(EdgeFlipTestCase):
             'Has less than 100 friends, hitting FB',
             logger_mock.info.call_args[0][0]
         )
+        # We know we have a call to get the user and the friend count at the
+        # very least. However, hitting FB should spawn many more hits to FB
+        self.assertTrue(urllib2.urlopen.call_count > 2)
 
     @patch_facebook(min_friends=100, max_friends=100)
     @patch('targetshare.tasks.ranking.logger')
@@ -112,6 +119,11 @@ class TestRankingTasks(EdgeFlipTestCase):
         self.assertIn(
             'using Dynamo data.',
             logger_mock.info.call_args[0][0]
+        )
+        # One call to get the user, the other to get the friend count
+        self.assertEqual(
+            urllib2.urlopen.call_count,
+            2
         )
 
     def test_fallback_cascade(self):
