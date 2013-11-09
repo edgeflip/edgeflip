@@ -4,7 +4,14 @@ from boto.dynamodb2 import fields
 
 from targetshare.utils import LazyList
 
-from .base import Item, ItemField, ItemManager, HashKeyField, RangeKeyField, NUMBER
+from .base import (
+    Item,
+    ItemField,
+    ItemManager,
+    HashKeyField,
+    RangeKeyField,
+    NUMBER,
+)
 
 
 class IncomingEdge(Item):
