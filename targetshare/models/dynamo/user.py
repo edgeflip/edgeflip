@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.utils import timezone
 
 from .base import (
@@ -19,37 +21,30 @@ class Topics(dict):
     __slots__ = ()
 
     @classmethod
-    def classify(cls, _text):
+    def classify(cls, *posts):
         """Dummy text classifier."""
         # TODO: REPLACE WITH ACTUAL CLASSIFIER
-        return cls({'Health:Heart Disease': 8.2,
-                    'Sports': 0.3,
-                    'Sports:Badmitton': 0.2})
+        dummy_classifications = {
+            'Health:Heart Disease': 8.2,
+            'Sports': 0.3,
+            'Sports:Badmitton': 0.2,
+        }
+        return cls((post_id, dummy_classifications) for (post_id, _text) in posts)
 
-    # Define mapping addition, whereby match weights are summed #
+    # Define mapping addition, whereby match weights are summed
+    # (upsert must use dict.update)
 
     def __iadd__(self, other):
-        try:
-            items = other.items()
-        except (AttributeError, TypeError):
+        if not isinstance(other, dict):
             raise TypeError(
                 'can only concatenate Topics mapping (not "%s") to Topics'
                 % other.__class__.__name__
             )
 
-        for key, value in items:
-            # FIXME: This isn't enough, as don't want to duplicate count from
-            # FIXME: same post (when upserting) -- necessary to keep track of
-            # FIXME: post from which classification value came?
-            # FIXME: {POST_ID: {CLASSIFICATION: VALUE, ...}, ...}
-            # FIXME: Then this would just be -- self.update(other) -- (though
-            # this would lose multiplication of weight by number of
-            # interactions on a single post; confirm whether this is even
-            # desirable...)
-            # FIXME: ...but would also then need, say, a method gettopic(),
-            # which returns sum of weights for topic across posts, or something
-            # of the sort.
-            self[key] = self.get(key, 0) + value
+        for (post_id, classifications) in other.items():
+            classifications_self = self.setdefault(post_id, {})
+            for (key, value) in classifications.items():
+                classifications_self[key] = classifications_self.get(key, 0) + value
 
         return self
 
@@ -58,6 +53,17 @@ class Topics(dict):
         new += self
         new += other
         return new
+
+    def aggregate(self):
+        totals = defaultdict(int)
+        for classifications in self.itervalues():
+            for (key, value) in classifications.iteritems():
+                totals[key] += value
+        return totals
+
+    def __str__(self):
+        # Show aggregate weights but using dict format (not defaultdict):
+        return "{}".format(dict(self.aggregate()))
 
 
 class User(Item):
@@ -94,7 +100,7 @@ class User(Item):
 
     # Computed fields
     topics = ItemField(data_type=JSON(cls=Topics),
-                       upsert_strategy=UpsertStrategy.merge)
+                       upsert_strategy=UpsertStrategy.dict_update)
 
     @property
     def age(self):

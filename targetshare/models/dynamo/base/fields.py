@@ -10,8 +10,16 @@ class UpsertStrategy(object):
         obj[key] = value
 
     @staticmethod
-    def merge(obj, key, value):
+    def combine(obj, key, value):
         obj[key] += value
+
+    @staticmethod
+    def dict_update(obj, key, value):
+        dict_ = obj[key]
+        if dict_:
+            dict_.update(value)
+        else:
+            obj[key] = value
 
 
 class ItemField(object):

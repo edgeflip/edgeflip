@@ -604,7 +604,7 @@ class Stream(list):
 
                     # Topics superimposed s.t. weight multiplied by interaction count:
                     topics = user.topics
-                    topics += post.topics # force __iadd__
+                    topics += post.topics # force __iadd__ and respect tuple immutability
 
         def ranking(self):
             """Reduce the aggregate to a mapping of friends and their normalized
@@ -788,17 +788,16 @@ class StreamReaderThread(threading.Thread):
                     self.queue.put((min_time, max_time, qcount))
                 continue
 
-            with open('/tmp/stream' + self.name, 'w') as fh: # TODO: REMOVE
-                fh.write(json.dumps(data)) # TODO: REMOVE
-
             results = {entry['name']: entry['fql_result_set']
                        for entry in data['data']}
-
             stream = Stream(self.user_id)
             for post_data in results['stream']:
+                topics = Topics.classify(
+                    (post_data['post_id'], post_data['message']),
+                )
                 post = Stream.Post(
                     post_id=post_data['post_id'],
-                    topics=Topics.classify(post_data['message']),
+                    topics=topics,
                     interactions=[],
                 )
                 stream.append(post)
@@ -822,13 +821,11 @@ class StreamReaderThread(threading.Thread):
                                                    weight=rank_weight)
                                 for user_id in user_ids
                             )
-            # TODO: classify post messages here? and attach classifications to
-            # secondaries' likes/comments?
             # TODO: can perhaps take custom classifications as well, which
             # might require text-search rather than using the search tool
             # TODO: and if this gets expensive, can instead not default to all
             # topics, though will want to *be careful not to overwrite* existing
-            # Edge topic data.
+            # user topic data.
 
             count_good += 1
             self.results.append(stream)
