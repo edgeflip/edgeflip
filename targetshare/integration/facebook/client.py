@@ -284,7 +284,17 @@ def get_user(uid, token):
         birthday=decode_date(record['birthday_date']),
         city=location.get('city'),
         state=location.get('state'),
+        country=location.get('country'),
     )
+
+
+def get_friend_count(fbid, token):
+    num_friends_response = urlload('https://graph.facebook.com/fql', {
+        'q': "SELECT friend_count FROM user WHERE uid = {}".format(fbid),
+        'format': 'json',
+        'access_token': token,
+    })
+    return float(num_friends_response['data'][0]['friend_count'])
 
 
 def get_friend_edges(user, token, require_incoming=False, require_outgoing=False, skip=()):
@@ -316,12 +326,7 @@ def _get_friend_edges_simple(user, token):
     limit = settings.FACEBOOK.friendLoop.fqlLimit
 
     # Get the number of friends from FB to determine how many chunks to run
-    num_friends_response = urlload('https://graph.facebook.com/fql', {
-        'q': "SELECT friend_count FROM user WHERE uid = {}".format(user.fbid),
-        'format': 'json',
-        'access_token': token,
-    })
-    num_friends = float(num_friends_response['data'][0]['friend_count'])
+    num_friends = get_friend_count(user.fbid, token)
     chunks = int(ceil(num_friends / limit)) + 1  # one extra just to be safe
 
     # Set up the threads for reading the friend info
@@ -422,6 +427,7 @@ def _get_friend_edges_simple(user, token):
             birthday=decode_date(rec['birthday_date']),
             city=current_location.get('city'),
             state=current_location.get('state'),
+            country=current_location.get('country'),
             data={key: value for (key, value) in rec.items()
                   if key in PX3_EXTENDED_FIELDS},
         )

@@ -2,9 +2,11 @@ import celery
 
 from django.utils import timezone
 from freezegun import freeze_time
+from mock import patch
 
 from targetshare import models
 from targetshare.tasks import db, ranking
+from targetshare.integration.facebook.client import urllib2
 
 from . import EdgeFlipTestCase, patch_facebook
 
@@ -66,8 +68,9 @@ class TestRankingTasks(EdgeFlipTestCase):
         assert isinstance(filter_id, long)
         assert cs_slug is None or isinstance(cs_slug, basestring)
 
-    @patch_facebook
-    def test_proximity_rank_four(self):
+    @patch_facebook(min_friends=150, max_friends=200)
+    @patch('targetshare.tasks.ranking.logger')
+    def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
         ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
@@ -75,6 +78,53 @@ class TestRankingTasks(EdgeFlipTestCase):
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertIn('Falling back to FB', logger_mock.info.call_args[0][0])
+        # We know we have a call to get the user and the friend count at the
+        # very least. However, hitting FB should spawn many more hits to FB
+        self.assertGreater(urllib2.urlopen.call_count, 2)
+
+    @patch_facebook(min_friends=1, max_friends=99)
+    @patch('targetshare.tasks.ranking.logger')
+    def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+
+        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        assert all(x.incoming.post_likes is not None for x in ranked_edges)
+
+        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertIn(
+            'Has less than 100 friends, hitting FB',
+            logger_mock.info.call_args[0][0]
+        )
+        # We know we have a call to get the user and the friend count at the
+        # very least. However, hitting FB should spawn many more hits to FB
+        self.assertGreater(urllib2.urlopen.call_count, 2)
+
+    @patch_facebook(min_friends=100, max_friends=100)
+    @patch('targetshare.tasks.ranking.logger')
+    def test_proximity_rank_four_uses_dynamo(self, logger_mock):
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+        for x in range(0, 100):
+            edge = models.IncomingEdge(fbid_source=x, fbid_target=1, post_likes=x)
+            edge.save()
+            user = models.User(fbid=x)
+            user.save()
+
+        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        assert all(x.incoming.post_likes is not None for x in ranked_edges)
+
+        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertIn(
+            'using Dynamo data.',
+            logger_mock.info.call_args[0][0]
+        )
+        # One call to get the user, the other to get the friend count
+        self.assertEqual(
+            urllib2.urlopen.call_count,
+            2
+        )
 
     def test_fallback_cascade(self):
         # Some test users and edges

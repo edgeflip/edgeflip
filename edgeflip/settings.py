@@ -202,6 +202,7 @@ MIDDLEWARE_CLASSES = (
     # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
 
     'targetshare.middleware.VisitorMiddleware',
+    'targetshare.middleware.CookieVerificationMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'
@@ -340,6 +341,7 @@ SOUTH_TESTS_MIGRATE = False
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
 NOSE_ARGS = (
     '--with-blockage',
+    '--with-progressive',
     '--cover-branches',
     '--cover-erase',
     '--cover-html',
@@ -347,6 +349,7 @@ NOSE_ARGS = (
     '--exclude=^fab$',
     '--http-whitelist=localhost:4444',
     '--logging-level=ERROR',
+    '--logging-clear-handlers',
 )
 
 

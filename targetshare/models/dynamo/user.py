@@ -76,6 +76,7 @@ class User(Item):
     gender = ItemField()
     city = ItemField()
     state = ItemField()
+    country = ItemField()
 
     # Extended fields
     activities = ItemField(data_type=STRING_SET)
@@ -126,3 +127,7 @@ class User(Item):
     @property
     def name(self):
         return ' '.join(part for part in (self.fname, self.lname) if part)
+
+    @property
+    def full_location(self):
+        return '{}, {} {}'.format(self.city, self.state, self.country)

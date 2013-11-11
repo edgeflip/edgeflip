@@ -11,6 +11,8 @@ from targetshare.integration import facebook
 from targetshare.tasks import db
 
 logger = get_task_logger(__name__)
+MIN_FRIEND_COUNT = 100
+FRIEND_THRESHOLD_PERCENT = 90
 
 
 def proximity_rank_three(mock_mode, fbid, token, **kwargs):
@@ -291,26 +293,51 @@ def proximity_rank_four(mockMode, fbid, token):
     """Crawl and rank a user's network to proximity level four, and persist the
     User, secondary Users, Token and Edges to the database.
 
+
+    Under 100 people, just go to FB and get the best data
+    Over 100 people, let's make sure Dynamo has at least 90 percent
+
     """
     fb_client = facebook.mock_client if mockMode else facebook.client
     try:
         user = fb_client.get_user(fbid, token['token'])
-        # FIXME: When PX5 comes online, this get_friend_edges call could return
-        # insufficient results from the px5 crawls. We'll need to check the
-        # length of the edges list against a friends count from FB.
-        edges_unranked = models.datastructs.Edge.get_friend_edges(
-            user,
-            require_incoming=True,
-            require_outgoing=False,
-            max_age=timedelta(days=settings.FRESHNESS),
-        )
-        if not edges_unranked:
+        friend_count = fb_client.get_friend_count(fbid, token['token'])
+        if friend_count < MIN_FRIEND_COUNT:
+            logger.info(
+                'FBID {}: Has less than 100 friends, hitting FB'.format(fbid)
+            )
             edges_unranked = fb_client.get_friend_edges(
                 user,
                 token['token'],
                 require_incoming=True,
                 require_outgoing=False,
             )
+        else:
+            edges_unranked = models.datastructs.Edge.get_friend_edges(
+                user,
+                require_incoming=True,
+                require_outgoing=False,
+                max_age=timedelta(days=settings.FRESHNESS),
+            )
+            if (not friend_count or
+                    ((float(len(edges_unranked)) / friend_count) * 100) < FRIEND_THRESHOLD_PERCENT):
+                logger.info(
+                    'FBID {}: Has {} FB Friends, found {} in Dynamo. Falling back to FB'.format(
+                        fbid, friend_count, len(edges_unranked)
+                    )
+                )
+                edges_unranked = fb_client.get_friend_edges(
+                    user,
+                    token['token'],
+                    require_incoming=True,
+                    require_outgoing=False,
+                )
+            else:
+                logger.info(
+                    'FBID {}: Has {} FB Friends, found {} in Dynamo, using Dynamo data.'.format(
+                        fbid, friend_count, len(edges_unranked)
+                    )
+                )
     except IOError as exc:
         proximity_rank_four.retry(exc=exc)
 

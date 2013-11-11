@@ -146,15 +146,13 @@ def xrandrange(min_=0, max_=None, start=0, step=1):
     return xrange(start, random.randint(min_, max_), step)
 
 
-def crawl_mock():
+def crawl_mock(min_friends, max_friends):
     fake_fbids = tuple(set(100000000000 + random.randint(1, 10000000)
-                       for _ in xrandrange(1, 1000)))
+                       for _ in xrandrange(min_friends, max_friends)))
     friend_count = len(fake_fbids)
     synchronous_results = iter([
         # get_user:
         {'data': [mock_client.fakeUserInfo(1)]},
-        # get_friend_edges:
-        {'data': [{'friend_count': friend_count}]},
     ])
 
     def urlopen_mock(url):
@@ -185,6 +183,9 @@ def crawl_mock():
             ]
             return {'data': data}
 
+        elif 'friend_count+from' in url.lower():
+            return {'data': [{'friend_count': friend_count}]}
+
         elif 'from+user' in url.lower():
             # Friend info
             return {'data': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
@@ -211,9 +212,12 @@ def crawl_mock():
     )
 
 
-def patch_facebook(func=None):
+def patch_facebook(func=None, min_friends=1, max_friends=1000):
     patches = (
-        patch('targetshare.integration.facebook.client.urllib2.urlopen', crawl_mock()),
+        patch(
+            'targetshare.integration.facebook.client.urllib2.urlopen',
+            crawl_mock(min_friends, max_friends)
+        ),
         patch('targetshare.integration.facebook.client.extend_token', Mock(
             return_value=models.dynamo.Token(
                 token='test-token',
@@ -223,8 +227,13 @@ def patch_facebook(func=None):
             )
         )),
     )
-    if func:
+
+    def decorator(func):
         for facebook_patch in patches:
             func = facebook_patch(func)
         return func
-    return patches
+
+    if func:
+        return decorator(func)
+    else:
+        return decorator
