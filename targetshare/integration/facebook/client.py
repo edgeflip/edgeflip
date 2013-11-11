@@ -22,7 +22,7 @@ from targetshare.models import datastructs, dynamo
 from targetshare.models.dynamo.user import Topics
 
 
-logger = logging.getLogger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 # stock queries for facebook #
@@ -197,9 +197,9 @@ def urlload(url, query=()):
             return json.load(response)
     except IOError as exc:
         exc_type, exc_value, trace = sys.exc_info()
-        logger.exception("Error opening URL %s %r", url, getattr(exc, 'reason', ''))
+        LOG.exception("Error opening URL %s %r", url, getattr(exc, 'reason', ''))
         try:
-            logger.error("Returned error message was: %s", exc.read())
+            LOG.error("Returned error message was: %s", exc.read())
         except Exception:
             pass
         raise exc_type, exc_value, trace
@@ -215,8 +215,8 @@ def _urlload_thread(url, query=(), results=None):
     data = response['data']
     results.extend(data)
 
-    logger.debug('Thread %s read %s records from FB in %s',
-                 threading.current_thread().name, len(data), tim.elapsedPr())
+    LOG.debug('Thread %s read %s records from FB in %s',
+              threading.current_thread().name, len(data), tim.elapsedPr())
     return len(data)
 
 
@@ -237,14 +237,14 @@ def extend_token(fbid, appid, token):
             params = urlparse.parse_qs(response.read())
         token1 = params['access_token'][0]
         expires = int(params['expires'][0])
-        logging.debug("Extended access token %s expires in %s seconds", token1, expires)
+        LOG.debug("Extended access token %s expires in %s seconds", token1, expires)
         expires1 = ts + expires
     except (IOError, IndexError, KeyError) as exc:
         if hasattr(exc, 'read'): # built-in hasattr won't overwrite exc_info
             error_response = exc.read()
         else:
             error_response = ''
-        logger.warning(
+        LOG.warning(
             "Failed to extend token %s%s",
             token,
             error_response and ': %r' % error_response,
@@ -289,11 +289,11 @@ def get_user(uid, token):
 
 def get_friend_edges(user, token, require_incoming=False, require_outgoing=False, skip=()):
     """Retrieve user's stream and return the Edges between the user and friends."""
-    logger.debug("getting friend edges from FB for %d", user.fbid)
+    LOG.debug("getting friend edges from FB for %d", user.fbid)
     tim = utils.Timer()
 
     edges = _get_friend_edges_simple(user, token)
-    logger.debug("got %d friends total", len(edges))
+    LOG.debug("got %d friends total", len(edges))
     if skip:
         edges = [edge for edge in edges if edge.secondary.fbid not in skip]
 
@@ -302,13 +302,13 @@ def get_friend_edges(user, token, require_incoming=False, require_outgoing=False
     else:
         edges.sort(key=lambda edge: edge.incoming.mut_friends, reverse=True)
 
-    logger.debug("got %d friend edges for %d (%s)", len(edges), user.fbid, tim.elapsedPr())
+    LOG.debug("got %d friend edges for %d (%s)", len(edges), user.fbid, tim.elapsedPr())
     return edges
 
 
 def _get_friend_edges_simple(user, token):
     """Retrieve basic info on user's FB friends in a single call."""
-    logger.debug("getting friends for %d", user.fbid)
+    LOG.debug("getting friends for %d", user.fbid)
 
     timer = utils.Timer()
     loop_timeout = settings.FACEBOOK.friendLoop.timeout
@@ -411,8 +411,8 @@ def _get_friend_edges_simple(user, token):
         other_photo_tags = otherPhotoCounts[friendId]
 
         if primary_photo_tags + other_photo_tags > 0:
-            logger.debug("Friend %d has %d primary photo tags and %d other photo tags",
-                         friendId, primary_photo_tags, other_photo_tags)
+            LOG.debug("Friend %d has %d primary photo tags and %d other photo tags",
+                      friendId, primary_photo_tags, other_photo_tags)
 
         friend = dynamo.User(
             fbid=friendId,
@@ -435,19 +435,19 @@ def _get_friend_edges_simple(user, token):
 
         friends[friend.fbid] = datastructs.Edge(user, friend, edge_data)
 
-    logger.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer.elapsedPr())
+    LOG.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer.elapsedPr())
     return friends.values()
 
 
 def _extend_friend_edges(user, token, edges, require_outgoing=False):
-    logger.info('reading stream for user %s', user.fbid)
+    LOG.info('reading stream for user %s', user.fbid)
     stream = Stream.read(user.fbid, token)
-    logging.debug('got %r', stream)
+    LOG.debug('got %r', stream)
 
     # sort all the friends by their stream rank (if any) and mutual friend count
     aggregate = stream.aggregate()
     friend_streamrank = aggregate.ranking()
-    logger.debug("got %d friends ranked", len(friend_streamrank))
+    LOG.debug("got %d friends ranked", len(friend_streamrank))
     edges0 = sorted(edges, key=lambda edge:
         (friend_streamrank.get(edge.secondary.fbid, sys.maxint),
          -1 * edge.incoming.mut_friends)
@@ -475,7 +475,7 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
 
         outgoing = edge.outgoing
         if require_outgoing and not outgoing:
-            logger.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
+            LOG.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
             outgoing = _get_outgoing_edge(user, edge.secondary, token)
 
         edges1.append(edge._replace(secondary=secondary, incoming=incoming, outgoing=outgoing))
@@ -493,13 +493,13 @@ def _get_outgoing_edge(user, friend, token):
                              settings.STREAM_READ_TIMEOUT_OUT,
                              settings.STREAM_READ_SLEEP_OUT)
     except Exception:
-        logger.warning("error reading stream for %d", friend.fbid, exc_info=True)
+        LOG.warning("error reading stream for %d", friend.fbid, exc_info=True)
         return
 
     aggregate = stream.aggregate()
     user_aggregate = aggregate[friend.fbid]
     user_interactions = user_aggregate.interactions
-    logging.debug('got %s', user_aggregate)
+    LOG.debug('got %s', user_aggregate)
     outgoing = dynamo.IncomingEdge(
         fbid_source=user.fbid,
         fbid_target=friend.fbid,
@@ -520,7 +520,7 @@ def _get_outgoing_edge(user, friend, token):
     friend_secs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
     secs_left = friend_secs - timer.elapsedSecs()
     if secs_left > 0:
-        logger.debug("Nap time! Waiting %d seconds...", secs_left)
+        LOG.debug("Nap time! Waiting %d seconds...", secs_left)
         time.sleep(secs_left)
 
     return outgoing
@@ -658,9 +658,9 @@ class Stream(list):
              loop_timeout=settings.STREAM_READ_TIMEOUT_IN,
              loop_sleep=settings.STREAM_READ_SLEEP_IN):
 
-        logger.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r)",
-                     user_id, token[:10] + " ...", num_days,
-                     chunk_size, thread_count, loop_timeout, loop_sleep)
+        LOG.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r)",
+                  user_id, token[:10] + " ...", num_days,
+                  chunk_size, thread_count, loop_timeout, loop_sleep)
 
         timer = utils.Timer()
         chunk_inputs = Queue.Queue() # fill with (time0, time1) pairs
@@ -698,14 +698,14 @@ class Stream(list):
                 else:
                     break
         except KeyboardInterrupt:
-            logger.info("ctrl-c, kill 'em all")
+            LOG.info("ctrl-c, kill 'em all")
             for thread in threads:
                 thread.kill_received = True
-            logger.debug("now have %d threads",
-                         len([thread for thread in threads if thread.isAlive()]))
+            LOG.debug("now have %d threads",
+                      len([thread for thread in threads if thread.isAlive()]))
 
-        logger.debug("%d threads still alive after loop", len(threads))
-        logger.debug("%d chunk results for user %s", len(chunk_outputs), user_id)
+        LOG.debug("%d threads still alive after loop", len(threads))
+        LOG.debug("%d chunk results for user %s", len(chunk_outputs), user_id)
 
         num_chunks = num_days / chunk_size # How many chunks should we get back?
         failure_rate = float(num_chunks - len(chunk_outputs)) / num_chunks
@@ -717,12 +717,12 @@ class Stream(list):
 
         stream = cls(user_id)
         for count, chunk in enumerate(chunk_outputs):
-            logger.debug("chunk %d: %s", count, chunk)
+            LOG.debug("chunk %d: %s", count, chunk)
             stream += chunk
 
-        logger.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r) done in %s",
-                     user_id, token[:10] + " ...", num_days, chunk_size,
-                     thread_count, loop_timeout, loop_sleep, timer.elapsedPr())
+        LOG.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r) done in %s",
+                  user_id, token[:10] + " ...", num_days, chunk_size,
+                  thread_count, loop_timeout, loop_sleep, timer.elapsedPr())
         return stream
 
 
@@ -738,7 +738,7 @@ class StreamReaderThread(threading.Thread):
         self.lifespan = lifespan
 
     def run(self):
-        logger.debug("Thread %s: starting", self.name)
+        LOG.debug("Thread %s: starting", self.name)
         time_stop = time.time() + self.lifespan
         timer = utils.Timer()
         count_good = 0
@@ -750,10 +750,10 @@ class StreamReaderThread(threading.Thread):
             except Queue.Empty:
                 break
 
-            logger.debug("Thread %s: reading stream for %s, interval (%s - %s)",
-                         self.name, self.user_id,
-                         time.strftime("%m/%d", time.localtime(min_time)),
-                         time.strftime("%m/%d", time.localtime(max_time)))
+            LOG.debug("Thread %s: reading stream for %s, interval (%s - %s)",
+                      self.name, self.user_id,
+                      time.strftime("%m/%d", time.localtime(min_time)),
+                      time.strftime("%m/%d", time.localtime(max_time)))
             timer_chunk = utils.Timer()
 
             stream_label = 'stream'
@@ -777,10 +777,10 @@ class StreamReaderThread(threading.Thread):
                     'access_token': self.token,
                 })
             except IOError:
-                logger.exception("Thread %s: error reading stream chunk for user %s (%s - %s)",
-                                 self.name, self.user_id,
-                                 time.strftime("%m/%d", time.localtime(min_time)),
-                                 time.strftime("%m/%d", time.localtime(max_time)))
+                LOG.exception("Thread %s: error reading stream chunk for user %s (%s - %s)",
+                              self.name, self.user_id,
+                              time.strftime("%m/%d", time.localtime(min_time)),
+                              time.strftime("%m/%d", time.localtime(max_time)))
                 count_bad += 1
                 self.queue.task_done()
                 qcount += 1
@@ -830,15 +830,15 @@ class StreamReaderThread(threading.Thread):
             count_good += 1
             self.results.append(stream)
             self.queue.task_done()
-            logger.debug("Thread %s: stream chunk for %s took %s: %s",
-                         self.name, self.user_id, timer_chunk.elapsedPr(), stream)
+            LOG.debug("Thread %s: stream chunk for %s took %s: %s",
+                      self.name, self.user_id, timer_chunk.elapsedPr(), stream)
 
         else:
             # We've reached the stop limit
-            logger.debug("Thread %s: reached lifespan, exiting", self.name)
+            LOG.debug("Thread %s: reached lifespan, exiting", self.name)
 
-        logger.debug("Thread %s: finished with %d/%d good (took %s)",
-                     self.name, count_good, (count_good + count_bad), timer.elapsedPr())
+        LOG.debug("Thread %s: finished with %d/%d good (took %s)",
+                  self.name, count_good, (count_good + count_bad), timer.elapsedPr())
 
 
 class BadChunksError(IOError):
