@@ -2,7 +2,6 @@ import json
 import os.path
 import random
 import urllib
-import urllib2
 
 from mock import Mock, patch
 
@@ -164,8 +163,8 @@ def crawl_mock(min_friends, max_friends):
             pass
 
         # Threaded results:
-        if isinstance(url, urllib2.Request):
-            # ThreadStreamReader
+        if 'from+stream' in url.lower():
+            # StreamReaderThread
             data = [
                 {'name': 'tags', 'fql_result_set': [{'tagged_ids': list(xrandrange(0, 25, 1))}
                                                     for _ in xrandrange(0, 25)]},
@@ -203,6 +202,9 @@ def crawl_mock(min_friends, max_friends):
                  'fql_result_set': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
                                     for fbid in fake_fbids]},
             ]}
+
+        else:
+            raise RuntimeError("No mock for URL: {}".format(url))
 
     # mock to be patched on urllib2.urlopen:
     return Mock(side_effect=lambda url, timeout=None:

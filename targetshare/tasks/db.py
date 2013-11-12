@@ -4,6 +4,7 @@ from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
 
 from targetshare import models
+from targetshare.models.dynamo.base import UpsertStrategy
 
 
 LOG = get_task_logger(__name__)
@@ -107,7 +108,9 @@ def upsert(*items):
 
         # update the existing item:
         for key, value in item.items():
-            existing[key] = value
+            field = cls._meta.fields.get(key)
+            strategy = field.upsert_strategy if field else UpsertStrategy.overwrite
+            strategy(existing, key, value)
 
         partial_save.delay(existing)
 

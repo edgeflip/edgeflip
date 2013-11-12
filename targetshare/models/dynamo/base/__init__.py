@@ -1,6 +1,6 @@
 from .item import Item, item_declared
 from .manager import ItemManager
-from .fields import ItemField, HashKeyField, RangeKeyField
+from .fields import ItemField, HashKeyField, RangeKeyField, UpsertStrategy
 from .types import (
     BOOL,
     DATE,
