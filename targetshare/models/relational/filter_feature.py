@@ -116,7 +116,7 @@ class FilterFeature(models.Model):
 
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""
-        if '.' in self.value:
+        if '.' in str(self.value):
             try:
                 self.value = float(self.value)
             except (TypeError, ValueError):
