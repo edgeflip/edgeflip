@@ -10,30 +10,29 @@ from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
-logger = get_task_logger(__name__)
-MIN_FRIEND_COUNT = 100
-FRIEND_THRESHOLD_PERCENT = 90
+LOG = get_task_logger(__name__)
+
+DB_MIN_FRIEND_COUNT = 100
+DB_FRIEND_THRESHOLD = 90 # percent
 
 
-def proximity_rank_three(mock_mode, fbid, token, **kwargs):
+def proximity_rank_three(token, **filtering_args):
     ''' Builds the px3 crawl and filtering chain '''
     chain = (
-        px3_crawl.s(mock_mode, fbid, token) |
-        perform_filtering.s(fbid=fbid, **kwargs)
+        px3_crawl.s(token) |
+        perform_filtering.s(fbid=token.fbid, **filtering_args)
     )
-    task = chain.apply_async()
-    return task
+    return chain.apply_async()
 
 
 @celery.task(default_retry_delay=1, max_retries=3)
-def px3_crawl(mockMode, fbid, token):
+def px3_crawl(token):
     """Crawl and rank a user's network to proximity level three."""
-    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.get_user(fbid, token['token'])
-        edges_unranked = fb_client.get_friend_edges(
+        user = facebook.client.get_user(token.fbid, token.token)
+        edges_unranked = facebook.client.get_friend_edges(
             user,
-            token['token'],
+            token.token,
             require_incoming=False,
             require_outgoing=False
         )
@@ -72,9 +71,9 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
 
-    if properties.fallback_is_cascading and (properties.fallback_campaign is None):
-        logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                     campaignId)
+    if properties.fallback_is_cascading and properties.fallback_campaign is None:
+        LOG.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                  campaignId)
         fallback_cascading = None
 
     # if fallback content_id IS NULL, defer to current content_id
@@ -93,7 +92,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         campaign=campaign,
         content=client_content,
     ).values_list('friend_fbid', flat=True))
-    exclude_friends = exclude_friends.union(already_picked.secondary_ids)    # avoid re-adding if already picked
+    # avoid re-adding if already picked:
+    exclude_friends = exclude_friends.union(already_picked.secondary_ids)
     edges_eligible = [
         edge for edge in edgesRanked if edge.secondary.fbid not in exclude_friends
     ]
@@ -144,13 +144,13 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             contentId=contentId
         )
     except models.relational.ChoiceSet.TooFewFriendsError:
-        logger.info("Too few friends found for %s with campaign %s. Checking for fallback.",
-                    fbid, campaignId)
+        LOG.info("Too few friends found for %s with campaign %s. Checking for fallback.",
+                 fbid, campaignId)
 
     if bestCSFilter:
         if bestCSFilter[0] is None:
             # We got generic...
-            logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
+            LOG.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
@@ -213,11 +213,8 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
             # zzz Obviously, do something smarter here...
-            logger.info(
-                "No fallback for %s with campaign %s. Returning error to user.",
-                fbid,
-                campaignId
-            )
+            LOG.info("No fallback for %s with campaign %s. Returning error to user.",
+                     fbid, campaignId)
             # zzz ideally, want this to be the full URL with
             #     flask.url_for(), but complicated with Celery...
             thisContent = '%s:button /frame_faces/%s/%s' % (
@@ -289,55 +286,45 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 
 
 @celery.task(default_retry_delay=1, max_retries=3)
-def proximity_rank_four(mockMode, fbid, token):
+def proximity_rank_four(token):
     """Crawl and rank a user's network to proximity level four, and persist the
     User, secondary Users, Token and Edges to the database.
 
-
-    Under 100 people, just go to FB and get the best data
-    Over 100 people, let's make sure Dynamo has at least 90 percent
+    Under 100 people, just go to FB and get the best data;
+    over 100 people, let's make sure Dynamo has at least 90 percent.
 
     """
-    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.get_user(fbid, token['token'])
-        friend_count = fb_client.get_friend_count(fbid, token['token'])
-        if friend_count < MIN_FRIEND_COUNT:
-            logger.info(
-                'FBID {}: Has less than 100 friends, hitting FB'.format(fbid)
-            )
-            edges_unranked = fb_client.get_friend_edges(
-                user,
-                token['token'],
-                require_incoming=True,
-                require_outgoing=False,
-            )
-        else:
+        user = facebook.client.get_user(token.fbid, token.token)
+        friend_count = facebook.client.get_friend_count(token.fbid, token.token)
+        if friend_count >= DB_MIN_FRIEND_COUNT:
             edges_unranked = models.datastructs.Edge.get_friend_edges(
                 user,
                 require_incoming=True,
                 require_outgoing=False,
                 max_age=timedelta(days=settings.FRESHNESS),
             )
-            if (not friend_count or
-                    ((float(len(edges_unranked)) / friend_count) * 100) < FRIEND_THRESHOLD_PERCENT):
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo. Falling back to FB'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
-                edges_unranked = fb_client.get_friend_edges(
-                    user,
-                    token['token'],
-                    require_incoming=True,
-                    require_outgoing=False,
-                )
+            if (
+                not friend_count or
+                100.0 * len(edges_unranked) / friend_count >= DB_FRIEND_THRESHOLD
+            ):
+                LOG.info('FBID %r: Has %r FB Friends, found %r in Dynamo; using Dynamo data.',
+                         token.fbid, friend_count, len(edges_unranked))
             else:
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo, using Dynamo data.'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
+                LOG.info('FBID %r: Has %r FB Friends, found %r in Dynamo; falling back to FB',
+                         token.fbid, friend_count, len(edges_unranked))
+                edges_unranked = None
+        else:
+            LOG.info('FBID %r: Has %r friends, hitting FB', token.fbid, friend_count)
+            edges_unranked = None
+
+        if edges_unranked is None:
+            edges_unranked = facebook.client.get_friend_edges(
+                user,
+                token.token,
+                require_incoming=True,
+                require_outgoing=False,
+            )
     except IOError as exc:
         proximity_rank_four.retry(exc=exc)
 
