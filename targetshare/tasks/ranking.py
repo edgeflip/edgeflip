@@ -285,8 +285,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         )
 
 
+def proximity_rank_four(token, **filtering_args):
+    chain = (
+        px4_crawl.s(token) |
+        refine_ranking.s(fbid=token.fbid, **filtering_args)
+    )
+    return chain.apply_async()
+
+
 @celery.task(default_retry_delay=1, max_retries=3)
-def proximity_rank_four(token):
+def px4_crawl(token):
     """Crawl and rank a user's network to proximity level four, and persist the
     User, secondary Users, Token and Edges to the database.
 
@@ -326,7 +334,7 @@ def proximity_rank_four(token):
                 require_outgoing=False,
             )
     except IOError as exc:
-        proximity_rank_four.retry(exc=exc)
+        px4_crawl.retry(exc=exc)
 
     edges_ranked = models.datastructs.EdgeAggregate.rank(
         edges_unranked,
@@ -340,3 +348,13 @@ def proximity_rank_four(token):
     db.update_edges.delay(edges_ranked)
 
     return edges_ranked
+
+
+@celery.task
+def refine_ranking(edges_ranked, campaign_id, content_id, fbid, visit_id, num_face,
+                   fallback_count=0, already_picked=None,
+                   visit_type='targetshare.Visit', cache_match=False):
+    # TODO: at least, refine ranking by sorting by RankRefinements or some such
+    # thing (topics); but perhaps also do a perform_filtering, but with the aid
+    # of RefinedFilters, or something...
+    raise NotImplementedError

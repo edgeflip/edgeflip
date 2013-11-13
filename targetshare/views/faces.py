@@ -182,7 +182,7 @@ def faces(request):
             contentId=content_id,
             numFace=num_face,
         ).id
-        px4_task = ranking.proximity_rank_four.delay(token)
+        px4_task = ranking.proximity_rank_four(token)
         return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',
