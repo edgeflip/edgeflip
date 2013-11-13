@@ -116,11 +116,24 @@ class FilterFeature(models.Model):
 
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""
+        if '.' in self.value:
+            try:
+                self.value = float(self.value)
+            except (TypeError, ValueError):
+                pass
+        else:
+            try:
+                self.value = long(self.value)
+            except (TypeError, ValueError):
+                pass
+
         if isinstance(self.value, (int, long)):
             self.value_type = self.INT
         elif isinstance(self.value, float):
             self.value_type = self.FLOAT
             self.value = '%.8f' % self.value
+        elif isinstance(self.value, basestring) and self.FILTER_LIST_DELIM in self.value:
+            self.value_type = self.LIST
         elif isinstance(self.value, basestring):
             self.value_type = self.STRING
         elif isinstance(self.value, (list, tuple)):
