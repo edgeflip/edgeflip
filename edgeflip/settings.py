@@ -326,7 +326,7 @@ CLIENT_FBOBJECT = {
 FB_PERMS_LIST = [
     'read_stream', 'user_photos', 'friends_photos',
     'email', 'user_birthday', 'friends_birthday',
-    'publish_actions', 'user_about_me', 'user_location',
+    'user_about_me', 'user_location',
     'friends_location', 'user_likes', 'friends_likes',
     'user_interests', 'friends_interests'
 ]

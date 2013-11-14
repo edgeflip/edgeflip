@@ -50,7 +50,7 @@ function doFBLogin() {
                 $('#reconnect_text').hide();
             });
         }
-    }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,publish_actions,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
+    }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
 
 }
 
@@ -100,7 +100,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
                 your_friends_div.show();
                 progress.hide();
                 clearTimeout(pollingTimer);
-		top.location = errorURL; // set in frame_faces.html
+                top.location = errorURL; // set in frame_faces.html
             },
             success: function(data, textStatus, jqXHR) {
                 campaignid = data.campaignid;
