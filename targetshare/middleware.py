@@ -24,23 +24,28 @@ class VisitorMiddleware(object):
 class CookieVerificationMiddleware(object):
 
     def process_response(self, request, response):
-        # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
-        if not hasattr(request, 'session'):
+        try:
+            session = request.session
+        except AttributeError:
+            # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
             return response
 
-        referer = request.META.get('HTTP_REFERER')
-        visit = getattr(request, 'visit', None)
-        if referer and settings.SESSION_COOKIE_DOMAIN in referer:
-            if request.session.test_cookie_worked() and visit:
-                request.session.delete_test_cookie()
+        if session.test_cookie_worked():
+            session.delete_test_cookie()
+
+            visit = getattr(request, 'visit', None)
+            referer = request.META.get('HTTP_REFERER', '')
+            if settings.SESSION_COOKIE_DOMAIN in referer and visit:
+                # TODO: Block competing thread during transaction
+                # DETERMINE: Does select_for_update work if select not expected to return any rows?
                 relational.Event.objects.get_or_create(
-                    visit=request.visit,
+                    visit=visit,
                     event_type='cookies_enabled',
                     content=referer[:1028],
                 )
 
         if not request.is_ajax():
             # Must be a new request
-            request.session.set_test_cookie()
+            session.set_test_cookie()
 
         return response
