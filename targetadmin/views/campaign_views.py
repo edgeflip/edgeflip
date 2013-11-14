@@ -25,6 +25,14 @@ class CampaignDetailView(ClientRelationDetailView):
     edit_url_name = 'campaign-edit'
     template_name = 'targetadmin/campaign_detail.html'
 
+    def get_context_data(self, **kwargs):
+        context = super(CampaignDetailView, self).get_context_data(**kwargs)
+        context.update({
+            'properties': self.object.campaignproperties.get(),
+            'choice_set': self.object.campaignchoicesets.get(),
+        })
+        return context
+
 
 campaign_detail = CampaignDetailView.as_view()
 
