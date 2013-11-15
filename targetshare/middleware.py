@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import transaction
 
 from targetshare.models import relational
 
@@ -25,22 +26,29 @@ class CookieVerificationMiddleware(object):
 
     def process_response(self, request, response):
         # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
-        if not hasattr(request, 'session'):
+        try:
+            session = request.session
+        except AttributeError:
             return response
 
-        referer = request.META.get('HTTP_REFERER')
-        visit = getattr(request, 'visit', None)
-        if referer and settings.SESSION_COOKIE_DOMAIN in referer:
-            if request.session.test_cookie_worked() and visit:
-                request.session.delete_test_cookie()
-                relational.Event.objects.get_or_create(
-                    visit=request.visit,
-                    event_type='cookies_enabled',
-                    content=referer[:1028],
-                )
+        if session.test_cookie_worked():
+            session.delete_test_cookie()
+
+            visit = getattr(request, 'visit', None)
+            referer = request.META.get('HTTP_REFERER', '')
+            if settings.SESSION_COOKIE_DOMAIN in referer and visit:
+                # We have no uniqueness constraint to defend against duplicate
+                # events created by competing threads, so lock get() via
+                # select_for_update:
+                with transaction.commit_on_success():
+                    relational.Event.objects.select_for_update().get_or_create(
+                        visit=visit,
+                        event_type='cookies_enabled',
+                        content=referer[:1028],
+                    )
 
         if not request.is_ajax():
-            # Must be a new request
-            request.session.set_test_cookie()
+            # Don't bother unless it's a new "page" request
+            session.set_test_cookie()
 
         return response
