@@ -5,7 +5,7 @@ from . import TestAdminBase
 
 class TestClientViews(TestAdminBase):
 
-    fixtures = ['targetadmin_test_data']
+    fixtures = ['test_data']
 
     def test_client_list(self):
         """ Test client listing """
@@ -18,7 +18,7 @@ class TestClientViews(TestAdminBase):
         response = self.client.get(reverse(
             'client-detail', args=[self.test_client.pk]))
         self.assertStatusCode(response, 200)
-        self.assertEqual(response.context['client'].name, 'Testing Client')
+        self.assertEqual(response.context['client'].name, 'mockclient')
 
     def test_create_new_client_get(self):
         """ Test new client view via GET"""

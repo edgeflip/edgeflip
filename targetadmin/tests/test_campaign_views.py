@@ -6,12 +6,11 @@ from targetshare.models import relational
 
 class TestCampaignViews(TestAdminBase):
 
-    fixtures = ['targetadmin_test_data']
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestCampaignViews, self).setUp()
-        self.campaign = self.test_client.campaigns.create(
-            name='test campaign')
+        self.campaign = self.test_client.campaigns.get(pk=1)
 
     def test_campaign_list_view(self):
         ''' Test viewing a content list '''
@@ -162,4 +161,33 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(
             response.context['form'].errors['generic_fb_object'][0],
             'Generic FB Object not selected, but Allow Generic specified as True'
+        )
+
+    def test_campaign_clone(self):
+        response = self.client.get(
+            reverse('campaign-new', args=[self.test_client.pk]), {
+                'clone_pk': 1
+            }
+        )
+        self.assertStatusCode(response, 200)
+        props = self.campaign.campaignproperties.get()
+        initial_dict = {
+            'faces_url': props.client_faces_url,
+            'error_url': props.client_error_url,
+            'thanks_url': props.client_thanks_url,
+            'generic_fb_object': self.campaign.generic_fb_object.fb_object,
+            'allow_generic': True,
+            'fallback_campaign': None,
+            'min_friends_to_show': 1,
+            'fb_object': self.campaign.fb_object.fb_object,
+            'generic_url_slug': u'all',
+            'global_filter': self.campaign.global_filter.filter,
+            'button_style': None,
+            'cascading_fallback': None,
+            'choice_set': self.campaign.choice_set.choice_set,
+            'fallback_content': None
+        }
+        self.assertEqual(
+            response.context['form'].initial,
+            initial_dict
         )

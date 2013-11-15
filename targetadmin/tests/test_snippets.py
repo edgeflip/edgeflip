@@ -6,7 +6,7 @@ from targetshare.utils import encodeDES
 
 class TestSnippetViews(TestAdminBase):
 
-    fixtures = ['targetadmin_test_data']
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestSnippetViews, self).setUp()
