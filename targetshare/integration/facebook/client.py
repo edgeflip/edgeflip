@@ -294,7 +294,7 @@ def get_friend_count(fbid, token):
         'format': 'json',
         'access_token': token,
     })
-    return float(num_friends_response['data'][0]['friend_count'])
+    return num_friends_response['data'][0]['friend_count']
 
 
 def get_friend_edges(user, token, require_incoming=False, require_outgoing=False, skip=()):
@@ -327,7 +327,7 @@ def _get_friend_edges_simple(user, token):
 
     # Get the number of friends from FB to determine how many chunks to run
     num_friends = get_friend_count(user.fbid, token)
-    chunks = int(ceil(num_friends / limit)) + 1  # one extra just to be safe
+    chunks = int(ceil(float(num_friends) / limit)) + 1 # one extra just to be safe
 
     # Set up the threads for reading the friend info
     threads = []

@@ -36,26 +36,27 @@ class Filter(models.Model):
         elif operator == 'in':
             return user_val in value
 
-
     def filter_edges_by_sec(self, edges, cache_match=False):
         """Given a list of edge objects, return those objects for which
         the secondary passes the current filter."""
-        if not self.filterfeatures.exists():
-            return edges
-        for f in self.filterfeatures.all():
-            if f.feature_type.code == f.feature_type.MATCHING:
+        for filter_ in self.filterfeatures.all():
+            if filter_.feature_type.code == filter_.feature_type.MATCHING:
+                # Civis matching:
                 if cache_match:
-                    client.civis_cached_filter(
-                        edges, f.feature, f.operator, f.value
+                    edges = client.civis_cached_filter(
+                        edges, filter_.feature, filter_.operator, filter_.value
                     )
                 else:
                     edges = client.civis_filter(
-                        edges, f.feature, f.operator, f.value
+                        edges, filter_.feature, filter_.operator, filter_.value
                     )
-            # Standard min/max/eq/in filters below
             else:
-                edges = [x for x in edges if self._standard_filter(
-                    x.secondary, f.feature, f.operator, f.decoded_value)]
+                # Standard min/max/eq/in filters:
+                edges = [edge for edge in edges
+                         if self._standard_filter(edge.secondary,
+                                                  filter_.feature,
+                                                  filter_.operator,
+                                                  filter_.decoded_value)]
         return edges
 
     def __unicode__(self):

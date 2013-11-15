@@ -28,7 +28,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
         '''
-        task_id = ranking.proximity_rank_three(False, 1, self.token)
+        task_id = ranking.proximity_rank_three(self.token)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
 
@@ -41,7 +41,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = ranking.px3_crawl(False, 1, self.token)
+        ranked_edges = ranking.px3_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
 
     @patch_facebook
@@ -53,7 +53,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         #        some cases return a set of edges in which none meet the filter
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
-        ranked_edges = ranking.px3_crawl(False, 1, self.token)
+        ranked_edges = ranking.px3_crawl(self.token)
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
             campaignId=1,
@@ -69,32 +69,32 @@ class TestRankingTasks(EdgeFlipTestCase):
         assert cs_slug is None or isinstance(cs_slug, basestring)
 
     @patch_facebook(min_friends=150, max_friends=200)
-    @patch('targetshare.tasks.ranking.logger')
+    @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
+        ranked_edges = ranking.proximity_rank_four(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
-        self.assertIn('Falling back to FB', logger_mock.info.call_args[0][0])
+        self.assertIn('falling back to FB', logger_mock.info.call_args[0][0])
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=1, max_friends=99)
-    @patch('targetshare.tasks.ranking.logger')
+    @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
+        ranked_edges = ranking.proximity_rank_four(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
         self.assertIn(
-            'Has less than 100 friends, hitting FB',
+            'Has %r friends, hitting FB',
             logger_mock.info.call_args[0][0]
         )
         # We know we have a call to get the user and the friend count at the
@@ -102,7 +102,7 @@ class TestRankingTasks(EdgeFlipTestCase):
         self.assertGreater(urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=100, max_friends=100)
-    @patch('targetshare.tasks.ranking.logger')
+    @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_uses_dynamo(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
         for x in range(0, 100):
@@ -111,7 +111,7 @@ class TestRankingTasks(EdgeFlipTestCase):
             user = models.User(fbid=x)
             user.save()
 
-        ranked_edges = ranking.proximity_rank_four(False, 1, self.token)
+        ranked_edges = ranking.proximity_rank_four(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 

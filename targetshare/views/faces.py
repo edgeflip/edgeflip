@@ -176,15 +176,13 @@ def faces(request):
         token = fb_client.extend_token(long(fbid), client.fb_app_id, token_string)
         db.delayed_save(token, overwrite=True)
         px3_task_id = ranking.proximity_rank_three(
-            mock_mode=mock_mode,
             token=token,
-            fbid=fbid,
             visit_id=request.visit.pk,
             campaignId=campaign_id,
             contentId=content_id,
             numFace=num_face,
         ).id
-        px4_task = ranking.proximity_rank_four.delay(mock_mode, fbid, token)
+        px4_task = ranking.proximity_rank_four.delay(token)
         return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',

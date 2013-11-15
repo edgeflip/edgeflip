@@ -138,11 +138,7 @@ class Command(BaseCommand):
                 uuid=hash_str, fbid=ut['fbid'], notification=self.notification
             )
             try:
-                edges = ranking.proximity_rank_four(
-                    mockMode=self.mock,
-                    fbid=ut['fbid'],
-                    token=ut
-                )
+                edges = ranking.proximity_rank_four(ut)
             except IOError:
                 logger.exception('Failed to crawl {}'.format(ut['fbid']))
                 self.failed_fbids.append(ut['fbid'])
