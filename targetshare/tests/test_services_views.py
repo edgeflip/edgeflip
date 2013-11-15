@@ -109,12 +109,12 @@ class TestServicesViews(EdgeFlipViewTestCase):
         )
         campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
         self.assertStatusCode(response, 302)
-        expected_url = 'http://testserver{}?campaign_id={}'.format(
+        expected_url = 'http://testserver{}?{}'.format(
             reverse('outgoing', args=[
-                campaign_props.campaign.client._fb_app_id,
-                campaign_props.client_error_url]
+                campaign_props.campaign.client.fb_app_id,
+                urllib.quote_plus(campaign_props.client_error_url)]
             ),
-            campaign_props.campaign.pk
+            urllib.urlencode({'campaignid': campaign_props.campaign.pk})
         )
         self.assertEqual(
             response['Location'],

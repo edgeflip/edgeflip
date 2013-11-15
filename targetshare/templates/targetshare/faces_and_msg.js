@@ -482,7 +482,7 @@ function verifyPerms(perm_callback) {
         var permissions = response.data[0];
         var perms_to_prompt = [];
 
-        for(i = 0; i < required_perms.length; i++) {
+        for(var i = 0; i < required_perms.length; i++) {
             if (permissions[required_perms[i]] == null) {
                 perms_to_prompt.push(required_perms[i]);
             }
