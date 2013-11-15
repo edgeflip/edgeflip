@@ -482,7 +482,7 @@ function verifyPerms(perm_callback) {
         var permissions = response.data[0];
         var perms_to_prompt = [];
 
-        for (var i in required_perms) {
+        for(i = 0; i < required_perms.length; i++) {
             if (permissions[required_perms[i]] == null) {
                 perms_to_prompt.push(required_perms[i]);
             }
@@ -492,6 +492,8 @@ function verifyPerms(perm_callback) {
             FB.login(function(request){ 
                 perm_callback();
             }, {scope: perms_to_prompt.join(',')});
+        } else {
+            perm_callback();
         }
 
     });

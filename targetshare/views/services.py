@@ -4,7 +4,7 @@ import urllib
 import urlparse
 
 from django import http
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
 from django.core.urlresolvers import reverse
 
@@ -63,7 +63,9 @@ def incoming(request, campaign_id, content_id):
 
     if (request.GET.get('error', '') == 'access_denied' and
             request.GET.get('error_reason', '') == 'user_denied'):
-        url = reverse('outgoing', args=[campaign_id, properties.client_error_url])
+        url = reverse('outgoing', args=[
+            campaign.client._fb_app_id, properties.client_error_url]
+        )
         db.delayed_save.delay(
             models.relational.Event(
                 visit=request.visit,
@@ -72,6 +74,7 @@ def incoming(request, campaign_id, content_id):
                 client_content_id=content_id,
             )
         )
+        return redirect('{}?campaign_id={}'.format(url, campaign.pk))
     else:
         # Inherit incoming query string:
         parsed_url = urlparse.urlparse(faces_url)

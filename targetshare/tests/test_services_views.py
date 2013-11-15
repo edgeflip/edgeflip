@@ -109,15 +109,16 @@ class TestServicesViews(EdgeFlipViewTestCase):
         )
         campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
         self.assertStatusCode(response, 302)
-        expected_url = 'http://testserver{}'.format(
-            reverse('outgoing', args=[1, campaign_props.client_error_url])
+        expected_url = 'http://testserver{}?campaign_id={}'.format(
+            reverse('outgoing', args=[
+                campaign_props.campaign.client._fb_app_id,
+                campaign_props.client_error_url]
+            ),
+            campaign_props.campaign.pk
         )
         self.assertEqual(
             response['Location'],
             expected_url
-        )
-        self.assertTrue(
-            models.Event.objects.filter(event_type='incoming_redirect').exists()
         )
         self.assertTrue(
             models.Event.objects.filter(event_type='oauth_declined').exists()
