@@ -12,42 +12,33 @@ class Campaign(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True, blank=True)
 
-    #FIXME: We *really* need to decide what here could/should be 1 to 1s
-    # instead of straight ForeignKeys. We tend to treat items as 1 to 1, but
-    # leave open the possibility of many to 1, which leads to weird scenarios
-    # like this.
-    @property
-    def global_filter(self):
+    def global_filter(self, dt=None):
         try:
-            return self.campaignglobalfilters.get()
+            return self.campaignglobalfilters.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 
-    @property
-    def choice_set(self):
+    def choice_set(self, dt=None):
         try:
-            return self.campaignchoicesets.get()
+            return self.campaignchoicesets.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 
-    @property
-    def button_style(self):
+    def button_style(self, dt=None):
         try:
-            return self.campaignbuttonstyles.get()
+            return self.campaignbuttonstyles.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 
-    @property
-    def generic_fb_object(self):
+    def generic_fb_object(self, dt=None):
         try:
-            return self.campaigngenericfbobjects.get()
+            return self.campaigngenericfbobjects.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 
-    @property
-    def fb_object(self):
+    def fb_object(self, dt=None):
         try:
-            return self.campaignfbobjects.get()
+            return self.campaignfbobjects.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 

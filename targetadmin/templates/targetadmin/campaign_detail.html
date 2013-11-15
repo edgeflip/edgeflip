@@ -13,11 +13,11 @@
             <li><b>Fallback Content</b>: {{ properties.fallback_content }}</li>
             <li><b>Cascading Fallback</b>: {{ properties.fallback_is_cascading }}</li>
             <li><b>Minimum Friends</b>: {{ properties.min_friends }}</li>
-            <li><b>Global Filter</b>: {{ object.campaignglobalfilters.get.filter.name }}</li>
-            <li><b>Button Style</b>: {{ object.campaignbuttonstyles.get.button_style.name|default:"None" }}</li>
+            <li><b>Global Filter</b>: {{ object.global_filter.filter.name }}</li>
+            <li><b>Button Style</b>: {{ object.button_style.button_style.name|default:"None" }}</li>
             <li><b>Choice Set</b>: {{ choice_set.choice_set.name }}</li>
             <li><b>Allow Generic</b>: {{ choice_set.allow_generic }}</li>
-            <li><b>Facebook Object</b>: {{ object.campaignfbobjects.get.fb_object.name }}</li>
+            <li><b>Facebook Object</b>: {{ object.fb_object.fb_object.name }}</li>
         </ul>
         {% block extra_content %}{% endblock %}
         <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-primary">Return Home</a>

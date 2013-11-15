@@ -175,16 +175,16 @@ class TestCampaignViews(TestAdminBase):
             'faces_url': props.client_faces_url,
             'error_url': props.client_error_url,
             'thanks_url': props.client_thanks_url,
-            'generic_fb_object': self.campaign.generic_fb_object.fb_object,
+            'generic_fb_object': self.campaign.generic_fb_object().fb_object,
             'allow_generic': True,
             'fallback_campaign': None,
             'min_friends_to_show': 1,
-            'fb_object': self.campaign.fb_object.fb_object,
+            'fb_object': self.campaign.fb_object().fb_object,
             'generic_url_slug': u'all',
-            'global_filter': self.campaign.global_filter.filter,
+            'global_filter': self.campaign.global_filter().filter,
             'button_style': None,
             'cascading_fallback': None,
-            'choice_set': self.campaign.choice_set.choice_set,
+            'choice_set': self.campaign.choice_set().choice_set,
             'fallback_content': None
         }
         self.assertEqual(

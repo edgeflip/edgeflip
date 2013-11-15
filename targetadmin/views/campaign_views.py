@@ -28,8 +28,8 @@ class CampaignDetailView(ClientRelationDetailView):
     def get_context_data(self, **kwargs):
         context = super(CampaignDetailView, self).get_context_data(**kwargs)
         context.update({
-            'properties': self.object.campaignproperties.get(),
-            'choice_set': self.object.campaignchoicesets.get(),
+            'properties': self.object.campaignproperties.for_datetime(datetime=None).get(),
+            'choice_set': self.object.campaignchoicesets.for_datetime(datetime=None).get(),
         })
         return context
 
@@ -55,13 +55,13 @@ def campaign_create(request, client_pk):
             'fallback_content': clone_props.fallback_content,
             'cascading_fallback': clone_props.fallback_is_cascading,
             'min_friends_to_show': clone_props.min_friends,
-            'global_filter': clone.global_filter.filter if clone.global_filter else None,
-            'button_style': clone.button_style.button_style if clone.button_style else None,
-            'choice_set': clone.choice_set.choice_set if clone.choice_set else None,
-            'allow_generic': clone.choice_set.allow_generic if clone.choice_set else False,
-            'generic_url_slug': clone.choice_set.generic_url_slug if clone.choice_set else None,
-            'generic_fb_object': clone.generic_fb_object.fb_object if clone.generic_fb_object else None,
-            'fb_object': clone.fb_object.fb_object,
+            'global_filter': clone.global_filter().filter if clone.global_filter() else None,
+            'button_style': clone.button_style().button_style if clone.button_style() else None,
+            'choice_set': clone.choice_set().choice_set if clone.choice_set() else None,
+            'allow_generic': clone.choice_set().allow_generic if clone.choice_set() else False,
+            'generic_url_slug': clone.choice_set().generic_url_slug if clone.choice_set() else None,
+            'generic_fb_object': clone.generic_fb_object().fb_object if clone.generic_fb_object() else None,
+            'fb_object': clone.fb_object().fb_object,
         }
     else:
         initial = {'min_friends_to_show': 1}
