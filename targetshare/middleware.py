@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import transaction
 
 from targetshare.models import relational
 
@@ -24,10 +25,10 @@ class VisitorMiddleware(object):
 class CookieVerificationMiddleware(object):
 
     def process_response(self, request, response):
+        # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
         try:
             session = request.session
         except AttributeError:
-            # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
             return response
 
         if session.test_cookie_worked():
@@ -36,16 +37,18 @@ class CookieVerificationMiddleware(object):
             visit = getattr(request, 'visit', None)
             referer = request.META.get('HTTP_REFERER', '')
             if settings.SESSION_COOKIE_DOMAIN in referer and visit:
-                # TODO: Block competing thread during transaction
-                # DETERMINE: Does select_for_update work if select not expected to return any rows?
-                relational.Event.objects.get_or_create(
-                    visit=visit,
-                    event_type='cookies_enabled',
-                    content=referer[:1028],
-                )
+                # We have no uniqueness constraint to defend against duplicate
+                # events created by competing threads, so lock get() via
+                # select_for_update:
+                with transaction.commit_on_success():
+                    relational.Event.objects.select_for_update().get_or_create(
+                        visit=visit,
+                        event_type='cookies_enabled',
+                        content=referer[:1028],
+                    )
 
         if not request.is_ajax():
-            # Must be a new request
+            # Don't bother unless it's a new "page" request
             session.set_test_cookie()
 
         return response

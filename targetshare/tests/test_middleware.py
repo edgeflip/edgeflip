@@ -65,9 +65,8 @@ class TestCookieVerificationMiddleware(BaseMiddlewareTestCase):
         request.session['testcookie'] = 'worked'
         request.session.save()
         request.META['HTTP_REFERER'] = 'test.edgeflip.com'
-        response = HttpResponse()
         utils.set_visit(request, 1)
-        self.middleware.process_response(request, response)
+        self.middleware.process_response(request, HttpResponse())
         self.assertTrue(
             relational.Event.objects.filter(
                 event_type='cookies_enabled').exists()
