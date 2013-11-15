@@ -105,13 +105,16 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_incoming_url_redirect_fb_auth_declined(self):
         response = self.client.get(
             reverse('incoming-encoded', args=[encodeDES('1/1')]),
-            {'error': 'access_denied'}
+            {'error': 'access_denied', 'error_reason': 'user_denied'}
         )
         campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
         self.assertStatusCode(response, 302)
+        expected_url = 'http://testserver{}'.format(
+            reverse('outgoing', args=[1, campaign_props.client_error_url])
+        )
         self.assertEqual(
             response['Location'],
-            campaign_props.client_error_url
+            expected_url
         )
         self.assertTrue(
             models.Event.objects.filter(event_type='incoming_redirect').exists()

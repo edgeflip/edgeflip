@@ -6,6 +6,7 @@ import urlparse
 from django import http
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_GET
+from django.core.urlresolvers import reverse
 
 from targetshare import models
 from targetshare.integration import facebook
@@ -60,12 +61,12 @@ def incoming(request, campaign_id, content_id):
     properties = campaign.campaignproperties.get()
     faces_url = properties.faces_url(content_id)
 
-    if request.GET.get('error', '') == 'access_denied':
-        url = properties.client_error_url
+    if (request.GET.get('error', '') == 'access_denied' and
+            request.GET.get('error_reason', '') == 'user_denied'):
+        url = reverse('outgoing', args=[campaign_id, properties.client_error_url])
         db.delayed_save.delay(
             models.relational.Event(
                 visit=request.visit,
-                content=url[:1028],
                 event_type='oauth_declined',
                 campaign_id=campaign_id,
                 client_content_id=content_id,
