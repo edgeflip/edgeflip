@@ -232,6 +232,7 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'feed_crawler',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -331,6 +332,7 @@ FB_PERMS_LIST = [
     'user_interests', 'friends_interests'
 ]
 FB_PERMS = ','.join(FB_PERMS_LIST)
+FB_REALTIME_TOKEN = 'thebiglebowski'
 MAX_FALLBACK_COUNT = 5
 TEST_MODE_SECRET = 'sunwahduck'
 VISITOR_COOKIE_NAME = 'visitorid'
