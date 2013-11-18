@@ -4,7 +4,7 @@ from django.db import models
 
 from targetshare.integration import civis
 
-from . import manager
+from .manager import transitory
 
 
 class FilterFeatureType(models.Model):
@@ -15,10 +15,11 @@ class FilterFeatureType(models.Model):
     CITY = 'city'
     FULL_LOCATION = 'full_location'
     MATCHING = 'matching'
-    TOPICS = 'topics' # TODO: migration
+    TOPICS = 'topics' # TODO: data migration
 
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=64, unique=True)
+    px_rank = models.PositiveIntegerField(default=3) # TODO: schema migration
     sort_order = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -30,6 +31,33 @@ class FilterFeatureType(models.Model):
         app_label = 'targetshare'
         db_table = 'filter_feature_types'
         ordering = ('sort_order',)
+
+
+class FilterFeatureQuerySet(transitory.TransitoryObjectQuerySet):
+
+    def filter_edges(self, edges, cache_match=False):
+        """Given a sequence of Edges, return a filtered sequence of those Edges
+        for which the secondary passes all queried filter features.
+
+        """
+        for filter_feature in self:
+            if filter_feature.feature_type.code == FilterFeatureType.MATCHING:
+                # Civis matching:
+                edges = filter_feature.filter_matching(edges, cache_match)
+            else:
+                # Standard min/max/eq/in filters:
+                edges = filter_feature.filter_standard(edges)
+
+        return edges
+
+
+class FilterFeatureManager(transitory.TransitoryObjectManager):
+
+    def get_query_set(self):
+        return FilterFeatureQuerySet.make(self)
+
+    def filter_edges(self, *args, **kws):
+        return self.get_query_set().filter_edges(*args, **kws)
 
 
 class FilterFeature(models.Model):
@@ -82,7 +110,7 @@ class FilterFeature(models.Model):
         (PERSUASION_SCORE, 'Persuasion Score'),
         (GOTV_SCORE, 'GOTV Score'),
         (PERSUASION_TURNOUT, 'Persuasion x Turnout Score')
-    ) # TODO: and topics?... Need this field to use regex validationg? or none at all?
+    ) # TODO: and topics?... Need this field to use regex validation? or none at all?
 
     OPERATOR_CHOICES = (
         ('in', 'In'),
@@ -103,9 +131,7 @@ class FilterFeature(models.Model):
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
-    objects = manager.TransitoryObjectManager.make(
-        signature_fields=[feature, operator]
-    )
+    objects = FilterFeatureManager.make(signature_fields=[feature, operator])
 
     class Meta(object):
         app_label = 'targetshare'

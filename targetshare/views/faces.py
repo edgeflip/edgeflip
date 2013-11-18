@@ -120,7 +120,6 @@ def faces(request):
     px3_task_id = request.POST.get('px3_task_id')
     px4_task_id = request.POST.get('px4_task_id')
     last_call = bool(request.POST.get('last_call'))
-    edges_ranked = px4_edges = None
 
     if settings.ENV != 'production' and mock_mode:
         LOG.info('Running in mock mode')
@@ -138,28 +137,36 @@ def faces(request):
         return http.HttpResponseForbidden('Mock mode only allowed for the mock client')
 
     if px3_task_id and px4_task_id:
+        # Check status of active ranking tasks:
         px3_result = celery.current_app.AsyncResult(px3_task_id)
         px4_result = celery.current_app.AsyncResult(px4_task_id)
         if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
-            if px3_result.successful():
-                px3_result_result = px3_result.result
+            (px3_edges_result, px4_edges_result) = (
+                result.result if result.successful() else ranking.empty_filtering_result
+                for result in (px3_result, px4_result)
+            )
+            if px4_edges_result.filtered is None:
+                # px4 filtering didn't happen, so use px3
+                if px4_edges_result.ranked is None:
+                    # px4 ranking didn't happen either
+                    edges_result = px3_edges_result
+                else:
+                    # Re-rank px3 edges by px4 ranking:
+                    edges_result = px3_edges_result._replace(
+                        filtered=px3_edges_result.filtered.reranked(px4_edges_result.ranked)
+                    )
             else:
-                px3_result_result = (None,) * 6
-            (
-                edges_ranked,
-                edges_filtered,
-                best_cs_filter_id,
-                choice_set_slug,
-                campaign_id,
-                content_id,
-            ) = px3_result_result
-            if campaign_id:
-                campaign = models.relational.Campaign.objects.get(pk=campaign_id)
-            if content_id:
-                content = models.relational.ClientContent.objects.get(pk=content_id)
-            px4_edges = px4_result.result if px4_result.successful() else ()
-            if not edges_ranked or not edges_filtered:
-                return http.HttpResponse('No friends identified for you.', status=500)
+                # px4 filtering completed, so use it:
+                edges_result = px4_edges_result
+
+            if edges_result.campaign_id and edges_result.campaign_id != campaign_id:
+                campaign = models.relational.Campaign.objects.get(pk=edges_result.campaign_id)
+            if edges_result.content_id and edges_result.content_id != content_id:
+                content = models.relational.ClientContent.objects.get(pk=edges_result.content_id)
+
+            if not edges_result.ranked or not edges_result.filtered:
+                return http.HttpResponseServerError('No friends were identified for you.')
+
         else:
             return http.HttpResponse(
                 json.dumps({
@@ -172,21 +179,33 @@ def faces(request):
                 status=200,
                 content_type='application/json'
             )
+
     else:
-        token = fb_client.extend_token(long(fbid), client.fb_app_id, token_string)
+        # Initiate ranking tasks:
+        try:
+            fbid = long(fbid)
+        except (ValueError, TypeError):
+            return http.HttpResponseBadRequest('Invalid Facebook ID "{}"'.format(fbid))
+        token = fb_client.extend_token(fbid, client.fb_app_id, token_string)
         db.delayed_save(token, overwrite=True)
-        px3_task_id = ranking.proximity_rank_three(
+        px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
-            campaignId=campaign_id,
-            contentId=content_id,
-            numFace=num_face,
-        ).id
-        px4_task = ranking.proximity_rank_four(token)
+            campaign_id=campaign_id,
+            content_id=content_id,
+            num_faces=num_face,
+        )
+        px4_task = ranking.proximity_rank_four(
+            token=token,
+            visit_id=request.visit.pk,
+            campaign_id=campaign_id,
+            content_id=content_id,
+            num_faces=num_face,
+        )
         return http.HttpResponse(json.dumps(
             {
                 'status': 'waiting',
-                'px3_task_id': px3_task_id,
+                'px3_task_id': px3_task.id,
                 'px4_task_id': px4_task.id,
                 'campaignid': campaign_id,
                 'contentid': content_id,
@@ -196,8 +215,6 @@ def faces(request):
         )
 
     client.userclients.get_or_create(fbid=fbid)
-    if px4_edges:
-        edges_filtered = edges_filtered.reranked(px4_edges)
 
     # Apply campaign
     if fbobject_source_url:
@@ -233,8 +250,8 @@ def faces(request):
             'content_id': content.pk,
         }),
         urllib.urlencode({
-            'cssslug': choice_set_slug,
-            'campaign_id': campaign_id,
+            'cssslug': edges_result.choice_set_slug,
+            'campaign_id': campaign.pk,
         }),
     )
     fb_params = {
@@ -256,16 +273,16 @@ def faces(request):
 
     num_gen = max_faces = 50
     events = []
-    for tier in edges_filtered:
+    for tier in edges_result.filtered:
         edges_list = tier['edges'][:num_gen]
-        tier_campaignId = tier['campaignId']
-        tier_contentId = tier['contentId']
+        tier_campaign_id = tier['campaign_id']
+        tier_content_id = tier['content_id']
         for edge in edges_list:
             events.append(
                 models.relational.Event(
                     visit=request.visit,
-                    campaign_id=tier_campaignId,
-                    client_content_id=tier_contentId,
+                    campaign_id=tier_campaign_id,
+                    client_content_id=tier_content_id,
                     friend_fbid=edge.secondary.fbid,
                     event_type='generated',
                     content=content_str,
@@ -275,7 +292,7 @@ def faces(request):
         if num_gen <= 0:
             break
 
-    face_friends = edges_filtered.secondaries[:max_faces]
+    face_friends = edges_result.filtered.secondaries[:max_faces]
     for friend in face_friends[:num_face]:
         events.append(
             models.relational.Event(
@@ -302,7 +319,7 @@ def faces(request):
                     'msg2_post': fb_attrs.msg2_post,
                 },
                 'fb_params': fb_params,
-                'all_friends': tuple(edge.secondary for edge in edges_ranked),
+                'all_friends': tuple(edge.secondary for edge in edges_result.ranked),
                 'face_friends': face_friends,
                 'show_faces': face_friends[:num_face],
                 'num_face': num_face
