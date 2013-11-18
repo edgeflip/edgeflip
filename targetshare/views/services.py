@@ -4,8 +4,9 @@ import urllib
 import urlparse
 
 from django import http
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
+from django.core.urlresolvers import reverse
 
 from targetshare import models
 from targetshare.integration import facebook
@@ -60,13 +61,32 @@ def incoming(request, campaign_id, content_id):
     properties = campaign.campaignproperties.get()
     faces_url = properties.faces_url(content_id)
 
-    # Inherit incoming query string:
-    parsed_url = urlparse.urlparse(faces_url)
-    query_params = '&'.join(part for part in [
-        parsed_url.query,
-        request.META.get('QUERY_STRING', ''),
-    ] if part)
-    url = parsed_url._replace(query=query_params).geturl()
+    if (request.GET.get('error', '') == 'access_denied' and
+            request.GET.get('error_reason', '') == 'user_denied'):
+        url = "{}?{}".format(
+            reverse('outgoing', args=[
+                campaign.client.fb_app_id,
+                urllib.quote_plus(properties.client_error_url)
+            ]),
+            urllib.urlencode({'campaignid': campaign_id}),
+        )
+        db.delayed_save.delay(
+            models.relational.Event(
+                visit=request.visit,
+                event_type='oauth_declined',
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+            )
+        )
+        return redirect(url)
+    else:
+        # Inherit incoming query string:
+        parsed_url = urlparse.urlparse(faces_url)
+        query_params = '&'.join(part for part in [
+            parsed_url.query,
+            request.META.get('QUERY_STRING', ''),
+        ] if part)
+        url = parsed_url._replace(query=query_params).geturl()
 
     db.delayed_save.delay(
         models.relational.Event(

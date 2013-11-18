@@ -94,7 +94,32 @@ class TestServicesViews(EdgeFlipViewTestCase):
                 encodeDES('1/1')])
         )
         self.assertStatusCode(response, 302)
+        self.assertTrue(
+            models.Event.objects.filter(event_type='incoming_redirect').exists()
+        )
         self.assertEqual(
             response['Location'],
             'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=t0AGY7FMXjM%3D'
+        )
+
+    def test_incoming_url_redirect_fb_auth_declined(self):
+        response = self.client.get(
+            reverse('incoming-encoded', args=[encodeDES('1/1')]),
+            {'error': 'access_denied', 'error_reason': 'user_denied'}
+        )
+        campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
+        self.assertStatusCode(response, 302)
+        expected_url = 'http://testserver{}?{}'.format(
+            reverse('outgoing', args=[
+                campaign_props.campaign.client.fb_app_id,
+                urllib.quote_plus(campaign_props.client_error_url)]
+            ),
+            urllib.urlencode({'campaignid': campaign_props.campaign.pk})
+        )
+        self.assertEqual(
+            response['Location'],
+            expected_url
+        )
+        self.assertTrue(
+            models.Event.objects.filter(event_type='oauth_declined').exists()
         )

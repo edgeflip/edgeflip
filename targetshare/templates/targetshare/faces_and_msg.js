@@ -431,28 +431,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
     });
 }
 
-
-/* hits facebook API */
-// Called when someone actually shares a message
-function doShare() {
-
-    if (test_mode) {
-        alert("Sharing is not allowed in test mode!");
-        return;
-    }
-    // Quick checks: has the user selected a message and at least one friend with whom to share?
-    if (getRecipFbids().length == 0) {
-        if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
-            selectAll(true);
-        } else {
-            if (debug_mode){
-                recordEvent('empty_share');
-            }
-            return;
-        }
-    }
-    recordEvent('share_click');
-
+function sendShare() {
     helperTextDisappear();
     $('#friends_div').hide();
     $('#progress div').html('S e n d i n g . . .');
@@ -461,7 +440,7 @@ function doShare() {
     var recips = getRecipFbids();
     for (var i=0; i < recips.length; i++) {
         $('#recipient-'+recips[i]).replaceWith("@[" + recips[i] + "]"); // FB format for mention tags: @[fbid]
-     }
+    }
 
     var recipsList = $('#message_form_editable .'+RECIPS_LIST_CONTAINER);
     if (recipsList.length > 0) {
@@ -493,8 +472,55 @@ function doShare() {
                 recordShare(response.id, msg, recips);
                 // alert('Post was successful! Action ID: ' + response.id);
             }
-          }
+        }
     );
+}
+
+function verifyPerms(perm_callback) {
+    var required_perms = ['publish_actions'];
+    FB.api('/me/permissions', function(response){
+        var permissions = response.data[0];
+        var perms_to_prompt = [];
+
+        for(var i = 0; i < required_perms.length; i++) {
+            if (permissions[required_perms[i]] == null) {
+                perms_to_prompt.push(required_perms[i]);
+            }
+        }
+
+        if (perms_to_prompt.length > 0) {
+            FB.login(function(request){ 
+                perm_callback();
+            }, {scope: perms_to_prompt.join(',')});
+        } else {
+            perm_callback();
+        }
+
+    });
+}
+
+/* hits facebook API */
+// Called when someone actually shares a message
+function doShare() {
+
+    if (test_mode) {
+        alert("Sharing is not allowed in test mode!");
+        return;
+    }
+
+    // Quick checks: has the user selected a message and at least one friend with whom to share?
+    if (getRecipFbids().length == 0) {
+        if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
+            selectAll(true);
+        } else {
+            if (debug_mode){
+                recordEvent('empty_share');
+            }
+            return;
+        }
+    }
+    recordEvent('share_click');
+    verifyPerms(sendShare);
 }
 
 function recordShare(actionid, shareMsg, recips) {
