@@ -1,6 +1,7 @@
 from django.db import models
 
 from targetshare import utils
+from . import manager
 
 
 class CampaignProperties(models.Model):
@@ -21,6 +22,8 @@ class CampaignProperties(models.Model):
     min_friends = models.IntegerField(default=1)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
+
+    objects = manager.TransitoryObjectManager.make()
 
     def faces_url(self, content_id):
         url = self.client_faces_url

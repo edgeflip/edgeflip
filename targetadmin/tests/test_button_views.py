@@ -6,7 +6,7 @@ from targetshare.models import relational
 
 class TestButtonViews(TestAdminBase):
 
-    fixtures = ['targetadmin_test_data']
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestButtonViews, self).setUp()
