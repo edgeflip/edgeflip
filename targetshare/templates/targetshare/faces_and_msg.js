@@ -497,7 +497,6 @@ function doShare() {
         }
     }
     recordEvent('share_click');
-    var required_perms = ['publish_actions'];
     FB.login(function(request){ 
         sendShare();
     }, {scope: "publish_actions"});
