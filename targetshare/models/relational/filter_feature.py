@@ -173,8 +173,8 @@ class FilterFeature(models.Model):
             return user_val in value
 
     def filter_standard(self, edges):
-        return [edge for edge in edges
-                if self.operate_standard(edge.secondary)]
+        return tuple(edge for edge in edges
+                     if self.operate_standard(edge.secondary))
 
     def filter_matching(self, edges, cache_match=False):
         if cache_match:

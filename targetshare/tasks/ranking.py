@@ -131,39 +131,34 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         feature_row=choice_set,
         chosen_from_rows=campaign.campaignchoicesets,
     )
-    allow_generic = {
-        option.choice_set.pk: [option.allow_generic, option.generic_url_slug]
+    generic_options = {
+        option.choice_set.pk: (option.allow_generic, option.generic_url_slug)
         for option in campaign_choice_sets
-    }[choice_set.pk]
+    }
+    (allow_generic, generic_slug) = generic_options[choice_set.pk]
 
-    # pick best choice set filter (and write DB)
-    bestCSFilter = None
+    # Pick best choice set filter (and record in DB)
     try:
-        bestCSFilter = choice_set.choose_best_filter(
+        (best_csf, best_csf_edges) = choice_set.choicesetfilters.choose_best_filter(
             edges_filtered,
-            useGeneric=allow_generic[0],
-            minFriends=min_friends,
-            eligibleProportion=1.0,
+            use_generic=allow_generic,
+            min_friends=min_friends,
+            eligible_proportion=1.0,
             cache_match=cache_match,
         )
-
-        choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
-        best_csf_id = bestCSFilter[0].filter_id if bestCSFilter[0] else None
-
-        already_picked += models.datastructs.TieredEdges(
-            edges=bestCSFilter[1],
-            cs_filter_id=best_csf_id,
-            choice_set_slug=choice_set_slug,
-            campaign_id=campaign_id,
-            content_id=content_id
-        )
-    except models.relational.ChoiceSet.TooFewFriendsError:
+    except models.relational.ChoiceSetFilter.TooFewFriendsError:
         LOG.info("Too few friends found for %s with campaign %s. Checking for fallback.",
                  fbid, campaign_id)
-
-    if bestCSFilter:
-        if bestCSFilter[0] is None:
-            # We got generic...
+    else:
+        already_picked += models.datastructs.TieredEdges(
+            edges=best_csf_edges,
+            campaign_id=campaign_id,
+            content_id=content_id,
+            cs_filter_id=(best_csf.filter_id if best_csf else None),
+            choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
+        )
+        if best_csf is None:
+            # We got generic:
             LOG.debug("Generic returned for %s with campaign %s.", fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
@@ -177,17 +172,16 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
-                feature_row=bestCSFilter[0].filter_id,
+                feature_row=best_csf.filter_id,
                 random_assign=False,
                 chosen_from_rows=choice_set.choicesetfilters,
             )
 
-    slotsLeft = num_faces - len(already_picked)
-
-    if slotsLeft > 0 and fallback_cascading:
+    slots_left = num_faces - len(already_picked)
+    if slots_left > 0 and fallback_cascading:
         # We still have slots to fill and can fallback to do so
 
-        # write "fallback" assignments to DB
+        # Record "fallback" assignments:
         interaction.assignments.create(
             campaign=campaign,
             content=client_content,
@@ -207,8 +201,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             random_assign=False,
         )
 
-        # Recursive call with new fallbackCampaignId & fallback_content_id,
-        # incrementing fallback_count
+        # Recursive call with new campaign & content, incrementing fallback_count:
         return perform_filtering(
             edges_ranked,
             properties.fallback_campaign.pk,
@@ -229,26 +222,23 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            # zzz Obviously, do something smarter here...
             LOG.info("No fallback for %s with campaign %s. Returning error to user.",
                      fbid, campaign_id)
-            # zzz ideally, want this to be the full URL with
-            #     flask.url_for(), but complicated with Celery...
-            thisContent = '%s:button /frame_faces/%s/%s' % (
+            event_content = '{}:button /frame_faces/{}/{}'.format(
                 client.fb_app_name,
                 campaign_id,
-                content_id
+                content_id,
             )
             interaction.events.create(
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                content=thisContent,
+                content=event_content,
                 event_type='no_friends_error'
             )
             return empty_filtering_result._replace(campaign_id=campaign_id,
                                                    content_id=content_id)
 
-        # write "fallback" assignments to DB
+        # Record "fallback" assignments:
         interaction.assignments.create(
             campaign=campaign,
             content=client_content,
@@ -273,8 +263,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         # fallback_cascading is False, but do the check to be safe...
         already_picked = already_picked if fallback_cascading else None
 
-        # Recursive call with new fallbackCampaignId & fallback_content_id,
-        # incrementing fallback_count
+        # Recursive call with new campaign & content, incrementing fallback_count:
         return perform_filtering(
             edges_ranked,
             properties.fallback_campaign.pk,

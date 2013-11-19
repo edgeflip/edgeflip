@@ -12,10 +12,6 @@ class ChoiceSet(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)
 
-    class TooFewFriendsError(Exception):
-        """Too few friends found in picking best choice set filter"""
-        pass
-
     def __unicode__(self):
         return u'%s' % self.name
 
