@@ -67,7 +67,6 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     specified Campaign.
 
     """
-    # TODO: respect px_rank
     if fallback_count > settings.MAX_FALLBACK_COUNT:
         raise RuntimeError("Exceeded maximum fallback count")
 
@@ -119,8 +118,15 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         chosen_from_rows=campaign.campaignglobalfilters,
     )
 
-    # apply filter
-    edges_filtered = global_filter.filterfeatures.filter_edges(edges_eligible)
+    # Apply global filter
+    # NOTE: This differs from how we handle px4 features on ChoiceSetFilters.
+    # For px3, we exclude ChoiceSetFilters with px4 features entirely;
+    # however, the global filter cannot be excluded.
+    # For now, we'll simply ignore super-ranked features on the global filter,
+    # though we might want to revisit this, (and e.g. raise an exception).
+    edges_filtered = global_filter.filterfeatures.filter(
+        feature_type__px_rank__lte=px_rank,
+    ).filter_edges(edges_eligible)
 
     # Get choice set experiments, do assignment (and write DB)
     campaign_choice_sets = campaign.campaignchoicesets.all()
@@ -137,9 +143,15 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     }
     (allow_generic, generic_slug) = generic_options[choice_set.pk]
 
-    # Pick best choice set filter (and record in DB)
+    # Pick (and record) best choice set filter
+    # TODO: email Rayid about this logic (and above)
+    # TODO: test this query
+    # Exclude ChoiceSetFilters written for super-ranked features:
+    choice_set_filters = choice_set.choicesetfilters.exclude(
+        filter__filterfeatures__feature_type__px_rank__gt=px_rank
+    )
     try:
-        (best_csf, best_csf_edges) = choice_set.choicesetfilters.choose_best_filter(
+        (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
             edges_filtered,
             use_generic=allow_generic,
             min_friends=min_friends,
