@@ -476,29 +476,6 @@ function sendShare() {
     );
 }
 
-function verifyPerms(perm_callback) {
-    var required_perms = ['publish_actions'];
-    FB.api('/me/permissions', function(response){
-        var permissions = response.data[0];
-        var perms_to_prompt = [];
-
-        for(var i = 0; i < required_perms.length; i++) {
-            if (permissions[required_perms[i]] == null) {
-                perms_to_prompt.push(required_perms[i]);
-            }
-        }
-
-        if (perms_to_prompt.length > 0) {
-            FB.login(function(request){ 
-                perm_callback();
-            }, {scope: perms_to_prompt.join(',')});
-        } else {
-            perm_callback();
-        }
-
-    });
-}
-
 /* hits facebook API */
 // Called when someone actually shares a message
 function doShare() {
@@ -520,7 +497,9 @@ function doShare() {
         }
     }
     recordEvent('share_click');
-    verifyPerms(sendShare);
+    FB.login(function(request){ 
+        sendShare();
+    }, {scope: "publish_actions"});
 }
 
 function recordShare(actionid, shareMsg, recips) {
