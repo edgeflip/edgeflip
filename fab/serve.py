@@ -15,6 +15,7 @@ CELERY_QUEUES = (
     'px3',
     'px3_filter',
     'px4',
+    'bg_px4',
     'celery',
     'delayed_save',
     'partial_save',
