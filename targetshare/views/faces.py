@@ -1,11 +1,9 @@
 import logging
-import random
 import urllib
 
 import celery
 
 from django import http
-from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
@@ -13,7 +11,7 @@ from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 
-from targetshare import models
+from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
 from targetshare.utils import LazyList
@@ -109,37 +107,20 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 @csrf_exempt
 @utils.require_visit
 def faces(request):
-    fbid = request.POST.get('fbid')
-    token_string = request.POST.get('token')
-    num_face = int(request.POST['num'])
-    content_id = request.POST.get('contentid')
-    campaign_id = request.POST.get('campaignid')
-    fbobject_source_url = request.POST.get('efobjsrc')
-    mock_mode = request.POST.get('mockmode', False)
-    px3_task_id = request.POST.get('px3_task_id')
-    px4_task_id = request.POST.get('px4_task_id')
-    last_call = bool(request.POST.get('last_call'))
+    faces_form = forms.FacesForm(request.POST)
+    if not faces_form.is_valid():
+        return utils.JsonHttpResponse(faces_form.errors, status_code=400)
 
-    if settings.ENV != 'production' and mock_mode:
-        LOG.info('Running in mock mode')
-        fb_client = facebook.mock_client
-        fbid = 100000000000 + random.randint(1, 10000000)
-    else:
-        fb_client = facebook.client
-
-    subdomain = request.get_host().split('.')[0]
-    campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
+    data = faces_form.cleaned_data
+    campaign = data['campaign']
+    content = data['content']
     client = campaign.client
-    content = get_object_or_404(client.clientcontent, content_id=content_id)
 
-    if mock_mode and subdomain != settings.WEB.mock_subdomain:
-        return http.HttpResponseForbidden('Mock mode only allowed for the mock client')
-
-    if px3_task_id and px4_task_id:
+    if data['px3_task_id'] and data['px4_task_id']:
         # Check status of active ranking tasks:
-        px3_result = celery.current_app.AsyncResult(px3_task_id)
-        px4_result = celery.current_app.AsyncResult(px4_task_id)
-        if (px3_result.ready() and px4_result.ready()) or last_call or px3_result.failed():
+        px3_result = celery.current_app.AsyncResult(data['px3_task_id'])
+        px4_result = celery.current_app.AsyncResult(data['px4_task_id'])
+        if (px3_result.ready() and px4_result.ready()) or data['last_call'] or px3_result.failed():
             (px3_edges_result, px4_edges_result) = (
                 result.result if result.successful() else ranking.empty_filtering_result
                 for result in (px3_result, px4_result)
@@ -158,9 +139,9 @@ def faces(request):
                 # px4 filtering completed, so use it:
                 edges_result = px4_edges_result
 
-            if edges_result.campaign_id and edges_result.campaign_id != campaign_id:
+            if edges_result.campaign_id and edges_result.campaign_id != campaign.pk:
                 campaign = models.relational.Campaign.objects.get(pk=edges_result.campaign_id)
-            if edges_result.content_id and edges_result.content_id != content_id:
+            if edges_result.content_id and edges_result.content_id != content.pk:
                 content = models.relational.ClientContent.objects.get(pk=edges_result.content_id)
 
             if not edges_result.ranked or not edges_result.filtered:
@@ -169,47 +150,43 @@ def faces(request):
         else:
             return utils.JsonHttpResponse({
                 'status': 'waiting',
-                'px3_task_id': px3_task_id,
-                'px4_task_id': px4_task_id,
-                'campaignid': campaign_id,
-                'contentid': content_id,
+                'px3_task_id': data['px3_task_id'],
+                'px4_task_id': data['px4_task_id'],
+                'campaignid': campaign.pk,
+                'contentid': content.pk,
             })
 
     else:
         # Initiate ranking tasks:
-        try:
-            fbid = long(fbid)
-        except (ValueError, TypeError):
-            return http.HttpResponseBadRequest('Invalid Facebook ID "{}"'.format(fbid))
-        token = fb_client.extend_token(fbid, client.fb_app_id, token_string)
+        token = facebook.client.extend_token(data['fbid'], client.fb_app_id, data['token'])
         db.delayed_save(token, overwrite=True)
         px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
-            campaign_id=campaign_id,
-            content_id=content_id,
-            num_faces=num_face,
+            campaign_id=campaign.pk,
+            content_id=content.pk,
+            num_faces=data['num_face'],
         )
         px4_task = ranking.proximity_rank_four(
             token=token,
             visit_id=request.visit.pk,
-            campaign_id=campaign_id,
-            content_id=content_id,
-            num_faces=num_face,
+            campaign_id=campaign.pk,
+            content_id=content.pk,
+            num_faces=data['num_face'],
         )
         return utils.JsonHttpResponse({
             'status': 'waiting',
             'px3_task_id': px3_task.id,
             'px4_task_id': px4_task.id,
-            'campaignid': campaign_id,
-            'contentid': content_id,
+            'campaignid': campaign.pk,
+            'contentid': content.pk,
         })
 
-    client.userclients.get_or_create(fbid=fbid)
+    client.userclients.get_or_create(fbid=data['fbid'])
 
     # Apply campaign
-    if fbobject_source_url:
-        fb_object = facebook.third_party.source_campaign_fbobject(campaign, fbobject_source_url)
+    if data['efobjsrc']:
+        fb_object = facebook.third_party.source_campaign_fbobject(campaign, data['efobjsrc'])
         db.delayed_save.delay(
             models.relational.Assignment.make_managed(
                 visit=request.visit,
@@ -284,7 +261,7 @@ def faces(request):
             break
 
     face_friends = edges_result.filtered.secondaries[:max_faces]
-    for friend in face_friends[:num_face]:
+    for friend in face_friends[:data['num_face']]:
         events.append(
             models.relational.Event(
                 visit=request.visit,
@@ -313,8 +290,8 @@ def faces(request):
             'fb_params': fb_params,
             'all_friends': tuple(edge.secondary for edge in edges_result.ranked),
             'face_friends': face_friends,
-            'show_faces': face_friends[:num_face],
-            'num_face': num_face
+            'show_faces': face_friends[:data['num_face']],
+            'num_face': data['num_face'],
         }, context_instance=RequestContext(request)),
     })
 
