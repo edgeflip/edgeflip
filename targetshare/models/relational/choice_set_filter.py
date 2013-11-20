@@ -8,7 +8,7 @@ class ChoiceSetFilterQuerySet(assigned.AssignedObjectQuerySet):
     def choose_best_filter(self, edges,
                            use_generic=False,
                            min_friends=2,
-                           eligible_proportion=0.5,
+                           eligible_proportion=1.0,
                            cache_match=False):
         """Determine the best choice set filter for a sequence of edges, based on
         the filter that returns the largest number of secondaries, (where the

@@ -1,5 +1,6 @@
 import re
 
+from django.core import validators
 from django.db import models
 
 from targetshare.integration import civis
@@ -15,11 +16,11 @@ class FilterFeatureType(models.Model):
     CITY = 'city'
     FULL_LOCATION = 'full_location'
     MATCHING = 'matching'
-    TOPICS = 'topics' # TODO: data migration
+    TOPICS = 'topics'
 
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=64, unique=True)
-    px_rank = models.PositiveIntegerField(default=3) # TODO: schema migration
+    px_rank = models.PositiveIntegerField(default=3)
     sort_order = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
@@ -60,6 +61,12 @@ class FilterFeatureManager(transitory.TransitoryObjectManager):
         return self.get_query_set().filter_edges(*args, **kws)
 
 
+def get_feature_validator(features):
+    return validators.RegexValidator(r'^({COMBINED})$'.format(
+        COMBINED='|'.join(pattern for (_feature_type, pattern) in features)
+    ))
+
+
 class FilterFeature(models.Model):
 
     # value_types:
@@ -92,25 +99,24 @@ class FilterFeature(models.Model):
     GOTV_SCORE = 'gotv_score'
     PERSUASION_TURNOUT = 'persuasion_turnout_2013'
 
-    NON_STANDARD_FEATURES = (
-        (FilterFeatureType.MATCHING, '|'.join([
-            TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE,
-            PERSUASION_TURNOUT
-        ])),
-        (FilterFeatureType.TOPICS, r'topics\[[^\]]+\]'),
+    STANDARD_FEATURES = (
+        # (feature type code, feature expression)
+        (AGE, AGE),
+        (GENDER, GENDER),
+        (STATE, STATE),
+        (CITY, CITY),
+        (FULL_LOCATION, FULL_LOCATION),
     )
 
-    FEATURE_CHOICES = (
-        (AGE, 'Age'),
-        (GENDER, 'Gender'),
-        (STATE, 'State'),
-        (CITY, 'City'),
-        (FULL_LOCATION, 'Full Location'),
-        (TURNOUT_SCORE, 'Turnout Score'),
-        (PERSUASION_SCORE, 'Persuasion Score'),
-        (GOTV_SCORE, 'GOTV Score'),
-        (PERSUASION_TURNOUT, 'Persuasion x Turnout Score')
-    ) # TODO: and topics?... Need this field to use regex validation? or none at all?
+    NON_STANDARD_FEATURES = (
+        # (feature type code, feature expression)
+        (FilterFeatureType.MATCHING, '|'.join([
+            TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE, PERSUASION_TURNOUT
+        ])),
+        (FilterFeatureType.TOPICS, r'topics\[[^\[\]]+\]'),
+    )
+
+    FEATURES = STANDARD_FEATURES + NON_STANDARD_FEATURES
 
     OPERATOR_CHOICES = (
         ('in', 'In'),
@@ -121,7 +127,9 @@ class FilterFeature(models.Model):
 
     filter_feature_id = models.AutoField(primary_key=True)
     filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
-    feature = models.CharField(max_length=64, blank=True)
+    feature = models.CharField(max_length=64, blank=True, validators=[
+        get_feature_validator(FEATURES),
+    ])
     feature_type = models.ForeignKey('FilterFeatureType')
     operator = models.CharField(max_length=32, blank=True,
                                 choices=OPERATOR_CHOICES)
@@ -148,6 +156,10 @@ class FilterFeature(models.Model):
             return self.value.split(self.FILTER_LIST_DELIM)
         else:
             return self.value
+
+    def get_user_value(self, user):
+        # FIXME & TODO
+        return re.search(r'^([^\[\]]+)(?:\[([^\[\]]+)\])*$', self.feature)
 
     def operate_standard(self, user):
         # TODO: Be able to parse topics[Health], and check each object

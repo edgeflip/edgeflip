@@ -73,15 +73,13 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
+    client_content = models.relational.ClientContent.objects.get(content_id=content_id)
     campaign = models.relational.Campaign.objects.get(campaign_id=campaign_id)
     client = campaign.client
-    client_content = models.relational.ClientContent.objects.get(content_id=content_id)
-    already_picked = already_picked or models.datastructs.TieredEdges()
-
-    # Get fallback & threshold info about this campaign from the DB
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
+    already_picked = already_picked or models.datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
         LOG.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
@@ -109,7 +107,9 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         edge for edge in edges_ranked if edge.secondary.fbid not in exclude_friends
     ]
 
-    # Get filter experiments, do assignment (and write DB)
+    # Assign filter experiments (and record) #
+
+    # Apply global filter
     global_filter = campaign.campaignglobalfilters.random_assign()
     interaction.assignments.create_managed(
         campaign=campaign,
@@ -117,8 +117,6 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         feature_row=global_filter,
         chosen_from_rows=campaign.campaignglobalfilters,
     )
-
-    # Apply global filter
     # NOTE: This differs from how we handle px4 features on ChoiceSetFilters.
     # For px3, we exclude ChoiceSetFilters with px4 features entirely;
     # however, the global filter cannot be excluded.
@@ -128,7 +126,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         feature_type__px_rank__lte=px_rank,
     ).filter_edges(edges_eligible)
 
-    # Get choice set experiments, do assignment (and write DB)
+    # Assign choice set experiments (and record)
     campaign_choice_sets = campaign.campaignchoicesets.all()
     choice_set = campaign_choice_sets.random_assign()
     interaction.assignments.create_managed(
@@ -137,11 +135,9 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         feature_row=choice_set,
         chosen_from_rows=campaign.campaignchoicesets,
     )
-    generic_options = {
-        option.choice_set.pk: (option.allow_generic, option.generic_url_slug)
-        for option in campaign_choice_sets
-    }
-    (allow_generic, generic_slug) = generic_options[choice_set.pk]
+    (allow_generic, generic_slug) = campaign_choice_sets.values_list(
+        'allow_generic', 'generic_url_slug'
+    ).get(choice_set=choice_set)
 
     # Pick (and record) best choice set filter
     # TODO: email Rayid about this logic (and above)
@@ -155,11 +151,10 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             edges_filtered,
             use_generic=allow_generic,
             min_friends=min_friends,
-            eligible_proportion=1.0,
             cache_match=cache_match,
         )
     except models.relational.ChoiceSetFilter.TooFewFriendsError:
-        LOG.info("Too few friends found for %s with campaign %s. Checking for fallback.",
+        LOG.info("Too few friends found for %s with campaign %s. (Will check for fallback.)",
                  fbid, campaign_id)
     else:
         already_picked += models.datastructs.TieredEdges(
@@ -234,8 +229,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            LOG.info("No fallback for %s with campaign %s. Returning error to user.",
-                     fbid, campaign_id)
+            LOG.error("No fallback for %s with campaign %s. (Will return error to user.)",
+                      fbid, campaign_id)
             event_content = '{}:button /frame_faces/{}/{}'.format(
                 client.fb_app_name,
                 campaign_id,
@@ -380,8 +375,11 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     """
     (edges_ranked, hit_fb) = crawl_result
     # TODO: Is this threshold sensible?
-    # TODO: Also check if there are any px4 filters?
-    if not hit_fb or len(edges_ranked) < DB_MIN_FRIEND_COUNT:
+    px4_filters = models.relational.Filter.objects.filter(
+        client__campaigns__campaign_id=campaign_id,
+        filterfeatures__feature_type__px_rank__gte=4,
+    )
+    if (not hit_fb or len(edges_ranked) < DB_MIN_FRIEND_COUNT) and px4_filters.exists():
         # We haven't wasted time hitting Facebook or user has few enough
         # friends that we should be able to apply refined filters anyway:
         filtering_result = perform_filtering(
