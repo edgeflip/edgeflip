@@ -1,3 +1,4 @@
+import json
 import logging
 import functools
 import os.path
@@ -12,6 +13,16 @@ from targetshare import models, utils
 from targetshare.tasks import db
 
 LOG = logging.getLogger(__name__)
+
+
+class JsonHttpResponse(http.HttpResponse):
+    """HttpResponse which JSON-encodes its content and whose Content-Type defaults
+    to "application/json".
+
+    """
+    def __init__(self, content=None, content_type='application/json', *args, **kws):
+        super(JsonHttpResponse, self).__init__(
+            content=json.dumps(content), content_type=content_type, *args, **kws)
 
 
 def get_client_ip(request):

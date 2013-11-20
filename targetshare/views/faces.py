@@ -1,4 +1,3 @@
-import json
 import logging
 import random
 import urllib
@@ -168,17 +167,13 @@ def faces(request):
                 return http.HttpResponseServerError('No friends were identified for you.')
 
         else:
-            return http.HttpResponse(
-                json.dumps({
-                    'status': 'waiting',
-                    'px3_task_id': px3_task_id,
-                    'px4_task_id': px4_task_id,
-                    'campaignid': campaign_id,
-                    'contentid': content_id,
-                }),
-                status=200,
-                content_type='application/json'
-            )
+            return utils.JsonHttpResponse({
+                'status': 'waiting',
+                'px3_task_id': px3_task_id,
+                'px4_task_id': px4_task_id,
+                'campaignid': campaign_id,
+                'contentid': content_id,
+            })
 
     else:
         # Initiate ranking tasks:
@@ -202,17 +197,13 @@ def faces(request):
             content_id=content_id,
             num_faces=num_face,
         )
-        return http.HttpResponse(json.dumps(
-            {
-                'status': 'waiting',
-                'px3_task_id': px3_task.id,
-                'px4_task_id': px4_task.id,
-                'campaignid': campaign_id,
-                'contentid': content_id,
-            }),
-            status=200,
-            content_type='application/json'
-        )
+        return utils.JsonHttpResponse({
+            'status': 'waiting',
+            'px3_task_id': px3_task.id,
+            'px4_task_id': px4_task.id,
+            'campaignid': campaign_id,
+            'contentid': content_id,
+        })
 
     client.userclients.get_or_create(fbid=fbid)
 
@@ -307,28 +298,25 @@ def faces(request):
 
     db.bulk_create.delay(events)
 
-    return http.HttpResponse(
-        json.dumps({
-            'status': 'success',
-            'html': render_to_string(utils.locate_client_template(client, 'faces_table.html'), {
-                'msg_params': {
-                    'sharing_prompt': fb_attrs.sharing_prompt,
-                    'msg1_pre': fb_attrs.msg1_pre,
-                    'msg1_post': fb_attrs.msg1_post,
-                    'msg2_pre': fb_attrs.msg2_pre,
-                    'msg2_post': fb_attrs.msg2_post,
-                },
-                'fb_params': fb_params,
-                'all_friends': tuple(edge.secondary for edge in edges_result.ranked),
-                'face_friends': face_friends,
-                'show_faces': face_friends[:num_face],
-                'num_face': num_face
-            }, context_instance=RequestContext(request)),
-            'campaignid': campaign.pk,
-            'contentid': content.pk,
-        }),
-        status=200
-    )
+    return utils.JsonHttpResponse({
+        'status': 'success',
+        'campaignid': campaign.pk,
+        'contentid': content.pk,
+        'html': render_to_string(utils.locate_client_template(client, 'faces_table.html'), {
+            'msg_params': {
+                'sharing_prompt': fb_attrs.sharing_prompt,
+                'msg1_pre': fb_attrs.msg1_pre,
+                'msg1_post': fb_attrs.msg1_post,
+                'msg2_pre': fb_attrs.msg2_pre,
+                'msg2_post': fb_attrs.msg2_post,
+            },
+            'fb_params': fb_params,
+            'all_friends': tuple(edge.secondary for edge in edges_result.ranked),
+            'face_friends': face_friends,
+            'show_faces': face_friends[:num_face],
+            'num_face': num_face
+        }, context_instance=RequestContext(request)),
+    })
 
 
 def faces_email_friends(request, notification_uuid):
