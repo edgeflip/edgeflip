@@ -157,18 +157,44 @@ class FilterFeature(models.Model):
         else:
             return self.value
 
+    @staticmethod
+    def format_object(obj):
+        try:
+            formatter = obj.__filterfeature__
+        except AttributeError:
+            return obj
+        else:
+            return formatter()
+
     def get_user_value(self, user):
-        # FIXME & TODO
-        return re.search(r'^([^\[\]]+)(?:\[([^\[\]]+)\])*$', self.feature)
+        token = r'[^\[\]]' # unbracketed character
+        # Expect User attribute followed by optional getitem specifications:
+        result = re.search(r'^({}+)(.+)?$'.format(token), self.feature)
+        if result is None:
+            raise ValueError("Unparseable filter feature: {0!r}".format(self.feature))
+        (attr, extra) = result.groups()
+        if extra is None:
+            dive = ()
+        else:
+            # Parse getitem specifications:
+            dive = re.findall(r'{}+'.format(token), extra)
+        value = self.format_object(getattr(user, attr))
+        for level in dive:
+            value = self.format_object(value[level])
+        return value
 
     def operate_standard(self, user):
         # TODO: Be able to parse topics[Health], and check each object
         # TODO: (first user.topics, then result of __getitem__) for __filterfeature__()
         # TODO: (Or could expect dot notation, though `topics.Health:Cancer` might
         # TODO: look a little weird?)
-        user_val = getattr(user, self.feature, None)
-        if user_val in ('', None):
+        try:
+            user_val = self.get_user_value(user)
+        except (AttributeError, KeyError):
             return False
+        else:
+            if user_val in ('', None):
+                return False
 
         value = self.decode_value()
 
