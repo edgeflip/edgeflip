@@ -1,81 +1,165 @@
 from __future__ import absolute_import
+
+import json
+import random
+import urllib
 from datetime import timedelta
 
+import boto
 import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
+from django.utils import timezone
 
 from targetshare import models
 from targetshare.integration import facebook
-from targetshare.tasks import db
+from targetshare.tasks import ranking
+from targetshare.models.dynamo.utils import to_epoch
 
 logger = get_task_logger(__name__)
 MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
 
 
+def crawl_user(token):
+    task = ranking.proximity_rank_four.apply_async(
+        args=[False, token.fbid, token],
+        routing_key='bg.px4',
+        link=crawl_user_feeds.s(token=token)
+    )
+    return task
+
+
 @celery.task(default_retry_delay=1, max_retries=3)
-def background_px4(mockMode, fbid, token):
-    """Crawl and rank a user's network to proximity level four, and persist the
-    User, secondary Users, Token and Edges to the database.
+def crawl_user_feeds(edges, token):
+    if not edges:
+        return
 
+    primary_user = edges[0].primary
+    freshness_limit = timezone.now() - timedelta(days=settings.FEED_AGE_LIMIT)
 
-    Under 100 people, just go to FB and get the best data
-    Over 100 people, let's make sure Dynamo has at least 90 percent
-
-    """
-    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.get_user(fbid, token['token'])
-        friend_count = fb_client.get_friend_count(fbid, token['token'])
-        if friend_count < MIN_FRIEND_COUNT:
-            logger.info(
-                'FBID {}: Has less than 100 friends, hitting FB'.format(fbid)
+        prim_fbm = models.FeedBucketMap.items.get_item(
+            fbid_source=primary_user.fbid,
+            fbid_target=primary_user.fbid,
+        )
+    except models.FeedBucketMap.DoesNotExist:
+        bucket = '{}{}'.format(
+            settings.FEED_BUCKET_PREFIX,
+            random.randrange(0, settings.FEED_MAX_BUCKETS)
+        )
+        prim_fbm = models.FeedBucketMap(
+            fbid_source=primary_user.fbid,
+            fbid_target=primary_user.fbid,
+            bucket=bucket
+        )
+
+    prim_fbm.token = token.token
+    prim_fbm.save()
+    store_user_feed.delay(prim_fbm)
+
+    countdown_time = 0
+    edge_count = 0
+    edges_dict = {}
+    for edge in edges:
+        edges_dict[edge.secondary.id] = 0
+
+    del edges
+    for secondary_fbid, failure_count in edges_dict.iteritems():
+        try:
+            fbm = models.FeedBucketMap.items.get_item(
+                fbid_source=primary_user.fbid,
+                fbid_target=secondary_fbid,
             )
-            edges_unranked = fb_client.get_friend_edges(
-                user,
-                token['token'],
-                require_incoming=True,
-                require_outgoing=False,
+        except models.FeedBucketMap.DoesNotExist:
+            bucket = '{}{}'.format(
+                settings.FEED_BUCKET_PREFIX,
+                random.randrange(0, settings.FEED_MAX_BUCKETS)
+            )
+            fbm = models.FeedBucketMap(
+                fbid_source=primary_user.fbid,
+                fbid_target=secondary_fbid,
+                bucket=bucket,
             )
         else:
-            edges_unranked = models.datastructs.Edge.get_friend_edges(
-                user,
-                require_incoming=True,
-                require_outgoing=False,
-                max_age=timedelta(days=settings.FRESHNESS),
+            # Got an existing person, lets check the freshness
+            if fbm.updated > freshness_limit:
+                continue
+
+        fbm.token = token.token
+        fbm.save()
+        # Need to find a way to continue processing this loop until its
+        # exhausted
+        store_user_feed(fbm)
+
+
+@celery.task(default_retry_delay=300, max_retries=3)
+def store_user_feed(feed_bucket_map):
+    s3_conn = boto.s3.connect_to_region('us-east-1')
+    try:
+        bucket = s3_conn.get_bucket(feed_bucket_map.bucket)
+    except boto.exception.S3ResponseError:
+        try:
+            bucket = s3_conn.create_bucket(feed_bucket_map.bucket)
+        except boto.exception.S3ResponseError as exc:
+            store_user_feed.retry(exc=exc)
+
+    s3_key = bucket.get_key('{}_{}'.format(
+        feed_bucket_map.fbid_source,
+        feed_bucket_map.fbid_target
+    ))
+    if not s3_key:
+        s3_key = bucket.new_key('{}_{}'.format(
+            feed_bucket_map.fbid_source,
+            feed_bucket_map.fbid_target
+        ))
+
+    if s3_key.size:
+        data = json.loads(s3_key.get_contents_as_string())
+        next_url = 'https://graph.facebook.com/{}/feed?{}'.format(
+            feed_bucket_map.fbid_target, urllib.urlencode({
+                'until': data['updated'],
+                'limit': 1000,
+                'method': 'GET',
+                'format': 'json',
+                'suppress_http_code': 1,
+            })
+        )
+    else:
+        try:
+            data = facebook.client.urlload(
+                'https://graph.facebook.com/{}/feed/'.format(feed_bucket_map.fbid_target), {
+                    'access_token': feed_bucket_map.token,
+                    'method': 'GET',
+                    'format': 'json',
+                    'suppress_http_code': 1,
+                    'limit': 1000,
+                    'until': to_epoch(timezone.now()),
+                }, timeout_override=120
             )
-            if (not friend_count or
-                    ((float(len(edges_unranked)) / friend_count) * 100) < FRIEND_THRESHOLD_PERCENT):
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo. Falling back to FB'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
-                edges_unranked = fb_client.get_friend_edges(
-                    user,
-                    token['token'],
-                    require_incoming=True,
-                    require_outgoing=False,
-                )
+            data['updated'] = to_epoch(timezone.now())
+            if not data.get('data'):
+                logger.info('No feed information for {}'.format(
+                    feed_bucket_map.fbid_target))
+                return
+
+            next_url = data.get('paging', {}).get('next')
+        except IOError as exc:
+            raise #store_user_feed.retry(exc=exc)
+
+    while next_url:
+        try:
+            paginated_data = facebook.client.urlload(next_url, timeout_override=120)
+        except IOError as exc:
+            #logger.exception('Failed to grab next page of data for {}'.format(
+            #    feed_bucket_map.fbid_target))
+            #store_user_feed.retry(exc=exc)
+            raise
+        else:
+            if paginated_data.get('data'):
+                data['data'].extend(paginated_data['data'])
+                next_url = data.get('paging', {}).get('next')
             else:
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo, using Dynamo data.'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
-    except IOError as exc:
-        proximity_rank_four.retry(exc=exc)
+                next_url = None
 
-    edges_ranked = models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
-        require_incoming=True,
-        require_outgoing=False,
-    )
-
-    db.delayed_save.delay(token, overwrite=True)
-    db.upsert.delay(user)
-    db.upsert.delay([edge.secondary for edge in edges_ranked])
-    db.update_edges.delay(edges_ranked)
-
-    return edges_ranked
+    s3_key.set_contents_from_string(json.dumps(data))

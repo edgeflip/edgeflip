@@ -22,6 +22,8 @@ CELERY_QUEUES = (
     'bulk_create',
     'upsert',
     'update_edges',
+    'user_feeds',
+    'store_feeds',
 )
 
 

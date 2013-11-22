@@ -9,3 +9,4 @@ from .edge import IncomingEdge, OutgoingEdge
 from .token import Token
 from .user import User
 from .civis import CivisResult
+from .feed_bucket_map import FeedBucketMap

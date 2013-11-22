@@ -275,6 +275,8 @@ CELERY_QUEUES = (
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
+    Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
+    Queue('store_feeds', routing_key='store.feeds', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
     'targetshare.tasks.ranking.px3_crawl': {
@@ -313,10 +315,19 @@ CELERY_ROUTES = {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
+    'feed_crawler.tasks.crawl_user_feeds': {
+        'queue': 'user_feeds',
+        'routing_key': 'user.feeds',
+    },
+    'feed_crawler.tasks.store_user_feed': {
+        'queue': 'store_feeds',
+        'routing_key': 'store.feeds',
+    }
 }
 CELERY_IMPORTS = (
     'targetshare.tasks.ranking',
     'targetshare.tasks.db',
+    'feed_crawler.tasks',
 )
 
 # Session Settings
@@ -342,6 +353,11 @@ MAX_FALLBACK_COUNT = 5
 TEST_MODE_SECRET = 'sunwahduck'
 VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+
+# feedcrawler settings
+FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_MAX_BUCKETS = 5
+FEED_AGE_LIMIT = 7 # In days
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False

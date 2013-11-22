@@ -22,7 +22,7 @@ def realtime_subscription(request):
         else:
             return http.HttpResponseForbidden()
     else:
-        # Do import crawly things here
+        # Do important crawly things here
         data = json.loads(request.POST)
         for entry in data['entry']:
             try:
