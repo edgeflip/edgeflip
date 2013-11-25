@@ -24,6 +24,7 @@ CELERY_QUEUES = (
     'update_edges',
     'user_feeds',
     'store_feeds',
+    'process_sync',
 )
 
 
