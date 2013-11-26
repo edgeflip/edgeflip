@@ -10,7 +10,6 @@ class FBSyncTask(Item):
 
     fbid = HashKeyField(data_type=NUMBER)
     token = ItemField()
-    bucket = ItemField()
     status = ItemField()
     fbids_to_crawl = ItemField(data_type=NUMBER_SET)
 

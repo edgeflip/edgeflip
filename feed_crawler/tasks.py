@@ -5,7 +5,6 @@ import random
 import urllib
 import time
 
-import boto
 import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
@@ -15,6 +14,7 @@ from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import ranking
 from targetshare.models.dynamo.utils import to_epoch
+from feed_crawler import utils
 
 logger = get_task_logger(__name__)
 MIN_FRIEND_COUNT = 100
@@ -36,22 +36,19 @@ def crawl_user_feeds(edges, token):
         return
 
     try:
-        models.FBSyncTask.items.get_item(fbid=token.fbid)
+        sync_task = models.FBSyncTask.items.get_item(fbid=token.fbid)
     except models.FBSyncTask.DoesNotExist:
         pass
     else:
-        logger.info('Have an existing task for {}. Moving on.'.format(
-            token.fbid))
-        return
+        if sync_task.is_processing:
+            logger.info('Have an existing task for {}. Moving on.'.format(
+                token.fbid))
+            return
 
     sync_task = models.FBSyncTask(
         fbid=token.fbid,
         token=token.token,
         status=models.FBSyncTask.WAITING,
-        bucket='{}{}'.format(
-            settings.FEED_BUCKET_PREFIX,
-            random.randrange(0, settings.FEED_MAX_BUCKETS)
-        )
     )
     fbids_to_crawl = [edge.secondary.fbid for edge in edges]
     fbids_to_crawl.insert(0, token.fbid)
@@ -65,31 +62,22 @@ def process_sync_task(primary_fbid):
     sync_task = models.FBSyncTask.items.get_item(fbid=primary_fbid)
     sync_task.status = sync_task.IN_PROCESS
     sync_task.save(overwrite=True)
-
-    s3_conn = boto.s3.connect_to_region('us-east-1')
-    try:
-        bucket = s3_conn.get_bucket(sync_task.bucket)
-    except boto.exception.S3ResponseError:
-        try:
-            bucket = s3_conn.create_bucket(sync_task.bucket)
-        except boto.exception.S3ResponseError as exc:
-            process_sync_task.retry(exc=exc)
+    s3_conn = utils.S3Manager()
 
     logger.info('Preparing to crawl {} fbids'.format(len(sync_task.fbids_to_crawl)))
     fbids_to_crawl = list(sync_task.fbids_to_crawl)
     for fbid in fbids_to_crawl:
+        bucket = s3_conn.get_or_create_bucket('{}{}'.format(
+            settings.FEED_BUCKET_PREFIX,
+            random.randrange(0, settings.FEED_MAX_BUCKETS)
+        ))
         logger.info('Processing {}_{}'.format(sync_task.fbid, fbid))
-        s3_key = bucket.get_key('{}_{}'.format(
+        s3_key, created = bucket.get_or_create_key('{}_{}'.format(
             sync_task.fbid,
             fbid
         ))
-        if not s3_key:
-            s3_key = bucket.new_key('{}_{}'.format(
-                sync_task.fbid,
-                fbid
-            ))
 
-        if s3_key.size:
+        if not created:
             logger.info('Found existing S3 Key for {}_{}'.format(sync_task.fbid, fbid))
             data = json.loads(s3_key.get_contents_as_string())
             next_url = 'https://graph.facebook.com/{}/feed?{}'.format(
@@ -132,12 +120,12 @@ def process_sync_task(primary_fbid):
                 paginated_data = facebook.client.urlload(next_url, timeout_override=120)
             except (ValueError, IOError) as exc:
                 logger.exception('Failed to grab next page of data for {}_{}'.format(sync_task.fbid, fbid))
-                time.sleep(5)
                 retry_count += 1
-                if retry_count > 5:
+                if retry_count > 3:
                     break
                 else:
                     continue
+                time.sleep(5)
 
             else:
                 if paginated_data.get('data'):
@@ -152,4 +140,4 @@ def process_sync_task(primary_fbid):
         logger.info('Completed {}_{}'.format(sync_task.fbid, fbid))
 
     sync_task.status = sync_task.COMPLETED
-    sync_task.save()
+    sync_task.save(overwrite=True)
