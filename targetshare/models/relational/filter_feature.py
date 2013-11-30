@@ -158,18 +158,18 @@ class FilterFeature(models.Model):
             return self.value
 
     @staticmethod
-    def format_object(obj):
+    def format_user_value(value):
         try:
-            formatter = obj.__filterfeature__
+            formatter = value.__filterfeature__
         except AttributeError:
-            return obj
+            return value
         else:
             return formatter()
 
     def get_user_value(self, user):
-        token = r'[^\[\]]' # unbracketed character
+        token = r'[^\[\]]+' # string without brackets
         # Expect User attribute followed by optional getitem specifications:
-        result = re.search(r'^({}+)(.+)?$'.format(token), self.feature)
+        result = re.search(r'^({})(.+)?$'.format(token), self.feature)
         if result is None:
             raise ValueError("Unparseable filter feature: {0!r}".format(self.feature))
         (attr, extra) = result.groups()
@@ -177,10 +177,10 @@ class FilterFeature(models.Model):
             dive = ()
         else:
             # Parse getitem specifications:
-            dive = re.findall(r'{}+'.format(token), extra)
-        value = self.format_object(getattr(user, attr))
+            dive = re.findall(token, extra)
+        value = self.format_user_value(getattr(user, attr))
         for level in dive:
-            value = self.format_object(value[level])
+            value = self.format_user_value(value[level])
         return value
 
     def operate_standard(self, user):
