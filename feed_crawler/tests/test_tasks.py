@@ -60,11 +60,10 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             fbids_to_crawl={1}
         )
         fbt.save()
-        tasks.process_sync_task(1)
+        tasks.process_sync_task(fbt.fbid)
         self.assertTrue(new_key.set_contents_from_string.called)
-        fbt = models.FBSyncTask.items.get_item(fbid=1)
-        self.assertEqual(fbt.status, models.FBSyncTask.COMPLETED)
-        self.assertEqual(fbt.fbids_to_crawl, None)
+        with self.assertRaises(models.FBSyncTask.DoesNotExist):
+            models.FBSyncTask.items.get_item(fbid=1)
 
     @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
@@ -81,9 +80,8 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             fbids_to_crawl={1}
         )
         fbt.save()
-        tasks.process_sync_task(1)
+        tasks.process_sync_task(fbt.fbid)
         self.assertTrue(existing_key.get_contents_as_string.called)
         self.assertTrue(existing_key.set_contents_from_string.called)
-        fbt = models.FBSyncTask.items.get_item(fbid=1)
-        self.assertEqual(fbt.status, models.FBSyncTask.COMPLETED)
-        self.assertEqual(fbt.fbids_to_crawl, None)
+        with self.assertRaises(models.FBSyncTask.DoesNotExist):
+            models.FBSyncTask.items.get_item(fbid=1)

@@ -164,14 +164,14 @@ class NumberSetType(InternalDataTypeExtension):
             if self.delimiter == self.COMMA:
                 # csv doesn't handle unicode or unquoted newlines
                 line = re.sub(r'\s', ' ', value.encode('utf-8'))
-                row = csv.reader([line]).next()
-                return {long(item) for item in row}
+                items = csv.reader([line]).next()
             else:
                 items = (item.strip() for item in value.strip().split(self.delimiter))
-                return set(long(item) for item in items if item)
+
+            return {int(item) for item in items if item}
 
         if hasattr(value, '__iter__'):
-            if not all(isinstance(item, (int, Decimal)) for item in value):
+            if not all(isinstance(item, numbers.Number) for item in value):
                 raise DataValidationError(
                     "Number set may not contain non-numbers: {!r}".format(value))
 

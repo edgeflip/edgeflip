@@ -291,10 +291,6 @@ CELERY_ROUTES = {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
     },
-    'targetshare.tasks.ranking.proximity_rank_four': {
-        'queue': 'bg_px4',
-        'routing_key': 'bg.px4'
-    },
     'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',
         'routing_key': 'bulk.create'

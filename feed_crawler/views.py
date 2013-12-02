@@ -6,7 +6,7 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 
 from targetshare.models import dynamo
-from targetshare.tasks import ranking
+from feed_crawler import tasks
 
 
 LOG = logging.getLogger(__name__)
@@ -34,8 +34,5 @@ def realtime_subscription(request):
             else:
                 # Run px4 on the user, but place it on a different queue
                 # as to not disturb the main user flow
-                ranking.proximity_rank_four.apply_async(
-                    args=[False, token.fbid, token],
-                    routing_key='bg.px4'
-                )
+                tasks.crawl_user(token)
         return http.HttpResponse()
