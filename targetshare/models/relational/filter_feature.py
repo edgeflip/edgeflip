@@ -42,13 +42,7 @@ class FilterFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
         """
         for filter_feature in self:
-            if filter_feature.feature_type.code == FilterFeatureType.MATCHING:
-                # Civis matching:
-                edges = filter_feature.filter_matching(edges, cache_match)
-            else:
-                # Standard min/max/eq/in filters:
-                edges = filter_feature.filter_standard(edges)
-
+            edges = filter_feature.filter_edges(edges, cache_match)
         return edges
 
 
@@ -184,43 +178,41 @@ class FilterFeature(models.Model):
         return value
 
     def operate_standard(self, user):
-        # TODO: Be able to parse topics[Health], and check each object
-        # TODO: (first user.topics, then result of __getitem__) for __filterfeature__()
-        # TODO: (Or could expect dot notation, though `topics.Health:Cancer` might
-        # TODO: look a little weird?)
         try:
-            user_val = self.get_user_value(user)
+            user_value = self.get_user_value(user)
         except (AttributeError, KeyError):
             return False
         else:
-            if user_val in ('', None):
+            if user_value in ('', None):
                 return False
 
         value = self.decode_value()
 
         if self.operator == 'min':
-            return user_val >= value
+            return user_value >= value
 
         elif self.operator == 'max':
-            return user_val <= value
+            return user_value <= value
 
         elif self.operator == 'eq':
-            return user_val == value
+            return user_value == value
 
         elif self.operator == 'in':
-            return user_val in value
+            return user_value in value
 
-    def filter_standard(self, edges):
+    def filter_edges(self, edges, cache_match=False):
+        if self.feature_type.code == self.feature_type.MATCHING:
+            # Civis matching:
+            if cache_match:
+                filter_ = civis.client.civis_cached_filter
+            else:
+                filter_ = civis.client.civis_filter
+
+            return filter_(edges, self.feature, self.operator, self.value)
+
+        # Standard min/max/eq/in filters:
         return tuple(edge for edge in edges
                      if self.operate_standard(edge.secondary))
-
-    def filter_matching(self, edges, cache_match=False):
-        if cache_match:
-            filter_ = civis.client.civis_cached_filter
-        else:
-            filter_ = civis.client.civis_filter
-
-        return filter_(edges, self.feature, self.operator, self.value)
 
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""

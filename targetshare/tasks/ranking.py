@@ -374,11 +374,11 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
 
     """
     (edges_ranked, hit_fb) = crawl_result
-    # TODO: Is this threshold sensible?
     px4_filters = models.relational.Filter.objects.filter(
         client__campaigns__campaign_id=campaign_id,
         filterfeatures__feature_type__px_rank__gte=4,
     )
+    # TODO: Is this threshold sensible?
     if (not hit_fb or len(edges_ranked) < DB_MIN_FRIEND_COUNT) and px4_filters.exists():
         # We haven't wasted time hitting Facebook or user has few enough
         # friends that we should be able to apply refined filters anyway:
