@@ -1,10 +1,10 @@
 from django.db import models
 
 
-class Filter(models.Model):
+class RankingKey(models.Model):
 
-    filter_id = models.AutoField(primary_key=True)
-    client = models.ForeignKey('Client', related_name='filters',
+    ranking_key_id = models.AutoField(primary_key=True)
+    client = models.ForeignKey('Client', related_name='rankingkeys',
                                null=True, blank=True)
     name = models.CharField(max_length=256, null=True, blank=True)
     description = models.CharField(max_length=1024, blank=True)
@@ -17,5 +17,5 @@ class Filter(models.Model):
 
     class Meta(object):
         app_label = 'targetshare'
-        db_table = 'filters'
+        db_table = 'ranking_keys'
         ordering = ('-create_dt',)

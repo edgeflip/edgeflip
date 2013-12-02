@@ -32,7 +32,7 @@ from .faces_style_meta import FacesStyleMeta
 from .fb_object_attribute import FBObjectAttribute
 from .fb_object_meta import FBObjectMeta
 from .fb_object import FBObject
-from .filter_feature import FilterFeatureType, FilterFeature
+from .feature import FilterFeatureType, FilterFeature, RankingKeyFeature
 from .filter_meta import FilterMeta
 from .filter import Filter
 from .mix_model_definition import MixModelDefinition
@@ -45,6 +45,7 @@ from .propensity_model import PropensityModel
 from .proximity_model_definition import ProximityModelDefinition
 from .proximity_model_meta import ProximityModelMeta
 from .proximity_model import ProximityModel
+from .ranking_key import RankingKey
 from .share_message import ShareMessage
 from .user_client import UserClient
 from .visit import Visit

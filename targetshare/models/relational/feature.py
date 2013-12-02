@@ -244,3 +244,41 @@ class FilterFeature(models.Model):
         if not self.feature_type_id:
             self.determine_filter_type()
         return super(FilterFeature, self).save(*args, **kws)
+
+
+class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
+
+    def rank_edges(self, edges):
+        raise NotImplementedError
+
+
+class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
+
+    def get_query_set(self):
+        return RankingKeyFeatureQuerySet.make(self)
+
+    def rank_edges(self, *args, **kws):
+        return self.get_query_set().rank_edges(*args, **kws)
+
+
+# TODO: schema migration
+
+class RankingKeyFeature(models.Model):
+
+    ranking_key_feature_id = models.AutoField(primary_key=True)
+    ranking_key = models.ForeignKey('RankingKey', related_name='rankingkeyfeatures', null=True)
+    feature = models.CharField(max_length=64, blank=True, validators=[
+        get_feature_validator(FEATURES), # FIXME
+    ])
+    # TODO: Also: get_user_value()
+    ordinal_position = models.PositiveIntegerField(default=0)
+    start_dt = models.DateTimeField(auto_now_add=True)
+    end_dt = models.DateTimeField(null=True)
+
+    objects = RankingKeyFeatureManager.make()
+
+    class Meta(object):
+        app_label = 'targetshare'
+        db_table = 'ranking_key_features'
+        ordering = ('ordinal_position',)
+        unique_together = ('ranking_key', 'ordinal_position')
