@@ -32,7 +32,7 @@ class ChoiceSetFilterQuerySet(assigned.AssignedObjectQuerySet):
         def filter_sort(element):
             (_filter, filtered) = element
             key0 = len(filtered)
-            key1 = (sum(edge.score for edge in filtered) / key0) if key0 else 0
+            key1 = key0 and sum(edge.score for edge in filtered) / key0
             return (key0, key1)
         filter_filtered = (
             (csf, csf.filter.filterfeatures.filter_edges(edges_eligible, cache_match))
