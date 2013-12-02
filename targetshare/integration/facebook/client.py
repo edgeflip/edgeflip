@@ -125,7 +125,6 @@ def urlload(url, query=(), timeout_override=0):
     timeout = timeout_override if timeout_override else settings.FACEBOOK.api_timeout
 
     try:
-        logger.info('URL to be crawled: {}'.format(url))
         with closing(urllib2.urlopen(url, timeout=timeout)) as response:
             return json.load(response)
     except IOError as exc:

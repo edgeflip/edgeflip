@@ -23,7 +23,7 @@ def realtime_subscription(request):
             return http.HttpResponseForbidden()
     else:
         # Do important crawly things here
-        data = json.loads(request.POST)
+        data = json.loads(request.POST['data'])
         for entry in data['entry']:
             try:
                 token = dynamo.Token.items.query(fbid__eq=entry['uid'])[0]

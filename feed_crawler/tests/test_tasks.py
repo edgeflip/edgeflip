@@ -18,12 +18,12 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
     @patch_facebook
     @patch('feed_crawler.tasks.process_sync_task')
-    def test_crawl_user_feeds(self, sync_mock):
+    def test_create_sync_task(self, sync_mock):
         ''' Should create a FBTaskSync object and place a process_sync_task
         job on the queue
         '''
         edges = px3_crawl(False, 1, self.token)
-        tasks.crawl_user_feeds(edges, self.token)
+        tasks.create_sync_task(edges, self.token)
         fbt = models.FBSyncTask.items.get_item(fbid=1)
         self.assertEqual(fbt.status, 'waiting')
         self.assertEqual(fbt.token, self.token.token)
@@ -31,7 +31,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
     @patch_facebook
     @patch('feed_crawler.tasks.process_sync_task')
-    def test_crawl_user_feeds_existing_task(self, sync_mock):
+    def test_create_sync_task_existing_task(self, sync_mock):
         ''' Should recognize an existing FBTaskSync object and do nothing '''
         fbt = models.FBSyncTask(
             fbid=1,
@@ -41,7 +41,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         )
         fbt.save()
         edges = px3_crawl(False, 1, self.token)
-        tasks.crawl_user_feeds(edges, self.token)
+        tasks.create_sync_task(edges, self.token)
         self.assertFalse(sync_mock.delay.called)
 
     @patch_facebook

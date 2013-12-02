@@ -276,7 +276,6 @@ CELERY_QUEUES = (
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
-    Queue('store_feeds', routing_key='store.feeds', queue_arguments=QUEUE_ARGS),
     Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
@@ -316,13 +315,9 @@ CELERY_ROUTES = {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
-    'feed_crawler.tasks.crawl_user_feeds': {
+    'feed_crawler.tasks.create_sync_task': {
         'queue': 'user_feeds',
         'routing_key': 'user.feeds',
-    },
-    'feed_crawler.tasks.store_user_feed': {
-        'queue': 'store_feeds',
-        'routing_key': 'store.feeds',
     },
     'feed_crawler.tasks.process_sync_task': {
         'queue': 'process_sync',

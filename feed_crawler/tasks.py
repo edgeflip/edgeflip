@@ -25,13 +25,13 @@ def crawl_user(token):
     task = ranking.proximity_rank_four.apply_async(
         args=[False, token.fbid, token],
         routing_key='bg.px4',
-        link=crawl_user_feeds.s(token=token)
+        link=create_sync_task.s(token=token)
     )
     return task
 
 
 @celery.task(default_retry_delay=1, max_retries=3)
-def crawl_user_feeds(edges, token):
+def create_sync_task(edges, token):
     if not edges:
         return
 
@@ -50,22 +50,22 @@ def crawl_user_feeds(edges, token):
         token=token.token,
         status=models.FBSyncTask.WAITING,
     )
-    fbids_to_crawl = [edge.secondary.fbid for edge in edges]
-    fbids_to_crawl.insert(0, token.fbid)
+    fbids_to_crawl = [token.fbid] + [edge.secondary.fbid for edge in edges]
     sync_task.fbids_to_crawl = fbids_to_crawl
     sync_task.save()
     process_sync_task.delay(token.fbid)
 
 
-@celery.task(default_retry_delay=30, max_retries=3)
+@celery.task(default_retry_delay=300, max_retries=3)
 def process_sync_task(primary_fbid):
     sync_task = models.FBSyncTask.items.get_item(fbid=primary_fbid)
     sync_task.status = sync_task.IN_PROCESS
     sync_task.save(overwrite=True)
     s3_conn = utils.S3Manager()
 
-    logger.info('Preparing to crawl {} fbids'.format(len(sync_task.fbids_to_crawl)))
-    fbids_to_crawl = list(sync_task.fbids_to_crawl)
+    logger.info('Preparing to crawl {} fbids'.format(
+        len(sync_task.fbids_to_crawl)))
+    fbids_to_crawl = set(sync_task.fbids_to_crawl)
     for fbid in fbids_to_crawl:
         bucket = s3_conn.get_or_create_bucket('{}{}'.format(
             settings.FEED_BUCKET_PREFIX,
@@ -78,7 +78,8 @@ def process_sync_task(primary_fbid):
         ))
 
         if not created:
-            logger.info('Found existing S3 Key for {}_{}'.format(sync_task.fbid, fbid))
+            logger.info('Found existing S3 Key for {}_{}'.format(
+                sync_task.fbid, fbid))
             data = json.loads(s3_key.get_contents_as_string())
             next_url = 'https://graph.facebook.com/{}/feed?{}'.format(
                 fbid, urllib.urlencode({
@@ -90,7 +91,8 @@ def process_sync_task(primary_fbid):
                 })
             )
         else:
-            logger.info('No existing S3 Key for {}_{}'.format(sync_task.fbid, fbid))
+            logger.info('No existing S3 Key for {}_{}'.format(
+                sync_task.fbid, fbid))
             try:
                 data = facebook.client.urlload(
                     'https://graph.facebook.com/{}/feed/'.format(fbid), {
@@ -102,7 +104,6 @@ def process_sync_task(primary_fbid):
                         'until': to_epoch(timezone.now()),
                     }, timeout_override=120
                 )
-                data['updated'] = to_epoch(timezone.now())
                 if not data.get('data'):
                     logger.info('No feed information for {}'.format(
                         fbid))
@@ -110,16 +111,32 @@ def process_sync_task(primary_fbid):
 
                 next_url = data.get('paging', {}).get('next')
             except (ValueError, IOError) as exc:
-                logger.exception('Failed to process initial url for {}_{}'.format(sync_task.fbid, fbid))
-                process_sync_task.retry(exc=exc)
+                logger.exception(
+                    'Failed to process initial url for {}_{}'.format(
+                        sync_task.fbid, fbid)
+                )
+                try:
+                    process_sync_task.retry(exc=exc)
+                except (ValueError, IOError):
+                    logger.exception(
+                        'Completely failed to process {}_{}'.format(
+                            sync_task.fbid, fbid)
+                    )
+                    sync_task.status = sync_task.FAILED
+                    sync_task.save(overwrite=True)
 
         retry_count = 0
         while next_url:
-            logger.info('Crawling {} for {}_{}'.format(next_url, sync_task.fbid, fbid))
+            logger.info('Crawling {} for {}_{}'.format(
+                next_url, sync_task.fbid, fbid))
             try:
-                paginated_data = facebook.client.urlload(next_url, timeout_override=120)
+                paginated_data = facebook.client.urlload(
+                    next_url, timeout_override=120)
             except (ValueError, IOError) as exc:
-                logger.exception('Failed to grab next page of data for {}_{}'.format(sync_task.fbid, fbid))
+                logger.exception(
+                    'Failed to grab next page of data for {}_{}'.format(
+                        sync_task.fbid, fbid)
+                )
                 retry_count += 1
                 if retry_count > 3:
                     break
@@ -134,6 +151,7 @@ def process_sync_task(primary_fbid):
                 else:
                     next_url = None
 
+        data['updated'] = to_epoch(timezone.now())
         s3_key.set_contents_from_string(json.dumps(data))
         sync_task.fbids_to_crawl.remove(fbid)
         sync_task.save(overwrite=True)

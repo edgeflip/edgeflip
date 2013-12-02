@@ -1,3 +1,5 @@
+import json
+
 from django.conf import settings
 from django.core.urlresolvers import reverse
 
@@ -23,5 +25,13 @@ class TestFeedCrawlerViews(EdgeFlipTestCase):
         )
 
     def test_subscribe_post(self):
-        response = self.client.post(reverse('realtime-subscription'))
+        response = self.client.post(reverse('realtime-subscription'),
+            dict(data=json.dumps({
+                "object": "feed",
+                "entry": [
+                    {"uid": 12345},
+                    {"uid": 67890},
+                ]
+            }))
+        )
         self.assertStatusCode(response, 200)
