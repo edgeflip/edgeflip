@@ -374,6 +374,12 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
 
     """
     (edges_ranked, hit_fb) = crawl_result
+
+    # TODO: rank-refinement
+    # TODO: Should proximity rank be primary key? Or last (most minor) key? Or
+    # TODO: should RankingKeys affect the proximity score, s.t. we rank by it,
+    # TODO: (rather than overriding it)?
+
     px4_filters = models.relational.Filter.objects.filter(
         client__campaigns__campaign_id=campaign_id,
         filterfeatures__feature_type__px_rank__gte=4,
@@ -382,17 +388,10 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     if (not hit_fb or len(edges_ranked) < DB_MIN_FRIEND_COUNT) and px4_filters.exists():
         # We haven't wasted time hitting Facebook or user has few enough
         # friends that we should be able to apply refined filters anyway:
-        filtering_result = perform_filtering(
+        return perform_filtering(
             edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
             px_rank=4, visit_type=visit_type, cache_match=cache_match
         )
     else:
         # Use empty result to indicate px3 filtering should be used:
-        filtering_result = empty_filtering_result._replace(ranked=edges_ranked)
-
-    # TODO: at least, refine ranking by sorting by RankRefinements or some such
-    # thing (topics); but perhaps also do a perform_filtering, but with the aid
-    # of RefinedFilters, or something...
-    raise NotImplementedError
-    # TODO: much of refactoring around filtering good, but think over whether
-    # we possibly can do any real filtering at this point, (time-wise)...
+        return empty_filtering_result._replace(ranked=edges_ranked)

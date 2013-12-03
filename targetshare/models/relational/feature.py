@@ -34,6 +34,85 @@ class FilterFeatureType(models.Model):
         ordering = ('sort_order',)
 
 
+class Feature(object):
+    """Mix-in for models with a "feature" field."""
+
+    class Expression(object):
+        # Standard features:
+        AGE = 'age'
+        GENDER = 'gender'
+        STATE = 'state'
+        CITY = 'city'
+        FULL_LOCATION = 'full_location'
+
+        # MATCHING features:
+        TURNOUT_SCORE = 'turnout_2013'
+        SUPPORT_SCORE = 'support_cand_2013'
+        PERSUASION_SCORE = 'persuasion_score'
+        GOTV_SCORE = 'gotv_score'
+        PERSUASION_TURNOUT = 'persuasion_turnout_2013'
+
+        STANDARD = (
+            # (feature type code, feature expression)
+            (AGE, AGE),
+            (GENDER, GENDER),
+            (STATE, STATE),
+            (CITY, CITY),
+            (FULL_LOCATION, FULL_LOCATION),
+        )
+
+        NON_STANDARD = (
+            # (feature type code, feature expression)
+            (FilterFeatureType.MATCHING, '|'.join([
+                TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE, PERSUASION_TURNOUT
+            ])),
+            (FilterFeatureType.TOPICS, r'topics\[[^\[\]]+\]'),
+        )
+
+        ALL = STANDARD + NON_STANDARD
+
+    @staticmethod
+    def _format_user_value(value):
+        try:
+            formatter = value.__feature__
+        except AttributeError:
+            return value
+        else:
+            return formatter()
+
+    def get_user_value(self, user):
+        """Retrieve from the given User the value corresponding to the feature
+        expression.
+
+        Supported expressions are, principally, User attributes; this object may
+        then be accessed further via dictionary subscripting:
+
+            * if `feature` is equal to `'age'`, the result of `user.age` is retrieved
+            * if `'topics[Health]'`: `user.topics['Health']
+            * if `'topics[Health][Exercise]'`: `user.topics['Health']['Exercise']
+
+        Retrieved objects are checked for a `__feature__` method and, if present,
+        the result of calling this method is used in place of the object itself;
+        (this check is performed at every subscripting level).
+
+        """
+        token = r'[^\[\]]+' # string without brackets
+        # Expect User attribute followed by optional getitem subscripts:
+        result = re.search(r'^({})(.+)?$'.format(token), self.feature)
+        if result is None:
+            raise ValueError("Unparseable feature expression: {0!r}".format(self.feature))
+        (attr, extra) = result.groups()
+        if extra is None:
+            dive = ()
+        else:
+            # Parse getitem specifications:
+            dive = re.findall(token, extra)
+        value = self._format_user_value(getattr(user, attr))
+        for level in dive:
+            value = self._format_user_value(value[level])
+        return value
+
+
 class FilterFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
     def filter_edges(self, edges, cache_match=False):
@@ -61,75 +140,48 @@ def get_feature_validator(features):
     ))
 
 
-class FilterFeature(models.Model):
+class FilterFeature(models.Model, Feature):
 
-    # value_types:
-    INT = 'int'
-    FLOAT = 'float'
-    STRING = 'string'
-    LIST = 'list'
+    class ValueType(object):
+        INT = 'int'
+        FLOAT = 'float'
+        STRING = 'string'
+        LIST = 'list'
 
-    VALUE_TYPE_CHOICES = (
-        ('', ""),
-        (INT, "integer"),
-        (FLOAT, "float"),
-        (STRING, "string"),
-        (LIST, "list"),
-    )
+        CHOICES = (
+            ('', ""),
+            (INT, "integer"),
+            (FLOAT, "float"),
+            (STRING, "string"),
+            (LIST, "list"),
+        )
 
-    FILTER_LIST_DELIM = '||'
+        LIST_DELIM = '||'
 
-    # Standard features:
-    AGE = 'age'
-    GENDER = 'gender'
-    STATE = 'state'
-    CITY = 'city'
-    FULL_LOCATION = 'full_location'
+    class Operator(object):
+        IN = 'in'
+        EQ = 'eq'
+        MIN = 'min'
+        MAX = 'max'
 
-    # MATCHING features:
-    TURNOUT_SCORE = 'turnout_2013'
-    SUPPORT_SCORE = 'support_cand_2013'
-    PERSUASION_SCORE = 'persuasion_score'
-    GOTV_SCORE = 'gotv_score'
-    PERSUASION_TURNOUT = 'persuasion_turnout_2013'
-
-    STANDARD_FEATURES = (
-        # (feature type code, feature expression)
-        (AGE, AGE),
-        (GENDER, GENDER),
-        (STATE, STATE),
-        (CITY, CITY),
-        (FULL_LOCATION, FULL_LOCATION),
-    )
-
-    NON_STANDARD_FEATURES = (
-        # (feature type code, feature expression)
-        (FilterFeatureType.MATCHING, '|'.join([
-            TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE, PERSUASION_TURNOUT
-        ])),
-        (FilterFeatureType.TOPICS, r'topics\[[^\[\]]+\]'),
-    )
-
-    FEATURES = STANDARD_FEATURES + NON_STANDARD_FEATURES
-
-    OPERATOR_CHOICES = (
-        ('in', 'In'),
-        ('eq', 'Equal'),
-        ('min', 'Min'),
-        ('max', 'Max')
-    )
+        CHOICES = (
+            (IN, "In"),
+            (EQ, "Equal"),
+            (MIN, "Min"),
+            (MAX, "Max")
+        )
 
     filter_feature_id = models.AutoField(primary_key=True)
     filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True, validators=[
-        get_feature_validator(FEATURES),
+        get_feature_validator(Feature.Expression.ALL),
     ])
     feature_type = models.ForeignKey('FilterFeatureType')
     operator = models.CharField(max_length=32, blank=True,
-                                choices=OPERATOR_CHOICES)
+                                choices=Operator.CHOICES)
     value = models.CharField(max_length=1024, blank=True)
     value_type = models.CharField(max_length=32, blank=True,
-                                  choices=VALUE_TYPE_CHOICES)
+                                  choices=ValueType.CHOICES)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 
@@ -142,40 +194,14 @@ class FilterFeature(models.Model):
 
     def decode_value(self):
         ''' Returns the value as the proper value type instance '''
-        if self.value_type == self.INT:
+        if self.value_type == self.ValueType.INT:
             return int(self.value)
-        elif self.value_type == self.FLOAT:
+        elif self.value_type == self.ValueType.FLOAT:
             return float(self.value)
-        elif self.value_type == self.LIST:
-            return self.value.split(self.FILTER_LIST_DELIM)
+        elif self.value_type == self.ValueType.LIST:
+            return self.value.split(self.ValueType.LIST_DELIM)
         else:
             return self.value
-
-    @staticmethod
-    def format_user_value(value):
-        try:
-            formatter = value.__filterfeature__
-        except AttributeError:
-            return value
-        else:
-            return formatter()
-
-    def get_user_value(self, user):
-        token = r'[^\[\]]+' # string without brackets
-        # Expect User attribute followed by optional getitem specifications:
-        result = re.search(r'^({})(.+)?$'.format(token), self.feature)
-        if result is None:
-            raise ValueError("Unparseable filter feature: {0!r}".format(self.feature))
-        (attr, extra) = result.groups()
-        if extra is None:
-            dive = ()
-        else:
-            # Parse getitem specifications:
-            dive = re.findall(token, extra)
-        value = self.format_user_value(getattr(user, attr))
-        for level in dive:
-            value = self.format_user_value(value[level])
-        return value
 
     def operate_standard(self, user):
         try:
@@ -188,16 +214,16 @@ class FilterFeature(models.Model):
 
         value = self.decode_value()
 
-        if self.operator == 'min':
+        if self.operator == self.Operator.MIN:
             return user_value >= value
 
-        elif self.operator == 'max':
+        elif self.operator == self.Operator.MAX:
             return user_value <= value
 
-        elif self.operator == 'eq':
+        elif self.operator == self.Operator.EQ:
             return user_value == value
 
-        elif self.operator == 'in':
+        elif self.operator == self.Operator.IN:
             return user_value in value
 
     def filter_edges(self, edges, cache_match=False):
@@ -217,23 +243,23 @@ class FilterFeature(models.Model):
     def determine_value_type(self):
         """Automatically determine value_type from type of value."""
         if isinstance(self.value, (int, long)):
-            self.value_type = self.INT
+            self.value_type = self.ValueType.INT
         elif isinstance(self.value, float):
-            self.value_type = self.FLOAT
+            self.value_type = self.ValueType.FLOAT
             self.value = '%.8f' % self.value
         elif isinstance(self.value, basestring):
-            self.value_type = self.STRING
+            self.value_type = self.ValueType.STRING
         elif isinstance(self.value, (list, tuple)):
-            self.value_type = self.LIST
-            self.value = self.FILTER_LIST_DELIM.join(
+            self.value_type = self.ValueType.LIST
+            self.value = self.ValueType.LIST_DELIM.join(
                 str(value) for value in self.value)
         else:
             raise ValueError("Can't filter on type of %s" % self.value)
 
     def determine_filter_type(self):
         code = self.feature
-        for feature_type, pattern in self.NON_STANDARD_FEATURES:
-            if re.match(pattern + '$', code):
+        for feature_type, pattern in self.Expression.NON_STANDARD:
+            if re.search('^{}$'.format(pattern), code):
                 code = feature_type
                 break
         self.feature_type = FilterFeatureType.objects.get(code=code)
@@ -249,7 +275,16 @@ class FilterFeature(models.Model):
 class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
     def rank_edges(self, edges):
-        raise NotImplementedError
+        edges = list(edges) # Ensure type & don't mutate given object
+        # FIXME: You don't necessarily know ordering, so use order_by rather
+        # FIXME: than reverse:
+        ranking_key_features = self.reverse() # Sort on primary key last, ...
+        for ranking_key_feature in ranking_key_features:
+            edges.sort(
+                key=lambda edge: ranking_key_feature.get_user_value(edge.secondary),
+                reverse=ranking_key_feature.reverse,
+            )
+        return edges
 
 
 class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
@@ -263,14 +298,14 @@ class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
 
 # TODO: schema migration
 
-class RankingKeyFeature(models.Model):
+class RankingKeyFeature(models.Model, Feature):
 
     ranking_key_feature_id = models.AutoField(primary_key=True)
     ranking_key = models.ForeignKey('RankingKey', related_name='rankingkeyfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True, validators=[
-        get_feature_validator(FEATURES), # FIXME
+        validators.RegexValidator(r'^{0[topics]}$'.format(dict(Feature.Expression.ALL)))
     ])
-    # TODO: Also: get_user_value()
+    reverse = models.BooleanField(default=False, blank=True)
     ordinal_position = models.PositiveIntegerField(default=0)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)

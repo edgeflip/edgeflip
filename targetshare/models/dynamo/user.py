@@ -61,7 +61,7 @@ class Topics(dict):
                 totals[key] += value
         return totals
 
-    __filterfeature__ = aggregate
+    __feature__ = aggregate
 
     def __str__(self):
         # Show aggregate weights but using dict format (not defaultdict):
