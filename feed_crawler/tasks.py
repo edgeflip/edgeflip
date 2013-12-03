@@ -104,7 +104,8 @@ def process_sync_task(fbid):
                 if not data.get('data'):
                     logger.info('No feed information for {}'.format(
                         fbid))
-                    return
+                    sync_task.fbids_to_crawl.remove(fbid)
+                    continue
 
                 next_url = data.get('paging', {}).get('next')
             except (ValueError, IOError) as exc:
@@ -135,6 +136,8 @@ def process_sync_task(fbid):
                 )
                 retry_count += 1
                 if retry_count > 3:
+                    logger.error('Giving up on grabbing {} for {}_{}'.format(
+                        next_url, sync_task.fbid, fbid))
                     break
                 else:
                     time.sleep(5)
