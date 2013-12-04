@@ -1,22 +1,6 @@
 {% block js_inline %}
+    {{ block.super }}
     <script>
-        var tok = '';
-        var appid = "{{ fb_params.fb_app_id }}";
-        var campaignid = {{ campaign.pk }};
-        var contentid = {{ content.pk }};
-        var debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
         var num_face = 10;
-
-        {% if test_mode %}
-            var test_mode = true;
-            var test_fbid = {{ test_fbid }};
-            var test_token = '{{ test_token }}';
-        {% else %}
-            var test_mode = false;
-        {% endif %}
-
-        var thanksURL = '{{ properties.client_thanks_url }}';
-        var errorURL = '{{ properties.client_error_url }}';
     </script>
-    <!-- edgeflip javascript -->
 {% endblock %}
