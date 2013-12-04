@@ -157,9 +157,6 @@ body {
     cursor: pointer;
 }
 .friend_box:hover {
-    /*border: thin #96C2F0 solid ;*/
-    /*color: #96C2F0;*/
-    border: thin #0270A0 solid;
     color: #0270A0;
 }
 .friend_box_selected {
@@ -198,14 +195,6 @@ body {
 /* styles the check mark image that appears on select */
 .checkmark {
     display: none;
-    background-image: url('/static/img/checkmark-sm.png');
-    background-repeat: no-repeat;
-    width: 50px;
-    height: 50px;
-    position: absolute;
-    bottom: 2px;
-    right: 6px;
-    z-index: 10;
 }
 
 /* fb portrait of friends */
