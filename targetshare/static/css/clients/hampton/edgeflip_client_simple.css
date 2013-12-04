@@ -23,7 +23,7 @@
  * 
  * License: http://www.myfonts.com/viewlicense?type=web&buildid=2476584
  * 
- * Â© 2013 MyFonts Inc
+ * Ã‚Â© 2013 MyFonts Inc
 */
 
 
@@ -134,7 +134,7 @@ input:focus, textarea:focus {
 .friend_box {
 float: left;
   background-color: #fff;
-  width: 97px;
+  width: 101px;
   margin: 0 10px 10px 0;
   padding: 10px;
   font-size: 0.8em;
@@ -143,17 +143,20 @@ float: left;
   border-radius: 0;
   border: none;
 }
+.friend_box:nth-child(5n+0) {
+  margin-right: 0;
+}
 .friend_box:hover {
-    border: thin #0270A0 solid;
     color: #0270A0;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.3);
 }
 .friend_box_selected {
-    background-color: #07304E;
-    color: white;
+    background-color: #dedede;
+  box-shadow: none;
 }
 .friend_box_unselected {
     background-color: #fff;
-    color: black;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.14);
 }
 .friend_pic {
 	float: left;
