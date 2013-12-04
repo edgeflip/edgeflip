@@ -80,7 +80,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
         var params = {
             fbid: ajax_fbid,
             token: ajax_token,
-            num: num,
+            num: num_face,
             campaignid: campaignid,
             contentid: contentid,
             px3_task_id: px3_task_id,
