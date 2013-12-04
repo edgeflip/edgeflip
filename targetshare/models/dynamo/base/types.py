@@ -4,6 +4,7 @@ import json
 import numbers
 import re
 
+from decimal import Decimal
 from boto.dynamodb import types as basetypes
 
 # Make boto's generic data types available:
@@ -141,6 +142,45 @@ NUMBER = NumberType()
 
 COMMA = ','
 DOUBLE_NEWLINE = '\n\n'
+
+
+class NumberSetType(InternalDataTypeExtension):
+
+    internal = NUMBER_SET
+
+    COMMA = COMMA
+    DOUBLE_NEWLINE = DOUBLE_NEWLINE
+
+    def __new__(cls, delimiter=COMMA):
+        self = super(NumberSetType, cls).__new__(cls)
+        self.delimiter = delimiter
+        return self
+
+    def decode(self, value):
+        if is_null(value):
+            return value
+
+        if isinstance(value, basestring):
+            if self.delimiter == self.COMMA:
+                # csv doesn't handle unicode or unquoted newlines
+                line = re.sub(r'\s', ' ', value.encode('utf-8'))
+                items = csv.reader([line]).next()
+            else:
+                items = (item.strip() for item in value.strip().split(self.delimiter))
+
+            return {int(item) for item in items if item}
+
+        if hasattr(value, '__iter__'):
+            if not all(isinstance(item, numbers.Number) for item in value):
+                raise DataValidationError(
+                    "Number set may not contain non-numbers: {!r}".format(value))
+
+            return value if isinstance(value, (set, frozenset)) else set(value)
+
+        raise DataValidationError(
+            "Value is not an appropriate string set specification: {!r}".format(value))
+
+NUMBER_SET = NumberSetType()
 
 
 class StringSetType(InternalDataTypeExtension):

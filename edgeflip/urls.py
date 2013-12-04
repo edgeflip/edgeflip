@@ -9,6 +9,7 @@ admin.autodiscover()
 urlpatterns = patterns('',
     url(r'', include('targetshare.urls')),
     url(r'^admin/', include('targetadmin.urls')),
+    url(r'^subscriptions/', include('feed_crawler.urls')),
 )
 
 if settings.DEBUG:

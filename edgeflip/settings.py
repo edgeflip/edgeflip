@@ -232,6 +232,7 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'feed_crawler',
 )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
@@ -268,11 +269,14 @@ CELERY_QUEUES = (
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
+    Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
+    Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
     'targetshare.tasks.ranking.px3_crawl': {
@@ -307,10 +311,19 @@ CELERY_ROUTES = {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
+    'feed_crawler.tasks.create_sync_task': {
+        'queue': 'user_feeds',
+        'routing_key': 'user.feeds',
+    },
+    'feed_crawler.tasks.process_sync_task': {
+        'queue': 'process_sync',
+        'routing_key': 'process.sync',
+    }
 }
 CELERY_IMPORTS = (
     'targetshare.tasks.ranking',
     'targetshare.tasks.db',
+    'feed_crawler.tasks',
 )
 
 # Session Settings
@@ -331,10 +344,16 @@ FB_PERMS_LIST = [
     'user_interests', 'friends_interests'
 ]
 FB_PERMS = ','.join(FB_PERMS_LIST)
+FB_REALTIME_TOKEN = 'thebiglebowski'
 MAX_FALLBACK_COUNT = 5
 TEST_MODE_SECRET = 'sunwahduck'
 VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+
+# feedcrawler settings
+FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_MAX_BUCKETS = 5
+FEED_AGE_LIMIT = 7 # In days
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False
