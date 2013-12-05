@@ -157,6 +157,9 @@ body {
     cursor: pointer;
 }
 .friend_box:hover {
+    /*border: thin #96C2F0 solid ;*/
+    /*color: #96C2F0;*/
+    /*border: thin #0270A0 solid;*/
     color: #0270A0;
 }
 .friend_box_selected {
@@ -175,17 +178,14 @@ body {
     width: 12px;
     height: 12px;
     line-height: 11px;
-    border: thin solid white;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: bold;
+    font-size: 9px;
     text-align: center;
     vertical-align: middle;
     font-family: arial,sans-serif;
     cursor: pointer;
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: 0px;
+    right: 10px;
     z-index: 10;
 }
 .xout:hover {
