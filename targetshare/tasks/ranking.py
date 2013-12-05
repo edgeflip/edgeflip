@@ -375,7 +375,6 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     """
     (edges_ranked, hit_fb) = crawl_result
 
-    # TODO: rank-refinement
     # TODO: Should proximity rank be primary key? Or last (most minor) key? Or
     # TODO: should RankingKeys affect the proximity score, s.t. we rank by it,
     # TODO: (rather than overriding it)?
