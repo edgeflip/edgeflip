@@ -18,6 +18,7 @@ from .campaign_mix_model import CampaignMixModel
 from .campaign_propensity_model import CampaignPropensityModel
 from .campaign_properties import CampaignProperties
 from .campaign_proximity_model import CampaignProximityModel
+from .campaign_ranking_key import CampaignRankingKey
 from .choice_set_algorithm_definition import ChoiceSetAlgorithmDefinition
 from .choice_set_algorithm_meta import ChoiceSetAlgorithmMeta
 from .choice_set_filter import ChoiceSetFilter

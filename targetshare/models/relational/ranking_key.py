@@ -8,6 +8,13 @@ class RankingKey(models.Model):
                                null=True, blank=True)
     name = models.CharField(max_length=256, null=True, blank=True)
     description = models.CharField(max_length=1024, blank=True)
+    refinement_weight = models.FloatField(
+        blank=True, default=0.5,
+        help_text="A weight with which to apply the ranking key, relative to network proximity, "
+                  "to scoring, 0 <= x <= 1.0: 1.0 will re-rank edges entirely by the ranking key, "
+                  "with proximity score used only for tie-breaking, and 0 will retain proximity "
+                  "ranking, with the ranking key used only for tie-breaking. Default: 0.5."
+    )
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True)

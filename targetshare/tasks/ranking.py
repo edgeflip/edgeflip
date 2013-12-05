@@ -379,6 +379,24 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     # TODO: Should proximity rank be primary key? Or last (most minor) key? Or
     # TODO: should RankingKeys affect the proximity score, s.t. we rank by it,
     # TODO: (rather than overriding it)?
+    # TODO: Benchmark ranking -- should it also be sensitive to how long we've
+    # TODO: already taken to produce px4?
+    try:
+        campaign_ranking_key = (models.relational.CampaignRankingKey.objects
+                                .for_datetime().get(campaign_id=campaign_id))
+    except models.relational.CampaignRankingKey.DoesNotExist:
+        # No active rank refinements to apply
+        pass
+    except models.relational.CampaignRankingKey.MultipleObjectsReturned:
+        # Multiple ranking keys not currently supported.
+        # (Could use rand_cdf/random_assign in the future.)
+        # (Note, to apply multiple sorting keys, a RankingKey may have multiple
+        # RankingKeyFeatures.)
+        LOG.exception("Campaign %s has multiple active ranking keys; "
+                      "will not refine rank.", campaign_id)
+    else:
+        edges_ranked = (campaign_ranking_key.ranking_key.rankingkeyfeatures
+                        .for_datetime().reranked_edges(edges_ranked))
 
     px4_filters = models.relational.Filter.objects.filter(
         client__campaigns__campaign_id=campaign_id,

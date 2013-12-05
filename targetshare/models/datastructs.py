@@ -233,7 +233,7 @@ class EdgeAggregate(object):
     @classmethod
     def rank(cls, edges, require_incoming=True, require_outgoing=True):
         """Construct from those given a list of Edges sorted by score."""
-        LOG.info("ranking %d edges", len(edges))
+        LOG.debug("ranking %d edges", len(edges))
         edges_max = cls(edges,
                         require_incoming=require_incoming,
                         require_outgoing=require_outgoing)

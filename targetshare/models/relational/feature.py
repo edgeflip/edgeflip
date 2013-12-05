@@ -1,3 +1,4 @@
+import itertools
 import re
 
 from django.core import validators
@@ -274,11 +275,15 @@ class FilterFeature(models.Model, Feature):
 
 class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
-    def rank_edges(self, edges):
-        edges = list(edges) # Ensure type & don't mutate given object
-        # FIXME: You don't necessarily know ordering, so use order_by rather
-        # FIXME: than reverse:
-        ranking_key_features = self.reverse() # Sort on primary key last, ...
+    def sorted_edges(self, edges):
+        """Return a sequence of the given Edges sorted according to the
+        RankingKeyFeatures of the QuerySet.
+
+        """
+        # Ensure type & don't mutate given object:
+        edges = list(edges)
+        # Sort on primary key last, ...:
+        ranking_key_features = self.order_by('-ordinal_position')
         for ranking_key_feature in ranking_key_features:
             edges.sort(
                 key=lambda edge: ranking_key_feature.get_user_value(edge.secondary),
@@ -286,14 +291,116 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
             )
         return edges
 
+    def rescored_edges(self, edges):
+        """Score the given Edges according to the RankingKeyFeatures of the QuerySet.
+
+        RankingKeyFeatures' individual user values are weighted by the order resulting
+        from their `ordinal_position` -- once normalized to 1, they are multiplied
+        by 1, 0.1, 0.01, etc. -- so as to mimic the effect of sorting by these keys.
+        These individual scores are then summed and renormalized to 1.
+
+        If an Edge already has a score, this is combined with the RankingKeyFeatures'
+        score, according to the weight given by RankingKey.refinement_weight.
+        (`rescored_edges` is intended for use via the RankingKeyFeature
+        RelatedManager of an instance of RankingKey.)
+
+        Final scores are normalized to 1.
+
+        """
+        ranking_key = getattr(self.manager, 'instance', None)
+        if ranking_key is None:
+            raise TypeError("rescored_edges is intended for use via RelatedManagers")
+        refinement_weight = ranking_key.refinement_weight
+        if refinement_weight < 0 or refinement_weight > 1:
+            raise ValueError("Unexpected refinement weight (expected 0 <= x <= 1): "
+                             "{!r}".format(refinement_weight))
+        existing_weight = 1 - refinement_weight
+        # In the event of a pre-existing score, rather than allow either the
+        # RankingKey score's or the pre-existing score's relative weight to be
+        # zero, let it break ties:
+        if refinement_weight == 0:
+            refinement_weight = 0.1
+        elif refinement_weight == 1:
+            existing_weight = 0.1
+        total_refinement_weight = refinement_weight + existing_weight
+
+        ranking_key_features = self.order_by('ordinal_position')
+
+        # Run through the Edges
+        # keeping a running tally of maximum raw scores, for normalization:
+        max_scores = (0,) * len(ranking_key_features)
+        # and find the maximum pre-existing score (if any):
+        existing_max = 0
+        # and collect each edge's raw scores:
+        edge_scores = []
+        for edge in edges:
+            raw_scores = tuple(ranking_key_feature.get_user_value(edge.secondary)
+                               for ranking_key_feature in ranking_key_features)
+            max_scores = tuple(max(max_and_raw) for max_and_raw
+                               in itertools.izip(raw_scores, max_scores))
+            existing_max = max(existing_max, edge.score)
+            edge_scores.append(raw_scores)
+
+        # With tallies made, run through Edges again and apply normalized scores:
+        scored_edges = []
+        positional_normalization = sum(10 ** -count for count in xrange(len(ranking_key_features)))
+        for (edge, raw_scores) in itertools.izip(edges, edge_scores):
+            local_score = 0
+            for (count, (ranking_key_feature, raw_score, max_score)) in enumerate(
+                itertools.izip(ranking_key_features, raw_scores, max_scores)
+            ):
+                try:
+                    # Normalize raw score to 1:
+                    feature_score = max_score and float(raw_score) / max_score
+                except (ValueError, TypeError):
+                    feature_score = 0
+                else:
+                    if not ranking_key_feature.reverse:
+                        # raw scores were really sorting keys already;
+                        # 1 is actually the worst score, and vice-versa:
+                        feature_score = 1 - feature_score
+                # Re-weight score according to ordinal position & add to total:
+                positional_weight = 10 ** -count
+                local_score += feature_score * positional_weight
+            # Normalize aggregate ranking keys' score to 1:
+            general_score = local_score / positional_normalization
+
+            if edge.score is None:
+                score = general_score
+            else:
+                # Combine keys' score with pre-existing score according to
+                # refinement_weight:
+                normalized_existing = existing_max and float(edge.score) / existing_max
+                score = (general_score * refinement_weight +
+                         normalized_existing * existing_weight) / total_refinement_weight
+            scored_edges.append(edge._replace(score=score))
+        return scored_edges
+
+    def reranked_edges(self, edges):
+        """Return a sequence of the given Edges sorted according to the result of
+        `rescored_edges`.
+
+        The given Edges are assumed to be as-yet-unscored or as-yet-unscored by
+        RankingKeyFeatures, and as such are passed through `rescored_edges` by this
+        method.
+
+        """
+        return sorted(self.rescored_edges(edges), key=lambda edge: edge.score, reverse=True)
+
 
 class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
 
     def get_query_set(self):
         return RankingKeyFeatureQuerySet.make(self)
 
-    def rank_edges(self, *args, **kws):
-        return self.get_query_set().rank_edges(*args, **kws)
+    def sorted_edges(self, *args, **kws):
+        return self.get_query_set().sorted_edges(*args, **kws)
+
+    def rescored_edges(self, *args, **kws):
+        return self.get_query_set().rescored_edges(*args, **kws)
+
+    def reranked_edges(self, *args, **kws):
+        return self.get_query_set().reranked_edges(*args, **kws)
 
 
 # TODO: schema migration
