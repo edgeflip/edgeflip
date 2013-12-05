@@ -183,7 +183,7 @@ float: left;
 /* styles the check mark image that appears on select */
 .checkmark {
     display: none;
-    /*background-image: url('/static/checkmark-sm.png');*/
+    height: 0px;
 }
 
 /***************************************************
