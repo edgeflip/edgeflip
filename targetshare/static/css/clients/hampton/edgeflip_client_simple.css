@@ -57,14 +57,14 @@ body {
 }
 
 .text_title_prompt {
-	font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
+  font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
   font-size: 5.15em;
   letter-spacing: -1px;
   line-height: 0.9em;
   margin: 0.4em 0 0 0;
   text-rendering: optimizeLegibility;
   font-weight: normal;
-  text-align: left;
+  text-align: center;
   padding: 0;
   color: inherit;
   padding-bottom: 30px;
@@ -176,9 +176,6 @@ float: left;
 	height: 40px;
 	margin-top: 8px;
 	clear: right;
-}
-.xout {
-	right: 6px;
 }
 /* styles the check mark image that appears on select */
 .checkmark {
