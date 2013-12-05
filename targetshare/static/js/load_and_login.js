@@ -59,7 +59,6 @@ var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
 function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call){
     if (response.authResponse) {
-        var num = 9;
         myfbid = fbid; // set the global variable for use elsewhere
 
         var friends_div = $('#friends_div');
@@ -81,7 +80,7 @@ function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call)
         var params = {
             fbid: ajax_fbid,
             token: ajax_token,
-            num: num,
+            num: num_face,
             campaignid: campaignid,
             contentid: contentid,
             px3_task_id: px3_task_id,

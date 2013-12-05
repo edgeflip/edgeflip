@@ -1,0 +1,239 @@
+@import url("normalize.css");
+/* @license
+ * MyFonts Webfont Build ID 2476584, 2013-02-11T14:04:34-0500
+ * 
+ * The fonts listed in this notice are subject to the End User License
+ * Agreement(s) entered into by the website owner. All other parties are 
+ * explicitly restricted from using the Licensed Webfonts(s).
+ * 
+ * You may obtain a valid license at the URLs below.
+ * 
+ * Webfont: ITC Franklin Gothic Book Compressed Italic by Linotype
+ * URL: http://www.myfonts.com/fonts/linotype/itc-franklin-gothic/book-compressed-italic/
+ * Copyright: Part of the digitally encoded machine readable outline data for producing the Typefaces provided is copyrighted &#x00A9; 2004 - 2006 Linotype GmbH, www.linotype.com. All rights reserved. This software is the property of Linotype GmbH, and may not be repro
+ * 
+ * Webfont: ITC Franklin Gothic Demi Extra Compressed by Linotype
+ * URL: http://www.myfonts.com/fonts/linotype/itc-franklin-gothic/demi-extra-compressed/
+ * Copyright: Part of the digitally encoded machine readable outline data for producing the Typefaces provided is copyrighted &#x00A9; 2004 - 2006 Linotype GmbH, www.linotype.com. All rights reserved. This software is the property of Linotype GmbH, and may not be repro
+ * 
+ * Webfont: ITC Franklin Gothic Book Compressed by Linotype
+ * URL: http://www.myfonts.com/fonts/linotype/itc-franklin-gothic/book-compressed/
+ * Copyright: Part of the digitally encoded machine readable outline data for producing the Typefaces provided is copyrighted &#x00A9; 2004 - 2006 Linotype GmbH, www.linotype.com. All rights reserved. This software is the property of Linotype GmbH, and may not be repro
+ * 
+ * 
+ * License: http://www.myfonts.com/viewlicense?type=web&buildid=2476584
+ * 
+ * Ã‚Â© 2013 MyFonts Inc
+*/
+
+
+/* @import must be at top of file, otherwise CSS will not work */
+@import url("//hello.myfonts.net/count/25ca28");
+
+  
+@font-face {font-family: 'FranklinGothicLTCom-BkCmIt';src: url('/static/fonts/clients/hampton/25CA28_0_0.eot');src: url('/static/fonts/clients/hampton/25CA28_0_0.eot?#iefix') format('embedded-opentype'),url('/static/fonts/clients/hampton/25CA28_0_0.woff') format('woff'),url('/static/fonts/clients/hampton/25CA28_0_0.ttf') format('truetype');}
+ 
+  
+@font-face {font-family: 'FranklinGothicLTCom-DmXCm';src: url('/static/fonts/clients/hampton/25CA28_1_0.eot');src: url('/static/fonts/clients/hampton/25CA28_1_0.eot?#iefix') format('embedded-opentype'),url('/static/fonts/clients/hampton/25CA28_1_0.woff') format('woff'),url('/static/fonts/clients/hampton/25CA28_1_0.ttf') format('truetype');}
+ 
+  
+@font-face {font-family: 'FranklinGothicLTCom-BkCm';src: url('/static/fonts/clients/hampton/25CA28_2_0.eot');src: url('/static/fonts/clients/hampton/25CA28_2_0.eot?#iefix') format('embedded-opentype'),url('/static/fonts/clients/hampton/25CA28_2_0.woff') format('woff'),url('/static/fonts/clients/hampton/25CA28_2_0.ttf') format('truetype');}
+
+body {
+  background: #ccc url(/static/img/clients/hampton/dark-background.jpg);
+	font-family: "FranklinGothicLTCom-BkCm", "PT Sans Narrow", Arial, sans-serif;
+  font-size: 110%;
+}
+
+/* div around the entire form */
+#faces_form_container {
+  background: #f8f9f9 url(/static/img/clients/hampton/background.gif);
+  width: 100%;
+  max-width: 644px;
+  padding: 10px 40px 30px 64px;
+  border: none;
+  border-radius: 0;
+    margin: 20px auto;
+}
+
+.text_title_prompt {
+  font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
+  font-size: 5.15em;
+  letter-spacing: -1px;
+  line-height: 0.9em;
+  margin: 0.4em 0 0 0;
+  text-rendering: optimizeLegibility;
+  font-weight: normal;
+  text-align: center;
+  padding: 0;
+  color: inherit;
+  padding-bottom: 30px;
+  margin-bottom: 30px;
+  border-bottom: 2px solid #a7a9a8;}
+
+.text_instructions {
+	font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
+  font-size: 1.4em;
+  font-weight: normal;
+  color: #3561a1;
+  margin-bottom: 20px;
+}
+
+.button_big, .button_small {
+    color: white;
+}
+
+input:focus, textarea:focus {
+    outline: none;
+}
+
+.button_big {
+	background-color: #3561a1;
+	color: #fff;
+	border: 0;
+	border-radius: 0;
+	border: none;
+	letter-spacing: 0px;
+	font-family: "FranklinGothicLTCom-BkCm", "PT Sans Narrow", Arial, sans-serif;
+	font-size: 1.25em;
+	font-weight: normal;
+	width: auto;
+	padding: 4px 16px 3px;
+}
+.button_small {
+	background-color: #3561a1;
+	color: #fff;
+	border: 0;
+	font-size: 0.9em;
+	padding: 4px 8px 3px;
+	width: auto;
+	font-weight: inherit;
+	border-radius: 0;
+	border: none;
+	letter-spacing: 0px;
+}
+.button_small:hover {
+	background-color: #3674d2;
+}
+.button_active {
+
+}
+.button_active:hover {
+}
+.button_inactive {
+}
+.button_inactive:hover {
+}
+
+
+/***************************************************
+ Styling for friend picker buttons (new_face.html)
+*/
+
+/* styles the boxes with friend names and pictures */
+.friend_box {
+float: left;
+  background-color: #fff;
+  width: 101px;
+  margin: 0 10px 10px 0;
+  padding: 10px;
+  font-size: 0.8em;
+  line-height: 1.2em;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.14);
+  border-radius: 0;
+  border: none;
+}
+.friend_box:nth-child(5n+0) {
+  margin-right: 0;
+}
+.friend_box:hover {
+    color: #999999;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.3);
+}
+.friend_box_selected {
+  background-color: #3561a1;
+  box-shadow: none;
+}
+.friend_box_unselected {
+    background-color: #fff;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.14);
+}
+.friend_pic {
+	float: left;
+	margin-right: 8px;
+	border: none;
+	border-radius: 0;
+}
+.friend_box img {
+	border: none;
+	width: 50px;
+	height: auto;
+	border-radius: 0;
+}
+.friend_txt {
+	float: left;
+	width: 39px;
+	height: 40px;
+	margin-top: 8px;
+	clear: right;
+}
+/* styles the check mark image that appears on select */
+.checkmark {
+    display: none;
+    height: 0px;
+    /*background-image: url('/static/checkmark-sm.png');*/
+}
+
+/***************************************************
+ Manual add box
+*/
+
+#manual_add {
+	width: 100%;
+}
+
+#manual_input {
+	float: right;
+	font-size: 1.1em;
+	border: 1px solid #e7e7e7;
+	width: 229px;
+	padding: 3px 8px 4px;
+	box-shadow: inset 0px 0px 1px rgba(0,0,0,0.11)
+}
+
+.added_friend {
+    font-size: smaller;
+    color: #f0f0f8;
+    border: thin solid gray;
+    background-color: #003F77;
+}
+
+/***************************************************
+ Styling for message input box
+*/
+
+#message_form {
+	background-color: #fff;
+	padding: 18px;
+  box-shadow: 0px 0px 8px rgba(0,0,0,0.14);
+  width: 605px;
+  border: none;
+  border-radius: 0;
+}
+
+#message_form_editable {
+	border: 0;
+	display: block;
+	width: 100%;
+	height: 2em;	
+}
+
+#message_helper_txt:empty:before {
+    content:"Click the button above to use a suggested message, or write your own here.";
+}
+
+.message_friend_name {
+    color: black;
+    border: thin solid #89A8BD;
+    background-color: #E6F2FF;
+}
