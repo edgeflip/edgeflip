@@ -1,6 +1,7 @@
 import itertools
 import logging
 import re
+import sys
 
 from django.core import validators
 from django.db import models
@@ -116,6 +117,14 @@ class Feature(object):
         for level in dive:
             value = self._format_user_value(value[level])
         return value
+
+    def get_user_value_safe(self, user, default=None):
+        try:
+            value = self.get_user_value(user)
+        except (AttributeError, KeyError):
+            return default
+        else:
+            return default if value in ('', None) else value
 
 
 class FilterFeatureQuerySet(transitory.TransitoryObjectQuerySet):
@@ -287,6 +296,8 @@ class FilterFeature(models.Model, Feature):
         )
 
 # TODO: Need to keep topics dict normalized to number of posts (to 1)?
+# TODO: Rather than ever aggregate, keep post actions separate in namedtuple,
+# TODO: and aggregate all in aggregate()
 
 # TODO: Operationalize mozy classifier (local http on servers or otherwise)
 # TODO: and get a hold of category mapping rules.
@@ -301,13 +312,17 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
         """
         # Ensure type & don't mutate given object:
         edges = list(edges)
+
         # Sort on primary key last, ...:
         ranking_key_features = self.order_by('-ordinal_position')
+
         for ranking_key_feature in ranking_key_features:
-            edges.sort(
-                key=lambda edge: ranking_key_feature.get_user_value(edge.secondary),
-                reverse=ranking_key_feature.reverse,
-            )
+            null_value = None if ranking_key_feature.reverse else sys.maxint
+
+            def keyfunc(edge):
+                return ranking_key_feature.get_user_value_safe(edge.secondary, null_value)
+            edges.sort(key=keyfunc, reverse=ranking_key_feature.reverse)
+
         return edges
 
     # NOTE: Did we end up using rescored_edges, reranked_edges?
@@ -360,7 +375,7 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
         # and collect each edge's raw scores:
         edge_scores = []
         for edge in edges:
-            raw_scores = tuple(ranking_key_feature.get_user_value(edge.secondary)
+            raw_scores = tuple(ranking_key_feature.get_user_value_safe(edge.secondary)
                                for ranking_key_feature in ranking_key_features)
             max_scores = [max(max_and_raw) for max_and_raw in zip(raw_scores, max_scores)]
             existing_max = max(existing_max, edge.score)
