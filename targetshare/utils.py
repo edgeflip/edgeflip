@@ -1,6 +1,7 @@
 import base64
 import copy
 import datetime
+import functools
 import itertools
 import logging
 import random
@@ -360,3 +361,69 @@ class LazyList(LazySequence, list):
     def sort(self, *args, **kws):
         self._consume()
         self._results.sort(*args, **kws)
+
+
+class partition(object):
+    """An iterator that returns items from `iterable` partitioned into consecutive
+    "groups" or "buckets" according to the values of items' `key`.
+
+    partition is modeled after groupby and, similarly, expects that the given
+    `iterable` is already sorted by `key` and, furthermore, in descending order.
+
+    For example::
+
+        numbers = [85, 70, 50, 40, 40, 25, 3, 2]
+        for (lower_bound, group) in partition(numbers, group_size=30, max_value=100):
+            print (lower_bound, list(group))
+
+    results in::
+
+        (70, [85, 70])
+        (40, [50, 40, 40])
+        (10, [25])
+        (-20, [3, 2])
+
+    In the above example, the default `key` function, which returns the item itself,
+    was used; and, the iterator was allowed to exit after its default `min_value` of 0.
+    But, rather than allow the buckets to begin with the first item's value,
+    `max_value` was instead set to 100. If we hadn't set `max_value`, the results
+    would have been::
+
+        (55, [85, 70])
+        (25, [50, 40, 40, 25])
+        (-5, [3, 2])
+
+    """
+    none = object()
+
+    def __init__(self, iterable, group_size, key=lambda n: n, min_value=0, max_value=None):
+        self.iterable = iter(iterable)
+        self.group_size = group_size
+        self.keyfunc = key
+        self.min_value = min_value
+        self.lower_bound = max_value
+        self.current_item = self.none
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self.current_item is self.none:
+            # First loop, don't advance iterable until now:
+            self.current_item = next(self.iterable)
+            if self.lower_bound is None:
+                self.lower_bound = self.keyfunc(self.current_item)
+
+        if self.lower_bound <= self.min_value:
+            # Last loop, already returned all items:
+            raise StopIteration
+
+        self.lower_bound -= self.group_size
+        return (self.lower_bound, self._group(self.lower_bound))
+
+    def _group(self, lower_bound):
+        while self.keyfunc(self.current_item) >= lower_bound:
+            yield self.current_item
+            self.current_item = next(self.iterable)
+
+partition_edges = functools.partial(partition, key=lambda edge: edge.score, max_value=1)

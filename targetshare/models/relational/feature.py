@@ -1,4 +1,5 @@
 import itertools
+import logging
 import re
 
 from django.core import validators
@@ -7,6 +8,9 @@ from django.db import models
 from targetshare.integration import civis
 
 from .manager import transitory
+
+
+LOG = logging.getLogger(__name__)
 
 
 class FilterFeatureType(models.Model):
@@ -272,6 +276,21 @@ class FilterFeature(models.Model, Feature):
             self.determine_filter_type()
         return super(FilterFeature, self).save(*args, **kws)
 
+    def __unicode__(self):
+        value = self.decode_value()
+        if isinstance(value, unicode):
+            value = value.encode('utf-8')
+        return u'`{feature}` {operator} {value!r}'.format(
+            feature=self.feature,
+            operator=self.get_operator_display(),
+            value=value,
+        )
+
+# TODO: Need to keep topics dict normalized to number of posts (to 1)?
+
+# TODO: Operationalize mozy classifier (local http on servers or otherwise)
+# TODO: and get a hold of category mapping rules.
+
 
 class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
@@ -291,13 +310,20 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
             )
         return edges
 
+    # NOTE: Did we end up using rescored_edges, reranked_edges?
     def rescored_edges(self, edges):
         """Score the given Edges according to the RankingKeyFeatures of the QuerySet.
 
         RankingKeyFeatures' individual user values are weighted by the order resulting
-        from their `ordinal_position` -- once normalized to 1, they are multiplied
-        by 1, 0.1, 0.01, etc. -- so as to mimic the effect of sorting by these keys.
-        These individual scores are then summed and renormalized to 1.
+        from the features' `ordinal_position` -- once normalized to 1, they are
+        multiplied by 1, 0.1, 0.01, etc. -- so as to mimic the effect of sorting by
+        these keys. These individual scores are then summed and renormalized to 1.
+
+        If `RankingKeyFeature.global_maximum` is set, (and no Edge feature value
+        exceeds this value), then this is used to normalize the feature score in
+        place of the local maximum value for that feature among the given collection
+        of Edges, so as to avoid overweighting of insignificant features; otherwise,
+        the local maximum is used.
 
         If an Edge already has a score, this is combined with the RankingKeyFeatures'
         score, according to the weight given by RankingKey.refinement_weight.
@@ -326,9 +352,9 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
         ranking_key_features = self.order_by('ordinal_position')
 
-        # Run through the Edges
+        # Run through the Edges,
         # keeping a running tally of maximum raw scores, for normalization:
-        max_scores = (0,) * len(ranking_key_features)
+        max_scores = [0] * len(ranking_key_features)
         # and find the maximum pre-existing score (if any):
         existing_max = 0
         # and collect each edge's raw scores:
@@ -336,10 +362,21 @@ class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
         for edge in edges:
             raw_scores = tuple(ranking_key_feature.get_user_value(edge.secondary)
                                for ranking_key_feature in ranking_key_features)
-            max_scores = tuple(max(max_and_raw) for max_and_raw
-                               in itertools.izip(raw_scores, max_scores))
+            max_scores = [max(max_and_raw) for max_and_raw in zip(raw_scores, max_scores)]
             existing_max = max(existing_max, edge.score)
             edge_scores.append(raw_scores)
+
+        # Compare max scores to expected:
+        for (count, ranking_key_feature) in enumerate(ranking_key_features):
+            max_score = max_scores[count]
+            if ranking_key_feature.global_maximum >= max_score:
+                max_scores[count] = ranking_key_feature.global_maximum
+            elif ranking_key_feature.global_maximum is not None:
+                LOG.error(
+                    "Insufficient global maximum for {0!r} ({0.pk}): "
+                    "{0.global_maximum!r} < {1!r}"
+                    .format(ranking_key_feature, max_score)
+                )
 
         # With tallies made, run through Edges again and apply normalized scores:
         scored_edges = []
@@ -412,6 +449,8 @@ class RankingKeyFeature(models.Model, Feature):
     feature = models.CharField(max_length=64, blank=True, validators=[
         validators.RegexValidator(r'^{0[topics]}$'.format(dict(Feature.Expression.ALL)))
     ])
+    # NOTE: Did we end up using global_maximum (reranked_edges, rescored_edges)?
+    global_maximum = models.FloatField(blank=True, null=True)
     reverse = models.BooleanField(default=False, blank=True)
     ordinal_position = models.PositiveIntegerField(default=0)
     start_dt = models.DateTimeField(auto_now_add=True)
@@ -424,3 +463,6 @@ class RankingKeyFeature(models.Model, Feature):
         db_table = 'ranking_key_features'
         ordering = ('ordinal_position',)
         unique_together = ('ranking_key', 'ordinal_position')
+
+    def __unicode__(self):
+        return u'{}'.format(self.feature)

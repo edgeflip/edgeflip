@@ -7,7 +7,7 @@ from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
 
-from targetshare import models
+from targetshare import models, utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
@@ -15,6 +15,10 @@ LOG = get_task_logger(__name__)
 
 DB_MIN_FRIEND_COUNT = 100
 DB_FRIEND_THRESHOLD = 90 # percent
+
+# The below width(s) of the proximity score spectrum from 1 to 0 will be
+# partitioned during rank refinement:
+PX_REFINE_GROUP_SIZE = 0.85
 
 
 FilteringResult = namedtuple('FilteringResult', [
@@ -290,7 +294,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # Might have cascaded beyond the point of having new friends to add,
         # so pick up various return values from the last tier with friends.
-        last_tier = already_picked[-1]
+        last_tier = already_picked[-1].copy()
+        del last_tier['edges']
         return FilteringResult(edges_ranked, already_picked, **last_tier)
 
 
@@ -375,9 +380,6 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     """
     (edges_ranked, hit_fb) = crawl_result
 
-    # TODO: Should proximity rank be primary key? Or last (most minor) key? Or
-    # TODO: should RankingKeys affect the proximity score, s.t. we rank by it,
-    # TODO: (rather than overriding it)?
     # TODO: Benchmark ranking -- should it also be sensitive to how long we've
     # TODO: already taken to produce px4?
     try:
@@ -394,8 +396,16 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
         LOG.exception("Campaign %s has multiple active ranking keys; "
                       "will not refine rank.", campaign_id)
     else:
-        edges_ranked = (campaign_ranking_key.ranking_key.rankingkeyfeatures
-                        .for_datetime().reranked_edges(edges_ranked))
+        # Refine proximity-based ranking, but first partition edges s.t. those with px
+        # score above threshold (1 - PX_REFINE_GROUP_SIZE) remain separate from those below:
+        # TODO: Test threshold against your results and against Corrigan's
+        edges_partitioned = utils.partition_edges(edges_ranked, group_size=PX_REFINE_GROUP_SIZE)
+        reranked_partitions = (
+            campaign_ranking_key.ranking_key.rankingkeyfeatures
+            .for_datetime().sorted_edges(partition)
+            for (_lower_bound, partition) in edges_partitioned
+        )
+        edges_ranked = sum(reranked_partitions, [])
 
     px4_filters = models.relational.Filter.objects.filter(
         client__campaigns__campaign_id=campaign_id,

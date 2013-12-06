@@ -8,6 +8,7 @@ class RankingKey(models.Model):
                                null=True, blank=True)
     name = models.CharField(max_length=256, null=True, blank=True)
     description = models.CharField(max_length=1024, blank=True)
+    # NOTE: Did we end up using refinement_weight (reranked_edges, rescored_edges)?
     refinement_weight = models.FloatField(
         blank=True, default=0.5,
         help_text="A weight with which to apply the ranking key, relative to network proximity, "
