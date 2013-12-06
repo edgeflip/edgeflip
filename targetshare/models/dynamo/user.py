@@ -65,7 +65,7 @@ class Topics(dict):
 
     def __str__(self):
         # Show aggregate weights but using dict format (not defaultdict):
-        return "{}".format(dict(self.aggregate()))
+        return str(dict(self.aggregate()))
 
 
 class User(Item):
