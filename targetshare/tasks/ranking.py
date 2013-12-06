@@ -18,7 +18,7 @@ DB_FRIEND_THRESHOLD = 90 # percent
 
 # The below width(s) of the proximity score spectrum from 1 to 0 will be
 # partitioned during rank refinement:
-PX_REFINE_GROUP_SIZE = 0.85
+PX_REFINE_RANGE_WIDTH = 0.85
 
 
 FilteringResult = namedtuple('FilteringResult', [
@@ -397,9 +397,9 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
                       "will not refine rank.", campaign_id)
     else:
         # Refine proximity-based ranking, but first partition edges s.t. those with px
-        # score above threshold (1 - PX_REFINE_GROUP_SIZE) remain separate from those below:
+        # score above threshold (1 - PX_REFINE_RANGE_WIDTH) remain separate from those below:
         # TODO: Test threshold against your results and against Corrigan's
-        edges_partitioned = utils.partition_edges(edges_ranked, group_size=PX_REFINE_GROUP_SIZE)
+        edges_partitioned = utils.partition_edges(edges_ranked, range_width=PX_REFINE_RANGE_WIDTH)
         reranked_partitions = (
             campaign_ranking_key.ranking_key.rankingkeyfeatures
             .for_datetime().sorted_edges(partition)

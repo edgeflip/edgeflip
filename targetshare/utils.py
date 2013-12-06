@@ -365,7 +365,7 @@ class LazyList(LazySequence, list):
 
 class partition(object):
     """An iterator that returns items from `iterable` partitioned into consecutive
-    "groups" or "buckets" according to the values of items' `key`.
+    "groups" or "buckets" according to the value range of the items' `key`.
 
     partition is modeled after groupby and, similarly, expects that the given
     `iterable` is already sorted by `key` and, furthermore, in descending order.
@@ -373,7 +373,7 @@ class partition(object):
     For example::
 
         numbers = [85, 70, 50, 40, 40, 25, 3, 2]
-        for (lower_bound, group) in partition(numbers, group_size=30, max_value=100):
+        for (lower_bound, group) in partition(numbers, range_width=30, max_value=100):
             print (lower_bound, list(group))
 
     results in::
@@ -396,9 +396,9 @@ class partition(object):
     """
     none = object()
 
-    def __init__(self, iterable, group_size, key=lambda n: n, min_value=0, max_value=None):
+    def __init__(self, iterable, range_width, key=lambda n: n, min_value=0, max_value=None):
         self.iterable = iter(iterable)
-        self.group_size = group_size
+        self.range_width = range_width
         self.keyfunc = key
         self.min_value = min_value
         self.lower_bound = max_value
@@ -418,7 +418,7 @@ class partition(object):
             # Last loop, already returned all items:
             raise StopIteration
 
-        self.lower_bound -= self.group_size
+        self.lower_bound -= self.range_width
         return (self.lower_bound, self._group(self.lower_bound))
 
     def _group(self, lower_bound):
