@@ -5,6 +5,7 @@ import functools
 import itertools
 import logging
 import random
+import re
 import sys
 import time
 import urllib
@@ -26,6 +27,11 @@ pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 # DES appears to be limited to 8-character secret, so truncate if too long
 secret = pad(settings.CRYPTO.des_secret)[:8]
 cipher = DES.new(secret)
+
+
+def camel_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 class CDFProbsError(Exception):

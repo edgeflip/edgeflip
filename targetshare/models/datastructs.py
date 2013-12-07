@@ -11,7 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 EdgeBase = collections.namedtuple('EdgeBase',
-    ['primary', 'secondary', 'incoming', 'outgoing', 'score'])
+    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
 
 
 class Edge(EdgeBase):
@@ -21,15 +21,17 @@ class Edge(EdgeBase):
         primary: User
         secondary: User
         incoming: IncomingEdge (primary to secondary relationship)
-        outgoing: OutgoingEdge (secondary to primary relationship)
+        outgoing: OutgoingEdge (secondary to primary relationship) (optional)
+        interactions: sequence of PostInteractions (made by secondary) (optional)
         score: proximity score (optional)
 
     """
     __slots__ = () # No need for object __dict__ or stored attributes
 
-    # Make outgoing and score default to None:
-    def __new__(cls, primary, secondary, incoming, outgoing=None, score=None):
-        return super(Edge, cls).__new__(cls, primary, secondary, incoming, outgoing, score)
+    # Set outgoing, interactions and score defaults:
+    def __new__(cls, primary, secondary, incoming, outgoing=None, interactions=(), score=None):
+        return super(Edge, cls).__new__(cls, primary, secondary, incoming,
+                                        outgoing, interactions, score)
 
     @classmethod
     def get_friend_edges(cls, primary,
@@ -77,9 +79,11 @@ class Edge(EdgeBase):
                 for fbid, edge in secondary_edges_in.items()
             )
 
-        return tuple(cls(primary, secondary, incoming, outgoing)
-                     for fbid, secondary, incoming, outgoing in data
-                     if cls._friend_edge_ok(fbid, secondary, incoming, outgoing))
+        return UserNetwork(
+            cls(primary, secondary, incoming, outgoing)
+            for fbid, secondary, incoming, outgoing in data
+            if cls._friend_edge_ok(fbid, secondary, incoming, outgoing)
+        )
 
     @staticmethod
     def _friend_edge_ok(fbid, secondary, incoming, outgoing):
@@ -204,6 +208,40 @@ class TieredEdges(tuple):
         return type(self)(self._reranked(ranking))
 
 
+class UserNetwork(list):
+
+    __slots__ = ('post_topics',)
+
+    def __init__(self, edges=(), post_topics=None):
+        super(UserNetwork, self).__init__(edges)
+        self.post_topics = post_topics
+
+    @property
+    def primary(self):
+        return self[0].primary
+
+    def scored(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork with scored Edges."""
+        edges_max = EdgeAggregate(self,
+                                  aggregator=max,
+                                  require_incoming=require_incoming,
+                                  require_outgoing=require_outgoing)
+        return type(self)(
+            edges=(edge._replace(score=edges_max.score(edge)) for edge in self),
+            post_topics=self.post_topics,
+        )
+
+    def rank(self):
+        """Sort the UserNetwork by its Edges' scores."""
+        self.sort(key=lambda edge: edge.score, reverse=True)
+
+    def ranked(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
+        network = self.scored(require_incoming, require_outgoing)
+        network.rank()
+        return network
+
+
 class EdgeAggregate(object):
     """Edge aggregation, scoring and ranking."""
 
@@ -229,19 +267,6 @@ class EdgeAggregate(object):
     outPhotoTarget = None
     outPhotoOther = None
     outMutuals = None
-
-    @classmethod
-    def rank(cls, edges, require_incoming=True, require_outgoing=True):
-        """Construct from those given a list of Edges sorted by score."""
-        LOG.debug("ranking %d edges", len(edges))
-        edges_max = cls(edges,
-                        require_incoming=require_incoming,
-                        require_outgoing=require_outgoing)
-        return sorted(
-            (edge._replace(score=edges_max.score(edge)) for edge in edges),
-            key=lambda edge: edge.score,
-            reverse=True,
-        )
 
     def __init__(self, edges, aggregator=max, require_incoming=True, require_outgoing=True):
         """Apply the aggregator to the given Edges to initialize instance data.
@@ -332,17 +357,3 @@ class EdgeAggregate(object):
             return pxTotal / weightTotal
         except ZeroDivisionError:
             return 0
-
-
-def get_ranking_best_avail(incoming_edges, all_edges, threshold=0.5):
-    """Conditionally rank either only the incoming Edges or both incoming and
-    outgoing Edges.
-
-    incoming_edges: list of incoming Edges
-    all_edges: list of incoming + outgoing Edges
-
-    """
-    if len(incoming_edges) * threshold > len(all_edges):
-        return EdgeAggregate.rank(incoming_edges, require_outgoing=False)
-    else:
-        return EdgeAggregate.rank(all_edges, require_outgoing=True)

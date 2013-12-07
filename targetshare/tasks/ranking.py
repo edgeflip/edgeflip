@@ -1,4 +1,6 @@
 from __future__ import absolute_import
+
+import itertools
 from collections import namedtuple
 from datetime import timedelta
 
@@ -56,8 +58,7 @@ def px3_crawl(token):
     except IOError as exc:
         px3_crawl.retry(exc=exc)
 
-    return models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
     )
@@ -352,16 +353,24 @@ def px4_crawl(token):
     except IOError as exc:
         px4_crawl.retry(exc=exc)
 
-    edges_ranked = models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    edges_ranked = edges_unranked.ranked(
         require_incoming=True,
         require_outgoing=False,
     )
 
     db.delayed_save.delay(token, overwrite=True)
     db.upsert.delay(user)
-    db.upsert.delay([edge.secondary for edge in edges_ranked])
-    db.update_edges.delay(edges_ranked)
+
+    if hit_fb:
+        db.upsert.delay([edge.secondary for edge in edges_ranked])
+        db.bulk_create.delay(
+            tuple(
+                itertools.chain.from_iterable(
+                    edge.interactions for edge in edges_ranked)
+            )
+        )
+        db.bulk_create.delay(edges_ranked.post_topics)
+        db.update_edges.delay(edges_ranked)
 
     return (edges_ranked, hit_fb)
 

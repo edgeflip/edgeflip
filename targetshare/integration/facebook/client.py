@@ -19,7 +19,6 @@ from django.utils import timezone
 
 from targetshare import utils
 from targetshare.models import datastructs, dynamo
-from targetshare.models.dynamo.user import Topics
 
 
 LOG = logging.getLogger(__name__)
@@ -305,7 +304,7 @@ def get_friend_edges(user, token, require_incoming=False, require_outgoing=False
     edges = _get_friend_edges_simple(user, token)
     LOG.debug("got %d friends total", len(edges))
     if skip:
-        edges = [edge for edge in edges if edge.secondary.fbid not in skip]
+        edges = datastructs.UserNetwork(edge for edge in edges if edge.secondary.fbid not in skip)
 
     if require_incoming:
         edges = _extend_friend_edges(user, token, edges, require_outgoing)
@@ -405,7 +404,8 @@ def _get_friend_edges_simple(user, token):
 
     # Use a dictionary to avoid possible duplicates in cases where pagination
     # changes during the query or other FB barf
-    friends = {}
+    friends = set()
+    network = datastructs.UserNetwork()
     for rec in friendChunks:
         friendId = int(rec['uid'])
         if friendId in friends:
@@ -439,10 +439,11 @@ def _get_friend_edges_simple(user, token):
             mut_friends=rec['mutual_friend_count'],
         )
 
-        friends[friend.fbid] = datastructs.Edge(user, friend, edge_data)
+        friends.add(friend.fbid)
+        network.append(datastructs.Edge(user, friend, edge_data))
 
     LOG.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer.elapsedPr())
-    return friends.values()
+    return network
 
 
 def _extend_friend_edges(user, token, edges, require_outgoing=False):
@@ -454,29 +455,44 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
     aggregate = stream.aggregate()
     friend_streamrank = aggregate.ranking()
     LOG.debug("got %d friends ranked", len(friend_streamrank))
-    edges0 = sorted(edges, key=lambda edge:
+    edges.sort(key=lambda edge:
         (friend_streamrank.get(edge.secondary.fbid, sys.maxint),
          -1 * edge.incoming.mut_friends)
     )
 
-    edges1 = []
-    for count, edge in enumerate(edges0):
-        user_aggregate = aggregate[edge.secondary.fbid]
-        secondary = dynamo.User(
-            data=edge.secondary,
-            topics=user_aggregate.topics,
+    network = datastructs.UserNetwork(
+        post_topics=tuple(
+            dynamo.PostTopics.classify(post.post_id, post.message)
+            for post in stream
         )
+    )
+    for (count, edge) in enumerate(edges):
+        user_aggregate = aggregate[edge.secondary.fbid]
 
-        user_interactions = user_aggregate.interactions
         incoming = dynamo.IncomingEdge(
             data=edge.incoming,
-            post_likes=len(user_interactions['post_likes']),
-            post_comms=len(user_interactions['post_comms']),
-            stat_likes=len(user_interactions['stat_likes']),
-            stat_comms=len(user_interactions['stat_comms']),
-            wall_posts=len(user_interactions['wall_posts']),
-            wall_comms=len(user_interactions['wall_comms']),
-            tags=len(user_interactions['tags']),
+            post_likes=len(user_aggregate.types['post_likes']),
+            post_comms=len(user_aggregate.types['post_comms']),
+            stat_likes=len(user_aggregate.types['stat_likes']),
+            stat_comms=len(user_aggregate.types['stat_comms']),
+            wall_posts=len(user_aggregate.types['wall_posts']),
+            wall_comms=len(user_aggregate.types['wall_comms']),
+            tags=len(user_aggregate.types['tags']),
+        )
+
+        interactions = tuple(
+            dynamo.PostInteractions(
+                fbid=edge.secondary.fbid,
+                postid=post_id,
+                post_likes=len(post_interactions['post_likes']),
+                post_comms=len(post_interactions['post_comms']),
+                stat_likes=len(post_interactions['stat_likes']),
+                stat_comms=len(post_interactions['stat_comms']),
+                wall_posts=len(post_interactions['wall_posts']),
+                wall_comms=len(post_interactions['wall_comms']),
+                tags=len(post_interactions['tags']),
+            )
+            for (post_id, post_interactions) in user_aggregate.posts.iteritems()
         )
 
         outgoing = edge.outgoing
@@ -484,9 +500,15 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
             LOG.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
             outgoing = _get_outgoing_edge(user, edge.secondary, token)
 
-        edges1.append(edge._replace(secondary=secondary, incoming=incoming, outgoing=outgoing))
+        network.append(
+            edge._replace(
+                incoming=incoming,
+                outgoing=outgoing,
+                interactions=interactions,
+            )
+        )
 
-    return edges1
+    return network
 
 
 def _get_outgoing_edge(user, friend, token):
@@ -504,18 +526,17 @@ def _get_outgoing_edge(user, friend, token):
 
     aggregate = stream.aggregate()
     user_aggregate = aggregate[friend.fbid]
-    user_interactions = user_aggregate.interactions
     LOG.debug('got %s', user_aggregate)
     outgoing = dynamo.IncomingEdge(
         fbid_source=user.fbid,
         fbid_target=friend.fbid,
-        post_likes=len(user_interactions['post_likes']),
-        post_comms=len(user_interactions['post_comms']),
-        stat_likes=len(user_interactions['stat_likes']),
-        stat_comms=len(user_interactions['stat_comms']),
-        wall_posts=len(user_interactions['wall_posts']),
-        wall_comms=len(user_interactions['wall_comms']),
-        tags=len(user_interactions['tags']),
+        post_likes=len(user_aggregate.types['post_likes']),
+        post_comms=len(user_aggregate.types['post_comms']),
+        stat_likes=len(user_aggregate.types['stat_likes']),
+        stat_comms=len(user_aggregate.types['stat_comms']),
+        wall_posts=len(user_aggregate.types['wall_posts']),
+        wall_comms=len(user_aggregate.types['wall_comms']),
+        tags=len(user_aggregate.types['tags']),
     )
 
     # Throttling for Facebook limits
@@ -560,7 +581,7 @@ class Stream(list):
 
         [
             Post(post_id=123,
-                 topics={...},
+                 message=...,
                  interactions=[
                      Interaction(
                          user_id=098,
@@ -579,7 +600,7 @@ class Stream(list):
     Posts may otherwise be added as with any other list, (e.g. append, extend);
     Stream addition (+, +=) verifies that both Streams belong to the same user.
 
-    Aggregate analysis is provided through InteractionAggregate:
+    Aggregate analysis is provided through StreamAggregate:
 
         >>> stream = Stream(1234)
         >>> aggregate = stream.aggregate()
@@ -589,28 +610,28 @@ class Stream(list):
     """
     REPR_OUTPUT_SIZE = 5
 
-    Post = namedtuple('Post', ('post_id', 'topics', 'interactions'))
+    Post = namedtuple('Post', ('post_id', 'message', 'interactions'))
     Interaction = namedtuple('Interaction', ('user_id', 'type', 'weight'))
 
-    class InteractionAggregate(defaultdict):
+    class StreamAggregate(defaultdict):
         """Stream data aggregator"""
-        User = namedtuple('User', ('interactions', 'topics'))
-
-        __slots__ = ()
+        UserInteractions = namedtuple('UserInteractions', ('posts', 'types'))
 
         def __init__(self, stream):
-            super(Stream.InteractionAggregate, self).__init__(
-                lambda: Stream.InteractionAggregate.User(defaultdict(list), Topics())
+            super(Stream.StreamAggregate, self).__init__(
+                lambda: self.UserInteractions(
+                    posts=defaultdict(lambda: defaultdict(list)),
+                    types=defaultdict(list),
+                )
             )
             for post in stream:
                 for interaction in post.interactions:
-                    # Collect user interactions, indexed by user ID:
-                    user = self[interaction.user_id]
-                    user.interactions[interaction.type].append(interaction)
-
-                    # Topics superimposed s.t. weight multiplied by interaction count:
-                    topics = user.topics
-                    topics += post.topics # force __iadd__ and respect tuple immutability
+                    # Collect user interactions
+                    user_interactions = self[interaction.user_id]
+                    # indexed by user ID & interaction type:
+                    user_interactions.types[interaction.type].append(interaction)
+                    # and by user ID, post ID and interaction type:
+                    user_interactions.posts[post.post_id][interaction.type].append(interaction)
 
         def ranking(self):
             """Reduce the aggregate to a mapping of friends and their normalized
@@ -618,8 +639,8 @@ class Stream(list):
 
             """
             friend_total = defaultdict(int)
-            for user_id, user in self.iteritems():
-                for interactions in user.interactions.itervalues():
+            for user_id, user_interactions in self.iteritems():
+                for interactions in user_interactions.types.itervalues():
                     for interaction in interactions:
                         friend_total[user_id] += interaction.weight
 
@@ -654,7 +675,7 @@ class Stream(list):
                                        data)
 
     def aggregate(self):
-        return self.InteractionAggregate(self)
+        return self.StreamAggregate(self)
 
     @classmethod
     def read(cls, user_id, token,
@@ -798,12 +819,9 @@ class StreamReaderThread(threading.Thread):
                        for entry in data['data']}
             stream = Stream(self.user_id)
             for post_data in results['stream']:
-                topics = Topics.classify(
-                    (post_data['post_id'], post_data['message']),
-                )
                 post = Stream.Post(
                     post_id=post_data['post_id'],
-                    topics=topics,
+                    message=post_data['message'],
                     interactions=[],
                 )
                 stream.append(post)
@@ -827,11 +845,6 @@ class StreamReaderThread(threading.Thread):
                                                    weight=rank_weight)
                                 for user_id in user_ids
                             )
-            # TODO: can perhaps take custom classifications as well, which
-            # might require text-search rather than using the search tool
-            # TODO: and if this gets expensive, can instead not default to all
-            # topics, though will want to *be careful not to overwrite* existing
-            # user topic data.
 
             count_good += 1
             self.results.append(stream)

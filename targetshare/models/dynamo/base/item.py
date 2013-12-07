@@ -9,10 +9,12 @@ from boto.dynamodb2 import fields as basefields, items as baseitems
 from django.dispatch import Signal
 from django.utils import timezone
 
+from . import types
 from .fields import ItemField
 from .manager import ItemManager, ItemManagerDescriptor
 from .table import Table
-from .types import DATETIME, Dynamizer, is_null
+
+from targetshare import utils
 
 
 # Define framework for the definition of dynamo tables and #
@@ -29,6 +31,7 @@ class Meta(object):
     """
     # User-available options:
     allow_undeclared_fields = False
+    undeclared_data_type = None
     indexes = ()
     table_name = None # Defaults to lowercased, pluralized version of class name
 
@@ -53,7 +56,9 @@ class Meta(object):
         return meta
 
     def __init__(self, name, fields):
-        self.table_name = name.lower() + ('s' if not name.endswith('s') else '')
+        self.table_name = utils.camel_to_underscore(name)
+        if not self.table_name.endswith('s'):
+            self.table_name += 's'
         self.fields = fields
 
     @property
@@ -122,7 +127,7 @@ class DeclarativeItemBase(type):
         # Set class defaults:
         attrs.setdefault('items', ItemManager())
         if mcs.update_field:
-            attrs.setdefault(mcs.update_field, ItemField(data_type=DATETIME))
+            attrs.setdefault(mcs.update_field, ItemField(data_type=types.DATETIME))
 
         # Collect field declarations from class defn, set field properties and wrap managers:
         item_fields = {}
@@ -197,7 +202,7 @@ class Item(baseitems.Item):
 
     """
     __metaclass__ = DeclarativeItemBase
-    get_dynamizer = Dynamizer
+    get_dynamizer = types.Dynamizer
 
     def __init__(self, data=None, loaded=False, **kwdata):
         data = {} if data is None else dict(data)
@@ -241,6 +246,8 @@ class Item(baseitems.Item):
         elif not self._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, type(self).__name__))
+        elif isinstance(self._meta.undeclared_data_type, types.DataType):
+            value = self._meta.undeclared_data_type.decode(value)
         return value
 
     def __setitem__(self, key, value):
@@ -257,7 +264,7 @@ class Item(baseitems.Item):
 
     def _remove_null_values(self):
         for key, value in self.items():
-            if is_null(value):
+            if types.is_null(value):
                 del self[key]
                 self._orig_data.pop(key, None)
 

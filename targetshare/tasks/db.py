@@ -2,6 +2,7 @@ import celery
 from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
+from django.db.models import Model
 
 from targetshare import models
 from targetshare.models.dynamo.base import UpsertStrategy
@@ -15,11 +16,18 @@ def bulk_create(objects):
     """Bulk-create objects in a background task process.
 
     Arguments:
-        objects: A sequence of model objects
+        objects: A sequence of Models or Items
 
     """
-    (model,) = set(type(obj) for obj in objects)
-    model.objects.bulk_create(objects)
+    (model,) = {type(obj) for obj in objects}
+
+    if issubclass(model, Model):
+        model.objects.bulk_create(objects)
+        return
+
+    with model.items.batch_write() as batch:
+        for obj in objects:
+            batch.put_item(obj)
 
 
 @celery.task
