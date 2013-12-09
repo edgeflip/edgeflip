@@ -79,6 +79,7 @@
 	gotoURL = gotoURL.href()
 
         function doOAuthLogin() {
+            recordEvent('button_click', '');
             window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=" + encodeURIComponent(gotoURL);
         }
 
