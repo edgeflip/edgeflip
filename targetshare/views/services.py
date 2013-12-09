@@ -19,6 +19,22 @@ LOG = logging.getLogger(__name__)
 @require_GET
 @utils.require_visit
 def outgoing(request, app_id, url):
+    # Handle partially-qualified URLs:
+    parsed_url = urlparse.urlparse(url)
+    if not parsed_url.scheme:
+        # URL was not fully-qualified
+        request_scheme = 'https' if request.is_secure() else 'http'
+        if parsed_url.netloc:
+            # e.g. //www.google.com
+            url = parsed_url._replace(scheme=request_scheme).geturl()
+        elif url.startswith('/'):
+            # e.g. /path
+            url = parsed_url._replace(scheme=request_scheme, netloc=request.get_host()).geturl()
+        else:
+            # e.g. www.google.com
+            url = "{}://{}".format(request_scheme, url)
+
+    # Append source information:
     campaign_id = request.GET.get('campaignid', '')
     try:
         # '1' => True, '0' => False; default to '1':
@@ -43,6 +59,7 @@ def outgoing(request, app_id, url):
             )
             url = urlparse.urlunparse(sourced_url)
 
+    # Record event:
     db.delayed_save.delay(
         models.relational.Event(
             visit=request.visit,
