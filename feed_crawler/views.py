@@ -25,14 +25,16 @@ def realtime_subscription(request):
             return http.HttpResponseForbidden()
     else:
         # Do important crawly things here
-        data = json.loads(request.POST['data'])
+        data = json.loads(request.body)
         for entry in data['entry']:
             try:
-                token = dynamo.Token.items.query(fbid__eq=entry['uid'])[0]
+                token = dynamo.Token.items.query(fbid__eq=int(entry['uid']))[0]
             except IndexError:
                 # Somehow no tokens for this user
                 LOG.exception('No tokens found for {}'.format(
                     entry['uid']))
+            except ValueError:
+                LOG.exception('Invalid FBID {}'.format(entry['uid']))
             else:
                 # Run px4 on the user, but place it on a different queue
                 # as to not disturb the main user flow
