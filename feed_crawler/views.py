@@ -4,6 +4,7 @@ import logging
 from django import http
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
 from targetshare.models import dynamo
 from feed_crawler import tasks
@@ -12,6 +13,7 @@ from feed_crawler import tasks
 LOG = logging.getLogger(__name__)
 
 
+@csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def realtime_subscription(request):
 
