@@ -31,13 +31,14 @@ class TestFeedCrawlerViews(EdgeFlipTestCase):
         dynamo.Token(fbid=12345, appid=1, expires=1, token='test').save()
         dynamo.Token(fbid=67890, appid=1, expires=1, token='test').save()
         response = self.client.post(reverse('realtime-subscription'),
-            dict(data=json.dumps({
+            data=json.dumps({
                 "object": "feed",
                 "entry": [
                     {"uid": 12345},
                     {"uid": 67890},
                 ]
-            }))
+            }),
+            content_type='application/json',
         )
         self.assertStatusCode(response, 200)
         self.assertTrue(crawl_mock.called)

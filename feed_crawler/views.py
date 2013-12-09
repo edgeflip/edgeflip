@@ -24,7 +24,6 @@ def realtime_subscription(request):
         else:
             return http.HttpResponseForbidden()
     else:
-        # Do important crawly things here
         data = json.loads(request.body)
         for entry in data['entry']:
             try:
