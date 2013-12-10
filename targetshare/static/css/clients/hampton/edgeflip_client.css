@@ -394,6 +394,7 @@ body {
     width: 300px;
     color: #000000;
     text-decoration: none;
+    text-align: center;
 }
 
 #priv-policy a:link { color: #000000; }
