@@ -233,6 +233,17 @@ class LinkFieldProperty(object):
         return "{}({!r})".format(self.__class__.__name__, self.bound_field)
 
 
+class ReverseLinkFieldProperty(object):
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        # TODO: something like this gets placed in related class's dictproxy
+        # and returns subclass of BaseItemManager, a RelatedItemManager with
+        # the appropriate get_query....
+
+
 class DeclarativeItemBase(type):
     """Metaclass which defines subclasses of Item based on their declarations."""
     update_field = 'updated'

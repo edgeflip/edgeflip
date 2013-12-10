@@ -14,16 +14,72 @@ from .table import Table
 inherits_docs = utils.doc_inheritor(Table)
 
 
-class ItemManager(object):
+class Query(dict):
+
+    def __init__(self, table, *args, **kws):
+        super(Query, self).__init__(*args, **kws)
+        self.table = table
+
+    def copy(self):
+        return type(self)(self.table, self)
+
+    def filter(self, **kws):
+        return type(self)(self.table, self, **kws)
+
+    @inherits_docs
+    def query_count(self, *args, **kws):
+        filters = self.filter(**kws)
+        return self.table.query_count(*args, **filters)
+
+    @inherits_docs
+    def query(self, *args, **kws):
+        filters = self.filter(**kws)
+        return self.table.query(*args, **filters)
+
+    @inherits_docs
+    def scan(self, *args, **kws):
+        filters = self.filter(**kws)
+        return self.table.scan(*args, **filters)
+
+    def __repr__(self):
+        return "<{}({}: {}>".format(self.__class__.__name__,
+                                    self.table.short_name,
+                                    super(Query, self).__repr__())
+
+
+class BaseItemManager(object):
+
+    def __init__(self, table=None):
+        self.table = table
+
+    # Proxy Table query methods, but through Query #
+
+    def get_query(self):
+        return Query(self.table)
+
+    def filter(self, **kws):
+        return self.get_query().filter(**kws)
+
+    @inherits_docs
+    def query_count(self, *args, **kws):
+        return self.get_query().query_count(*args, **kws)
+
+    @inherits_docs
+    def query(self, *args, **kws):
+        return self.get_query().query(*args, **kws)
+
+    @inherits_docs
+    def scan(self, *args, **kws):
+        return self.get_query().scan(*args, **kws)
+
+
+class ItemManager(BaseItemManager):
     """Default Item manager.
 
     Provides interface to Table for Item-specific queries, and base for extensions
     specific to subclasses of Item.
 
     """
-    def __init__(self, table=None):
-        self.table = table
-
     # Simple proxies -- provide subset of Table interface #
 
     @inherits_docs
@@ -49,18 +105,6 @@ class ItemManager(object):
     @inherits_docs
     def count(self):
         return self.table.count()
-
-    @inherits_docs
-    def query_count(self, *args, **kws):
-        return self.table.query_count(*args, **kws)
-
-    @inherits_docs
-    def query(self, *args, **kws):
-        return self.table.query(*args, **kws)
-
-    @inherits_docs
-    def scan(self, *args, **kws):
-        return self.table.scan(*args, **kws)
 
 
 class ItemManagerDescriptor(object):
