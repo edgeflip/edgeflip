@@ -194,18 +194,20 @@ float: left;
 
 #manual_input {
 	float: right;
-	font-size: 1.1em;
+	font-size: 1.4em;
 	border: 1px solid #e7e7e7;
-	width: 229px;
+	width: 255px;
 	padding: 3px 8px 4px;
 	box-shadow: inset 0px 0px 1px rgba(0,0,0,0.11)
 }
 
 .added_friend {
-    font-size: smaller;
+    font-size: 1.4em;
     color: #f0f0f8;
-    border: thin solid gray;
+    border: thin solid #003F77;
     background-color: #003F77;
+    padding: 3px;
+    margin: 2px;
 }
 
 /***************************************************
