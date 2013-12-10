@@ -387,3 +387,16 @@ body {
     overflow: auto;
 }
 
+/* Privacy Policy */
+#priv-policy {
+    font-size: 0.75em;
+    margin: 50px auto 0px;
+    width: 300px;
+    color: #000000;
+    text-decoration: none;
+}
+
+#priv-policy a:link { color: #000000; }
+#priv-policy a:visited { color: #000000; }
+#priv-policy a:hover { color: #000000; }
+#priv-policy a:active { color: #000000; }

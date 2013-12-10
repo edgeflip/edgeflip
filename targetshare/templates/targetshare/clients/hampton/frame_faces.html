@@ -1,4 +1,12 @@
 {% extends 'targetshare/frame_faces.html' %}
+
+{% block progress_box %}
+    <div id="progress" class="h2_container"> 
+        <div style="margin-bottom: 10px">Loading...</div>
+        <img src="{{ STATIC_URL }}img/aniprogress.gif">
+    </div>
+{% endblock %}
+
 {% block js_inline %}
     {{ block.super }}
     <script>
