@@ -26,4 +26,4 @@ class PostInteractions(Item):
     @property
     def counts(self):
         return {key: value for (key, value) in self.items()
-                if key not in ('fbid', 'postid')}
+                if key not in self.table.get_key_fields()}

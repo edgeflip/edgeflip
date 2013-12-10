@@ -66,6 +66,11 @@ class Meta(object):
         self.fields = links.copy()
         self.fields.update(keys)
 
+        self.link_keys = {}
+        for (link_name, link_field) in links.items():
+            for db_key_item in link_field.field.db_key:
+                self.link_keys[db_key_item] = link_field
+
     @property
     def __merged__(self):
         """View of metadata, which are based on instance attribute retrieval, built
@@ -129,90 +134,103 @@ class FieldProperty(object):
         return "{}({!r})".format(self.__class__.__name__, self.field_name)
 
 
-class LinkFieldProperty(object):
+class BoundLinkField(object):
 
     pending_links = {}
 
     @classmethod
     def resolve_lazy(cls, sender, **_kws):
-        for descriptor in cls.pending_links.get(sender.__name__, ()):
-            descriptor.item = sender
+        for field in cls.pending_links.get(sender.__name__, ()):
+            field.item = sender
 
     @classmethod
-    def from_fields(cls, name, link_field, key_fields):
-        descriptor = cls(name, link_field.item, link_field.db_key)
-
-        if isinstance(link_field.item, basestring):
+    def bind(cls, name, field, key_fields):
+        if isinstance(field.item, basestring):
             try:
-                item = cache[link_field.item]
+                item = cache[field.item]
             except KeyError:
-                cls.pending_links.setdefault(link_field.item, []).append(descriptor)
+                cls.pending_links.setdefault(field.item, set()).add(field)
             else:
-                descriptor.item = item
+                field.item = item
 
         field_keys = {item_field: key_name
                       for (key_name, item_field) in key_fields.items()}
-        descriptor.db_key = tuple(
+        field.db_key = tuple(
             field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
-            for key_ref in descriptor.db_key
+            for key_ref in field.db_key
         )
 
-        return descriptor
+        return cls(name, field)
 
-    def __init__(self, name, item, db_key):
+    def __init__(self, name, field):
         self.name = name
-        self.item = item
-        self.db_key = db_key
+        self.field = field
 
     @property
     def cache_name(self):
         return '_{}_cache'.format(self.name)
 
-    # TODO: clear cache when any db_key field on instance changed
+    def cache_get(self, instance):
+        return getattr(instance, self.cache_name, None)
+
+    def cache_set(self, instance, value):
+        setattr(instance, self.cache_name, value)
+
+    def cache_clear(self, instance):
+        try:
+            delattr(instance, self.cache_name)
+        except AttributeError:
+            pass
+
+    def __repr__(self):
+        return "<{!r} bound at '{}'>".format(self.field, self.name)
+
+item_declared.connect(BoundLinkField.resolve_lazy)
+
+
+class LinkFieldProperty(object):
+
+    def __init__(self, bound_field):
+        self.bound_field = bound_field
 
     def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
-        try:
-            return getattr(instance, self.cache_name)
-        except AttributeError:
-            pass
+        result = self.bound_field.cache_get(instance)
+        if result is not None:
+            return result
 
+        field = self.bound_field.field
         try:
-            manager = self.item.items
+            manager = field.item.items
         except AttributeError:
             raise TypeError("Item link unresolved or bad link argument: {!r}"
-                            .format(self.item))
+                            .format(field.item))
 
         keys = manager.table.get_key_fields()
-        values = (instance[key] for key in self.db_key)
+        values = (instance[key] for key in field.db_key)
         try:
             query = dict(zip(keys, values))
         except KeyError:
             return None
 
-        return manager.get_item(**query)
-        # TODO: cache
+        result = manager.get_item(**query)
+        self.bound_field.cache_set(instance, result)
+        return result
 
-    # TODO: __set__, __delete__?
-    # TODO: implicit db_keys set by Item metaclass
-
-    def __set__(self, instance, value):
-        for (key, val) in zip(self.db_key, value.pk):
-            instance[key] = val
-        # TODO: set value in cache
+    def __set__(self, instance, related):
+        for (key, value) in zip(self.bound_field.field.db_key, related.pk):
+            instance[key] = value
+        self.bound_field.cache_set(instance, related)
 
     def __delete__(self, instance):
-        for key in self.db_key:
+        for key in self.bound_field.field.db_key:
             del instance[key]
-        # TODO: remove from cache
+        self.bound_field.cache_clear(instance)
 
     def __repr__(self):
-        item_name = getattr(self.item, '__name__', self.item)
-        return "{}({!r}, {!r})".format(self.__class__.__name__, item_name, self.db_key)
-
-item_declared.connect(LinkFieldProperty.resolve_lazy)
+        return "{}({!r})".format(self.__class__.__name__, self.bound_field)
 
 
 class DeclarativeItemBase(type):
@@ -236,8 +254,9 @@ class DeclarativeItemBase(type):
                 item_fields[key] = value
                 attrs[key] = FieldProperty(key)
             elif isinstance(value, ItemLinkField):
-                link_fields[key] = value
-                attrs[key] = LinkFieldProperty.from_fields(key, value, item_fields)
+                bound_link_field = BoundLinkField.bind(key, value, item_fields)
+                link_fields[key] = bound_link_field
+                attrs[key] = LinkFieldProperty(bound_link_field)
             elif isinstance(value, ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
@@ -343,19 +362,40 @@ class Item(baseitems.Item):
 
     def _pre_set(self, key, value):
         """Clean exotic types (e.g. DATE)."""
-        field = self._meta.fields.get(key)
-        if field:
-            value = field.decode(value)
-        elif not self._meta.allow_undeclared_fields:
+        key_field = self._meta.keys.get(key)
+        if key_field:
+            return key_field.decode(value)
+
+        link_field = self._meta.links.get(key)
+        if link_field:
+            raise TypeError("Access to {!r} required through descriptor"
+                            .format(link_field))
+
+        if not self._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, type(self).__name__))
-        elif isinstance(self._meta.undeclared_data_type, types.DataType):
-            value = self._meta.undeclared_data_type.decode(value)
+
+        if isinstance(self._meta.undeclared_data_type, types.DataType):
+            return self._meta.undeclared_data_type.decode(value)
+
         return value
+
+    def _clear_link_cache(self, key):
+        try:
+            link_field = self._meta.link_keys[key]
+        except KeyError:
+            pass
+        else:
+            link_field.cache_clear(self)
 
     def __setitem__(self, key, value):
         value = self._pre_set(key, value)
+        self._clear_link_cache(key)
         super(Item, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._clear_link_cache(key)
+        super(Item, self).__delitem__(key)
 
     # prepare_full determines data to put for save and BatchTable once they
     # know there's data to put. Insert timestamp for update:
