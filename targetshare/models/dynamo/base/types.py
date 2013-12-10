@@ -161,11 +161,16 @@ class NumberSetType(InternalDataTypeExtension):
             return value
 
         if isinstance(value, basestring):
+            items = None
             if self.delimiter == self.COMMA:
                 # csv doesn't handle unicode or unquoted newlines
                 line = re.sub(r'\s', ' ', value.encode('utf-8'))
-                items = csv.reader([line]).next()
-            else:
+                try:
+                    items = csv.reader([line]).next()
+                except csv.Error:
+                    pass
+
+            if items is None:
                 items = (item.strip() for item in value.strip().split(self.delimiter))
 
             return {int(item) for item in items if item}
@@ -203,11 +208,15 @@ class StringSetType(InternalDataTypeExtension):
             if self.delimiter == self.COMMA:
                 # csv doesn't handle unicode or unquoted newlines
                 line = re.sub(r'\s', ' ', value.encode('utf-8'))
-                row = csv.reader([line]).next()
-                return {item.decode('utf-8').strip() for item in row}
-            else:
-                items = (item.strip() for item in value.strip().split(self.delimiter))
-                return set(item for item in items if item)
+                try:
+                    row = csv.reader([line]).next()
+                except csv.Error:
+                    pass
+                else:
+                    return {item.decode('utf-8').strip() for item in row}
+
+            items = (item.strip() for item in value.strip().split(self.delimiter))
+            return {item for item in items if item}
 
         if hasattr(value, '__iter__'):
             if not all(isinstance(item, basestring) for item in value):
