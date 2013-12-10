@@ -4,6 +4,7 @@ import logging
 from django import http
 from django.conf import settings
 from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
 
 from targetshare.models import dynamo
 from feed_crawler import tasks
@@ -12,6 +13,7 @@ from feed_crawler import tasks
 LOG = logging.getLogger(__name__)
 
 
+@csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def realtime_subscription(request):
 
@@ -22,15 +24,16 @@ def realtime_subscription(request):
         else:
             return http.HttpResponseForbidden()
     else:
-        # Do important crawly things here
-        data = json.loads(request.POST['data'])
+        data = json.loads(request.body)
         for entry in data['entry']:
             try:
-                token = dynamo.Token.items.query(fbid__eq=entry['uid'])[0]
+                token = dynamo.Token.items.query(fbid__eq=int(entry['uid']))[0]
             except IndexError:
                 # Somehow no tokens for this user
                 LOG.exception('No tokens found for {}'.format(
                     entry['uid']))
+            except ValueError:
+                LOG.exception('Invalid FBID {}'.format(entry['uid']))
             else:
                 # Run px4 on the user, but place it on a different queue
                 # as to not disturb the main user flow
