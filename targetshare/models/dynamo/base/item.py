@@ -10,7 +10,7 @@ from django.dispatch import Signal
 from django.utils import timezone
 
 from . import types
-from .fields import ItemField
+from .fields import ItemField, ItemLinkField
 from .manager import ItemManager, ItemManagerDescriptor
 from .table import Table
 
@@ -44,22 +44,27 @@ class Meta(object):
     __isoption__.__func__.hidden = re.compile(r'^__.*__$')
 
     @classmethod
-    def __user__(cls, name, fields, user):
+    def __user__(cls, name, keys, links, user):
         """Build a new Meta instance from class declaration information and the
         user metadata class (if supplied).
 
         """
-        meta = cls(name, fields)
+        meta = cls(name, keys, links)
         if user:
             vars(meta).update((key, value) for key, value in vars(user).items()
                               if cls.__isoption__(key))
         return meta
 
-    def __init__(self, name, fields):
+    def __init__(self, name, keys, links):
         self.table_name = utils.camel_to_underscore(name)
         if not self.table_name.endswith('s'):
             self.table_name += 's'
-        self.fields = fields
+
+        self.keys = keys
+        self.links = links
+
+        self.fields = links.copy()
+        self.fields.update(keys)
 
     @property
     def __merged__(self):
@@ -90,6 +95,15 @@ class ItemDoesNotExist(LookupError):
 item_declared = Signal(providing_args=["item"])
 
 
+cache = {}
+
+
+def populate_cache(sender, **_kws):
+    cache[sender.__name__] = sender
+
+item_declared.connect(populate_cache)
+
+
 class FieldProperty(object):
     """Item field property descriptor, allowing access to the item data dictionary
     via the attribute interface.
@@ -115,6 +129,92 @@ class FieldProperty(object):
         return "{}({!r})".format(self.__class__.__name__, self.field_name)
 
 
+class LinkFieldProperty(object):
+
+    pending_links = {}
+
+    @classmethod
+    def resolve_lazy(cls, sender, **_kws):
+        for descriptor in cls.pending_links.get(sender.__name__, ()):
+            descriptor.item = sender
+
+    @classmethod
+    def from_fields(cls, name, link_field, key_fields):
+        descriptor = cls(name, link_field.item, link_field.db_key)
+
+        if isinstance(link_field.item, basestring):
+            try:
+                item = cache[link_field.item]
+            except KeyError:
+                cls.pending_links.setdefault(link_field.item, []).append(descriptor)
+            else:
+                descriptor.item = item
+
+        field_keys = {item_field: key_name
+                      for (key_name, item_field) in key_fields.items()}
+        descriptor.db_key = tuple(
+            field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
+            for key_ref in descriptor.db_key
+        )
+
+        return descriptor
+
+    def __init__(self, name, item, db_key):
+        self.name = name
+        self.item = item
+        self.db_key = db_key
+
+    @property
+    def cache_name(self):
+        return '_{}_cache'.format(self.name)
+
+    # TODO: clear cache when any db_key field on instance changed
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        try:
+            return getattr(instance, self.cache_name)
+        except AttributeError:
+            pass
+
+        try:
+            manager = self.item.items
+        except AttributeError:
+            raise TypeError("Item link unresolved or bad link argument: {!r}"
+                            .format(self.item))
+
+        keys = manager.table.get_key_fields()
+        values = (instance[key] for key in self.db_key)
+        try:
+            query = dict(zip(keys, values))
+        except KeyError:
+            return None
+
+        return manager.get_item(**query)
+        # TODO: cache
+
+    # TODO: __set__, __delete__?
+    # TODO: implicit db_keys set by Item metaclass
+
+    def __set__(self, instance, value):
+        for (key, val) in zip(self.db_key, value.pk):
+            instance[key] = val
+        # TODO: set value in cache
+
+    def __delete__(self, instance):
+        for key in self.db_key:
+            del instance[key]
+        # TODO: remove from cache
+
+    def __repr__(self):
+        item_name = getattr(self.item, '__name__', self.item)
+        return "{}({!r}, {!r})".format(self.__class__.__name__, item_name, self.db_key)
+
+item_declared.connect(LinkFieldProperty.resolve_lazy)
+
+
 class DeclarativeItemBase(type):
     """Metaclass which defines subclasses of Item based on their declarations."""
     update_field = 'updated'
@@ -130,16 +230,19 @@ class DeclarativeItemBase(type):
             attrs.setdefault(mcs.update_field, ItemField(data_type=types.DATETIME))
 
         # Collect field declarations from class defn, set field properties and wrap managers:
-        item_fields = {}
+        item_fields, link_fields = {}, {}
         for key, value in attrs.items():
             if isinstance(value, ItemField):
                 item_fields[key] = value
                 attrs[key] = FieldProperty(key)
+            elif isinstance(value, ItemLinkField):
+                link_fields[key] = value
+                attrs[key] = LinkFieldProperty.from_fields(key, value, item_fields)
             elif isinstance(value, ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
         # Set meta:
-        attrs['_meta'] = Meta.__user__(name, item_fields, attrs.pop('Meta', None))
+        attrs['_meta'] = Meta.__user__(name, item_fields, link_fields, attrs.pop('Meta', None))
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})
@@ -154,7 +257,7 @@ class DeclarativeItemBase(type):
 
         # Ensure managers set up with reference to table (and class):
         internal_fields = [field.make_internal(field_name)
-                           for field_name, field in cls._meta.fields.items()]
+                           for field_name, field in cls._meta.keys.items()]
         schema = [field for field in internal_fields
                   if isinstance(field, basefields.BaseSchemaField)]
         item_table = Table(

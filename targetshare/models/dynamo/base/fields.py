@@ -22,7 +22,11 @@ class UpsertStrategy(object):
             obj[key] = value
 
 
-class ItemField(object):
+class BaseItemField(object):
+    pass
+
+
+class ItemField(BaseItemField):
 
     internal = None
 
@@ -62,3 +66,20 @@ class HashKeyField(ItemField):
 class RangeKeyField(ItemField):
 
     internal = basefields.RangeKey
+
+
+class ItemLinkField(BaseItemField):
+
+    def __init__(self, item, db_key=None):
+        self.item = item
+        if db_key is None or isinstance(db_key, (tuple, list)):
+            self.db_key = db_key
+        else:
+            self.db_key = (db_key,)
+
+    def __repr__(self):
+        return "{}({})".format(
+            self.__class__.__name__,
+            ', '.join("{}={!r}".format(key, value)
+                      for (key, value) in vars(self).items())
+        )

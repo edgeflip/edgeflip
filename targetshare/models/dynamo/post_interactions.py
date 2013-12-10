@@ -1,4 +1,12 @@
-from .base import Item, ItemField, HashKeyField, RangeKeyField, NUMBER, STRING
+from .base import (
+    Item,
+    ItemField,
+    ItemLinkField,
+    HashKeyField,
+    RangeKeyField,
+    NUMBER,
+    STRING,
+)
 
 
 class PostInteractions(Item):
@@ -12,6 +20,8 @@ class PostInteractions(Item):
     wall_posts = ItemField(data_type=NUMBER)
     wall_comms = ItemField(data_type=NUMBER)
     tags = ItemField(data_type=NUMBER)
+
+    user = ItemLinkField('User', db_key=fbid)
 
     @property
     def counts(self):
