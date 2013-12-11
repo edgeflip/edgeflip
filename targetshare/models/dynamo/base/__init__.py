@@ -1,4 +1,5 @@
-from .item import Item, item_declared
+from .item import Item
+from .loading import item_declared
 from .manager import ItemManager
 from .fields import ItemField, ItemLinkField, HashKeyField, RangeKeyField, UpsertStrategy
 from .types import (

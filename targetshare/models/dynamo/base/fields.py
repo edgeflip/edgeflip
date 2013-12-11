@@ -1,6 +1,6 @@
 from boto.dynamodb2 import fields as basefields
 
-from . import types
+from . import loading, types
 
 
 class UpsertStrategy(object):
@@ -70,8 +70,21 @@ class RangeKeyField(ItemField):
 
 class ItemLinkField(BaseItemField):
 
+    pending_links = {}
+
+    @classmethod
+    def resolve_lazy(cls, sender, **_kws):
+        for field in cls.pending_links.pop(sender.__name__, ()):
+            field.item = sender
+
     def __init__(self, item, db_key=None):
+        if isinstance(item, basestring):
+            try:
+                item = loading.cache[item]
+            except KeyError:
+                self.pending_links.setdefault(item, set()).add(self)
         self.item = item
+
         if db_key is None or isinstance(db_key, (tuple, list)):
             self.db_key = db_key
         else:
@@ -83,3 +96,24 @@ class ItemLinkField(BaseItemField):
             ', '.join("{}={!r}".format(key, value)
                       for (key, value) in vars(self).items())
         )
+
+    @staticmethod
+    def cache_name(name):
+        return '_{}_cache'.format(name)
+
+    @classmethod
+    def cache_get(cls, name, instance):
+        return getattr(instance, cls.cache_name(name), None)
+
+    @classmethod
+    def cache_set(cls, name, instance, value):
+        setattr(instance, cls.cache_name(name), value)
+
+    @classmethod
+    def cache_clear(cls, name, instance):
+        try:
+            delattr(instance, cls.cache_name(name))
+        except AttributeError:
+            pass
+
+loading.item_declared.connect(ItemLinkField.resolve_lazy)

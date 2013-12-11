@@ -6,11 +6,11 @@ import itertools
 import re
 
 from boto.dynamodb2 import fields as basefields, items as baseitems
-from django.dispatch import Signal
 from django.utils import timezone
 
 from . import types
 from .fields import ItemField, ItemLinkField
+from .loading import item_declared
 from .manager import ItemManager, ItemManagerDescriptor
 from .table import Table
 
@@ -68,8 +68,8 @@ class Meta(object):
 
         self.link_keys = {}
         for (link_name, link_field) in links.items():
-            for db_key_item in link_field.field.db_key:
-                self.link_keys[db_key_item] = link_field
+            for db_key_item in link_field.db_key:
+                self.link_keys[db_key_item] = link_name
 
     @property
     def __merged__(self):
@@ -95,21 +95,16 @@ class ItemDoesNotExist(LookupError):
     pass
 
 
-# No need to depend on Django, but as long as we have access to
-# their signal/receiver implementation...:
-item_declared = Signal(providing_args=["item"])
+class BaseFieldProperty(object):
+
+    def __init__(self, field_name):
+        self.field_name = field_name
+
+    def __repr__(self):
+        return "{}({!r})".format(self.__class__.__name__, self.field_name)
 
 
-cache = {}
-
-
-def populate_cache(sender, **_kws):
-    cache[sender.__name__] = sender
-
-item_declared.connect(populate_cache)
-
-
-class FieldProperty(object):
+class FieldProperty(BaseFieldProperty):
     """Item field property descriptor, allowing access to the item data dictionary
     via the attribute interface.
 
@@ -118,9 +113,6 @@ class FieldProperty(object):
     None.
 
     """
-    def __init__(self, field_name):
-        self.field_name = field_name
-
     def __get__(self, instance, cls=None):
         return self if instance is None else instance.get(self.field_name)
 
@@ -130,78 +122,18 @@ class FieldProperty(object):
     def __delete__(self, instance):
         del instance[self.field_name]
 
-    def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self.field_name)
 
-
-class BoundLinkField(object):
-
-    pending_links = {}
-
-    @classmethod
-    def resolve_lazy(cls, sender, **_kws):
-        for field in cls.pending_links.get(sender.__name__, ()):
-            field.item = sender
-
-    @classmethod
-    def bind(cls, name, field, key_fields):
-        if isinstance(field.item, basestring):
-            try:
-                item = cache[field.item]
-            except KeyError:
-                cls.pending_links.setdefault(field.item, set()).add(field)
-            else:
-                field.item = item
-
-        field_keys = {item_field: key_name
-                      for (key_name, item_field) in key_fields.items()}
-        field.db_key = tuple(
-            field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
-            for key_ref in field.db_key
-        )
-
-        return cls(name, field)
-
-    def __init__(self, name, field):
-        self.name = name
-        self.field = field
-
-    @property
-    def cache_name(self):
-        return '_{}_cache'.format(self.name)
-
-    def cache_get(self, instance):
-        return getattr(instance, self.cache_name, None)
-
-    def cache_set(self, instance, value):
-        setattr(instance, self.cache_name, value)
-
-    def cache_clear(self, instance):
-        try:
-            delattr(instance, self.cache_name)
-        except AttributeError:
-            pass
-
-    def __repr__(self):
-        return "<{!r} bound at '{}'>".format(self.field, self.name)
-
-item_declared.connect(BoundLinkField.resolve_lazy)
-
-
-class LinkFieldProperty(object):
-
-    def __init__(self, bound_field):
-        self.bound_field = bound_field
+class LinkFieldProperty(BaseFieldProperty):
 
     def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
-        result = self.bound_field.cache_get(instance)
+        field = instance._meta.links[self.field_name]
+        result = field.cache_get(self.field_name, instance)
         if result is not None:
             return result
 
-        field = self.bound_field.field
         try:
             manager = field.item.items
         except AttributeError:
@@ -216,21 +148,20 @@ class LinkFieldProperty(object):
             return None
 
         result = manager.get_item(**query)
-        self.bound_field.cache_set(instance, result)
+        field.cache_set(self.field_name, instance, result)
         return result
 
     def __set__(self, instance, related):
-        for (key, value) in zip(self.bound_field.field.db_key, related.pk):
+        field = instance._meta.links[self.field_name]
+        for (key, value) in zip(field.db_key, related.pk):
             instance[key] = value
-        self.bound_field.cache_set(instance, related)
+        field.cache_set(self.field_name, instance, related)
 
     def __delete__(self, instance):
-        for key in self.bound_field.field.db_key:
+        field = instance._meta.links[self.field_name]
+        for key in field.db_key:
             del instance[key]
-        self.bound_field.cache_clear(instance)
-
-    def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self.bound_field)
+        field.cache_clear(self.field_name, instance)
 
 
 class ReverseLinkFieldProperty(object):
@@ -259,15 +190,21 @@ class DeclarativeItemBase(type):
             attrs.setdefault(mcs.update_field, ItemField(data_type=types.DATETIME))
 
         # Collect field declarations from class defn, set field properties and wrap managers:
-        item_fields, link_fields = {}, {}
+        item_fields, link_fields, field_keys = {}, {}, {}
         for key, value in attrs.items():
             if isinstance(value, ItemField):
                 item_fields[key] = value
+                # Store reverse for ItemLinkField.db_key:
+                field_keys[value] = key
                 attrs[key] = FieldProperty(key)
             elif isinstance(value, ItemLinkField):
-                bound_link_field = BoundLinkField.bind(key, value, item_fields)
-                link_fields[key] = bound_link_field
-                attrs[key] = LinkFieldProperty(bound_link_field)
+                # Resolve ItemField key references:
+                value.db_key = tuple(
+                    field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
+                    for key_ref in value.db_key
+                )
+                link_fields[key] = value
+                attrs[key] = LinkFieldProperty(key)
             elif isinstance(value, ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
@@ -393,11 +330,11 @@ class Item(baseitems.Item):
 
     def _clear_link_cache(self, key):
         try:
-            link_field = self._meta.link_keys[key]
+            link_name = self._meta.link_keys[key]
         except KeyError:
-            pass
-        else:
-            link_field.cache_clear(self)
+            return
+        link_field = self._meta.links[link_name]
+        link_field.cache_clear(link_name, self)
 
     def __setitem__(self, key, value):
         value = self._pre_set(key, value)
