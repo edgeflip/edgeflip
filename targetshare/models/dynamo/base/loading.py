@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from django.dispatch import Signal
 
 
@@ -12,4 +14,14 @@ cache = {}
 def populate_cache(sender, **_kws):
     cache[sender.__name__] = sender
 
+
+pending_links = defaultdict(set)
+
+
+def resolve_links(sender, **_kws):
+    for obj in pending_links.pop(sender.__name__, ()):
+        obj.resolve_link(sender)
+
+
 item_declared.connect(populate_cache)
+item_declared.connect(resolve_links)

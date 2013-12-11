@@ -69,26 +69,15 @@ class RangeKeyField(ItemField):
 
 
 class ItemLinkField(BaseItemField):
+    """Item field indicating a link between two Items, similar to a foreign key."""
 
-    pending_links = {}
-
-    @classmethod
-    def resolve_lazy(cls, sender, **_kws):
-        for field in cls.pending_links.pop(sender.__name__, ()):
-            field.item = sender
-
-    def __init__(self, item, db_key=None):
-        if isinstance(item, basestring):
-            try:
-                item = loading.cache[item]
-            except KeyError:
-                self.pending_links.setdefault(item, set()).add(self)
+    def __init__(self, item, db_key, linked_name=None):
         self.item = item
-
-        if db_key is None or isinstance(db_key, (tuple, list)):
+        if isinstance(db_key, (tuple, list)):
             self.db_key = db_key
         else:
             self.db_key = (db_key,)
+        self.linked_name = linked_name
 
     def __repr__(self):
         return "{}({})".format(
@@ -96,6 +85,32 @@ class ItemLinkField(BaseItemField):
             ', '.join("{}={!r}".format(key, value)
                       for (key, value) in vars(self).items())
         )
+
+    def resolve_link(self, item):
+        self.item = item
+
+    def link(self, reverse_descriptor=None):
+        """Resolve item reference or connect listener to resolve reference once
+        the Item exists.
+
+        Optionally accepts a ReverseLinkFieldProperty, so as to give it the same
+        treatment.
+
+        """
+        item = self.item
+        if isinstance(item, basestring):
+            try:
+                item = loading.cache[item]
+            except KeyError:
+                pending = loading.pending_links[item]
+                pending.add(self)
+                if reverse_descriptor:
+                    pending.add(reverse_descriptor)
+                return
+
+        self.resolve_link(item)
+        if reverse_descriptor:
+            reverse_descriptor.resolve_link(item)
 
     @staticmethod
     def cache_name(name):
@@ -115,5 +130,3 @@ class ItemLinkField(BaseItemField):
             delattr(instance, cls.cache_name(name))
         except AttributeError:
             pass
-
-loading.item_declared.connect(ItemLinkField.resolve_lazy)

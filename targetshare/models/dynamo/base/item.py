@@ -10,8 +10,8 @@ from django.utils import timezone
 
 from . import types
 from .fields import ItemField, ItemLinkField
-from .loading import item_declared
-from .manager import ItemManager, ItemManagerDescriptor
+from .loading import cache, item_declared
+from .manager import BaseItemManager, ItemManager, ItemManagerDescriptor
 from .table import Table
 
 from targetshare import utils
@@ -124,6 +124,7 @@ class FieldProperty(BaseFieldProperty):
 
 
 class LinkFieldProperty(BaseFieldProperty):
+    """Item link field descriptor, providing management of a linked Item."""
 
     def __get__(self, instance, cls=None):
         if instance is None:
@@ -164,15 +165,73 @@ class LinkFieldProperty(BaseFieldProperty):
         field.cache_clear(self.field_name, instance)
 
 
-class ReverseLinkFieldProperty(object):
+class cached_property(object):
+    """property-like descriptor, which caches its result in instance dictionary."""
+
+    def __init__(self, func):
+        self.func = func
+
+    def __get__(self, instance, cls=None):
+        result = vars(instance)[self.func.__name__] = self.func(instance)
+        return result
+
+
+class ReverseLinkFieldProperty(BaseFieldProperty):
+    """The Item link field's reversed descriptor, providing access to all Items with
+    matching links.
+
+    """
+    def __init__(self, field_name, item_name, link_field):
+        super(ReverseLinkFieldProperty, self).__init__(field_name)
+        self.item_name = item_name
+        self.link_field = link_field
+
+    def resolve_link(self, parent):
+        if hasattr(parent, self.field_name):
+            raise ValueError("{} already defines attribute {}"
+                             .format(parent.__name__, self.field_name))
+        setattr(parent, self.field_name, self)
+
+    @cached_property
+    def linked_manager_cls(self):
+        # FIXME: Inheriting from a distinct BaseItemManager allows us to limit
+        # FIXME: interface to only querying methods; but, this disallows inheritance
+        # FIXME: of user-defined ItemManager methods...
+        db_key = self.link_field.db_key
+
+        class LinkedItemManager(BaseItemManager):
+
+            core_filters = tuple("{}__eq".format(key) for key in db_key)
+
+            def __init__(self, table, instance):
+                super(LinkedItemManager, self).__init__(table)
+                self.instance = instance
+
+            def get_query(self):
+                query = super(LinkedItemManager, self).get_query()
+                instance_filter = dict(zip(self.core_filters, self.instance.pk))
+                return query.filter(**instance_filter)
+
+        return LinkedItemManager
+
+    @cached_property
+    def item(self):
+        try:
+            return cache[self.item_name]
+        except KeyError:
+            raise TypeError("Item link unresolved or bad link argument: {!r}"
+                            .format(self.item_name))
 
     def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
-        # TODO: something like this gets placed in related class's dictproxy
-        # and returns subclass of BaseItemManager, a RelatedItemManager with
-        # the appropriate get_query....
+        manager = self.linked_manager_cls(self.item.items.table, instance)
+        # NOTE: If ReverseLinkFieldProperty ever supports __set__ et al, below
+        # caching method won't work (it will be a data descriptor and take
+        # precendence over instance __dict__)
+        vars(instance)[self.field_name] = manager
+        return manager
 
 
 class DeclarativeItemBase(type):
@@ -198,11 +257,20 @@ class DeclarativeItemBase(type):
                 field_keys[value] = key
                 attrs[key] = FieldProperty(key)
             elif isinstance(value, ItemLinkField):
-                # Resolve ItemField key references:
+                # Resolve ItemField references:
                 value.db_key = tuple(
                     field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
                     for key_ref in value.db_key
                 )
+                # Construct linked item manager property:
+                linked_name = value.linked_name
+                if linked_name == "+":
+                    linked_property = None
+                else:
+                    if linked_name is None:
+                        linked_name = utils.camel_to_underscore(name).replace('_', '')
+                    linked_property = ReverseLinkFieldProperty(linked_name, name, value)
+                value.link(reverse_descriptor=linked_property)
                 link_fields[key] = value
                 attrs[key] = LinkFieldProperty(key)
             elif isinstance(value, ItemManager):
