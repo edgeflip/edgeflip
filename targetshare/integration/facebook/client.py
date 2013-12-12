@@ -606,7 +606,7 @@ class Stream(list):
 
         >>> stream = Stream(1234)
         >>> aggregate = stream.aggregate()
-        >>> aggregate[1098]['post_likes']
+        >>> aggregate[1098].types['post_likes']
         [Interaction(...), ...]
 
     """
