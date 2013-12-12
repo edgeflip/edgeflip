@@ -28,3 +28,4 @@ South==0.8.1
 Django==1.5.1
 django-celery==3.0.21
 python-memcached==1.53
+raven==3.6.0
