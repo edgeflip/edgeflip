@@ -434,7 +434,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 function sendShare() {
     helperTextDisappear();
     $('#friends_div').hide();
-    $('#progress-text').html('S e n d i n g . . .');
     $('#progress').show();
     $('#progress').removeClass('loading').addClass('sending');
 
