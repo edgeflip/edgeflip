@@ -78,7 +78,8 @@
         {% block progress_box %}
             <div id="progress" class="h2_container"> 
                 <div style="margin-bottom: 10px">L o a d i n g . . .</div>
-                <img src="{{ STATIC_URL }}img/aniprogress.gif">
+                <img id="loading-gif" src="{{ STATIC_URL }}img/aniprogress.gif">
+                <img id="sending-gif" style="display:none" src="{{ STATIC_URL }}img/aniprogress.gif">
             </div>
         {% endblock %}
 

@@ -2,7 +2,8 @@
 
 {% block progress_box %}
     <div id="progress" class="h2_container"> 
-        <img src="{{ STATIC_URL }}img/clients/hampton/edgeflip-loading-whitebg.gif">
+        <img id="loading-gif" src="{{ STATIC_URL }}img/clients/hampton/edgeflip-loading-whitebg.gif">
+        <img id="sending-gif" style="display: none;" src="{{ STATIC_URL }}img/clients/hampton/edgeflip-loading-whitebg.gif">
     </div>
 {% endblock %}
 

@@ -435,6 +435,8 @@ function sendShare() {
     helperTextDisappear();
     $('#friends_div').hide();
     $('#progress div').html('S e n d i n g . . .');
+    $('#loading-gif').hide();
+    $('#sending-gif').show();
     $('#progress').show();
 
     var recips = getRecipFbids();
