@@ -71,7 +71,7 @@ class AssignmentModel(models.Model):
                 but are passed through
 
         """
-        if chosen_from_rows is None and manager is None:
+        if manager is None and chosen_from_rows in ('', None):
             raise TypeError("Either chosen_from_rows or manager must not be empty")
 
         # Determine feature_type and table:
@@ -85,7 +85,9 @@ class AssignmentModel(models.Model):
         if not feature_type1.endswith('_id'):
             feature_type1 += '_id'
 
-        if chosen_from_rows is not None:
+        if chosen_from_rows is None:
+            chosen_from_rows = ''
+        elif chosen_from_rows != '':
             chosen_from_rows = list(chosen_from_rows.values_list('pk', flat=True))
 
         return cls(
