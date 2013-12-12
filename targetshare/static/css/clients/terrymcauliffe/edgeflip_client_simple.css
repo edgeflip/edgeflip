@@ -240,7 +240,19 @@
     white-space: nowrap;
 }
 
-.spinner-loading {
+#progress-text {
+    margin-bottom: 10px;
+}
+
+.loading #progress-text :after {
+    content: "L o a d i n g . . .";
+}
+
+.sending #progress-text :after {
+    content: "S e n d i n g . . .";
+}
+
+.loading #spinner {
     background-image: url('/static/img/aniprogress.gif');
     background-repeat: no-repeat;
     width: 100%;
@@ -248,7 +260,7 @@
     background-position: center center;
 }
 
-.spinner-sending {
+.sending #spinner {
     background-image: url('/static/img/aniprogress.gif');
     background-repeat: no-repeat;
     width: 100%;

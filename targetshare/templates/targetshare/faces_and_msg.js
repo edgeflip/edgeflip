@@ -436,8 +436,7 @@ function sendShare() {
     $('#friends_div').hide();
     $('#progress-text').html('S e n d i n g . . .');
     $('#progress').show();
-    $('#spinner').removeClass('spinner-loading');
-    $('#spinner').addClass('spinner-sending');
+    $('#progress').removeClass('loading').addClass('sending');
 
     var recips = getRecipFbids();
     for (var i=0; i < recips.length; i++) {
