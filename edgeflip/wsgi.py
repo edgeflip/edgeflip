@@ -44,6 +44,7 @@ if settings.NEWRELIC.enabled:
 # file. This includes Django's development server, if the WSGI_APPLICATION
 # setting points here.
 from django.core.wsgi import get_wsgi_application
+from raven.contrib.django.raven_compat.middleware.wsgi import Sentry
 
 wsgi_application = get_wsgi_application()
 
@@ -56,7 +57,7 @@ def application(environ, start_response):
         # Must be in Apache, (not runserver). Fix PATH_INFO.
         raw_path = environ['REQUEST_URI'].split('?', 1)[0]
         environ['PATH_INFO'] = urllib.unquote_plus(raw_path)
-    return wsgi_application(environ, start_response)
+    return Sentry(wsgi_application(environ, start_response))
 
 
 # Apply WSGI middleware here.
