@@ -71,7 +71,9 @@ class RangeKeyField(ItemField):
 class ItemLinkField(BaseItemField):
     """Item field indicating a link between two Items, similar to a foreign key."""
 
-    def __init__(self, item, db_key, linked_name=None):
+    Unset = object()
+
+    def __init__(self, item, db_key, linked_name=Unset):
         self.item = item
         if isinstance(db_key, (tuple, list)):
             self.db_key = db_key

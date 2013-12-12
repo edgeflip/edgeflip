@@ -274,17 +274,17 @@ class DeclarativeItemBase(type):
                 )
                 # Construct linked item manager property:
                 linked_name = value.linked_name
-                if linked_name == "+":
-                    linked_property = None
-                else:
-                    if linked_name is None:
+                if linked_name:
+                    if linked_name is value.Unset:
                         linked_name = utils.camel_to_underscore(name).replace('_', '')
                         if linked_name.endswith('s'):
                             linked_name += '_set'
                         else:
                             linked_name += 's'
-                    linked_property = ReverseLinkFieldProperty(linked_name, name, value)
-                value.link(reverse_descriptor=linked_property)
+                    reverse_link = ReverseLinkFieldProperty(linked_name, name, value)
+                else:
+                    reverse_link = None
+                value.link(reverse_descriptor=reverse_link)
                 link_fields[key] = value
                 attrs[key] = LinkFieldProperty(key)
             elif isinstance(value, ItemManager):
