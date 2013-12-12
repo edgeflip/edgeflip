@@ -13,7 +13,6 @@ from django.utils import timezone
 from pymlconf import ConfigDict
 
 from targetshare import models
-from targetshare.integration.facebook import mock_client
 from targetshare.models.dynamo import utils
 
 
@@ -146,13 +145,62 @@ def xrandrange(min_=0, max_=None, start=0, step=1):
     return xrange(start, random.randint(min_, max_), step)
 
 
+FIRST_NAMES = ['Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie', 'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa']
+LAST_NAMES = ['Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe']
+CITY_NAMES = ['Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City']
+STATE_NAMES = ['Alabama', 'Alaska', 'American Samoa', 'Arizona', 'Arkansas',
+    'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia',
+    'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana',
+    'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
+    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'National',
+    'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
+    'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio',
+    'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island',
+    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
+    'Virgin Islands', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin',
+    'Wyoming']
+
+
+def fake_user(fbid, friend=False, num_friends=0):
+    fake = {
+        'uid': fbid,
+        'sex': u'male' if random.random() < 0.5 else u'female',
+        'first_name': random.choice(FIRST_NAMES),
+        'last_name': random.choice(LAST_NAMES),
+    }
+
+    if random.random() <= 0.33:
+        fake['birthday_date'] = '%s/%s/%s' % (
+            random.randint(1, 12),
+            random.randint(1, 28),
+            random.randint(1920, 1995),
+        )
+    else:
+        fake['birthday_date'] = None
+
+    if random.random() <= 0.67:
+        fake['current_location'] = {
+            'city': random.choice(CITY_NAMES),
+            'state': random.choice(STATE_NAMES),
+        }
+
+    if friend:
+        # Only have a mutual friend count for friends
+        fake['mutual_friend_count'] = random.randint(0, num_friends)
+    else:
+        # Only get an email for primaries
+        fake['email'] = u'fake@fake.com'
+
+    return fake
+
+
 def crawl_mock(min_friends, max_friends):
     fake_fbids = tuple(set(100000000000 + random.randint(1, 10000000)
                        for _ in xrandrange(min_friends, max_friends)))
     friend_count = len(fake_fbids)
     synchronous_results = iter([
         # get_user:
-        {'data': [mock_client.fakeUserInfo(1)]},
+        {'data': [fake_user(1)]},
     ])
 
     def urlopen_mock(url):
@@ -188,7 +236,7 @@ def crawl_mock(min_friends, max_friends):
 
         elif 'from+user' in url.lower():
             # Friend info
-            return {'data': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+            return {'data': [fake_user(fbid, friend=True, num_friends=friend_count)
                              for fbid in fake_fbids]}
 
         elif 'from+photo' in url.lower():
@@ -199,7 +247,7 @@ def crawl_mock(min_friends, max_friends):
                 {'name': 'otherPhotoTags',
                  'fql_result_set': [{'subject': str(random.choice(fake_fbids))} for _ in xrandrange(0, 25000)]},
                 {'name': 'friendInfo',
-                 'fql_result_set': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+                 'fql_result_set': [fake_user(fbid, friend=True, num_friends=friend_count)
                                     for fbid in fake_fbids]},
             ]}
 
