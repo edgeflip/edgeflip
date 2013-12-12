@@ -7,6 +7,7 @@ from targetshare.utils import LazyList
 from .base import (
     Item,
     ItemField,
+    ItemLinkField,
     ItemManager,
     HashKeyField,
     RangeKeyField,
@@ -28,6 +29,9 @@ class IncomingEdge(Item):
     photos_target = ItemField(data_type=NUMBER)
     photos_other = ItemField(data_type=NUMBER)
     mut_friends = ItemField(data_type=NUMBER)
+
+    primary = ItemLinkField('User', db_key=fbid_target)
+    secondary = ItemLinkField('User', db_key=fbid_source, linked_name='+')
 
     class Meta(object):
         table_name = 'edges_incoming'
