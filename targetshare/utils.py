@@ -390,8 +390,7 @@ class partition(object):
         (-20, [3, 2])
 
     In the above example, the default `key` function, which returns the item itself,
-    was used; and, the iterator was allowed to exit after its default `min_value` of 0.
-    But, rather than allow the buckets to begin with the first item's value,
+    was used. But, rather than allow the buckets to begin with the first item's value,
     `max_value` was instead set to 100. If we hadn't set `max_value`, the results
     would have been::
 
@@ -399,10 +398,32 @@ class partition(object):
         (25, [50, 40, 40, 25])
         (-5, [3, 2])
 
+    As opposed to the style of iteration above, the partition iterator may be
+    advanced eagerly (without iterating over the partition group at each step);
+    however, the partition groups themselves must not be iterated out of order.
+
+    Furthermore, if group iteration is deferred, the partition iterator will
+    continue infinitely, unless `min_value` is set, such that the iterator knows
+    when its lower bound has decremented sufficiently. For example::
+
+        (bounds, groups) = zip(*partition(numbers, range_width=30, min_value=2))
+        for group in groups:
+            print list(group)
+
+    results in::
+
+        [85, 70]
+        [50, 40, 40, 25]
+        [3, 2]
+
+    (Note that `min_value` need not be equal to the minimum key of the iterable;
+    but rather, partition may generate superfluous, empty trailing groups in
+    satisfying a too-low `min_value`.)
+
     """
     none = object()
 
-    def __init__(self, iterable, range_width, key=lambda n: n, min_value=0, max_value=None):
+    def __init__(self, iterable, range_width, key=lambda n: n, min_value=None, max_value=None):
         self.iterable = iter(iterable)
         self.range_width = range_width
         self.keyfunc = key
@@ -415,13 +436,15 @@ class partition(object):
 
     def next(self):
         if self.current_item is self.none:
-            # First loop, don't advance iterable until now:
+            # Either first loop (don't advance iterable until now) or done;
+            # queue up first or raise StopIteration:
             self.current_item = next(self.iterable)
             if self.lower_bound is None:
                 self.lower_bound = self.keyfunc(self.current_item)
 
         if self.lower_bound <= self.min_value:
-            # Last loop, already returned all items:
+            # User specified min_value (to support alt generation);
+            # last loop already hit:
             raise StopIteration
 
         self.lower_bound -= self.range_width
@@ -430,6 +453,11 @@ class partition(object):
     def _group(self, lower_bound):
         while self.keyfunc(self.current_item) >= lower_bound:
             yield self.current_item
+            self.current_item = self.none
+            # Queue up next or exit at end of iterable:
             self.current_item = next(self.iterable)
 
-partition_edges = functools.partial(partition, key=lambda edge: edge.score, max_value=1)
+partition_edges = functools.partial(partition,
+                                    key=lambda edge: edge.score,
+                                    min_value=0,
+                                    max_value=1)
