@@ -57,9 +57,11 @@ def application(environ, start_response):
         # Must be in Apache, (not runserver). Fix PATH_INFO.
         raw_path = environ['REQUEST_URI'].split('?', 1)[0]
         environ['PATH_INFO'] = urllib.unquote_plus(raw_path)
-    return Sentry(wsgi_application(environ, start_response))
+    return wsgi_application(environ, start_response)
 
 
 # Apply WSGI middleware here.
 if settings.NEWRELIC.enabled:
     application = newrelic.agent.wsgi_application()(application)
+
+application = Sentry(application)
