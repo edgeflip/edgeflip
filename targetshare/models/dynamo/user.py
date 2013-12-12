@@ -1,3 +1,6 @@
+import collections
+import math
+
 from django.utils import timezone
 
 from .base import (
@@ -10,6 +13,7 @@ from .base import (
     DATETIME,
     STRING_SET,
 )
+from .base.item import cached_property
 from .base.types import DOUBLE_NEWLINE
 
 
@@ -75,16 +79,22 @@ class User(Item):
     def full_location(self):
         return '{}, {} {}'.format(self.city, self.state, self.country)
 
-    @property # TODO: test that cached on instance
-    # TODO: worthwhile to define ForeignKeys, etc. in framework? ;(
+    @staticmethod
+    def _normalize_topic(score):
+        """Normalize the given topic score to 1."""
+        return math.atan(float(score) / 2) * 2 / math.pi
+
+    @cached_property
     def topics(self):
-        topics = defaultdict(int)
-        for interaction in PostInteractions.items.query(fbid__eq=self.fbid):
-            post = PostTopics.items.get_item(postid=interaction.postid)
-            for (key, value) in post.weights.items():
+        # Aggregate topics scores of posts in which user has interacted:
+        scores = collections.defaultdict(int)
+        for interaction in self.postinteractions_set.all():
+            post_topics = interaction.post_topics.document
+            for (topic, value) in post_topics.items():
                 # For now, all interactions weighted the same:
-                for (_interaction_type, count) in interaction.counts.items():
-                    topics[key] += value * count
-        vars(self)['topics'] = {key: math.atan(value / 2.0) * 2 / math.pi
-                                for (key, value) in topics.items()}
-        return self.topics
+                for (_interaction_type, count) in interaction.document.items():
+                    scores[topic] += value * count
+
+        # Normalize topic scores to 1:
+        return {topic: self._normalize_topic(value)
+                for (topic, value) in scores.items()}

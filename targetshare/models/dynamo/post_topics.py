@@ -19,7 +19,3 @@ class PostTopics(Item):
             'Weather': '0.2',
         }
         return cls(postid=postid, **dummy_classifications)
-
-    @property
-    def weights(self):
-        return {key: value for (key, value) in self.items() if key != 'postid'}

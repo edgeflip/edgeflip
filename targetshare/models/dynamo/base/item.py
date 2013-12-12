@@ -197,10 +197,10 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         # FIXME: Inheriting from a distinct BaseItemManager allows us to limit
         # FIXME: interface to only querying methods; but, this disallows inheritance
         # FIXME: of user-defined ItemManager methods...
-        db_key = self.link_field.db_key
 
         class LinkedItemManager(BaseItemManager):
 
+            db_key = self.link_field.db_key
             core_filters = tuple("{}__eq".format(key) for key in db_key)
 
             def __init__(self, table, instance):
@@ -211,6 +211,16 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
                 query = super(LinkedItemManager, self).get_query()
                 instance_filter = dict(zip(self.core_filters, self.instance.pk))
                 return query.filter(**instance_filter)
+
+            @cached_property
+            def _hash_keys(self):
+                return {field.name for field in self.table.schema
+                        if isinstance(field, basefields.HashKey)}
+
+            def all(self):
+                if any(key in self._hash_keys for key in self.db_key):
+                    return self.query()
+                return self.scan()
 
         return LinkedItemManager
 
@@ -269,6 +279,10 @@ class DeclarativeItemBase(type):
                 else:
                     if linked_name is None:
                         linked_name = utils.camel_to_underscore(name).replace('_', '')
+                        if linked_name.endswith('s'):
+                            linked_name += '_set'
+                        else:
+                            linked_name += 's'
                     linked_property = ReverseLinkFieldProperty(linked_name, name, value)
                 value.link(reverse_descriptor=linked_property)
                 link_fields[key] = value
@@ -364,6 +378,14 @@ class Item(baseitems.Item):
     def pk(self):
         """The Item's signature in key-less, hashable form."""
         return tuple(self.get_keys().values())
+
+    @property
+    def document(self):
+        """The Item's data excluding its signature."""
+        meta_fields = set(itertools.chain(self.table.get_key_fields(),
+                                          [type(self).update_field]))
+        return {key: value for (key, value) in self.items()
+                if key not in meta_fields}
 
     def __getitem__(self, key):
         # boto's Item[key] is really Item.get(key), but this causes various
