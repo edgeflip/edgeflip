@@ -17,4 +17,4 @@ class CampaignRankingKey(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'campaign_ranking_keys'
-        ordering = 'start_dt'
+        ordering = ('start_dt',)

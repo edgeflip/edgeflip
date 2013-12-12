@@ -444,8 +444,6 @@ class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
         return self.get_query_set().reranked_edges(*args, **kws)
 
 
-# TODO: schema migration
-
 class RankingKeyFeature(models.Model, Feature):
 
     ranking_key_feature_id = models.AutoField(primary_key=True)
