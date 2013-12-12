@@ -13,6 +13,8 @@ class PostTopics(Item):
     def classify(cls, postid, text):
         """Dummy text classifier."""
         # TODO: REPLACE WITH ACTUAL CLASSIFIER
+        # TODO: Operationalize mozy classifier (local http on servers or otherwise)
+        # TODO: and get a hold of category mapping rules.
         dummy_classifications = {
             'Health': '8.2', # Might have trouble with Dynamo & raw floats
             'Sports': '0.3',

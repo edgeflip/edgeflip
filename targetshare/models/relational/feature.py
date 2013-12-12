@@ -218,13 +218,9 @@ class FilterFeature(models.Model, Feature):
             return self.value
 
     def operate_standard(self, user):
-        try:
-            user_value = self.get_user_value(user)
-        except (AttributeError, KeyError):
+        user_value = self.get_user_value_safe(user)
+        if user_value is None:
             return False
-        else:
-            if user_value in ('', None):
-                return False
 
         value = self.decode_value()
 
@@ -294,13 +290,6 @@ class FilterFeature(models.Model, Feature):
             operator=self.get_operator_display(),
             value=value,
         )
-
-# TODO: Need to keep topics dict normalized to number of posts (to 1)?
-# TODO: Rather than ever aggregate, keep post actions separate in namedtuple,
-# TODO: and aggregate all in aggregate()
-
-# TODO: Operationalize mozy classifier (local http on servers or otherwise)
-# TODO: and get a hold of category mapping rules.
 
 
 class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
