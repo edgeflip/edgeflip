@@ -235,6 +235,11 @@ INSTALLED_APPS = (
     'feed_crawler',
 )
 
+if ENV in ('staging', 'production'):
+    INSTALLED_APPS = INSTALLED_APPS + (
+        'raven.contrib.django.raven_compat',
+    )
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
     'django.contrib.auth.context_processors.auth',
