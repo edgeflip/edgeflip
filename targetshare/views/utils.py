@@ -158,6 +158,15 @@ def get_object_or_none(klass, **kws):
         return None
 
 
+def _get(dict_, anykeys=(), default=None):
+    for key in anykeys:
+        try:
+            return dict_[key]
+        except KeyError:
+            pass
+    return default
+
+
 def require_visit(view):
     """Decorator manufacturing a view wrapper, which requires a Visit for the request.
 
@@ -179,8 +188,10 @@ def require_visit(view):
     @functools.wraps(view)
     def wrapped_view(request, *args, **kws):
         # Gather info from path and query string
-        campaign_id = kws.get('campaign_id', request.REQUEST.get('campaignid'))
-        content_id = kws.get('content_id', request.REQUEST.get('contentid'))
+        campaign_id = kws.get('campaign_id',
+                              _get(request.REQUEST, ['campaign', 'campaignid']))
+        content_id = kws.get('content_id',
+                             _get(request.REQUEST, ['content', 'contentid']))
         fb_object_id = kws.get('fb_object_id')
         fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
         app_id = kws.get('app_id', request.REQUEST.get('appid'))
