@@ -77,9 +77,8 @@
 
         {% block progress_box %}
             <div id="progress" class="h2_container"> 
-                <div style="margin-bottom: 10px">L o a d i n g . . .</div>
-                <img id="loading-gif" src="{{ STATIC_URL }}img/aniprogress.gif">
-                <img id="sending-gif" style="display:none" src="{{ STATIC_URL }}img/aniprogress.gif">
+                <div id="progress-text" style="margin-bottom: 10px">L o a d i n g . . .</div>
+                <div id="spinner" class='spinner-loading'></div>
             </div>
         {% endblock %}
 

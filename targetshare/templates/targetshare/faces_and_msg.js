@@ -434,10 +434,10 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 function sendShare() {
     helperTextDisappear();
     $('#friends_div').hide();
-    $('#progress div').html('S e n d i n g . . .');
-    $('#loading-gif').hide();
-    $('#sending-gif').show();
+    $('#progress-text').html('S e n d i n g . . .');
     $('#progress').show();
+    $('#spinner').removeClass('spinner-loading');
+    $('#spinner').addClass('spinner-sending');
 
     var recips = getRecipFbids();
     for (var i=0; i < recips.length; i++) {

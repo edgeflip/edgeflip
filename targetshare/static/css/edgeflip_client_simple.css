@@ -114,3 +114,19 @@ body {
     border: thin solid #89A8BD;
     background-color: #E6F2FF;
 }
+
+.spinner-loading {
+    background-image: url('/static/img/aniprogress.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}
+
+.spinner-sending {
+    background-image: url('/static/img/aniprogress.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}
