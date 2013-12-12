@@ -527,17 +527,18 @@ def _get_outgoing_edge(user, friend, token):
 
     aggregate = stream.aggregate()
     user_aggregate = aggregate[friend.fbid]
-    LOG.debug('got %s', user_aggregate)
+    user_interactions = user_aggregate.types
+    LOG.debug('got %s', user_interactions)
     outgoing = dynamo.IncomingEdge(
         fbid_source=user.fbid,
         fbid_target=friend.fbid,
-        post_likes=len(user_aggregate.types['post_likes']),
-        post_comms=len(user_aggregate.types['post_comms']),
-        stat_likes=len(user_aggregate.types['stat_likes']),
-        stat_comms=len(user_aggregate.types['stat_comms']),
-        wall_posts=len(user_aggregate.types['wall_posts']),
-        wall_comms=len(user_aggregate.types['wall_comms']),
-        tags=len(user_aggregate.types['tags']),
+        post_likes=len(user_interactions['post_likes']),
+        post_comms=len(user_interactions['post_comms']),
+        stat_likes=len(user_interactions['stat_likes']),
+        stat_comms=len(user_interactions['stat_comms']),
+        wall_posts=len(user_interactions['wall_posts']),
+        wall_comms=len(user_interactions['wall_comms']),
+        tags=len(user_interactions['tags']),
     )
 
     # Throttling for Facebook limits
