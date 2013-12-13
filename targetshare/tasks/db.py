@@ -2,6 +2,8 @@ import celery
 from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
+from django.core import serializers
+from django.db import IntegrityError
 
 from targetshare import models
 
@@ -17,8 +19,12 @@ def bulk_create(objects):
         objects: A sequence of model objects
 
     """
-    (model,) = set(type(obj) for obj in objects)
-    model.objects.bulk_create(objects)
+    for obj in objects:
+        try:
+            obj.save()
+        except IntegrityError:
+            (serialization,) = serializers.serialize('python', [obj])
+            LOG.exception("bulk_create object save failed: %r", serialization)
 
 
 @celery.task
@@ -37,6 +43,32 @@ def delayed_save(model_obj, **kws):
 
     """
     model_obj.save(**kws)
+
+
+@celery.task
+def get_or_create(model, *params, **kws):
+    """Pass the given parameters to the model manager's get_or_create.
+
+    May be invoked for a single object::
+
+        get_or_create(User, username='john', defaults={'fname': 'John', 'lname': 'Smith'})
+
+    ...or multiple at once::
+
+        get_or_create(User,
+            {'username': 'john', 'defaults': {'fname': 'John', 'lname': 'Smith'}},
+            {'username': 'mary', 'defaults': {'fname': 'Mary', 'lname': 'May'}},
+        )
+
+    """
+    if kws:
+        params += (kws,)
+
+    for paramset in params:
+        try:
+            model.objects.get_or_create(**paramset)
+        except IntegrityError:
+            LOG.exception("get_or_create failed: %r", paramset)
 
 
 @celery.task

@@ -278,6 +278,7 @@ CELERY_QUEUES = (
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
+    Queue('get_or_create', routing_key='get.or.create', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
@@ -307,6 +308,10 @@ CELERY_ROUTES = {
     'targetshare.tasks.db.delayed_save': {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
+    },
+    'targetshare.tasks.db.get_or_create': {
+        'queue': 'get_or_create',
+        'routing_key': 'get.or.create'
     },
     'targetshare.tasks.db.upsert': {
         'queue': 'upsert',

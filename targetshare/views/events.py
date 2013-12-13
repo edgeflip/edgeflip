@@ -126,20 +126,19 @@ def record_event(request):
     if event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so
         # we don't show them for the same content/campaign again
-        exclusions = []
-        for friend in friends:
-            exclusions.append(
-                models.relational.FaceExclusion(
-                    fbid=user_id,
-                    campaign_id=campaign_id,
-                    content_id=content_id,
-                    friend_fbid=friend,
-                    reason='shared',
-                )
-            )
-
+        exclusions = [
+            {
+                'fbid': user_id,
+                'campaign_id': campaign_id,
+                'content_id': content_id,
+                'friend_fbid': friend,
+                'defaults': {
+                    'reason': 'shared',
+                }
+            } for friend in friends
+        ]
         if exclusions:
-            db.bulk_create.delay(exclusions)
+            db.get_or_create.delay(models.relational.FaceExclusion, *exclusions)
 
     error_msg = request.POST.get('errorMsg[message]')
     if error_msg:
