@@ -239,7 +239,7 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         manager = self.linked_manager_cls(self.item.items.table, instance)
         # NOTE: If ReverseLinkFieldProperty ever supports __set__ et al, below
         # caching method won't work (it will be a data descriptor and take
-        # precendence over instance __dict__)
+        # precendence over instance __dict__). (See LinkFieldProperty.)
         vars(instance)[self.field_name] = manager
         return manager
 

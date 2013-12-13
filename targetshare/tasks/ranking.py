@@ -145,8 +145,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     ).get(choice_set=choice_set)
 
     # Pick (and record) best choice set filter
-    # TODO: email Rayid about this logic (and above)
-    # TODO: test this query
+    # NOTE: See above re: global filter.
     # Exclude ChoiceSetFilters written for super-ranked features:
     choice_set_filters = choice_set.choicesetfilters.exclude(
         filter__filterfeatures__feature_type__px_rank__gt=px_rank
