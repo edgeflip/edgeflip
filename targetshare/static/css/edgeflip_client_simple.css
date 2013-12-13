@@ -114,3 +114,31 @@ body {
     border: thin solid #89A8BD;
     background-color: #E6F2FF;
 }
+
+#progress-text {
+    margin-bottom: 10px;
+}
+
+.loading #progress-text :after {
+    content: "L o a d i n g . . .";
+}
+
+.sending #progress-text :after {
+    content: "S e n d i n g . . .";
+}
+
+.loading #spinner {
+    background-image: url('/static/img/aniprogress.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}
+
+.sending #spinner {
+    background-image: url('/static/img/aniprogress.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}

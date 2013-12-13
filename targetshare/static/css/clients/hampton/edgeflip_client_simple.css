@@ -239,3 +239,29 @@ float: left;
     border: thin solid #89A8BD;
     background-color: #E6F2FF;
 }
+
+#progress-text {
+    margin-bottom: 10px;
+}
+
+.loading #progress-text :after {
+}
+
+.sending #progress-text :after {
+}
+
+.loading #spinner {
+    background-image: url('/static/img/clients/hampton/edgeflip-loading-whitebg.gif');
+    background-repeat: no-repeat;
+    width: 348px;
+    height: 408px;
+    background-position: center center;
+}
+
+.sending #spinner {
+    background-image: url('/static/img/clients/hampton/edgeflip-sending.gif');
+    background-repeat: no-repeat;
+    width: 348px;
+    height: 408px;
+    background-position: center center;
+}
