@@ -18,6 +18,7 @@ CELERY_QUEUES = (
     'bg_px4',
     'celery',
     'delayed_save',
+    'get_or_create',
     'partial_save',
     'bulk_create',
     'upsert',
