@@ -259,7 +259,7 @@ float: left;
 }
 
 .sending #spinner {
-    background-image: url('/static/img/clients/hampton/edgeflip-loading-whitebg.gif');
+    background-image: url('/static/img/clients/hampton/edgeflip-sending.gif');
     background-repeat: no-repeat;
     width: 348px;
     height: 408px;
