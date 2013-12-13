@@ -144,89 +144,85 @@ COMMA = ','
 DOUBLE_NEWLINE = '\n\n'
 
 
-class NumberSetType(InternalDataTypeExtension):
-
-    internal = NUMBER_SET
+class AbstractSetType(InternalDataTypeExtension):
 
     COMMA = COMMA
     DOUBLE_NEWLINE = DOUBLE_NEWLINE
 
+    item_cast = None # optional
+    item_type = None # required
+
     def __new__(cls, delimiter=COMMA):
-        self = super(NumberSetType, cls).__new__(cls)
+        self = super(AbstractSetType, cls).__new__(cls)
         self.delimiter = delimiter
         return self
 
     def decode(self, value):
         if is_null(value):
-            return value
+            return self.decode_null(value)
 
         if isinstance(value, basestring):
-            items = None
-            if self.delimiter == self.COMMA:
-                # csv doesn't handle unicode or unquoted newlines
-                line = re.sub(r'\s', ' ', value.encode('utf-8'))
-                try:
-                    items = csv.reader([line]).next()
-                except csv.Error:
-                    pass
-
-            if items is None:
-                items = (item.strip() for item in value.strip().split(self.delimiter))
-
-            return {int(item) for item in items if item}
+            return self.decode_str(value)
 
         if hasattr(value, '__iter__'):
-            if not all(isinstance(item, numbers.Number) for item in value):
+            return self.decode_iter(value)
+
+        raise DataValidationError("Value is not an appropriate {} specification: {!r}"
+                                  .format(self.__class__.__name__, value))
+
+    def decode_null(self, value):
+        return value
+
+    def decode_str(self, value):
+        items = None
+
+        if self.delimiter == self.COMMA:
+            # csv doesn't handle unicode or unquoted newlines
+            line = re.sub(r'\s', ' ', value.encode('utf-8'))
+            try:
+                row = csv.reader([line]).next()
+            except csv.Error:
+                pass
+            else:
+                items = (item.decode('utf-8').strip() for item in row)
+
+        if items is None:
+            items = (item.strip() for item in value.strip().split(self.delimiter))
+
+        cast_item = self.item_cast or (lambda item: item)
+        return {cast_item(item) for item in items if item}
+
+    def decode_iter(self, value):
+        if self.item_type is None:
+            raise NotImplementedError
+
+        for item in value:
+            if not isinstance(item, self.item_type):
                 raise DataValidationError(
-                    "Number set may not contain non-numbers: {!r}".format(value))
+                    "Instances of {} may only contain instances of {}: {!r}"
+                    .format(self.__class__.__name__, self.item_type, value)
+                )
 
-            return value if isinstance(value, (set, frozenset)) else set(value)
+            if not item:
+                raise DataValidationError(
+                    "Set types may not contain empty strings: {!r}".format(value))
 
-        raise DataValidationError(
-            "Value is not an appropriate string set specification: {!r}".format(value))
+        return value if isinstance(value, (set, frozenset)) else set(value)
+
+
+class NumberSetType(AbstractSetType):
+
+    internal = NUMBER_SET
+    item_cast = int
+    item_type = numbers.Number
 
 NUMBER_SET = NumberSetType()
 
 
-class StringSetType(InternalDataTypeExtension):
+class StringSetType(AbstractSetType):
 
     internal = STRING_SET
-
-    COMMA = COMMA
-    DOUBLE_NEWLINE = DOUBLE_NEWLINE
-
-    def __new__(cls, delimiter=COMMA):
-        self = super(StringSetType, cls).__new__(cls)
-        self.delimiter = delimiter
-        return self
-
-    def decode(self, value):
-        if is_null(value):
-            return value
-
-        if isinstance(value, basestring):
-            if self.delimiter == self.COMMA:
-                # csv doesn't handle unicode or unquoted newlines
-                line = re.sub(r'\s', ' ', value.encode('utf-8'))
-                try:
-                    row = csv.reader([line]).next()
-                except csv.Error:
-                    pass
-                else:
-                    return {item.decode('utf-8').strip() for item in row}
-
-            items = (item.strip() for item in value.strip().split(self.delimiter))
-            return {item for item in items if item}
-
-        if hasattr(value, '__iter__'):
-            if not all(isinstance(item, basestring) for item in value):
-                raise DataValidationError(
-                    "String set may not contain non-strings: {!r}".format(value))
-
-            return value if isinstance(value, (set, frozenset)) else set(value)
-
-        raise DataValidationError(
-            "Value is not an appropriate string set specification: {!r}".format(value))
+    item_type = basestring
 
 STRING_SET = StringSetType()
 
