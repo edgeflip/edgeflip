@@ -387,6 +387,15 @@ class Item(baseitems.Item):
         return {key: value for (key, value) in self.items()
                 if key not in meta_fields}
 
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.pk == other.pk
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(tuple(self.get_keys().items()))
+
     def __getitem__(self, key):
         # boto's Item[key] is really Item.get(key), but this causes various
         # problems, and only makes sense for __getitem__ when undeclared fields
