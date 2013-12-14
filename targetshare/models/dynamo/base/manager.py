@@ -6,6 +6,8 @@ Item classes may extend ItemManager with class-specific methods, override the de
 manager and/or specify alternative managers. (See `Item`.)
 
 """
+import collections
+
 from targetshare import utils
 
 from .table import Table
@@ -19,27 +21,82 @@ class Query(dict):
     def __init__(self, table, *args, **kws):
         super(Query, self).__init__(*args, **kws)
         self.table = table
+        self.links = None
 
-    def copy(self):
-        return type(self)(self.table, self)
+    def copy(self, **kws):
+        clone = type(self)(self.table, self, **kws)
+        clone.links = self.links
+        return clone
 
     def filter(self, **kws):
-        return type(self)(self.table, self, **kws)
+        return self.copy(**kws)
+
+    def prefetch(self, *linked):
+        clone = self.copy()
+        if clone.links is None or not linked:
+            clone.links = set()
+        clone.links.update(linked)
+        return clone
+
+    def _prefetch(self, iterable):
+        all_links = self.table.item._meta.links
+        if self.links:
+            link_fields = [(link, all_links[link]) for link in self.links]
+        else:
+            link_fields = all_links.items()
+
+        primaries = []
+        gets = collections.defaultdict(set)
+        for primary in iterable:
+            primaries.append(primary)
+            for (link, field) in link_fields:
+                pk = field.get_item_pk(primary)
+                if all(pk):
+                    gets[link].add(pk)
+
+        results = collections.defaultdict(dict)
+        for (link, field) in link_fields:
+            manager = field.item.items
+            key_fields = manager.table.get_key_fields()
+            keys = [dict(zip(key_fields, values)) for values in gets[link]]
+            for linked in manager.batch_get(keys=keys):
+                results[link][linked.pk] = linked
+
+        for primary in primaries:
+            for (link, field) in link_fields:
+                pk = field.get_item_pk(primary)
+                if all(pk):
+                    try:
+                        linked = results[link][pk]
+                    except KeyError:
+                        pass
+                    else:
+                        field.cache_set(link, primary, linked)
+
+            yield primary
+
+    def _process_results(self, results):
+        if self.links is None:
+            return results
+        results.iterable = self._prefetch(results.iterable)
+        return results
+
+    @inherits_docs
+    def query(self, *args, **kws):
+        filters = self.filter(**kws)
+        results = self.table.query(*args, **filters)
+        return self._process_results(results)
+
+    @inherits_docs
+    def scan(self, *args, **kws):
+        filters = self.filter(**kws)
+        results = self.table.scan(*args, **filters)
+        return self._process_results(results)
 
     @inherits_docs
     def query_count(self, *args, **kws):
         filters = self.filter(**kws)
         return self.table.query_count(*args, **filters)
-
-    @inherits_docs
-    def query(self, *args, **kws):
-        filters = self.filter(**kws)
-        return self.table.query(*args, **filters)
-
-    @inherits_docs
-    def scan(self, *args, **kws):
-        filters = self.filter(**kws)
-        return self.table.scan(*args, **filters)
 
     def __repr__(self):
         return "<{}({}: {}>".format(self.__class__.__name__,
@@ -59,6 +116,9 @@ class BaseItemManager(object):
 
     def filter(self, **kws):
         return self.get_query().filter(**kws)
+
+    def prefetch(self, *args, **kws):
+        return self.get_query().prefetch(*args, **kws)
 
     @inherits_docs
     def query_count(self, *args, **kws):

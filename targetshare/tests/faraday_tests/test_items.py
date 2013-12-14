@@ -13,7 +13,7 @@ class TestEquality(FaradayTestCase):
     def setup_class(cls):
         class Token(base.Item):
             uid = base.HashKeyField(data_type=base.NUMBER)
-            token = base.ItemField()
+            token = base.RangeKeyField()
 
         cls.Token = Token
         cls.create_item_table(Token)

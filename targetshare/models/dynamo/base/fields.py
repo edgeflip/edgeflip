@@ -114,6 +114,9 @@ class ItemLinkField(BaseItemField):
         if reverse_descriptor:
             reverse_descriptor.resolve_link(item)
 
+    def get_item_pk(self, instance):
+        return tuple(instance[key] for key in self.db_key)
+
     @staticmethod
     def cache_name(name):
         return '_{}_cache'.format(name)

@@ -88,7 +88,7 @@ class User(Item):
     def topics(self):
         # Aggregate topics scores of posts in which user has interacted:
         scores = collections.defaultdict(int)
-        for interaction in self.postinteractions_set.all():
+        for interaction in self.postinteractions_set.prefetch('post_topics').all():
             post_topics = interaction.post_topics.document
             for (topic, value) in post_topics.items():
                 # For now, all interactions weighted the same:

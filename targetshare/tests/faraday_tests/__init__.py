@@ -20,11 +20,12 @@ def get_connection():
 class FaradayTestCase(object):
 
     connection = get_connection()
-    created_items = []
+    created_items = {}
 
     @classmethod
     def teardown_class(cls):
-        for item in cls.created_items:
+        for item_name in cls.created_items.keys():
+            item = cls.created_items.pop(item_name)
             table = item.items.table
             table.delete()
 
@@ -35,6 +36,8 @@ class FaradayTestCase(object):
 
         item = items[0]
         table = item.items.table
+        # Create table
+        # (overwrite existing reference just to override default connection)
         item.items.table = table.create(
             table_name=table.table_name,
             item=table.item,
@@ -43,5 +46,5 @@ class FaradayTestCase(object):
             indexes=table.indexes,
             connection=cls.connection,
         )
-        cls.created_items.append(item)
+        cls.created_items[item.__name__] = item
         cls.create_item_table(*items[1:])

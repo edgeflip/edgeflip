@@ -11,7 +11,7 @@ from django.utils import timezone
 from . import types
 from .fields import ItemField, ItemLinkField
 from .loading import cache, item_declared
-from .manager import BaseItemManager, ItemManager, ItemManagerDescriptor
+from .manager import BaseItemManager, ItemManager, ItemManagerDescriptor, Query
 from .table import Table
 
 from targetshare import utils
@@ -142,12 +142,12 @@ class LinkFieldProperty(BaseFieldProperty):
                             .format(field.item))
 
         keys = manager.table.get_key_fields()
-        values = (instance[key] for key in field.db_key)
         try:
-            query = dict(zip(keys, values))
+            values = field.get_item_pk(instance)
         except KeyError:
             return None
 
+        query = dict(zip(keys, values))
         result = manager.get_item(**query)
         field.cache_set(self.field_name, instance, result)
         return result
@@ -197,6 +197,47 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         # FIXME: Inheriting from a distinct BaseItemManager allows us to limit
         # FIXME: interface to only querying methods; but, this disallows inheritance
         # FIXME: of user-defined ItemManager methods...
+        child_meta = self.item._meta
+
+        class LinkedItemQuery(Query):
+
+            db_key = self.link_field.db_key
+            name_child = child_meta.link_keys[db_key[0]]
+            child_field = child_meta.links[name_child]
+
+            def __init__(self, table, instance, *args, **kws):
+                super(LinkedItemQuery, self).__init__(table, *args, **kws)
+                self.instance = instance
+
+            def copy(self, **kws):
+                clone = type(self)(self.table, self.instance, self, **kws)
+                clone.links = self.links
+                return clone
+
+            def _process_results(self, results):
+                results = super(LinkedItemQuery, self)._process_results(results)
+                if self.links is None or (self.links and self.name_child not in self.links):
+                    # No prefetch specified or limited prefetch specified;
+                    # post-process results to include parent reference:
+                    results.iterable = self._populate_parent_cache(results.iterable)
+                return results
+
+            def _populate_parent_cache(self, iterable):
+                for item in iterable:
+                    cached = self.child_field.cache_get(self.name_child, item)
+                    if cached is None:
+                        self.child_field.cache_set(self.name_child, item, self.instance)
+                    yield item
+
+            @cached_property
+            def _hash_keys(self):
+                return {field.name for field in self.table.schema
+                        if isinstance(field, basefields.HashKey)}
+
+            def all(self):
+                if any(key in self._hash_keys for key in self.db_key):
+                    return self.query()
+                return self.scan()
 
         class LinkedItemManager(BaseItemManager):
 
@@ -210,17 +251,10 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
             def get_query(self):
                 query = super(LinkedItemManager, self).get_query()
                 instance_filter = dict(zip(self.core_filters, self.instance.pk))
-                return query.filter(**instance_filter)
-
-            @cached_property
-            def _hash_keys(self):
-                return {field.name for field in self.table.schema
-                        if isinstance(field, basefields.HashKey)}
+                return LinkedItemQuery(self.table, self.instance, query, **instance_filter)
 
             def all(self):
-                if any(key in self._hash_keys for key in self.db_key):
-                    return self.query()
-                return self.scan()
+                return self.get_query().all()
 
         return LinkedItemManager
 
