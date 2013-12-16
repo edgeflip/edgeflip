@@ -19,18 +19,16 @@ def get_connection():
 
 class FaradayTestCase(object):
 
-    connection = get_connection()
-    created_items = {}
+    def setup(self):
+        self.connection = get_connection()
+        self.item_tables = []
 
-    @classmethod
-    def teardown_class(cls):
-        for item_name in cls.created_items.keys():
-            item = cls.created_items.pop(item_name)
-            table = item.items.table
-            table.delete()
+    def teardown(self):
+        for item in tuple(self.item_tables):
+            item.items.table.delete()
+            self.item_tables.remove(item)
 
-    @classmethod
-    def create_item_table(cls, *items):
+    def create_item_table(self, *items):
         if not items:
             return
 
@@ -44,7 +42,7 @@ class FaradayTestCase(object):
             schema=table.schema,
             throughput=table.throughput,
             indexes=table.indexes,
-            connection=cls.connection,
+            connection=self.connection,
         )
-        cls.created_items[item.__name__] = item
-        cls.create_item_table(*items[1:])
+        self.item_tables.append(item)
+        self.create_item_table(*items[1:])

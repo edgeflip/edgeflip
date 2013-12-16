@@ -7,16 +7,13 @@ from . import FaradayTestCase
 
 class TestEquality(FaradayTestCase):
 
-    Token = None
+    class Token(base.Item):
+        uid = base.HashKeyField(data_type=base.NUMBER)
+        token = base.RangeKeyField()
 
-    @classmethod
-    def setup_class(cls):
-        class Token(base.Item):
-            uid = base.HashKeyField(data_type=base.NUMBER)
-            token = base.RangeKeyField()
-
-        cls.Token = Token
-        cls.create_item_table(Token)
+    def setup(self):
+        super(TestEquality, self).setup()
+        self.create_item_table(self.Token)
 
     def test_eq(self):
         t0 = self.Token(uid=123, token='abc')

@@ -8,10 +8,7 @@ from . import FaradayTestCase
 
 class TestPrefetch(FaradayTestCase):
 
-    User, Token = (None,) * 2
-
-    @classmethod
-    def setup_class(cls):
+    def setup(self):
         class User(base.Item):
             uid = base.HashKeyField(data_type=base.NUMBER)
 
@@ -20,23 +17,18 @@ class TestPrefetch(FaradayTestCase):
             token = base.RangeKeyField()
             user = base.ItemLinkField(User, db_key=uid)
 
-        cls.User = User
-        cls.Token = Token
+        self.User = User
+        self.Token = Token
 
-        cls.create_item_table(User, Token)
+        super(TestPrefetch, self).setup()
+        self.create_item_table(self.User, self.Token)
 
-    def setup(self):
         self.user = self.User(uid=123)
         self.user.save()
         self.tokens = [self.Token(token=token_token) for token_token in ('abc', 'xyz')]
         for token in self.tokens:
             token.user = self.user
             token.save()
-
-    def teardown(self):
-        self.user.delete()
-        for token in self.tokens:
-            token.delete()
 
     def test_prefetch_parent_link(self):
         for token in self.user.tokens.all():
