@@ -23,13 +23,16 @@ class Query(dict):
         self.table = table
         self.links = None
 
-    def copy(self, **kws):
-        clone = type(self)(self.table, self, **kws)
-        clone.links = self.links
-        return clone
+    def clone(self, **kws):
+        klone = type(self)(self.table, self, **kws)
+        klone.links = self.links
+        return klone
 
     def filter(self, **kws):
-        return self.copy(**kws)
+        return self.clone(**kws)
+
+    def copy(self):
+        return self.clone()
 
     def prefetch(self, *linked):
         clone = self.copy()

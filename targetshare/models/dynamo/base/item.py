@@ -198,10 +198,11 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         # FIXME: interface to only querying methods; but, this disallows inheritance
         # FIXME: of user-defined ItemManager methods...
         child_meta = self.item._meta
+        link_field = self.link_field
 
         class LinkedItemQuery(Query):
 
-            db_key = self.link_field.db_key
+            db_key = link_field.db_key
             name_child = child_meta.link_keys[db_key[0]]
             child_field = child_meta.links[name_child]
 
@@ -209,10 +210,10 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
                 super(LinkedItemQuery, self).__init__(table, *args, **kws)
                 self.instance = instance
 
-            def copy(self, **kws):
-                clone = type(self)(self.table, self.instance, self, **kws)
-                clone.links = self.links
-                return clone
+            def clone(self, **kws):
+                klone = type(self)(self.table, self.instance, self, **kws)
+                klone.links = self.links
+                return klone
 
             def _process_results(self, results):
                 results = super(LinkedItemQuery, self)._process_results(results)
@@ -241,8 +242,7 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
 
         class LinkedItemManager(BaseItemManager):
 
-            db_key = self.link_field.db_key
-            core_filters = tuple("{}__eq".format(key) for key in db_key)
+            core_filters = tuple("{}__eq".format(key) for key in link_field.db_key)
 
             def __init__(self, table, instance):
                 super(LinkedItemManager, self).__init__(table)
