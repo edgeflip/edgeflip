@@ -28,6 +28,7 @@ class FaradayTestCase(object):
             item.items.table.delete()
             self.item_tables.remove(item)
 
+    # TODO: Use item_declared signal to make this seamless?
     def create_item_table(self, *items):
         if not items:
             return
