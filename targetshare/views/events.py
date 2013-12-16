@@ -10,7 +10,7 @@ from targetshare.views import utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
-LOG = logging.getLogger('sentinel.errors')
+LOG = logging.getLogger('crow')
 
 
 @require_POST

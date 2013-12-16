@@ -425,25 +425,22 @@ LOGGING = {
             'level': 'WARNING',
             'handlers': ['console', 'syslog'],
         },
+        # Crow, another black bird, because 'raven' is blacklisted by sentry
+        'crow': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': True
+        },
     }
 }
 
 if ENV in ('staging', 'production'):
     LOGGING['handlers']['sentry'] = {
-        'level': 'DEBUG',
+        'level': 'INFO',
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
         'formatter': 'verbose',
     }
-    LOGGING['loggers']['crow'] = {
-        'level': 'INFO',
-        'handlers': ['console', 'sentry'],
-        'propagate': True
-    }
-    LOGGING['loggers']['sentinel.errors'] = {
-        'level': 'ERROR',
-        'handlers': ['console', 'sentry'],
-        'propagate': True
-    }
+    LOGGING['loggers']['crow']['handlers'].append('sentry')
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[
