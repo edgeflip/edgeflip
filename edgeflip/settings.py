@@ -381,6 +381,71 @@ NOSE_ARGS = (
     '--logging-clear-handlers',
 )
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        }
+    },
+    'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
+        'console':{
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false']
+        },
+        'syslog': {
+            'level': 'INFO',
+            'class': 'logging.handlers.SysLogHandler',
+            'formatter': 'verbose',
+            'address': '/dev/log',
+            'facility': 'local2'
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'boto': {
+            'level': 'WARNING',
+            'handlers': ['console', 'syslog'],
+        },
+        # Crow, another black bird, because 'raven' is blacklisted by sentry
+        'crow': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': True
+        },
+    }
+}
+
+if ENV in ('staging', 'production'):
+    LOGGING['handlers']['sentry'] = {
+        'level': 'INFO',
+        'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['crow']['handlers'].append('sentry')
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[

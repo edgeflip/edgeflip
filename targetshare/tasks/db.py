@@ -1,4 +1,5 @@
 import celery
+import logging
 from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery.utils.log import get_task_logger
@@ -8,8 +9,7 @@ from django.db import IntegrityError
 from targetshare import models
 
 
-LOG = get_task_logger(__name__)
-
+rvn_logger = logging.getLogger('crow')
 
 @celery.task
 def bulk_create(objects):
@@ -87,7 +87,7 @@ def partial_save(item, _attempt=0):
         item.partial_save()
     except ConditionalCheckFailedException:
         if _attempt == 4:
-            LOG.exception(
+            rvn_logger.exception(
                 'Failed to handle save conflict on item %r', dict(item)
             )
             raise

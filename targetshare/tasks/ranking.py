@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import logging
 from datetime import timedelta
 
 import celery
@@ -11,6 +12,7 @@ from targetshare.integration import facebook
 from targetshare.tasks import db
 
 logger = get_task_logger(__name__)
+rvn_logger = logging.getLogger('crow')
 MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
 
@@ -73,7 +75,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
     fallback_content_id = properties.fallback_content_id
 
     if properties.fallback_is_cascading and (properties.fallback_campaign is None):
-        logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+        rvn_logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
                      campaignId)
         fallback_cascading = None
 
@@ -144,7 +146,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             contentId=contentId
         )
     except models.relational.ChoiceSet.TooFewFriendsError:
-        logger.info("Too few friends found for %s with campaign %s. Checking for fallback.",
+        rvn_logger.info("Too few friends found for %s with campaign %s. Checking for fallback.",
                     fbid, campaignId)
 
     if bestCSFilter:
@@ -213,7 +215,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
             # zzz Obviously, do something smarter here...
-            logger.info(
+            rvn_logger.info(
                 "No fallback for %s with campaign %s. Returning error to user.",
                 fbid,
                 campaignId
