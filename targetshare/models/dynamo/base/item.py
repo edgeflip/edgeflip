@@ -380,12 +380,26 @@ class Item(baseitems.Item):
         data = {} if data is None else dict(data)
         data.update(kwdata)
 
-        # Clean data before populating it
-        data = {key: self._pre_set(key, value) for (key, value) in data.items()}
+        # Clean data before populating it and gather links
+        clean_data = {}
+        linked_data = []
+        for (key, value) in data.items():
+            if key in self._meta.links:
+                if loaded:
+                    # Allowing this would cause weird issues with _orig_data,
+                    # (and wouldn't make sense anyway):
+                    raise TypeError("Items loaded from database cannot populate link fields")
+                linked_data.append((key, value))
+            else:
+                clean_data[key] = self._pre_set(key, value)
 
         table = type(self).items.table
-        super(Item, self).__init__(table, data, loaded)
+        super(Item, self).__init__(table, clean_data, loaded)
         self._dynamizer = self.get_dynamizer()
+
+        # Apply linked objects
+        for (key, value) in linked_data:
+            setattr(self, key, value)
 
     def __repr__(self):
         pk = self.pk
@@ -436,23 +450,24 @@ class Item(baseitems.Item):
         # no need to lie about our underlying data:
         return self._data[key]
 
-    def _pre_set(self, key, value):
+    @classmethod
+    def _pre_set(cls, key, value):
         """Clean exotic types (e.g. DATE)."""
-        key_field = self._meta.keys.get(key)
+        key_field = cls._meta.keys.get(key)
         if key_field:
             return key_field.decode(value)
 
-        link_field = self._meta.links.get(key)
+        link_field = cls._meta.links.get(key)
         if link_field:
             raise TypeError("Access to {!r} required through descriptor"
                             .format(link_field))
 
-        if not self._meta.allow_undeclared_fields:
+        if not cls._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
-                            .format(key, type(self).__name__))
+                            .format(key, cls.__name__))
 
-        if isinstance(self._meta.undeclared_data_type, types.DataType):
-            return self._meta.undeclared_data_type.decode(value)
+        if isinstance(cls._meta.undeclared_data_type, types.DataType):
+            return cls._meta.undeclared_data_type.decode(value)
 
         return value
 
