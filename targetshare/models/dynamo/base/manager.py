@@ -8,9 +8,12 @@ manager and/or specify alternative managers. (See `Item`.)
 """
 import collections
 
+from boto.dynamodb2 import fields as basefields
+
 from targetshare import utils
 
 from .table import Table
+from .utils import cached_property
 
 
 inherits_docs = utils.doc_inheritor(Table)
@@ -170,41 +173,77 @@ class ItemManager(BaseItemManager):
         return self.table.count()
 
 
-class AbstractLinkedItemManager(BaseItemManager):
-    pass
+class AbstractLinkedItemQuery(Query):
 
+    db_key = name_child = child_field = None # required
 
-class ItemManagerDescriptor(object):
-    """Descriptor wrapper for ItemManagers.
+    def __init__(self, table, instance, *args, **kws):
+        super(AbstractLinkedItemQuery, self).__init__(table, *args, **kws)
+        self.instance = instance
 
-    Allows access to the manager via the class and access to any hidden attributes
-    via the instance.
+    def clone(self, **kws):
+        klone = type(self)(self.table, self.instance, self, **kws)
+        klone.links = self.links
+        return klone
 
-    """
-    def __init__(self, manager, name):
-        self.manager = manager
-        self.name = name
+    def _process_results(self, results):
+        results = super(AbstractLinkedItemQuery, self)._process_results(results)
+        if self.links is None or (self.links and self.name_child not in self.links):
+            # No prefetch specified or limited prefetch specified;
+            # post-process results to include parent reference:
+            results.iterable = self._populate_parent_cache(results.iterable)
+        return results
 
-    def __get__(self, instance, cls=None):
-        # Access to manager from class is fine:
-        if instance is None:
-            return self.manager
+    def _populate_parent_cache(self, iterable):
+        for item in iterable:
+            cached = self.child_field.cache_get(self.name_child, item)
+            if cached is None:
+                self.child_field.cache_set(self.name_child, item, self.instance)
+            yield item
 
-        # Check if there's a legitimate instance method we're hiding:
+    @cached_property
+    def _hash_keys(self):
+        return {field.name for field in self.table.schema
+                if isinstance(field, basefields.HashKey)}
+
+    def all(self):
+        if any(key in self._hash_keys for key in self.db_key):
+            return self.query()
+        return self.scan()
+
+    def get(self, **kws):
+        results = iter(self.filter(**kws).all())
         try:
-            # Until we support inheritance of ItemManagers through
-            # Item classes, super(cls, cls) will do:
-            hidden = getattr(super(cls, cls), self.name)
-        except AttributeError:
-            pass
-        else:
-            # Bind and return hidden method:
-            return hidden.__get__(instance, cls)
+            result = next(results)
+        except StopIteration:
+            # Couldn't find the one:
+            raise self.table.item.DoesNotExist
 
-        # Let them know they're wrong:
-        cls_name = getattr(cls, '__name__', '')
-        raise AttributeError("Manager isn't accessible via {}instances"
-                             .format(cls_name + ' ' if cls_name else cls_name))
+        try:
+            next(results)
+        except StopIteration:
+            # Was only the one, as expected
+            return result
 
-    def __repr__(self):
-        return "<{}: {}>".format(self.__class__.__name__, self.name)
+        # There were more than one:
+        raise self.table.item.MultipleItemsReturned
+
+
+class AbstractLinkedItemManager(BaseItemManager):
+
+    core_filters = query_cls = None # required
+
+    def __init__(self, table, instance):
+        super(AbstractLinkedItemManager, self).__init__(table)
+        self.instance = instance
+
+    def get_query(self):
+        query = super(AbstractLinkedItemManager, self).get_query()
+        instance_filter = dict(zip(self.core_filters, self.instance.pk))
+        return self.query_cls(self.table, self.instance, query, **instance_filter)
+
+    def all(self):
+        return self.get_query().all()
+
+    def get(self, **kws):
+        return self.get_query().get(**kws)

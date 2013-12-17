@@ -8,11 +8,12 @@ import re
 from boto.dynamodb2 import fields as basefields, items as baseitems
 from django.utils import timezone
 
+from . import loading
+from . import manager as managers
 from . import types
 from .fields import ItemField, ItemLinkField
-from .loading import cache, item_declared
-from .manager import AbstractLinkedItemManager, ItemManager, ItemManagerDescriptor, Query
 from .table import Table
+from .utils import cached_property
 
 from targetshare import utils
 
@@ -95,6 +96,46 @@ class ItemDoesNotExist(LookupError):
     pass
 
 
+class MultipleItemsReturned(LookupError):
+    pass
+
+
+class ItemManagerDescriptor(object):
+    """Descriptor wrapper for ItemManagers.
+
+    Allows access to the manager via the class and access to any hidden attributes
+    via the instance.
+
+    """
+    def __init__(self, manager, name):
+        self.manager = manager
+        self.name = name
+
+    def __get__(self, instance, cls=None):
+        # Access to manager from class is fine:
+        if instance is None:
+            return self.manager
+
+        # Check if there's a legitimate instance method we're hiding:
+        try:
+            # Until we support inheritance of ItemManagers through
+            # Item classes, super(cls, cls) will do:
+            hidden = getattr(super(cls, cls), self.name)
+        except AttributeError:
+            pass
+        else:
+            # Bind and return hidden method:
+            return hidden.__get__(instance, cls)
+
+        # Let them know they're wrong:
+        cls_name = getattr(cls, '__name__', '')
+        raise AttributeError("Manager isn't accessible via {}instances"
+                             .format(cls_name + ' ' if cls_name else cls_name))
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.name)
+
+
 class BaseFieldProperty(object):
 
     def __init__(self, field_name):
@@ -165,17 +206,6 @@ class LinkFieldProperty(BaseFieldProperty):
         field.cache_clear(self.field_name, instance)
 
 
-class cached_property(object):
-    """property-like descriptor, which caches its result in instance dictionary."""
-
-    def __init__(self, func):
-        self.func = func
-
-    def __get__(self, instance, cls=None):
-        result = vars(instance)[self.func.__name__] = self.func(instance)
-        return result
-
-
 class ReverseLinkFieldProperty(BaseFieldProperty):
     """The Item link field's reversed descriptor, providing access to all Items with
     matching links.
@@ -200,68 +230,23 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         child_meta = self.item._meta
         link_field = self.link_field
 
-        class LinkedItemQuery(Query):
+        class LinkedItemQuery(managers.AbstractLinkedItemQuery):
 
             db_key = link_field.db_key
             name_child = child_meta.link_keys[db_key[0]]
             child_field = child_meta.links[name_child]
 
-            def __init__(self, table, instance, *args, **kws):
-                super(LinkedItemQuery, self).__init__(table, *args, **kws)
-                self.instance = instance
-
-            def clone(self, **kws):
-                klone = type(self)(self.table, self.instance, self, **kws)
-                klone.links = self.links
-                return klone
-
-            def _process_results(self, results):
-                results = super(LinkedItemQuery, self)._process_results(results)
-                if self.links is None or (self.links and self.name_child not in self.links):
-                    # No prefetch specified or limited prefetch specified;
-                    # post-process results to include parent reference:
-                    results.iterable = self._populate_parent_cache(results.iterable)
-                return results
-
-            def _populate_parent_cache(self, iterable):
-                for item in iterable:
-                    cached = self.child_field.cache_get(self.name_child, item)
-                    if cached is None:
-                        self.child_field.cache_set(self.name_child, item, self.instance)
-                    yield item
-
-            @cached_property
-            def _hash_keys(self):
-                return {field.name for field in self.table.schema
-                        if isinstance(field, basefields.HashKey)}
-
-            def all(self):
-                if any(key in self._hash_keys for key in self.db_key):
-                    return self.query()
-                return self.scan()
-
-        class LinkedItemManager(AbstractLinkedItemManager):
+        class LinkedItemManager(managers.AbstractLinkedItemManager):
 
             core_filters = tuple("{}__eq".format(key) for key in link_field.db_key)
-
-            def __init__(self, table, instance):
-                super(LinkedItemManager, self).__init__(table)
-                self.instance = instance
-
-            def get_query(self):
-                query = super(LinkedItemManager, self).get_query()
-                instance_filter = dict(zip(self.core_filters, self.instance.pk))
-                return LinkedItemQuery(self.table, self.instance, query, **instance_filter)
-
-            def all(self):
-                return self.get_query().all()
+            query_cls = LinkedItemQuery
 
         return LinkedItemManager
 
     @cached_property
     def item(self):
         try:
-            return cache[self.item_name]
+            return loading.cache[self.item_name]
         except KeyError:
             raise TypeError("Item link unresolved or bad link argument: {!r}"
                             .format(self.item_name))
@@ -288,7 +273,7 @@ class DeclarativeItemBase(type):
             return super(DeclarativeItemBase, mcs).__new__(mcs, name, bases, attrs)
 
         # Set class defaults:
-        attrs.setdefault('items', ItemManager())
+        attrs.setdefault('items', managers.ItemManager())
         if mcs.update_field:
             attrs.setdefault(mcs.update_field, ItemField(data_type=types.DATETIME))
 
@@ -321,7 +306,7 @@ class DeclarativeItemBase(type):
                 value.link(reverse_descriptor=reverse_link)
                 link_fields[key] = value
                 attrs[key] = LinkFieldProperty(key)
-            elif isinstance(value, ItemManager):
+            elif isinstance(value, managers.ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
         # Set meta:
@@ -329,6 +314,7 @@ class DeclarativeItemBase(type):
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})
+        attrs['MultipleItemsReturned'] = type('MultipleItemsReturned', (MultipleItemsReturned,), {})
 
         return super(DeclarativeItemBase, mcs).__new__(mcs, name, bases, attrs)
 
@@ -356,7 +342,7 @@ class DeclarativeItemBase(type):
         super(DeclarativeItemBase, cls).__init__(name, bases, attrs)
 
         # Notify listeners:
-        item_declared.send(sender=cls)
+        loading.item_declared.send(sender=cls)
 
 
 class Item(baseitems.Item):
@@ -415,7 +401,7 @@ class Item(baseitems.Item):
         # being anyway, to support pickling of instances of these manufactured
         # classes.
         return {key: value for (key, value) in vars(self).items()
-                if not isinstance(value, AbstractLinkedItemManager)}
+                if not isinstance(value, managers.AbstractLinkedItemManager)}
 
     @property
     def pk(self):
