@@ -87,6 +87,37 @@ class Query(dict):
         results.iterable = self._prefetch(results.iterable)
         return results
 
+    @cached_property
+    def _hash_keys(self):
+        return {field.name for field in self.table.schema
+                if isinstance(field, basefields.HashKey)}
+
+    @property
+    def _opless(self):
+        return (key.rsplit('__', 1)[0] for key in self)
+
+    def all(self):
+        if 'index' in self or any(key in self._hash_keys for key in self._opless):
+            return self.query()
+        return self.scan()
+
+    def get(self, **kws):
+        results = iter(self.filter(**kws).all())
+        try:
+            result = next(results)
+        except StopIteration:
+            # Couldn't find the one:
+            raise self.table.item.DoesNotExist
+
+        try:
+            next(results)
+        except StopIteration:
+            # Was only the one, as expected
+            return result
+
+        # There were more than one:
+        raise self.table.item.MultipleItemsReturned
+
     @inherits_docs
     def query(self, *args, **kws):
         filters = self.filter(**kws)
@@ -125,6 +156,12 @@ class BaseItemManager(object):
 
     def prefetch(self, *args, **kws):
         return self.get_query().prefetch(*args, **kws)
+
+    def all(self):
+        return self.get_query().all()
+
+    def get(self, **kws):
+        return self.get_query().get(**kws)
 
     @inherits_docs
     def query_count(self, *args, **kws):
@@ -175,7 +212,7 @@ class ItemManager(BaseItemManager):
 
 class AbstractLinkedItemQuery(Query):
 
-    db_key = name_child = child_field = None # required
+    name_child = child_field = None # required
 
     def __init__(self, table, instance, *args, **kws):
         super(AbstractLinkedItemQuery, self).__init__(table, *args, **kws)
@@ -201,33 +238,6 @@ class AbstractLinkedItemQuery(Query):
                 self.child_field.cache_set(self.name_child, item, self.instance)
             yield item
 
-    @cached_property
-    def _hash_keys(self):
-        return {field.name for field in self.table.schema
-                if isinstance(field, basefields.HashKey)}
-
-    def all(self):
-        if any(key in self._hash_keys for key in self.db_key):
-            return self.query()
-        return self.scan()
-
-    def get(self, **kws):
-        results = iter(self.filter(**kws).all())
-        try:
-            result = next(results)
-        except StopIteration:
-            # Couldn't find the one:
-            raise self.table.item.DoesNotExist
-
-        try:
-            next(results)
-        except StopIteration:
-            # Was only the one, as expected
-            return result
-
-        # There were more than one:
-        raise self.table.item.MultipleItemsReturned
-
 
 class AbstractLinkedItemManager(BaseItemManager):
 
@@ -241,9 +251,3 @@ class AbstractLinkedItemManager(BaseItemManager):
         query = super(AbstractLinkedItemManager, self).get_query()
         instance_filter = dict(zip(self.core_filters, self.instance.pk))
         return self.query_cls(self.table, self.instance, query, **instance_filter)
-
-    def all(self):
-        return self.get_query().all()
-
-    def get(self, **kws):
-        return self.get_query().get(**kws)

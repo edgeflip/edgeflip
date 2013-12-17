@@ -229,16 +229,16 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
         # FIXME: of user-defined ItemManager methods...
         child_meta = self.item._meta
         link_field = self.link_field
+        db_key = link_field.db_key
 
         class LinkedItemQuery(managers.AbstractLinkedItemQuery):
 
-            db_key = link_field.db_key
             name_child = child_meta.link_keys[db_key[0]]
             child_field = child_meta.links[name_child]
 
         class LinkedItemManager(managers.AbstractLinkedItemManager):
 
-            core_filters = tuple("{}__eq".format(key) for key in link_field.db_key)
+            core_filters = tuple("{}__eq".format(key) for key in db_key)
             query_cls = LinkedItemQuery
 
         return LinkedItemManager
