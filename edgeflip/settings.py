@@ -420,6 +420,10 @@ LOGGING = {
             'facility': 'local2'
         },
     },
+    'root': {
+        'level': 'INFO',
+        'handlers': ['console', 'syslog'],
+    },
     'loggers': {
         'django.request': {
             'handlers': ['mail_admins'],
