@@ -1,5 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.urlresolvers import reverse
+from django.core.exceptions import ObjectDoesNotExist
 
 from targetshare import models
 from targetshare.tasks import db
@@ -24,7 +25,7 @@ def button(request, campaign_id, content_id):
         # rand_assign raises ValueError if list is empty:
         button_style = campaign.campaignbuttonstyles.random_assign()
         filenames = button_style.buttonstylefiles.get()
-    except (ValueError, models.relational.ButtonStyleFile.DoesNotExist):
+    except (ValueError, ObjectDoesNotExist):
         # The default template name will do:
         button_style = None
         html_template = 'button.html'

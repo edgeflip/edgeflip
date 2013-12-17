@@ -73,11 +73,11 @@ class User(Item):
 
     @property
     def name(self):
-        return ' '.join(part for part in (self.fname, self.lname) if part)
+        return u' '.join(part for part in (self.fname, self.lname) if part)
 
     @property
     def full_location(self):
-        return '{}, {} {}'.format(self.city, self.state, self.country)
+        return u'{}, {} {}'.format(self.city, self.state, self.country)
 
     @staticmethod
     def _normalize_topic(score):

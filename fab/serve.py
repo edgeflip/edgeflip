@@ -15,12 +15,16 @@ CELERY_QUEUES = (
     'px3',
     'px3_filter',
     'px4',
+    'bg_px4',
     'celery',
     'delayed_save',
+    'get_or_create',
     'partial_save',
     'bulk_create',
     'upsert',
     'update_edges',
+    'user_feeds',
+    'process_sync',
 )
 
 

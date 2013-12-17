@@ -6,7 +6,7 @@ from targetshare.models import relational
 
 class TestFilterViews(TestAdminBase):
 
-    fixtures = ['targetadmin_test_data']
+    fixtures = ['test_data']
 
     def setUp(self):
         super(TestFilterViews, self).setUp()
@@ -59,20 +59,36 @@ class TestFilterViews(TestAdminBase):
                 'name': 'edit_view_test',
                 'description': 'edit view desc',
                 'client': self.test_client.pk,
+                # Filter Feature 1
                 'form-0-filter': self.filter_obj.pk,
                 'form-0-filter_feature_id': ff.pk,
                 'form-0-feature': relational.FilterFeature.AGE,
-                'form-0-value': 25,
+                'form-0-value': '25',
                 'form-0-operator': 'eq',
                 'form-0-end_dt': '2010-1-1',
+                # Filter Feature 2
                 'form-1-filter': self.filter_obj.pk,
                 'form-1-filter_feature_id': '',
                 'form-1-feature': relational.FilterFeature.STATE,
-                'form-1-value': 'Illinois',
+                'form-1-value': 'Illinois||Missouri',
                 'form-1-operator': 'in',
                 'form-1-end_dt': '2010-1-1',
+                # Filter Feature 3
+                'form-2-filter': self.filter_obj.pk,
+                'form-2-filter_feature_id': '',
+                'form-2-feature': relational.FilterFeature.CITY,
+                'form-2-value': 'Chicago',
+                'form-2-operator': 'eq',
+                'form-2-end_dt': '2010-1-1',
+                # Filter Feature 4
+                'form-3-filter': self.filter_obj.pk,
+                'form-3-filter_feature_id': '',
+                'form-3-feature': relational.FilterFeature.TURNOUT_SCORE,
+                'form-3-value': '25.854',
+                'form-3-operator': 'in',
+                'form-3-end_dt': '2010-1-1',
                 'form-INITIAL_FORMS': 1,
-                'form-TOTAL_FORMS': 2,
+                'form-TOTAL_FORMS': 4,
                 'form-MAX_NUM_FORMS': 1000,
             }
         )
@@ -81,15 +97,36 @@ class TestFilterViews(TestAdminBase):
             reverse('filter-detail', args=[self.test_client.pk, self.filter_obj.pk])
         )
         filter_obj = self.test_client.filters.get(name='edit_view_test')
-        ff = filter_obj.filterfeatures.get(pk=ff.pk)
 
         # Filter Changes
         self.assertEqual(filter_obj.description, 'edit view desc')
-        self.assertEqual(filter_obj.filterfeatures.count(), 2)
+        self.assertEqual(filter_obj.filterfeatures.count(), 4)
         # Feature Changes
-        self.assertEqual(ff.value, '25')
-        self.assertEqual(ff.value_type, 'int')
-        # New Feature
-        new_ff = filter_obj.filterfeatures.get(value='Illinois')
-        self.assertEqual(new_ff.operator, 'in')
-        self.assertEqual(new_ff.value_type, 'string')
+        self.assertTrue(
+            filter_obj.filterfeatures.filter(
+                value='25', value_type='int').exists()
+        )
+        self.assertTrue(
+            filter_obj.filterfeatures.filter(
+                value='Illinois||Missouri', value_type='list').exists()
+        )
+        self.assertTrue(
+            filter_obj.filterfeatures.filter(
+                value='Chicago', value_type='string').exists()
+        )
+        self.assertTrue(
+            filter_obj.filterfeatures.filter(
+                value='25.85400000', value_type='float').exists()
+        )
+
+        for ff in filter_obj.filterfeatures.all():
+            if ff.value_type == 'int':
+                self.assertTrue(isinstance(ff.decoded_value, (int, long)))
+            elif ff.value_type == 'list':
+                self.assertTrue(isinstance(ff.decoded_value, list))
+            elif ff.value_type == 'float':
+                self.assertTrue(isinstance(ff.decoded_value, float))
+            elif ff.value_type == 'string':
+                self.assertTrue(isinstance(ff.decoded_value, basestring))
+            else:
+                assert False

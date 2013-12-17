@@ -250,35 +250,45 @@ class FilterFeature(models.Model, Feature):
         return tuple(edge for edge in edges
                      if self.operate_standard(edge.secondary))
 
-    def determine_value_type(self):
-        """Automatically determine value_type from type of value."""
-        if isinstance(self.value, (int, long)):
-            self.value_type = self.ValueType.INT
-        elif isinstance(self.value, float):
-            self.value_type = self.ValueType.FLOAT
-            self.value = '%.8f' % self.value
-        elif isinstance(self.value, basestring):
-            self.value_type = self.ValueType.STRING
-        elif isinstance(self.value, (list, tuple)):
-            self.value_type = self.ValueType.LIST
-            self.value = self.ValueType.LIST_DELIM.join(
-                str(value) for value in self.value)
-        else:
-            raise ValueError("Can't filter on type of %s" % self.value)
+    def encode_value(self):
+        """Encode value and automatically determine value_type."""
+        (value, value_type) = (self.value, self.value_type)
+        try:
+            value = float(value) if '.' in value else int(value)
+        except (TypeError, ValueError):
+            pass
 
-    def determine_filter_type(self):
+        if isinstance(value, (int, long)):
+            return (value, self.ValueType.INT)
+
+        if isinstance(value, float):
+            return ('%.8f' % value, self.ValueType.FLOAT)
+
+        if isinstance(value, basestring):
+            if self.ValueType.LIST_DELIM in value:
+                return (value, self.ValueType.LIST)
+            return (value, self.ValueType.STRING)
+
+        if isinstance(value, (list, tuple)):
+            value = self.ValueType.LIST_DELIM.join(u'{}'.format(part)
+                                                   for part in value)
+            return (value, self.ValueType.LIST)
+
+        raise ValueError("Can't filter on type of %s" % self.value)
+
+    def get_feature_type(self):
         code = self.feature
         for feature_type, pattern in self.Expression.NON_STANDARD:
             if re.search('^{}$'.format(pattern), code):
                 code = feature_type
                 break
-        self.feature_type = FilterFeatureType.objects.get(code=code)
+        return FilterFeatureType.objects.get(code=code)
 
     def save(self, *args, **kws):
         if not self.value_type:
-            self.determine_value_type()
+            (self.value, self.value_type) = self.encode_value()
         if not self.feature_type_id:
-            self.determine_filter_type()
+            self.feature_type = self.get_feature_type()
         return super(FilterFeature, self).save(*args, **kws)
 
     def __unicode__(self):

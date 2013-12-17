@@ -1,19 +1,21 @@
 import celery
+import logging
 from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
-from celery.utils.log import get_task_logger
+from django.core import serializers
+from django.db import IntegrityError
 from django.db.models import Model
 
 from targetshare import models
 from targetshare.models.dynamo.base import UpsertStrategy
 
 
-LOG = get_task_logger(__name__)
+LOG_RVN = logging.getLogger('crow')
 
 
 @celery.task
 def bulk_create(objects):
-    """Bulk-create objects in a background task process.
+    """Bulk-create objects belonging to a single model.
 
     Arguments:
         objects: A sequence of Models or Items
@@ -22,12 +24,17 @@ def bulk_create(objects):
     (model,) = {type(obj) for obj in objects}
 
     if issubclass(model, Model):
-        model.objects.bulk_create(objects)
-        return
-
-    with model.items.batch_write() as batch:
         for obj in objects:
-            batch.put_item(obj)
+            try:
+                obj.save()
+            except IntegrityError:
+                (serialization,) = serializers.serialize('python', [obj])
+                LOG_RVN.exception("bulk_create object save failed: %r", serialization)
+
+    else:
+        with model.items.batch_write() as batch:
+            for obj in objects:
+                batch.put_item(obj)
 
 
 @celery.task
@@ -49,6 +56,32 @@ def delayed_save(model_obj, **kws):
 
 
 @celery.task
+def get_or_create(model, *params, **kws):
+    """Pass the given parameters to the model manager's get_or_create.
+
+    May be invoked for a single object::
+
+        get_or_create(User, username='john', defaults={'fname': 'John', 'lname': 'Smith'})
+
+    ...or multiple at once::
+
+        get_or_create(User,
+            {'username': 'john', 'defaults': {'fname': 'John', 'lname': 'Smith'}},
+            {'username': 'mary', 'defaults': {'fname': 'Mary', 'lname': 'May'}},
+        )
+
+    """
+    if kws:
+        params += (kws,)
+
+    for paramset in params:
+        try:
+            model.objects.get_or_create(**paramset)
+        except IntegrityError:
+            LOG_RVN.exception("get_or_create failed: %r", paramset)
+
+
+@celery.task
 def partial_save(item, _attempt=0):
     """Save the given boto Item in a background process, using its partial_save method.
 
@@ -64,8 +97,8 @@ def partial_save(item, _attempt=0):
         item.partial_save()
     except ConditionalCheckFailedException:
         if _attempt == 4:
-            LOG.exception(
-                'Failed to handle save conflict on item %r', dict(item)
+            LOG_RVN.exception(
+                'Failed to handle save conflict on item %r', item.get_keys()
             )
             raise
     else:

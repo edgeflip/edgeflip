@@ -5,7 +5,7 @@ from civis_matcher import matcher
 
 from targetshare.models import dynamo
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('crow')
 
 
 def civis_filter(edges, feature, operator, score_value):

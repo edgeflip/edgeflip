@@ -184,7 +184,7 @@ def decode_date(date):
     return None
 
 
-def urlload(url, query=()):
+def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""
     parsed_url = urlparse.urlparse(url)
     query_params = urlparse.parse_qsl(parsed_url.query)
@@ -192,7 +192,9 @@ def urlload(url, query=()):
     url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
 
     try:
-        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as response:
+        with closing(urllib2.urlopen(
+                url, timeout=(timeout or settings.FACEBOOK.api_timeout))
+        ) as response:
             return json.load(response)
     except IOError as exc:
         exc_type, exc_value, trace = sys.exc_info()

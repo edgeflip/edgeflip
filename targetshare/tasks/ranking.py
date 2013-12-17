@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import itertools
+import logging
 from collections import namedtuple
 from datetime import timedelta
 
@@ -13,7 +14,9 @@ from targetshare import models, utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
+
 LOG = get_task_logger(__name__)
+LOG_RVN = logging.getLogger('crow')
 
 DB_MIN_FRIEND_COUNT = 100
 DB_FRIEND_THRESHOLD = 90 # percent
@@ -21,7 +24,6 @@ DB_FRIEND_THRESHOLD = 90 # percent
 # The below width(s) of the proximity score spectrum from 1 to 0 will be
 # partitioned during rank refinement:
 PX_REFINE_RANGE_WIDTH = 0.85
-
 
 FilteringResult = namedtuple('FilteringResult', [
     'ranked',
@@ -87,8 +89,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     already_picked = already_picked or models.datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
-        LOG.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                  campaign_id)
+        LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                      campaign_id)
         fallback_cascading = None
 
     # If fallback content_id IS NULL, defer to current content_id:
@@ -158,8 +160,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             cache_match=cache_match,
         )
     except models.relational.ChoiceSetFilter.TooFewFriendsError:
-        LOG.info("Too few friends found for %s with campaign %s. (Will check for fallback.)",
-                 fbid, campaign_id)
+        LOG_RVN.info("Too few friends found for %s with campaign %s. (Will check for fallback.)",
+                     fbid, campaign_id)
     else:
         already_picked += models.datastructs.TieredEdges(
             edges=best_csf_edges,
@@ -233,8 +235,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            LOG.error("No fallback for %s with campaign %s. (Will return error to user.)",
-                      fbid, campaign_id)
+            LOG_RVN.error("No fallback for %s with campaign %s. (Will return error to user.)",
+                          fbid, campaign_id)
             event_content = '{}:button /frame_faces/{}/{}'.format(
                 client.fb_app_name,
                 campaign_id,

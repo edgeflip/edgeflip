@@ -232,7 +232,13 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'feed_crawler',
 )
+
+if ENV in ('staging', 'production'):
+    INSTALLED_APPS = INSTALLED_APPS + (
+        'raven.contrib.django.raven_compat',
+    )
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
@@ -269,11 +275,15 @@ CELERY_QUEUES = (
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px4_refine', routing_key='px4.refine', queue_arguments=QUEUE_ARGS),
+    Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
+    Queue('get_or_create', routing_key='get.or.create', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
+    Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
+    Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
     'targetshare.tasks.ranking.px3_crawl': {
@@ -304,6 +314,10 @@ CELERY_ROUTES = {
         'queue': 'delayed_save',
         'routing_key': 'delayed.save'
     },
+    'targetshare.tasks.db.get_or_create': {
+        'queue': 'get_or_create',
+        'routing_key': 'get.or.create'
+    },
     'targetshare.tasks.db.upsert': {
         'queue': 'upsert',
         'routing_key': 'upsert',
@@ -312,10 +326,19 @@ CELERY_ROUTES = {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
+    'feed_crawler.tasks.create_sync_task': {
+        'queue': 'user_feeds',
+        'routing_key': 'user.feeds',
+    },
+    'feed_crawler.tasks.process_sync_task': {
+        'queue': 'process_sync',
+        'routing_key': 'process.sync',
+    }
 }
 CELERY_IMPORTS = (
     'targetshare.tasks.ranking',
     'targetshare.tasks.db',
+    'feed_crawler.tasks',
 )
 
 # Session Settings
@@ -331,15 +354,21 @@ CLIENT_FBOBJECT = {
 FB_PERMS_LIST = [
     'read_stream', 'user_photos', 'friends_photos',
     'email', 'user_birthday', 'friends_birthday',
-    'publish_actions', 'user_about_me', 'user_location',
+    'user_about_me', 'user_location',
     'friends_location', 'user_likes', 'friends_likes',
     'user_interests', 'friends_interests'
 ]
 FB_PERMS = ','.join(FB_PERMS_LIST)
+FB_REALTIME_TOKEN = 'thebiglebowski'
 MAX_FALLBACK_COUNT = 5
 TEST_MODE_SECRET = 'sunwahduck'
 VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
+
+# feedcrawler settings
+FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_MAX_BUCKETS = 5
+FEED_AGE_LIMIT = 7 # In days
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False
@@ -357,6 +386,71 @@ NOSE_ARGS = (
     '--logging-clear-handlers',
 )
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s %(asctime)s %(module)s %(process)d %(thread)d %(message)s'
+        },
+        'simple': {
+            'format': '%(levelname)s %(message)s'
+        },
+    },
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse',
+        }
+    },
+    'handlers': {
+        'null': {
+            'level': 'DEBUG',
+            'class': 'logging.NullHandler',
+        },
+        'console':{
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'mail_admins': {
+            'level': 'ERROR',
+            'class': 'django.utils.log.AdminEmailHandler',
+            'filters': ['require_debug_false']
+        },
+        'syslog': {
+            'level': 'INFO',
+            'class': 'logging.handlers.SysLogHandler',
+            'formatter': 'verbose',
+            'address': '/dev/log',
+            'facility': 'local2'
+        },
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'boto': {
+            'level': 'WARNING',
+            'handlers': ['console', 'syslog'],
+        },
+        # Crow, another black bird, because 'raven' is blacklisted by sentry
+        'crow': {
+            'level': 'DEBUG',
+            'handlers': ['console'],
+            'propagate': True
+        },
+    }
+}
+
+if ENV in ('staging', 'production'):
+    LOGGING['handlers']['sentry'] = {
+        'level': 'INFO',
+        'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
+        'formatter': 'verbose',
+    }
+    LOGGING['loggers']['crow']['handlers'].append('sentry')
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[

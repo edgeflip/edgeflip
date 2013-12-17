@@ -70,6 +70,30 @@ class TestServicesViews(EdgeFlipViewTestCase):
         response = self.client.get(redirector, {'source': '1', 'campaignid': '9999'})
         self.assertStatusCode(response, 404)
 
+    def test_outgoing_url_missing_protocol(self):
+        url = 'www.badeggs.com'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector)
+        self.assertStatusCode(response, 302)
+        self.assertEqual(response['Location'], "http://{}".format(url))
+
+    def test_outgoing_url_implicit_protocol(self):
+        url = '//www.badeggs.com'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector)
+        self.assertStatusCode(response, 302)
+        self.assertEqual(response['Location'], "http:{}".format(url))
+
+    def test_outgoing_url_only_path(self):
+        url = '/weird'
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+                                               urllib.quote_plus(url)])
+        response = self.client.get(redirector)
+        self.assertStatusCode(response, 302)
+        self.assertEqual(response['Location'], "http://testserver{}".format(url))
+
     def test_outgoing_url_source(self):
         url = 'http://www.google.com/path?query=string&string=query'
         redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
@@ -94,7 +118,32 @@ class TestServicesViews(EdgeFlipViewTestCase):
                 encodeDES('1/1')])
         )
         self.assertStatusCode(response, 302)
+        self.assertTrue(
+            models.Event.objects.filter(event_type='incoming_redirect').exists()
+        )
         self.assertEqual(
             response['Location'],
             'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=t0AGY7FMXjM%3D'
+        )
+
+    def test_incoming_url_redirect_fb_auth_declined(self):
+        response = self.client.get(
+            reverse('incoming-encoded', args=[encodeDES('1/1')]),
+            {'error': 'access_denied', 'error_reason': 'user_denied'}
+        )
+        campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
+        self.assertStatusCode(response, 302)
+        expected_url = 'http://testserver{}?{}'.format(
+            reverse('outgoing', args=[
+                campaign_props.campaign.client.fb_app_id,
+                urllib.quote_plus(campaign_props.client_error_url)]
+            ),
+            urllib.urlencode({'campaignid': campaign_props.campaign.pk})
+        )
+        self.assertEqual(
+            response['Location'],
+            expected_url
+        )
+        self.assertTrue(
+            models.Event.objects.filter(event_type='oauth_declined').exists()
         )

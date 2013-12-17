@@ -10,7 +10,7 @@ from targetshare.views import utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('crow')
 
 
 @require_POST
@@ -105,7 +105,7 @@ def record_event(request):
                 "Cannot write authorization for fbid {!r}, appid {!r} and token {!r}"
                 .format(user_id, app_id, request.POST.get('token'))
             )
-            LOG.warning(msg, exc_info=True)
+            LOG.warning(msg, exc_info=True, extra={'request': request})
             return http.HttpResponseBadRequest(msg)
 
         try:
@@ -126,20 +126,19 @@ def record_event(request):
     if event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so
         # we don't show them for the same content/campaign again
-        exclusions = []
-        for friend in friends:
-            exclusions.append(
-                models.relational.FaceExclusion(
-                    fbid=user_id,
-                    campaign_id=campaign_id,
-                    content_id=content_id,
-                    friend_fbid=friend,
-                    reason='shared',
-                )
-            )
-
+        exclusions = [
+            {
+                'fbid': user_id,
+                'campaign_id': campaign_id,
+                'content_id': content_id,
+                'friend_fbid': friend,
+                'defaults': {
+                    'reason': 'shared',
+                }
+            } for friend in friends
+        ]
         if exclusions:
-            db.bulk_create.delay(exclusions)
+            db.get_or_create.delay(models.relational.FaceExclusion, *exclusions)
 
     error_msg = request.POST.get('errorMsg[message]')
     if error_msg:
@@ -147,7 +146,8 @@ def record_event(request):
         # dump them to the logs to ensure we keep the data.
         LOG.error(
             'Front-end error encountered for user %s in session %s: %s',
-            user_id, request.session.session_key, error_msg
+            user_id, request.session.session_key, error_msg,
+            extra={'request': request}
         )
 
     share_msg = request.POST.get('shareMsg')
