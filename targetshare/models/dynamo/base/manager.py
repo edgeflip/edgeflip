@@ -94,12 +94,15 @@ class Query(dict):
 
     @property
     def _opless(self):
-        return (key.rsplit('__', 1)[0] for key in self)
+        return (key.rsplit('__', 1)[0] for key in self.iterkeys())
 
     def all(self):
         if 'index' in self or any(key in self._hash_keys for key in self._opless):
             return self.query()
         return self.scan()
+
+    def __iter__(self):
+        return iter(self.all())
 
     def get(self, **kws):
         results = iter(self.filter(**kws).all())
@@ -159,9 +162,6 @@ class BaseItemManager(object):
 
     def all(self):
         return self.get_query().all()
-
-    def get(self, **kws):
-        return self.get_query().get(**kws)
 
     @inherits_docs
     def query_count(self, *args, **kws):
@@ -251,3 +251,6 @@ class AbstractLinkedItemManager(BaseItemManager):
         query = super(AbstractLinkedItemManager, self).get_query()
         instance_filter = dict(zip(self.core_filters, self.instance.pk))
         return self.query_cls(self.table, self.instance, query, **instance_filter)
+
+    def get(self, **kws):
+        return self.get_query().get(**kws)
