@@ -370,7 +370,7 @@ def px4_crawl(token):
                     edge.interactions for edge in edges_ranked)
             )
         )
-        db.bulk_create.delay(edges_ranked.post_topics)
+        db.bulk_create.delay(edges_ranked.post_topics.values())
         db.update_edges.delay(edges_ranked)
 
     return (edges_ranked, hit_fb)

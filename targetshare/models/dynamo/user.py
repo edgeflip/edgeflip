@@ -84,11 +84,17 @@ class User(Item):
         """Normalize the given topic score to 1."""
         return math.atan(float(score) / 2) * 2 / math.pi
 
-    @cached_property
-    def topics(self):
-        # Aggregate topics scores of posts in which user has interacted:
+    @classmethod
+    def get_topics(cls, interactions):
+        """Return a User's interests scored by topic, given an iterable of
+        PostInteractions.
+
+        This method makes use of the PostInteractions's PostTopics link; for best
+        performance, these should be pre-populated.
+
+        """
         scores = collections.defaultdict(int)
-        for interaction in self.postinteractions_set.prefetch('post_topics').all():
+        for interaction in interactions:
             post_topics = interaction.post_topics.document
             for (topic, value) in post_topics.items():
                 # For now, all interactions weighted the same:
@@ -96,5 +102,10 @@ class User(Item):
                     scores[topic] += value * count
 
         # Normalize topic scores to 1:
-        return {topic: self._normalize_topic(value)
+        return {topic: cls._normalize_topic(value)
                 for (topic, value) in scores.items()}
+
+    @cached_property
+    def topics(self):
+        """Aggregate topics scores of posts in which user has interacted."""
+        return self.get_topics(self.postinteractions_set.prefetch('post_topics'))

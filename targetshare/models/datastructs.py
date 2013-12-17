@@ -79,6 +79,8 @@ class Edge(EdgeBase):
                 for fbid, edge in secondary_edges_in.items()
             )
 
+        # TODO: include PostTopics and PostInteractions (for *all* posts relevant
+        # TODO: to secondaries), with pre-caching of PostTopics...
         return UserNetwork(
             cls(primary, secondary, incoming, outgoing)
             for fbid, secondary, incoming, outgoing in data
@@ -219,6 +221,25 @@ class UserNetwork(list):
     @property
     def primary(self):
         return self[0].primary
+
+    def precache_topics_feature(self):
+        """Populate the Edges' secondaries' "topics" feature from the network's
+        PostInteractions and PostTopics.
+
+        User.topics is an auto-caching property, but which operates by talking to
+        the database. For performance, these caches can be prepopulated from the
+        in-memory UserNetwork.
+
+        """
+        # should be *all* when this comes from Edge.get_friend_edges, or all
+        # related to primary when we hit FB (to save time)
+        # don't do this until you know there's a topics key (in refinement
+        # task)
+        # (and benchmark this, and compare to existing)
+        # NOTE: Assumes edge.interactions' PostInteractions have precached their PostTopics
+        for edge in self:
+            user = edge.secondary
+            user.topics = user.get_topics(edge.interactions)
 
     def scored(self, require_incoming=False, require_outgoing=False):
         """Construct a new UserNetwork with scored Edges."""
