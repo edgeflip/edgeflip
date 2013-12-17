@@ -252,14 +252,14 @@ class FilterFeature(models.Model, Feature):
 
     def encode_value(self):
         """Encode value and automatically determine value_type."""
-        (value, value_type) = (self.value, self.value_type)
+        value = self.value
         try:
             value = float(value) if '.' in value else int(value)
         except (TypeError, ValueError):
             pass
 
         if isinstance(value, (int, long)):
-            return (value, self.ValueType.INT)
+            return (str(value), self.ValueType.INT)
 
         if isinstance(value, float):
             return ('%.8f' % value, self.ValueType.FLOAT)
