@@ -170,6 +170,10 @@ class ItemManager(BaseItemManager):
         return self.table.count()
 
 
+class AbstractLinkedItemManager(BaseItemManager):
+    pass
+
+
 class ItemManagerDescriptor(object):
     """Descriptor wrapper for ItemManagers.
 

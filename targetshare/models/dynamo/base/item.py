@@ -11,7 +11,7 @@ from django.utils import timezone
 from . import types
 from .fields import ItemField, ItemLinkField
 from .loading import cache, item_declared
-from .manager import BaseItemManager, ItemManager, ItemManagerDescriptor, Query
+from .manager import AbstractLinkedItemManager, ItemManager, ItemManagerDescriptor, Query
 from .table import Table
 
 from targetshare import utils
@@ -240,7 +240,7 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
                     return self.query()
                 return self.scan()
 
-        class LinkedItemManager(BaseItemManager):
+        class LinkedItemManager(AbstractLinkedItemManager):
 
             core_filters = tuple("{}__eq".format(key) for key in link_field.db_key)
 
@@ -407,6 +407,15 @@ class Item(baseitems.Item):
         if len(pk) > 1:
             keys = "({})".format(keys)
         return "<{name}: {keys}>".format(name=self.__class__.__name__, keys=keys)
+
+    def __getstate__(self):
+        """Return the Item object state for pickling."""
+        # It's probably worthwhile for ReverseLinkFieldProperty to cache
+        # LinkedItemManagers on the instance; but, not worthwhile, for the time
+        # being anyway, to support pickling of instances of these manufactured
+        # classes.
+        return {key: value for (key, value) in vars(self).items()
+                if not isinstance(value, AbstractLinkedItemManager)}
 
     @property
     def pk(self):
