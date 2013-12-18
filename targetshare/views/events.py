@@ -144,7 +144,7 @@ def record_event(request):
     if error_msg:
         # may want to push these to the DB at some point, but at least for now,
         # dump them to the logs to ensure we keep the data.
-        LOG.error(
+        LOG.warning(
             'Front-end error encountered for user %s in session %s: %s',
             user_id, request.session.session_key, error_msg,
             extra={'request': request}
@@ -188,14 +188,13 @@ def suppress(request):
             event_type='suppressed',
         )
     )
-    db.delayed_save.delay(
-        models.relational.FaceExclusion(
-            fbid=user_id,
-            campaign_id=campaign_id,
-            content_id=content_id,
-            friend_fbid=old_id,
-            reason='suppressed',
-        )
+    db.get_or_create.delay(
+        models.relational.FaceExclusion,
+        fbid=user_id,
+        campaign_id=campaign_id,
+        content_id=content_id,
+        friend_fbid=old_id,
+        defaults={'reason': 'suppressed'},
     )
 
     if new_id:
