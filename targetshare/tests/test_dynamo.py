@@ -271,7 +271,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     @staticmethod
     def save_edges(edges):
-        datastructs.Edge.write(datastructs.Edge(None, None, edge) for edge in edges)
+        datastructs.UserNetwork(datastructs.Edge(None, None, edge) for edge in edges).write()
 
     def save_edge(self):
         """helper to save a single edge, (100, 200)"""

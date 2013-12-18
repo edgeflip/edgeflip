@@ -71,7 +71,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             city='Chicago',
             state='Illinois',
         )
-        self.test_edge = models.datastructs.Edge(
+        self.test_edge = models.datastructs.UserNetwork.Edge(
             self.test_user,
             self.test_user,
             None

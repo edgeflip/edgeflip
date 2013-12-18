@@ -442,7 +442,7 @@ def _get_friend_edges_simple(user, token):
         )
 
         friends.add(friend.fbid)
-        network.append(datastructs.Edge(user, friend, edge_data))
+        network.append(network.Edge(user, friend, edge_data))
 
     LOG.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer.elapsedPr())
     return network

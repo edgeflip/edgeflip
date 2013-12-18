@@ -6,7 +6,6 @@ from django.core import serializers
 from django.db import IntegrityError
 from django.db.models import Model
 
-from targetshare import models
 from targetshare.models.dynamo.base import UpsertStrategy
 
 
@@ -164,7 +163,7 @@ def upsert(*items):
 def update_edges(edges):
     """Update edge tables.
 
-    :arg edges: an iterable of `datastruct.Edge`
+    :arg edges: an instance of `models.datastructs.UserNetwork`
 
     """
-    models.datastructs.Edge.write(edges)
+    edges.write()

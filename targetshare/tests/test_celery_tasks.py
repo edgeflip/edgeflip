@@ -148,8 +148,8 @@ class TestRankingTasks(EdgeFlipTestCase):
             city='Toledo',
             state='Ohio'
         )
-        test_edge1 = models.datastructs.Edge(test_user1, test_user1, None, score=0.5)
-        test_edge2 = models.datastructs.Edge(test_user1, test_user2, None, score=0.4)
+        test_edge1 = models.datastructs.UserNetwork.Edge(test_user1, test_user1, None, score=0.5)
+        test_edge2 = models.datastructs.UserNetwork.Edge(test_user1, test_user2, None, score=0.4)
         visitor = models.relational.Visitor.objects.create(fbid=1)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 

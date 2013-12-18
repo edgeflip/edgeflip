@@ -5,35 +5,44 @@ import itertools
 from django.utils import timezone
 
 from targetshare.models import dynamo
+from targetshare.utils import classonlymethod
 
 
 LOG = logging.getLogger(__name__)
 
 
-EdgeBase = collections.namedtuple('EdgeBase',
-    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
+class UserNetwork(list):
 
+    _EdgeBase = collections.namedtuple('EdgeBase',
+        ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
 
-class Edge(EdgeBase):
-    """Relationship between a network's primary user and a secondary user.
+    class Edge(_EdgeBase):
+        """Relationship between a network's primary user and a secondary user.
 
-    Arguments:
-        primary: User
-        secondary: User
-        incoming: IncomingEdge (primary to secondary relationship)
-        outgoing: OutgoingEdge (secondary to primary relationship) (optional)
-        interactions: sequence of PostInteractions (made by secondary) (optional)
-        score: proximity score (optional)
+        Arguments:
+            primary: User
+            secondary: User
+            incoming: IncomingEdge (primary to secondary relationship)
+            outgoing: OutgoingEdge (secondary to primary relationship) (optional)
+            interactions: sequence of PostInteractions (made by secondary) (optional)
+            score: proximity score (optional)
 
-    """
-    __slots__ = () # No need for object __dict__ or stored attributes
+        """
+        __slots__ = () # No need for object __dict__ or stored attributes
 
-    # Set outgoing, interactions and score defaults:
-    def __new__(cls, primary, secondary, incoming, outgoing=None, interactions=(), score=None):
-        return super(Edge, cls).__new__(cls, primary, secondary, incoming,
-                                        outgoing, interactions, score)
+        # Set outgoing, interactions and score defaults:
+        def __new__(cls, primary, secondary, incoming, outgoing=None, interactions=(), score=None):
+            return super(UserNetwork.Edge, cls).__new__(cls, primary, secondary, incoming,
+                                                        outgoing, interactions, score)
 
-    @classmethod
+        def __repr__(self):
+            return '{}({})'.format(
+                self.__class__.__name__,
+                ', '.join('{}={!r}'.format(key, value)
+                        for key, value in itertools.izip(self._fields, self))
+            )
+
+    @classonlymethod
     def get_friend_edges(cls, primary,
                          require_incoming=False,
                          require_outgoing=False,
@@ -81,14 +90,14 @@ class Edge(EdgeBase):
 
         # TODO: include PostTopics and PostInteractions (for *all* posts relevant
         # TODO: to secondaries), with pre-caching of PostTopics...
-        return UserNetwork(
-            cls(primary, secondary, incoming, outgoing)
+        return cls(
+            cls.Edge(primary, secondary, incoming, outgoing)
             for fbid, secondary, incoming, outgoing in data
-            if cls._friend_edge_ok(fbid, secondary, incoming, outgoing)
+            if cls._db_edge_ok(fbid, secondary, incoming, outgoing)
         )
 
     @staticmethod
-    def _friend_edge_ok(fbid, secondary, incoming, outgoing):
+    def _db_edge_ok(fbid, secondary, incoming, outgoing):
         if secondary is None:
             LOG.error("Secondary %r found in edges but not in users", fbid)
             return False
@@ -99,24 +108,85 @@ class Edge(EdgeBase):
 
         return True
 
-    @staticmethod
-    def write(edges):
+    __slots__ = ('post_topics',)
+
+    def __init__(self, edges=(), post_topics=None):
+        super(UserNetwork, self).__init__(self._import_edges(edges))
+        self.post_topics = post_topics
+
+    @property
+    def primary(self):
+        return self[0].primary
+
+    def _import_edge(self, edge):
+        if self and edge.primary != self.primary:
+            raise ValueError("Edge network mismatch")
+        return edge
+
+    def _import_edges(self, edges):
+        return (self._import_edge(edge) for edge in edges)
+
+    def append(self, edge):
+        return super(UserNetwork, self).append(self._import_edge(edge))
+
+    def extend(self, edges):
+        return super(UserNetwork, self).extend(self._import_edges(edges))
+
+    def precache_topics_feature(self):
+        """Populate the Edges' secondaries' "topics" feature from the network's
+        PostInteractions and PostTopics.
+
+        User.topics is an auto-caching property, but which operates by talking to
+        the database. For performance, these caches can be prepopulated from the
+        in-memory UserNetwork.
+
+        """
+        # should be *all* when this comes from Edge.get_friend_edges, or all
+        # related to primary when we hit FB (to save time)
+        # don't do this until you know there's a topics key (in refinement
+        # task)
+        # (and benchmark this, and compare to existing)
+        # NOTE: Assumes edge.interactions' PostInteractions have precached their PostTopics
+        for edge in self:
+            user = edge.secondary
+            user.topics = user.get_topics(edge.interactions)
+
+    def scored(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork with scored Edges."""
+        edges_max = EdgeAggregate(self,
+                                  aggregator=max,
+                                  require_incoming=require_incoming,
+                                  require_outgoing=require_outgoing)
+        return type(self)(
+            edges=(edge._replace(score=edges_max.score(edge)) for edge in self),
+            post_topics=self.post_topics,
+        )
+
+    def rank(self):
+        """Sort the UserNetwork by its Edges' scores."""
+        self.sort(key=lambda edge: edge.score, reverse=True)
+
+    def ranked(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
+        network = self.scored(require_incoming, require_outgoing)
+        network.rank()
+        return network
+
+    def write(self):
         """Batch-write the given iterable of Edges to the database."""
         incoming_items = dynamo.IncomingEdge.items
         outgoing_items = dynamo.OutgoingEdge.items
         with incoming_items.batch_write() as incoming, outgoing_items.batch_write() as outgoing:
-            for composite in edges:
+            for composite in self:
                 for edge in (composite.incoming, composite.outgoing):
                     if edge:
                         incoming.put_item(edge)
                         outgoing.put_item(dynamo.OutgoingEdge.from_incoming(edge))
 
     def __repr__(self):
-        return '{}({})'.format(
-            self.__class__.__name__,
-            ', '.join('{}={!r}'.format(key, value)
-                      for key, value in itertools.izip(self._fields, self))
-        )
+        return "<{}({}{})>".format(self.__class__.__name__,
+                                   "{}: ".format(self.primary.fbid) if self else "",
+                                   super(UserNetwork, self).__repr__())
 
 
 class TieredEdges(tuple):
@@ -208,59 +278,6 @@ class TieredEdges(tuple):
 
         """
         return type(self)(self._reranked(ranking))
-
-
-class UserNetwork(list):
-
-    __slots__ = ('post_topics',)
-
-    def __init__(self, edges=(), post_topics=None):
-        super(UserNetwork, self).__init__(edges)
-        self.post_topics = post_topics
-
-    @property
-    def primary(self):
-        return self[0].primary
-
-    def precache_topics_feature(self):
-        """Populate the Edges' secondaries' "topics" feature from the network's
-        PostInteractions and PostTopics.
-
-        User.topics is an auto-caching property, but which operates by talking to
-        the database. For performance, these caches can be prepopulated from the
-        in-memory UserNetwork.
-
-        """
-        # should be *all* when this comes from Edge.get_friend_edges, or all
-        # related to primary when we hit FB (to save time)
-        # don't do this until you know there's a topics key (in refinement
-        # task)
-        # (and benchmark this, and compare to existing)
-        # NOTE: Assumes edge.interactions' PostInteractions have precached their PostTopics
-        for edge in self:
-            user = edge.secondary
-            user.topics = user.get_topics(edge.interactions)
-
-    def scored(self, require_incoming=False, require_outgoing=False):
-        """Construct a new UserNetwork with scored Edges."""
-        edges_max = EdgeAggregate(self,
-                                  aggregator=max,
-                                  require_incoming=require_incoming,
-                                  require_outgoing=require_outgoing)
-        return type(self)(
-            edges=(edge._replace(score=edges_max.score(edge)) for edge in self),
-            post_topics=self.post_topics,
-        )
-
-    def rank(self):
-        """Sort the UserNetwork by its Edges' scores."""
-        self.sort(key=lambda edge: edge.score, reverse=True)
-
-    def ranked(self, require_incoming=False, require_outgoing=False):
-        """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
-        network = self.scored(require_incoming, require_outgoing)
-        network.rank()
-        return network
 
 
 class EdgeAggregate(object):

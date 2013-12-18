@@ -34,6 +34,14 @@ def camel_to_underscore(name):
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
+class classonlymethod(classmethod):
+
+    def __get__(self, instance, owner):
+        if instance is not None:
+            raise TypeError("Method available to class, not instances of {}.".format(owner))
+        return super(classonlymethod, self).__get__(instance, owner)
+
+
 class CDFProbsError(Exception):
     """CDF defined by provided experimental probabilities is not well-defined"""
     pass

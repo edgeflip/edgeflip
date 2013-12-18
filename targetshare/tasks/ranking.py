@@ -323,7 +323,7 @@ def px4_crawl(token):
         user = facebook.client.get_user(token.fbid, token.token)
         friend_count = facebook.client.get_friend_count(token.fbid, token.token)
         if friend_count >= DB_MIN_FRIEND_COUNT:
-            edges_unranked = models.datastructs.Edge.get_friend_edges(
+            edges_unranked = models.datastructs.UserNetwork.get_friend_edges(
                 user,
                 require_incoming=True,
                 require_outgoing=False,
