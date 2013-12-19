@@ -409,20 +409,27 @@ def _get_friend_edges_simple(user, token):
     friends = set()
     network = datastructs.UserNetwork()
     for rec in friendChunks:
-        friendId = int(rec['uid'])
-        if friendId in friends:
-            continue
+        try:
+            friend_id = int(rec['uid'])
+        except TypeError:
+            # FB returned some gargbage
+            raise BadChunksError(
+                "_get_friend_edges_simple failed on bad response: {!r}".format(rec)
+            )
+        else:
+            if friend_id in friends:
+                continue
 
         current_location = rec.get('current_location') or {}
-        primary_photo_tags = primPhotoCounts[friendId]
-        other_photo_tags = otherPhotoCounts[friendId]
+        primary_photo_tags = primPhotoCounts[friend_id]
+        other_photo_tags = otherPhotoCounts[friend_id]
 
         if primary_photo_tags + other_photo_tags > 0:
             LOG.debug("Friend %d has %d primary photo tags and %d other photo tags",
-                      friendId, primary_photo_tags, other_photo_tags)
+                      friend_id, primary_photo_tags, other_photo_tags)
 
         friend = dynamo.User(
-            fbid=friendId,
+            fbid=friend_id,
             fname=rec['first_name'],
             lname=rec['last_name'],
             gender=rec['sex'],
