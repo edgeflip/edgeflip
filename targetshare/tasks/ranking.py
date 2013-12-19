@@ -23,7 +23,11 @@ DB_FRIEND_THRESHOLD = 90 # percent
 
 # The below width(s) of the proximity score spectrum from 1 to 0 will be
 # partitioned during rank refinement:
+# NOTE: We might want to review this threshold for various size networks
 PX_REFINE_RANGE_WIDTH = 0.85
+
+# The maximum number of (high-proximity) friends to bother rank-refining:
+PX_REFINE_MAX_COUNT = 500
 
 FilteringResult = namedtuple('FilteringResult', [
     'ranked',
@@ -390,8 +394,6 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
     """
     (edges_ranked, hit_fb) = crawl_result
 
-    # TODO: Benchmark ranking -- should it also be sensitive to how long we've
-    # TODO: already taken to produce px4?
     try:
         campaign_ranking_key = (models.relational.CampaignRankingKey.objects
                                 .for_datetime().get(campaign_id=campaign_id))
@@ -406,22 +408,35 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
         LOG.exception("Campaign %s has multiple active ranking keys; "
                       "will not refine rank.", campaign_id)
     else:
-        # Refine proximity-based ranking, but first partition edges s.t. those with px
-        # score above threshold (1 - PX_REFINE_RANGE_WIDTH) remain separate from those below:
-        # TODO: Test threshold against your results and against Corrigan's
-        edges_partitioned = utils.partition_edges(edges_ranked, range_width=PX_REFINE_RANGE_WIDTH)
-        reranked_partitions = (
-            campaign_ranking_key.ranking_key.rankingkeyfeatures
-            .for_datetime().sorted_edges(partition)
+        # Refine proximity-based ranking
+        keys = campaign_ranking_key.ranking_key.rankingkeyfeatures.for_datetime()
+        if keys.filter(feature_type__code=models.relational.RankingFeatureType.TOPICS).exists():
+            # Pre-populate 'topics' feature from UserNetwork for performance
+            # NOTE: If network was read from FB, calculations will be limited to
+            # contents of primary's posts (currently).
+            edges_ranked.precache_topics_feature()
+
+        # Only bother ranking the first PX_REFINE_MAX_COUNT friends:
+        (edges_rerank, edges_tail) = (edges_ranked[:PX_REFINE_MAX_COUNT],
+                                      edges_ranked[PX_REFINE_MAX_COUNT:])
+
+        # Partition edges s.t. those with px score above threshold
+        # (1 - PX_REFINE_RANGE_WIDTH) remain separate from those below:
+        edges_partitioned = utils.partition_edges(edges_rerank, range_width=PX_REFINE_RANGE_WIDTH)
+        edges_reranked = itertools.chain.from_iterable(
+            keys.sorted_edges(partition)
             for (_lower_bound, partition) in edges_partitioned
         )
-        edges_ranked = sum(reranked_partitions, [])
+        edges_ranked = models.datastructs.UserNetwork(
+            itertools.chain(edges_reranked, edges_tail),
+            post_topics=edges_ranked.post_topics,
+        )
 
     px4_filters = models.relational.Filter.objects.filter(
         client__campaigns__campaign_id=campaign_id,
         filterfeatures__feature_type__px_rank__gte=4,
     )
-    # TODO: Is this threshold sensible?
+    # NOTE: We might want to review this threshold:
     if (not hit_fb or len(edges_ranked) < DB_MIN_FRIEND_COUNT) and px4_filters.exists():
         # We haven't wasted time hitting Facebook or user has few enough
         # friends that we should be able to apply refined filters anyway:
