@@ -310,6 +310,9 @@ class LazyList(LazySequence, list):
             pass
         return self._results.__eq__(other)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __setitem__(self, key, value):
         self._validate_key(key)
 
