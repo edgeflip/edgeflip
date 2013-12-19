@@ -1,6 +1,7 @@
 import collections
 import logging
 import itertools
+import operator
 
 from django.utils import timezone
 
@@ -60,46 +61,53 @@ class UserNetwork(list):
             )
 
         incoming_edges = dynamo.IncomingEdge.items.query(**edge_filters)
-        secondary_edges_in = {edge['fbid_source']: edge for edge in incoming_edges
-                              if not require_incoming or edge.post_likes is not None}
+        edges_in = {edge.fbid_source: edge for edge in incoming_edges
+                    if not require_incoming or edge.post_likes is not None}
 
         incoming_users = dynamo.User.items.batch_get(keys=[
-            {'fbid': fbid} for fbid in secondary_edges_in
+            {'fbid': fbid} for fbid in edges_in
         ])
-        secondary_users = {user['fbid']: user for user in incoming_users}
+        secondaries = {user.fbid: user for user in incoming_users}
 
+        post_interactions = (dynamo.PostInteractions.items.prefetch('post_topics')
+                             .scan(fbid__in=secondaries.keys()))
+        interactions_key = operator.attrgetter('fbid')
+        interactions_sorted = sorted(post_interactions, key=interactions_key)
+        interactions_grouped = itertools.groupby(interactions_sorted, interactions_key)
+        user_interactions = {fbid: set(interactions)
+                             for (fbid, interactions) in interactions_grouped}
+
+        interaction_topics = (interactions.post_topics
+                              for interactions in post_interactions)
+        post_topics = {topics.postid: topics for topics in interaction_topics}
+
+        # Build iterable of edges with secondaries, consisting of:
+        # (2nd's ID, 2nd's User, incoming edge, outgoing edge, 2nd's interactions)
         if require_outgoing:
-            # Build iterator of (secondary's ID, User, incoming edge, outgoing edge),
-            # fetching outgoing edges from Dynamo.
-            secondary_edges_out = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
-            data = (
-                (
-                    edge['fbid_target'],
-                    secondary_users.get(edge['fbid_target']),
-                    secondary_edges_in.get(edge['fbid_target']),
-                    edge,
-                )
-                for edge in secondary_edges_out
-            )
+            # ...fetching outgoing edges too:
+            outgoing_edges = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
+            edge_args = (
+                (edge.fbid_target,
+                 secondaries.get(edge.fbid_target),
+                 edges_in.get(edge.fbid_target),
+                 edge,
+                 user_interactions.get(edge.fbid_target, ()))
+                for edge in outgoing_edges)
         else:
-            data = (
-                (
-                    fbid,
-                    secondary_users.get(fbid),
-                    edge,
-                    None,
-                )
-                for fbid, edge in secondary_edges_in.items()
-            )
+            edge_args = (
+                (fbid,
+                 secondaries.get(fbid),
+                 edge,
+                 None,
+                 user_interactions.get(fbid, set()))
+                for (fbid, edge) in edges_in.items())
 
-        # TODO: include PostTopics and PostInteractions (for *all* posts relevant
-        # TODO: to secondaries), with pre-caching of PostTopics...
-        # TODO: Should be *all* PIs when this comes from UserNetwork.get_friend_edges
-        return cls(
-            cls.Edge(primary, secondary, incoming, outgoing)
-            for fbid, secondary, incoming, outgoing in data
+        edges = (
+            cls.Edge(primary, secondary, incoming, outgoing, interactions)
+            for (fbid, secondary, incoming, outgoing, interactions) in edge_args
             if cls._db_edge_ok(fbid, secondary, incoming, outgoing)
         )
+        return cls(edges, post_topics=post_topics)
 
     @staticmethod
     def _db_edge_ok(fbid, secondary, incoming, outgoing):
@@ -205,7 +213,7 @@ class UserNetwork(list):
                                   require_outgoing=require_outgoing)
         return type(self)(
             edges=(edge._replace(score=edges_max.score(edge)) for edge in self),
-            post_topics=self.post_topics,
+            post_topics=self.post_topics.copy(),
         )
 
     def rank(self):

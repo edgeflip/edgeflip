@@ -483,7 +483,7 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
             tags=len(user_interactions['tags']),
         )
 
-        interactions = tuple(
+        interactions = {
             dynamo.PostInteractions(
                 post_likes=len(post_interactions['post_likes']),
                 post_comms=len(post_interactions['post_comms']),
@@ -496,7 +496,7 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
                 post_topics=network.post_topics[post_id],
             )
             for (post_id, post_interactions) in user_aggregate.posts.iteritems()
-        )
+        }
 
         outgoing = edge.outgoing
         if require_outgoing and not outgoing:
@@ -528,6 +528,11 @@ def _get_outgoing_edge(user, friend, token):
         return
 
     aggregate = stream.aggregate()
+    # FIXME: Shouldn't this be user.fbid?
+    # TODO: If not, we can add post topics and interactions from this outgoing
+    # TODO: stream to the caller's listings of friend interactions.
+    # TODO: (But if so, these are the primary's interactions, which are another
+    # TODO: story.)
     user_aggregate = aggregate[friend.fbid]
     user_interactions = user_aggregate.types
     LOG.debug('got %s', user_interactions)
