@@ -1,4 +1,5 @@
 from __future__ import absolute_import
+import logging
 
 import json
 import random
@@ -13,23 +14,75 @@ from django.utils import timezone
 
 from targetshare import models
 from targetshare.integration import facebook
-from targetshare.tasks import ranking
+from targetshare.tasks import db
 from targetshare.models.dynamo.utils import to_epoch
 from feed_crawler import utils
 
 logger = get_task_logger(__name__)
+rvn_logger = logging.getLogger('crow')
 MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
 
 
 def crawl_user(token):
-    task = ranking.proximity_rank_four.apply_async(
-        args=[False, token.fbid, token],
+    try:
+        facebook.client.extend_token(token.fbid, token.appid, token.token)
+    except IOError:
+        # well, we tried
+        rvn_logger.exception(
+            'Failed to extend token for {}'.format(token.fbid)
+        )
+
+    task = bg_px4_crawl.apply_async(
+        args=[token],
         queue='bg_px4',
         routing_key='bg.px4',
         link=create_sync_task.s(token=token)
     )
     return task
+
+
+def bg_px4_crawl(token):
+    try:
+        user = facebook.client.get_user(token.fbid, token.token)
+        edges_unranked = facebook.client.get_friend_edges(
+            user,
+            token['token'],
+            require_incoming=True,
+            require_outgoing=False,
+        )
+    except IOError as exc:
+        bg_px4_crawl.retry(exc=exc)
+
+    edges_ranked = models.datastructs.EdgeAggregate.rank(
+        edges_unranked,
+        require_incoming=True,
+        require_outgoing=False,
+    )
+
+    db.delayed_save.apply_async(
+        args=[token],
+        kwargs={'overwrite': True},
+        queue='bg_delayed_save',
+        routing_key='bg.delayed_save',
+    )
+    db.upsert.apply_async(
+        args=[user],
+        queue='bg_upsert',
+        routing_key='bg.upsert'
+    )
+    db.upsert.apply_async(
+        args=[[edge.secondary for edge in edges_ranked]],
+        queue='bg_upsert',
+        routing_key='bg.upsert'
+    )
+    db.update_edges.apply_async(
+        args=[edges_ranked],
+        queue='bg_update_edges',
+        routing_key='bg.update.edges'
+    )
+
+    return edges_ranked
 
 
 @celery.task(default_retry_delay=1, max_retries=3)

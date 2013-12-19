@@ -15,7 +15,7 @@ pycrypto==2.6
 pythoscope==0.4.3
 snakefood==1.4
 pyOpenSSL==0.13
-celery==3.0.19
+celery==3.1.17
 django-nose==1.2
 nose-blockage==0.1.2
 nose-progressive==1.5
@@ -26,6 +26,6 @@ requests==1.2.3
 pylibmc==1.2.3
 South==0.8.1
 Django==1.5.1
-django-celery==3.0.21
+django-celery==3.1.1
 python-memcached==1.53
 raven==3.6.0
