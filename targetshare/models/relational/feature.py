@@ -11,23 +11,15 @@ from targetshare.integration import civis
 from .manager import transitory
 
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('crow')
 
 
-class FilterFeatureType(models.Model):
+class FeatureType(models.Model):
 
-    AGE = 'age'
-    GENDER = 'gender'
-    STATE = 'state'
-    CITY = 'city'
-    FULL_LOCATION = 'full_location'
-    MATCHING = 'matching'
     TOPICS = 'topics'
 
     name = models.CharField(max_length=64)
     code = models.CharField(max_length=64, unique=True)
-    px_rank = models.PositiveIntegerField(default=3)
-    sort_order = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
 
@@ -35,7 +27,23 @@ class FilterFeatureType(models.Model):
         return u'{}'.format(self.name)
 
     class Meta(object):
+        abstract = True
         app_label = 'targetshare'
+
+
+class FilterFeatureType(FeatureType):
+
+    AGE = 'age'
+    GENDER = 'gender'
+    STATE = 'state'
+    CITY = 'city'
+    FULL_LOCATION = 'full_location'
+    MATCHING = 'matching'
+
+    px_rank = models.PositiveIntegerField(default=3)
+    sort_order = models.IntegerField(default=0)
+
+    class Meta(FeatureType.Meta):
         db_table = 'filter_feature_types'
         ordering = ('sort_order',)
 
@@ -454,6 +462,12 @@ class RankingKeyFeatureManager(transitory.TransitoryObjectManager):
         return self.get_query_set().reranked_edges(*args, **kws)
 
 
+class RankingFeatureType(FeatureType):
+
+    class Meta(FeatureType.Meta):
+        db_table = 'ranking_feature_types'
+
+
 class RankingKeyFeature(models.Model, Feature):
 
     ranking_key_feature_id = models.AutoField(primary_key=True)
@@ -461,6 +475,7 @@ class RankingKeyFeature(models.Model, Feature):
     feature = models.CharField(max_length=64, blank=True, validators=[
         validators.RegexValidator(r'^{0[topics]}$'.format(dict(Feature.Expression.ALL)))
     ])
+    feature_type = models.ForeignKey('RankingFeatureType')
     # NOTE: Did we end up using global_maximum (reranked_edges, rescored_edges)?
     global_maximum = models.FloatField(blank=True, null=True)
     reverse = models.BooleanField(default=False, blank=True)
