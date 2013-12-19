@@ -485,7 +485,6 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
 
         interactions = tuple(
             dynamo.PostInteractions(
-                fbid=edge.secondary.fbid,
                 post_likes=len(post_interactions['post_likes']),
                 post_comms=len(post_interactions['post_comms']),
                 stat_likes=len(post_interactions['stat_likes']),
@@ -493,6 +492,7 @@ def _extend_friend_edges(user, token, edges, require_outgoing=False):
                 wall_posts=len(post_interactions['wall_posts']),
                 wall_comms=len(post_interactions['wall_comms']),
                 tags=len(post_interactions['tags']),
+                user=edge.secondary,
                 post_topics=network.post_topics[post_id],
             )
             for (post_id, post_interactions) in user_aggregate.posts.iteritems()
