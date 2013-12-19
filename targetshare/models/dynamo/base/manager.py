@@ -190,6 +190,10 @@ class ItemManager(BaseItemManager):
         return self.table.get_item(*args, **kws)
 
     @inherits_docs
+    def lookup(self, *args, **kws):
+        return self.table.lookup(*args, **kws)
+
+    @inherits_docs
     def put_item(self, *args, **kws):
         return self.table.put_item(*args, **kws)
 

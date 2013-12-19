@@ -381,7 +381,6 @@ NOSE_ARGS = (
     '--cover-html',
     '--cover-package=targetshare',
     '--exclude=^fab$',
-    '--http-whitelist=localhost:4444',
     '--logging-level=ERROR',
     '--logging-clear-handlers',
 )
