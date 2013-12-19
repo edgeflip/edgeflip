@@ -9,7 +9,7 @@ from django.utils.importlib import import_module
 from targetshare import models
 from targetshare.views.utils import get_visitor, set_visit
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 class VisitTestCase(EdgeFlipTestCase):

@@ -5,7 +5,7 @@ from mock import patch
 
 from targetshare import models
 
-from . import EdgeFlipViewTestCase
+from .. import EdgeFlipViewTestCase
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')

@@ -10,7 +10,7 @@ from mock import patch, Mock
 
 from targetshare import models
 
-from . import EdgeFlipViewTestCase, DATA_PATH, patch_facebook
+from .. import EdgeFlipViewTestCase, DATA_PATH, patch_facebook
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
