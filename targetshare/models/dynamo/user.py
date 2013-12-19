@@ -1,4 +1,5 @@
 import collections
+import logging
 import math
 
 from django.utils import timezone
@@ -15,6 +16,9 @@ from .base import (
 )
 from .base.item import cached_property
 from .base.types import DOUBLE_NEWLINE
+
+
+LOG = logging.getLogger('crow')
 
 
 class User(Item):
@@ -85,7 +89,7 @@ class User(Item):
         return math.atan(float(score) / 2) * 2 / math.pi
 
     @classmethod
-    def get_topics(cls, interactions):
+    def get_topics(cls, interactions, warn=True):
         """Return a User's interests scored by topic, given an iterable of
         PostInteractions.
 
@@ -93,13 +97,20 @@ class User(Item):
         performance, these should be pre-populated.
 
         """
+        uncached = 0
         scores = collections.defaultdict(int)
         for interaction in interactions:
+            if warn and getattr(interaction, '_post_topics_cache', None) is None:
+                uncached += 1
             post_topics = interaction.post_topics.document
             for (topic, value) in post_topics.items():
                 # For now, all interactions weighted the same:
                 for (_interaction_type, count) in interaction.document.items():
                     scores[topic] += value * count
+
+        if uncached:
+            LOG.warn("User topics calculation performed without precaching "
+                     "of %i PostTopics items", uncached)
 
         # Normalize topic scores to 1:
         return {topic: cls._normalize_topic(value)
