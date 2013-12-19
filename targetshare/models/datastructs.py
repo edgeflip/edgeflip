@@ -69,6 +69,11 @@ class UserNetwork(list):
         ])
         secondaries = {user.fbid: user for user in incoming_users}
 
+        if not secondaries:
+            # Below PostInteractions scan may fail with empty set, and we know
+            # the network is empty by now:
+            return cls()
+
         # NOTE: If this scan's performance becomes an issue, we might want to
         # add a join table, say:
         #     class UserPostInteractions(Item):
