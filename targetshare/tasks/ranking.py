@@ -27,6 +27,8 @@ DB_FRIEND_THRESHOLD = 90 # percent
 PX_REFINE_RANGE_WIDTH = 0.85
 
 # The maximum number of (high-proximity) friends to bother rank-refining:
+# NOTE: We might want to review this number, depending on how performant
+# production is in ranking
 PX_REFINE_MAX_COUNT = 500
 
 FilteringResult = namedtuple('FilteringResult', [

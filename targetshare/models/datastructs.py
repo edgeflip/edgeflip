@@ -69,6 +69,22 @@ class UserNetwork(list):
         ])
         secondaries = {user.fbid: user for user in incoming_users}
 
+        # NOTE: If this scan's performance becomes an issue, we might want to
+        # add a join table, say:
+        #     class UserPostInteractions(Item):
+        #         fbid = HashKeyField(data_type=NUMBER)
+        #         post_interactions = ItemField(data_type=NUMBER_SET)
+        # Then the query would be:
+        #     user_post_interactions = UserPostInteractions.items.batch_get(
+        #         keys=[{'fbid': fbid} for fbid in secondaries])
+        #     user_interactions = chain.from_iterable(
+        #         ((upi.fbid, pi) for pi in upi.post_interactions)
+        #         for upi in user_post_interactions)
+        #     post_interactions = PostInteractions.items.prefetch('post_topics').batch_get(
+        #         keys=[{'fbid': fbid, 'postid': postid}
+        #               for (fbid, postid) in user_interactions])
+        # (Or simply add the NUMBER_SET field to the User table, s.t. the join table
+        # isn't needed to do the join.)
         post_interactions = (dynamo.PostInteractions.items.prefetch('post_topics')
                              .scan(fbid__in=secondaries.keys()))
         interactions_key = operator.attrgetter('fbid')
