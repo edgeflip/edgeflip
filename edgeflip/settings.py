@@ -286,6 +286,7 @@ CELERY_QUEUES = (
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
     Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
     Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
+    # Feed Crawler Background Queues
     Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
     Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
     Queue('bg_partial_save', routing_key='bg.partial.save', queue_arguments=QUEUE_ARGS),

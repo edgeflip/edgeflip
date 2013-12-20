@@ -23,14 +23,24 @@ MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
 
 
-def crawl_user(token):
+def crawl_user(token, retry_count=0, max_retries=3):
     try:
-        facebook.client.extend_token(token.fbid, token.appid, token.token)
+        fresh_token = facebook.client.extend_token(
+            token.fbid, token.appid, token.token
+        )
     except IOError:
         # well, we tried
         rvn_logger.exception(
             'Failed to extend token for {}'.format(token.fbid)
         )
+        if retry_count <= max_retries:
+            crawl_user(token, retry_count + 1)
+        else:
+            # Token is probably dead
+            return
+    else:
+        fresh_token.save()
+        token = fresh_token
 
     task = bg_px4_crawl.apply_async(
         args=[token],
