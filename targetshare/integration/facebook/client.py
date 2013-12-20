@@ -138,6 +138,33 @@ def urlload(url, query=(), timeout=None):
         raise exc_type, exc_value, trace
 
 
+def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
+    retry_count = 0
+    data = []
+    logger.info('Starting pagination dive with {}'.format(url))
+    while url:
+        #import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
+        try:
+            paginated_data = urlload(
+                url, timeout=timeout)
+        except (ValueError, IOError):
+            logger.exception('Failed to grab next page of data')
+            retry_count += 1
+            if retry_count > retry_limit:
+                logger.error('Giving up on this batch of data')
+                break
+            else:
+                time.sleep(sleep_duration)
+                continue
+        else:
+            url = None
+            if paginated_data.get('data'):
+                data.extend(paginated_data['data'])
+                url = paginated_data.get('paging', {}).get('next')
+
+    return data
+
+
 def _urlload_thread(url, query=(), results=None):
     """Used to read JSON from Facebook in a thread and append output to a list of results"""
     if not hasattr(results, 'extend'):

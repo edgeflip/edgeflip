@@ -271,18 +271,27 @@ CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
 # traffic levels. Then MySQL won't kill our connections.
 CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
 CELERY_QUEUES = (
+    # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
-    Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
+    # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
     Queue('delayed_save', routing_key='delayed.save', queue_arguments=QUEUE_ARGS),
     Queue('get_or_create', routing_key='get.or.create', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
+    # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
     Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
+    Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
+    # Feed Crawler Background Queues
+    Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
+    Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
+    Queue('bg_partial_save', routing_key='bg.partial.save', queue_arguments=QUEUE_ARGS),
+    # Feed Crawler Comment and Likes Queue(s)
+    Queue('crawl_comments_and_likes', routing_key='crawl.comments.and.likes', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
     'targetshare.tasks.ranking.px3_crawl': {
@@ -328,7 +337,15 @@ CELERY_ROUTES = {
     'feed_crawler.tasks.process_sync_task': {
         'queue': 'process_sync',
         'routing_key': 'process.sync',
-    }
+    },
+    'feed_crawler.tasks.bg_px4_crawl': {
+        'queue': 'bg_px4',
+        'routing_key': 'bg.px4'
+    },
+    'feed_crawler.tasks.crawl_comments_and_likes': {
+        'queue': 'crawl_comments_and_likes',
+        'routing_key': 'crawl.comments.and.likes',
+    },
 }
 CELERY_IMPORTS = (
     'targetshare.tasks.ranking',
@@ -402,7 +419,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.NullHandler',
         },
-        'console':{
+        'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'

@@ -8,8 +8,9 @@ from django.db import IntegrityError
 
 from targetshare import models
 
-
+LOG = get_task_logger(__name__)
 rvn_logger = logging.getLogger('crow')
+
 
 @celery.task
 def bulk_create(objects):
@@ -111,7 +112,7 @@ def partial_save(item, _attempt=0):
 
 
 @celery.task
-def upsert(*items):
+def upsert(*items, **kws):
     """Upsert the given boto Items.
 
     Arguments:
@@ -123,6 +124,7 @@ def upsert(*items):
 
     """
     # Support single-argument sequence interface:
+    partial_save_queue = kws.get('partial_save_queue', 'partial_save')
     if len(items) == 1 and isinstance(items[0], (list, tuple)):
         (items,) = items
 
@@ -141,11 +143,19 @@ def upsert(*items):
         for key, value in item.items():
             existing[key] = value
 
-        partial_save.delay(existing)
+        partial_save.apply_async(
+            args=[existing],
+            queue=partial_save_queue,
+            routing_key=partial_save_queue.replace('_', '.'),
+        )
 
     # Remaining items are new. Save them:
     for item in items_data.values():
-        partial_save.delay(item)
+        partial_save.apply_async(
+            args=[item],
+            queue=partial_save_queue,
+            routing_key=partial_save_queue.replace('_', '.'),
+        )
 
 
 @celery.task(task_time_limit=600)
