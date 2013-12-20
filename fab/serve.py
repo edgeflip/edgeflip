@@ -27,6 +27,7 @@ CELERY_QUEUES = (
     'bg_px4',
     'bg_upsert',
     'bg_update_edges',
+    'bg_partial_save',
 )
 
 

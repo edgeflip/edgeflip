@@ -4,7 +4,6 @@ import logging
 import json
 import random
 import urllib
-import time
 
 import celery
 from celery.utils.log import get_task_logger
@@ -42,7 +41,14 @@ def crawl_user(token):
     return task
 
 
+@celery.task
 def bg_px4_crawl(token):
+    ''' Very similar to the standard px4 task. The main difference is that
+    this skips checking dynamo for data, as this is intended to constantly
+    be feeding data into Dynamo. Also, it ships all saving tasks off to
+    a different, feed_crawler specific queue as to not clog up the main,
+    user facing, queues.
+    '''
     try:
         user = facebook.client.get_user(token.fbid, token.token)
         edges_unranked = facebook.client.get_friend_edges(
@@ -66,13 +72,17 @@ def bg_px4_crawl(token):
         queue='bg_delayed_save',
         routing_key='bg.delayed_save',
     )
+    #TODO: Verify these kwargs are working properly, because I don't currently
+    #TODO: think that they are.
     db.upsert.apply_async(
         args=[user],
+        kwargs={'partial_save_queue': 'bg_partial_save'},
         queue='bg_upsert',
         routing_key='bg.upsert'
     )
     db.upsert.apply_async(
         args=[[edge.secondary for edge in edges_ranked]],
+        kwargs={'partial_save_queue': 'bg_partial_save'},
         queue='bg_upsert',
         routing_key='bg.upsert'
     )
@@ -111,7 +121,10 @@ def process_sync_task(fbid):
     sync_task = models.FBSyncTask.items.get_item(fbid=fbid)
     sync_task.status = sync_task.IN_PROCESS
     sync_task.save(overwrite=True)
-    s3_conn = utils.S3Manager()
+    s3_conn = utils.S3Manager(
+        aws_access_key_id=settings.AWS.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS.AWS_SECRET_ACCESS_KEY
+    )
 
     logger.info('Preparing to crawl {} fbids'.format(
         len(sync_task.fbids_to_crawl)))
@@ -175,39 +188,36 @@ def process_sync_task(fbid):
                     )
                     sync_task.delete()
 
-        retry_count = 0
-        while next_url:
-            logger.info('Crawling {} for {}_{}'.format(
-                next_url, sync_task.fbid, fbid))
-            try:
-                paginated_data = facebook.client.urlload(
-                    next_url, timeout=120)
-            except (ValueError, IOError) as exc:
-                logger.exception(
-                    'Failed to grab next page of data for {}_{}'.format(
-                        sync_task.fbid, fbid)
-                )
-                retry_count += 1
-                if retry_count > 3:
-                    logger.error('Giving up on grabbing {} for {}_{}'.format(
-                        next_url, sync_task.fbid, fbid))
-                    break
-                else:
-                    time.sleep(5)
-                    continue
-
-            else:
-                if paginated_data.get('data'):
-                    data['data'].extend(paginated_data['data'])
-                    next_url = paginated_data.get('paging', {}).get('next')
-                else:
-                    next_url = None
+        if next_url:
+            result = facebook.client.exhaust_pagination(next_url)
+            data['data'].extend(result)
 
         data['updated'] = to_epoch(timezone.now())
         s3_key.set_contents_from_string(json.dumps(data))
         sync_task.fbids_to_crawl.remove(fbid)
         sync_task.save(overwrite=True)
+        crawl_comments_and_likes.delay(data, s3_key)
         logger.info('Completed {}_{}'.format(sync_task.fbid, fbid))
 
     logger.info('Completed crawl of {}'.format(sync_task.fbid))
     sync_task.delete()
+
+
+@celery.task
+def crawl_comments_and_likes(feed, s3_key):
+    ''' Takes an existing dict from process_sync_task, inspects all the
+    items from the feed and tries to crawl down the pagination of comments
+    and likes
+    '''
+    for item in feed['data']:
+        next_url = item.get('comments', {}).get('paging', {}).get('next')
+        if next_url:
+            result = facebook.client.exhaust_pagination(next_url)
+            item['comments']['data'].extend(result)
+
+        next_url = item.get('likes', {}).get('paging', {}).get('next')
+        if next_url:
+            result = facebook.client.exhaust_pagination(next_url)
+            item['likes']['data'].extend(result)
+
+    s3_key.set_contents_from_string(json.dumps(feed))

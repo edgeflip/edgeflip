@@ -64,16 +64,14 @@ class Command(NoArgsCommand):
         self, sleep, workdir, umask, pid_file, log_file,
         daemon_stdout, daemon_stderr, **options
     ):
-        become_daemon(
-            our_home_dir=workdir, out_log=daemon_stdout,
-            err_log=daemon_stderr, umask=umask
-        )
+        logger.info('Starting up...')
         self.crawl(sleep)
 
     def crawl(self, sleep):
         logger.info('Starting crawl of all tokens')
-        for token in dynamo.Token.items.scan(expires__gt=datetime.now()):
+        for count, token in enumerate(
+                dynamo.Token.items.scan(expires__gt=datetime.now())
+        ):
+            logger.info('Crawling token for {}'.format(token.fbid))
             tasks.crawl_user(token)
-        logger.info('Crawl passed, sleeping for {} seconds'.format(sleep))
-        time.sleep(sleep)
-        self.crawl(sleep)
+        logger.info('Placed {} tokens on the queue'.format(count + 1))
