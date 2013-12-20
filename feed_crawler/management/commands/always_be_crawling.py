@@ -19,9 +19,9 @@ class Command(NoArgsCommand):
 
     def crawl(self):
         logger.info('Starting crawl of all tokens')
-        for count, token in enumerate(
-            dynamo.Token.items.scan(expires__gt=datetime.now())
-        ):
+        count = 0
+        for token in dynamo.Token.items.scan(expires__gt=datetime.now()):
             logger.info('Crawling token for {}'.format(token.fbid))
             tasks.crawl_user(token)
+            count += 1
         logger.info('Placed {} tokens on the queue'.format(count + 1))
