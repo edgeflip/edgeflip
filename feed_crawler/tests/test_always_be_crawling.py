@@ -1,4 +1,5 @@
 from mock import Mock, patch
+from datetime import timedelta
 
 from django.utils import timezone
 
@@ -23,13 +24,14 @@ class TestAlwaysBeCrawling(EdgeFlipTestCase):
 
     @patch('feed_crawler.tasks.crawl_user')
     def test_crawl(self, crawl_mock):
+        the_future = timezone.now() + timedelta(days=5)
         dynamo.Token(
             fbid=12345, appid=1,
-            expires=timezone.now(), token='test'
+            expires=the_future, token='test'
         ).save()
         dynamo.Token(
             fbid=67890, appid=1,
-            expires=timezone.now(), token='test'
+            expires=the_future, token='test'
         ).save()
         self.command.crawl()
         self.assertEqual(crawl_mock.call_count, 2)

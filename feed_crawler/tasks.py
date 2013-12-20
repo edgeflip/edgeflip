@@ -34,7 +34,7 @@ def crawl_user(token, retry_count=0, max_retries=3):
             'Failed to extend token for {}'.format(token.fbid)
         )
         if retry_count <= max_retries:
-            crawl_user(token, retry_count + 1)
+            return crawl_user(token, retry_count + 1)
         else:
             # Token is probably dead
             return

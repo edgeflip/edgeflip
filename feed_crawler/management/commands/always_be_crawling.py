@@ -1,7 +1,7 @@
 import logging
-from datetime import datetime
 
 from django.core.management.base import NoArgsCommand
+from django.utils import timezone
 
 from targetshare.models import dynamo
 from feed_crawler import tasks
@@ -20,7 +20,7 @@ class Command(NoArgsCommand):
     def crawl(self):
         logger.info('Starting crawl of all tokens')
         count = 0
-        for token in dynamo.Token.items.scan(expires__gt=datetime.now()):
+        for token in dynamo.Token.items.scan(expires__gt=timezone.now()):
             logger.info('Crawling token for {}'.format(token.fbid))
             tasks.crawl_user(token)
             count += 1

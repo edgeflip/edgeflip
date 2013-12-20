@@ -290,6 +290,7 @@ CELERY_QUEUES = (
     Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
     Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
     Queue('bg_partial_save', routing_key='bg.partial.save', queue_arguments=QUEUE_ARGS),
+    # Feed Crawler Comment and Likes Queue(s)
     Queue('crawl_comments_and_likes', routing_key='crawl.comments.and.likes', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
