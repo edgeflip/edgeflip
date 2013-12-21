@@ -376,7 +376,6 @@ NOSE_ARGS = (
     '--cover-html',
     '--cover-package=targetshare',
     '--exclude=^fab$',
-    '--http-whitelist=localhost:4444',
     '--logging-level=ERROR',
     '--logging-clear-handlers',
 )
@@ -402,7 +401,7 @@ LOGGING = {
             'level': 'DEBUG',
             'class': 'logging.NullHandler',
         },
-        'console':{
+        'console': {
             'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'simple'

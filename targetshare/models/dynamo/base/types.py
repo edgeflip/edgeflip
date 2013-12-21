@@ -1,10 +1,10 @@
 import csv
 import datetime
+import itertools
 import json
 import numbers
 import re
 
-from decimal import Decimal
 from boto.dynamodb import types as basetypes
 
 # Make boto's generic data types available:
@@ -141,7 +141,7 @@ NUMBER = NumberType()
 
 
 COMMA = ','
-DOUBLE_NEWLINE = '\n\n'
+DOUBLE_NEWLINE = re.compile(r'\r?\n\r?\n')
 
 
 class AbstractSetType(InternalDataTypeExtension):
@@ -159,22 +159,23 @@ class AbstractSetType(InternalDataTypeExtension):
 
     def decode(self, value):
         if is_null(value):
-            return self.decode_null(value)
+            return value
 
         if isinstance(value, basestring):
-            return self.decode_str(value)
+            value = self.decode_str(value)
+        elif hasattr(value, '__iter__'):
+            value = self.decode_iter(value)
+        else:
+            raise DataValidationError("Value is not an appropriate {} specification: {!r}"
+                                      .format(self.__class__.__name__, value))
 
-        if hasattr(value, '__iter__'):
-            return self.decode_iter(value)
-
-        raise DataValidationError("Value is not an appropriate {} specification: {!r}"
-                                  .format(self.__class__.__name__, value))
-
-    def decode_null(self, value):
-        return value
+        cast_item = self.item_cast or (lambda item: item)
+        cleaned = (cast_item(item) for item in value if item)
+        return set(itertools.islice(cleaned, 100))
 
     def decode_str(self, value):
-        items = None
+        if isinstance(self.delimiter, re._pattern_type):
+            return (item.strip() for item in self.delimiter.split(value.strip()))
 
         if self.delimiter == self.COMMA:
             # csv doesn't handle unicode or unquoted newlines
@@ -184,13 +185,10 @@ class AbstractSetType(InternalDataTypeExtension):
             except csv.Error:
                 pass
             else:
-                items = (item.decode('utf-8').strip() for item in row)
+                return (item.decode('utf-8').strip() for item in row)
 
-        if items is None:
-            items = (item.strip() for item in value.strip().split(self.delimiter))
-
-        cast_item = self.item_cast or (lambda item: item)
-        return {cast_item(item) for item in items if item}
+        # delimiter is neither of the above or csv.reader failed:
+        return (item.strip() for item in value.strip().split(self.delimiter))
 
     def decode_iter(self, value):
         if self.item_type is None:
@@ -207,7 +205,7 @@ class AbstractSetType(InternalDataTypeExtension):
                 raise DataValidationError(
                     "Set types may not contain empty strings: {!r}".format(value))
 
-        return value if isinstance(value, (set, frozenset)) else set(value)
+        return value
 
 
 class NumberSetType(AbstractSetType):
