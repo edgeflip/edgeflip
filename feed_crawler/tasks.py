@@ -39,7 +39,7 @@ def crawl_user(token, retry_count=0, max_retries=3):
             # Token is probably dead
             return
     else:
-        fresh_token.save()
+        fresh_token.save(overwrite=True)
         token = fresh_token
 
     task = bg_px4_crawl.apply_async(
@@ -126,7 +126,7 @@ def create_sync_task(edges, token):
         process_sync_task.delay(sync_task.fbid)
 
 
-@celery.task(default_retry_delay=300, max_retries=3)
+@celery.task(default_retry_delay=300, max_retries=3, time_limit=0)
 def process_sync_task(fbid):
     sync_task = models.FBSyncTask.items.get_item(fbid=fbid)
     sync_task.status = sync_task.IN_PROCESS
@@ -213,7 +213,7 @@ def process_sync_task(fbid):
     sync_task.delete()
 
 
-@celery.task
+@celery.task(time_limit=0)
 def crawl_comments_and_likes(feed, s3_key):
     ''' Takes an existing dict from process_sync_task, inspects all the
     items from the feed and tries to crawl down the pagination of comments
