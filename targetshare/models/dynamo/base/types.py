@@ -151,6 +151,7 @@ class AbstractSetType(InternalDataTypeExtension):
 
     item_cast = None # optional
     item_type = None # required
+    limit = None # optional
 
     def __new__(cls, delimiter=COMMA):
         self = super(AbstractSetType, cls).__new__(cls)
@@ -171,7 +172,7 @@ class AbstractSetType(InternalDataTypeExtension):
 
         cast_item = self.item_cast or (lambda item: item)
         cleaned = (cast_item(item) for item in value if item)
-        return set(itertools.islice(cleaned, 100))
+        return set(itertools.islice(cleaned, self.limit))
 
     def decode_str(self, value):
         if isinstance(self.delimiter, re._pattern_type):
@@ -221,6 +222,7 @@ class StringSetType(AbstractSetType):
 
     internal = STRING_SET
     item_type = basestring
+    limit = 100
 
 STRING_SET = StringSetType()
 
