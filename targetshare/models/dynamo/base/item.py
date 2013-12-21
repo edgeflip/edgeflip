@@ -3,7 +3,6 @@ DynamoDB tables and documents.
 
 """
 import itertools
-import re
 
 from boto.dynamodb2 import fields as basefields, items as baseitems
 from django.utils import timezone
@@ -30,36 +29,33 @@ class Meta(object):
     'names'
 
     """
-    # User-available options:
-    allow_undeclared_fields = False
-    undeclared_data_type = None
-    indexes = ()
-    table_name = None # Defaults to lowercased, pluralized version of class name
+    # User-available options & default values
+    DEFAULTS = dict(
+        allow_undeclared_fields=False,
+        undeclared_data_type=None,
+        indexes=(),
+        app_name=None,
 
-    # "Hide" methods with "__ __" to avoid appearance of available options #
+        # Defaults to lowercased, pluralized version of class name:
+        table_name=None,
+    )
 
-    @classmethod
-    def __isoption__(cls, key):
-        """Return whether the given key is a valid configuration option."""
-        return not cls.__isoption__.hidden.match(key) and key in vars(cls)
-    __isoption__.__func__.hidden = re.compile(r'^__.*__$')
-
-    @classmethod
-    def __user__(cls, name, keys, links, user):
-        """Build a new Meta instance from class declaration information and the
-        user metadata class (if supplied).
-
-        """
-        meta = cls(name, keys, links)
+    def __init__(self, name, keys, links, user=None):
+        # Set options:
+        vars(self).update(self.DEFAULTS)
         if user:
-            vars(meta).update((key, value) for key, value in vars(user).items()
-                              if cls.__isoption__(key))
-        return meta
+            vars(self).update(
+                (key, value) for (key, value) in vars(user).items()
+                if not key.startswith('__')
+            )
 
-    def __init__(self, name, keys, links):
-        self.table_name = utils.camel_to_underscore(name)
-        if not self.table_name.endswith('s'):
-            self.table_name += 's'
+        self.item_name = name
+        if not self.table_name:
+            self.table_name = utils.camel_to_underscore(name)
+            if not self.table_name.endswith('s'):
+                self.table_name += 's'
+            if self.app_name:
+                self.table_name = '.'.join([self.app_name, self.table_name])
 
         self.keys = keys
         self.links = links
@@ -73,23 +69,11 @@ class Meta(object):
                 self.link_keys[db_key_item] = link_name
 
     @property
-    def __merged__(self):
-        """View of metadata, which are based on instance attribute retrieval, built
-        by merging instance attribute dict on top of class attribute dict.
-
-        """
-        return dict(itertools.chain(
-            # Defaults:
-            ((key, value) for key, value in vars(type(self)).items() if self.__isoption__(key)),
-            # User specifications:
-            vars(self).items()
-        ))
+    def signed(self):
+        return '.'.join(part for part in [self.app_name, self.item_name] if part)
 
     def __repr__(self):
-        return "<{}({})>".format(
-            type(self).__name__,
-            ", ".join("{}={!r}".format(key, value) for key, value in self.__merged__.items())
-        )
+        return "<{}: {}>".format(type(self).__name__, self.signed)
 
 
 class ItemDoesNotExist(LookupError):
@@ -291,26 +275,29 @@ class DeclarativeItemBase(type):
                     field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
                     for key_ref in value.db_key
                 )
-                # Construct linked item manager property:
-                linked_name = value.linked_name
-                if linked_name:
-                    if linked_name is value.Unset:
-                        linked_name = utils.camel_to_underscore(name).replace('_', '')
-                        if linked_name.endswith('s'):
-                            linked_name += '_set'
-                        else:
-                            linked_name += 's'
-                    reverse_link = ReverseLinkFieldProperty(linked_name, name, value)
-                else:
-                    reverse_link = None
-                value.link(reverse_descriptor=reverse_link)
                 link_fields[key] = value
                 attrs[key] = LinkFieldProperty(key)
             elif isinstance(value, managers.ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
         # Set meta:
-        attrs['_meta'] = Meta.__user__(name, item_fields, link_fields, attrs.pop('Meta', None))
+        meta = attrs['_meta'] = Meta(name, item_fields, link_fields, attrs.pop('Meta', None))
+
+        # Resolve links:
+        for link_field in link_fields.values():
+            # Construct linked item manager property:
+            linked_name = link_field.linked_name
+            if linked_name:
+                if linked_name is link_field.Unset:
+                    linked_name = utils.camel_to_underscore(name).replace('_', '')
+                    if linked_name.endswith('s'):
+                        linked_name += '_set'
+                    else:
+                        linked_name += 's'
+                reverse_link = ReverseLinkFieldProperty(linked_name, meta.signed, link_field)
+            else:
+                reverse_link = None
+            link_field.link(reverse_descriptor=reverse_link)
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})

@@ -12,14 +12,14 @@ cache = {}
 
 
 def populate_cache(sender, **_kws):
-    cache[sender.__name__] = sender
+    cache[sender._meta.signed] = sender
 
 
 pending_links = defaultdict(set)
 
 
 def resolve_links(sender, **_kws):
-    for obj in pending_links.pop(sender.__name__, ()):
+    for obj in pending_links.pop(sender._meta.signed, ()):
         obj.resolve_link(sender)
 
 

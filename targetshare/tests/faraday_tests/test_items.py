@@ -11,6 +11,9 @@ class TestEquality(FaradayTestCase):
         uid = base.HashKeyField(data_type=base.NUMBER)
         token = base.RangeKeyField()
 
+        class Meta(object):
+            app_name = 'faraday'
+
     def setup(self):
         super(TestEquality, self).setup()
         self.create_item_table(self.Token)

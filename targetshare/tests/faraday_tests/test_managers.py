@@ -12,10 +12,16 @@ class TestPrefetch(FaradayTestCase):
         class User(base.Item):
             uid = base.HashKeyField(data_type=base.NUMBER)
 
+            class Meta(object):
+                app_name = 'faraday'
+
         class Token(base.Item):
             uid = base.HashKeyField(data_type=base.NUMBER)
             token = base.RangeKeyField()
             user = base.ItemLinkField(User, db_key=uid)
+
+            class Meta(object):
+                app_name = 'faraday'
 
         self.User = User
         self.Token = Token

@@ -10,11 +10,17 @@ from . import FaradayTestCase
 class User(base.Item):
     uid = base.HashKeyField(data_type=base.NUMBER)
 
+    class Meta(object):
+        app_name = 'faraday'
+
 
 class Token(base.Item):
     uid = base.HashKeyField(data_type=base.NUMBER)
     token = base.RangeKeyField()
     user = base.ItemLinkField(User, db_key=uid)
+
+    class Meta(object):
+        app_name = 'faraday'
 
 
 class TestPickling(FaradayTestCase):
