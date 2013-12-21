@@ -1,3 +1,7 @@
+import os
+import json
+import urllib2
+
 from mock import Mock, patch
 
 from django.utils import timezone
@@ -8,6 +12,8 @@ from targetshare import models
 
 from feed_crawler import tasks, utils
 
+DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
 
 class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
@@ -15,6 +21,19 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         super(TestFeedCrawlerTasks, self).setUp()
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
+
+    @patch_facebook
+    def test_bg_px4_crawl(self):
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+
+        ranked_edges = tasks.bg_px4_crawl(self.token)
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        assert all(x.incoming.post_likes is not None for x in ranked_edges)
+
+        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+        # We know we have a call to get the user and the friend count at the
+        # very least. However, hitting FB should spawn many more hits to FB
+        self.assertGreater(urllib2.urlopen.call_count, 2)
 
     @patch_facebook
     @patch('feed_crawler.tasks.process_sync_task')
@@ -85,3 +104,40 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         self.assertTrue(existing_key.set_contents_from_string.called)
         with self.assertRaises(models.FBSyncTask.DoesNotExist):
             models.FBSyncTask.items.get_item(fbid=1)
+
+    @patch('targetshare.integration.facebook.client.urlload')
+    def test_crawl_comments_and_likes(self, fb_mock):
+        fb_mock.side_effect = [
+            {"data": [
+                {
+                    "id": "10151910724132946_11479371",
+                    "from": {
+                        "name": "Alex Tevlin",
+                        "id": "794333711"
+                    },
+                    "message": "Should've stayed at Fulham to begin with!",
+                    "can_remove": False,
+                    "created_time": "2013-12-20T16:25:26+0000",
+                    "like_count": 0,
+                    "user_likes": False
+                },
+            ]},
+            {"data": [
+                {
+                    "id": "100002382106641",
+                    "name": "Joseph Orozco"
+                },
+            ]},
+        ]
+        user_feed = json.loads(
+            open(os.path.join(DATA_PATH, 'user_feed.json')).read()
+        )
+        self.assertEqual(len(user_feed['data'][0]['comments']['data']), 1)
+        self.assertEqual(len(user_feed['data'][0]['likes']['data']), 3)
+        s3_key_mock = Mock()
+        tasks.crawl_comments_and_likes(user_feed, s3_key_mock)
+        extended_feed = json.loads(
+            s3_key_mock.set_contents_from_string.call_args[0][0]
+        )
+        self.assertEqual(len(extended_feed['data'][0]['comments']['data']), 2)
+        self.assertEqual(len(extended_feed['data'][0]['likes']['data']), 4)
