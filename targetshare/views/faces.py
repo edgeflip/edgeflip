@@ -109,7 +109,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 def faces(request):
     faces_form = forms.FacesForm(request.POST)
     if not faces_form.is_valid():
-        return utils.JsonHttpResponse(faces_form.errors, status_code=400)
+        return utils.JsonHttpResponse(faces_form.errors, status=400)
 
     data = faces_form.cleaned_data
     campaign = data['campaign']

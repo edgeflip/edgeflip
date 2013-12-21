@@ -14,12 +14,17 @@ from pymlconf import ConfigDict
 
 from targetshare import models
 from targetshare.models.dynamo import utils
+from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
 
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 class EdgeFlipTestCase(TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        utils.database.drop_all_tables()
 
     def setUp(self):
         super(EdgeFlipTestCase, self).setUp()
@@ -36,11 +41,14 @@ class EdgeFlipTestCase(TestCase):
         for patch_ in self.patches:
             patch_.start()
 
-        # Restore dynamo data:
-        utils.database.drop_all_tables() # drop if exist
-        utils.database.create_all_tables()
+        for (signature, item) in models.dynamo.base.loading.cache.items():
+            # targetshare dynamo tables are installed without an app prefix
+            # (ignore any that have one):
+            if '.' not in signature:
+                utils.database.create_table(item.items.table)
 
     def tearDown(self):
+        utils.database.drop_all_tables()
         for patch_ in self.patches:
             patch_.stop()
         super(EdgeFlipTestCase, self).tearDown()
@@ -56,10 +64,10 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         self.params = {
             'fbid': '1',
             'token': 1,
-            'num': 9,
+            'num_face': 9,
             'sessionid': 'fake-session',
-            'campaignid': 1,
-            'contentid': 1,
+            'campaign': 1,
+            'content': 1,
         }
         self.test_user = models.User(
             fbid=1,
@@ -111,9 +119,13 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px3_result_mock.successful.return_value = px3_successful
         px3_result_mock.failed.return_value = px3_failed
         if px3_ready:
-            px3_result_mock.result = (
+            px3_result_mock.result = FilteringResult(
                 [self.test_edge],
-                models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+                models.datastructs.TieredEdges(
+                    edges=[self.test_edge],
+                    campaign_id=1,
+                    content_id=1,
+                ),
                 self.test_filter.filter_id,
                 self.test_filter.url_slug,
                 1,
@@ -127,7 +139,9 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px4_result_mock.successful.return_value = px4_successful
         px4_result_mock.failed.return_value = px4_failed
         if px4_ready:
-            px4_result_mock.result = [self.test_edge] if px4_successful else error
+            px4_result_mock.result = (
+                empty_filtering_result._replace(ranked=[self.test_edge])
+                if px4_successful else error)
         else:
             px4_result_mock.result = None
 

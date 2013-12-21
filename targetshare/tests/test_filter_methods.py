@@ -11,11 +11,13 @@ from . import EdgeFlipTestCase
 class TestFilters(EdgeFlipTestCase):
 
     fixtures = ['test_data']
+    expressions = models.FilterFeature.Expression
+    operators = models.FilterFeature.Operator
 
     def setUp(self):
         super(TestFilters, self).setUp()
         self.client = models.Client.objects.get(pk=1)
-        self.filter_obj = models.Filter.objects.create(
+        self.filter = models.Filter.objects.create(
             name='test filter',
             client=self.client
         )
@@ -30,70 +32,48 @@ class TestFilters(EdgeFlipTestCase):
             country='United States'
         )
 
+    def _operate(self, feature, operator, value):
+        feature_type, _created = models.FilterFeatureType.objects.get_or_create(code=feature)
+        feature = models.FilterFeature(
+            filter=self.filter,
+            feature=feature,
+            feature_type=feature_type,
+            operator=operator,
+            value=value,
+        )
+        return feature.operate_standard(self.user)
+
+    def assertFilter(self, feature, operator, value):
+        self.assertTrue(self._operate(feature, operator, value))
+
+    def assertNotFilter(self, feature, operator, value):
+        self.assertFalse(self._operate(feature, operator, value))
+
     def test_standard_filter_age(self):
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.AGE, 'min', 10)
-        )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.AGE, 'max', 50)
-        )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.AGE, 'eq', 29)
-        )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.AGE, 'in', [10, 29, 50])
-        )
+        self.assertFilter(self.expressions.AGE, self.operators.MIN, 10)
+        self.assertFilter(self.expressions.AGE, self.operators.MAX, 50)
+        self.assertFilter(self.expressions.AGE, self.operators.EQ, 29)
+        self.assertFilter(self.expressions.AGE, self.operators.IN, [10, 29, 50])
 
     def test_standard_filter_gender(self):
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.GENDER, 'eq', 'male')
-        )
-        self.assertFalse(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.GENDER, 'eq', 'female')
-        )
+        self.assertFilter(self.expressions.GENDER, self.operators.EQ, 'male')
+        self.assertNotFilter(self.expressions.GENDER, self.operators.EQ, 'female')
 
     def test_standard_filter_state(self):
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.STATE, 'eq', 'Illinois')
-        )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.STATE, 'in', ['Illinois', 'Missouri'])
-        )
+        self.assertFilter(self.expressions.STATE, self.operators.EQ, 'Illinois')
+        self.assertFilter(self.expressions.STATE, self.operators.IN, ['Illinois', 'Missouri'])
 
     def test_standard_filter_city(self):
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.CITY, 'eq', 'Chicago')
-        )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeature.CITY, 'in', ['Chicago', 'Fenton'])
-        )
+        self.assertFilter(self.expressions.CITY, self.operators.EQ, 'Chicago')
+        self.assertFilter(self.expressions.CITY, self.operators.IN, ['Chicago', 'Fenton'])
 
     def test_standard_filter_full_location(self):
-        locations = [
+        locations = (
             'Chicago, Illinois United States',
             'St. Louis, Missouri United States',
-        ]
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeatureType.FULL_LOCATION, 'eq', locations[0])
         )
-        self.assertTrue(
-            self.filter_obj._standard_filter(
-                self.user, models.FilterFeatureType.FULL_LOCATION, 'in', locations)
-        )
+        self.assertFilter(self.expressions.FULL_LOCATION, self.operators.EQ, locations[0])
+        self.assertFilter(self.expressions.FULL_LOCATION, self.operators.IN, locations)
 
     def test_standard_filter_missing_feature(self):
-        self.assertFalse(
-            self.filter_obj._standard_filter(
-                self.user, 'not_an_option', 'eq', 1000)
-        )
+        self.assertNotFilter('not_an_option', self.operators.EQ, 1000)

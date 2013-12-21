@@ -54,13 +54,20 @@ class TestRankingTasks(EdgeFlipTestCase):
         #        used in this test. That would cause this test to 'fail' even
         #        though all the code is working properly.
         ranked_edges = ranking.px3_crawl(self.token)
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
+        (
+            edges_ranked,
+            edges_filtered,
+            filter_id,
+            cs_slug,
+            campaign_id,
+            content_id,
+        ) = ranking.perform_filtering(
             ranked_edges,
-            campaignId=1,
-            contentId=1,
+            campaign_id=1,
+            content_id=1,
             fbid=1,
             visit_id=visit.pk,
-            numFace=10,
+            num_faces=10,
         )
         assert all(isinstance(x, models.datastructs.Edge) for x in edges_ranked)
         assert isinstance(edges_filtered, models.datastructs.TieredEdges)
@@ -73,7 +80,8 @@ class TestRankingTasks(EdgeFlipTestCase):
     def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        ranked_edges = ranking.proximity_rank_four(self.token)
+        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
@@ -88,7 +96,8 @@ class TestRankingTasks(EdgeFlipTestCase):
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        ranked_edges = ranking.proximity_rank_four(self.token)
+        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
@@ -111,7 +120,8 @@ class TestRankingTasks(EdgeFlipTestCase):
             user = models.User(fbid=x)
             user.save()
 
-        ranked_edges = ranking.proximity_rank_four(self.token)
+        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
@@ -156,16 +166,16 @@ class TestRankingTasks(EdgeFlipTestCase):
         ranked_edges = [test_edge2, test_edge1]
         edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
             ranked_edges,
-            campaignId=5,
-            contentId=1,
+            campaign_id=5,
+            content_id=1,
             fbid=1,
             visit_id=visit.pk,
-            numFace=10,
+            num_faces=10,
         )
 
         self.assertEquals(edges_filtered.secondary_ids, (1, 2))
-        self.assertEquals(edges_filtered[0]['campaignId'], 5)
-        self.assertEquals(edges_filtered[1]['campaignId'], 4)
+        self.assertEquals(edges_filtered[0]['campaign_id'], 5)
+        self.assertEquals(edges_filtered[1]['campaign_id'], 4)
 
 
 class TestDatabaseTasks(EdgeFlipTestCase):

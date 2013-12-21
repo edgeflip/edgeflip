@@ -62,28 +62,28 @@ class TestFilterViews(TestAdminBase):
                 # Filter Feature 1
                 'form-0-filter': self.filter_obj.pk,
                 'form-0-filter_feature_id': ff.pk,
-                'form-0-feature': relational.FilterFeature.AGE,
+                'form-0-feature': relational.FilterFeature.Expression.AGE,
                 'form-0-value': '25',
                 'form-0-operator': 'eq',
                 'form-0-end_dt': '2010-1-1',
                 # Filter Feature 2
                 'form-1-filter': self.filter_obj.pk,
                 'form-1-filter_feature_id': '',
-                'form-1-feature': relational.FilterFeature.STATE,
+                'form-1-feature': relational.FilterFeature.Expression.STATE,
                 'form-1-value': 'Illinois||Missouri',
                 'form-1-operator': 'in',
                 'form-1-end_dt': '2010-1-1',
                 # Filter Feature 3
                 'form-2-filter': self.filter_obj.pk,
                 'form-2-filter_feature_id': '',
-                'form-2-feature': relational.FilterFeature.CITY,
+                'form-2-feature': relational.FilterFeature.Expression.CITY,
                 'form-2-value': 'Chicago',
                 'form-2-operator': 'eq',
                 'form-2-end_dt': '2010-1-1',
                 # Filter Feature 4
                 'form-3-filter': self.filter_obj.pk,
                 'form-3-filter_feature_id': '',
-                'form-3-feature': relational.FilterFeature.TURNOUT_SCORE,
+                'form-3-feature': relational.FilterFeature.Expression.TURNOUT_SCORE,
                 'form-3-value': '25.854',
                 'form-3-operator': 'in',
                 'form-3-end_dt': '2010-1-1',
@@ -121,12 +121,12 @@ class TestFilterViews(TestAdminBase):
 
         for ff in filter_obj.filterfeatures.all():
             if ff.value_type == 'int':
-                self.assertTrue(isinstance(ff.decoded_value, (int, long)))
+                self.assertTrue(isinstance(ff.decode_value(), (int, long)))
             elif ff.value_type == 'list':
-                self.assertTrue(isinstance(ff.decoded_value, list))
+                self.assertTrue(isinstance(ff.decode_value(), list))
             elif ff.value_type == 'float':
-                self.assertTrue(isinstance(ff.decoded_value, float))
+                self.assertTrue(isinstance(ff.decode_value(), float))
             elif ff.value_type == 'string':
-                self.assertTrue(isinstance(ff.decoded_value, basestring))
+                self.assertTrue(isinstance(ff.decode_value(), basestring))
             else:
                 assert False

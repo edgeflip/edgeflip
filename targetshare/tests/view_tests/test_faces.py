@@ -92,7 +92,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         })
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 500)
-        self.assertEqual(response.content, 'No friends identified for you.')
+        self.assertEqual(response.content, 'No friends were identified for you.')
 
     @patch('targetshare.views.faces.celery')
     def test_faces_last_call(self, celery_mock):

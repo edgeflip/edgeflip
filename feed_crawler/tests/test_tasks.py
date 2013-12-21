@@ -22,7 +22,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         ''' Should create a FBTaskSync object and place a process_sync_task
         job on the queue
         '''
-        edges = px3_crawl(False, 1, self.token)
+        edges = px3_crawl(self.token)
         tasks.create_sync_task(edges, self.token)
         fbt = models.FBSyncTask.items.get_item(fbid=1)
         self.assertEqual(fbt.status, 'waiting')
@@ -40,7 +40,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             fbids_to_crawl={1, 2, 3}
         )
         fbt.save()
-        edges = px3_crawl(False, 1, self.token)
+        edges = px3_crawl(self.token)
         tasks.create_sync_task(edges, self.token)
         self.assertFalse(sync_mock.delay.called)
 
