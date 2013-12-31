@@ -1,5 +1,7 @@
 from datetime import datetime
+from decimal import Decimal
 
+import mock
 from freezegun import freeze_time
 
 from targetshare import models
@@ -32,8 +34,10 @@ class TestFilters(EdgeFlipTestCase):
             country='United States'
         )
 
-    def _operate(self, feature, operator, value):
-        feature_type, _created = models.FilterFeatureType.objects.get_or_create(code=feature)
+    def _operate(self, feature, operator, value, feature_code=None):
+        feature_code = feature_code or feature
+        (feature_type,
+         _created) = models.FilterFeatureType.objects.get_or_create(code=feature_code)
         feature = models.FilterFeature(
             filter=self.filter,
             feature=feature,
@@ -41,19 +45,28 @@ class TestFilters(EdgeFlipTestCase):
             operator=operator,
             value=value,
         )
+        (feature.value, feature.value_type) = feature.encode_value()
         return feature.operate_standard(self.user)
 
-    def assertFilter(self, feature, operator, value):
-        self.assertTrue(self._operate(feature, operator, value))
+    def assertFilter(self, feature, operator, value, feature_code=None):
+        self.assertTrue(self._operate(feature, operator, value, feature_code))
 
-    def assertNotFilter(self, feature, operator, value):
-        self.assertFalse(self._operate(feature, operator, value))
+    def assertNotFilter(self, feature, operator, value, feature_code=None):
+        self.assertFalse(self._operate(feature, operator, value, feature_code))
 
     def test_standard_filter_age(self):
         self.assertFilter(self.expressions.AGE, self.operators.MIN, 10)
         self.assertFilter(self.expressions.AGE, self.operators.MAX, 50)
         self.assertFilter(self.expressions.AGE, self.operators.EQ, 29)
-        self.assertFilter(self.expressions.AGE, self.operators.IN, [10, 29, 50])
+
+        # list of non-strings currently unsupported:
+        self.assertNotFilter(self.expressions.AGE, self.operators.IN, [10, 29, 50])
+        age = models.dynamo.User.age.fget # property's getter
+        str_age = lambda: str(age(self.user))
+        property_mock = mock.PropertyMock(side_effect=str_age)
+        with mock.patch.object(models.dynamo.User, 'age', new_callable=property_mock):
+            self.assertEqual(self.user.age, '29')
+            self.assertFilter(self.expressions.AGE, self.operators.IN, [10, 29, 50])
 
     def test_standard_filter_gender(self):
         self.assertFilter(self.expressions.GENDER, self.operators.EQ, 'male')
@@ -74,6 +87,36 @@ class TestFilters(EdgeFlipTestCase):
         )
         self.assertFilter(self.expressions.FULL_LOCATION, self.operators.EQ, locations[0])
         self.assertFilter(self.expressions.FULL_LOCATION, self.operators.IN, locations)
+
+    def test_standard_filter_topics(self):
+        topics_type = models.FilterFeatureType.TOPICS
+        self.assertEqual(self.user.topics, {})
+        self.assertNotFilter('topics[Sports]', self.operators.MAX, '0.99', topics_type)
+        del vars(self.user)['topics'] # Clear cache
+
+        post_topics = models.PostTopics(
+            postid='1_1',
+            Health=Decimal('1.2'),
+            Sports=Decimal('5.0'),
+        )
+        post_topics.save()
+        post_interactions = models.PostInteractions(
+            user=self.user,
+            post_topics=post_topics,
+            post_likes=1,
+            post_comms=2,
+            tags=1,
+        )
+        post_interactions.save()
+        self.assertEqual(self.user.topics, {
+            # Normalized values:
+            'Health': 0.7486681672439952,
+            'Sports': 0.936548965138893,
+        })
+
+        self.assertFilter('topics[Health]', self.operators.MIN, '0.7', topics_type)
+        self.assertFilter('topics[Sports]', self.operators.MAX, '0.99', topics_type)
+        self.assertNotFilter('topics[Sports]', self.operators.MAX, '0.93', topics_type)
 
     def test_standard_filter_missing_feature(self):
         self.assertNotFilter('not_an_option', self.operators.EQ, 1000)
