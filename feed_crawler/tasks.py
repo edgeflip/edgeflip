@@ -70,8 +70,7 @@ def bg_px4_crawl(token):
     except IOError as exc:
         bg_px4_crawl.retry(exc=exc)
 
-    edges_ranked = models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    edges_ranked = edges_unranked.ranked(
         require_incoming=True,
         require_outgoing=False,
     )
@@ -91,7 +90,7 @@ def bg_px4_crawl(token):
         routing_key='bg.upsert'
     )
     db.upsert.apply_async(
-        args=[[edge.secondary for edge in edges_ranked]],
+        args=[edge.secondary for edge in edges_ranked],
         kwargs={'partial_save_queue': 'bg_partial_save'},
         queue='bg_upsert',
         routing_key='bg.upsert'

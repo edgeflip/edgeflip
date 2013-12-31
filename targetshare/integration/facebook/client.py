@@ -209,17 +209,16 @@ def urlload(url, query=(), timeout=None):
 def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
     retry_count = 0
     data = []
-    logger.info('Starting pagination dive with {}'.format(url))
+    LOG.info('Starting pagination dive with {}'.format(url))
     while url:
-        #import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
         try:
             paginated_data = urlload(
                 url, timeout=timeout)
         except (ValueError, IOError):
-            logger.exception('Failed to grab next page of data')
+            LOG.exception('Failed to grab next page of data')
             retry_count += 1
             if retry_count > retry_limit:
-                logger.error('Giving up on this batch of data')
+                LOG.error('Giving up on this batch of data')
                 break
             else:
                 time.sleep(sleep_duration)
