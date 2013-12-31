@@ -8,7 +8,7 @@ from nose import tools
 
 from targetshare.models import datastructs, dynamo
 
-from . import EdgeFlipTestCase, DATA_PATH
+from .. import EdgeFlipTestCase, DATA_PATH
 
 
 def _remove_null_values(dict_):
