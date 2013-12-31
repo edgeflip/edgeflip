@@ -1,5 +1,6 @@
-import celery
+import itertools
 
+import celery
 from django.utils import timezone
 from freezegun import freeze_time
 from mock import patch
@@ -82,10 +83,21 @@ class TestRankingTasks(EdgeFlipTestCase):
 
         (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
-        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
-        assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
+        post_topics = ranked_edges.post_topics
+        self.assertTrue(post_topics)
+        assert all(isinstance(pt, models.PostTopics) for pt in post_topics.itervalues())
+
+        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+
+        interactions = tuple(itertools.chain.from_iterable(x.interactions
+                                                           for x in ranked_edges))
+        self.assertTrue(interactions)
+        assert all(isinstance(i, models.PostInteractions) for i in interactions)
+
+        assert all(x.incoming.post_likes is not None for x in ranked_edges)
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+
         self.assertIn('falling back to FB', logger_mock.info.call_args[0][0])
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB

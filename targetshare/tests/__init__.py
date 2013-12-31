@@ -1,6 +1,7 @@
 import json
 import os.path
 import random
+import re
 import urllib
 
 from mock import Mock, patch
@@ -227,23 +228,43 @@ def crawl_mock(min_friends, max_friends):
         # Threaded results:
         if 'from+stream' in url.lower():
             # StreamReaderThread
-            data = [
-                {'name': 'tags', 'fql_result_set': [{'tagged_ids': list(xrandrange(0, 25, 1))}
-                                                    for _ in xrandrange(0, 25)]},
-                {'name': 'stream', 'fql_result_set': []},
-            ] + [
-                {'name': column, 'fql_result_set': [dict.fromkeys(['user_id', 'fromid', 'actor_id'], value)
-                                                for value in xrandrange(0, 25, 1)]}
-                for column in (
-                    'postLikes',
-                    'postComms',
-                    'statLikes',
-                    'statComms',
-                    'wallPosts',
-                    'wallComms',
-                )
-            ]
-            return {'data': data}
+            data = {
+                'stream': [],
+                'post_likes': [],
+                'post_comms': [],
+                'stat_likes': [],
+                'stat_comms': [],
+                'wall_posts': [],
+                'wall_comms': [],
+                'tags': [],
+            }
+            dir_ = os.path.dirname(os.path.abspath(__file__))
+            app_dir = os.path.dirname(dir_)
+            corpus = open(os.path.join(os.path.dirname(app_dir), 'README.md')).read()
+            words = re.split(r'\s+', corpus)
+            for post_id in xrandrange(2, 20, 1):
+                start = random.randint(0, len(words))
+                end = random.randint(start, len(words))
+                message = ' '.join(words[start:end])
+                data['stream'].append({'post_id': post_id,
+                                       'message': message})
+                for column in data:
+                    if column == 'stream':
+                        continue
+                    if column == 'tags':
+                        user_ids = random.sample(fake_fbids,
+                                                 random.randint(0, len(fake_fbids)))
+                    else:
+                        user_ids = random.choice(fake_fbids)
+                    column_data = {'post_id': post_id}
+                    column_data['user_id'] = column_data['fromid'] = \
+                        column_data['actor_id'] = column_data['tagged_ids'] = \
+                        user_ids
+                    data[column].append(column_data)
+            return {'data': [
+                {'name': entry_type, 'fql_result_set': result_set}
+                for (entry_type, result_set) in data.items()
+            ]}
 
         elif 'friend_count+from' in url.lower():
             return {'data': [{'friend_count': friend_count}]}
