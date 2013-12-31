@@ -6,7 +6,7 @@ from mock import patch, Mock
 from targetshare import models
 from targetshare.management.commands import civis_cache_seed
 
-from . import EdgeFlipTestCase, patch_facebook
+from .. import EdgeFlipTestCase, patch_facebook
 
 
 class TestCivisCacheSeed(EdgeFlipTestCase):

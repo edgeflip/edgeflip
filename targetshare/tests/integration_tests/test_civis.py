@@ -7,7 +7,7 @@ from mock import Mock, patch
 from targetshare import models
 from targetshare.integration.civis import client
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 class TestCivisIntegration(EdgeFlipTestCase):
