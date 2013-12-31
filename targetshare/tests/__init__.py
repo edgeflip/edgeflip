@@ -249,11 +249,11 @@ def crawl_mock(min_friends, max_friends):
                 data['stream'].append({'post_id': post_id,
                                        'message': message})
                 for column in data:
-                    if column == 'stream':
+                    if column == 'stream' or random.randint(0, 1):
                         continue
                     if column == 'tags':
                         user_ids = random.sample(fake_fbids,
-                                                 random.randint(0, len(fake_fbids)))
+                                                 random.randint(1, len(fake_fbids)))
                     else:
                         user_ids = random.choice(fake_fbids)
                     column_data = {'post_id': post_id}
