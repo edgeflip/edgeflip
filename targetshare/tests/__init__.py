@@ -25,13 +25,7 @@ class EdgeFlipTestCase(TestCase):
 
     @classmethod
     def setUpClass(cls):
-        utils.database.drop_all_tables()
-
-    def setUp(self):
-        super(EdgeFlipTestCase, self).setUp()
-
-        # Test settings:
-        self.patches = [
+        cls.cls_patches = [
             patch.multiple(
                 settings,
                 CELERY_ALWAYS_EAGER=True,
@@ -39,9 +33,19 @@ class EdgeFlipTestCase(TestCase):
             )
         ]
         # Start patches:
-        for patch_ in self.patches:
+        for patch_ in cls.cls_patches:
             patch_.start()
 
+        # In case a bad test class doesn't clean up after itself:
+        utils.database.drop_all_tables()
+
+    @classmethod
+    def tearDownClass(cls):
+        for patch_ in cls.cls_patches:
+            patch_.stop()
+
+    def setUp(self):
+        super(EdgeFlipTestCase, self).setUp()
         for (signature, item) in models.dynamo.base.loading.cache.items():
             # targetshare dynamo tables are installed without an app prefix
             # (ignore any that have one):
@@ -50,8 +54,6 @@ class EdgeFlipTestCase(TestCase):
 
     def tearDown(self):
         utils.database.drop_all_tables()
-        for patch_ in self.patches:
-            patch_.stop()
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):
