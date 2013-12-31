@@ -1,5 +1,6 @@
-import celery
 import logging
+
+import celery
 from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from django.core import serializers
@@ -120,7 +121,7 @@ def partial_save(item, _attempt=0):
 
 
 @celery.task
-def upsert(*items):
+def upsert(*items, **kws):
     """Upsert the given boto Items.
 
     Arguments:
@@ -132,6 +133,7 @@ def upsert(*items):
 
     """
     # Support single-argument sequence interface:
+    partial_save_queue = kws.get('partial_save_queue', 'partial_save')
     if len(items) == 1 and isinstance(items[0], (list, tuple)):
         (items,) = items
 
@@ -152,11 +154,19 @@ def upsert(*items):
             strategy = field.upsert_strategy if field else UpsertStrategy.overwrite
             strategy(existing, key, value)
 
-        partial_save.delay(existing)
+        partial_save.apply_async(
+            args=[existing],
+            queue=partial_save_queue,
+            routing_key=partial_save_queue.replace('_', '.'),
+        )
 
     # Remaining items are new. Save them:
     for item in items_data.values():
-        partial_save.delay(item)
+        partial_save.apply_async(
+            args=[item],
+            queue=partial_save_queue,
+            routing_key=partial_save_queue.replace('_', '.'),
+        )
 
 
 @celery.task(task_time_limit=600)

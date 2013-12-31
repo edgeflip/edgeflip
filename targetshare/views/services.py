@@ -89,7 +89,8 @@ def incoming(request, campaign_id, content_id):
         db.delayed_save.delay(
             models.relational.Event(
                 visit=request.visit,
-                event_type='oauth_declined',
+                event_type='auth_fail',
+                content='oauth',
                 campaign_id=campaign_id,
                 client_content_id=content_id,
             )

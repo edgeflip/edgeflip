@@ -1,4 +1,5 @@
 import datetime
+import os.path
 import types
 
 from django.utils import timezone
@@ -7,7 +8,7 @@ from nose import tools
 
 from targetshare.models import datastructs, dynamo
 
-from . import EdgeFlipTestCase
+from . import EdgeFlipTestCase, DATA_PATH
 
 
 def _remove_null_values(dict_):
@@ -121,6 +122,50 @@ class DynamoUserTestCase(EdgeFlipTestCase):
         self.assertEqual(alice1['fbid'], 1234)
         self.assertEqual(alice1['city'], 'Anchorage')
         self.assertEqual(alice1['state'], 'Alaska')
+
+    def test_save_quotes(self):
+        quotes = open(os.path.join(DATA_PATH, 'longquote.txt')).read()
+        item = dynamo.User(
+            fbid=1234,
+            fname='Alice',
+            lname='Apples',
+            email='alice@example.com',
+            gender='Female',
+            birthday=datetime.datetime(1950, 1, 1, tzinfo=timezone.utc),
+            quotes=quotes,
+        )
+        self.assertEqual(len(item.quotes), 5)
+        self.assertIn('Berapa kali ku harus katakan cinta', item.quotes)
+
+    def test_save_quotes_dos(self):
+        quotes = open(os.path.join(DATA_PATH, 'longquote.txt')).read()
+        item = dynamo.User(
+            fbid=1234,
+            fname='Alice',
+            lname='Apples',
+            email='alice@example.com',
+            gender='Female',
+            birthday=datetime.datetime(1950, 1, 1, tzinfo=timezone.utc),
+            quotes=quotes.replace('\n', '\r\n'),
+        )
+        self.assertEqual(len(item.quotes), 5)
+        self.assertIn('Berapa kali ku harus katakan cinta', item.quotes)
+
+    def test_save_quotes_long(self):
+        quotes = '\n\n'.join('{}. All work and no play...'.format(count)
+                             for count in xrange(1, 151))
+        item = dynamo.User(
+            fbid=1234,
+            fname='Alice',
+            lname='Apples',
+            email='alice@example.com',
+            gender='Female',
+            birthday=datetime.datetime(1950, 1, 1, tzinfo=timezone.utc),
+            quotes=quotes,
+        )
+        self.assertEqual(len(quotes.split('\n\n')), 150)
+        self.assertEqual(len(item.quotes), 100)
+        self.assertIn('100. All work and no play...', item.quotes)
 
     def test_fetch_user(self):
         """Test fetching an existing user"""
