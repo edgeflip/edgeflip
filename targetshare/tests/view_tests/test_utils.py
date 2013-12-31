@@ -23,6 +23,7 @@ class TestVisit(VisitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestVisit, cls).setUpClass()
         cls.session_engine = import_module(settings.SESSION_ENGINE)
 
     def get_request(self, path='/', data=(), **extra):
