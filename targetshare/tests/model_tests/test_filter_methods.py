@@ -6,7 +6,7 @@ from freezegun import freeze_time
 
 from targetshare import models
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 @freeze_time('2013-01-01')
