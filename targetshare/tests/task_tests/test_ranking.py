@@ -130,7 +130,7 @@ class TestFiltering(RankingTestCase):
 
 class TestProximityRankFour(RankingTestCase):
 
-    @patch_facebook(min_friends=150, max_friends=200)
+    @patch_facebook(min_friends=101, max_friends=120)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
@@ -138,11 +138,12 @@ class TestProximityRankFour(RankingTestCase):
         (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
 
-        post_topics = ranked_edges.post_topics
-        self.assertTrue(post_topics)
-        assert all(isinstance(pt, models.PostTopics) for pt in post_topics.itervalues())
+        self.assertTrue(ranked_edges.post_topics)
+        self.assertEqual({type(pt) for pt in ranked_edges.post_topics.itervalues()},
+                         {models.PostTopics})
 
-        assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        self.assertEqual({type(edge) for edge in ranked_edges},
+                         {models.datastructs.Edge})
 
         interactions = tuple(itertools.chain.from_iterable(x.interactions
                                                            for x in ranked_edges))
@@ -201,3 +202,90 @@ class TestProximityRankFour(RankingTestCase):
             urllib2.urlopen.call_count,
             2
         )
+
+
+class TestRankRefinement(RankingTestCase):
+
+    fixtures = ['test_data']
+
+    @patch_facebook(min_friends=15, max_friends=30)
+    def test_ranking(self):
+        crawl_result = ranking.px4_crawl(self.token)
+        (ranked_edges, hit_fb) = crawl_result
+        self.assertTrue(hit_fb)
+
+        client = models.relational.Client.objects.all()[0]
+        campaign = client.campaigns.all()[0]
+        ranking_key = client.rankingkeys.create()
+        ranking_key.campaignrankingkeys.create(campaign=campaign)
+        ranking_key.rankingkeyfeatures.create(
+            feature='topics[Weather]',
+            feature_type=models.relational.RankingFeatureType.objects.get_topics(),
+            reverse=True,
+        )
+
+        result = ranking.refine_ranking(
+            crawl_result,
+            campaign.pk,
+            # Below unnecessary if not filtering:
+            None, None, None, None,
+        )
+        ranked_edges1 = result.ranked
+
+        self.assertEqual(result,
+            ranking.empty_filtering_result._replace(ranked=ranked_edges1))
+        self.assertItemsEqual(ranked_edges1, ranked_edges)
+        self.assertGreater(ranked_edges[0].score, ranked_edges[5].score)
+        self.assertGreater(ranked_edges1[0].secondary.topics['Weather'],
+                           ranked_edges1[5].secondary.topics['Weather'])
+
+    @patch_facebook(min_friends=15, max_friends=30)
+    def test_px4_filtering(self):
+        crawl_result = ranking.px4_crawl(self.token)
+        (ranked_edges, hit_fb) = crawl_result
+        self.assertTrue(hit_fb)
+
+        campaign = models.relational.Campaign.objects.all()[0]
+        client = campaign.client
+        client_content = client.clientcontent.all()[0]
+
+        # Prevent TooFewFriendsError
+        campaign.campaignproperties.update(min_friends=1)
+        # No need for add'l filters:
+        models.relational.FilterFeature.objects.filter(
+            filter__choicesetfilter__choice_set__campaignchoiceset__campaign=campaign
+        ).delete()
+        weathers = [edge.secondary.topics['Weather'] for edge in ranked_edges]
+        min_weather = min(weathers)
+        max_weather = max(weathers)
+        divider = (max_weather - min_weather) / 2 + min_weather
+
+        client_filter = client.filters.create()
+        client_filter.filterfeatures.create(
+            feature_type=models.relational.FilterFeatureType.objects.get_topics(),
+            feature='topics[Weather]',
+            operator=models.FilterFeature.Operator.MIN,
+            value=divider,
+        )
+        campaign.campaignglobalfilters.all().delete()
+        campaign.campaignglobalfilters.create(filter=client_filter, rand_cdf=1)
+
+        visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+        result = ranking.refine_ranking(
+            crawl_result,
+            campaign.pk,
+            client_content.pk,
+            self.token.fbid,
+            visit.pk,
+            num_faces=1,
+        )
+
+        self.assertTrue(all(result))
+        # CELERY_ALWAYS_EAGER (and no RankingKeyFeature sorting)
+        # => lists identical, rather than merely equal:
+        self.assertIs(result.ranked, ranked_edges)
+        self.assertLess(len(result.filtered), len(result.ranked))
+        mismatch = [user for user in result.filtered.secondaries
+                    if user.topics['Weather'] < divider]
+        self.assertFalse(mismatch)

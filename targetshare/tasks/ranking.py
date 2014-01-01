@@ -416,6 +416,7 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
             # Pre-populate 'topics' feature from UserNetwork for performance
             # NOTE: If network was read from FB, calculations will be limited to
             # contents of primary's posts (currently).
+            # TODO: This would help in topics filtering, too
             edges_ranked.precache_topics_feature()
 
         # Only bother ranking the first PX_REFINE_MAX_COUNT friends:

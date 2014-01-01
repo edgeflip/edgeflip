@@ -212,13 +212,18 @@ def fake_user(fbid, friend=False, num_friends=0):
 
 
 def crawl_mock(min_friends, max_friends):
-    fake_fbids = tuple(set(100000000000 + random.randint(1, 10000000)
-                       for _ in xrandrange(min_friends, max_friends)))
+    fake_fbids = tuple({100000000000 + random.randint(1, 10000000)
+                        for _ in xrandrange(min_friends, max_friends)})
     friend_count = len(fake_fbids)
     synchronous_results = iter([
         # get_user:
         {'data': [fake_user(1)]},
     ])
+
+    dir_ = os.path.dirname(os.path.abspath(__file__))
+    app_dir = os.path.dirname(dir_)
+    corpus = open(os.path.join(os.path.dirname(app_dir), 'README.md')).read()
+    words = re.split(r'\s+', corpus)
 
     def urlopen_mock(url):
         # First two calls are synchronous, should just return these:
@@ -240,22 +245,20 @@ def crawl_mock(min_friends, max_friends):
                 'wall_comms': [],
                 'tags': [],
             }
-            dir_ = os.path.dirname(os.path.abspath(__file__))
-            app_dir = os.path.dirname(dir_)
-            corpus = open(os.path.join(os.path.dirname(app_dir), 'README.md')).read()
-            words = re.split(r'\s+', corpus)
-            for post_id in xrandrange(2, 20, 1):
+            for post_id0 in xrandrange(2, 20, 1):
+                post_id = '1_{}'.format(post_id0)
                 start = random.randint(0, len(words))
                 end = random.randint(start, len(words))
                 message = ' '.join(words[start:end])
                 data['stream'].append({'post_id': post_id,
                                        'message': message})
                 for column in data:
-                    if column == 'stream' or random.randint(0, 1):
+                    if column == 'stream' or (random.randint(1, 50) % 50):
+                        # This is the stream field,
+                        # or only give others 1 in 50 chance of representation
                         continue
                     if column == 'tags':
-                        user_ids = random.sample(fake_fbids,
-                                                 random.randint(1, len(fake_fbids)))
+                        user_ids = random.sample(fake_fbids, random.randint(1, 2))
                     else:
                         user_ids = random.choice(fake_fbids)
                     column_data = {'post_id': post_id}
