@@ -414,6 +414,13 @@
          is_deleted: false, name: In New York}
     model: targetshare.filter
     pk: 6
+-   model: targetshare.rankingfeaturetype
+    pk: 1
+    fields:
+        name: Topics
+        code: topics
+        created: !!timestamp '2013-10-01 17:04:53+00:00'
+        modified: !!timestamp '2013-10-01 17:04:53+00:00'
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:44', fbid: 1357997116}
     model: targetshare.userclient
     pk: 1

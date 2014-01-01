@@ -14,6 +14,31 @@ from .manager import transitory
 LOG = logging.getLogger('crow')
 
 
+class TypeObjectManager(models.Manager):
+
+    code_field_name = 'code'
+    code_pattern = re.compile(r'^get_([a-z_]+)$')
+
+    def __getattr__(self, attr):
+        code_match = self.code_pattern.search(attr)
+        if code_match:
+            code_name = code_match.group(1)
+            try:
+                code = getattr(self.model, code_name.upper())
+            except AttributeError:
+                pass
+            else:
+                if isinstance(code, basestring):
+                    def getter():
+                        return self.get(**{self.code_field_name: code})
+                    getter.__name__ = attr
+                    setattr(self, attr, getter)
+                    return getter
+
+        raise AttributeError("'{}' object has no attribute {!r}"
+                             .format(self.__class__.__name__, attr))
+
+
 class FeatureType(models.Model):
 
     TOPICS = 'topics'
@@ -22,6 +47,8 @@ class FeatureType(models.Model):
     code = models.CharField(max_length=64, unique=True)
     created = models.DateTimeField(auto_now_add=True)
     modified = models.DateTimeField(auto_now=True)
+
+    objects = TypeObjectManager()
 
     def __unicode__(self):
         return u'{}'.format(self.name)
@@ -129,7 +156,7 @@ class Feature(object):
     def get_user_value_safe(self, user, default=None):
         try:
             value = self.get_user_value(user)
-        except (AttributeError, KeyError):
+        except (AttributeError, KeyError, TypeError):
             return default
         else:
             return default if value in ('', None) else value
