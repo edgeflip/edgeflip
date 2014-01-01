@@ -1,4 +1,5 @@
 import itertools
+import types
 
 import celery
 from django.utils import timezone
@@ -12,15 +13,15 @@ from targetshare.integration.facebook.client import urllib2
 from .. import EdgeFlipTestCase, patch_facebook
 
 
-@freeze_time('2013-01-01')
-class TestRankingTasks(EdgeFlipTestCase):
-
-    fixtures = ['test_data']
+class RankingTestCase(EdgeFlipTestCase):
 
     def setUp(self):
-        super(TestRankingTasks, self).setUp()
+        super(RankingTestCase, self).setUp()
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
+
+
+class TestProximityRankThree(RankingTestCase):
 
     @patch_facebook
     def test_proximity_rank_three(self):
@@ -44,6 +45,12 @@ class TestRankingTasks(EdgeFlipTestCase):
         '''
         ranked_edges = ranking.px3_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+
+
+@freeze_time('2013-01-01')
+class TestFiltering(RankingTestCase):
+
+    fixtures = ['test_data']
 
     @patch_facebook
     def test_perform_filtering(self):
@@ -70,11 +77,58 @@ class TestRankingTasks(EdgeFlipTestCase):
             visit_id=visit.pk,
             num_faces=10,
         )
-        assert all(isinstance(x, models.datastructs.Edge) for x in edges_ranked)
-        assert isinstance(edges_filtered, models.datastructs.TieredEdges)
-        assert all(isinstance(x, models.datastructs.Edge) for x in edges_filtered.edges)
-        assert isinstance(filter_id, long)
-        assert cs_slug is None or isinstance(cs_slug, basestring)
+        self.assertTrue(edges_ranked)
+        self.assertEqual({type(edge) for edge in edges_ranked},
+                         {models.datastructs.Edge})
+        self.assertIsInstance(edges_filtered, models.datastructs.TieredEdges)
+        self.assertEqual({type(edge) for edge in edges_filtered.edges},
+                         {models.datastructs.Edge})
+        self.assertIsInstance(filter_id, long)
+        self.assertIsInstance(cs_slug, (types.NoneType, basestring))
+
+    def test_fallback_cascade(self):
+        # Some test users and edges
+        test_user1 = models.User(
+            fbid=1,
+            fname='Test',
+            lname='User',
+            email='test@example.com',
+            gender='male',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+            city='Chicago',
+            state='Illinois'
+        )
+        test_user2 = models.User(
+            fbid=2,
+            fname='Test',
+            lname='User',
+            email='test@example.com',
+            gender='male',
+            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
+            city='Toledo',
+            state='Ohio'
+        )
+        test_edge1 = models.datastructs.UserNetwork.Edge(test_user1, test_user1, None, score=0.5)
+        test_edge2 = models.datastructs.UserNetwork.Edge(test_user1, test_user2, None, score=0.4)
+        visitor = models.relational.Visitor.objects.create(fbid=1)
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+
+        ranked_edges = [test_edge2, test_edge1]
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
+            ranked_edges,
+            campaign_id=5,
+            content_id=1,
+            fbid=1,
+            visit_id=visit.pk,
+            num_faces=10,
+        )
+
+        self.assertEquals(edges_filtered.secondary_ids, (1, 2))
+        self.assertEquals(edges_filtered[0]['campaign_id'], 5)
+        self.assertEquals(edges_filtered[1]['campaign_id'], 4)
+
+
+class TestProximityRankFour(RankingTestCase):
 
     @patch_facebook(min_friends=150, max_friends=200)
     @patch('targetshare.tasks.ranking.LOG')
@@ -147,44 +201,3 @@ class TestRankingTasks(EdgeFlipTestCase):
             urllib2.urlopen.call_count,
             2
         )
-
-    def test_fallback_cascade(self):
-        # Some test users and edges
-        test_user1 = models.User(
-            fbid=1,
-            fname='Test',
-            lname='User',
-            email='test@example.com',
-            gender='male',
-            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
-            city='Chicago',
-            state='Illinois'
-        )
-        test_user2 = models.User(
-            fbid=2,
-            fname='Test',
-            lname='User',
-            email='test@example.com',
-            gender='male',
-            birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
-            city='Toledo',
-            state='Ohio'
-        )
-        test_edge1 = models.datastructs.UserNetwork.Edge(test_user1, test_user1, None, score=0.5)
-        test_edge2 = models.datastructs.UserNetwork.Edge(test_user1, test_user2, None, score=0.4)
-        visitor = models.relational.Visitor.objects.create(fbid=1)
-        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-
-        ranked_edges = [test_edge2, test_edge1]
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
-            ranked_edges,
-            campaign_id=5,
-            content_id=1,
-            fbid=1,
-            visit_id=visit.pk,
-            num_faces=10,
-        )
-
-        self.assertEquals(edges_filtered.secondary_ids, (1, 2))
-        self.assertEquals(edges_filtered[0]['campaign_id'], 5)
-        self.assertEquals(edges_filtered[1]['campaign_id'], 4)
