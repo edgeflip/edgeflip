@@ -8,7 +8,7 @@ from mock import Mock, patch
 from targetshare.models import dynamo, relational
 from targetshare.management.commands import generate_primary_share_csv
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 class TestGeneratePrimaryShareCSV(EdgeFlipTestCase):

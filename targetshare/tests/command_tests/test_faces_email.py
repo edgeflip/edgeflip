@@ -10,7 +10,7 @@ from targetshare.integration import facebook
 from targetshare.models import dynamo, relational
 from targetshare.management.commands import faces_email
 
-from . import EdgeFlipTestCase, patch_facebook
+from .. import EdgeFlipTestCase, patch_facebook
 
 
 class TestFacesEmail(EdgeFlipTestCase):
