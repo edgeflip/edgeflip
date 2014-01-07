@@ -9,6 +9,7 @@ import celery
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
+from django.db.models import Q
 
 from targetshare import models, utils
 from targetshare.integration import facebook
@@ -435,8 +436,12 @@ def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_fa
             post_topics=edges_ranked.post_topics,
         )
 
+    # Build query to check for existence of relevant (px4) filters:
+    campaign_global = Q(campaignglobalfilters__campaign=campaign_id)
+    campaign_choiceset = Q(
+        choicesetfilters__choice_set__campaignchoicesets__campaign=campaign_id)
     px4_filters = models.relational.Filter.objects.filter(
-        client__campaigns__campaign_id=campaign_id,
+        (campaign_global | campaign_choiceset),
         filterfeatures__feature_type__px_rank__gte=4,
     )
     # NOTE: We might want to review this threshold:

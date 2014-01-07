@@ -253,10 +253,10 @@ class TestRankRefinement(RankingTestCase):
         campaign.campaignproperties.update(min_friends=1)
         # No need for add'l filters:
         models.relational.FilterFeature.objects.filter(
-            filter__choicesetfilter__choice_set__campaignchoiceset__campaign=campaign
+            filter__choicesetfilters__choice_set__campaignchoicesets__campaign=campaign
         ).delete()
-        weathers = [edge.secondary.topics['Weather'] for edge in ranked_edges]
-        min_weather = min(weathers)
+        weathers = [edge.secondary.topics.get('Weather') for edge in ranked_edges]
+        min_weather = min(weather for weather in weathers if weather is not None)
         max_weather = max(weathers)
         divider = (max_weather - min_weather) / 2 + min_weather
 

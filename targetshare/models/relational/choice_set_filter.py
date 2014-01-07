@@ -69,7 +69,8 @@ class ChoiceSetFilter(models.Model):
     choice_set_filter_id = models.AutoField(primary_key=True)
     choice_set = models.ForeignKey('ChoiceSet', related_name='choicesetfilters',
                                    null=True, blank=True)
-    filter = models.ForeignKey('Filter', null=True, blank=True)
+    filter = models.ForeignKey('Filter', null=True, blank=True,
+                               related_name='choicesetfilters')
     url_slug = models.CharField(max_length=64, blank=True)
     propensity_model_type = models.CharField(max_length=32, blank=True)
     start_dt = models.DateTimeField(auto_now_add=True)
