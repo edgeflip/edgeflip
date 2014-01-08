@@ -370,14 +370,34 @@ def px4_crawl(token):
     db.upsert.delay(user)
 
     if hit_fb:
+        # Enqueue tasks to persist data retrieved from Facebook
+
+        # Secondary Users:
         db.upsert.delay([edge.secondary for edge in edges_ranked])
+
+        # PostInteractions:
         db.bulk_create.delay(
             tuple(
                 itertools.chain.from_iterable(
                     edge.interactions for edge in edges_ranked)
             )
         )
+        db.upsert.delay(
+            tuple(
+                models.dynamo.PostInteractionsSet(
+                    fbid=edge.secondary.fbid,
+                    postids=[post_interactions.postid
+                             for post_interactions in edge.interactions],
+                )
+                for edge in edges_ranked
+                if edge.interactions
+            )
+        )
+
+        # PostTopics:
         db.bulk_create.delay(edges_ranked.post_topics.values())
+
+        # Edges:
         db.update_edges.delay(edges_ranked)
 
     return (edges_ranked, hit_fb)

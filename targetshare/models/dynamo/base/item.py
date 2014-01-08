@@ -10,7 +10,7 @@ from django.utils import timezone
 from . import loading
 from . import manager as managers
 from . import types
-from .fields import ItemField, ItemLinkField
+from .fields import ItemField, ItemLinkField, SingleItemLinkField
 from .table import Table
 from .utils import cached_property
 
@@ -190,15 +190,20 @@ class LinkFieldProperty(BaseFieldProperty):
         field.cache_clear(self.field_name, instance)
 
 
-class ReverseLinkFieldProperty(BaseFieldProperty):
-    """The Item link field's reversed descriptor, providing access to all Items with
-    matching links.
+class AbstractReverseLinkFieldProperty(BaseFieldProperty):
 
-    """
     def __init__(self, field_name, item_name, link_field):
-        super(ReverseLinkFieldProperty, self).__init__(field_name)
+        super(AbstractReverseLinkFieldProperty, self).__init__(field_name)
         self.item_name = item_name
         self.link_field = link_field
+
+    @cached_property
+    def item(self):
+        try:
+            return loading.cache[self.item_name]
+        except KeyError:
+            raise TypeError("Item link unresolved or bad link argument: {!r}"
+                            .format(self.item_name))
 
     def resolve_link(self, parent):
         if hasattr(parent, self.field_name):
@@ -222,25 +227,52 @@ class ReverseLinkFieldProperty(BaseFieldProperty):
 
         class LinkedItemManager(managers.AbstractLinkedItemManager):
 
-            core_filters = tuple("{}__eq".format(key) for key in db_key)
+            core_keys = db_key
             query_cls = LinkedItemQuery
 
         return LinkedItemManager
 
-    @cached_property
-    def item(self):
-        try:
-            return loading.cache[self.item_name]
-        except KeyError:
-            raise TypeError("Item link unresolved or bad link argument: {!r}"
-                            .format(self.item_name))
 
+class SingleReverseLinkProperty(AbstractReverseLinkFieldProperty):
+    """The one-to-one Item link field's reversed descriptor, providing access to
+    the single matching Item.
+
+    """
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        # NOTE: If ReverseLinkFieldProperty ever supports __set__ et al, below
+        # caching method won't work (it will be a data descriptor and take
+        # precendence over instance __dict__). (See LinkFieldProperty.)
+
+        default_manager = self.item.items
+        db_key = self.link_field.db_key
+        key_fields = set(default_manager.table.get_key_fields())
+        if set(db_key) >= key_fields:
+            # No need for related manager:
+            query = {key: value for (key, value) in zip(db_key, instance.pk)
+                     if key in key_fields}
+            linked = default_manager.get_item(**query)
+        else:
+            manager = self.linked_manager_cls(default_manager.table, instance)
+            linked = manager.filter_get()
+
+        vars(instance)[self.field_name] = linked
+        return linked
+
+
+class ReverseLinkManagerProperty(AbstractReverseLinkFieldProperty):
+    """The Item link field's reversed descriptor, providing access to all Items with
+    matching links.
+
+    """
     def __get__(self, instance, cls=None):
         if instance is None:
             return self
 
         manager = self.linked_manager_cls(self.item.items.table, instance)
-        # NOTE: If ReverseLinkFieldProperty ever supports __set__ et al, below
+        # NOTE: If ReverseLinkManagerProperty ever supports __set__ et al, below
         # caching method won't work (it will be a data descriptor and take
         # precendence over instance __dict__). (See LinkFieldProperty.)
         vars(instance)[self.field_name] = manager
@@ -288,13 +320,18 @@ class DeclarativeItemBase(type):
             # Construct linked item manager property:
             linked_name = link_field.linked_name
             if linked_name:
+                is_single = isinstance(link_field, SingleItemLinkField)
                 if linked_name is link_field.Unset:
                     linked_name = utils.camel_to_underscore(name).replace('_', '')
-                    if linked_name.endswith('s'):
-                        linked_name += '_set'
-                    else:
-                        linked_name += 's'
-                reverse_link = ReverseLinkFieldProperty(linked_name, meta.signed, link_field)
+                    if not is_single:
+                        if linked_name.endswith('s'):
+                            linked_name += '_set'
+                        else:
+                            linked_name += 's'
+                if is_single:
+                    reverse_link = SingleReverseLinkProperty(linked_name, meta.signed, link_field)
+                else:
+                    reverse_link = ReverseLinkManagerProperty(linked_name, meta.signed, link_field)
             else:
                 reverse_link = None
             link_field.link(reverse_descriptor=reverse_link)

@@ -11,13 +11,16 @@ class UpsertStrategy(object):
 
     @staticmethod
     def combine(obj, key, value):
-        obj[key] += value
+        try:
+            obj[key] += value
+        except KeyError:
+            obj[key] = value
 
     @staticmethod
-    def dict_update(obj, key, value):
-        dict_ = obj[key]
-        if dict_:
-            dict_.update(value)
+    def update(obj, key, value):
+        hash_ = obj.get(key)
+        if hash_:
+            hash_.update(value)
         else:
             obj[key] = value
 
@@ -135,3 +138,7 @@ class ItemLinkField(BaseItemField):
             delattr(instance, cls.cache_name(name))
         except AttributeError:
             pass
+
+
+class SingleItemLinkField(ItemLinkField):
+    pass

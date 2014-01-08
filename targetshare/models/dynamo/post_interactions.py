@@ -2,10 +2,13 @@ from .base import (
     Item,
     ItemField,
     ItemLinkField,
+    SingleItemLinkField,
     HashKeyField,
     RangeKeyField,
+    UpsertStrategy,
     NUMBER,
     STRING,
+    STRING_SET,
 )
 
 
@@ -23,3 +26,12 @@ class PostInteractions(Item):
 
     post_topics = ItemLinkField('PostTopics', db_key=postid)
     user = ItemLinkField('User', db_key=fbid)
+
+
+class PostInteractionsSet(Item):
+    """Join of PostInteractions facilitating queries across Users."""
+    fbid = HashKeyField(data_type=NUMBER)
+    postids = ItemField(data_type=STRING_SET,
+                        upsert_strategy=UpsertStrategy.update)
+
+    user = SingleItemLinkField('User', db_key=fbid, linked_name=None)

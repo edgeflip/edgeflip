@@ -6,142 +6,13 @@ Item classes may extend ItemManager with class-specific methods, override the de
 manager and/or specify alternative managers. (See `Item`.)
 
 """
-import collections
-
-from boto.dynamodb2 import fields as basefields
-
 from targetshare import utils
 
 from .table import Table
-from .utils import cached_property
+from .request import QueryRequest, Request
 
 
 inherits_docs = utils.doc_inheritor(Table)
-
-
-class Query(dict):
-
-    def __init__(self, table, *args, **kws):
-        super(Query, self).__init__(*args, **kws)
-        self.table = table
-        self.links = None
-
-    def clone(self, **kws):
-        klone = type(self)(self.table, self, **kws)
-        klone.links = self.links
-        return klone
-
-    def filter(self, **kws):
-        return self.clone(**kws)
-
-    def copy(self):
-        return self.clone()
-
-    def prefetch(self, *linked):
-        clone = self.copy()
-        if clone.links is None or not linked:
-            clone.links = set()
-        clone.links.update(linked)
-        return clone
-
-    def _prefetch(self, iterable):
-        all_links = self.table.item._meta.links
-        if self.links:
-            link_fields = [(link, all_links[link]) for link in self.links]
-        else:
-            link_fields = all_links.items()
-
-        primaries = []
-        gets = collections.defaultdict(set)
-        for primary in iterable:
-            primaries.append(primary)
-            for (link, field) in link_fields:
-                pk = field.get_item_pk(primary)
-                if all(pk):
-                    gets[link].add(pk)
-
-        results = collections.defaultdict(dict)
-        for (link, field) in link_fields:
-            manager = field.item.items
-            key_fields = manager.table.get_key_fields()
-            keys = [dict(zip(key_fields, values)) for values in gets[link]]
-            for linked in manager.batch_get(keys=keys):
-                results[link][linked.pk] = linked
-
-        for primary in primaries:
-            for (link, field) in link_fields:
-                pk = field.get_item_pk(primary)
-                if all(pk):
-                    try:
-                        linked = results[link][pk]
-                    except KeyError:
-                        pass
-                    else:
-                        field.cache_set(link, primary, linked)
-
-            yield primary
-
-    def _process_results(self, results):
-        if self.links is None:
-            return results
-        results.iterable = self._prefetch(results.iterable)
-        return results
-
-    @cached_property
-    def _hash_keys(self):
-        return {field.name for field in self.table.schema
-                if isinstance(field, basefields.HashKey)}
-
-    @property
-    def _opless(self):
-        return (key.rsplit('__', 1)[0] for key in self.iterkeys())
-
-    def all(self):
-        if 'index' in self or any(key in self._hash_keys for key in self._opless):
-            return self.query()
-        return self.scan()
-
-    def __iter__(self):
-        return iter(self.all())
-
-    def get(self, **kws):
-        results = iter(self.filter(**kws).all())
-        try:
-            result = next(results)
-        except StopIteration:
-            # Couldn't find the one:
-            raise self.table.item.DoesNotExist
-
-        try:
-            next(results)
-        except StopIteration:
-            # Was only the one, as expected
-            return result
-
-        # There were more than one:
-        raise self.table.item.MultipleItemsReturned
-
-    @inherits_docs
-    def query(self, *args, **kws):
-        filters = self.filter(**kws)
-        results = self.table.query(*args, **filters)
-        return self._process_results(results)
-
-    @inherits_docs
-    def scan(self, *args, **kws):
-        filters = self.filter(**kws)
-        results = self.table.scan(*args, **filters)
-        return self._process_results(results)
-
-    @inherits_docs
-    def query_count(self, *args, **kws):
-        filters = self.filter(**kws)
-        return self.table.query_count(*args, **filters)
-
-    def __repr__(self):
-        return "<{}({}: {}>".format(self.__class__.__name__,
-                                    self.table.short_name,
-                                    super(Query, self).__repr__())
 
 
 class BaseItemManager(object):
@@ -149,31 +20,34 @@ class BaseItemManager(object):
     def __init__(self, table=None):
         self.table = table
 
-    # Proxy Table query methods, but through Query #
+    # Proxy Table query methods, but through Request #
 
-    def get_query(self):
-        return Query(self.table)
+    def make_request(self):
+        return Request(self.table)
 
     def filter(self, **kws):
-        return self.get_query().filter(**kws)
+        return self.make_request().filter(**kws)
+
+    def filter_get(self, **kws):
+        return self.make_request().filter_get(**kws)
 
     def prefetch(self, *args, **kws):
-        return self.get_query().prefetch(*args, **kws)
+        return self.make_request().prefetch(*args, **kws)
 
     def all(self):
-        return self.get_query().all()
+        return self.make_request().all()
 
     @inherits_docs
     def query_count(self, *args, **kws):
-        return self.get_query().query_count(*args, **kws)
+        return self.make_request().query_count(*args, **kws)
 
     @inherits_docs
     def query(self, *args, **kws):
-        return self.get_query().query(*args, **kws)
+        return self.make_request().query(*args, **kws)
 
     @inherits_docs
     def scan(self, *args, **kws):
-        return self.get_query().scan(*args, **kws)
+        return self.make_request().scan(*args, **kws)
 
 
 class ItemManager(BaseItemManager):
@@ -183,7 +57,14 @@ class ItemManager(BaseItemManager):
     specific to subclasses of Item.
 
     """
+    def batch_get_through(self, *args, **kws):
+        return self.make_request().batch_get_through(*args, **kws)
+
     # Simple proxies -- provide subset of Table interface #
+
+    @inherits_docs
+    def batch_get(self, *args, **kws):
+        return self.table.batch_get(*args, **kws)
 
     @inherits_docs
     def get_item(self, *args, **kws):
@@ -202,10 +83,6 @@ class ItemManager(BaseItemManager):
         return self.table.delete_item(*args, **kws)
 
     @inherits_docs
-    def batch_get(self, *args, **kws):
-        return self.table.batch_get(*args, **kws)
-
-    @inherits_docs
     def batch_write(self, *args, **kws):
         return self.table.batch_write(*args, **kws)
 
@@ -214,7 +91,7 @@ class ItemManager(BaseItemManager):
         return self.table.count()
 
 
-class AbstractLinkedItemQuery(Query):
+class AbstractLinkedItemQuery(QueryRequest):
 
     name_child = child_field = None # required
 
@@ -245,16 +122,15 @@ class AbstractLinkedItemQuery(Query):
 
 class AbstractLinkedItemManager(BaseItemManager):
 
-    core_filters = query_cls = None # required
+    core_keys = query_cls = None # required
 
     def __init__(self, table, instance):
         super(AbstractLinkedItemManager, self).__init__(table)
         self.instance = instance
 
-    def get_query(self):
-        query = super(AbstractLinkedItemManager, self).get_query()
-        instance_filter = dict(zip(self.core_filters, self.instance.pk))
-        return self.query_cls(self.table, self.instance, query, **instance_filter)
-
-    def get(self, **kws):
-        return self.get_query().get(**kws)
+    def make_request(self):
+        request = super(AbstractLinkedItemManager, self).make_request()
+        core_filters = tuple("{}__eq".format(key) for key in self.core_keys)
+        instance_filter = dict(zip(core_filters, self.instance.pk))
+        return self.query_cls(self.table, self.instance,
+                              request.get_query(), **instance_filter)

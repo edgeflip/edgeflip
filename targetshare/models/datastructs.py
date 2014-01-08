@@ -70,34 +70,22 @@ class UserNetwork(list):
         secondaries = {user.fbid: user for user in incoming_users}
 
         if not secondaries:
-            # Below PostInteractions scan may fail with empty set, and we know
-            # the network is empty by now:
+            # The network is empty
             return cls()
 
-        # NOTE: If this scan's performance becomes an issue, we might want to
-        # add a join table, say:
-        #     class UserPostInteractions(Item):
-        #         fbid = HashKeyField(data_type=NUMBER)
-        #         post_interactions = ItemField(data_type=NUMBER_SET)
-        # Then the query would be:
-        #     user_post_interactions = UserPostInteractions.items.batch_get(
-        #         keys=[{'fbid': fbid} for fbid in secondaries])
-        #     user_interactions = chain.from_iterable(
-        #         ((upi.fbid, pi) for pi in upi.post_interactions)
-        #         for upi in user_post_interactions)
-        #     post_interactions = PostInteractions.items.prefetch('post_topics').batch_get(
-        #         keys=[{'fbid': fbid, 'postid': postid}
-        #               for (fbid, postid) in user_interactions])
-        # (Or simply add the NUMBER_SET field to the User table, s.t. the join table
-        # isn't needed to do the join.)
+        # Grab all PostInteractions, via PostInteractionsSet:
         post_interactions = (dynamo.PostInteractions.items.prefetch('post_topics')
-                             .scan(fbid__in=secondaries.keys()))
+            .batch_get_through(dynamo.PostInteractionsSet,
+                               [user.get_keys() for user in secondaries.itervalues()]))
+
+        # Build hash of fbid: [PostInteractions, ...]
         interactions_key = operator.attrgetter('fbid')
         interactions_sorted = sorted(post_interactions, key=interactions_key)
         interactions_grouped = itertools.groupby(interactions_sorted, interactions_key)
         user_interactions = {fbid: set(interactions)
                              for (fbid, interactions) in interactions_grouped}
 
+        # Gather PostTopics in use by PostInteractions into a hash:
         interaction_topics = (interactions.post_topics
                               for interactions in post_interactions)
         post_topics = {topics.postid: topics for topics in interaction_topics}
