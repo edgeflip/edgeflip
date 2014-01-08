@@ -57,11 +57,10 @@ class TestFiltering(RankingTestCase):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        # FIXME: Because the px3 mock crawl yields random results, this may in
-        #        some cases return a set of edges in which none meet the filter
-        #        used in this test. That would cause this test to 'fail' even
-        #        though all the code is working properly.
         ranked_edges = ranking.px3_crawl(self.token)
+        # Ensure at least one edge passes filter:
+        # (NOTE: May have to fiddle with campaign properties as well.)
+        ranked_edges[0].secondary.state = 'Illinois'
         (
             edges_ranked,
             edges_filtered,
@@ -75,7 +74,7 @@ class TestFiltering(RankingTestCase):
             content_id=1,
             fbid=1,
             visit_id=visit.pk,
-            num_faces=10,
+            num_faces=1,
         )
         self.assertTrue(edges_ranked)
         self.assertEqual({type(edge) for edge in edges_ranked},
