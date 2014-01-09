@@ -1,6 +1,5 @@
 from __future__ import absolute_import
 import logging
-import time
 
 import json
 import random
@@ -232,9 +231,3 @@ def crawl_comments_and_likes(feed, s3_key):
             item['likes']['data'].extend(result)
 
     s3_key.set_contents_from_string(json.dumps(feed))
-
-
-@shared_task
-def timeout_please():
-    time.sleep(600)
-    return
