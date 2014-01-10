@@ -258,7 +258,7 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 # Celery settings #
 QUEUE_ARGS = {'x-ha-policy': 'all'}
 BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
-#BROKER_HEARTBEAT = 0
+BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_RESULT_EXPIRES = 3600
@@ -394,6 +394,7 @@ NOSE_ARGS = (
     '--cover-html',
     '--cover-package=targetshare',
     '--exclude=^fab$',
+    '--http-whitelist=localhost:4444',
     '--logging-level=ERROR',
     '--logging-clear-handlers',
 )
