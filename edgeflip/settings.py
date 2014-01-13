@@ -442,29 +442,26 @@ LOGGING = {
         },
     },
     'root': {
-        'level': 'INFO',
+        'level': 'DEBUG',
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
             'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['mail_admins'],
         },
         'boto': {
             'level': 'WARNING',
-            'handlers': ['console', 'syslog'],
         },
-        # Crow, another black bird, because 'raven' is blacklisted by sentry
+        # Another black bird, because 'raven' is blacklisted by sentry:
         'crow': {
             'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': True
         },
     }
 }
 
 if ENV in ('staging', 'production'):
+    LOGGING['root']['level'] = 'INFO'
     LOGGING['handlers']['sentry'] = {
         'level': 'INFO',
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
