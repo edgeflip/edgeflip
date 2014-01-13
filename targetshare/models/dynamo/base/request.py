@@ -237,6 +237,6 @@ class QueryRequest(BaseRequest, dict):
         raise self.table.item.MultipleItemsReturned
 
     def __repr__(self):
-        return "<{}({}: {!r}>".format(self.__class__.__name__,
-                                      self.table.short_name,
-                                      dict(self))
+        return "<{}({}: {!r})>".format(self.__class__.__name__,
+                                       self.table.short_name,
+                                       dict(self))
