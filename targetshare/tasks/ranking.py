@@ -2,7 +2,7 @@ from __future__ import absolute_import
 import logging
 from datetime import timedelta
 
-import celery
+from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
@@ -27,7 +27,7 @@ def proximity_rank_three(mock_mode, fbid, token, **kwargs):
     return task
 
 
-@celery.task(default_retry_delay=1, max_retries=3)
+@shared_task(default_retry_delay=1, max_retries=3)
 def px3_crawl(mockMode, fbid, token):
     """Crawl and rank a user's network to proximity level three."""
     fb_client = facebook.mock_client if mockMode else facebook.client
@@ -49,7 +49,7 @@ def px3_crawl(mockMode, fbid, token):
     )
 
 
-@celery.task
+@shared_task
 def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
                       fallbackCount=0, already_picked=None,
                       visit_type='targetshare.Visit', cache_match=False):
@@ -290,7 +290,7 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         )
 
 
-@celery.task(default_retry_delay=1, max_retries=3)
+@shared_task(default_retry_delay=1, max_retries=3)
 def proximity_rank_four(mockMode, fbid, token):
     """Crawl and rank a user's network to proximity level four, and persist the
     User, secondary Users, Token and Edges to the database.
