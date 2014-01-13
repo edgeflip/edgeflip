@@ -4,10 +4,12 @@ import os
 
 from celery import Celery
 
-from django.conf import settings
-
 # set the default Django settings module for the 'celery' program.
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'edgeflip.settings')
+
+# Dropped below environ.setdefault to ensure the settings module is
+# properly specified before importing
+from django.conf import settings
 
 app = Celery('edgeflip')
 
