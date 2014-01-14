@@ -186,7 +186,7 @@ def extend_token(fbid, appid, token):
         'grant_type': 'fb_exchange_token',
         'fb_exchange_token': token,
         'client_id': appid,
-        'client_secret': settings.FACEBOOK.secrets[appid],
+        'client_secret': settings.FACEBOOK.secrets[str(appid)],
     })
     ts = time.time()
 
@@ -500,7 +500,7 @@ def verify_oauth_code(fb_app_id, code, redirect_uri):
     url_params = {
         'client_id': fb_app_id,
         'redirect_uri': redirect_uri,
-        'client_secret': settings.FACEBOOK.secrets[fb_app_id],
+        'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
         'code': code
     }
     try:
