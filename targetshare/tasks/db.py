@@ -1,8 +1,8 @@
 import logging
 
-import celery
-from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+from boto.dynamodb2.items import NEWVALUE
+from celery import shared_task
 from django.core import serializers
 from django.db import IntegrityError
 from django.db.models import Model
@@ -13,7 +13,7 @@ from targetshare.models.dynamo.base import UpsertStrategy
 LOG_RVN = logging.getLogger('crow')
 
 
-@celery.task
+@shared_task
 def bulk_create(objects):
     """Bulk-create objects belonging to a single model.
 
@@ -37,7 +37,7 @@ def bulk_create(objects):
                 batch.put_item(obj)
 
 
-@celery.task
+@shared_task
 def delayed_save(model_obj, **kws):
     """Save the given object in a background task process.
 
@@ -55,7 +55,7 @@ def delayed_save(model_obj, **kws):
     model_obj.save(**kws)
 
 
-@celery.task
+@shared_task
 def get_or_create(model, *params, **kws):
     """Pass the given parameters to the model manager's get_or_create.
 
@@ -81,7 +81,7 @@ def get_or_create(model, *params, **kws):
             LOG_RVN.exception("get_or_create failed: %r", paramset)
 
 
-@celery.task
+@shared_task
 def partial_save(item, _attempt=0):
     """Save the given boto Item in a background process, using its partial_save method.
 
@@ -120,7 +120,7 @@ def partial_save(item, _attempt=0):
     partial_save.delay(fresh, _attempt + 1)
 
 
-@celery.task
+@shared_task
 def upsert(*items, **kws):
     """Upsert the given boto Items.
 
@@ -169,7 +169,7 @@ def upsert(*items, **kws):
         )
 
 
-@celery.task(task_time_limit=600)
+@shared_task(task_time_limit=600)
 def update_edges(edges):
     """Update edge tables.
 

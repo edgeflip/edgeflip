@@ -258,15 +258,16 @@ TEMPLATE_CONTEXT_PROCESSORS = (
 # Celery settings #
 QUEUE_ARGS = {'x-ha-policy': 'all'}
 BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
-BROKER_HEARTBEAT = 10
+BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERY_TASK_RESULT_EXPIRES = 3600
-CELERY_RESULT_BACKEND = 'database'
+CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
     host=(DATABASES.default.HOST or 'localhost'),
     **DATABASES.default
 )
+CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 # FIXME: Short lived sessions won't be needed once we have more consistent
 # traffic levels. Then MySQL won't kill our connections.
 CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
@@ -396,6 +397,9 @@ NOSE_ARGS = (
     '--cover-branches',
     '--cover-erase',
     '--cover-html',
+    '--cover-package=feed_crawler',
+    '--cover-package=targetadmin',
+    '--cover-package=targetmock',
     '--cover-package=targetshare',
     '--exclude=^fab$',
     '--logging-level=ERROR',

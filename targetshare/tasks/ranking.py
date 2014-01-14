@@ -5,7 +5,7 @@ import logging
 from collections import namedtuple
 from datetime import timedelta
 
-import celery
+from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
@@ -53,7 +53,7 @@ def proximity_rank_three(token, **filtering_args):
     return chain.apply_async()
 
 
-@celery.task(default_retry_delay=1, max_retries=3)
+@shared_task(default_retry_delay=1, max_retries=3)
 def px3_crawl(token):
     """Crawl and rank a user's network to proximity level three."""
     try:
@@ -73,7 +73,7 @@ def px3_crawl(token):
     )
 
 
-@celery.task
+@shared_task
 def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
                       fallback_count=0, already_picked=None,
                       px_rank=3, visit_type='targetshare.Visit', cache_match=False):
@@ -317,7 +317,7 @@ def proximity_rank_four(token, **filtering_args):
     return chain.apply_async()
 
 
-@celery.task(default_retry_delay=1, max_retries=3)
+@shared_task(default_retry_delay=1, max_retries=3)
 def px4_crawl(token):
     """Crawl and rank a user's network to proximity level four, and persist the
     User, secondary Users, Token and Edges to the database.
@@ -403,7 +403,7 @@ def px4_crawl(token):
     return (edges_ranked, hit_fb)
 
 
-@celery.task
+@shared_task
 def refine_ranking(crawl_result, campaign_id, content_id, fbid, visit_id, num_faces,
                    visit_type='targetshare.Visit', cache_match=False):
     """Refine the px4 edge ranking and, depending on the crawl task, apply filtering.
