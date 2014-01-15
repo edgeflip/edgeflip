@@ -25,6 +25,14 @@ class ItemField(object):
         else:
             return decoder(value)
 
+    def decode_lossy(self, value):
+        try:
+            decoder = self.kws['data_type'].decode_lossy
+        except (KeyError, AttributeError):
+            return value
+        else:
+            return decoder(value)
+
 
 class HashKeyField(ItemField):
 

@@ -200,14 +200,20 @@ class Item(baseitems.Item):
     get_dynamizer = Dynamizer
 
     def __init__(self, data=None, loaded=False, **kwdata):
+        self.table = type(self).items.table
+        self._loaded = loaded
+
         data = {} if data is None else dict(data)
         data.update(kwdata)
+        self._data = {key: self._pre_set(key, value)
+                      for (key, value) in data.items()}
 
-        # Clean data before populating it
-        data = {key: self._pre_set(key, value) for (key, value) in data.items()}
+        if self._loaded:
+            self._orig_data = {key: self._pre_set(key, value, lossy=False)
+                               for (key, value) in data.items()}
+        else:
+            self._orig_data = {}
 
-        table = type(self).items.table
-        super(Item, self).__init__(table, data, loaded)
         self._dynamizer = self.get_dynamizer()
 
     def __repr__(self):
@@ -233,11 +239,12 @@ class Item(baseitems.Item):
         # no need to lie about our underlying data:
         return self._data[key]
 
-    def _pre_set(self, key, value):
+    def _pre_set(self, key, value, lossy=True):
         """Clean exotic types (e.g. DATE)."""
         field = self._meta.fields.get(key)
         if field:
-            value = field.decode(value)
+            decoder = field.decode_lossy if lossy else field.decode
+            value = decoder(value)
         elif not self._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, type(self).__name__))

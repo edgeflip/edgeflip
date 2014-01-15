@@ -36,10 +36,26 @@ class DataType(object):
     def decode(self, value):
         """Convert the given value to the appropriate Python.
 
-        Used when setting Item values, whether novel or read in from Dynamo.
+        Used when recording original Item values read in from Dynamo, and by
+        default when setting Item values. (See `decode_lossy`.)
 
         """
         raise NotImplementedError
+
+    def decode_lossy(self, value):
+        """Convert the given value to the appropriate Python, with lossy mapping.
+
+        Used when setting Item values, whether novel or read in from Dynamo,
+        and by default when recording original values from Dynamo. (See `decode`.)
+
+        If your DataType decoding must lose information, such as by applying a
+        length limit, this should be done here, rather than in `decode`; that
+        method should continue to map with fidelity to the data in Dynamo.
+
+        Otherwise, defining `decode` is sufficient.
+
+        """
+        return self.decode(value)
 
     def __call__(self, *args, **kws):
         """Construct a new instance of the DataType with the given options."""
@@ -159,9 +175,17 @@ class AbstractSetType(InternalDataTypeExtension):
         return self
 
     def decode(self, value):
+        return value if is_null(value) else set(self._decode(value))
+
+    def decode_lossy(self, value):
         if is_null(value):
             return value
 
+        decoded = self._decode(value)
+        sliced = itertools.islice(decoded, self.limit)
+        return set(sliced)
+
+    def _decode(self, value):
         if isinstance(value, basestring):
             value = self.decode_str(value)
         elif hasattr(value, '__iter__'):
@@ -171,8 +195,7 @@ class AbstractSetType(InternalDataTypeExtension):
                                       .format(self.__class__.__name__, value))
 
         cast_item = self.item_cast or (lambda item: item)
-        cleaned = (cast_item(item) for item in value if item)
-        return set(itertools.islice(cleaned, self.limit))
+        return (cast_item(item) for item in value if item)
 
     def decode_str(self, value):
         if isinstance(self.delimiter, re._pattern_type):
