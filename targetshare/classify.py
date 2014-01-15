@@ -22,8 +22,10 @@ def classify(corpus, topic=None):
 def classifier(func):
     @functools.wraps(func)
     def wrapped(context):
-        if context.topics is None or func.__name__ in context.topics:
-            return func(context)
+        name = func.__name__
+        if context.topics is None or name in context.topics:
+            result = func(context)
+            return result if result is None else (name, result)
     return classify.rule(wrapped)
 
 
@@ -32,12 +34,12 @@ def classifier(func):
 @classifier
 def sports(context):
     if 'football' in context.corpus.lower():
-        return {'sports': '1.0'}
+        return '1.0'
 
 
 @classifier
 def health(context):
     if 'calories' in context.corpus.lower():
-        return {'health': '1.0'}
+        return '1.0'
     if 'fiber' in context.corpus.lower():
-        return {'health': '0.5'}
+        return '0.5'

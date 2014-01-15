@@ -1,38 +1,73 @@
 """A framework for the definition and application of rule sets."""
-import copy
+import functools
 
 
 class Rule(object):
+    """A callable member of the RuleSet.
 
+    Rule wraps stand-alone functions and object methods. (See `RuleSet.rule`.)
+
+    """
     def __init__(self, func):
         self.func = func
         self.owners = set()
 
-    @property
-    def __name__(self):
-        return self.func.__name__
+        functools.update_wrapper(self, self.func, updated=())
+        for (key, value) in vars(self.func).items():
+            vars(self).setdefault(key, value)
+
+    def contribute_to_class(self, rule_set, name=None):
+        self.owners.add(rule_set)
+        return self
 
     def __call__(self, context):
         return self.func(context)
 
+    def __get__(self, instance, cls):
+        if instance is None:
+            return self
+
+        @functools.wraps(self)
+        def bound():
+            return self(instance)
+        return bound
+
     def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self.func)
+        return "{}({}.{})".format(self.__class__.__name__,
+                                  self.__module__,
+                                  self.__name__)
 
     def __str__(self):
         return self.__name__
 
 
 class Decision(object):
+    """A Rule execution result.
 
+    Decisions may optionally be defined for the RuleSet, and are then available
+    for selection by the Rule. (See `RuleSet`.)
+
+    """
     is_bound = False
 
     def __init__(self, name=None, **meta):
         self.name = name
         self.meta = meta
+        self.accessor = None
         self.owner = None
 
-    def __hash__(self):
-        return hash((self.owner, self.name))
+    def contribute_to_class(self, rule_set, name=None):
+        if name is None:
+            obj = type(self)(self.name, **self.meta)
+            obj.accessor = self.accessor
+        else:
+            obj = self
+            if not obj.name:
+                obj.name = name.lower()
+            obj.accessor = name
+
+        obj.owner = rule_set
+        return obj
 
     def bind(self, rule):
         return BoundDecision(name=self.name,
@@ -40,9 +75,30 @@ class Decision(object):
                              made_by=rule,
                              **self.meta)
 
+    def __hash__(self):
+        return hash((self.owner, self.name))
+
+    def __eq__(self, other):
+        return (isinstance(other, Decision) and
+                other.owner == self.owner and
+                other.name == self.name)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __repr__(self):
+        return "<{}(name={!r}) on {}>".format(self.__class__.__name__,
+                                              self.name,
+                                              self.owner)
+
 
 class BoundDecision(Decision):
+    """A Rule-selected Decision.
 
+    BoundDecision extends the RuleSet's Decision with information about the
+    Rule that selected it.
+
+    """
     is_bound = True
 
     def __init__(self, name, owner, made_by, **meta):
@@ -50,62 +106,92 @@ class BoundDecision(Decision):
         self.owner = owner
         self.made_by = made_by
 
+    def __eq__(self, other):
+        eq = super(BoundDecision, self).__eq__(other)
+        if isinstance(other, BoundDecision):
+            return eq and other.made_by == self.made_by
+        return eq
+
+    def __repr__(self):
+        return "{}(name={!r}, owner={!r}, made_by={!r})".format(
+            self.__class__.__name__,
+            self.name,
+            self.owner,
+            self.made_by,
+        )
+
+
+class DecisionAccessor(object):
+    """Descriptor providing easy access to the appropriate RuleSet Decision.
+
+    The RuleSet inheritance model relies on the sharing of Rules, but Decisions
+    remain attached to their RuleSet; to ensure that inherited RuleSet class
+    attributes refer to the appropriate Decisions, Decisions specified in the
+    RuleSet class definition are stored canonically in the class's "decisions"
+    set, and these attribute references are replaced with this descriptor.
+
+    To supply some level of caching, when accessed through the RuleSet instance,
+    the result of the descriptor's look-up in the class is stored on the
+    instance, (and subsequent access through the instance will prefer its
+    dictionary to the descriptor).
+
+    """
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance, cls):
+        for decision in cls.decisions:
+            if decision.accessor == self.name:
+                break
+        else:
+            raise LookupError("Decision {} missing from {}".format(self.name, cls))
+
+        if instance is not None:
+            # Cache decision on instance:
+            setattr(instance, self.name, decision)
+
+        return decision
+
 
 class RuleSetDefinition(type):
+    """RuleSet metaclass.
 
-    def __new__(mcs, name, bases, dict_):
-        # Initialize class attributes:
+    This metaclass ensures the structure and inheritance of Decisions and Rules
+    and handles the specification of these during RuleSet class definition.
+    (See `RuleSet`.)
+
+    """
+    def __init__(cls, name, bases, dict_):
+        super(RuleSetDefinition, cls).__init__(name, bases, dict_)
+
+        # Handle inherited (and explicitly set) definitions:
         for (name, default) in [
             ('decisions', set()),
             ('rules', []),
         ]:
-            try:
-                dict_[name]
-            except KeyError:
-                pass
+            items = getattr(cls, name, None)
+            if items:
+                value = type(items)(item.contribute_to_class(cls) for item in items)
             else:
+                value = default
+            setattr(cls, name, value)
+
+        # Pick up novel definitions in class dict:
+        for (name, obj) in dict_.items():
+            try:
+                contributor = obj.contribute_to_class
+            except AttributeError:
                 continue
 
-            # Attempt to copy concrete ancestor's value:
-            for base in bases:
-                try:
-                    inherited = getattr(base, name)
-                except AttributeError:
-                    pass
-                else:
-                    dict_[name] = copy.copy(inherited)
-                    break
-            else:
-                dict_[name] = default
+            value = contributor(cls, name)
 
-        return super(RuleSetDefinition, mcs).__new__(mcs, name, bases, dict_)
-
-    def __init__(cls, name, bases, dict_):
-        super(RuleSetDefinition, cls).__init__(name, bases, dict_)
-
-        # Gather & initialize class definition objects:
-        for (name, obj) in dict_.items():
             if isinstance(obj, Decision):
-                obj.name = obj.name or name.lower()
-                obj.owner = cls
-                cls.decisions.add(obj)
+                cls.decisions.add(value)
+                setattr(cls, name, DecisionAccessor(name))
             elif isinstance(obj, Rule):
-                obj.owners.add(cls)
-                cls.rules.append(obj)
+                cls.rules.append(value)
+                setattr(cls, name, value)
 
-    def __repr__(cls):
-        return "<RuleSet: {}>".format(cls.__name__)
-
-
-class RuleSet(object):
-
-    __metaclass__ = RuleSetDefinition
-    rules = decisions = None
-
-    decision_required = True
-    multiple_decisions = False
-
-    @classmethod
     def rule(cls, func):
         """Decorator for the definition of Rules and their association with
         a RuleSet.
@@ -132,15 +218,15 @@ class RuleSet(object):
         object and associated with the decorating RuleSet.
 
         """
-        if cls is RuleSet:
-            return Rule(func)
-
         rule_ = Rule(func)
+
+        if cls is RuleSet:
+            return rule_
+
         rule_.owners.add(cls)
         cls.rules.append(rule_)
         return rule_
 
-    @classmethod
     def apply(cls, *args, **kws):
         """Initialize the RuleSet from the given arguments and apply its Rules,
         to return a decision.
@@ -148,6 +234,21 @@ class RuleSet(object):
         """
         self = cls(*args, **kws)
         return self.decide()
+
+    def __repr__(cls):
+        return "<{}>".format(cls)
+
+    def __str__(cls):
+        return "RuleSet: {}".format(cls.__name__)
+
+
+class RuleSet(object):
+
+    __metaclass__ = RuleSetDefinition
+    rules = decisions = None
+
+    decision_required = True
+    multiple_decisions = False
 
     def decide(self):
         """Iterate over the RuleSet object's Rules to return a decision."""
@@ -190,9 +291,10 @@ class RuleSet(object):
 
 
 def context(func=None,
-            decisions=None,
             decision_required=True,
-            multiple_decisions=False):
+            multiple_decisions=False,
+            rule_set_cls=RuleSet,
+            **decisions):
     """Decorator (factory) to manufacture RuleSets from context-definition
     functions.
 
@@ -230,13 +332,16 @@ def context(func=None,
             context_ = func(*args, **kws)
             vars(self).update(context_)
 
-        return type(func.__name__, (RuleSet,), {
+        defn = {
             '__init__': init,
-            'decisions': decisions or set(),
             'decision_required': decision_required,
             'multiple_decisions': multiple_decisions,
             '__module__': func.__module__,
-        })
+            '__doc__': func.__doc__,
+        }
+        defn.update(decisions)
+
+        return type(func.__name__, (rule_set_cls,), defn)
 
     if func:
         return decorator(func)
