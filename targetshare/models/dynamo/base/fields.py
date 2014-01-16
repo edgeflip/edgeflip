@@ -60,6 +60,11 @@ class ItemField(BaseItemField):
             return self.data_type.decode(value)
         return value
 
+    def decode_lossy(self, value):
+        if isinstance(self.data_type, types.DataType):
+            return self.data_type.decode_lossy(value)
+        return value
+
 
 class HashKeyField(ItemField):
 

@@ -401,11 +401,15 @@ class Item(baseitems.Item):
     get_dynamizer = types.Dynamizer
 
     def __init__(self, data=None, loaded=False, **kwdata):
+        self.table = type(self).items.table
+        self._dynamizer = self.get_dynamizer()
+        self._loaded = loaded
+
+        # Clean data and gather links
+        self._data = {}
+        self._orig_data = {}
         data = {} if data is None else dict(data)
         data.update(kwdata)
-
-        # Clean data before populating it and gather links
-        clean_data = {}
         linked_data = []
         for (key, value) in data.items():
             if key in self._meta.links:
@@ -415,11 +419,9 @@ class Item(baseitems.Item):
                     raise TypeError("Items loaded from database cannot populate link fields")
                 linked_data.append((key, value))
             else:
-                clean_data[key] = self._pre_set(key, value)
-
-        table = type(self).items.table
-        super(Item, self).__init__(table, clean_data, loaded)
-        self._dynamizer = self.get_dynamizer()
+                self._data[key] = self._pre_set(key, value)
+                if loaded:
+                    self._orig_data[key] = self._pre_set(key, value, lossy=False)
 
         # Apply linked objects
         for (key, value) in linked_data:
@@ -475,11 +477,12 @@ class Item(baseitems.Item):
         return self._data[key]
 
     @classmethod
-    def _pre_set(cls, key, value):
-        """Clean exotic types (e.g. DATE)."""
+    def _pre_set(cls, key, value, lossy=True):
+        """Clean incoming data values, including exotic types (e.g. DATE)."""
         key_field = cls._meta.keys.get(key)
         if key_field:
-            return key_field.decode(value)
+            decoder = key_field.decode_lossy if lossy else key_field.decode
+            return decoder(value)
 
         link_field = cls._meta.links.get(key)
         if link_field:
@@ -490,8 +493,11 @@ class Item(baseitems.Item):
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
                             .format(key, cls.__name__))
 
-        if isinstance(cls._meta.undeclared_data_type, types.DataType):
-            return cls._meta.undeclared_data_type.decode(value)
+        undeclared = cls._meta.undeclared_data_type
+        if isinstance(undeclared, types.DataType):
+            if lossy:
+                return undeclared.decode_lossy(value)
+            return undeclared.decode(value)
 
         return value
 
