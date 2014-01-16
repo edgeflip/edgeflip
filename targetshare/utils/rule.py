@@ -58,9 +58,11 @@ class Decision(object):
 
     def contribute_to_class(self, rule_set, name=None):
         if name is None:
+            # Assume inheritance; return clone:
             obj = type(self)(self.name, **self.meta)
             obj.accessor = self.accessor
         else:
+            # Assume fresh specification via rule set definition:
             obj = self
             if not obj.name:
                 obj.name = name.lower()
@@ -214,7 +216,7 @@ class RuleSetDefinition(type):
             def wears_pants(context):
                 ...
 
-        In the latter example, the decorated function is replaced with Rule
+        In the latter example, the decorated function is replaced with a Rule
         object and associated with the decorating RuleSet.
 
         """
@@ -290,17 +292,13 @@ class RuleSet(object):
         return "<RuleSet: {}>".format(self)
 
 
-def context(func=None,
-            decision_required=True,
-            multiple_decisions=False,
-            rule_set_cls=RuleSet,
-            **decisions):
-    """Decorator (factory) to manufacture RuleSets from context-definition
-    functions.
+def context(func=None, base_class=RuleSet, **specifications):
+    """Decorator (factory) to manufacture RuleSets from functions defining their
+    interface and their Rules' context during runtime.
 
-    The decorated function defines the interface of a new RuleSet, and constructs
+    The decorated function defines the interface of a new RuleSet, and returns
     a context dictionary, which will be passed to the RuleSet's Rules as an
-    object, the RuleSet instance bound to the context).
+    object, (the RuleSet instance populated from that context).
 
     For example, the following::
 
@@ -334,14 +332,12 @@ def context(func=None,
 
         defn = {
             '__init__': init,
-            'decision_required': decision_required,
-            'multiple_decisions': multiple_decisions,
             '__module__': func.__module__,
             '__doc__': func.__doc__,
         }
-        defn.update(decisions)
+        defn.update(specifications)
 
-        return type(func.__name__, (rule_set_cls,), defn)
+        return type(func.__name__, (base_class,), defn)
 
     if func:
         return decorator(func)
