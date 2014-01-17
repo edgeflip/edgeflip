@@ -23,6 +23,7 @@ MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
 
 
+@shared_task
 def crawl_user(token, retry_count=0, max_retries=3):
     try:
         fresh_token = facebook.client.extend_token(
@@ -42,16 +43,14 @@ def crawl_user(token, retry_count=0, max_retries=3):
         fresh_token.save(overwrite=True)
         token = fresh_token
 
-    task = bg_px4_crawl.apply_async(
-        args=[token],
-        queue='bg_px4',
-        routing_key='bg.px4',
-        link=create_sync_task.s(token=token)
+    edges = bg_px4_crawl(token)
+    fbids_to_crawl = [token.fbid] + [edge.secondary.fbid for edge in edges]
+    create_sync_task(
+        [token.fbid] + [edge.secondary.fbid for edge in edges],
+        token
     )
-    return task
 
 
-@shared_task
 def bg_px4_crawl(token):
     ''' Very similar to the standard px4 task. The main difference is that
     this skips checking dynamo for data, as this is intended to constantly
@@ -82,8 +81,6 @@ def bg_px4_crawl(token):
         queue='bg_delayed_save',
         routing_key='bg.delayed_save',
     )
-    #TODO: Verify these kwargs are working properly, because I don't currently
-    #TODO: think that they are.
     db.upsert.apply_async(
         args=[user],
         kwargs={'partial_save_queue': 'bg_partial_save'},
@@ -105,18 +102,17 @@ def bg_px4_crawl(token):
     return edges_ranked
 
 
-@shared_task(default_retry_delay=1, max_retries=3)
-def create_sync_task(edges, token):
-    if not edges:
+def create_sync_task(fbid_list, token, sync_type=models.FBSyncTask.NORMAL_CRAWL):
+    if not fbid_list:
         return
 
-    fbids_to_crawl = [token.fbid] + [edge.secondary.fbid for edge in edges]
     try:
         sync_task = models.FBSyncTask(
             fbid=token.fbid,
             token=token.token,
             status=models.FBSyncTask.WAITING,
-            fbids_to_crawl=fbids_to_crawl
+            fbids_to_crawl=set(fbid_list),
+            sync_type=sync_type
         )
         sync_task.save()
     except ConditionalCheckFailedException:
@@ -126,7 +122,7 @@ def create_sync_task(edges, token):
         process_sync_task.delay(sync_task.fbid)
 
 
-@shared_task(default_retry_delay=300, max_retries=3, time_limit=0)
+@shared_task
 def process_sync_task(fbid):
     sync_task = models.FBSyncTask.items.get_item(fbid=fbid)
     sync_task.status = sync_task.IN_PROCESS
@@ -140,19 +136,19 @@ def process_sync_task(fbid):
         len(sync_task.fbids_to_crawl)))
     fbids_to_crawl = sync_task.fbids_to_crawl.copy()
     for fbid in fbids_to_crawl:
-        bucket = s3_conn.get_or_create_bucket('{}{}'.format(
-            settings.FEED_BUCKET_PREFIX,
-            random.randrange(0, settings.FEED_MAX_BUCKETS)
-        ))
-        logger.info('Processing {}_{}'.format(sync_task.fbid, fbid))
-        s3_key, created = bucket.get_or_create_key('{}_{}'.format(
-            sync_task.fbid,
-            fbid
-        ))
+        s3_key_name = '{}_{}'.format(sync_task.fbid, fbid)
+        s3_key = s3_conn.find_key(settings.FEED_BUCKET_NAMES, s3_key_name)
+        if s3_key:
+            created = True
+        else:
+            bucket = s3_conn.get_or_create_bucket('{}'.format(
+                random.sample(settings.FEED_BUCKET_NAMES, 1)[0]
+            ))
+            logger.info('Processing {}'.format(s3_key_name))
+            s3_key, created = bucket.get_or_create_key(s3_key_name)
 
         if not created:
-            logger.info('Found existing S3 Key for {}_{}'.format(
-                sync_task.fbid, fbid))
+            logger.info('Found existing S3 Key for {}'.format(s3_key_name))
             data = json.loads(s3_key.get_contents_as_string())
             next_url = 'https://graph.facebook.com/{}/feed?{}'.format(
                 fbid, urllib.urlencode({
@@ -164,8 +160,7 @@ def process_sync_task(fbid):
                 })
             )
         else:
-            logger.info('No existing S3 Key for {}_{}'.format(
-                sync_task.fbid, fbid))
+            logger.info('No existing S3 Key for {}'.format(s3_key_name))
             try:
                 data = facebook.client.urlload(
                     'https://graph.facebook.com/{}/feed/'.format(fbid), {
@@ -186,15 +181,13 @@ def process_sync_task(fbid):
                 next_url = data.get('paging', {}).get('next')
             except (ValueError, IOError) as exc:
                 logger.exception(
-                    'Failed to process initial url for {}_{}'.format(
-                        sync_task.fbid, fbid)
+                    'Failed to process initial url for {}'.format(s3_key_name)
                 )
                 try:
                     process_sync_task.retry(exc=exc)
                 except (ValueError, IOError):
                     logger.exception(
-                        'Completely failed to process {}_{}'.format(
-                            sync_task.fbid, fbid)
+                        'Completely failed to process {}_{}'.format(s3_key_name)
                     )
                     sync_task.delete()
 
@@ -207,10 +200,15 @@ def process_sync_task(fbid):
         sync_task.fbids_to_crawl.remove(fbid)
         sync_task.save(overwrite=True)
         crawl_comments_and_likes.delay(data, s3_key)
-        logger.info('Completed {}_{}'.format(sync_task.fbid, fbid))
+        logger.info('Completed {}'.format(s3_key_name))
 
     logger.info('Completed crawl of {}'.format(sync_task.fbid))
+    if sync_task.sync_type == models.FBSyncTask.NORMAL:
+        # We need to back fill
+        token = models.Token.items.get_item(fbid=sync_task.fbid)
+        fbids_to_crawl = sync_task.fbids_to_crawl.copy()
     sync_task.delete()
+    create_sync_task(fbids_to_crawl, token,
 
 
 @shared_task(time_limit=0)

@@ -22,6 +22,6 @@ class Command(NoArgsCommand):
         count = 0
         for token in dynamo.Token.items.scan(expires__gt=timezone.now()):
             logger.info('Crawling token for {}'.format(token.fbid))
-            tasks.crawl_user(token)
+            tasks.crawl_user.delay(token)
             count += 1
         logger.info('Placed {} tokens on the queue'.format(count + 1))

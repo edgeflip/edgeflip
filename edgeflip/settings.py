@@ -286,7 +286,6 @@ CELERY_QUEUES = (
     # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
     Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
-    Queue('bg_px4', routing_key='bg.px4', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Background Queues
     Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
     Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
@@ -331,17 +330,13 @@ CELERY_ROUTES = {
         'queue': 'update_edges',
         'routing_key': 'update.edges',
     },
-    'feed_crawler.tasks.create_sync_task': {
+    'feed_crawler.tasks.crawl_user': {
         'queue': 'user_feeds',
         'routing_key': 'user.feeds',
     },
     'feed_crawler.tasks.process_sync_task': {
         'queue': 'process_sync',
         'routing_key': 'process.sync',
-    },
-    'feed_crawler.tasks.bg_px4_crawl': {
-        'queue': 'bg_px4',
-        'routing_key': 'bg.px4'
     },
     'feed_crawler.tasks.crawl_comments_and_likes': {
         'queue': 'crawl_comments_and_likes',
@@ -382,6 +377,9 @@ VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 FEED_BUCKET_PREFIX = 'feed_crawler_'
 FEED_MAX_BUCKETS = 5
 FEED_AGE_LIMIT = 7 # In days
+FEED_BUCKET_NAMES = [
+    '{}{}'.format(FEED_BUCKET_PREFIX, x) for x in range(0, FEED_MAX_BUCKETS)
+]
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False
