@@ -61,12 +61,8 @@ def bg_px4_crawl(token):
     '''
     try:
         user = facebook.client.get_user(token.fbid, token.token)
-        edges_unranked = facebook.client.get_friend_edges(
-            user,
-            token['token'],
-            require_incoming=True,
-            require_outgoing=False,
-        )
+        stream = facebook.client.Stream.read(user, token.token)
+        edges_unranked = stream.get_friend_edges(token.token)
     except IOError as exc:
         bg_px4_crawl.retry(exc=exc)
 

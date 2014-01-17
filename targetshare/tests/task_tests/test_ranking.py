@@ -8,7 +8,7 @@ from mock import patch
 
 from targetshare import models
 from targetshare.tasks import ranking
-from targetshare.integration.facebook.client import urllib2
+from targetshare.integration import facebook
 
 from .. import EdgeFlipTestCase, patch_facebook
 
@@ -129,12 +129,19 @@ class TestFiltering(RankingTestCase):
 
 class TestProximityRankFour(RankingTestCase):
 
+    def setUp(self):
+        super(TestProximityRankFour, self).setUp()
+        self.client = models.Client.objects.create()
+        self.campaign = self.client.campaigns.create()
+
     @patch_facebook(min_friends=101, max_friends=120)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
+                                             content_id=None, visit_id=None, num_faces=None)
+        ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
 
         self.assertTrue(ranked_edges.post_topics)
@@ -155,14 +162,16 @@ class TestProximityRankFour(RankingTestCase):
         self.assertIn('falling back to FB', logger_mock.info.call_args[0][0])
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
-        self.assertGreater(urllib2.urlopen.call_count, 2)
+        self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=1, max_friends=99)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
-        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
+                                             content_id=None, visit_id=None, num_faces=None)
+        ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
@@ -174,7 +183,7 @@ class TestProximityRankFour(RankingTestCase):
         )
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
-        self.assertGreater(urllib2.urlopen.call_count, 2)
+        self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=100, max_friends=100)
     @patch('targetshare.tasks.ranking.LOG')
@@ -186,7 +195,9 @@ class TestProximityRankFour(RankingTestCase):
             user = models.User(fbid=x)
             user.save()
 
-        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
+        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
+                                             content_id=None, visit_id=None, num_faces=None)
+        ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
@@ -197,10 +208,7 @@ class TestProximityRankFour(RankingTestCase):
             logger_mock.info.call_args[0][0]
         )
         # One call to get the user, the other to get the friend count
-        self.assertEqual(
-            urllib2.urlopen.call_count,
-            2
-        )
+        self.assertEqual(facebook.client.urllib2.urlopen.call_count, 2)
 
 
 class TestRankRefinement(RankingTestCase):
@@ -209,8 +217,7 @@ class TestRankRefinement(RankingTestCase):
 
     @patch_facebook(min_friends=15, max_friends=30)
     def test_ranking(self):
-        crawl_result = ranking.px4_crawl(self.token)
-        (ranked_edges, hit_fb) = crawl_result
+        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
         self.assertTrue(hit_fb)
 
         client = models.relational.Client.objects.all()[0]
@@ -224,10 +231,14 @@ class TestRankRefinement(RankingTestCase):
         )
 
         result = ranking.refine_ranking(
-            crawl_result,
-            campaign.pk,
+            ranked_edges,
+            hit_fb,
+            campaign_id=campaign.pk,
             # Below unnecessary if not filtering:
-            None, None, None, None,
+            fbid=self.token.fbid,
+            content_id=None,
+            visit_id=None,
+            num_faces=None,
         )
         ranked_edges1 = result.ranked
 
@@ -240,8 +251,7 @@ class TestRankRefinement(RankingTestCase):
 
     @patch_facebook(min_friends=15, max_friends=30)
     def test_px4_filtering(self):
-        crawl_result = ranking.px4_crawl(self.token)
-        (ranked_edges, hit_fb) = crawl_result
+        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
         self.assertTrue(hit_fb)
 
         campaign = models.relational.Campaign.objects.all()[0]
@@ -254,6 +264,7 @@ class TestRankRefinement(RankingTestCase):
         models.relational.FilterFeature.objects.filter(
             filter__choicesetfilters__choice_set__campaignchoicesets__campaign=campaign
         ).delete()
+
         weathers = [edge.secondary.topics.get('Weather') for edge in ranked_edges]
         min_weather = min(weather for weather in weathers if weather is not None)
         max_weather = max(weathers)
@@ -271,12 +282,14 @@ class TestRankRefinement(RankingTestCase):
 
         visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+
         result = ranking.refine_ranking(
-            crawl_result,
-            campaign.pk,
-            client_content.pk,
-            self.token.fbid,
-            visit.pk,
+            ranked_edges,
+            hit_fb,
+            fbid=self.token.fbid,
+            campaign_id=campaign.pk,
+            content_id=client_content.pk,
+            visit_id=visit.pk,
             num_faces=1,
         )
 

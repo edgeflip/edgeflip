@@ -6,13 +6,18 @@ from mock import Mock, patch
 
 from django.utils import timezone
 
-from targetshare.tests import EdgeFlipTestCase, patch_facebook
+from targetshare.tests import EdgeFlipTestCase, crawl_mock
 from targetshare.tasks.ranking import px3_crawl
 from targetshare import models
 
 from feed_crawler import tasks, utils
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
+
+
+def mock_feed(url):
+    if '/feed' in url:
+        return {'data': [{'ooga': 'booga'}]}
 
 
 class TestFeedCrawlerTasks(EdgeFlipTestCase):
@@ -22,7 +27,16 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
 
-    @patch_facebook
+        self.facebook_patch = patch(
+            'targetshare.integration.facebook.client.urllib2.urlopen',
+            crawl_mock(1, 1000, mock_feed)
+        )
+        self.facebook_patch.start()
+
+    def tearDown(self):
+        self.facebook_patch.stop()
+        super(TestFeedCrawlerTasks, self).tearDown()
+
     def test_bg_px4_crawl(self):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
 
@@ -35,7 +49,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(urllib2.urlopen.call_count, 2)
 
-    @patch_facebook
     @patch('feed_crawler.tasks.process_sync_task')
     def test_create_sync_task(self, sync_mock):
         ''' Should create a FBTaskSync object and place a process_sync_task
@@ -48,7 +61,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         self.assertEqual(fbt.token, self.token.token)
         self.assertTrue(sync_mock.delay.called)
 
-    @patch_facebook
     @patch('feed_crawler.tasks.process_sync_task')
     def test_create_sync_task_existing_task(self, sync_mock):
         ''' Should recognize an existing FBTaskSync object and do nothing '''
@@ -63,7 +75,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         tasks.create_sync_task(edges, self.token)
         self.assertFalse(sync_mock.delay.called)
 
-    @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     @patch('feed_crawler.utils.BucketManager.new_key')
@@ -84,7 +95,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         with self.assertRaises(models.FBSyncTask.DoesNotExist):
             models.FBSyncTask.items.get_item(fbid=1)
 
-    @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_process_sync_task_existing_key(self, bucket_mock, conn_mock):

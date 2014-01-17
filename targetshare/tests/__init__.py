@@ -211,14 +211,11 @@ def fake_user(fbid, friend=False, num_friends=0):
     return fake
 
 
-def crawl_mock(min_friends, max_friends):
+def crawl_mock(min_friends, max_friends, closure=None):
     fake_fbids = tuple({100000000000 + random.randint(1, 10000000)
                         for _ in xrandrange(min_friends, max_friends)})
     friend_count = len(fake_fbids)
-    synchronous_results = iter([
-        # get_user:
-        {'data': [fake_user(1)]},
-    ])
+    synchronous_results = iter([])
 
     dir_ = os.path.dirname(os.path.abspath(__file__))
     app_dir = os.path.dirname(dir_)
@@ -275,6 +272,10 @@ def crawl_mock(min_friends, max_friends):
             return {'data': [{'friend_count': friend_count}]}
 
         elif 'from+user' in url.lower():
+            if "select+uid%2c+first_name%2c+last_name" in url.lower():
+                # User info
+                return {'data': [fake_user(1)]}
+
             # Friend info
             return {'data': [fake_user(fbid, friend=True, num_friends=friend_count)
                              for fbid in fake_fbids]}
@@ -291,6 +292,8 @@ def crawl_mock(min_friends, max_friends):
                                     for fbid in fake_fbids]},
             ]}
 
+        elif closure:
+            return closure(url)
         else:
             raise RuntimeError("No mock for URL: {}".format(url))
 
@@ -300,11 +303,11 @@ def crawl_mock(min_friends, max_friends):
     )
 
 
-def patch_facebook(func=None, min_friends=1, max_friends=1000):
+def patch_facebook(func=None, min_friends=1, max_friends=1000, closure=None):
     patches = (
         patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',
-            crawl_mock(min_friends, max_friends)
+            crawl_mock(min_friends, max_friends, closure)
         ),
         patch('targetshare.integration.facebook.client.extend_token', Mock(
             return_value=models.dynamo.Token(
