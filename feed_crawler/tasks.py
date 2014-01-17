@@ -49,18 +49,18 @@ def crawl_user(token, retry_count=0, max_retries=3):
         fresh_token.save(overwrite=True)
         token = fresh_token
 
-    edges = bg_px4_crawl(token)
+    edges = _bg_px4_crawl(token)
     fb_sync_maps = _get_sync_maps(edges, token)
 
     delay = 0
     for count, fbm in enumerate(fb_sync_maps):
         if fbm.status == models.FBSyncMap.WAITING:
-            _initial_crawl.apply_async(
+            initial_crawl.apply_async(
                 args=[fbm],
                 countdown=delay
             )
         elif fbm.status == models.FBSyncMap.COMPLETE:
-            _incremental_crawl.apply_async(
+            incremental_crawl.apply_async(
                 args=[fbm],
                 countdown=delay
             )
@@ -68,7 +68,7 @@ def crawl_user(token, retry_count=0, max_retries=3):
         delay += DELAY_INCREMENT if count % 100 == 0 else 0
 
 
-def bg_px4_crawl(token):
+def _bg_px4_crawl(token, retries=0, max_retries=3):
     ''' Very similar to the standard px4 task. The main difference is that
     this skips checking dynamo for data, as this is intended to constantly
     be feeding data into Dynamo. Also, it ships all saving tasks off to
@@ -83,8 +83,12 @@ def bg_px4_crawl(token):
             require_incoming=True,
             require_outgoing=False,
         )
-    except IOError as exc:
-        bg_px4_crawl.retry(exc=exc)
+    except IOError:
+        retries += 1
+        if retries > max_retries:
+            raise
+        else:
+            _bg_px4_crawl(token, retries)
 
     edges_ranked = models.datastructs.EdgeAggregate.rank(
         edges_unranked,
@@ -163,7 +167,8 @@ def _get_sync_maps(edges, token):
 
 
 @shared_task(bind=True, default_retry_delay=300, max_retries=5)
-def _initial_crawl(self, sync_map):
+def initial_crawl(self, sync_map):
+    logger.info('Starting initial crawl of {}'.format(sync_map.s3_key_name))
     sync_map.change_status(models.FBSyncMap.INITIAL_CRAWL)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
@@ -190,14 +195,16 @@ def _initial_crawl(self, sync_map):
 
     data['updated'] = future_epoch
     s3_key.set_contents_from_string(json.dumps(data))
-    sync_map.backfill_epoch = past_epoch
+    sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = future_epoch
     sync_map.change_status(models.FBSyncMap.BACK_FILL)
-    _back_fill_crawl.apply_async(args=[sync_map], countdown=DELAY_INCREMENT)
+    back_fill_crawl.apply_async(args=[sync_map], countdown=DELAY_INCREMENT)
+    logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
 
 
 @shared_task(bind=True, default_retry_delay=3600, max_retries=5)
-def _back_fill_crawl(self, sync_map):
+def back_fill_crawl(self, sync_map):
+    logger.info('Starting back fill crawl of {}'.format(sync_map.s3_key_name))
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
@@ -218,6 +225,8 @@ def _back_fill_crawl(self, sync_map):
             # Hit a dead end. Given the retry delays and such, if we die here
             # the user more than likely, but not definitively, has less than
             # 12 months worth of feed data.
+            rvn_logger.info(
+                'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
             return
 
     next_url = data.get('paging', {}).get('next')
@@ -230,13 +239,15 @@ def _back_fill_crawl(self, sync_map):
     full_data['updated'] = to_epoch(timezone.now())
     s3_key.set_contents_from_string(json.dumps(full_data))
     sync_map.change_status(models.FBSyncMap.COMMENT_CRAWL)
-    _crawl_comments_and_likes.apply_async(
+    crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
     )
+    logger.info('Completed back fill crawl of {}'.format(sync_map.s3_key_name))
 
 
 @shared_task(bind=True)
-def _crawl_comments_and_likes(self, sync_map):
+def crawl_comments_and_likes(self, sync_map):
+    logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     feed = json.loads(s3_key.get_contents_as_string())
@@ -253,10 +264,12 @@ def _crawl_comments_and_likes(self, sync_map):
 
     s3_key.set_contents_from_string(json.dumps(feed))
     sync_map.change_status(models.FBSyncMap.COMPLETE)
+    logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
 
 
 @shared_task(bind=True, default_retry_delay=300, max_retries=5)
-def _incremental_crawl(self, sync_map):
+def incremental_crawl(self, sync_map):
+    logger.info('Starting incremental crawl of {}'.format(sync_map.s3_key_name))
     sync_map.change_status(models.FBSyncMap.INCREMENTAL)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
@@ -289,6 +302,7 @@ def _incremental_crawl(self, sync_map):
     data['updated'] = to_epoch(timezone.now())
     s3_key.set_contents_from_string(json.dumps(data))
     sync_map.change_status(models.FBSyncMap.COMPLETE)
-    _crawl_comments_and_likes.apply_async(
+    crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
     )
+    logger.info('Completed incremental crawl of {}'.format(sync_map.s3_key_name))

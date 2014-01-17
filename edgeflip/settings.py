@@ -285,7 +285,9 @@ CELERY_QUEUES = (
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
-    Queue('process_sync', routing_key='process.sync', queue_arguments=QUEUE_ARGS),
+    Queue('initial_crawl', routing_key='crawl.initial', queue_arguments=QUEUE_ARGS),
+    Queue('back_fill_crawl', routing_key='crawl.back_fill', queue_arguments=QUEUE_ARGS),
+    Queue('incremental_crawl', routing_key='crawl.incremental', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Background Queues
     Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
     Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
@@ -334,9 +336,17 @@ CELERY_ROUTES = {
         'queue': 'user_feeds',
         'routing_key': 'user.feeds',
     },
-    'feed_crawler.tasks.process_sync_task': {
-        'queue': 'process_sync',
-        'routing_key': 'process.sync',
+    'feed_crawler.tasks.initial_crawl': {
+        'queue': 'initial_crawl',
+        'routing_key': 'crawl.initial',
+    },
+    'feed_crawler.tasks.back_fill_crawl': {
+        'queue': 'back_fill_crawl',
+        'routing_key': 'crawl.back_fill',
+    },
+    'feed_crawler.tasks.incremental_crawl': {
+        'queue': 'incremental_crawl',
+        'routing_key': 'crawl.incremental',
     },
     'feed_crawler.tasks.crawl_comments_and_likes': {
         'queue': 'crawl_comments_and_likes',
@@ -374,7 +384,7 @@ VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # feedcrawler settings
-FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_BUCKET_PREFIX = 'mark_feed_crawler_'
 FEED_MAX_BUCKETS = 5
 FEED_AGE_LIMIT = 7 # In days
 FEED_BUCKET_NAMES = [
