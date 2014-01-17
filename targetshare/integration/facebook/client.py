@@ -237,13 +237,13 @@ def _urlload_thread(url, query=(), results=None):
     if not hasattr(results, 'extend'):
         raise TypeError("Argument 'results' required and list expected")
 
-    tim = utils.Timer()
-    response = urlload(url, query)
-    data = response['data']
-    results.extend(data)
+    with utils.Timer() as timer:
+        response = urlload(url, query)
+        data = response['data']
+        results.extend(data)
 
     LOG.debug('Thread %s read %s records from FB in %s',
-              threading.current_thread().name, len(data), tim.elapsedPr())
+              threading.current_thread().name, len(data), timer)
     return len(data)
 
 
@@ -324,22 +324,19 @@ def get_friend_count(fbid, token):
     return num_friends_response['data'][0]['friend_count']
 
 
-def get_friend_edges(user, token, require_incoming=False, require_outgoing=False, skip=()):
-    """Retrieve user's stream and return the Edges between the user and friends."""
+def get_friend_edges(user, token):
+    """Retrieve simple information about a user's network.
+
+    Returns the UserNetwork of Edges between the user and friends.
+
+    (See `Stream.get_friend_edges`.)
+
+    """
     LOG.debug("getting friend edges from FB for %d", user.fbid)
-    tim = utils.Timer()
-
-    edges = _get_friend_edges_simple(user, token)
-    LOG.debug("got %d friends total", len(edges))
-    if skip:
-        edges = datastructs.UserNetwork(edge for edge in edges if edge.secondary.fbid not in skip)
-
-    if require_incoming:
-        edges = _extend_friend_edges(user, token, edges, require_outgoing)
-    else:
+    with utils.Timer() as timer:
+        edges = _get_friend_edges_simple(user, token)
         edges.sort(key=lambda edge: edge.incoming.mut_friends, reverse=True)
-
-    LOG.debug("got %d friend edges for %d (%s)", len(edges), user.fbid, tim.elapsedPr())
+    LOG.debug("got %d friend edges for %d (%s)", len(edges), user.fbid, timer)
     return edges
 
 
@@ -477,122 +474,8 @@ def _get_friend_edges_simple(user, token):
         friends.add(friend.fbid)
         network.append(network.Edge(user, friend, edge_data))
 
-    LOG.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer.elapsedPr())
+    LOG.debug("returning %d friends for %d (%s)", len(friends), user.fbid, timer)
     return network
-
-
-def _extend_friend_edges(user, token, edges, require_outgoing=False):
-    LOG.info('reading stream for user %s', user.fbid)
-    stream = Stream.read(user.fbid, token)
-    LOG.debug('got %r', stream)
-
-    # sort all the friends by their stream rank (if any) and mutual friend count
-    aggregate = stream.aggregate()
-    friend_streamrank = aggregate.ranking()
-    LOG.debug("got %d friends ranked", len(friend_streamrank))
-    edges.sort(key=lambda edge:
-        (friend_streamrank.get(edge.secondary.fbid, sys.maxint),
-         -1 * edge.incoming.mut_friends)
-    )
-
-    network = datastructs.UserNetwork(
-        post_topics={
-            post.post_id: dynamo.PostTopics.classify(post.post_id, post.message)
-            for post in stream
-        }
-    )
-    for (count, edge) in enumerate(edges):
-        user_aggregate = aggregate[edge.secondary.fbid]
-
-        user_interactions = user_aggregate.types
-        incoming = dynamo.IncomingEdge(
-            data=edge.incoming,
-            post_likes=len(user_interactions['post_likes']),
-            post_comms=len(user_interactions['post_comms']),
-            stat_likes=len(user_interactions['stat_likes']),
-            stat_comms=len(user_interactions['stat_comms']),
-            wall_posts=len(user_interactions['wall_posts']),
-            wall_comms=len(user_interactions['wall_comms']),
-            tags=len(user_interactions['tags']),
-        )
-
-        interactions = {
-            dynamo.PostInteractions(
-                post_likes=len(post_interactions['post_likes']),
-                post_comms=len(post_interactions['post_comms']),
-                stat_likes=len(post_interactions['stat_likes']),
-                stat_comms=len(post_interactions['stat_comms']),
-                wall_posts=len(post_interactions['wall_posts']),
-                wall_comms=len(post_interactions['wall_comms']),
-                tags=len(post_interactions['tags']),
-                user=edge.secondary,
-                post_topics=network.post_topics[post_id],
-            )
-            for (post_id, post_interactions) in user_aggregate.posts.iteritems()
-        }
-
-        outgoing = edge.outgoing
-        if require_outgoing and not outgoing:
-            LOG.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
-            outgoing = _get_outgoing_edge(user, edge.secondary, token)
-
-        network.append(
-            edge._replace(
-                incoming=incoming,
-                outgoing=outgoing,
-                interactions=interactions,
-            )
-        )
-
-    return network
-
-
-def _get_outgoing_edge(user, friend, token):
-    timer = utils.Timer()
-    try:
-        stream = Stream.read(friend.fbid, token,
-                             settings.STREAM_DAYS_OUT,
-                             settings.STREAM_DAYS_CHUNK_OUT,
-                             settings.STREAM_THREADCOUNT_OUT,
-                             settings.STREAM_READ_TIMEOUT_OUT,
-                             settings.STREAM_READ_SLEEP_OUT)
-    except Exception:
-        LOG.warning("error reading stream for %d", friend.fbid, exc_info=True)
-        return
-
-    aggregate = stream.aggregate()
-    # FIXME: Shouldn't this be user.fbid?
-    # TODO: If not, we can add post topics and interactions from this outgoing
-    # TODO: stream to the caller's listings of friend interactions.
-    # TODO: (But if so, these are the primary's interactions, which are another
-    # TODO: story.)
-    user_aggregate = aggregate[friend.fbid]
-    user_interactions = user_aggregate.types
-    LOG.debug('got %s', user_interactions)
-    outgoing = dynamo.IncomingEdge(
-        fbid_source=user.fbid,
-        fbid_target=friend.fbid,
-        post_likes=len(user_interactions['post_likes']),
-        post_comms=len(user_interactions['post_comms']),
-        stat_likes=len(user_interactions['stat_likes']),
-        stat_comms=len(user_interactions['stat_comms']),
-        wall_posts=len(user_interactions['wall_posts']),
-        wall_comms=len(user_interactions['wall_comms']),
-        tags=len(user_interactions['tags']),
-    )
-
-    # Throttling for Facebook limits
-    # If this friend took fewer seconds to crawl than the number of chunks, wait that
-    # additional time before proceeding to next friend to avoid getting shut out by FB.
-    # FIXME: could still run into trouble there if we have to do multiple tries for several chunks.
-    # FIXME: and this shouldn't be managed here, as we may wait unnecessarily (e.g. when we're done)
-    friend_secs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
-    secs_left = friend_secs - timer.elapsedSecs()
-    if secs_left > 0:
-        LOG.debug("Nap time! Waiting %d seconds...", secs_left)
-        time.sleep(secs_left)
-
-    return outgoing
 
 
 def verify_oauth_code(fb_app_id, code, redirect_uri):
@@ -719,6 +602,130 @@ class Stream(list):
     def aggregate(self):
         return self.StreamAggregate(self)
 
+    def get_friend_edges(self, user, token, require_outgoing=False):
+        """Retrieve detailed information about a user's network.
+
+        Returns the UserNetwork of Edges between the user and friends.
+
+        (Unlike the module-level function `get_friend_edges`, this method
+        performs multiple queries.)
+
+        """
+        LOG.debug("getting friend edges from FB for %d", user.fbid)
+        timer = utils.Timer()
+
+        edges = _get_friend_edges_simple(user, token)
+        LOG.debug("got %d friends total", len(edges))
+
+        # sort all the friends by their stream rank (if any) and mutual friend count
+        aggregate = self.aggregate()
+        friend_streamrank = aggregate.ranking()
+        LOG.debug("got %d friends ranked", len(friend_streamrank))
+        edges.sort(key=lambda edge:
+            (friend_streamrank.get(edge.secondary.fbid, sys.maxint),
+            -1 * edge.incoming.mut_friends)
+        )
+
+        network = datastructs.UserNetwork(
+            post_topics={
+                post.post_id: dynamo.PostTopics.classify(post.post_id, post.message)
+                for post in self
+            }
+        )
+        for (count, edge) in enumerate(edges):
+            user_aggregate = aggregate[edge.secondary.fbid]
+
+            user_interactions = user_aggregate.types
+            incoming = dynamo.IncomingEdge(
+                data=edge.incoming,
+                post_likes=len(user_interactions['post_likes']),
+                post_comms=len(user_interactions['post_comms']),
+                stat_likes=len(user_interactions['stat_likes']),
+                stat_comms=len(user_interactions['stat_comms']),
+                wall_posts=len(user_interactions['wall_posts']),
+                wall_comms=len(user_interactions['wall_comms']),
+                tags=len(user_interactions['tags']),
+            )
+
+            interactions = {
+                dynamo.PostInteractions(
+                    post_likes=len(post_interactions['post_likes']),
+                    post_comms=len(post_interactions['post_comms']),
+                    stat_likes=len(post_interactions['stat_likes']),
+                    stat_comms=len(post_interactions['stat_comms']),
+                    wall_posts=len(post_interactions['wall_posts']),
+                    wall_comms=len(post_interactions['wall_comms']),
+                    tags=len(post_interactions['tags']),
+                    user=edge.secondary,
+                    post_topics=network.post_topics[post_id],
+                )
+                for (post_id, post_interactions) in user_aggregate.posts.iteritems()
+            }
+
+            outgoing = edge.outgoing
+            if require_outgoing and not outgoing:
+                LOG.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
+                outgoing = self._get_outgoing_edge(user, edge.secondary, token)
+
+            network.append(
+                edge._replace(
+                    incoming=incoming,
+                    outgoing=outgoing,
+                    interactions=interactions,
+                )
+            )
+
+        LOG.debug("got %d friend edges for %d (%s)", len(network), user.fbid, timer)
+        return network
+
+    @classmethod
+    def _get_outgoing_edge(cls, user, friend, token):
+        timer = utils.Timer()
+        try:
+            stream = cls.read(friend.fbid, token,
+                              settings.STREAM_DAYS_OUT,
+                              settings.STREAM_DAYS_CHUNK_OUT,
+                              settings.STREAM_THREADCOUNT_OUT,
+                              settings.STREAM_READ_TIMEOUT_OUT,
+                              settings.STREAM_READ_SLEEP_OUT)
+        except Exception:
+            LOG.warning("error reading stream for %d", friend.fbid, exc_info=True)
+            return
+
+        aggregate = stream.aggregate()
+        # FIXME: Shouldn't this be user.fbid?
+        # TODO: If not, we can add post topics and interactions from this outgoing
+        # TODO: stream to the caller's listings of friend interactions.
+        # TODO: (But if so, these are the primary's interactions, which are another
+        # TODO: story.)
+        user_aggregate = aggregate[friend.fbid]
+        user_interactions = user_aggregate.types
+        LOG.debug('got %s', user_interactions)
+        outgoing = dynamo.IncomingEdge(
+            fbid_source=user.fbid,
+            fbid_target=friend.fbid,
+            post_likes=len(user_interactions['post_likes']),
+            post_comms=len(user_interactions['post_comms']),
+            stat_likes=len(user_interactions['stat_likes']),
+            stat_comms=len(user_interactions['stat_comms']),
+            wall_posts=len(user_interactions['wall_posts']),
+            wall_comms=len(user_interactions['wall_comms']),
+            tags=len(user_interactions['tags']),
+        )
+
+        # Throttling for Facebook limits
+        # If this friend took fewer seconds to crawl than the number of chunks, wait that
+        # additional time before proceeding to next friend to avoid getting shut out by FB.
+        # FIXME: could still run into trouble there if we have to do multiple tries for several chunks.
+        # FIXME: and this shouldn't be managed here, as we may wait unnecessarily (e.g. when we're done)
+        friend_secs = settings.STREAM_DAYS_OUT / settings.STREAM_DAYS_CHUNK_OUT
+        secs_left = friend_secs - timer.elapsed
+        if secs_left > 0:
+            LOG.debug("Nap time! Waiting %d seconds...", secs_left)
+            time.sleep(secs_left)
+
+        return outgoing
+
     @classmethod
     def read(cls, user_id, token,
              num_days=settings.STREAM_DAYS_IN,
@@ -730,6 +737,7 @@ class Stream(list):
         LOG.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r)",
                   user_id, token[:10] + " ...", num_days,
                   chunk_size, thread_count, loop_timeout, loop_sleep)
+        LOG.info('reading stream for user %s', user_id)
 
         timer = utils.Timer()
         chunk_inputs = Queue.Queue() # fill with (time0, time1) pairs
@@ -785,13 +793,13 @@ class Stream(list):
             )
 
         stream = cls(user_id)
-        for count, chunk in enumerate(chunk_outputs):
+        for (count, chunk) in enumerate(chunk_outputs):
             LOG.debug("chunk %d: %s", count, chunk)
             stream += chunk
 
         LOG.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r) done in %s",
                   user_id, token[:10] + " ...", num_days, chunk_size,
-                  thread_count, loop_timeout, loop_sleep, timer.elapsedPr())
+                  thread_count, loop_timeout, loop_sleep, timer)
         return stream
 
 
@@ -892,14 +900,14 @@ class StreamReaderThread(threading.Thread):
             self.results.append(stream)
             self.queue.task_done()
             LOG.debug("Thread %s: stream chunk for %s took %s: %s",
-                      self.name, self.user_id, timer_chunk.elapsedPr(), stream)
+                      self.name, self.user_id, timer_chunk, stream)
 
         else:
             # We've reached the stop limit
             LOG.debug("Thread %s: reached lifespan, exiting", self.name)
 
         LOG.debug("Thread %s: finished with %d/%d good (took %s)",
-                  self.name, count_good, (count_good + count_bad), timer.elapsedPr())
+                  self.name, count_good, (count_good + count_bad), timer)
 
 
 class BadChunksError(IOError):

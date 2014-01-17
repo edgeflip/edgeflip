@@ -95,39 +95,42 @@ def decodeDES(encoded):
 
 
 class Timer(object):
-    """used for inline profiling & debugging
 
-
-    XXX i can probably die
-    """
     def __init__(self):
-        self.start = time.time()
+        self.reset()
 
     def reset(self):
         self.start = time.time()
+        self.finish = None
 
-    def elapsedSecs(self):
-        return time.time() - self.start
+    def stop(self):
+        self.finish = time.time()
 
-    def elapsedPr(self, precision=2):
-        delt = datetime.timedelta(seconds=time.time() - self.start)
-        hours = delt.days * 24 + delt.seconds / 3600
-        hoursStr = str(hours)
-        mins = (delt.seconds - hours * 3600) / 60
-        minsStr = "%02d" % (mins)
-        secs = (delt.seconds - hours * 3600 - mins * 60)
-        if (precision):
-            secsFloat = secs + delt.microseconds / 1000000.0 # e.g., 2.345678
-            secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
-        else:
-            secsStr = "%02d" % (secs)
-        if (hours == 0):
-            return minsStr + ":" + secsStr
-        else:
-            return hoursStr + ":" + minsStr + ":" + secsStr
+    @property
+    def elapsed(self):
+        t1 = time.time() if self.finish is None else self.finish
+        return t1 - self.start
 
-    def stderr(self, txt=""):
-        raise NotImplementedError # what is this intended to do? No stderr please!
+    @property
+    def elapsed_str(self):
+        delta = datetime.timedelta(seconds=self.elapsed)
+        hours = delta.days * 24 + delta.seconds / 3600
+        mins = (delta.seconds - hours * 3600) / 60
+        secs = (delta.seconds - hours * 3600 - mins * 60)
+        mins_secs = "{:02.0f}:{:02.0f}".format(mins, secs)
+        return mins_secs if hours == 0 else "{}:{}".format(hours, mins_secs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+
+    def __str__(self):
+        return self.elapsed_str
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.elapsed)
 
 
 def doc_inheritor(cls):
