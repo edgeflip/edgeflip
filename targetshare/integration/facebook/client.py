@@ -574,20 +574,20 @@ class Stream(list):
                                     reverse=True)
             return {fbid: position for (position, fbid) in enumerate(ranked_friends)}
 
-    __slots__ = ('user_id',)
+    __slots__ = ('user',)
 
-    def __init__(self, user_id, iterable=()):
+    def __init__(self, user, iterable=()):
         super(Stream, self).__init__(iterable)
-        self.user_id = user_id
+        self.user = user
 
     def __iadd__(self, other):
-        if self.user_id != other.user_id:
+        if self.user != other.user:
             raise ValueError("Streams belong to different users")
         self.extend(other)
         return self
 
     def __add__(self, other):
-        new = type(self)(self.user_id, self)
+        new = type(self)(self.user, self)
         new += other
         return new
 
@@ -596,13 +596,13 @@ class Stream(list):
         if len(data) > self.REPR_OUTPUT_SIZE:
             data[-1] = "...(remaining elements truncated)..."
         return "{}({!r}, {!r})".format(self.__class__.__name__,
-                                       self.user_id,
+                                       self.user.fbid,
                                        data)
 
     def aggregate(self):
         return self.StreamAggregate(self)
 
-    def get_friend_edges(self, user, token, require_outgoing=False):
+    def get_friend_edges(self, token, require_outgoing=False):
         """Retrieve detailed information about a user's network.
 
         Returns the UserNetwork of Edges between the user and friends.
@@ -611,10 +611,10 @@ class Stream(list):
         performs multiple queries.)
 
         """
-        LOG.debug("getting friend edges from FB for %d", user.fbid)
+        LOG.debug("getting friend edges from FB for %d", self.user.fbid)
         timer = utils.Timer()
 
-        edges = _get_friend_edges_simple(user, token)
+        edges = _get_friend_edges_simple(self.user, token)
         LOG.debug("got %d friends total", len(edges))
 
         # sort all the friends by their stream rank (if any) and mutual friend count
@@ -665,7 +665,7 @@ class Stream(list):
             outgoing = edge.outgoing
             if require_outgoing and not outgoing:
                 LOG.info("reading friend stream %d/%d (%s)", count, len(edges), edge.secondary.fbid)
-                outgoing = self._get_outgoing_edge(user, edge.secondary, token)
+                outgoing = self._get_outgoing_edge(edge.secondary, token)
 
             network.append(
                 edge._replace(
@@ -675,19 +675,18 @@ class Stream(list):
                 )
             )
 
-        LOG.debug("got %d friend edges for %d (%s)", len(network), user.fbid, timer)
+        LOG.debug("got %d friend edges for %d (%s)", len(network), self.user.fbid, timer)
         return network
 
-    @classmethod
-    def _get_outgoing_edge(cls, user, friend, token):
+    def _get_outgoing_edge(self, friend, token):
         timer = utils.Timer()
         try:
-            stream = cls.read(friend.fbid, token,
-                              settings.STREAM_DAYS_OUT,
-                              settings.STREAM_DAYS_CHUNK_OUT,
-                              settings.STREAM_THREADCOUNT_OUT,
-                              settings.STREAM_READ_TIMEOUT_OUT,
-                              settings.STREAM_READ_SLEEP_OUT)
+            stream = self.read(friend, token,
+                               settings.STREAM_DAYS_OUT,
+                               settings.STREAM_DAYS_CHUNK_OUT,
+                               settings.STREAM_THREADCOUNT_OUT,
+                               settings.STREAM_READ_TIMEOUT_OUT,
+                               settings.STREAM_READ_SLEEP_OUT)
         except Exception:
             LOG.warning("error reading stream for %d", friend.fbid, exc_info=True)
             return
@@ -702,7 +701,7 @@ class Stream(list):
         user_interactions = user_aggregate.types
         LOG.debug('got %s', user_interactions)
         outgoing = dynamo.IncomingEdge(
-            fbid_source=user.fbid,
+            fbid_source=self.user.fbid,
             fbid_target=friend.fbid,
             post_likes=len(user_interactions['post_likes']),
             post_comms=len(user_interactions['post_comms']),
@@ -727,13 +726,14 @@ class Stream(list):
         return outgoing
 
     @classmethod
-    def read(cls, user_id, token,
+    def read(cls, user, token,
              num_days=settings.STREAM_DAYS_IN,
              chunk_size=settings.STREAM_DAYS_CHUNK_IN,
              thread_count=settings.STREAM_THREADCOUNT_IN,
              loop_timeout=settings.STREAM_READ_TIMEOUT_IN,
              loop_sleep=settings.STREAM_READ_SLEEP_IN):
 
+        user_id = user.fbid
         LOG.debug("Stream.read(%r, %r, %r, %r, %r, %r, %r)",
                   user_id, token[:10] + " ...", num_days,
                   chunk_size, thread_count, loop_timeout, loop_sleep)
@@ -756,7 +756,7 @@ class Stream(list):
         for count in xrange(thread_count):
             thread = StreamReaderThread(
                 "%s-%d" % (user_id, count),
-                user_id,
+                user,
                 token,
                 chunk_inputs,
                 chunk_outputs,
@@ -792,7 +792,7 @@ class Stream(list):
                 % (user_id, settings.BAD_CHUNK_THRESH)
             )
 
-        stream = cls(user_id)
+        stream = cls(user)
         for (count, chunk) in enumerate(chunk_outputs):
             LOG.debug("chunk %d: %s", count, chunk)
             stream += chunk
@@ -805,10 +805,10 @@ class Stream(list):
 
 class StreamReaderThread(threading.Thread):
     """Read a chunk of a user's Stream in a thread"""
-    def __init__(self, name, user_id, token, queue, results, lifespan):
+    def __init__(self, name, user, token, queue, results, lifespan):
         threading.Thread.__init__(self)
         self.name = name
-        self.user_id = user_id
+        self.user = user
         self.token = token
         self.queue = queue
         self.results = results
@@ -820,6 +820,7 @@ class StreamReaderThread(threading.Thread):
         timer = utils.Timer()
         count_good = 0
         count_bad = 0
+        user_id = self.user.fbid
 
         while time.time() < time_stop:
             try:
@@ -828,7 +829,7 @@ class StreamReaderThread(threading.Thread):
                 break
 
             LOG.debug("Thread %s: reading stream for %s, interval (%s - %s)",
-                      self.name, self.user_id,
+                      self.name, user_id,
                       time.strftime("%m/%d", time.localtime(min_time)),
                       time.strftime("%m/%d", time.localtime(max_time)))
             timer_chunk = utils.Timer()
@@ -838,14 +839,14 @@ class StreamReaderThread(threading.Thread):
             stream_ref = '#' + stream_label
             wall_ref = '#' + wall_label
             query = {
-                stream_label: fql_stream_chunk(self.user_id, min_time, max_time),
-                wall_label: fql_wall_posts(stream_ref, self.user_id),
+                stream_label: fql_stream_chunk(user_id, min_time, max_time),
+                wall_label: fql_wall_posts(stream_ref, user_id),
                 'post_likes': fql_post_likes(stream_ref),
                 'post_comms': fql_post_comms(stream_ref),
                 'stat_likes': fql_stat_likes(stream_ref),
                 'stat_comms': fql_stat_comms(stream_ref),
-                'wall_comms': fql_wall_comms(wall_ref, self.user_id),
-                'tags': fql_tags(stream_ref, self.user_id),
+                'wall_comms': fql_wall_comms(wall_ref, user_id),
+                'tags': fql_tags(stream_ref, user_id),
             }
             try:
                 data = urlload('https://graph.facebook.com/fql', {
@@ -855,7 +856,7 @@ class StreamReaderThread(threading.Thread):
                 })
             except IOError:
                 LOG.exception("Thread %s: error reading stream chunk for user %s (%s - %s)",
-                              self.name, self.user_id,
+                              self.name, user_id,
                               time.strftime("%m/%d", time.localtime(min_time)),
                               time.strftime("%m/%d", time.localtime(max_time)))
                 count_bad += 1
@@ -867,7 +868,7 @@ class StreamReaderThread(threading.Thread):
 
             results = {entry['name']: entry['fql_result_set']
                        for entry in data['data']}
-            stream = Stream(self.user_id)
+            stream = Stream(self.user)
             for post_data in results['stream']:
                 post = Stream.Post(
                     post_id=post_data['post_id'],
@@ -900,7 +901,7 @@ class StreamReaderThread(threading.Thread):
             self.results.append(stream)
             self.queue.task_done()
             LOG.debug("Thread %s: stream chunk for %s took %s: %s",
-                      self.name, self.user_id, timer_chunk, stream)
+                      self.name, user_id, timer_chunk, stream)
 
         else:
             # We've reached the stop limit
