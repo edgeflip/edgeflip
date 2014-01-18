@@ -74,9 +74,10 @@ class UserNetwork(list):
             return cls()
 
         # Grab all PostInteractions, via PostInteractionsSet:
-        post_interactions = (dynamo.PostInteractions.items.prefetch('post_topics')
-            .batch_get_through(dynamo.PostInteractionsSet,
-                               [user.get_keys() for user in secondaries.itervalues()]))
+        post_interactions = dynamo.PostInteractions.items.batch_get_through(
+            dynamo.PostInteractionsSet,
+            [user.get_keys() for user in secondaries.itervalues()]
+        )
 
         # Build hash of fbid: [PostInteractions, ...]
         interactions_key = operator.attrgetter('fbid')
@@ -84,11 +85,6 @@ class UserNetwork(list):
         interactions_grouped = itertools.groupby(interactions_sorted, interactions_key)
         user_interactions = {fbid: set(interactions)
                              for (fbid, interactions) in interactions_grouped}
-
-        # Gather PostTopics in use by PostInteractions into a hash:
-        interaction_topics = (interactions.post_topics
-                              for interactions in post_interactions)
-        post_topics = {topics.postid: topics for topics in interaction_topics}
 
         # Build iterable of edges with secondaries, consisting of:
         # (2nd's ID, 2nd's User, incoming edge, outgoing edge, 2nd's interactions)
@@ -100,7 +96,7 @@ class UserNetwork(list):
                  secondaries.get(edge.fbid_target),
                  edges_in.get(edge.fbid_target),
                  edge,
-                 user_interactions.get(edge.fbid_target, ()))
+                 user_interactions.get(edge.fbid_target, set()))
                 for edge in outgoing_edges)
         else:
             edge_args = (
@@ -111,12 +107,11 @@ class UserNetwork(list):
                  user_interactions.get(fbid, set()))
                 for (fbid, edge) in edges_in.items())
 
-        edges = (
+        return cls(
             cls.Edge(primary, secondary, incoming, outgoing, interactions)
             for (fbid, secondary, incoming, outgoing, interactions) in edge_args
             if cls._db_edge_ok(fbid, secondary, incoming, outgoing)
         )
-        return cls(edges, post_topics=post_topics)
 
     @staticmethod
     def _db_edge_ok(fbid, secondary, incoming, outgoing):
@@ -130,17 +125,19 @@ class UserNetwork(list):
 
         return True
 
-    __slots__ = ('post_topics',)
+    __slots__ = ()
 
-    def __init__(self, edges=(), post_topics=None):
+    def __init__(self, edges=()):
         super(UserNetwork, self).__init__(self._import_edges(edges))
-        self.post_topics = post_topics or {}
+
+    def _clone(self, edges=None):
+        """Handle for copying over __slots__, should any exist."""
+        edges = self if edges is None else edges
+        return type(self)(edges)
 
     def __getitem__(self, key):
         result = super(UserNetwork, self).__getitem__(key)
-        if isinstance(key, slice):
-            return type(self)(result, post_topics=self.post_topics.copy())
-        return result
+        return self._clone(result) if isinstance(key, slice) else result
 
     def __getslice__(self, start, stop):
         return self.__getitem__(slice(start, stop))
@@ -157,13 +154,10 @@ class UserNetwork(list):
         return not self.__eq__(other)
 
     def __add__(self, other):
-        post_topics = self.post_topics.copy()
-        post_topics.update(getattr(other, 'post_topics', {}))
-        return type(self)(itertools.chain(self, other), post_topics=post_topics)
+        return self._clone(itertools.chain(self, other))
 
     def __mul__(self, count):
-        return type(self)(itertools.chain.from_iterable(itertools.repeat(self, count)),
-                          post_topics=self.post_topics.copy())
+        return self._clone(itertools.chain.from_iterable(itertools.repeat(self, count)))
 
     __rmul__ = __mul__
 
@@ -220,9 +214,8 @@ class UserNetwork(list):
                                   aggregator=max,
                                   require_incoming=require_incoming,
                                   require_outgoing=require_outgoing)
-        return type(self)(
-            edges=(edge._replace(score=edges_max.score(edge)) for edge in self),
-            post_topics=self.post_topics.copy(),
+        return self._clone(
+            edge._replace(score=edges_max.score(edge)) for edge in self
         )
 
     def rank(self):

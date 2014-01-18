@@ -626,12 +626,7 @@ class Stream(list):
             -1 * edge.incoming.mut_friends)
         )
 
-        network = datastructs.UserNetwork(
-            post_topics={
-                post.post_id: dynamo.PostTopics.classify(post.post_id, post.message)
-                for post in self
-            }
-        )
+        network = datastructs.UserNetwork()
         for (count, edge) in enumerate(edges):
             user_aggregate = aggregate[edge.secondary.fbid]
 
@@ -649,6 +644,8 @@ class Stream(list):
 
             interactions = {
                 dynamo.PostInteractions(
+                    user=edge.secondary,
+                    postid=post_id,
                     post_likes=len(post_interactions['post_likes']),
                     post_comms=len(post_interactions['post_comms']),
                     stat_likes=len(post_interactions['stat_likes']),
@@ -656,8 +653,6 @@ class Stream(list):
                     wall_posts=len(post_interactions['wall_posts']),
                     wall_comms=len(post_interactions['wall_comms']),
                     tags=len(post_interactions['tags']),
-                    user=edge.secondary,
-                    post_topics=network.post_topics[post_id],
                 )
                 for (post_id, post_interactions) in user_aggregate.posts.iteritems()
             }
@@ -779,7 +774,7 @@ class Stream(list):
             for thread in threads:
                 thread.kill_received = True
             LOG.debug("now have %d threads",
-                      len([thread for thread in threads if thread.isAlive()]))
+                      sum(1 for thread in threads if thread.isAlive()))
 
         LOG.debug("%d threads still alive after loop", len(threads))
         LOG.debug("%d chunk results for user %s", len(chunk_outputs), user_id)
