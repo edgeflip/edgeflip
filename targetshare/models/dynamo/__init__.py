@@ -9,4 +9,4 @@ from .edge import IncomingEdge, OutgoingEdge
 from .token import Token
 from .user import User
 from .civis import CivisResult
-from .fb_sync_task import FBSyncTask, FBSyncMap
+from .fb_sync_task import FBSyncMap

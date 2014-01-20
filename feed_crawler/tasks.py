@@ -301,6 +301,8 @@ def incremental_crawl(self, sync_map):
     data['data'].extend(full_data['data'])
     data['updated'] = to_epoch(timezone.now())
     s3_key.set_contents_from_string(json.dumps(data))
+    sync_map.incremental_epoch = to_epoch(timezone.now())
+    sync_map.save()
     sync_map.change_status(models.FBSyncMap.COMPLETE)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
