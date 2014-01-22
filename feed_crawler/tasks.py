@@ -173,7 +173,7 @@ def initial_crawl(self, sync_map):
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     past_epoch = to_epoch(timezone.now() - timedelta(days=365))
-    future_epoch = to_epoch(timezone.now())
+    now_epoch = to_epoch(timezone.now())
     try:
         data = facebook.client.urlload(
             'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
@@ -183,7 +183,7 @@ def initial_crawl(self, sync_map):
                 'suppress_http_code': 1,
                 'limit': 5000,
                 'since': past_epoch,
-                'until': future_epoch,
+                'until': now_epoch,
             }, timeout=120
         )
     except (ValueError, IOError):
@@ -193,10 +193,10 @@ def initial_crawl(self, sync_map):
             sync_map.change_state(models.FBSyncMap.WAITING)
             return
 
-    data['updated'] = future_epoch
+    data['updated'] = now_epoch
     s3_key.set_contents_from_string(json.dumps(data))
     sync_map.back_fill_epoch = past_epoch
-    sync_map.incremental_epoch = future_epoch
+    sync_map.incremental_epoch = now_epoch
     sync_map.change_status(models.FBSyncMap.BACK_FILL)
     back_fill_crawl.apply_async(args=[sync_map], countdown=DELAY_INCREMENT)
     logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
@@ -223,11 +223,10 @@ def back_fill_crawl(self, sync_map):
             self.retry()
         except MaxRetriesExceededError:
             # Hit a dead end. Given the retry delays and such, if we die here
-            # the user more than likely, but not definitively, has less than
-            # 12 months worth of feed data.
+            # we're likely, but not definitively at the end of the user's
+            # feed
             rvn_logger.info(
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
-            return
 
     next_url = data.get('paging', {}).get('next')
     if next_url:
@@ -238,6 +237,8 @@ def back_fill_crawl(self, sync_map):
     full_data['data'].extend(data['data'])
     full_data['updated'] = to_epoch(timezone.now())
     s3_key.set_contents_from_string(json.dumps(full_data))
+    sync_map.back_filled = 1
+    sync_map.save()
     sync_map.change_status(models.FBSyncMap.COMMENT_CRAWL)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT

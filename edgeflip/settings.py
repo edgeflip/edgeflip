@@ -384,7 +384,7 @@ VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # feedcrawler settings
-FEED_BUCKET_PREFIX = 'mark_feed_crawler_'
+FEED_BUCKET_PREFIX = 'feed_crawler_'
 FEED_MAX_BUCKETS = 5
 FEED_AGE_LIMIT = 7 # In days
 FEED_BUCKET_NAMES = [

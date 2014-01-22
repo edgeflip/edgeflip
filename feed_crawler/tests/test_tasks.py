@@ -107,6 +107,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)
         assert fbm.back_fill_epoch
+        assert fbm.back_filled
         assert fbm.incremental_epoch
         self.assertTrue(existing_key.set_contents_from_string.called)
 
