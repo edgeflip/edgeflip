@@ -53,7 +53,7 @@ def crawl_user(token, retry_count=0, max_retries=3):
     fb_sync_maps = _get_sync_maps(edges, token)
 
     delay = 0
-    for count, fbm in enumerate(fb_sync_maps):
+    for count, fbm in enumerate(fb_sync_maps, 1):
         if fbm.status == models.FBSyncMap.WAITING:
             initial_crawl.apply_async(
                 args=[fbm],
