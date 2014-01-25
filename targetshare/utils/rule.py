@@ -296,7 +296,7 @@ class RuleSet(object):
         return "<RuleSet: {}>".format(self)
 
 
-def context(func=None, base_class=RuleSet, **specifications):
+def context(func=None, base_class=RuleSet, bound=False, **specifications):
     """Decorator (factory) to manufacture RuleSets from functions defining their
     interface and their Rules' context during runtime.
 
@@ -331,18 +331,37 @@ def context(func=None, base_class=RuleSet, **specifications):
     """
     def decorator(func):
         def init(self, *args, **kws):
-            context_ = func(*args, **kws)
-            vars(self).update(context_)
+            if bound or getattr(func, 'is_bound', False):
+                context_ = func(self, *args, **kws)
+            else:
+                context_ = func(*args, **kws)
+            if context_ is not None:
+                vars(self).update(context_)
 
         defn = {
             '__init__': init,
             '__module__': func.__module__,
             '__doc__': func.__doc__,
         }
-        defn.update(specifications)
+        for (name, obj) in specifications.items():
+            if callable(obj) and not isinstance(obj, Rule) and not getattr(obj, 'is_bound', False):
+                defn[name] = staticmethod(obj)
+            else:
+                defn[name] = obj
 
         return type(func.__name__, (base_class,), defn)
 
     if func:
         return decorator(func)
     return decorator
+
+
+def bound(func):
+    """Decorator for use with `context`, to make functions passed to it, such as
+    `resolve`, receive the RuleSet instance as their first argument.
+
+    Functions may alternatively specify `is_bound = True` in their dict.
+
+    """
+    func.is_bound = True
+    return func

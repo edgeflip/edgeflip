@@ -34,7 +34,7 @@ def reduce_topics(results):
     return {topic: atan_norm(score) for (topic, score) in scores.iteritems()}
 
 
-@context(decision_required=False, multiple_decisions=True, resolve=staticmethod(reduce_topics))
+@context(decision_required=False, multiple_decisions=True, resolve=reduce_topics)
 def classify(corpus, topic=None):
     """Classify the given corpus, according to the RuleSet's classification
     rules, returning the content's topics and their normalized weights.
