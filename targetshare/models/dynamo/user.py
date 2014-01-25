@@ -1,8 +1,9 @@
 import collections
 import logging
-import math
 
 from django.utils import timezone
+
+from targetshare import utils
 
 from .base import (
     Item,
@@ -83,11 +84,6 @@ class User(Item):
     def full_location(self):
         return u'{}, {} {}'.format(self.city, self.state, self.country)
 
-    @staticmethod
-    def _normalize_topic(score):
-        """Normalize the given topic score to 1."""
-        return math.atan(float(score) / 2) * 2 / math.pi
-
     @classmethod
     def get_topics(cls, interactions, warn=True):
         """Return a User's interests scored by topic, given an iterable of
@@ -113,7 +109,7 @@ class User(Item):
                      "of %i PostTopics items", uncached)
 
         # Normalize topic scores to 1:
-        return {topic: cls._normalize_topic(value)
+        return {topic: utils.atan_norm(value)
                 for (topic, value) in scores.items()}
 
     @cached_property

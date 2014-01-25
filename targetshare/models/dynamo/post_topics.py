@@ -1,3 +1,5 @@
+from targetshare.classify import classify as classifier
+
 from .base import Item, HashKeyField, NUMBER, STRING
 
 
@@ -10,14 +12,10 @@ class PostTopics(Item):
         undeclared_data_type = NUMBER
 
     @classmethod
-    def classify(cls, postid, text):
-        """Dummy text classifier."""
-        # TODO: REPLACE WITH ACTUAL CLASSIFIER
-        # TODO: Operationalize mozy classifier (local http on servers or otherwise)
-        # TODO: and get a hold of category mapping rules.
-        dummy_classifications = {
-            'Health': '8.2', # Might have trouble with Dynamo & raw floats
-            'Sports': '0.3',
-            'Weather': '0.2',
-        }
-        return cls(postid=postid, **dummy_classifications)
+    def classify(cls, postid, text, topic=None):
+        """Classify the given `text` using the quick-and-dirty pseudo-classifier
+        and instantiate a new PostTopics instance.
+
+        """
+        classifications = classifier.apply(text, topic)
+        return cls(postid=postid, **classifications)

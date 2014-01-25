@@ -235,7 +235,7 @@ class RuleSetDefinition(type):
 
         """
         self = cls(*args, **kws)
-        return self.decide()
+        return self.resolve(self.decide())
 
     def __repr__(cls):
         return "<{}>".format(cls)
@@ -275,6 +275,10 @@ class RuleSet(object):
         if self.decision_required and not made_decisions:
             raise self.IndecisionError(self)
         return made_decisions
+
+    def resolve(self, results):
+        """Hook for Rulsets to process results upon invokation of `apply`."""
+        return results
 
     class DecisionError(Exception):
         pass

@@ -4,6 +4,7 @@ import datetime
 import functools
 import itertools
 import logging
+import math
 import random
 import re
 import sys
@@ -27,6 +28,11 @@ pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 # DES appears to be limited to 8-character secret, so truncate if too long
 secret = pad(settings.CRYPTO.des_secret)[:8]
 cipher = DES.new(secret)
+
+
+def atan_norm(value):
+    """Normalize the given value to 1."""
+    return math.atan(float(value) / 2) * 2 / math.pi
 
 
 def camel_to_underscore(name):
