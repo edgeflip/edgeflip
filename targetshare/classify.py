@@ -54,9 +54,15 @@ def classify(corpus, topic=None):
         {'health': 0.125}
 
     """
-    # Return a mapping for use in initializing the RuleSet/context:
-    topics = (topic,) if isinstance(topic, basestring) else topic
-    return {'corpus': corpus, 'topics': topics if topics is None else set(topics)}
+    # Return a mapping for use in initializing the RuleSet/context
+    if isinstance(topic, basestring):
+        topics = {topic}
+    elif topic is None or isinstance(topic, set):
+        topics = topic
+    else:
+        topics = set(topic)
+
+    return {'corpus': corpus, 'topics': topics}
 
 
 All = object()
