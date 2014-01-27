@@ -31,7 +31,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     def test_crawl_user(self, incremental_mock, initial_mock):
         prim_fbm = models.FBSyncMap(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
-            back_filled=0, back_fill_epoch=0, incremental_epoch=0,
+            back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
         prim_fbm.save()
@@ -70,7 +70,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     def test_initial_crawl(self, new_bucket_mock, bucket_mock, conn_mock):
         fbm = models.FBSyncMap(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
-            back_filled=0, back_fill_epoch=0, incremental_epoch=0,
+            back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.WAITING, bucket='test_bucket_0'
         )
         fbm.save()
@@ -93,7 +93,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         the_past = to_epoch(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
-            back_filled=0, back_fill_epoch=the_past,
+            back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=to_epoch(timezone.now()),
             status=models.FBSyncMap.BACK_FILL, bucket='test_bucket_0'
         )
@@ -122,7 +122,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         present = to_epoch(timezone.now() - timedelta(seconds=30))
         fbm = models.FBSyncMap(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
-            back_filled=0, back_fill_epoch=the_past,
+            back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=present,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
@@ -145,7 +145,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         the_past = to_epoch(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
-            back_filled=0, back_fill_epoch=the_past,
+            back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=to_epoch(timezone.now()),
             status=models.FBSyncMap.COMMENT_CRAWL, bucket='test_bucket_0'
         )

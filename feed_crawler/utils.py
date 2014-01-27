@@ -28,8 +28,10 @@ class S3Manager(connection.S3Connection):
 
     def find_key(self, bucket_names, key_name):
         ''' Takes a list of bucket and searches across all of them for a
-        given key
+        given key. Returns a list of keys found, as duplicate key names can
+        be used in different buckets.
         '''
+        keys = []
         for bucket_name in bucket_names:
             try:
                 bucket = self.get_bucket(bucket_name)
@@ -38,6 +40,6 @@ class S3Manager(connection.S3Connection):
 
             key = bucket.get_key(key_name)
             if key:
-                break
+                keys.append(key)
 
-        return key
+        return keys

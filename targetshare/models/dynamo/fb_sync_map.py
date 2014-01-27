@@ -1,5 +1,5 @@
 from .base import (
-    Item, ItemField, HashKeyField, RangeKeyField, NUMBER
+    BOOL, Item, ItemField, HashKeyField, RangeKeyField, NUMBER
 )
 
 
@@ -16,13 +16,13 @@ class FBSyncMap(Item):
     fbid_primary = HashKeyField(data_type=NUMBER)
     fbid_secondary = RangeKeyField(data_type=NUMBER)
     token = ItemField()
-    back_filled = ItemField(data_type=NUMBER)
+    back_filled = ItemField(data_type=BOOL)
     back_fill_epoch = ItemField(data_type=NUMBER)
     incremental_epoch = ItemField(data_type=NUMBER)
     status = ItemField()
     bucket = ItemField()
 
-    def change_status(self, status):
+    def save_status(self, status):
         self.status = status
         self.save(overwrite=True)
 

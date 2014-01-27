@@ -134,7 +134,7 @@ def _get_sync_maps(edges, token):
             fbid_primary=token.fbid,
             fbid_secondary=token.fbid,
             token=token.token,
-            back_filled=0,
+            back_filled=False,
             back_fill_epoch=0,
             incremental_epoch=0,
             status=models.FBSyncMap.WAITING,
@@ -154,7 +154,7 @@ def _get_sync_maps(edges, token):
                 fbid_primary=token.fbid,
                 fbid_secondary=edge.secondary.fbid,
                 token=token.token,
-                back_filled=0,
+                back_filled=False,
                 back_fill_epoch=0,
                 incremental_epoch=0,
                 status=models.FBSyncMap.WAITING,
@@ -169,7 +169,7 @@ def _get_sync_maps(edges, token):
 @shared_task(bind=True, default_retry_delay=300, max_retries=5)
 def initial_crawl(self, sync_map):
     logger.info('Starting initial crawl of {}'.format(sync_map.s3_key_name))
-    sync_map.change_status(models.FBSyncMap.INITIAL_CRAWL)
+    sync_map.save_status(models.FBSyncMap.INITIAL_CRAWL)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     past_epoch = to_epoch(timezone.now() - timedelta(days=365))
@@ -197,7 +197,7 @@ def initial_crawl(self, sync_map):
     s3_key.set_contents_from_string(json.dumps(data))
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
-    sync_map.change_status(models.FBSyncMap.BACK_FILL)
+    sync_map.save_status(models.FBSyncMap.BACK_FILL)
     back_fill_crawl.apply_async(args=[sync_map], countdown=DELAY_INCREMENT)
     logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
 
@@ -237,9 +237,9 @@ def back_fill_crawl(self, sync_map):
     full_data['data'].extend(data['data'])
     full_data['updated'] = to_epoch(timezone.now())
     s3_key.set_contents_from_string(json.dumps(full_data))
-    sync_map.back_filled = 1
+    sync_map.back_filled = True
     sync_map.save()
-    sync_map.change_status(models.FBSyncMap.COMMENT_CRAWL)
+    sync_map.save_status(models.FBSyncMap.COMMENT_CRAWL)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
     )
@@ -264,14 +264,14 @@ def crawl_comments_and_likes(self, sync_map):
             item['likes']['data'].extend(result)
 
     s3_key.set_contents_from_string(json.dumps(feed))
-    sync_map.change_status(models.FBSyncMap.COMPLETE)
+    sync_map.save_status(models.FBSyncMap.COMPLETE)
     logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
 
 
 @shared_task(bind=True, default_retry_delay=300, max_retries=5)
 def incremental_crawl(self, sync_map):
     logger.info('Starting incremental crawl of {}'.format(sync_map.s3_key_name))
-    sync_map.change_status(models.FBSyncMap.INCREMENTAL)
+    sync_map.save_status(models.FBSyncMap.INCREMENTAL)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
@@ -290,7 +290,7 @@ def incremental_crawl(self, sync_map):
             self.retry()
         except MaxRetriesExceededError:
             # We'll get `em next time, boss.
-            sync_map.change_status(models.FBSyncMap.COMPLETE)
+            sync_map.save_status(models.FBSyncMap.COMPLETE)
             return
 
     next_url = data.get('paging', {}).get('next')
@@ -304,7 +304,7 @@ def incremental_crawl(self, sync_map):
     s3_key.set_contents_from_string(json.dumps(data))
     sync_map.incremental_epoch = to_epoch(timezone.now())
     sync_map.save()
-    sync_map.change_status(models.FBSyncMap.COMPLETE)
+    sync_map.save_status(models.FBSyncMap.COMPLETE)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
     )
