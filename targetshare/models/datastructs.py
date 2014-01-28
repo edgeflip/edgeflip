@@ -161,10 +161,6 @@ class UserNetwork(list):
 
     __rmul__ = __mul__
 
-    @property
-    def primary(self):
-        return self[0].primary
-
     def _import_edge(self, edge):
         if self and edge.primary != self.primary:
             raise ValueError("Edge network mismatch")
@@ -193,7 +189,16 @@ class UserNetwork(list):
     def insert(self, index, value):
         return super(UserNetwork, self).insert(index, self._import_edge(value))
 
-    def precache_topics_feature(self):
+    @property
+    def primary(self):
+        return self[0].primary
+
+    def iter_interactions(self):
+        for edge in self:
+            for post_interactions in edge.interactions:
+                yield post_interactions
+
+    def precache_topics_feature(self, post_topics=None):
         """Populate secondaries' "topics" feature from the network's
         PostInteractions and PostTopics.
 
@@ -201,9 +206,22 @@ class UserNetwork(list):
         the database. For performance, these caches may be prepopulated from the
         in-memory UserNetwork.
 
+        Note: If the network's PostInteractions have not themselves cached their
+        field links to PostTopics, invoking this method may be database-intensive
+        itself. To precache these links, an iterable of PostTopics may be specified
+        (`post_topics`).
+
         """
-        # NOTE: Assumes edge.interactions' PostInteractions have precached
-        # their PostTopics.
+        if post_topics is not None:
+            # Ensure precaching of PostInteractions.post_topics
+            post_topics = {pt.postid: pt for pt in post_topics}
+            link = dynamo.PostInteractions.post_topics
+            for post_interactions in self.iter_interactions():
+                if link.cache_get(post_interactions) is None:
+                    pt = post_topics.get(post_interactions.postid)
+                    if pt is not None:
+                        link.cache_set(post_interactions, pt)
+
         for edge in self:
             user = edge.secondary
             user.topics = user.get_topics(edge.interactions)
@@ -298,8 +316,8 @@ class TieredEdges(tuple):
         return type(self)(itertools.chain(self, other))
 
     def _reranked(self, ranking):
-        """Generate a stream of the collection's tiers with edges reranked according to
-        the given ranking.
+        """Generate a stream of the collection's tiers with edges reranked and
+        populated from the given ranking.
 
         """
         for tier in self:
