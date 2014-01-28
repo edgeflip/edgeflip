@@ -75,6 +75,13 @@ class FilterFeatureType(FeatureType):
         ordering = ('sort_order',)
 
 
+def expressions(*pairs):
+    return tuple(
+        (code, re.compile('^{}$'.format(pattern)))
+        for (code, pattern) in pairs
+    )
+
+
 class Feature(object):
     """Mix-in for models with a "feature" field."""
 
@@ -93,7 +100,7 @@ class Feature(object):
         GOTV_SCORE = 'gotv_score'
         PERSUASION_TURNOUT = 'persuasion_turnout_2013'
 
-        STANDARD = (
+        STANDARD = expressions(
             # (feature type code, feature expression)
             (AGE, AGE),
             (GENDER, GENDER),
@@ -102,15 +109,15 @@ class Feature(object):
             (FULL_LOCATION, FULL_LOCATION),
         )
 
-        NON_STANDARD = (
+        NON_STANDARD = expressions(
             # (feature type code, feature expression)
             (FilterFeatureType.MATCHING, '|'.join([
                 TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE, PERSUASION_TURNOUT
             ])),
-            (FilterFeatureType.TOPICS, r'topics\[[^\[\]]+\]'),
+            (FilterFeatureType.TOPICS, r'topics\[([^\[\]]+)\]'),
         )
 
-        ALL = STANDARD + NON_STANDARD
+        ALL = dict(STANDARD + NON_STANDARD)
 
     @staticmethod
     def _format_user_value(value):
@@ -185,7 +192,10 @@ class FilterFeatureManager(transitory.TransitoryObjectManager):
 
 def get_feature_validator(features):
     return validators.RegexValidator(r'^({COMBINED})$'.format(
-        COMBINED='|'.join(pattern for (_feature_type, pattern) in features)
+        COMBINED='|'.join(
+            feature.pattern.lstrip('^').rstrip('$')
+            for feature in features
+        )
     ))
 
 
@@ -223,7 +233,7 @@ class FilterFeature(models.Model, Feature):
     filter_feature_id = models.AutoField(primary_key=True)
     filter = models.ForeignKey('Filter', related_name='filterfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True, validators=[
-        get_feature_validator(Feature.Expression.ALL),
+        get_feature_validator(Feature.Expression.ALL.values()),
     ])
     feature_type = models.ForeignKey('FilterFeatureType')
     operator = models.CharField(max_length=32, blank=True,
@@ -313,8 +323,8 @@ class FilterFeature(models.Model, Feature):
 
     def get_feature_type(self):
         code = self.feature
-        for feature_type, pattern in self.Expression.NON_STANDARD:
-            if re.search('^{}$'.format(pattern), code):
+        for (feature_type, pattern) in self.Expression.NON_STANDARD:
+            if pattern.search(code):
                 code = feature_type
                 break
         return FilterFeatureType.objects.get(code=code)
@@ -500,7 +510,7 @@ class RankingKeyFeature(models.Model, Feature):
     ranking_key_feature_id = models.AutoField(primary_key=True)
     ranking_key = models.ForeignKey('RankingKey', related_name='rankingkeyfeatures', null=True)
     feature = models.CharField(max_length=64, blank=True, validators=[
-        validators.RegexValidator(r'^{0[topics]}$'.format(dict(Feature.Expression.ALL)))
+        validators.RegexValidator(Feature.Expression.ALL['topics'])
     ])
     feature_type = models.ForeignKey('RankingFeatureType')
     # NOTE: Did we end up using global_maximum (reranked_edges, rescored_edges)?
