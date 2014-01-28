@@ -151,6 +151,14 @@ class FieldProperty(BaseFieldProperty):
 class LinkFieldProperty(BaseFieldProperty):
     """Item link field descriptor, providing management of a linked Item."""
 
+    def cache_get(self, instance):
+        field = instance._meta.links[self.field_name]
+        return field.cache_get(self.field_name, instance)
+
+    def cache_set(self, instance, value):
+        field = instance._meta.links[self.field_name]
+        field.cache_set(self.field_name, instance, value)
+
     def __get__(self, instance, cls=None):
         if instance is None:
             return self

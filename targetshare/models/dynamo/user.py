@@ -18,6 +18,8 @@ from .base import (
 from .base.item import cached_property
 from .base.types import DOUBLE_NEWLINE
 
+from . import PostInteractions
+
 
 LOG = logging.getLogger('crow')
 
@@ -96,7 +98,7 @@ class User(Item):
         uncached = 0
         scores = collections.defaultdict(int)
         for interaction in interactions:
-            if warn and getattr(interaction, '_post_topics_cache', None) is None:
+            if warn and PostInteractions.post_topics.cache_get(interaction) is None:
                 uncached += 1
             post_topics = interaction.post_topics.document
             for (topic, value) in post_topics.items():
