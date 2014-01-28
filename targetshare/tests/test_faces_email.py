@@ -122,10 +122,10 @@ class TestFacesEmail(EdgeFlipTestCase):
             ]
         )
 
+    @patch('targetshare.management.commands.faces_email._build_csv')
     @patch('targetshare.management.commands.faces_email.ranking')
-    def test_crawl_and_filter(self, ranking_mock):
+    def test_crawl_and_filter(self, ranking_mock, build_csv_mock):
         ''' Test the _crawl_and_filter method '''
-        faces_email._build_csv = Mock()
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         for x in range(0, 3):
             relational.UserClient.objects.create(
@@ -137,7 +137,6 @@ class TestFacesEmail(EdgeFlipTestCase):
             )
             token.save()
 
-        self.command.end_count = None
         edge_data = list(faces_email._crawl_and_filter(
             self.client, self.campaign, self.content,
             self.notification, 0, 100, 3

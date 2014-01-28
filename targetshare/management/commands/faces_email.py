@@ -31,10 +31,6 @@ def _handle_threaded(notification_id, campaign_id, content_id, mock, num_face,
     notification = relational.Notification.objects.get(pk=notification_id)
     campaign = relational.Campaign.objects.get(pk=campaign_id)
     content = relational.ClientContent.objects.get(pk=content_id)
-    file_handle = open(filename, 'wb')
-    csv_writer = csv.writer(file_handle)
-    csv_writer.writerow([offset, 'test@test.com', count, 'test', 'test'])
-    file_handle.close()
     _build_csv(
         _crawl_and_filter(
             campaign.client, campaign, content, notification, offset,
@@ -111,13 +107,13 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
         'appid': client.fb_app_id,
     } for x in ucs.values_list('fbid', flat=True)]
     user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-    for count, ut in enumerate(user_tokens):
+    for count, ut in enumerate(user_tokens, 1):
         if timezone.now() >= ut.expires:
             logger.debug('FBID {} has expired token'.format(ut.fbid))
             continue
 
         logger.info('Crawling user {} of {}. FBID: {}'.format(
-            count + 1, end_count - offset, ut.fbid)
+            count, end_count - offset, ut.fbid)
         )
         hash_str = hashlib.md5('{}{}{}{}'.format(
             ut['fbid'], campaign.pk,
@@ -157,6 +153,8 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
             logger.exception('{} had too few friends'.format(ut['fbid']))
             failed_fbids.append(ut['fbid'])
             continue
+
+    logger.info('Failed fbids: {}'.format(failed_fbids))
 
 
 def _write_events(campaign, content, uuid, collection, num_face):
@@ -290,3 +288,5 @@ class Command(BaseCommand):
         for fn in filenames:
             file_handle.write(open(fn).read())
         file_handle.close()
+        logger.info('Completed faces email run, output file: {}'.format(
+            filename))
