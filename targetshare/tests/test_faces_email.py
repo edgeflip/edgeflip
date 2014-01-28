@@ -54,7 +54,8 @@ class TestFacesEmail(EdgeFlipTestCase):
 
     @patch('__builtin__.open')
     @patch('targetshare.management.commands.faces_email.multiprocessing')
-    def test_handle(self, mp_mock, open_mock):
+    @patch('targetshare.management.commands.faces_email.connection')
+    def test_handle(self, conn_mock, mp_mock, open_mock):
         ''' Test to ensure the handle method behaves properly '''
         # Setup Mocks
         write_mock = Mock()
@@ -97,6 +98,9 @@ class TestFacesEmail(EdgeFlipTestCase):
         for x in read_mocks:
             assert x.read.called
         self.assertEqual(relational.Notification.objects.count(), 2)
+        notification = relational.Notification.objects.filter(
+            campaign_id=1, client_content_id=1).exclude(
+                pk=self.notification.pk).get()
 
         assert pool_mock.map.called
         self.assertEqual(
@@ -105,11 +109,17 @@ class TestFacesEmail(EdgeFlipTestCase):
         )
         self.assertEqual(
             pool_mock.map.call_args_list[0][0][1][0],
-            [2L, 1L, 1L, True, 4, 'faces_email_test.csv_part0', None, True, 0, 2]
+            [
+                notification.pk, 1, 1, True, 4,
+                'faces_email_test.csv_part0', None, True, 0, 2
+            ]
         )
         self.assertEqual(
             pool_mock.map.call_args_list[0][0][1][1],
-            [2L, 1L, 1L, True, 4, 'faces_email_test.csv_part1', None, True, 2, 4]
+            [
+                notification.pk, 1, 1, True, 4,
+                'faces_email_test.csv_part1', None, True, 2, 4
+            ]
         )
 
     @patch('targetshare.management.commands.faces_email.ranking')

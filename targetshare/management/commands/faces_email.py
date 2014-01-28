@@ -9,11 +9,13 @@ from datetime import datetime
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
-from django.db import connection
+from django.db import connection, transaction
+from django.utils import timezone
 
 from targetshare.models import dynamo, relational
 from targetshare.tasks import db, ranking
 from targetshare.templatetags.string_format import lexical_list
+from targetshare.integration.facebook.client import BadChunksError
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +40,7 @@ def _handle_threaded(notification_id, campaign_id, content_id, mock, num_face,
             campaign.client, campaign, content, notification, offset,
             count, num_face, cache, mock
         ),
-        num_face, filename, url, campaign.client
+        num_face, filename, campaign, content, url=url
     )
     return filename
 
@@ -95,11 +97,14 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
     ''' Grabs all of the tokens for a given UserClient, and throws them
     through the px3 crawl again
     '''
-    logger.info('Gathering list of users to crawl')
+    logger.info(
+        'Gathering list of users to crawl. Offset {}, end count {}'.format(
+        offset, end_count
+        )
+    )
     failed_fbids = []
     ucs = client.userclients.order_by('fbid')
-    if not end_count:
-        end_count = ucs.count()
+    end_count = end_count if end_count else ucs.count()
     ucs = ucs[offset:end_count]
     user_fbids = [{
         'fbid': Decimal(x),
@@ -107,8 +112,12 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
     } for x in ucs.values_list('fbid', flat=True)]
     user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
     for count, ut in enumerate(user_tokens):
-        logger.info('Crawling user {} of {}'.format(
-            count + 1, end_count - offset)
+        if timezone.now() >= ut.expires:
+            logger.debug('FBID {} has expired token'.format(ut.fbid))
+            continue
+
+        logger.info('Crawling user {} of {}. FBID: {}'.format(
+            count + 1, end_count - offset, ut.fbid)
         )
         hash_str = hashlib.md5('{}{}{}{}'.format(
             ut['fbid'], campaign.pk,
@@ -123,7 +132,7 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
                 fbid=ut['fbid'],
                 token=ut
             )
-        except IOError:
+        except (IOError, BadChunksError):
             logger.exception('Failed to crawl {}'.format(ut['fbid']))
             failed_fbids.append(ut['fbid'])
             continue
@@ -259,7 +268,7 @@ class Command(BaseCommand):
         worker_end_count = offset + worker_slice
         # The threads freak out over the database connection, killing it
         # here causes each thread to end up with their own db connection.
-        connection.commit()
+        transaction.commit_unless_managed()
         connection.close()
         for x in range(0, workers):
             worker_args.append(
