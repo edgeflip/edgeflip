@@ -3,11 +3,12 @@ import logging
 
 import json
 import random
-import urllib
+from datetime import timedelta
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
-from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+from celery.exceptions import MaxRetriesExceededError
+
 from django.conf import settings
 from django.utils import timezone
 
@@ -21,8 +22,14 @@ logger = get_task_logger(__name__)
 rvn_logger = logging.getLogger('crow')
 MIN_FRIEND_COUNT = 100
 FRIEND_THRESHOLD_PERCENT = 90
+DELAY_INCREMENT = 300
+S3_CONN = utils.S3Manager(
+    aws_access_key_id=settings.AWS.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS.AWS_SECRET_ACCESS_KEY
+)
 
 
+@shared_task
 def crawl_user(token, retry_count=0, max_retries=3):
     try:
         fresh_token = facebook.client.extend_token(
@@ -42,17 +49,26 @@ def crawl_user(token, retry_count=0, max_retries=3):
         fresh_token.save(overwrite=True)
         token = fresh_token
 
-    task = bg_px4_crawl.apply_async(
-        args=[token],
-        queue='bg_px4',
-        routing_key='bg.px4',
-        link=create_sync_task.s(token=token)
-    )
-    return task
+    edges = _bg_px4_crawl(token)
+    fb_sync_maps = _get_sync_maps(edges, token)
+
+    delay = 0
+    for count, fbm in enumerate(fb_sync_maps, 1):
+        if fbm.status == models.FBSyncMap.WAITING:
+            initial_crawl.apply_async(
+                args=[fbm],
+                countdown=delay
+            )
+        elif fbm.status == models.FBSyncMap.COMPLETE:
+            incremental_crawl.apply_async(
+                args=[fbm],
+                countdown=delay
+            )
+
+        delay += DELAY_INCREMENT if count % 100 == 0 else 0
 
 
-@shared_task
-def bg_px4_crawl(token):
+def _bg_px4_crawl(token, retries=0, max_retries=3):
     ''' Very similar to the standard px4 task. The main difference is that
     this skips checking dynamo for data, as this is intended to constantly
     be feeding data into Dynamo. Also, it ships all saving tasks off to
@@ -67,8 +83,12 @@ def bg_px4_crawl(token):
             require_incoming=True,
             require_outgoing=False,
         )
-    except IOError as exc:
-        bg_px4_crawl.retry(exc=exc)
+    except IOError:
+        retries += 1
+        if retries > max_retries:
+            raise
+        else:
+            _bg_px4_crawl(token, retries)
 
     edges_ranked = models.datastructs.EdgeAggregate.rank(
         edges_unranked,
@@ -82,8 +102,6 @@ def bg_px4_crawl(token):
         queue='bg_delayed_save',
         routing_key='bg.delayed_save',
     )
-    #TODO: Verify these kwargs are working properly, because I don't currently
-    #TODO: think that they are.
     db.upsert.apply_async(
         args=[user],
         kwargs={'partial_save_queue': 'bg_partial_save'},
@@ -105,120 +123,135 @@ def bg_px4_crawl(token):
     return edges_ranked
 
 
-@shared_task(default_retry_delay=1, max_retries=3)
-def create_sync_task(edges, token):
-    if not edges:
-        return
-
-    fbids_to_crawl = [token.fbid] + [edge.secondary.fbid for edge in edges]
+def _get_sync_maps(edges, token):
     try:
-        sync_task = models.FBSyncTask(
-            fbid=token.fbid,
-            token=token.token,
-            status=models.FBSyncTask.WAITING,
-            fbids_to_crawl=fbids_to_crawl
+        main_fbm = models.FBSyncMap.items.get_item(
+            fbid_primary=token.fbid,
+            fbid_secondary=token.fbid
         )
-        sync_task.save()
-    except ConditionalCheckFailedException:
-        logger.info('Already have task in process for {}'.format(token.fbid))
-        return
-    else:
-        process_sync_task.delay(sync_task.fbid)
+    except models.FBSyncMap.DoesNotExist:
+        main_fbm = models.FBSyncMap(
+            fbid_primary=token.fbid,
+            fbid_secondary=token.fbid,
+            token=token.token,
+            back_filled=False,
+            back_fill_epoch=0,
+            incremental_epoch=0,
+            status=models.FBSyncMap.WAITING,
+            bucket=random.sample(settings.FEED_BUCKET_NAMES, 1)[0],
+        )
+        main_fbm.save()
 
-
-@shared_task(default_retry_delay=300, max_retries=3, time_limit=0)
-def process_sync_task(fbid):
-    sync_task = models.FBSyncTask.items.get_item(fbid=fbid)
-    sync_task.status = sync_task.IN_PROCESS
-    sync_task.save(overwrite=True)
-    s3_conn = utils.S3Manager(
-        aws_access_key_id=settings.AWS.AWS_ACCESS_KEY_ID,
-        aws_secret_access_key=settings.AWS.AWS_SECRET_ACCESS_KEY
-    )
-
-    logger.info('Preparing to crawl {} fbids'.format(
-        len(sync_task.fbids_to_crawl)))
-    fbids_to_crawl = sync_task.fbids_to_crawl.copy()
-    for fbid in fbids_to_crawl:
-        bucket = s3_conn.get_or_create_bucket('{}{}'.format(
-            settings.FEED_BUCKET_PREFIX,
-            random.randrange(0, settings.FEED_MAX_BUCKETS)
-        ))
-        logger.info('Processing {}_{}'.format(sync_task.fbid, fbid))
-        s3_key, created = bucket.get_or_create_key('{}_{}'.format(
-            sync_task.fbid,
-            fbid
-        ))
-
-        if not created:
-            logger.info('Found existing S3 Key for {}_{}'.format(
-                sync_task.fbid, fbid))
-            data = json.loads(s3_key.get_contents_as_string())
-            next_url = 'https://graph.facebook.com/{}/feed?{}'.format(
-                fbid, urllib.urlencode({
-                    'since': data['updated'],
-                    'limit': 1000,
-                    'method': 'GET',
-                    'format': 'json',
-                    'suppress_http_code': 1,
-                })
+    fb_sync_maps = [main_fbm]
+    for edge in edges:
+        try:
+            fb_sync_maps.append(models.FBSyncMap.items.get_item(
+                fbid_primary=token.fbid,
+                fbid_secondary=edge.secondary.fbid
+            ))
+        except models.FBSyncMap.DoesNotExist:
+            fbm = models.FBSyncMap(
+                fbid_primary=token.fbid,
+                fbid_secondary=edge.secondary.fbid,
+                token=token.token,
+                back_filled=False,
+                back_fill_epoch=0,
+                incremental_epoch=0,
+                status=models.FBSyncMap.WAITING,
+                bucket=random.sample(settings.FEED_BUCKET_NAMES, 1)[0],
             )
-        else:
-            logger.info('No existing S3 Key for {}_{}'.format(
-                sync_task.fbid, fbid))
-            try:
-                data = facebook.client.urlload(
-                    'https://graph.facebook.com/{}/feed/'.format(fbid), {
-                        'access_token': sync_task.token,
-                        'method': 'GET',
-                        'format': 'json',
-                        'suppress_http_code': 1,
-                        'limit': 1000,
-                        'until': to_epoch(timezone.now()),
-                    }, timeout=120
-                )
-                if not data.get('data'):
-                    logger.info('No feed information for {}'.format(
-                        fbid))
-                    sync_task.fbids_to_crawl.remove(fbid)
-                    continue
+            fbm.save()
+            fb_sync_maps.append(fbm)
 
-                next_url = data.get('paging', {}).get('next')
-            except (ValueError, IOError) as exc:
-                logger.exception(
-                    'Failed to process initial url for {}_{}'.format(
-                        sync_task.fbid, fbid)
-                )
-                try:
-                    process_sync_task.retry(exc=exc)
-                except (ValueError, IOError):
-                    logger.exception(
-                        'Completely failed to process {}_{}'.format(
-                            sync_task.fbid, fbid)
-                    )
-                    sync_task.delete()
-
-        if next_url:
-            result = facebook.client.exhaust_pagination(next_url)
-            data['data'].extend(result)
-
-        data['updated'] = to_epoch(timezone.now())
-        s3_key.set_contents_from_string(json.dumps(data))
-        sync_task.fbids_to_crawl.remove(fbid)
-        sync_task.save(overwrite=True)
-        crawl_comments_and_likes.delay(data, s3_key)
-        logger.info('Completed {}_{}'.format(sync_task.fbid, fbid))
-
-    logger.info('Completed crawl of {}'.format(sync_task.fbid))
-    sync_task.delete()
+    return fb_sync_maps
 
 
-@shared_task(time_limit=0)
-def crawl_comments_and_likes(feed, s3_key):
-    ''' Takes an existing dict from process_sync_task, inspects all the
-    items from the feed and tries to crawl down the pagination of comments
-    and likes
-    '''
+@shared_task(bind=True, default_retry_delay=300, max_retries=5)
+def initial_crawl(self, sync_map):
+    logger.info('Starting initial crawl of {}'.format(sync_map.s3_key_name))
+    sync_map.save_status(models.FBSyncMap.INITIAL_CRAWL)
+    bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
+    s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
+    past_epoch = to_epoch(timezone.now() - timedelta(days=365))
+    now_epoch = to_epoch(timezone.now())
+    try:
+        data = facebook.client.urlload(
+            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
+                'access_token': sync_map.token,
+                'method': 'GET',
+                'format': 'json',
+                'suppress_http_code': 1,
+                'limit': 5000,
+                'since': past_epoch,
+                'until': now_epoch,
+            }, timeout=120
+        )
+    except (ValueError, IOError):
+        try:
+            self.retry()
+        except MaxRetriesExceededError:
+            sync_map.change_state(models.FBSyncMap.WAITING)
+            return
+
+    data['updated'] = now_epoch
+    s3_key.set_contents_from_string(json.dumps(data))
+    sync_map.back_fill_epoch = past_epoch
+    sync_map.incremental_epoch = now_epoch
+    sync_map.save_status(models.FBSyncMap.BACK_FILL)
+    back_fill_crawl.apply_async(args=[sync_map], countdown=DELAY_INCREMENT)
+    logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
+
+
+@shared_task(bind=True, default_retry_delay=3600, max_retries=5)
+def back_fill_crawl(self, sync_map):
+    logger.info('Starting back fill crawl of {}'.format(sync_map.s3_key_name))
+    bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
+    s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
+    try:
+        data = facebook.client.urlload(
+            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
+                'access_token': sync_map.token,
+                'method': 'GET',
+                'format': 'json',
+                'suppress_http_code': 1,
+                'limit': 5000,
+                'until': sync_map.back_fill_epoch,
+            }, timeout=120
+        )
+    except (ValueError, IOError):
+        try:
+            self.retry()
+        except MaxRetriesExceededError:
+            # Hit a dead end. Given the retry delays and such, if we die here
+            # we're likely, but not definitively at the end of the user's
+            # feed
+            rvn_logger.info(
+                'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
+
+    next_url = data.get('paging', {}).get('next')
+    if next_url:
+        result = facebook.client.exhaust_pagination(next_url)
+        data['data'].extend(result)
+
+    full_data = json.loads(s3_key.get_contents_as_string())
+    full_data['data'].extend(data['data'])
+    full_data['updated'] = to_epoch(timezone.now())
+    s3_key.set_contents_from_string(json.dumps(full_data))
+    sync_map.back_filled = True
+    sync_map.save()
+    sync_map.save_status(models.FBSyncMap.COMMENT_CRAWL)
+    crawl_comments_and_likes.apply_async(
+        args=[sync_map], countdown=DELAY_INCREMENT
+    )
+    logger.info('Completed back fill crawl of {}'.format(sync_map.s3_key_name))
+
+
+@shared_task(bind=True)
+def crawl_comments_and_likes(self, sync_map):
+    logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
+    bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
+    s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
+    feed = json.loads(s3_key.get_contents_as_string())
     for item in feed['data']:
         next_url = item.get('comments', {}).get('paging', {}).get('next')
         if next_url:
@@ -231,3 +264,48 @@ def crawl_comments_and_likes(feed, s3_key):
             item['likes']['data'].extend(result)
 
     s3_key.set_contents_from_string(json.dumps(feed))
+    sync_map.save_status(models.FBSyncMap.COMPLETE)
+    logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
+
+
+@shared_task(bind=True, default_retry_delay=300, max_retries=5)
+def incremental_crawl(self, sync_map):
+    logger.info('Starting incremental crawl of {}'.format(sync_map.s3_key_name))
+    sync_map.save_status(models.FBSyncMap.INCREMENTAL)
+    bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
+    s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
+    try:
+        data = facebook.client.urlload(
+            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
+                'access_token': sync_map.token,
+                'method': 'GET',
+                'format': 'json',
+                'suppress_http_code': 1,
+                'limit': 5000,
+                'since': sync_map.incremental_epoch,
+            }, timeout=120
+        )
+    except (ValueError, IOError):
+        try:
+            self.retry()
+        except MaxRetriesExceededError:
+            # We'll get `em next time, boss.
+            sync_map.save_status(models.FBSyncMap.COMPLETE)
+            return
+
+    next_url = data.get('paging', {}).get('next')
+    if next_url:
+        result = facebook.client.exhaust_pagination(next_url)
+        data['data'].extend(result)
+
+    full_data = json.loads(s3_key.get_contents_as_string())
+    data['data'].extend(full_data['data'])
+    data['updated'] = to_epoch(timezone.now())
+    s3_key.set_contents_from_string(json.dumps(data))
+    sync_map.incremental_epoch = to_epoch(timezone.now())
+    sync_map.save()
+    sync_map.save_status(models.FBSyncMap.COMPLETE)
+    crawl_comments_and_likes.apply_async(
+        args=[sync_map], countdown=DELAY_INCREMENT
+    )
+    logger.info('Completed incremental crawl of {}'.format(sync_map.s3_key_name))
