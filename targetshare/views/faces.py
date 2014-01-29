@@ -133,6 +133,7 @@ def faces(request):
                 else:
                     # Re-rank px3 edges by px4 ranking:
                     edges_result = px3_edges_result._replace(
+                        ranked=px4_edges_result.ranked,
                         filtered=px3_edges_result.filtered.reranked(px4_edges_result.ranked)
                     )
             else:
@@ -167,12 +168,13 @@ def faces(request):
             content_id=content.pk,
             num_faces=data['num_face'],
         )
-        px4_task = ranking.proximity_rank_four(
+        px4_task = ranking.proximity_rank_four.delay(
             token=token,
             visit_id=request.visit.pk,
             campaign_id=campaign.pk,
             content_id=content.pk,
             num_faces=data['num_face'],
+            px3_task_id=px3_task.id,
         )
         return utils.JsonHttpResponse({
             'status': 'waiting',

@@ -276,7 +276,6 @@ CELERY_QUEUES = (
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
-    Queue('px4_refine', routing_key='px4.refine', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
@@ -304,13 +303,9 @@ CELERY_ROUTES = {
         'queue': 'px3_filter',
         'routing_key': 'px3.filter'
     },
-    'targetshare.tasks.ranking.px4_crawl': {
+    'targetshare.tasks.ranking.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
-    },
-    'targetshare.tasks.ranking.refine_ranking': {
-        'queue': 'px4_refine',
-        'routing_key': 'px4.refine',
     },
     'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',

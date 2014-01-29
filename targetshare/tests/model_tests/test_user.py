@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import mock
 
-from targetshare import models
+from targetshare import models, utils
 from targetshare.models.dynamo.base.item import cached_property
 
 from .. import EdgeFlipTestCase
@@ -66,7 +66,7 @@ class TestTopics(EdgeFlipTestCase):
         for pi in self.postinteractions_set:
             for (topic, weight) in self._interactions_weights(pi):
                 naive[topic] += weight
-        topics = {topic: models.dynamo.User._normalize_topic(score)
+        topics = {topic: utils.atan_norm(score)
                   for (topic, score) in naive.items()}
         self.assertEqual(self.user.topics, topics)
 

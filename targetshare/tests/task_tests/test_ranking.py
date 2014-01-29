@@ -1,4 +1,3 @@
-import itertools
 import types
 
 import celery
@@ -11,6 +10,16 @@ from targetshare.tasks import ranking
 from targetshare.integration import facebook
 
 from .. import EdgeFlipTestCase, patch_facebook
+
+
+def classify_fake(context):
+    """Fake classifier that will serially classify a corpus as weight 0 or 1."""
+    topic = next(iter(context.topics)) if context.topics else 'classifiers'
+    weight = classify_fake.switch
+    classify_fake.switch ^= 1
+    return [(topic, weight)] if weight else ()
+
+classify_fake.switch = 0
 
 
 class RankingTestCase(EdgeFlipTestCase):
@@ -133,28 +142,24 @@ class TestProximityRankFour(RankingTestCase):
         super(TestProximityRankFour, self).setUp()
         self.client = models.Client.objects.create()
         self.campaign = self.client.campaigns.create()
+        self.campaign.campaignproperties.create()
 
     @patch_facebook(min_friends=101, max_friends=120)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_from_fb(self, logger_mock):
-        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
                                              content_id=None, visit_id=None, num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
 
-        self.assertTrue(ranked_edges.post_topics)
-        self.assertEqual({type(pt) for pt in ranked_edges.post_topics.itervalues()},
-                         {models.PostTopics})
+        interactions_set = tuple(ranked_edges.iter_interactions())
+        self.assertTrue(interactions_set)
+        assert all(isinstance(i, models.PostInteractions) for i in interactions_set)
 
         self.assertEqual({type(edge) for edge in ranked_edges},
                          {models.datastructs.Edge})
-
-        interactions = tuple(itertools.chain.from_iterable(x.interactions
-                                                           for x in ranked_edges))
-        self.assertTrue(interactions)
-        assert all(isinstance(i, models.PostInteractions) for i in interactions)
 
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
@@ -167,7 +172,7 @@ class TestProximityRankFour(RankingTestCase):
     @patch_facebook(min_friends=1, max_friends=99)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
-        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
                                              content_id=None, visit_id=None, num_faces=None)
@@ -188,12 +193,10 @@ class TestProximityRankFour(RankingTestCase):
     @patch_facebook(min_friends=100, max_friends=100)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_uses_dynamo(self, logger_mock):
-        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertFalse(models.dynamo.IncomingEdge.items.scan())
         for x in range(0, 100):
-            edge = models.IncomingEdge(fbid_source=x, fbid_target=1, post_likes=x)
-            edge.save()
-            user = models.User(fbid=x)
-            user.save()
+            models.IncomingEdge.items.create(fbid_source=x, fbid_target=1, post_likes=x)
+            models.User.items.create(fbid=x)
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
                                              content_id=None, visit_id=None, num_faces=None)
@@ -215,10 +218,18 @@ class TestRankRefinement(RankingTestCase):
 
     fixtures = ['test_data']
 
+    @staticmethod
+    def get_post_topics(network):
+        link = models.dynamo.PostInteractions.post_topics
+        post_topics_cache = (link.cache_get(interactions)
+                             for interactions in network.iter_interactions())
+        return {cached for cached in post_topics_cache if cached}
+
     @patch_facebook(min_friends=15, max_friends=30)
-    def test_ranking(self):
-        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
-        self.assertTrue(hit_fb)
+    @patch('targetshare.classify.simple_map.func', side_effect=classify_fake)
+    def test_ranking(self, _classifier_mock):
+        (stream, ranked_edges) = ranking.px4_crawl(self.token)
+        self.assertTrue(stream)
 
         client = models.relational.Client.objects.all()[0]
         campaign = client.campaigns.all()[0]
@@ -230,9 +241,9 @@ class TestRankRefinement(RankingTestCase):
             reverse=True,
         )
 
-        result = ranking.refine_ranking(
+        filtering_result = ranking.px4_filter(
+            stream,
             ranked_edges,
-            hit_fb,
             campaign_id=campaign.pk,
             # Below unnecessary if not filtering:
             fbid=self.token.fbid,
@@ -240,19 +251,24 @@ class TestRankRefinement(RankingTestCase):
             visit_id=None,
             num_faces=None,
         )
+        result = ranking.px4_rank(filtering_result)
         ranked_edges1 = result.ranked
 
         self.assertEqual(result,
             ranking.empty_filtering_result._replace(ranked=ranked_edges1))
         self.assertItemsEqual(ranked_edges1, ranked_edges)
-        self.assertGreater(ranked_edges[0].score, ranked_edges[5].score)
+        post_topics = self.get_post_topics(ranked_edges)
+        self.assertTrue(post_topics)
+        self.assertEqual({type(pt) for pt in post_topics}, {models.PostTopics})
+        self.assertGreater(ranked_edges[0].score, ranked_edges[14].score)
         self.assertGreater(ranked_edges1[0].secondary.topics['Weather'],
-                           ranked_edges1[5].secondary.topics['Weather'])
+                           ranked_edges1[14].secondary.topics['Weather'])
 
     @patch_facebook(min_friends=15, max_friends=30)
-    def test_px4_filtering(self):
-        (ranked_edges, hit_fb) = ranking.px4_crawl(self.token)
-        self.assertTrue(hit_fb)
+    @patch('targetshare.classify.simple_map.func', side_effect=classify_fake)
+    def test_px4_filtering(self, _classifier_mock):
+        (stream, ranked_edges) = ranking.px4_crawl(self.token)
+        self.assertTrue(stream)
 
         campaign = models.relational.Campaign.objects.all()[0]
         client = campaign.client
@@ -265,17 +281,12 @@ class TestRankRefinement(RankingTestCase):
             filter__choicesetfilters__choice_set__campaignchoicesets__campaign=campaign
         ).delete()
 
-        weathers = [edge.secondary.topics.get('Weather') for edge in ranked_edges]
-        min_weather = min(weather for weather in weathers if weather is not None)
-        max_weather = max(weathers)
-        divider = (max_weather - min_weather) / 2 + min_weather
-
         client_filter = client.filters.create()
         client_filter.filterfeatures.create(
             feature_type=models.relational.FilterFeatureType.objects.get_topics(),
             feature='topics[Weather]',
             operator=models.FilterFeature.Operator.MIN,
-            value=divider,
+            value=0.1,
         )
         campaign.campaignglobalfilters.all().delete()
         campaign.campaignglobalfilters.create(filter=client_filter, rand_cdf=1)
@@ -283,21 +294,25 @@ class TestRankRefinement(RankingTestCase):
         visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
-        result = ranking.refine_ranking(
+        filtering_result = ranking.px4_filter(
+            stream,
             ranked_edges,
-            hit_fb,
             fbid=self.token.fbid,
             campaign_id=campaign.pk,
             content_id=client_content.pk,
             visit_id=visit.pk,
             num_faces=1,
         )
+        result = ranking.px4_rank(filtering_result)
 
         self.assertTrue(all(result))
         # CELERY_ALWAYS_EAGER (and no RankingKeyFeature sorting)
         # => lists identical, rather than merely equal:
         self.assertIs(result.ranked, ranked_edges)
+        post_topics = self.get_post_topics(ranked_edges)
+        self.assertTrue(post_topics)
+        self.assertEqual({type(pt) for pt in post_topics}, {models.PostTopics})
         self.assertLess(len(result.filtered), len(result.ranked))
         mismatch = [user for user in result.filtered.secondaries
-                    if user.topics['Weather'] < divider]
+                    if user.topics['Weather'] < 0.1]
         self.assertFalse(mismatch)
