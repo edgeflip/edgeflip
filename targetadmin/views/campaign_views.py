@@ -97,6 +97,13 @@ def campaign_wizard(request, client_pk):
     formset = ff_set(queryset=relational.FilterFeature.objects.none())
     fb_obj_form = forms.FBObjectAttributeForm()
     campaign_form = forms.CampaignWizardForm()
+    if request.method == 'POST':
+        fb_obj_form = forms.FBObjectAttributeForm(request.POST)
+        campaign_form = forms.CampaignWizardForm(request.POST)
+        formset = ff_set(
+            request.POST,
+            queryset=relational.FilterFeature.objects.none()
+        )
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'formset': formset,

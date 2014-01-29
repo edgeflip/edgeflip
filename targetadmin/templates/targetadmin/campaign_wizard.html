@@ -30,35 +30,28 @@
                     <hr>
                 </div>
             {% endfor %}
-            <a href="#" id="step1" class="btn btn-large btn-primary step-submit">Next</a>
+            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</a>
             <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </span>
         <span id="fbobjects" class="wizard-step" style="display: none;">
             <h4>FaceBook Object Settings</h4>
             {{ fb_obj_form.as_p }}
-            <a href="#" id="step2" class="btn btn-large btn-primary step-submit">Next</a>
-            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit" data-step="campaign-settings">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
         </span>
         <span id="campaign-settings" class="wizard-step" style="display: none;">
             <h4>Campaign Settings</h4>
             {{ campaign_form.as_p }}
             <input type="submit" class="btn btn-large btn-primary step-submit" value="Submit">
-            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="fbobjects">Previous</a>
         </span>
     </form>
 {% endblock %} {% block extrascript %}
     <script>
         $('.step-submit').click(function(e) {
-            switch(e.target.id) {
-                case "step1":
-                    $('.wizard-step').hide();
-                    $('#fbobjects').show();
-                    break;
-                case "step2":
-                    $('.wizard-step').hide();
-                    $('#campaign-settings').show();
-                    break;
-            }
+            step = $('#' + e.target.id).data('step');
+            $('.wizard-step').hide();
+            $('#' + step).show();
         });
     </script>
     <script>
