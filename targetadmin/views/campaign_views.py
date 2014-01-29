@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404, redirect, render
+from django.forms.models import modelformset_factory
 
 from targetadmin import utils
 from targetadmin import forms
@@ -80,4 +81,25 @@ def campaign_create(request, client_pk):
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
+    })
+
+
+@utils.auth_client_required
+def campaign_wizard(request, client_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    extra_forms = 5
+    ff_set = modelformset_factory(
+        relational.FilterFeature,
+        form=forms.FilterFeatureForm,
+        extra=extra_forms,
+        exclude=('end_dt', 'value_type', 'feature_type')
+    )
+    formset = ff_set(queryset=relational.FilterFeature.objects.none())
+    fb_obj_form = forms.FBObjectAttributeForm()
+    campaign_form = forms.CampaignWizardForm()
+    return render(request, 'targetadmin/campaign_wizard.html', {
+        'client': client,
+        'formset': formset,
+        'fb_obj_form': fb_obj_form,
+        'campaign_form': campaign_form,
     })

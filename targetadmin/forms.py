@@ -65,6 +65,15 @@ class FilterForm(forms.ModelForm):
         exclude = ('is_deleted', 'delete_dt')
 
 
+class FilterFeatureForm(forms.ModelForm):
+
+    rank = forms.IntegerField()
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+
+
 class ChoiceSetForm(forms.ModelForm):
 
     description = forms.CharField(required=False, widget=forms.Textarea)
@@ -224,3 +233,11 @@ class CampaignForm(forms.Form):
         self.fields['choice_set'].queryset = self.client.choicesets.all()
         self.fields['fb_object'].queryset = self.client.fbobjects.all()
         self.fields['generic_fb_object'].queryset = self.client.fbobjects.all()
+
+
+class CampaignWizardForm(forms.Form):
+
+    faces_url = forms.CharField()
+    error_url = forms.CharField()
+    thanks_url = forms.CharField()
+    content_url = forms.CharField()

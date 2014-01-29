@@ -77,6 +77,8 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-detail'),
     url(r'^client/(?P<client_pk>\d+)/campaign/new/$', 'campaign_views.campaign_create',
         name='campaign-new'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
+        name='campaign-wizard'),
 )
 
 urlpatterns += patterns('targetadmin.views',
@@ -91,4 +93,3 @@ urlpatterns += patterns('targetadmin.views',
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )
-
