@@ -33,31 +33,43 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
         self.facebook_patch = patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',
-            crawl_mock(1, 1000, mock_feed)
+            crawl_mock(1, 250, mock_feed)
+        )
+        self.token_patch = patch(
+            'targetshare.integration.facebook.client.extend_token',
+            Mock(
+                return_value=models.dynamo.Token(
+                    token='test-token',
+                    fbid=1111111,
+                    appid=471727162864364,
+                    expires=timezone.now(),
+                )
+            )
         )
         self.facebook_patch.start()
+        self.token_patch.start()
 
     def tearDown(self):
+        self.token_patch.stop()
         self.facebook_patch.stop()
         super(TestFeedCrawlerTasks, self).tearDown()
 
     @patch('feed_crawler.tasks.initial_crawl')
     @patch('feed_crawler.tasks.incremental_crawl')
     def test_crawl_user(self, incremental_mock, initial_mock):
-        prim_fbm = models.FBSyncMap(
+        models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
-        prim_fbm.save()
         tasks.crawl_user(self.token)
         self.assertTrue(initial_mock.apply_async.called)
         self.assertGreater(initial_mock.apply_async.call_count, 1)
         self.assertEqual(incremental_mock.apply_async.call_count, 1)
-        self.assertGreater(models.FBSyncMap.count(), 1)
+        self.assertGreater(models.FBSyncMap.items.count(), 1)
 
     def test_bg_px4_crawl(self):
-        self.assertFalse(models.dynamo.IncomingEdge.count())
+        self.assertFalse(models.dynamo.IncomingEdge.items.count())
 
         ranked_edges = tasks._bg_px4_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
