@@ -14,15 +14,17 @@ Set-up for an Ubuntu 12.04 EC2 instance running Python 2.7.3. Here are some basi
     $ `sudo apt-get install git python-pip`  
     $ `sudo pip install Fabric>=1.6`
 
-3. Check out the repo: `git clone https://github.com/edgeflip/edgeflip.git`
-4. From within the checkout hierarchy, build (and test) the application:
+3. [Add the RabbitMQ ppa](http://rabbitmq.com/install-debian.html#apt). The later 'fab build' step should automatically install it if this is done.
+
+4. Check out the repo: `git clone https://github.com/edgeflip/edgeflip.git`
+5. From within the checkout hierarchy, build (and test) the application:
 
     $ `fab build test`
 
     (To see all tasks and options, run `fab -l`.)
 
-5. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
-6. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
+6. If using Apache or uWSGI, create a `edgeflip.wsgi`. Copy `templates/edgeflip.wsgi` to your deployment root (usually `/var/www/edgeflip`). Edit, replacing `$VIRTUALENV_PATH` with the full path to your virtualenv. *This is not needed if using the debug or devel server.*
+7. Configure your system, as specified in the [docs](https://github.com/edgeflip/edgeflip/blob/master/doc/edgeflip.rst)
 
 Local Database
 --------------
@@ -52,7 +54,7 @@ RabbitMQ
 --------------
 To set up your RabbitMQ instance:
 
-1. Start by installing RabbitMQ from the [Debian PPA](http://rabbitmq.com/install-debian.html#apt) 
+1. Start by installing RabbitMQ is needed: `sudo apt-get install rabbitmq-server`. If this is your first setup, `fab build` should have done this for you.
 2. Create a user: `sudo rabbitmqctl add_user edgeflip edgeflip`
 3. Create a vhost: `sudo rabbitmqctl add_vhost edgehost`
 4. Set permissions for this user on that new vhost: `sudo rabbitmqctl set_permissions -p edgehost edgeflip ".*" ".*" ".*"`
