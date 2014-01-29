@@ -20,8 +20,6 @@ from feed_crawler import utils
 
 logger = get_task_logger(__name__)
 rvn_logger = logging.getLogger('crow')
-MIN_FRIEND_COUNT = 100
-FRIEND_THRESHOLD_PERCENT = 90
 DELAY_INCREMENT = 300
 S3_CONN = utils.S3Manager(
     aws_access_key_id=settings.AWS.AWS_ACCESS_KEY_ID,
