@@ -23,9 +23,7 @@ def edgeplorer(request):
 
     return render(request, 'edgeplorer.html', ctx)
   elif request.method == 'POST':
-    print "trying post"
     try:
-        print "getting fbid"
         fbid = int(request.POST.get('fbid')) 
     except:
         raise Http404
