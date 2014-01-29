@@ -1,14 +1,15 @@
 from django.conf import settings
 from django.http import HttpResponse
-from django.test import RequestFactory, TestCase
+from django.test import RequestFactory
 from django.utils.importlib import import_module
 
 from targetshare import middleware
 from targetshare.views import utils
 from targetshare.models import relational
+from targetshare.tests import EdgeFlipTestCase
 
 
-class BaseMiddlewareTestCase(TestCase):
+class BaseMiddlewareTestCase(EdgeFlipTestCase):
 
     @classmethod
     def setUpClass(cls):
