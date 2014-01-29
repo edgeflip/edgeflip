@@ -20,6 +20,16 @@ class BaseItemManager(object):
     def __init__(self, table=None):
         self.table = table
 
+    def create(self, **kwdata):
+        """Save a new Item from the given instantiation arguments.
+
+        Returns the saved Item.
+
+        """
+        item = self.table.item(**kwdata)
+        item.save()
+        return item
+
     # Proxy Table query methods, but through Request #
 
     def make_request(self):
@@ -134,3 +144,36 @@ class AbstractLinkedItemManager(BaseItemManager):
         instance_filter = dict(zip(core_filters, self.instance.pk))
         return self.query_cls(self.table, self.instance,
                               request.get_query(), **instance_filter)
+
+    def create(self, **kwdata):
+        """Save a new linked Item from the given instantiation arguments.
+
+        The new Item's link fields are populated automatically. (It is a
+        ValueError to specify link field data that does not match the parent,
+        and specification of these fields is optional.)
+
+        Returns the saved Item.
+
+        """
+        meta = self.table.item._meta
+        link_name = self.query_cls.name_child
+        primary_keys = self.instance.get_keys()
+        for core_key in self.core_keys:
+            primary_key = primary_keys[core_key]
+            try:
+                value = kwdata[core_key]
+            except KeyError:
+                # Autofill link field value from parent:
+                kwdata[core_key] = primary_key
+            else:
+                if value != primary_key:
+                    raise ValueError(
+                        "Invalid linked {} argument ({}): "
+                        "{!r} does not match {} value {!r}"
+                        .format(meta.item_name, core_key, value, link_name, primary_key)
+                    )
+
+        item = super(AbstractLinkedItemManager, self).create(**kwdata)
+        link = meta.links[link_name]
+        link.cache_set(link_name, item, self.instance)
+        return item
