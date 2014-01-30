@@ -4,13 +4,12 @@ import random
 import re
 import urllib
 
-from mock import Mock, patch
-
+import us
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
-
+from mock import Mock, patch
 from pymlconf import ConfigDict
 
 from targetshare import models
@@ -162,20 +161,10 @@ def xrandrange(min_=0, max_=None, start=0, step=1):
     return xrange(start, random.randint(min_, max_), step)
 
 
-FIRST_NAMES = ['Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie', 'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa']
-LAST_NAMES = ['Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe']
-CITY_NAMES = ['Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City']
-STATE_NAMES = ['Alabama', 'Alaska', 'American Samoa', 'Arizona', 'Arkansas',
-    'California', 'Colorado', 'Connecticut', 'Delaware', 'District of Columbia',
-    'Florida', 'Georgia', 'Guam', 'Hawaii', 'Idaho', 'Illinois', 'Indiana',
-    'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts',
-    'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'National',
-    'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York',
-    'North Carolina', 'North Dakota', 'Northern Mariana Islands', 'Ohio',
-    'Oklahoma', 'Oregon', 'Pennsylvania', 'Puerto Rico', 'Rhode Island',
-    'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont',
-    'Virgin Islands', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin',
-    'Wyoming']
+FIRST_NAMES = ('Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie',
+               'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa')
+LAST_NAMES = ('Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe')
+CITY_NAMES = ('Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City')
 
 
 def fake_user(fbid, friend=False, num_friends=0):
@@ -198,7 +187,7 @@ def fake_user(fbid, friend=False, num_friends=0):
     if random.random() <= 0.67:
         fake['current_location'] = {
             'city': random.choice(CITY_NAMES),
-            'state': random.choice(STATE_NAMES),
+            'state': random.choice(us.STATES_AND_TERRITORIES).name,
         }
 
     if friend:
