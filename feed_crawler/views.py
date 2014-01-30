@@ -37,5 +37,5 @@ def realtime_subscription(request):
             else:
                 # Run px4 on the user, but place it on a different queue
                 # as to not disturb the main user flow
-                tasks.crawl_user(token)
+                tasks.crawl_user.delay(token)
         return http.HttpResponse()
