@@ -255,8 +255,6 @@ class Command(BaseCommand):
         people_count = count if count else client.userclients.count()
         worker_slice = people_count / workers
         worker_args = []
-        worker_offset = offset
-        worker_end_count = offset + worker_slice
         # The threads freak out over the database connection, killing it
         # here causes each thread to end up with their own db connection.
         transaction.commit_unless_managed()
