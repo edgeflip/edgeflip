@@ -252,7 +252,7 @@ class Command(BaseCommand):
             campaign=campaign,
             client_content=content
         )
-        people_count = count if count else client.userclients.count()
+        people_count = count or client.userclients.count()
         worker_slice = people_count / workers
         worker_args = []
         # The threads freak out over the database connection, killing it
