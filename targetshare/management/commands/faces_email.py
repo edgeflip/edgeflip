@@ -1,10 +1,11 @@
+import os
 import csv
 import logging
 import hashlib
 import multiprocessing
+from tempfile import mkstemp
 from decimal import Decimal
 from optparse import make_option
-from datetime import datetime
 
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
@@ -20,52 +21,54 @@ from targetshare.integration.facebook.client import BadChunksError
 logger = logging.getLogger(__name__)
 
 
-def _handle_star_threaded(args):
+def handle_star_threaded(args):
     # In python3.3 we get pool.starmap and this can die in a fire. Until then,
     # SIGH
-    return _handle_threaded(*args)
+    return handle_threaded(*args)
 
 
-def _handle_threaded(notification_id, campaign_id, content_id, mock, num_face,
-               filename, url, cache, offset, count):
+def handle_threaded(notification_id, campaign_id, content_id, mock, num_face,
+               url, cache, offset, count):
     notification = relational.Notification.objects.get(pk=notification_id)
     campaign = relational.Campaign.objects.get(pk=campaign_id)
     content = relational.ClientContent.objects.get(pk=content_id)
-    _build_csv(
-        _crawl_and_filter(
-            campaign.client, campaign, content, notification, offset,
+    filename = build_csv(
+        crawl_and_filter(
+            campaign, content, notification, offset,
             count, num_face, cache, mock
         ),
-        num_face, filename, campaign, content, url=url
+        num_face, campaign, content, url=url
     )
     return filename
 
 
-def _build_csv(row_data, num_face, filename, campaign, content, url=None):
+def build_csv(row_data, num_face, campaign, content, url=None):
     ''' Handles building out the CSV '''
-    file_handle = open(filename, 'wb')
-    csv_writer = csv.writer(file_handle)
-    for uuid, collection in row_data:
-        primary = collection[0].primary
-        row = [primary.fbid, primary.email]
+    fd, filename = mkstemp()
+    with open(filename, 'wb') as f:
+        csv_writer = csv.writer(f)
+        for uuid, collection in row_data:
+            primary = collection[0].primary
+            row = [primary.fbid, primary.email]
 
-        friend_list = [edge.secondary for edge in collection[:num_face]]
-        row.append([x.fbid for x in friend_list])
-        row.append(lexical_list(
-            [x.fname.encode('utf8', 'ignore') for x in friend_list[:3]])
-        )
+            friend_list = [edge.secondary for edge in collection[:num_face]]
+            row.append([x.fbid for x in friend_list])
+            row.append(lexical_list(
+                [x.fname.encode('utf8', 'ignore') for x in friend_list[:3]])
+            )
 
-        row.append(_build_table(
-            uuid, collection[:num_face], num_face, url, campaign.client
-        ))
+            row.append(build_table(
+                uuid, collection[:num_face], num_face, url, campaign.client
+            ))
 
-        _write_events(campaign, content, uuid, collection, num_face)
-        csv_writer.writerow(row)
+            write_events(campaign, content, uuid, collection, num_face)
+            csv_writer.writerow(row)
 
-    file_handle.close()
+    os.close(fd)
+    return filename
 
 
-def _build_table(uuid, edges, num_face, url=None, client=None):
+def build_table(uuid, edges, num_face, url=None, client=None):
     ''' Method to build the HTML table that'll be included in the CSV
     that we send to clients. This table will later be embedded in an
     email that is sent to primaries, thus all the inline styles
@@ -88,10 +91,10 @@ def _build_table(uuid, edges, num_face, url=None, client=None):
     return table_str.encode('utf8', 'ignore')
 
 
-def _crawl_and_filter(client, campaign, content, notification, offset,
+def crawl_and_filter(campaign, content, notification, offset,
                       end_count, num_face, cache=False, mock=False):
     ''' Grabs all of the tokens for a given UserClient, and throws them
-    through the px3 crawl again
+    through the px4 crawl again
     '''
     logger.info(
         'Gathering list of users to crawl. Offset {}, end count {}'.format(
@@ -99,8 +102,9 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
         )
     )
     failed_fbids = []
+    client = campaign.client
     ucs = client.userclients.order_by('fbid')
-    end_count = end_count if end_count else ucs.count()
+    end_count = end_count or ucs.count()
     ucs = ucs[offset:end_count]
     user_fbids = [{
         'fbid': Decimal(x),
@@ -157,7 +161,7 @@ def _crawl_and_filter(client, campaign, content, notification, offset,
     logger.info('Failed fbids: {}'.format(failed_fbids))
 
 
-def _write_events(campaign, content, uuid, collection, num_face):
+def write_events(campaign, content, uuid, collection, num_face):
     notification_user = relational.NotificationUser.objects.get(uuid=uuid)
     events = []
     for edge in collection[:num_face]:
@@ -204,11 +208,6 @@ class Command(BaseCommand):
             type='int'
         ),
         make_option(
-            '-o', '--output',
-            help='Name of file to dump CSV contents into',
-            dest='output',
-        ),
-        make_option(
             '-u', '--url',
             help='Overrides default URL builder with given url',
             dest='url'
@@ -243,17 +242,11 @@ class Command(BaseCommand):
     )
 
     def handle(self, campaign_id, content_id, mock, num_face,
-               output, url, cache, offset, count, workers, **options):
+               url, cache, offset, count, workers, **options):
         # DB objects
         campaign = relational.Campaign.objects.get(pk=campaign_id)
         content = relational.ClientContent.objects.get(pk=content_id)
         client = campaign.client
-
-        if output:
-            filename = output
-        else:
-            filename = 'faces_email_%s.csv' % datetime.now().strftime(
-                '%m-%d-%y_%H:%M:%S')
 
         notification = relational.Notification.objects.create(
             campaign=campaign,
@@ -268,25 +261,25 @@ class Command(BaseCommand):
         # here causes each thread to end up with their own db connection.
         transaction.commit_unless_managed()
         connection.close()
-        for x in range(0, workers):
+        for x in xrange(1, (workers + 1)):
+            if x == workers:
+                worker_end_count = people_count
             worker_args.append(
                 [
                     notification.pk, campaign.pk, content.pk,
-                    mock, num_face, '{}_part{}'.format(filename, x), url,
-                    cache, worker_offset, worker_end_count
+                    mock, num_face, url, cache, worker_offset,
+                    worker_end_count
                 ]
             )
             worker_offset += worker_slice
             worker_end_count += worker_slice
 
         pool = multiprocessing.Pool(workers)
-        filenames = pool.map(_handle_star_threaded, worker_args)
+        filenames = pool.map(handle_star_threaded, worker_args)
         pool.terminate()
-        file_handle = open(filename, 'wb')
-        file_handle.write(
+        self.stdout.write(
             'primary_fbid,email,friend_fbids,names,html_table\n')
         for fn in filenames:
-            file_handle.write(open(fn).read())
-        file_handle.close()
-        logger.info('Completed faces email run, output file: {}'.format(
-            filename))
+            self.stdout.write(open(fn).read())
+            os.remove(fn)
+        logger.info('Completed faces email run')

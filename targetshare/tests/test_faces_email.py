@@ -53,16 +53,14 @@ class TestFacesEmail(EdgeFlipTestCase):
         super(TestFacesEmail, self).tearDown()
 
     @patch('__builtin__.open')
+    @patch('os.remove')
     @patch('targetshare.management.commands.faces_email.multiprocessing')
     @patch('targetshare.management.commands.faces_email.connection')
-    def test_handle(self, conn_mock, mp_mock, open_mock):
+    def test_handle(self, conn_mock, mp_mock, remove_mock, open_mock):
         ''' Test to ensure the handle method behaves properly '''
         # Setup Mocks
-        write_mock = Mock()
         read_mocks = [Mock(), Mock()]
-        open_mock_objs = [write_mock]
-        open_mock_objs.extend(read_mocks)
-        open_mock.side_effect = open_mock_objs
+        open_mock.side_effect = read_mocks
         pool_mock = Mock()
         pool_mock.map.return_value = ['filename_1', 'filename_2']
         mp_mock.Pool.return_value = pool_mock
@@ -81,6 +79,7 @@ class TestFacesEmail(EdgeFlipTestCase):
 
         # Run the command
         command = faces_email.Command()
+        command.stdout = Mock()
         command.handle(
             1, 1, num_face=4, output=self.filename,
             mock=True, url=None, cache=True, offset=0, count=None,
@@ -88,11 +87,10 @@ class TestFacesEmail(EdgeFlipTestCase):
         )
 
         # Assert lots of things
-        self.assertEqual(open_mock.call_count, 3)
-        assert write_mock.write.called
-        assert write_mock.close.called
+        self.assertEqual(open_mock.call_count, 2)
+        assert command.stdout.write.called
         self.assertEqual(
-            write_mock.write.call_args_list[0][0][0],
+            command.stdout.write.call_args_list[0][0][0],
             'primary_fbid,email,friend_fbids,names,html_table\n'
         )
         for x in read_mocks:
@@ -105,27 +103,29 @@ class TestFacesEmail(EdgeFlipTestCase):
         assert pool_mock.map.called
         self.assertEqual(
             pool_mock.map.call_args_list[0][0][0],
-            faces_email._handle_star_threaded
+            faces_email.handle_star_threaded
         )
         self.assertEqual(
             pool_mock.map.call_args_list[0][0][1][0],
             [
                 notification.pk, 1, 1, True, 4,
-                'faces_email_test.csv_part0', None, True, 0, 2
+                None, True, 0, 2
             ]
         )
         self.assertEqual(
             pool_mock.map.call_args_list[0][0][1][1],
             [
                 notification.pk, 1, 1, True, 4,
-                'faces_email_test.csv_part1', None, True, 2, 4
+                None, True, 2, 4
             ]
         )
+        assert os.remove.called
+        self.assertEqual(os.remove.call_count, 2)
 
-    @patch('targetshare.management.commands.faces_email._build_csv')
+    @patch('targetshare.management.commands.faces_email.build_csv')
     @patch('targetshare.management.commands.faces_email.ranking')
     def test_crawl_and_filter(self, ranking_mock, build_csv_mock):
-        ''' Test the _crawl_and_filter method '''
+        ''' Test the crawl_and_filter method '''
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         for x in range(0, 3):
             relational.UserClient.objects.create(
@@ -137,8 +137,8 @@ class TestFacesEmail(EdgeFlipTestCase):
             )
             token.save()
 
-        edge_data = list(faces_email._crawl_and_filter(
-            self.client, self.campaign, self.content,
+        edge_data = list(faces_email.crawl_and_filter(
+            self.campaign, self.content,
             self.notification, 0, 100, 3
         ))
         # 4, one is pre-existing from the setUp
@@ -149,17 +149,20 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.assertEqual(len(edge_data), 3)
 
     @patch_facebook
+    @patch('os.close')
+    @patch('targetshare.management.commands.faces_email.mkstemp')
     @patch('targetshare.management.commands.faces_email.csv')
-    def test_build_csv(self, csv_mock):
+    def test_build_csv(self, csv_mock, tmp_file_mock, os_mock):
         ''' Tests the build_csv method '''
+        tmp_file_mock.return_value = (0, self.filename)
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         user = facebook.client.get_user(1, 1)
         edge_collection = {
             self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
-        faces_email._build_csv(
-            edge_collection.iteritems(), 3, 'faces_email_test.csv',
+        faces_email.build_csv(
+            edge_collection.iteritems(), 3,
             self.campaign, self.content, None
         )
         assert writer_mock.writerow.called
@@ -177,8 +180,11 @@ class TestFacesEmail(EdgeFlipTestCase):
             event_type='generated').exists()
 
     @patch_facebook
+    @patch('os.close')
+    @patch('targetshare.management.commands.faces_email.mkstemp')
     @patch('targetshare.management.commands.faces_email.csv')
-    def test_build_csv_custom_url(self, csv_mock):
+    def test_build_csv_custom_url(self, csv_mock, tmp_file_mock, os_mock):
+        tmp_file_mock.return_value = (0, self.filename)
         writer_mock = Mock()
         csv_mock.writer.return_value = writer_mock
         url = 'http://www.google.com'
@@ -186,8 +192,8 @@ class TestFacesEmail(EdgeFlipTestCase):
         edge_collection = {
             self.notification_user.uuid: facebook.client.get_friend_edges(user, 1)
         }
-        faces_email._build_csv(
-            edge_collection.iteritems(), 3, 'faces_email_test.csv',
+        faces_email.build_csv(
+            edge_collection.iteritems(), 3,
             self.campaign, self.content, url
         )
         assert writer_mock.writerow.called
