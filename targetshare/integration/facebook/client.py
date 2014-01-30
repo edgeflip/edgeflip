@@ -50,39 +50,55 @@ def fql_stream_chunk(uid, min_time, max_time):
 
 
 def fql_post_comms(stream):
-    return ("SELECT fromid, post_id FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+    return ("SELECT fromid, post_id FROM comment "
+            "WHERE post_id IN ("
+                "SELECT post_id FROM {} WHERE type != {}"
+            ")"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_post_likes(stream): # TODO: add object_id/url for like targeting?
-    return ("SELECT user_id, post_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type != {})"
+    return ("SELECT user_id, post_id FROM like "
+            "WHERE post_id IN ("
+                "SELECT post_id FROM {} WHERE type != {}"
+            ")"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_stat_comms(stream):
-    return ("SELECT fromid, post_id FROM comment WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+    return ("SELECT fromid, post_id FROM comment "
+            "WHERE post_id IN ("
+                "SELECT post_id FROM {} WHERE type = {}"
+            ")"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_stat_likes(stream):
-    return ("SELECT user_id, post_id FROM like WHERE post_id IN (SELECT post_id FROM {} WHERE type = {})"
+    return ("SELECT user_id, post_id FROM like "
+            "WHERE post_id IN ("
+                "SELECT post_id FROM {} WHERE type = {}"
+            ")"
             .format(stream, STREAMTYPE.STATUS_UPDATE))
 
 
 def fql_wall_posts(stream, uid):
-    return ("SELECT actor_id, post_id FROM {} WHERE type != {} AND actor_id != {}"
+    return ("SELECT actor_id, post_id FROM {} "
+            "WHERE type != {} AND actor_id != {}"
             .format(stream, STREAMTYPE.STATUS_UPDATE, uid))
 
 
 def fql_wall_comms(wall, uid):
-    return ("SELECT actor_id, post_id FROM {0} WHERE post_id IN "
-                "(SELECT post_id FROM comment WHERE "
-                 "post_id IN (SELECT post_id FROM {0}) AND fromid = {1})"
+    return ("SELECT actor_id, post_id FROM {0} "
+            "WHERE post_id IN ("
+                "SELECT post_id FROM comment "
+                "WHERE post_id IN (SELECT post_id FROM {0}) AND fromid = {1}"
+            ")"
             .format(wall, uid))
 
 
 def fql_tags(stream, uid):
-    return ("SELECT tagged_ids, post_id FROM {} WHERE actor_id = {} AND type != {}"
+    return ("SELECT tagged_ids, post_id FROM {} "
+            "WHERE actor_id = {} AND type != {}"
             .format(stream, uid, STREAMTYPE.PHOTO))
 
 #TODO: perhaps this will tighten these up:
