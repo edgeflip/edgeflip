@@ -261,9 +261,9 @@ class Command(BaseCommand):
         # here causes each thread to end up with their own db connection.
         transaction.commit_unless_managed()
         connection.close()
-        for x in xrange(1, (workers + 1)):
-            if x == workers:
-                worker_end_count = people_count
+        for x in xrange(workers):
+            worker_offset = offset + x * worker_slice
+            worker_end_count = people_count if x == workers - 1 else worker_offset + worker_slice
             worker_args.append(
                 [
                     notification.pk, campaign.pk, content.pk,
@@ -271,8 +271,6 @@ class Command(BaseCommand):
                     worker_end_count
                 ]
             )
-            worker_offset += worker_slice
-            worker_end_count += worker_slice
 
         pool = multiprocessing.Pool(workers)
         filenames = pool.map(handle_star_threaded, worker_args)
