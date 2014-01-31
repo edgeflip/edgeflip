@@ -417,7 +417,7 @@ def _fallback_campaign(campaign_id):
 
 
 def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
-               px3_task_id=None, visit_type='targetshare.Visit', cache_match=False):
+               px3_task_id=None, visit_type='targetshare.Visit', cache_match=False, force=False):
     """Apply px4 filtering to the result of `px4_crawl`.
 
     Filtering is achieved through `perform_filtering`, and so edges are filtered
@@ -498,7 +498,7 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
     filtering_result = None
 
     # (No need for `exists()` query `if topics_filter_features`):
-    if topics_filter_features or px4_filter_features.exists():
+    if force or topics_filter_features or px4_filter_features.exists():
         try:
             filtering_result = perform_filtering(
                 edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,

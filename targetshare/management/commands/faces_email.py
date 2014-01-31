@@ -16,9 +16,9 @@ from django.utils import timezone
 from targetshare.models import dynamo, relational
 from targetshare.tasks import db, ranking
 from targetshare.templatetags.string_format import lexical_list
-from targetshare.integration.facebook.client import BadChunksError
 
-logger = logging.getLogger(__name__)
+
+LOG = logging.getLogger(__name__)
 
 
 def handle_star_threaded(args):
@@ -96,11 +96,7 @@ def crawl_and_filter(campaign, content, notification, offset,
     ''' Grabs all of the tokens for a given UserClient, and throws them
     through the px4 crawl again
     '''
-    logger.info(
-        'Gathering list of users to crawl. Offset {}, end count {}'.format(
-        offset, end_count
-        )
-    )
+    LOG.info('Gathering list of users to crawl: offset %s, end count %s', offset, end_count)
     failed_fbids = []
     client = campaign.client
     ucs = client.userclients.order_by('fbid')
@@ -111,54 +107,50 @@ def crawl_and_filter(campaign, content, notification, offset,
         'appid': client.fb_app_id,
     } for x in ucs.values_list('fbid', flat=True)]
     user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
-    for count, ut in enumerate(user_tokens, 1):
+    for (count, ut) in enumerate(user_tokens, 1):
         if timezone.now() >= ut.expires:
-            logger.debug('FBID {} has expired token'.format(ut.fbid))
+            LOG.debug('FBID %s has expired token', ut.fbid)
             continue
 
-        logger.info('Crawling user {} of {}. FBID: {}'.format(
-            count, end_count - offset, ut.fbid)
-        )
-        hash_str = hashlib.md5('{}{}{}{}'.format(
-            ut['fbid'], campaign.pk,
-            content.pk, notification.pk
-        )).hexdigest()
-        notification_user, created = relational.NotificationUser.objects.get_or_create(
-            uuid=hash_str, fbid=ut['fbid'], notification=notification
-        )
-        try:
-            edges = ranking.proximity_rank_four(
-                mockMode=mock,
-                fbid=ut['fbid'],
-                token=ut
-            )
-        except (IOError, BadChunksError):
-            logger.exception('Failed to crawl {}'.format(ut['fbid']))
-            failed_fbids.append(ut['fbid'])
-            continue
+        LOG.info('Crawling user %s of %s; FBID: %s',
+                 count, end_count - offset, ut.fbid)
+        seed = ''.join(str(part) for part in (
+            ut.fbid, campaign.pk, content.pk, notification.pk,
+        ))
+        hash_ = hashlib.md5(seed).hexdigest()
+        (notification_user, _created) = notification.notificationusers.get_or_create(
+            uuid=hash_, fbid=ut.fbid)
 
         try:
-            edges = ranking.perform_filtering(
-                edgesRanked=edges,
-                fbid=ut['fbid'],
-                campaignId=campaign.pk,
-                contentId=content.pk,
-                numFace=num_face,
-                visit_id=notification_user.pk,
-                visit_type='targetshare.NotificationUser',
-                cache_match=cache,
-            )[1].edges
-            yield hash_str, edges
+            (stream, edges) = ranking.px4_crawl(ut)
         except IOError:
-            logger.exception('Failed to filter {}'.format(ut['fbid']))
-            failed_fbids.append(ut['fbid'])
-            continue
-        except AttributeError:
-            logger.exception('{} had too few friends'.format(ut['fbid']))
-            failed_fbids.append(ut['fbid'])
+            LOG.exception('Failed to crawl %s', ut.fbid)
+            failed_fbids.append(ut.fbid)
             continue
 
-    logger.info('Failed fbids: {}'.format(failed_fbids))
+        filtered_result = ranking.px4_filter(
+            stream,
+            edges,
+            campaign.pk,
+            content.pk,
+            ut.fbid,
+            notification_user.pk,
+            num_face,
+            visit_type='targetshare.NotificationUser',
+            cache_match=cache,
+            force=True,
+        )
+        reranked_result = ranking.px4_rank(filtered_result)
+        targeted_edges = reranked_result.filtered and reranked_result.filtered.edges
+
+        if targeted_edges:
+            yield (hash_, targeted_edges)
+        else:
+            LOG.warning('User %s had too few friends', ut.fbid)
+            failed_fbids.append(ut.fbid)
+
+    if failed_fbids:
+        LOG.info('Failed users: %r', failed_fbids)
 
 
 def write_events(campaign, content, uuid, collection, num_face):
@@ -278,4 +270,4 @@ class Command(BaseCommand):
         for fn in filenames:
             self.stdout.write(open(fn).read())
             os.remove(fn)
-        logger.info('Completed faces email run')
+        LOG.info('Completed faces email run')
