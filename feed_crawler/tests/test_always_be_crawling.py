@@ -34,7 +34,7 @@ class TestAlwaysBeCrawling(EdgeFlipTestCase):
             expires=the_future, token='test'
         ).save()
         self.command.crawl()
-        self.assertEqual(crawl_mock.call_count, 2)
+        self.assertEqual(crawl_mock.delay.call_count, 2)
 
     @patch('feed_crawler.tasks.crawl_user')
     def test_crawl_expired_tokens(self, crawl_mock):

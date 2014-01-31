@@ -41,7 +41,7 @@ class TestFeedCrawlerViews(EdgeFlipTestCase):
             content_type='application/json',
         )
         self.assertStatusCode(response, 200)
-        self.assertTrue(crawl_mock.called)
-        self.assertEqual(crawl_mock.call_count, 2)
-        self.assertEqual(crawl_mock.call_args_list[0][0][0].fbid, 12345)
-        self.assertEqual(crawl_mock.call_args_list[1][0][0].fbid, 67890)
+        self.assertTrue(crawl_mock.delay.called)
+        self.assertEqual(crawl_mock.delay.call_count, 2)
+        self.assertEqual(crawl_mock.delay.call_args_list[0][0][0].fbid, 12345)
+        self.assertEqual(crawl_mock.delay.call_args_list[1][0][0].fbid, 67890)

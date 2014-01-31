@@ -25,3 +25,21 @@ class S3Manager(connection.S3Connection):
             bucket = self.create_bucket(bucket_name)
 
         return bucket
+
+    def find_key(self, bucket_names, key_name):
+        ''' Takes a list of bucket and searches across all of them for a
+        given key. Returns a list of keys found, as duplicate key names can
+        be used in different buckets.
+        '''
+        keys = []
+        for bucket_name in bucket_names:
+            try:
+                bucket = self.get_bucket(bucket_name)
+            except boto.exception.S3ResponseError:
+                continue
+
+            key = bucket.get_key(key_name)
+            if key:
+                keys.append(key)
+
+        return keys
