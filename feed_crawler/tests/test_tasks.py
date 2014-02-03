@@ -70,12 +70,16 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
     def test_bg_px4_crawl(self):
         self.assertFalse(models.dynamo.IncomingEdge.items.count())
+        self.assertFalse(models.dynamo.PostInteractions.items.count())
+        self.assertFalse(models.dynamo.PostInteractionsSet.items.count())
 
         ranked_edges = tasks._bg_px4_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.count())
+        self.assertTrue(models.dynamo.PostInteractions.items.count())
+        self.assertTrue(models.dynamo.PostInteractionsSet.items.count())
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(urllib2.urlopen.call_count, 2)
