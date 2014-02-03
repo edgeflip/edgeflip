@@ -16,7 +16,7 @@ function query () {
 
 function on_fail(response) {
     console.log('fail');
-    alert('Your fbid is bad and you should feel bad!');
+    alert('Error message: ' + response.responseText);
     }
 
 function on_data(response) {

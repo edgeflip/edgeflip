@@ -22,7 +22,7 @@ def edgeplorer(request):
     try:
         fbid = int(request.POST['fbid']) 
     except (KeyError, ValueError):
-        return HttpResponseBadRequest('')
+        return HttpResponseBadRequest('fbid missing or badly formed')
 
     users = run_safe_query(
         connections['redshift'].cursor(),
