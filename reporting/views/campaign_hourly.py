@@ -1,16 +1,17 @@
 from django.db import connections
+from django.views.decorators.http import require_GET
 from targetadmin.utils import auth_client_required
-from reporting.utils import isoformat_row, JsonResponse
+from reporting.utils import isoformat_row, run_safe_query, JsonResponse
 
-HEADER = ['time', 'visits', 'clicks', 'auths', 'uniq_auths', 'shown', 'shares', 'audience', 'clickbacks']
 
 @auth_client_required
+@require_GET
 def campaign_hourly(request, client_pk, campaign_pk):
     """ Data for a particular campaign, used by the chart view """
 
-    cursor = connections['redshift'].cursor()
-    try:
-        cursor.execute("""
+    data = run_safe_query(
+        connections['redshift'].cursor(),
+        """
         SELECT DATE_TRUNC('hour', hour) as time,
             SUM(visits) AS visits,
             SUM(clicks) AS clicks,
@@ -26,9 +27,9 @@ def campaign_hourly(request, client_pk, campaign_pk):
         AND campchain.root_id=%s
         GROUP BY time
         ORDER BY time ASC
-        """, (campaign_pk,))
+        """,
+        (campaign_pk,)
+    )
 
-        data = [isoformat_row(dict(zip(HEADER, row))) for row in cursor.fetchall()]
-        return JsonResponse({'data':data})
-    finally:
-        cursor.close()
+    data = [isoformat_row(row) for row in data]
+    return JsonResponse({'data':data})

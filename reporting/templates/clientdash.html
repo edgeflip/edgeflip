@@ -19,15 +19,6 @@
 {% endblock %}
 
 
-{% block login %}
-    <div id="login">
-        <p>
-        Logged in as {{ request.user }} | <a href="/logout/">Logout</a>
-        </p>
-    </div>
-{% endblock %}
-
-
 {% block body %}
 
 {% if request.user.is_superuser %}
@@ -60,7 +51,7 @@
 
     </table>
 
-    <img src="/static/aniprogress.gif" class="loading">
+    <img src="{{STATIC_URL}}img/aniprogress.gif" class="loading">
 
 </div>
 
@@ -97,7 +88,7 @@
         </thead>
     </table>
 
-    <img src="/static/aniprogress.gif" class="loading">
+    <img src="{{STATIC_URL}}img/aniprogress.gif" class="loading">
 
 </div>
 

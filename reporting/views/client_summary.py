@@ -1,26 +1,28 @@
 from django.core.exceptions import PermissionDenied
 from django.db import connections
-from reporting.utils import JsonResponse
+from django.http import Http404
+from django.views.decorators.http import require_GET
+from reporting.utils import run_safe_query, JsonResponse
 from targetadmin.utils import auth_client_required
 from targetshare.models.relational import Client
 
-HEADER = ['root_id', 'name', 'visits', 'clicks', 'auths', 'uniq_auths', 'shown', 'shares', 'audience', 'clickbacks']
 
 @auth_client_required
+@require_GET
 def client_summary(request, client_pk):
     """
     Data for the initial pageview, a summary of client stats grouped by campaign
     """
+
     client = Client.objects.using('mysql-readonly').get(pk=client_pk)
 
     if not client:
-        # check authorization for arbitrary client ids
-        if not request.user.is_superuser: raise PermissionDenied
+        raise Http404
 
     # very similar to the sums per campaign, but join on root campaign
-    cursor = connections['redshift'].cursor()
-    try:
-        cursor.execute("""
+    data = run_safe_query(
+        connections['redshift'].cursor(),
+        """
           SELECT meta.root_id, meta.name, visits, clicks, auths, uniq_auths,
                       shown, shares, audience, clickbacks
           FROM
@@ -40,7 +42,7 @@ def client_summary(request, client_pk):
 
           WHERE stats.root_id=meta.campaign_id
           ORDER BY meta.root_id DESC;
-        """, (int(client.client_id),))
-        return JsonResponse([dict(zip(HEADER, row)) for row in cursor.fetchall()])
-    finally:
-        cursor.close()
+        """,
+         (client.client_id,)
+    )
+    return JsonResponse(data)

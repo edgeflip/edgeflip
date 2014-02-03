@@ -5,17 +5,11 @@
 
 <style type="text/css">
 
-    body {
-        background: #2c3844;
-    }
-
     #bounds { 
-        text-align: center;
         margin: 50px auto;
         width: 500px;
 
-        border: 1px solid #397793;
-        text-align: right;
+        text-align: left;
         padding-bottom: 20px;
         background: white;
 
@@ -24,14 +18,21 @@
     }
 
     #logo {
-        margin: 28px;
+        margin: 28px 0px 28px 0px;
     }
 
-    #loginform {
-        width: 200px;
-        margin: 0 auto;
+    label,
+    input[type='text'],
+    input[type='password']
+    {
+        display: block;
+        margin-bottom: 5px;
     }
 
+    p {
+        padding-left: 30px;
+    }
+    
     #errors {
         text-align: center;
         color: red;
@@ -42,26 +43,13 @@
 
 
 <div id="bounds">
-    <img src="http://edgeflip.com/logo.png" width="443" height="120" id="logo" />
+    <img src="{{STATIC_URL}}img/logo.jpg" id="logo" />
 
-    {% if error %}
-        <p id="errors">{{ error }}</p>
-    {% endif %}
-
-    <form method="post" action="/login/" id="loginform">
-        <table>
-            <tr>
-                <td>Login</td>
-                <td><input name="login"></input></td>
-            </tr>
-            <tr>
-                <td>Password</td>
-                <td><input name="password" type="password"></input></td>
-            </tr>
-       </table>
-
-       <input type="submit" value="LOGIN" />
-   </form>
+    <form method="post" action="">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <p><input type="submit" value="Enter"></p>
+    </form>
 
 </div>
 

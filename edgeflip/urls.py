@@ -10,7 +10,7 @@ urlpatterns = patterns('',
     url(r'', include('targetshare.urls')),
     url(r'^admin/', include('targetadmin.urls')),
     url(r'^subscriptions/', include('feed_crawler.urls')),
-    url(r'^reporting/', include('reporting.urls')),
+    url(r'^reporting/', include('reporting.urls', namespace='reporting')),
 )
 
 if settings.DEBUG:

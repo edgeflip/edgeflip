@@ -6,3 +6,4 @@ graphviz
 mysql-server
 rabbitmq-server
 libmemcached-dev
+libpq-dev

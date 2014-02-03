@@ -12,6 +12,13 @@
     <body>
 
         {% block login %}
+        {% if user.is_authenticated %}
+            <div id="login">
+                <p>
+                Logged in as {{ request.user }} | <a href="{% url 'reporting:logout' %}">Logout</a>
+                </p>
+            </div>
+        {% endif %}
         {% endblock %}
 
         {% block body %}
