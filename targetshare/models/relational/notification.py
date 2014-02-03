@@ -17,7 +17,8 @@ class Notification(models.Model):
 class NotificationUser(models.Model):
 
     notification_user_id = models.AutoField(primary_key=True)
-    notification = models.ForeignKey('Notification')
+    notification = models.ForeignKey('Notification',
+                                     related_name='notificationusers')
     uuid = models.CharField(max_length=128, db_index=True)
     fbid = models.BigIntegerField()
     updated = models.DateTimeField(auto_now=True)

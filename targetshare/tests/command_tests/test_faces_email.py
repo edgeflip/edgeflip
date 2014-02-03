@@ -126,6 +126,7 @@ class TestFacesEmail(EdgeFlipTestCase):
     @patch('targetshare.management.commands.faces_email.ranking')
     def test_crawl_and_filter(self, ranking_mock, build_csv_mock):
         ''' Test the crawl_and_filter method '''
+        ranking_mock.px4_crawl.return_value = (None, Mock())
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         for x in range(0, 3):
             relational.UserClient.objects.create(
@@ -142,10 +143,7 @@ class TestFacesEmail(EdgeFlipTestCase):
             self.notification, 0, 100, 3
         ))
         # 4, one is pre-existing from the setUp
-        self.assertEqual(
-            relational.NotificationUser.objects.count(),
-            4
-        )
+        self.assertEqual(relational.NotificationUser.objects.count(), 4)
         self.assertEqual(len(edge_data), 3)
 
     @patch_facebook
