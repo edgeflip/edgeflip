@@ -1,37 +1,53 @@
 import collections
 import logging
 import itertools
+import operator
 
 from django.utils import timezone
 
 from targetshare.models import dynamo
+from targetshare.utils import classonlymethod
 
 
 LOG = logging.getLogger(__name__)
 
 
-EdgeBase = collections.namedtuple('EdgeBase',
-    ['primary', 'secondary', 'incoming', 'outgoing', 'score'])
+_EdgeBase = collections.namedtuple('EdgeBase',
+    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
 
 
-class Edge(EdgeBase):
+class Edge(_EdgeBase):
     """Relationship between a network's primary user and a secondary user.
 
     Arguments:
         primary: User
         secondary: User
         incoming: IncomingEdge (primary to secondary relationship)
-        outgoing: OutgoingEdge (secondary to primary relationship)
+        outgoing: OutgoingEdge (secondary to primary relationship) (optional)
+        interactions: sequence of PostInteractions (made by secondary) (optional)
         score: proximity score (optional)
 
     """
     __slots__ = () # No need for object __dict__ or stored attributes
 
-    # Make outgoing and score default to None:
-    def __new__(cls, primary, secondary, incoming, outgoing=None, score=None):
-        return super(Edge, cls).__new__(cls, primary, secondary, incoming, outgoing, score)
+    # Set outgoing, interactions and score defaults:
+    def __new__(cls, primary, secondary, incoming, outgoing=None, interactions=(), score=None):
+        return super(Edge, cls).__new__(cls, primary, secondary, incoming,
+                                        outgoing, interactions, score)
 
-    @classmethod
+    def __repr__(self):
+        return '{}({})'.format(
+            self.__class__.__name__,
+            ', '.join('{}={!r}'.format(key, value)
+                    for key, value in itertools.izip(self._fields, self))
+        )
+
+
+class UserNetwork(list):
+
+    Edge = Edge
+
+    @classonlymethod
     def get_friend_edges(cls, primary,
                          require_incoming=False,
                          require_outgoing=False,
@@ -45,44 +61,60 @@ class Edge(EdgeBase):
             )
 
         incoming_edges = dynamo.IncomingEdge.items.query(**edge_filters)
-        secondary_edges_in = {edge['fbid_source']: edge for edge in incoming_edges
-                              if not require_incoming or edge.post_likes is not None}
+        edges_in = {edge.fbid_source: edge for edge in incoming_edges
+                    if not require_incoming or edge.post_likes is not None}
 
         incoming_users = dynamo.User.items.batch_get(keys=[
-            {'fbid': fbid} for fbid in secondary_edges_in
+            {'fbid': fbid} for fbid in edges_in
         ])
-        secondary_users = {user['fbid']: user for user in incoming_users}
+        secondaries = {user.fbid: user for user in incoming_users}
 
+        if not secondaries:
+            # The network is empty
+            return cls()
+
+        # Grab all PostInteractions, via PostInteractionsSet:
+        post_interactions = dynamo.PostInteractions.items.batch_get_through(
+            dynamo.PostInteractionsSet,
+            [user.get_keys() for user in secondaries.itervalues()]
+        )
+
+        # Build hash of fbid: [PostInteractions, ...]
+        interactions_key = operator.attrgetter('fbid')
+        interactions_sorted = sorted(post_interactions, key=interactions_key)
+        interactions_grouped = itertools.groupby(interactions_sorted, interactions_key)
+        user_interactions = {fbid: set(interactions)
+                             for (fbid, interactions) in interactions_grouped}
+
+        # Build iterable of edges with secondaries, consisting of:
+        # (2nd's ID, 2nd's User, incoming edge, outgoing edge, 2nd's interactions)
         if require_outgoing:
-            # Build iterator of (secondary's ID, User, incoming edge, outgoing edge),
-            # fetching outgoing edges from Dynamo.
-            secondary_edges_out = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
-            data = (
-                (
-                    edge['fbid_target'],
-                    secondary_users.get(edge['fbid_target']),
-                    secondary_edges_in.get(edge['fbid_target']),
-                    edge,
-                )
-                for edge in secondary_edges_out
-            )
+            # ...fetching outgoing edges too:
+            outgoing_edges = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
+            edge_args = (
+                (edge.fbid_target,
+                 secondaries.get(edge.fbid_target),
+                 edges_in.get(edge.fbid_target),
+                 edge,
+                 user_interactions.get(edge.fbid_target, set()))
+                for edge in outgoing_edges)
         else:
-            data = (
-                (
-                    fbid,
-                    secondary_users.get(fbid),
-                    edge,
-                    None,
-                )
-                for fbid, edge in secondary_edges_in.items()
-            )
+            edge_args = (
+                (fbid,
+                 secondaries.get(fbid),
+                 edge,
+                 None,
+                 user_interactions.get(fbid, set()))
+                for (fbid, edge) in edges_in.items())
 
-        return tuple(cls(primary, secondary, incoming, outgoing)
-                     for fbid, secondary, incoming, outgoing in data
-                     if cls._friend_edge_ok(fbid, secondary, incoming, outgoing))
+        return cls(
+            cls.Edge(primary, secondary, incoming, outgoing, interactions)
+            for (fbid, secondary, incoming, outgoing, interactions) in edge_args
+            if cls._db_edge_ok(fbid, secondary, incoming, outgoing)
+        )
 
     @staticmethod
-    def _friend_edge_ok(fbid, secondary, incoming, outgoing):
+    def _db_edge_ok(fbid, secondary, incoming, outgoing):
         if secondary is None:
             LOG.error("Secondary %r found in edges but not in users", fbid)
             return False
@@ -93,24 +125,142 @@ class Edge(EdgeBase):
 
         return True
 
-    @staticmethod
-    def write(edges):
+    __slots__ = ()
+
+    def __init__(self, edges=()):
+        super(UserNetwork, self).__init__(self._import_edges(edges))
+
+    def _clone(self, edges=None):
+        """Handle for copying over __slots__, should any exist."""
+        edges = self if edges is None else edges
+        return type(self)(edges)
+
+    def __getitem__(self, key):
+        result = super(UserNetwork, self).__getitem__(key)
+        return self._clone(result) if isinstance(key, slice) else result
+
+    def __getslice__(self, start, stop):
+        return self.__getitem__(slice(start, stop))
+
+    def __eq__(self, other):
+        try:
+            primary = other.primary
+        except AttributeError:
+            return False
+        else:
+            return primary == self.primary and super(UserNetwork, self).__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        return self._clone(itertools.chain(self, other))
+
+    def __mul__(self, count):
+        return self._clone(itertools.chain.from_iterable(itertools.repeat(self, count)))
+
+    __rmul__ = __mul__
+
+    def _import_edge(self, edge):
+        if self and edge.primary != self.primary:
+            raise ValueError("Edge network mismatch")
+        return edge
+
+    def _import_edges(self, edges):
+        for edge in edges:
+            yield self._import_edge(edge)
+
+    def append(self, edge):
+        return super(UserNetwork, self).append(self._import_edge(edge))
+
+    def extend(self, edges):
+        return super(UserNetwork, self).extend(self._import_edges(edges))
+
+    def __setitem__(self, key, value):
+        if isinstance(key, slice):
+            value = self._import_edges(value)
+        else:
+            value = self._import_edge(value)
+        return super(UserNetwork, self).__setitem__(self, key, value)
+
+    def __setslice__(self, start, stop, sequence):
+        return self.__setitem__(slice(start, stop), sequence)
+
+    def insert(self, index, value):
+        return super(UserNetwork, self).insert(index, self._import_edge(value))
+
+    @property
+    def primary(self):
+        return self[0].primary
+
+    def iter_interactions(self):
+        for edge in self:
+            for post_interactions in edge.interactions:
+                yield post_interactions
+
+    def precache_topics_feature(self, post_topics=None):
+        """Populate secondaries' "topics" feature from the network's
+        PostInteractions and PostTopics.
+
+        User.topics is an auto-caching property, but which operates by talking to
+        the database. For performance, these caches may be prepopulated from the
+        in-memory UserNetwork.
+
+        Note: If the network's PostInteractions have not themselves cached their
+        field links to PostTopics, invoking this method may be database-intensive
+        itself. To precache these links, an iterable of PostTopics may be specified
+        (`post_topics`).
+
+        """
+        if post_topics is not None:
+            # Ensure precaching of PostInteractions.post_topics
+            post_topics = {pt.postid: pt for pt in post_topics}
+            link = dynamo.PostInteractions.post_topics
+            for post_interactions in self.iter_interactions():
+                if link.cache_get(post_interactions) is None:
+                    pt = post_topics.get(post_interactions.postid)
+                    if pt is not None:
+                        link.cache_set(post_interactions, pt)
+
+        for edge in self:
+            user = edge.secondary
+            user.topics = user.get_topics(edge.interactions)
+
+    def scored(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork with scored Edges."""
+        edges_max = EdgeAggregate(self,
+                                  aggregator=max,
+                                  require_incoming=require_incoming,
+                                  require_outgoing=require_outgoing)
+        return self._clone(
+            edge._replace(score=edges_max.score(edge)) for edge in self
+        )
+
+    def rank(self):
+        """Sort the UserNetwork by its Edges' scores."""
+        self.sort(key=lambda edge: edge.score, reverse=True)
+
+    def ranked(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
+        network = self.scored(require_incoming, require_outgoing)
+        network.rank()
+        return network
+
+    def write(self):
         """Batch-write the given iterable of Edges to the database."""
         incoming_items = dynamo.IncomingEdge.items
         outgoing_items = dynamo.OutgoingEdge.items
         with incoming_items.batch_write() as incoming, outgoing_items.batch_write() as outgoing:
-            for composite in edges:
+            for composite in self:
                 for edge in (composite.incoming, composite.outgoing):
                     if edge:
                         incoming.put_item(edge)
                         outgoing.put_item(dynamo.OutgoingEdge.from_incoming(edge))
 
     def __repr__(self):
-        return '{}({})'.format(
-            self.__class__.__name__,
-            ', '.join('{}={!r}'.format(key, value)
-                      for key, value in itertools.izip(self._fields, self))
-        )
+        return "<{}({}{})>".format(self.__class__.__name__,
+                                   "{}: ".format(self.primary.fbid) if self else "",
+                                   super(UserNetwork, self).__repr__())
 
 
 class TieredEdges(tuple):
@@ -166,8 +316,8 @@ class TieredEdges(tuple):
         return type(self)(itertools.chain(self, other))
 
     def _reranked(self, ranking):
-        """Generate a stream of the collection's tiers with edges reranked according to
-        the given ranking.
+        """Generate a stream of the collection's tiers with edges reranked and
+        populated from the given ranking.
 
         """
         for tier in self:
@@ -229,19 +379,6 @@ class EdgeAggregate(object):
     outPhotoTarget = None
     outPhotoOther = None
     outMutuals = None
-
-    @classmethod
-    def rank(cls, edges, require_incoming=True, require_outgoing=True):
-        """Construct from those given a list of Edges sorted by score."""
-        LOG.info("ranking %d edges", len(edges))
-        edges_max = cls(edges,
-                        require_incoming=require_incoming,
-                        require_outgoing=require_outgoing)
-        return sorted(
-            (edge._replace(score=edges_max.score(edge)) for edge in edges),
-            key=lambda edge: edge.score,
-            reverse=True,
-        )
 
     def __init__(self, edges, aggregator=max, require_incoming=True, require_outgoing=True):
         """Apply the aggregator to the given Edges to initialize instance data.
@@ -332,17 +469,3 @@ class EdgeAggregate(object):
             return pxTotal / weightTotal
         except ZeroDivisionError:
             return 0
-
-
-def get_ranking_best_avail(incoming_edges, all_edges, threshold=0.5):
-    """Conditionally rank either only the incoming Edges or both incoming and
-    outgoing Edges.
-
-    incoming_edges: list of incoming Edges
-    all_edges: list of incoming + outgoing Edges
-
-    """
-    if len(incoming_edges) * threshold > len(all_edges):
-        return EdgeAggregate.rank(incoming_edges, require_outgoing=False)
-    else:
-        return EdgeAggregate.rank(all_edges, require_outgoing=True)

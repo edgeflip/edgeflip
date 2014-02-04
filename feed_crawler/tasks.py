@@ -75,21 +75,16 @@ def _bg_px4_crawl(token, retries=0, max_retries=3):
     '''
     try:
         user = facebook.client.get_user(token.fbid, token.token)
-        edges_unranked = facebook.client.get_friend_edges(
-            user,
-            token['token'],
-            require_incoming=True,
-            require_outgoing=False,
-        )
+        stream = facebook.client.Stream.read(user, token.token)
+        edges_unranked = stream.get_friend_edges(token.token)
     except IOError:
         retries += 1
         if retries > max_retries:
             raise
         else:
-            _bg_px4_crawl(token, retries)
+            return _bg_px4_crawl(token, retries)
 
-    edges_ranked = models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    edges_ranked = edges_unranked.ranked(
         require_incoming=True,
         require_outgoing=False,
     )
@@ -107,10 +102,29 @@ def _bg_px4_crawl(token, retries=0, max_retries=3):
         routing_key='bg.upsert'
     )
     db.upsert.apply_async(
-        args=[[edge.secondary for edge in edges_ranked]],
+        args=[edge.secondary for edge in edges_ranked],
         kwargs={'partial_save_queue': 'bg_partial_save'},
         queue='bg_upsert',
-        routing_key='bg.upsert'
+        routing_key='bg.upsert',
+    )
+    db.bulk_create.apply_async(
+        args=[tuple(edges_ranked.iter_interactions())],
+        queue='bg_bulk_create',
+        routing_key='bg.bulk.create',
+    )
+    db.upsert.apply_async(
+        args=[
+            models.dynamo.PostInteractionsSet(
+                fbid=edge.secondary.fbid,
+                postids=[post_interactions.postid
+                         for post_interactions in edge.interactions],
+            )
+            for edge in edges_ranked
+            if edge.interactions
+        ],
+        kwargs={'partial_save_queue': 'bg_partial_save'},
+        queue='bg_upsert',
+        routing_key='bg.upsert',
     )
     db.update_edges.apply_async(
         args=[edges_ranked],
@@ -128,7 +142,7 @@ def _get_sync_maps(edges, token):
             fbid_secondary=token.fbid
         )
     except models.FBSyncMap.DoesNotExist:
-        main_fbm = models.FBSyncMap(
+        main_fbm = models.FBSyncMap.items.create(
             fbid_primary=token.fbid,
             fbid_secondary=token.fbid,
             token=token.token,
@@ -138,17 +152,18 @@ def _get_sync_maps(edges, token):
             status=models.FBSyncMap.WAITING,
             bucket=random.sample(settings.FEED_BUCKET_NAMES, 1)[0],
         )
-        main_fbm.save()
 
     fb_sync_maps = [main_fbm]
     for edge in edges:
         try:
-            fb_sync_maps.append(models.FBSyncMap.items.get_item(
-                fbid_primary=token.fbid,
-                fbid_secondary=edge.secondary.fbid
-            ))
+            fb_sync_maps.append(
+                models.FBSyncMap.items.get_item(
+                    fbid_primary=token.fbid,
+                    fbid_secondary=edge.secondary.fbid,
+                )
+            )
         except models.FBSyncMap.DoesNotExist:
-            fbm = models.FBSyncMap(
+            fbm = models.FBSyncMap.items.create(
                 fbid_primary=token.fbid,
                 fbid_secondary=edge.secondary.fbid,
                 token=token.token,
@@ -158,7 +173,6 @@ def _get_sync_maps(edges, token):
                 status=models.FBSyncMap.WAITING,
                 bucket=random.sample(settings.FEED_BUCKET_NAMES, 1)[0],
             )
-            fbm.save()
             fb_sync_maps.append(fbm)
 
     return fb_sync_maps

@@ -16,14 +16,30 @@ from fabric import api as fab
 from fab import BASEDIR, build, serve, test
 
 
-@fab.task(name='shell')
-def start_shell():
-    """Open a Django shell"""
+def _subprocess(*args, **kws):
     # Use Popen to avoid KeyboardInterrupt messiness
-    process = subprocess.Popen(['python', 'manage.py', 'shell'], cwd=BASEDIR)
+    process = subprocess.Popen(*args, **kws)
     while process.returncode is None:
         try:
             process.poll()
         except KeyboardInterrupt:
             # Pass ctrl+c to the shell
             pass
+
+
+@fab.task(name='shell')
+def start_shell():
+    """Open a Django shell"""
+    _subprocess(['python', 'manage.py', 'shell'], cwd=BASEDIR)
+
+
+@fab.task
+def ishell():
+    """Open a Django shell requiring iPython, with common libraries loaded."""
+    commands = [
+        "import os",
+        "os.environ['DJANGO_SETTINGS_MODULE'] = 'edgeflip.settings'",
+        "from targetshare import models",
+        "from targetshare.integration import facebook",
+    ]
+    _subprocess(['ipython', '-i', '-c', '; '.join(commands)], cwd=BASEDIR)

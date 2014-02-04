@@ -4,23 +4,34 @@ from boto.dynamodb2 import fields
 
 from targetshare.utils import LazyList
 
-from .base import Item, ItemField, ItemManager, HashKeyField, RangeKeyField, NUMBER
+from .base import (
+    Item,
+    ItemField,
+    ItemLinkField,
+    ItemManager,
+    HashKeyField,
+    RangeKeyField,
+    NUMBER,
+)
 
 
 class IncomingEdge(Item):
 
     fbid_target = HashKeyField(data_type=NUMBER)
     fbid_source = RangeKeyField(data_type=NUMBER)
-    post_likes = ItemField()
-    post_comms = ItemField()
-    stat_likes = ItemField()
-    stat_comms = ItemField()
-    wall_posts = ItemField()
-    wall_comms = ItemField()
-    tags = ItemField()
-    photos_target = ItemField()
-    photos_other = ItemField()
-    mut_friends = ItemField()
+    post_likes = ItemField(data_type=NUMBER)
+    post_comms = ItemField(data_type=NUMBER)
+    stat_likes = ItemField(data_type=NUMBER)
+    stat_comms = ItemField(data_type=NUMBER)
+    wall_posts = ItemField(data_type=NUMBER)
+    wall_comms = ItemField(data_type=NUMBER)
+    tags = ItemField(data_type=NUMBER)
+    photos_target = ItemField(data_type=NUMBER)
+    photos_other = ItemField(data_type=NUMBER)
+    mut_friends = ItemField(data_type=NUMBER)
+
+    primary = ItemLinkField('User', db_key=fbid_target)
+    secondary = ItemLinkField('User', db_key=fbid_source, linked_name=None)
 
     class Meta(object):
         table_name = 'edges_incoming'

@@ -1,21 +1,20 @@
 import json
 import os.path
 import random
+import re
 import urllib
-import urllib2
 
-from mock import Mock, patch
-
+import us
 from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
-
+from mock import Mock, patch
 from pymlconf import ConfigDict
 
 from targetshare import models
-from targetshare.integration.facebook import mock_client
 from targetshare.models.dynamo import utils
+from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
 
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -23,11 +22,9 @@ DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 class EdgeFlipTestCase(TestCase):
 
-    def setUp(self):
-        super(EdgeFlipTestCase, self).setUp()
-
-        # Test settings:
-        self.patches = [
+    @classmethod
+    def setUpClass(cls):
+        cls.cls_patches = [
             patch.multiple(
                 settings,
                 CELERY_ALWAYS_EAGER=True,
@@ -35,16 +32,27 @@ class EdgeFlipTestCase(TestCase):
             )
         ]
         # Start patches:
-        for patch_ in self.patches:
+        for patch_ in cls.cls_patches:
             patch_.start()
 
-        # Restore dynamo data:
-        utils.database.drop_all_tables() # drop if exist
-        utils.database.create_all_tables()
+        # In case a bad test class doesn't clean up after itself:
+        utils.database.drop_all_tables()
+
+    @classmethod
+    def tearDownClass(cls):
+        for patch_ in cls.cls_patches:
+            patch_.stop()
+
+    def setUp(self):
+        super(EdgeFlipTestCase, self).setUp()
+        for (signature, item) in models.dynamo.base.loading.cache.items():
+            # targetshare dynamo tables are installed without an app prefix
+            # (ignore any that have one):
+            if '.' not in signature:
+                utils.database.create_table(item.items.table)
 
     def tearDown(self):
-        for patch_ in self.patches:
-            patch_.stop()
+        utils.database.drop_all_tables()
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):
@@ -58,10 +66,10 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         self.params = {
             'fbid': '1',
             'token': 1,
-            'num': 9,
+            'num_face': 9,
             'sessionid': 'fake-session',
-            'campaignid': 1,
-            'contentid': 1,
+            'campaign': 1,
+            'content': 1,
         }
         self.test_user = models.User(
             fbid=1,
@@ -73,7 +81,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             city='Chicago',
             state='Illinois',
         )
-        self.test_edge = models.datastructs.Edge(
+        self.test_edge = models.datastructs.UserNetwork.Edge(
             self.test_user,
             self.test_user,
             None
@@ -113,9 +121,13 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px3_result_mock.successful.return_value = px3_successful
         px3_result_mock.failed.return_value = px3_failed
         if px3_ready:
-            px3_result_mock.result = (
+            px3_result_mock.result = FilteringResult(
                 [self.test_edge],
-                models.datastructs.TieredEdges(edges=[self.test_edge], campaignId=1, contentId=1),
+                models.datastructs.TieredEdges(
+                    edges=[self.test_edge],
+                    campaign_id=1,
+                    content_id=1,
+                ),
                 self.test_filter.filter_id,
                 self.test_filter.url_slug,
                 1,
@@ -129,7 +141,9 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px4_result_mock.successful.return_value = px4_successful
         px4_result_mock.failed.return_value = px4_failed
         if px4_ready:
-            px4_result_mock.result = [self.test_edge] if px4_successful else error
+            px4_result_mock.result = (
+                empty_filtering_result._replace(ranked=[self.test_edge])
+                if px4_successful else error)
         else:
             px4_result_mock.result = None
 
@@ -147,14 +161,55 @@ def xrandrange(min_=0, max_=None, start=0, step=1):
     return xrange(start, random.randint(min_, max_), step)
 
 
-def crawl_mock(min_friends, max_friends):
-    fake_fbids = tuple(set(100000000000 + random.randint(1, 10000000)
-                       for _ in xrandrange(min_friends, max_friends)))
+FIRST_NAMES = ('Larry', 'Darryl', 'Darryl', 'Bob', 'Bart', 'Lisa', 'Maggie',
+               'Homer', 'Marge', 'Dude', 'Jeffrey', 'Keyser', 'Ilsa')
+LAST_NAMES = ('Newhart', 'Simpson', 'Lebowski', 'Soze', 'Lund', 'Smith', 'Doe')
+CITY_NAMES = ('Casablanca', 'Sprinfield', 'Shelbyville', 'Nowhere', 'Capital City')
+
+
+def fake_user(fbid, friend=False, num_friends=0):
+    fake = {
+        'uid': fbid,
+        'sex': u'male' if random.random() < 0.5 else u'female',
+        'first_name': random.choice(FIRST_NAMES),
+        'last_name': random.choice(LAST_NAMES),
+    }
+
+    if random.random() <= 0.33:
+        fake['birthday_date'] = '%s/%s/%s' % (
+            random.randint(1, 12),
+            random.randint(1, 28),
+            random.randint(1920, 1995),
+        )
+    else:
+        fake['birthday_date'] = None
+
+    if random.random() <= 0.67:
+        fake['current_location'] = {
+            'city': random.choice(CITY_NAMES),
+            'state': random.choice(us.STATES_AND_TERRITORIES).name,
+        }
+
+    if friend:
+        # Only have a mutual friend count for friends
+        fake['mutual_friend_count'] = random.randint(0, num_friends)
+    else:
+        # Only get an email for primaries
+        fake['email'] = u'fake@fake.com'
+
+    return fake
+
+
+def crawl_mock(min_friends, max_friends, closure=None):
+    fake_fbids = tuple({100000000000 + random.randint(1, 10000000)
+                        for _ in xrandrange(min_friends, max_friends)})
     friend_count = len(fake_fbids)
-    synchronous_results = iter([
-        # get_user:
-        {'data': [mock_client.fakeUserInfo(1)]},
-    ])
+    synchronous_results = iter([])
+
+    dir_ = os.path.dirname(os.path.abspath(__file__))
+    app_dir = os.path.dirname(dir_)
+    corpus = open(os.path.join(os.path.dirname(app_dir), 'README.md')).read()
+    words = re.split(r'\s+', corpus)
 
     def urlopen_mock(url):
         # First two calls are synchronous, should just return these:
@@ -164,32 +219,54 @@ def crawl_mock(min_friends, max_friends):
             pass
 
         # Threaded results:
-        if isinstance(url, urllib2.Request):
-            # ThreadStreamReader
-            data = [
-                {'name': 'tags', 'fql_result_set': [{'tagged_ids': list(xrandrange(0, 25, 1))}
-                                                    for _ in xrandrange(0, 25)]},
-                {'name': 'stream', 'fql_result_set': []},
-            ] + [
-                {'name': column, 'fql_result_set': [dict.fromkeys(['user_id', 'fromid', 'actor_id'], value)
-                                                for value in xrandrange(0, 25, 1)]}
-                for column in (
-                    'postLikes',
-                    'postComms',
-                    'statLikes',
-                    'statComms',
-                    'wallPosts',
-                    'wallComms',
-                )
-            ]
-            return {'data': data}
+        if 'from+stream' in url.lower():
+            # StreamReaderThread
+            data = {
+                'stream': [],
+                'post_likes': [],
+                'post_comms': [],
+                'stat_likes': [],
+                'stat_comms': [],
+                'wall_posts': [],
+                'wall_comms': [],
+                'tags': [],
+            }
+            for post_id0 in xrandrange(2, 20, 1):
+                post_id = '1_{}'.format(post_id0)
+                start = random.randint(0, len(words))
+                end = random.randint(start, len(words))
+                message = ' '.join(words[start:end])
+                data['stream'].append({'post_id': post_id,
+                                       'message': message})
+                for column in data:
+                    if column == 'stream' or (random.randint(1, 50) % 50):
+                        # This is the stream field,
+                        # or only give others 1 in 50 chance of representation
+                        continue
+                    if column == 'tags':
+                        user_ids = random.sample(fake_fbids, random.randint(1, 2))
+                    else:
+                        user_ids = random.choice(fake_fbids)
+                    column_data = {'post_id': post_id}
+                    column_data['user_id'] = column_data['fromid'] = \
+                        column_data['actor_id'] = column_data['tagged_ids'] = \
+                        user_ids
+                    data[column].append(column_data)
+            return {'data': [
+                {'name': entry_type, 'fql_result_set': result_set}
+                for (entry_type, result_set) in data.items()
+            ]}
 
         elif 'friend_count+from' in url.lower():
             return {'data': [{'friend_count': friend_count}]}
 
         elif 'from+user' in url.lower():
+            if "select+uid%2c+first_name%2c+last_name" in url.lower():
+                # User info
+                return {'data': [fake_user(1)]}
+
             # Friend info
-            return {'data': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+            return {'data': [fake_user(fbid, friend=True, num_friends=friend_count)
                              for fbid in fake_fbids]}
 
         elif 'from+photo' in url.lower():
@@ -200,9 +277,14 @@ def crawl_mock(min_friends, max_friends):
                 {'name': 'otherPhotoTags',
                  'fql_result_set': [{'subject': str(random.choice(fake_fbids))} for _ in xrandrange(0, 25000)]},
                 {'name': 'friendInfo',
-                 'fql_result_set': [mock_client.fakeUserInfo(fbid, friend=True, numFriends=friend_count)
+                 'fql_result_set': [fake_user(fbid, friend=True, num_friends=friend_count)
                                     for fbid in fake_fbids]},
             ]}
+
+        elif closure:
+            return closure(url)
+        else:
+            raise RuntimeError("No mock for URL: {}".format(url))
 
     # mock to be patched on urllib2.urlopen:
     return Mock(side_effect=lambda url, timeout=None:
@@ -210,11 +292,11 @@ def crawl_mock(min_friends, max_friends):
     )
 
 
-def patch_facebook(func=None, min_friends=1, max_friends=1000):
+def patch_facebook(func=None, min_friends=1, max_friends=1000, closure=None):
     patches = (
         patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',
-            crawl_mock(min_friends, max_friends)
+            crawl_mock(min_friends, max_friends, closure)
         ),
         patch('targetshare.integration.facebook.client.extend_token', Mock(
             return_value=models.dynamo.Token(

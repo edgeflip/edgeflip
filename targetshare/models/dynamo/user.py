@@ -1,4 +1,9 @@
+import collections
+import logging
+
 from django.utils import timezone
+
+from targetshare import utils
 
 from .base import (
     Item,
@@ -10,7 +15,13 @@ from .base import (
     DATETIME,
     STRING_SET,
 )
+from .base.item import cached_property
 from .base.types import DOUBLE_NEWLINE
+
+from . import PostInteractions
+
+
+LOG = logging.getLogger('crow')
 
 
 class User(Item):
@@ -74,3 +85,36 @@ class User(Item):
     @property
     def full_location(self):
         return u'{}, {} {}'.format(self.city, self.state, self.country)
+
+    @classmethod
+    def get_topics(cls, interactions, warn=True):
+        """Return a User's interests scored by topic, given an iterable of
+        PostInteractions.
+
+        This method makes use of the PostInteractions's PostTopics link; for best
+        performance, these should be pre-populated.
+
+        """
+        uncached = 0
+        scores = collections.defaultdict(int)
+        for interaction in interactions:
+            if warn and PostInteractions.post_topics.cache_get(interaction) is None:
+                uncached += 1
+            post_topics = interaction.post_topics.document
+            for (topic, value) in post_topics.items():
+                # For now, all interactions weighted the same:
+                for (_interaction_type, count) in interaction.document.items():
+                    scores[topic] += value * count
+
+        if uncached:
+            LOG.warn("User topics calculation performed without precaching "
+                     "of %i PostTopics items", uncached)
+
+        # Normalize topic scores to 1:
+        return {topic: utils.atan_norm(value)
+                for (topic, value) in scores.items()}
+
+    @cached_property
+    def topics(self):
+        """Aggregate topics scores of posts in which user has interacted."""
+        return self.get_topics(self.postinteractions_set.prefetch('post_topics'))

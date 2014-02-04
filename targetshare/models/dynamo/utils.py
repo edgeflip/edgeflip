@@ -22,6 +22,8 @@ def _confirm(message):
     return response in ('', 'y', 'yes')
 
 
+# TODO: Integrate this with base, (and get rid of superfluous Item cache)
+
 class DynamoDB(object):
 
     def __init__(self, tables=None):

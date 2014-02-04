@@ -1,0 +1,36 @@
+
+/* 
+ * Edgeflip logo colors:
+ *
+ * dark blue: #2c3884
+ * light blue: #397793
+ */
+
+
+#login {
+    border: 1px solid #397793;
+    text-align: right;
+    padding: 10px;
+    background: #2c3844;
+
+    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+    color: #FFF;
+    }
+
+#login a:link, a:visited {
+    color: #FFF;
+    text-decoration: none;
+    }
+
+#login a:active, #login a:hover {
+    color: #397793;
+    text-decoration: underline;
+    }
+
+
+/* might just need some kind of CSS reset here */
+#login p {
+    margin: 0;
+    line-height: 10px;
+    }
+

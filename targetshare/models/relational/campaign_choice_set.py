@@ -8,7 +8,8 @@ class CampaignChoiceSet(models.Model):
     campaign_choice_set_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign', null=True,
                                  related_name='campaignchoicesets')
-    choice_set = models.ForeignKey('ChoiceSet', null=True)
+    choice_set = models.ForeignKey('ChoiceSet', null=True,
+                                   related_name='campaignchoicesets')
     rand_cdf = models.DecimalField(null=True, max_digits=10,
                                    decimal_places=9, blank=True)
     allow_generic = models.NullBooleanField()
