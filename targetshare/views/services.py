@@ -1,4 +1,3 @@
-import json
 import logging
 import urllib
 import urlparse
@@ -140,11 +139,8 @@ def health_check(request):
     except Exception:
         dynamo_up = False
 
-    return http.HttpResponse(
-        json.dumps({
-            'database': database_up,
-            'dynamo': dynamo_up,
-            'facebook': facebook_up,
-        }),
-        content_type='application/json',
-    )
+    return utils.JsonHttpResponse({
+        'database': database_up,
+        'dynamo': dynamo_up,
+        'facebook': facebook_up,
+    })

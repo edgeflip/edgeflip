@@ -1,4 +1,12 @@
-from .base import Item, ItemField, HashKeyField, RangeKeyField, NUMBER, DATETIME
+from .base import (
+    Item,
+    ItemField,
+    ItemLinkField,
+    HashKeyField,
+    RangeKeyField,
+    NUMBER,
+    DATETIME,
+)
 
 
 class Token(Item):
@@ -7,3 +15,5 @@ class Token(Item):
     appid = RangeKeyField(data_type=NUMBER)
     expires = ItemField(data_type=DATETIME)
     token = ItemField()
+
+    user = ItemLinkField('User', db_key=fbid)

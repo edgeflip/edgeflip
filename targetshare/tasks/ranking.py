@@ -1,93 +1,114 @@
 from __future__ import absolute_import
+
+import itertools
 import logging
+from collections import namedtuple
 from datetime import timedelta
 
+import celery
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.conf import settings
 from django.db.models.loading import get_model
+from django.db.models import Q
 
-from targetshare import models
+from targetshare import models, utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
 
-logger = get_task_logger(__name__)
-rvn_logger = logging.getLogger('crow')
-MIN_FRIEND_COUNT = 100
-FRIEND_THRESHOLD_PERCENT = 90
+
+LOG = get_task_logger(__name__)
+LOG_RVN = logging.getLogger('crow')
+
+DB_MIN_FRIEND_COUNT = 100
+DB_FRIEND_THRESHOLD = 90 # percent
+
+# The below width(s) of the proximity score spectrum from 1 to 0 will be
+# partitioned during rank refinement:
+# NOTE: We might want to review this threshold for various size networks
+PX_REFINE_RANGE_WIDTH = 0.85
+
+# The maximum number of (high-proximity) friends to bother rank-refining:
+# NOTE: We might want to review this number, depending on how performant
+# production is in ranking
+PX_REFINE_MAX_COUNT = 500
+
+# The maximum number of seconds that `proximity_rank_four` will wait for the
+# `proximity_rank_three` task to complete, (when there are ranking key features
+# but not px4 filter features, s.t. `px4_filter` defers to px3):
+PX_REFINE_PX3_TIMEOUT = 3
+
+FilteringResult = namedtuple('FilteringResult', [
+    'ranked',
+    'filtered',
+    'cs_filter_id',
+    'choice_set_slug',
+    'campaign_id',
+    'content_id',
+])
+
+empty_filtering_result = FilteringResult._make((None,) * 6)
 
 
-def proximity_rank_three(mock_mode, fbid, token, **kwargs):
-    ''' Builds the px3 crawl and filtering chain '''
+def proximity_rank_three(token, **filtering_args):
+    """Build the px3 crawl-and-filter chain."""
     chain = (
-        px3_crawl.s(mock_mode, fbid, token) |
-        perform_filtering.s(fbid=fbid, **kwargs)
+        px3_crawl.s(token) |
+        perform_filtering.s(fbid=token.fbid, **filtering_args)
     )
-    task = chain.apply_async()
-    return task
+    return chain.apply_async()
 
 
 @shared_task(default_retry_delay=1, max_retries=3)
-def px3_crawl(mockMode, fbid, token):
+def px3_crawl(token):
     """Crawl and rank a user's network to proximity level three."""
-    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.get_user(fbid, token['token'])
-        edges_unranked = fb_client.get_friend_edges(
-            user,
-            token['token'],
-            require_incoming=False,
-            require_outgoing=False
-        )
+        user = facebook.client.get_user(token.fbid, token.token)
+        edges_unranked = facebook.client.get_friend_edges(user, token.token)
     except IOError as exc:
         px3_crawl.retry(exc=exc)
 
-    return models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
     )
 
 
 @shared_task
-def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFace,
-                      fallbackCount=0, already_picked=None,
-                      visit_type='targetshare.Visit', cache_match=False):
+def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
+                      fallback_count=0, already_picked=None,
+                      px_rank=3, visit_type='targetshare.Visit', cache_match=False):
     """Filter the given, ranked, Edges according to the configuration of the
     specified Campaign.
 
     """
-    if fallbackCount > settings.MAX_FALLBACK_COUNT:
-        # zzz Be more elegant here if cascading?
+    if fallback_count > settings.MAX_FALLBACK_COUNT:
         raise RuntimeError("Exceeded maximum fallback count")
 
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
-    campaign = models.relational.Campaign.objects.get(campaign_id=campaignId)
+    client_content = models.relational.ClientContent.objects.get(content_id=content_id)
+    campaign = models.relational.Campaign.objects.get(campaign_id=campaign_id)
     client = campaign.client
-    client_content = models.relational.ClientContent.objects.get(content_id=contentId)
-    already_picked = already_picked or models.datastructs.TieredEdges()
-
-    # Get fallback & threshold info about this campaign from the DB
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
+    already_picked = already_picked or models.datastructs.TieredEdges()
 
-    if properties.fallback_is_cascading and (properties.fallback_campaign is None):
-        rvn_logger.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                     campaignId)
+    if properties.fallback_is_cascading and properties.fallback_campaign is None:
+        LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                      campaign_id)
         fallback_cascading = None
 
-    # if fallback content_id IS NULL, defer to current content_id
-    if (properties.fallback_content is None and
-            properties.fallback_campaign is not None):
-        fallback_content_id = contentId
+    # If fallback content_id IS NULL, defer to current content_id:
+    if properties.fallback_content is None and properties.fallback_campaign is not None:
+        fallback_content_id = content_id
 
     # For a cascading fallback, take any friends at all for
     # the current campaign to append to the list. Otherwise,
-    # use the minFriends parameter as the threshold for errors.
-    minFriends = 1 if fallback_cascading else properties.min_friends
+    # use the min_friends parameter as the threshold for errors.
+    min_friends = 1 if fallback_cascading else properties.min_friends
 
     # Check if any friends should be excluded for this campaign/content combination
     exclude_friends = set(models.relational.FaceExclusion.objects.filter(
@@ -95,12 +116,15 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         campaign=campaign,
         content=client_content,
     ).values_list('friend_fbid', flat=True))
-    exclude_friends = exclude_friends.union(already_picked.secondary_ids)    # avoid re-adding if already picked
+    # avoid re-adding if already picked:
+    exclude_friends = exclude_friends.union(already_picked.secondary_ids)
     edges_eligible = [
-        edge for edge in edgesRanked if edge.secondary.fbid not in exclude_friends
+        edge for edge in edges_ranked if edge.secondary.fbid not in exclude_friends
     ]
 
-    # Get filter experiments, do assignment (and write DB)
+    # Assign filter experiments (and record) #
+
+    # Apply global filter
     global_filter = campaign.campaignglobalfilters.random_assign()
     interaction.assignments.create_managed(
         campaign=campaign,
@@ -108,11 +132,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         feature_row=global_filter,
         chosen_from_rows=campaign.campaignglobalfilters,
     )
+    # NOTE: This differs from how we handle px4 features on ChoiceSetFilters.
+    # For px3, we exclude ChoiceSetFilters with px4 features entirely;
+    # however, the global filter cannot be excluded.
+    # For now, we'll simply ignore super-ranked features on the global filter,
+    # though we might want to revisit this, (and e.g. raise an exception).
+    edges_filtered = global_filter.filterfeatures.filter(
+        feature_type__px_rank__lte=px_rank,
+    ).filter_edges(edges_eligible)
 
-    # apply filter
-    filtered_edges = global_filter.filter_edges_by_sec(edges_eligible)
-
-    # Get choice set experiments, do assignment (and write DB)
+    # Assign choice set experiments (and record)
     campaign_choice_sets = campaign.campaignchoicesets.all()
     choice_set = campaign_choice_sets.random_assign()
     interaction.assignments.create_managed(
@@ -121,38 +150,37 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         feature_row=choice_set,
         chosen_from_rows=campaign.campaignchoicesets,
     )
-    allow_generic = {
-        option.choice_set.pk: [option.allow_generic, option.generic_url_slug]
-        for option in campaign_choice_sets
-    }[choice_set.pk]
+    (allow_generic, generic_slug) = campaign_choice_sets.values_list(
+        'allow_generic', 'generic_url_slug'
+    ).get(choice_set=choice_set)
 
-    # pick best choice set filter (and write DB)
-    bestCSFilter = None
+    # Pick (and record) best choice set filter
+    # NOTE: See above re: global filter.
+    # Exclude ChoiceSetFilters written for super-ranked features:
+    choice_set_filters = choice_set.choicesetfilters.exclude(
+        filter__filterfeatures__feature_type__px_rank__gt=px_rank
+    )
     try:
-        bestCSFilter = choice_set.choose_best_filter(
-            filtered_edges, useGeneric=allow_generic[0],
-            minFriends=minFriends, eligibleProportion=1.0,
-            cache_match=cache_match
+        (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
+            edges_filtered,
+            use_generic=allow_generic,
+            min_friends=min_friends,
+            cache_match=cache_match,
         )
-
-        choice_set_slug = bestCSFilter[0].url_slug if bestCSFilter[0] else allow_generic[1]
-        best_csf_id = bestCSFilter[0].filter_id if bestCSFilter[0] else None
-
+    except models.relational.ChoiceSetFilter.TooFewFriendsError:
+        LOG_RVN.info("Too few friends found for user %s with campaign %s. "
+                     "(Will check for fallback.)", fbid, campaign_id)
+    else:
         already_picked += models.datastructs.TieredEdges(
-            edges=bestCSFilter[1],
-            bestCSFilterId=best_csf_id,
-            choiceSetSlug=choice_set_slug,
-            campaignId=campaignId,
-            contentId=contentId
+            edges=best_csf_edges,
+            campaign_id=campaign_id,
+            content_id=content_id,
+            cs_filter_id=(best_csf.filter_id if best_csf else None),
+            choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
         )
-    except models.relational.ChoiceSet.TooFewFriendsError:
-        rvn_logger.info("Too few friends found for %s with campaign %s. Checking for fallback.",
-                    fbid, campaignId)
-
-    if bestCSFilter:
-        if bestCSFilter[0] is None:
-            # We got generic...
-            logger.debug("Generic returned for %s with campaign %s.", fbid, campaignId)
+        if best_csf is None:
+            # We got generic:
+            LOG.debug("Generic returned for %s with campaign %s.", fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
@@ -165,17 +193,16 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
-                feature_row=bestCSFilter[0].filter_id,
+                feature_row=best_csf.filter_id,
                 random_assign=False,
                 chosen_from_rows=choice_set.choicesetfilters,
             )
 
-    slotsLeft = numFace - len(already_picked)
-
-    if slotsLeft > 0 and fallback_cascading:
+    slots_left = num_faces - len(already_picked)
+    if slots_left > 0 and fallback_cascading:
         # We still have slots to fill and can fallback to do so
 
-        # write "fallback" assignments to DB
+        # Record "fallback" assignments:
         interaction.assignments.create(
             campaign=campaign,
             content=client_content,
@@ -195,47 +222,44 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
             random_assign=False,
         )
 
-        # Recursive call with new fallbackCampaignId & fallback_content_id,
-        # incrementing fallbackCount
+        # Recursive call with new campaign & content, incrementing fallback_count:
         return perform_filtering(
-            edgesRanked,
+            edges_ranked,
             properties.fallback_campaign.pk,
             fallback_content_id,
             fbid,
             visit_id,
-            numFace,
-            fallbackCount + 1,
+            num_faces,
+            fallback_count + 1,
             already_picked,
+            px_rank,
+            visit_type,
+            cache_match,
         )
 
-    elif len(already_picked) < minFriends:
+    elif len(already_picked) < min_friends:
         # We haven't found enough friends to satisfy the campaign's
         # requirement, so need to fallback
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            # zzz Obviously, do something smarter here...
-            rvn_logger.info(
-                "No fallback for %s with campaign %s. Returning error to user.",
-                fbid,
-                campaignId
-            )
-            # zzz ideally, want this to be the full URL with
-            #     flask.url_for(), but complicated with Celery...
-            thisContent = '%s:button /frame_faces/%s/%s' % (
+            LOG_RVN.error("No fallback for %s with campaign %s. (Will return error to user.)",
+                          fbid, campaign_id)
+            event_content = '{}:button /frame_faces/{}/{}'.format(
                 client.fb_app_name,
-                campaignId,
-                contentId
+                campaign_id,
+                content_id,
             )
             interaction.events.create(
-                campaign_id=campaignId,
-                client_content_id=contentId,
-                content=thisContent,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                content=event_content,
                 event_type='no_friends_error'
             )
-            return (None, None, None, None, campaignId, contentId)
+            return empty_filtering_result._replace(campaign_id=campaign_id,
+                                                   content_id=content_id)
 
-        # write "fallback" assignments to DB
+        # Record "fallback" assignments:
         interaction.assignments.create(
             campaign=campaign,
             content=client_content,
@@ -260,17 +284,19 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
         # fallback_cascading is False, but do the check to be safe...
         already_picked = already_picked if fallback_cascading else None
 
-        # Recursive call with new fallbackCampaignId & fallback_content_id,
-        # incrementing fallbackCount
+        # Recursive call with new campaign & content, incrementing fallback_count:
         return perform_filtering(
-            edgesRanked,
+            edges_ranked,
             properties.fallback_campaign.pk,
             fallback_content_id,
             fbid,
             visit_id,
-            numFace,
-            fallbackCount + 1,
+            num_faces,
+            fallback_count + 1,
             already_picked,
+            px_rank,
+            visit_type,
+            cache_match,
         )
 
     else:
@@ -278,80 +304,286 @@ def perform_filtering(edgesRanked, campaignId, contentId, fbid, visit_id, numFac
 
         # Might have cascaded beyond the point of having new friends to add,
         # so pick up various return values from the last tier with friends.
-        last_tier = already_picked[-1]
-
-        return (
-            edgesRanked,
-            already_picked,
-            last_tier['bestCSFilterId'],
-            last_tier['choiceSetSlug'],
-            last_tier['campaignId'],
-            last_tier['contentId'],
-        )
+        last_tier = already_picked[-1].copy()
+        del last_tier['edges']
+        return FilteringResult(edges_ranked, already_picked, **last_tier)
 
 
 @shared_task(default_retry_delay=1, max_retries=3)
-def proximity_rank_four(mockMode, fbid, token):
-    """Crawl and rank a user's network to proximity level four, and persist the
-    User, secondary Users, Token and Edges to the database.
+def proximity_rank_four(token, **filtering_args):
+    """Crawl, filter and rank a user's network to proximity level four, and
+    persist the User, secondary Users, Token, PostInteractions and Edges to
+    the database.
 
-
-    Under 100 people, just go to FB and get the best data
-    Over 100 people, let's make sure Dynamo has at least 90 percent
+    (See `px4_crawl`, `px4_filter` and `px4_rank`.)
 
     """
-    fb_client = facebook.mock_client if mockMode else facebook.client
     try:
-        user = fb_client.get_user(fbid, token['token'])
-        friend_count = fb_client.get_friend_count(fbid, token['token'])
-        if friend_count < MIN_FRIEND_COUNT:
-            logger.info(
-                'FBID {}: Has less than 100 friends, hitting FB'.format(fbid)
-            )
-            edges_unranked = fb_client.get_friend_edges(
-                user,
-                token['token'],
-                require_incoming=True,
-                require_outgoing=False,
-            )
-        else:
-            edges_unranked = models.datastructs.Edge.get_friend_edges(
-                user,
-                require_incoming=True,
-                require_outgoing=False,
-                max_age=timedelta(days=settings.FRESHNESS),
-            )
-            if (not friend_count or
-                    ((float(len(edges_unranked)) / friend_count) * 100) < FRIEND_THRESHOLD_PERCENT):
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo. Falling back to FB'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
-                edges_unranked = fb_client.get_friend_edges(
-                    user,
-                    token['token'],
-                    require_incoming=True,
-                    require_outgoing=False,
-                )
-            else:
-                logger.info(
-                    'FBID {}: Has {} FB Friends, found {} in Dynamo, using Dynamo data.'.format(
-                        fbid, friend_count, len(edges_unranked)
-                    )
-                )
+        (stream, edges_ranked) = px4_crawl(token)
     except IOError as exc:
         proximity_rank_four.retry(exc=exc)
 
-    edges_ranked = models.datastructs.EdgeAggregate.rank(
-        edges_unranked,
+    return px4_rank(px4_filter(stream, edges_ranked, fbid=token.fbid, **filtering_args))
+
+
+def px4_crawl(token):
+    """Retrieve the user's network from Facebook or from cache in Dynamo.
+
+    If the user's network is under DB_MIN_FRIEND_COUNT friends, Facebook is always
+    crawled; otherwise, if our database has at least DB_FRIEND_THRESHOLD percent of
+    the network cached within settings.FRESHNESS days, then the database is used,
+    instead.
+
+    Data retrieved Facebook is subsequently cached in Dynamo.
+
+    """
+    # Retrieve user's network from Facebook or database
+    user = facebook.client.get_user(token.fbid, token.token)
+
+    friend_count = facebook.client.get_friend_count(token.fbid, token.token)
+    if friend_count >= DB_MIN_FRIEND_COUNT:
+        edges_unranked = models.datastructs.UserNetwork.get_friend_edges(
+            user,
+            require_incoming=True,
+            require_outgoing=False,
+            max_age=timedelta(days=settings.FRESHNESS),
+        )
+        if (
+            not friend_count or
+            100.0 * len(edges_unranked) / friend_count >= DB_FRIEND_THRESHOLD
+        ):
+            LOG.info('FBID %r: Has %r FB Friends, found %r in Dynamo; using Dynamo data.',
+                     token.fbid, friend_count, len(edges_unranked))
+            stream = None
+
+        else:
+            LOG.info('FBID %r: Has %r FB Friends, found %r in Dynamo; falling back to FB',
+                     token.fbid, friend_count, len(edges_unranked))
+            edges_unranked = None
+
+    else:
+        LOG.info('FBID %r: Has %r friends, hitting FB', token.fbid, friend_count)
+        edges_unranked = None
+
+    if edges_unranked is None:
+        # We didn't use DDB or didn't like its results; retrieve from Facebook:
+        stream = facebook.client.Stream.read(user, token.token)
+        edges_unranked = stream.get_friend_edges(token.token)
+
+    # Rank friends by interactional proximity:
+    edges_ranked = edges_unranked.ranked(
         require_incoming=True,
         require_outgoing=False,
     )
 
+    # Persist novel data
     db.delayed_save.delay(token, overwrite=True)
     db.upsert.delay(user)
-    db.upsert.delay([edge.secondary for edge in edges_ranked])
-    db.update_edges.delay(edges_ranked)
 
-    return edges_ranked
+    if stream is not None:
+        # Enqueue tasks to persist data retrieved from Facebook
+
+        # Secondary Users:
+        db.upsert.delay([edge.secondary for edge in edges_ranked])
+
+        # PostInteractions:
+        db.bulk_create.delay(tuple(edges_ranked.iter_interactions()))
+        db.upsert.delay(
+            tuple(
+                models.dynamo.PostInteractionsSet(
+                    fbid=edge.secondary.fbid,
+                    postids=[post_interactions.postid
+                             for post_interactions in edge.interactions],
+                )
+                for edge in edges_ranked
+                if edge.interactions
+            )
+        )
+
+        # Edges:
+        db.update_edges.delay(edges_ranked)
+
+    return (stream, edges_ranked)
+
+
+def _fallback_campaign(campaign_id):
+    """Return from the database the primary key of the fallback campaign
+    (if any) of the campaign with the given primary key (`campaign_id`).
+
+    """
+    return (models.relational.CampaignProperties.objects
+        .values_list('fallback_campaign', flat=True)
+        .get(campaign_id=campaign_id))
+
+
+def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
+               px3_task_id=None, visit_type='targetshare.Visit', cache_match=False, force=False):
+    """Apply px4 filtering to the result of `px4_crawl`.
+
+    Filtering is achieved through `perform_filtering`, and so edges are filtered
+    and campaign fallbacks are applied; however, if no px4-specific filters are
+    defined for the campaign nor its fallbacks, the filtered set and final campaign
+    is instead determined from the asynchronous results of `proximity_rank_three`.
+
+    Note: This method inspects the campaign and its fallbacks for filters *and*
+    ranking keys requiring a topics feature, and prepopulates this User property
+    from the UserNetwork (and, if available, Stream) data taken from `px4_crawl`,
+    to avoid the overhead of implicit database calls per User.
+
+    """
+    # Follow campaign's fallback chain:
+    campaigns = [campaign_id]
+    fallback_id = _fallback_campaign(campaign_id)
+    while fallback_id is not None:
+        campaigns.append[fallback_id]
+        fallback_id = _fallback_campaign(fallback_id)
+
+    # Build query to check for existence of relevant (px4) filter features:
+    campaign_global = Q(filter__campaignglobalfilters__campaign__in=campaigns)
+    campaign_choiceset = Q(
+        filter__choicesetfilters__choice_set__campaignchoicesets__campaign__in=campaigns)
+    px4_filter_features = models.relational.FilterFeature.objects.for_datetime().filter(
+        (campaign_global | campaign_choiceset),
+        feature_type__px_rank__gte=4,
+    )
+    # ..and ranking features:
+    ranking_features = models.relational.RankingKeyFeature.objects.filter(
+        ranking_key__campaignrankingkeys__campaign__in=campaigns,
+    ).for_datetime()
+
+    # Eagerly retrieve and/or compute relevant PostTopics:
+    topics_filter_features = px4_filter_features.filter(
+        feature_type__code=models.relational.FilterFeatureType.TOPICS,
+    ).values_list('feature', flat=True).distinct()
+    topics_ranking_features = ranking_features.filter(
+        feature_type__code=models.relational.RankingFeatureType.TOPICS,
+    ).values_list('feature', flat=True).distinct()
+    topic_parser = models.relational.FilterFeature.Expression.ALL['topics']
+    topics_features = {
+        topic_parser.search(feature).group(1)
+        for feature in itertools.chain(
+            topics_filter_features,
+            topics_ranking_features,
+        )
+    }
+    if topics_features:
+        interacted_posts = {
+            post_interactions.postid
+            for post_interactions in edges_ranked.iter_interactions()
+        }
+        # Retrieve existing (Hi-Fi background-computed) PostTopics:
+        post_topics = list(models.dynamo.PostTopics.items.batch_get([
+            {'postid': postid} for postid in interacted_posts
+        ]))
+        if stream is not None:
+            # Attempt to fill in missing PostTopics from Stream Posts:
+            missing_posts = interacted_posts.difference(pt.postid for pt in post_topics)
+            if missing_posts:
+                post_topics.extend(
+                    models.dynamo.PostTopics.classify(
+                        post.post_id,
+                        post.message,
+                        topics_features,
+                    )
+                    for post in stream
+                    if post.message and post.post_id in missing_posts
+                )
+        # Pre-cache User.topics:
+        # NOTE: If network was read from FB, calculations will be limited to
+        # contents of primary's posts (currently).
+        edges_ranked.precache_topics_feature(post_topics)
+
+    ## px4 filtering ##
+
+    filtering_result = None
+
+    # (No need for `exists()` query `if topics_filter_features`):
+    if force or topics_filter_features or px4_filter_features.exists():
+        try:
+            filtering_result = perform_filtering(
+                edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
+                px_rank=4, visit_type=visit_type, cache_match=cache_match
+            )
+        except Exception:
+            LOG_RVN.exception("px4 filtering failure")
+    elif px3_task_id is not None:
+        # Retrieve px3 result:
+        px3_task = celery.current_app.AsyncResult(px3_task_id)
+
+        px3_result = None
+        if ranking_features.exists() and not px3_task.ready():
+            # Wait on px3 task for a (limited) time (avoid deadlocks):
+            try:
+                px3_result = px3_task.get(
+                    timeout=PX_REFINE_PX3_TIMEOUT,
+                    propagate=False,
+                    interval=0.2,
+                )
+            except Exception:
+                # Timeout or communication error
+                pass
+
+        if px3_task.successful():
+            px3_result = px3_result or px3_task.result
+            if px3_result and px3_result.filtered:
+                filtering_result = px3_result._replace(
+                    ranked=edges_ranked,
+                    filtered=px3_result.filtered.reranked(edges_ranked),
+                )
+
+    if filtering_result and filtering_result.filtered:
+        return filtering_result
+
+    # Can't continue with rank refinement.
+    # Use empty result to indicate px3 filtering should be used:
+    return empty_filtering_result._replace(ranked=edges_ranked)
+
+
+def px4_rank(filtering_result):
+    """Apply custom (not proximity-based) ranking to the results of `px4_filter`."""
+    args = (filtering_result.ranked,
+            filtering_result.filtered,
+            filtering_result.campaign_id)
+
+    if not all(args):
+        # Nothing to rank:
+        return filtering_result
+
+    (edges, filtered, campaign_id) = args
+
+    try:
+        campaign_ranking_key = (models.relational.CampaignRankingKey.objects
+                                .for_datetime().get(campaign_id=campaign_id))
+    except models.relational.CampaignRankingKey.DoesNotExist:
+        # No active rank refinements to apply
+        return filtering_result
+    except models.relational.CampaignRankingKey.MultipleObjectsReturned:
+        # Multiple ranking keys not currently supported.
+        # (Could use rand_cdf/random_assign in the future.)
+        # (Note, to apply multiple sorting keys, a RankingKey may have multiple
+        # RankingKeyFeatures.)
+        LOG.exception("Campaign %s has multiple active ranking keys; "
+                      "will not refine rank.", campaign_id)
+        return filtering_result
+
+    # Only bother ranking the first PX_REFINE_MAX_COUNT friends:
+    (edges_rerank, edges_tail) = (edges[:PX_REFINE_MAX_COUNT],
+                                  edges[PX_REFINE_MAX_COUNT:])
+
+    # ...and partition edges s.t. those with px score above threshold
+    # (1 - PX_REFINE_RANGE_WIDTH) remain separate from those below:
+    edges_partitioned = utils.partition_edges(edges_rerank, range_width=PX_REFINE_RANGE_WIDTH)
+
+    keys = campaign_ranking_key.ranking_key.rankingkeyfeatures.for_datetime()
+    edges_reranked = itertools.chain.from_iterable(
+        keys.sorted_edges(partition)
+        for (_lower_bound, partition) in edges_partitioned
+    )
+    edges_ranked = models.datastructs.UserNetwork(
+        itertools.chain(edges_reranked, edges_tail)
+    )
+
+    return filtering_result._replace(
+        ranked=edges_ranked,
+        filtered=filtered.reranked(edges_ranked),
+    )

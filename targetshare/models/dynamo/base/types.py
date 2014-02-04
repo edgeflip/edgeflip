@@ -115,15 +115,23 @@ DATETIME = DateTimeType()
 
 class JsonType(DataType):
 
+    def __init__(self, cls=None):
+        self.cls = cls
+
     def decode(self, value):
         if is_null(value):
             return value
 
         if isinstance(value, basestring):
             try:
-                return json.loads(value)
+                python = json.loads(value)
             except ValueError as exc:
                 raise DataValidationError(str(exc))
+            else:
+                if self.cls is None:
+                    return python
+                else:
+                    return self.cls(python)
 
         try:
             json.dumps(value)

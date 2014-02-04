@@ -1,32 +1,40 @@
 import logging
 
-from boto.dynamodb2.items import NEWVALUE
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
+from boto.dynamodb2.items import NEWVALUE
 from celery import shared_task
-from celery.utils.log import get_task_logger
 from django.core import serializers
 from django.db import IntegrityError
+from django.db.models import Model
 
-from targetshare import models
+from targetshare.models.dynamo.base import UpsertStrategy
 
-LOG = get_task_logger(__name__)
-rvn_logger = logging.getLogger('crow')
+
+LOG_RVN = logging.getLogger('crow')
 
 
 @shared_task
 def bulk_create(objects):
-    """Bulk-create objects in a background task process.
+    """Bulk-create objects belonging to a single model.
 
     Arguments:
-        objects: A sequence of model objects
+        objects: A sequence of Models or Items
 
     """
-    for obj in objects:
-        try:
-            obj.save()
-        except IntegrityError:
-            (serialization,) = serializers.serialize('python', [obj])
-            LOG.exception("bulk_create object save failed: %r", serialization)
+    (model,) = {type(obj) for obj in objects}
+
+    if issubclass(model, Model):
+        for obj in objects:
+            try:
+                obj.save()
+            except IntegrityError:
+                (serialization,) = serializers.serialize('python', [obj])
+                LOG_RVN.exception("bulk_create object save failed: %r", serialization)
+
+    else:
+        with model.items.batch_write() as batch:
+            for obj in objects:
+                batch.put_item(obj)
 
 
 @shared_task
@@ -70,7 +78,7 @@ def get_or_create(model, *params, **kws):
         try:
             model.objects.get_or_create(**paramset)
         except IntegrityError:
-            LOG.exception("get_or_create failed: %r", paramset)
+            LOG_RVN.exception("get_or_create failed: %r", paramset)
 
 
 @shared_task
@@ -89,8 +97,8 @@ def partial_save(item, _attempt=0):
         item.partial_save()
     except ConditionalCheckFailedException:
         if _attempt == 4:
-            rvn_logger.exception(
-                'Failed to handle save conflict on item %r', dict(item)
+            LOG_RVN.exception(
+                'Failed to handle save conflict on item %r', item.get_keys()
             )
             raise
     else:
@@ -142,7 +150,9 @@ def upsert(*items, **kws):
 
         # update the existing item:
         for key, value in item.items():
-            existing[key] = value
+            field = cls._meta.fields.get(key)
+            strategy = field.upsert_strategy if field else UpsertStrategy.overwrite
+            strategy(existing, key, value)
 
         partial_save.apply_async(
             args=[existing],
@@ -163,7 +173,7 @@ def upsert(*items, **kws):
 def update_edges(edges):
     """Update edge tables.
 
-    :arg edges: an iterable of `datastruct.Edge`
+    :arg edges: an instance of `models.datastructs.UserNetwork`
 
     """
-    models.datastructs.Edge.write(edges)
+    edges.write()

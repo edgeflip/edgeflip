@@ -7,73 +7,100 @@ from mock import Mock, patch
 
 from django.utils import timezone
 
+from targetshare.tests import EdgeFlipTestCase, crawl_mock
 from targetshare import models
 from targetshare.models.dynamo.utils import to_epoch
-from targetshare.tests import EdgeFlipTestCase, patch_facebook
 
 from feed_crawler import tasks, utils
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
+def mock_feed(url):
+    if '/feed' in url:
+        return {'data': [{'ooga': 'booga'}]}
+
+
 class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestFeedCrawlerTasks, self).setUp()
-        expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
         self.fbid = 1111111
+        expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token(fbid=self.fbid, appid=1,
                                          token='1', expires=expires)
 
-    @patch_facebook(min_friends=1, max_friends=20)
+        self.facebook_patch = patch(
+            'targetshare.integration.facebook.client.urllib2.urlopen',
+            crawl_mock(1, 250, mock_feed)
+        )
+        self.token_patch = patch(
+            'targetshare.integration.facebook.client.extend_token',
+            Mock(
+                return_value=models.dynamo.Token(
+                    token='test-token',
+                    fbid=1111111,
+                    appid=471727162864364,
+                    expires=timezone.now(),
+                )
+            )
+        )
+        self.facebook_patch.start()
+        self.token_patch.start()
+
+    def tearDown(self):
+        self.token_patch.stop()
+        self.facebook_patch.stop()
+        super(TestFeedCrawlerTasks, self).tearDown()
+
     @patch('feed_crawler.tasks.initial_crawl')
     @patch('feed_crawler.tasks.incremental_crawl')
     def test_crawl_user(self, incremental_mock, initial_mock):
-        prim_fbm = models.FBSyncMap(
+        models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
-        prim_fbm.save()
         tasks.crawl_user(self.token)
         self.assertTrue(initial_mock.apply_async.called)
         self.assertGreater(initial_mock.apply_async.call_count, 1)
         self.assertEqual(incremental_mock.apply_async.call_count, 1)
-        self.assertGreater(len(models.FBSyncMap.items.scan()), 1)
+        self.assertGreater(models.FBSyncMap.items.count(), 1)
 
-    @patch_facebook(min_friends=1, max_friends=20)
     def test_bg_px4_crawl(self):
-        self.assertFalse(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertFalse(models.dynamo.IncomingEdge.items.count())
+        self.assertFalse(models.dynamo.PostInteractions.items.count())
+        self.assertFalse(models.dynamo.PostInteractionsSet.items.count())
 
         ranked_edges = tasks._bg_px4_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
 
-        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
+        self.assertTrue(models.dynamo.IncomingEdge.items.count())
+        self.assertTrue(models.dynamo.PostInteractions.items.count())
+        self.assertTrue(models.dynamo.PostInteractionsSet.items.count())
         # We know we have a call to get the user and the friend count at the
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(urllib2.urlopen.call_count, 2)
 
-    @patch_facebook(min_friends=1, max_friends=20)
     def test_get_sync_maps(self):
-        self.assertFalse(models.FBSyncMap.items.scan())
+        self.assertFalse(models.FBSyncMap.items.count())
         edges = tasks._bg_px4_crawl(self.token)
         tasks._get_sync_maps(edges, self.token)
-        assert models.FBSyncMap.items.get_item(
-            fbid_primary=self.fbid, fbid_secondary=self.fbid)
-        self.assertGreater(len(models.FBSyncMap.items.scan()), 1)
+        models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
+                                        fbid_secondary=self.fbid)
+        self.assertGreater(models.FBSyncMap.items.count(), 1)
 
-    @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     @patch('feed_crawler.utils.BucketManager.new_key')
     def test_initial_crawl(self, new_bucket_mock, bucket_mock, conn_mock):
-        fbm = models.FBSyncMap(
+        fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.WAITING, bucket='test_bucket_0'
         )
-        fbm.save()
         new_key = Mock()
         new_bucket_mock.return_value = new_key
         bucket_mock.return_value = None
@@ -86,18 +113,16 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         assert fbm.incremental_epoch
         self.assertTrue(new_key.set_contents_from_string.called)
 
-    @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_back_fill_crawl(self, bucket_mock, conn_mock):
         the_past = to_epoch(timezone.now() - timedelta(days=365))
-        fbm = models.FBSyncMap(
+        fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=to_epoch(timezone.now()),
             status=models.FBSyncMap.BACK_FILL, bucket='test_bucket_0'
         )
-        fbm.save()
         existing_key = Mock()
         existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
@@ -111,7 +136,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         assert fbm.incremental_epoch
         self.assertTrue(existing_key.set_contents_from_string.called)
 
-    @patch_facebook
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_incremental_crawl(self, bucket_mock, conn_mock):
@@ -120,13 +144,12 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         # behind present time, so that we can see fbm.incremental_epoch
         # get updated
         present = to_epoch(timezone.now() - timedelta(seconds=30))
-        fbm = models.FBSyncMap(
+        fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=present,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
-        fbm.save()
         existing_key = Mock()
         existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
@@ -143,13 +166,12 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_crawl_comments_and_likes(self, bucket_mock, conn_mock, fb_mock):
         the_past = to_epoch(timezone.now() - timedelta(days=365))
-        fbm = models.FBSyncMap(
+        fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
             incremental_epoch=to_epoch(timezone.now()),
             status=models.FBSyncMap.COMMENT_CRAWL, bucket='test_bucket_0'
         )
-        fbm.save()
         fb_mock.side_effect = [
             {"data": [
                 {
@@ -188,6 +210,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         )
         self.assertEqual(len(extended_feed['data'][0]['comments']['data']), 2)
         self.assertEqual(len(extended_feed['data'][0]['likes']['data']), 4)
-        fbm = models.FBSyncMap.items.get_item(
-            fbid_primary=self.fbid, fbid_secondary=self.fbid)
+        fbm = models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
+                                              fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)

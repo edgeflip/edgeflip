@@ -7,7 +7,7 @@ from mock import Mock, patch
 from targetshare import models
 from targetshare.integration.civis import client
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 class TestCivisIntegration(EdgeFlipTestCase):
@@ -71,7 +71,7 @@ class TestCivisIntegration(EdgeFlipTestCase):
             birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
             city=u'Chicago', state='Illinois'
         )
-        edge = models.datastructs.Edge(user, user, None)
+        edge = models.datastructs.UserNetwork.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score', 'min', 10)
         self.assertEqual(result, [edge])
 
@@ -134,7 +134,7 @@ class TestCivisIntegration(EdgeFlipTestCase):
             birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
             city=u'Chicago', state='Illinois'
         )
-        edge = models.datastructs.Edge(user, user, None)
+        edge = models.datastructs.UserNetwork.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score_bogus', 'min', 10)
         self.assertEqual(result, [])
 
@@ -194,6 +194,6 @@ class TestCivisIntegration(EdgeFlipTestCase):
             birthday=timezone.make_aware(datetime(1984, 1, 1), timezone.utc),
             city=u'Chicago', state='Illinois'
         )
-        edge = models.datastructs.Edge(user, user, None)
+        edge = models.datastructs.UserNetwork.Edge(user, user, None)
         result = client.civis_filter([edge], 'persuasion_score', 'min', 100)
         self.assertEqual(result, [])

@@ -293,6 +293,7 @@ CELERY_QUEUES = (
     Queue('bg_upsert', routing_key='bg.upsert', queue_arguments=QUEUE_ARGS),
     Queue('bg_update_edges', routing_key='bg.update.edges', queue_arguments=QUEUE_ARGS),
     Queue('bg_partial_save', routing_key='bg.partial.save', queue_arguments=QUEUE_ARGS),
+    Queue('bg_bulk_create', routing_key='bg.bulk.create', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Comment and Likes Queue(s)
     Queue('crawl_comments_and_likes', routing_key='crawl.comments.and.likes', queue_arguments=QUEUE_ARGS),
 )
@@ -401,9 +402,11 @@ NOSE_ARGS = (
     '--cover-branches',
     '--cover-erase',
     '--cover-html',
+    '--cover-package=feed_crawler',
+    '--cover-package=targetadmin',
+    '--cover-package=targetmock',
     '--cover-package=targetshare',
     '--exclude=^fab$',
-    '--http-whitelist=localhost:4444',
     '--logging-level=ERROR',
     '--logging-clear-handlers',
 )
@@ -448,29 +451,26 @@ LOGGING = {
         },
     },
     'root': {
-        'level': 'INFO',
+        'level': 'DEBUG',
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
         'django.request': {
-            'handlers': ['mail_admins'],
             'level': 'ERROR',
-            'propagate': True,
+            'handlers': ['mail_admins'],
         },
         'boto': {
             'level': 'WARNING',
-            'handlers': ['console', 'syslog'],
         },
-        # Crow, another black bird, because 'raven' is blacklisted by sentry
+        # Another black bird, because 'raven' is blacklisted by sentry:
         'crow': {
             'level': 'DEBUG',
-            'handlers': ['console'],
-            'propagate': True
         },
     }
 }
 
 if ENV in ('staging', 'production'):
+    LOGGING['root']['level'] = 'INFO'
     LOGGING['handlers']['sentry'] = {
         'level': 'INFO',
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',

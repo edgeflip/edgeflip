@@ -9,7 +9,7 @@ from django.utils.importlib import import_module
 from targetshare import models
 from targetshare.views.utils import get_visitor, set_visit
 
-from . import EdgeFlipTestCase
+from .. import EdgeFlipTestCase
 
 
 class VisitTestCase(EdgeFlipTestCase):
@@ -23,6 +23,7 @@ class TestVisit(VisitTestCase):
 
     @classmethod
     def setUpClass(cls):
+        super(TestVisit, cls).setUpClass()
         cls.session_engine = import_module(settings.SESSION_ENGINE)
 
     def get_request(self, path='/', data=(), **extra):

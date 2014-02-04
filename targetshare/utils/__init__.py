@@ -1,9 +1,12 @@
 import base64
 import copy
 import datetime
+import functools
 import itertools
 import logging
+import math
 import random
+import re
 import sys
 import time
 import urllib
@@ -25,6 +28,24 @@ pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
 # DES appears to be limited to 8-character secret, so truncate if too long
 secret = pad(settings.CRYPTO.des_secret)[:8]
 cipher = DES.new(secret)
+
+
+def atan_norm(value):
+    """Normalize the given value to 1."""
+    return math.atan(float(value) / 2) * 2 / math.pi
+
+
+def camel_to_underscore(name):
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
+    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+
+
+class classonlymethod(classmethod):
+
+    def __get__(self, instance, owner):
+        if instance is not None:
+            raise TypeError("Method available to class, not instances of {}.".format(owner))
+        return super(classonlymethod, self).__get__(instance, owner)
 
 
 class CDFProbsError(Exception):
@@ -80,39 +101,42 @@ def decodeDES(encoded):
 
 
 class Timer(object):
-    """used for inline profiling & debugging
 
-
-    XXX i can probably die
-    """
     def __init__(self):
-        self.start = time.time()
+        self.reset()
 
     def reset(self):
         self.start = time.time()
+        self.finish = None
 
-    def elapsedSecs(self):
-        return time.time() - self.start
+    def stop(self):
+        self.finish = time.time()
 
-    def elapsedPr(self, precision=2):
-        delt = datetime.timedelta(seconds=time.time() - self.start)
-        hours = delt.days * 24 + delt.seconds / 3600
-        hoursStr = str(hours)
-        mins = (delt.seconds - hours * 3600) / 60
-        minsStr = "%02d" % (mins)
-        secs = (delt.seconds - hours * 3600 - mins * 60)
-        if (precision):
-            secsFloat = secs + delt.microseconds / 1000000.0 # e.g., 2.345678
-            secsStr = (("%." + str(precision) + "f") % (secsFloat)).zfill(3 + precision) # two digits, dot, fracs
-        else:
-            secsStr = "%02d" % (secs)
-        if (hours == 0):
-            return minsStr + ":" + secsStr
-        else:
-            return hoursStr + ":" + minsStr + ":" + secsStr
+    @property
+    def elapsed(self):
+        t1 = time.time() if self.finish is None else self.finish
+        return t1 - self.start
 
-    def stderr(self, txt=""):
-        raise NotImplementedError # what is this intended to do? No stderr please!
+    @property
+    def elapsed_str(self):
+        delta = datetime.timedelta(seconds=self.elapsed)
+        hours = delta.days * 24 + delta.seconds / 3600
+        mins = (delta.seconds - hours * 3600) / 60
+        secs = (delta.seconds - hours * 3600 - mins * 60)
+        mins_secs = "{:02.0f}:{:02.0f}".format(mins, secs)
+        return mins_secs if hours == 0 else "{}:{}".format(hours, mins_secs)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.stop()
+
+    def __str__(self):
+        return self.elapsed_str
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.elapsed)
 
 
 def doc_inheritor(cls):
@@ -295,6 +319,9 @@ class LazyList(LazySequence, list):
             pass
         return self._results.__eq__(other)
 
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
     def __setitem__(self, key, value):
         self._validate_key(key)
 
@@ -360,3 +387,97 @@ class LazyList(LazySequence, list):
     def sort(self, *args, **kws):
         self._consume()
         self._results.sort(*args, **kws)
+
+
+class partition(object):
+    """An iterator that returns items from `iterable` partitioned into consecutive
+    "groups" or "buckets" according to the value range of the items' `key`.
+
+    partition is modeled after groupby and, similarly, expects that the given
+    `iterable` is already sorted by `key` and, furthermore, in descending order.
+
+    For example::
+
+        numbers = [85, 70, 50, 40, 40, 25, 3, 2]
+        for (lower_bound, group) in partition(numbers, range_width=30, max_value=100):
+            print (lower_bound, list(group))
+
+    results in::
+
+        (70, [85, 70])
+        (40, [50, 40, 40])
+        (10, [25])
+        (-20, [3, 2])
+
+    In the above example, the default `key` function, which returns the item itself,
+    was used. But, rather than allow the buckets to begin with the first item's value,
+    `max_value` was instead set to 100. If we hadn't set `max_value`, the results
+    would have been::
+
+        (55, [85, 70])
+        (25, [50, 40, 40, 25])
+        (-5, [3, 2])
+
+    As opposed to the style of iteration above, the partition iterator may be
+    advanced eagerly (without iterating over the partition group at each step);
+    however, the partition groups themselves must not be iterated out of order.
+
+    Furthermore, if group iteration is deferred, the partition iterator will
+    continue infinitely, unless `min_value` is set, such that the iterator knows
+    when its lower bound has decremented sufficiently. For example::
+
+        (bounds, groups) = zip(*partition(numbers, range_width=30, min_value=2))
+        for group in groups:
+            print list(group)
+
+    results in::
+
+        [85, 70]
+        [50, 40, 40, 25]
+        [3, 2]
+
+    (Note that `min_value` need not be equal to the minimum key of the iterable;
+    but rather, partition may generate superfluous, empty trailing groups in
+    satisfying a too-low `min_value`.)
+
+    """
+    none = object()
+
+    def __init__(self, iterable, range_width, key=lambda n: n, min_value=None, max_value=None):
+        self.iterable = iter(iterable)
+        self.range_width = range_width
+        self.keyfunc = key
+        self.min_value = min_value
+        self.lower_bound = max_value
+        self.current_item = self.none
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        if self.current_item is self.none:
+            # Either first loop (don't advance iterable until now) or done;
+            # queue up first or raise StopIteration:
+            self.current_item = next(self.iterable)
+            if self.lower_bound is None:
+                self.lower_bound = self.keyfunc(self.current_item)
+
+        if self.lower_bound <= self.min_value:
+            # User specified min_value (to support alt generation);
+            # last loop already hit:
+            raise StopIteration
+
+        self.lower_bound -= self.range_width
+        return (self.lower_bound, self._group(self.lower_bound))
+
+    def _group(self, lower_bound):
+        while self.keyfunc(self.current_item) >= lower_bound:
+            yield self.current_item
+            self.current_item = self.none
+            # Queue up next or exit at end of iterable:
+            self.current_item = next(self.iterable)
+
+partition_edges = functools.partial(partition,
+                                    key=lambda edge: edge.score,
+                                    min_value=0,
+                                    max_value=1)

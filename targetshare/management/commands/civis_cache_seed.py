@@ -45,17 +45,11 @@ class Command(BaseCommand):
             'fbid': Decimal(x),
             'appid': self.client.fb_app_id,
         } for x in self.client.userclients.values_list('fbid', flat=True)]
-        user_tokens = dynamo.Token.items.batch_get(keys=user_fbids)
         logger.info('Retrieving edges for %s users', len(user_fbids))
-        for ut in user_tokens:
+        for ut in dynamo.Token.items.batch_get(keys=user_fbids):
             try:
                 user = facebook.get_user(ut['fbid'], ut['token'])
-                yield facebook.get_friend_edges(
-                    user,
-                    ut['token'],
-                    require_incoming=False,
-                    require_outgoing=False,
-                )
+                yield facebook.get_friend_edges(user, ut['token'])
             except IOError:
                 continue
 

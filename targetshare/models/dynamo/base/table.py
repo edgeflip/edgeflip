@@ -45,6 +45,7 @@ class BatchTable(table.BatchTable):
             # rather than boto's:
             #item = Item(self.table, data=put)
             item = put if isinstance(put, items.Item) else self.table.item(put)
+            # %% done %%
 
             batch_data[self.table.table_name].append({
                 'PutRequest': {
@@ -59,7 +60,9 @@ class BatchTable(table.BatchTable):
                 }
             })
 
-        self.table.connection.batch_write_item(batch_data)
+        resp = self.table.connection.batch_write_item(batch_data)
+        self.handle_unprocessed(resp)
+
         self._to_put = []
         self._to_delete = []
         return True
@@ -154,6 +157,11 @@ class Table(table.Table):
         if not item.items():
             raise self.item.DoesNotExist
         return self.item(item, loaded=True)
+
+    @inherits_docs
+    def new_item(self, *args):
+        item = super(Table, self).new_item(*args)
+        return self.item(item)
 
     @inherits_docs
     def put_item(self, data=None, overwrite=False, **kwdata):

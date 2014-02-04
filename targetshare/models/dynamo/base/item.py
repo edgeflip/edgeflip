@@ -3,16 +3,18 @@ DynamoDB tables and documents.
 
 """
 import itertools
-import re
 
 from boto.dynamodb2 import fields as basefields, items as baseitems
-from django.dispatch import Signal
 from django.utils import timezone
 
-from .fields import ItemField
-from .manager import ItemManager, ItemManagerDescriptor
+from . import loading
+from . import manager as managers
+from . import types
+from .fields import ItemField, ItemLinkField, SingleItemLinkField
 from .table import Table
-from .types import DATETIME, Dynamizer, is_null
+from .utils import cached_property
+
+from targetshare import utils
 
 
 # Define framework for the definition of dynamo tables and #
@@ -27,65 +29,107 @@ class Meta(object):
     'names'
 
     """
-    # User-available options:
-    allow_undeclared_fields = False
-    indexes = ()
-    table_name = None # Defaults to lowercased, pluralized version of class name
+    # User-available options & default values
+    DEFAULTS = dict(
+        allow_undeclared_fields=False,
+        undeclared_data_type=None,
+        indexes=(),
+        app_name=None,
 
-    # "Hide" methods with "__ __" to avoid appearance of available options #
+        # Defaults to lowercased, pluralized version of class name:
+        table_name=None,
+    )
 
-    @classmethod
-    def __isoption__(cls, key):
-        """Return whether the given key is a valid configuration option."""
-        return not cls.__isoption__.hidden.match(key) and key in vars(cls)
-    __isoption__.__func__.hidden = re.compile(r'^__.*__$')
-
-    @classmethod
-    def __user__(cls, name, fields, user):
-        """Build a new Meta instance from class declaration information and the
-        user metadata class (if supplied).
-
-        """
-        meta = cls(name, fields)
+    def __init__(self, name, keys, links, user=None):
+        # Set options:
+        vars(self).update(self.DEFAULTS)
         if user:
-            vars(meta).update((key, value) for key, value in vars(user).items()
-                              if cls.__isoption__(key))
-        return meta
+            vars(self).update(
+                (key, value) for (key, value) in vars(user).items()
+                if not key.startswith('__')
+            )
 
-    def __init__(self, name, fields):
-        self.table_name = name.lower() + ('s' if not name.endswith('s') else '')
-        self.fields = fields
+        self.item_name = name
+        if not self.table_name:
+            self.table_name = utils.camel_to_underscore(name)
+            if not self.table_name.endswith('s'):
+                self.table_name += 's'
+            if self.app_name:
+                self.table_name = '.'.join([self.app_name, self.table_name])
+
+        self.keys = keys
+        self.links = links
+
+        self.fields = links.copy()
+        self.fields.update(keys)
+
+        self.link_keys = {}
+        for (link_name, link_field) in links.items():
+            for db_key_item in link_field.db_key:
+                self.link_keys[db_key_item] = link_name
 
     @property
-    def __merged__(self):
-        """View of metadata, which are based on instance attribute retrieval, built
-        by merging instance attribute dict on top of class attribute dict.
-
-        """
-        return dict(itertools.chain(
-            # Defaults:
-            ((key, value) for key, value in vars(type(self)).items() if self.__isoption__(key)),
-            # User specifications:
-            vars(self).items()
-        ))
+    def signed(self):
+        return '.'.join(part for part in [self.app_name, self.item_name] if part)
 
     def __repr__(self):
-        return "<{}({})>".format(
-            type(self).__name__,
-            ", ".join("{}={!r}".format(key, value) for key, value in self.__merged__.items())
-        )
+        return "<{}: {}>".format(type(self).__name__, self.signed)
 
 
 class ItemDoesNotExist(LookupError):
     pass
 
 
-# No need to depend on Django, but as long as we have access to
-# their signal/receiver implementation...:
-item_declared = Signal(providing_args=["item"])
+class MultipleItemsReturned(LookupError):
+    pass
 
 
-class FieldProperty(object):
+class ItemManagerDescriptor(object):
+    """Descriptor wrapper for ItemManagers.
+
+    Allows access to the manager via the class and access to any hidden attributes
+    via the instance.
+
+    """
+    def __init__(self, manager, name):
+        self.manager = manager
+        self.name = name
+
+    def __get__(self, instance, cls=None):
+        # Access to manager from class is fine:
+        if instance is None:
+            return self.manager
+
+        # Check if there's a legitimate instance method we're hiding:
+        try:
+            # Until we support inheritance of ItemManagers through
+            # Item classes, super(cls, cls) will do:
+            hidden = getattr(super(cls, cls), self.name)
+        except AttributeError:
+            pass
+        else:
+            # Bind and return hidden method:
+            return hidden.__get__(instance, cls)
+
+        # Let them know they're wrong:
+        cls_name = getattr(cls, '__name__', '')
+        raise AttributeError("Manager isn't accessible via {}instances"
+                             .format(cls_name + ' ' if cls_name else cls_name))
+
+    def __repr__(self):
+        return "<{}: {}>".format(self.__class__.__name__, self.name)
+
+
+class BaseFieldProperty(object):
+
+    def __init__(self, field_name):
+        self.field_name = field_name
+
+    def __repr__(self):
+        return "{}({!r})".format(self.__class__.__name__, self.field_name)
+
+
+class FieldProperty(BaseFieldProperty):
     """Item field property descriptor, allowing access to the item data dictionary
     via the attribute interface.
 
@@ -94,9 +138,6 @@ class FieldProperty(object):
     None.
 
     """
-    def __init__(self, field_name):
-        self.field_name = field_name
-
     def __get__(self, instance, cls=None):
         return self if instance is None else instance.get(self.field_name)
 
@@ -106,8 +147,144 @@ class FieldProperty(object):
     def __delete__(self, instance):
         del instance[self.field_name]
 
-    def __repr__(self):
-        return "{}({!r})".format(self.__class__.__name__, self.field_name)
+
+class LinkFieldProperty(BaseFieldProperty):
+    """Item link field descriptor, providing management of a linked Item."""
+
+    def cache_get(self, instance):
+        field = instance._meta.links[self.field_name]
+        return field.cache_get(self.field_name, instance)
+
+    def cache_set(self, instance, value):
+        field = instance._meta.links[self.field_name]
+        field.cache_set(self.field_name, instance, value)
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        field = instance._meta.links[self.field_name]
+        result = field.cache_get(self.field_name, instance)
+        if result is not None:
+            return result
+
+        try:
+            manager = field.item.items
+        except AttributeError:
+            raise TypeError("Item link unresolved or bad link argument: {!r}"
+                            .format(field.item))
+
+        keys = manager.table.get_key_fields()
+        try:
+            values = field.get_item_pk(instance)
+        except KeyError:
+            return None
+
+        query = dict(zip(keys, values))
+        result = manager.get_item(**query)
+        field.cache_set(self.field_name, instance, result)
+        return result
+
+    def __set__(self, instance, related):
+        field = instance._meta.links[self.field_name]
+        for (key, value) in zip(field.db_key, related.pk):
+            instance[key] = value
+        field.cache_set(self.field_name, instance, related)
+
+    def __delete__(self, instance):
+        field = instance._meta.links[self.field_name]
+        for key in field.db_key:
+            del instance[key]
+        field.cache_clear(self.field_name, instance)
+
+
+class AbstractReverseLinkFieldProperty(BaseFieldProperty):
+
+    def __init__(self, field_name, item_name, link_field):
+        super(AbstractReverseLinkFieldProperty, self).__init__(field_name)
+        self.item_name = item_name
+        self.link_field = link_field
+
+    @cached_property
+    def item(self):
+        try:
+            return loading.cache[self.item_name]
+        except KeyError:
+            raise TypeError("Item link unresolved or bad link argument: {!r}"
+                            .format(self.item_name))
+
+    def resolve_link(self, parent):
+        if hasattr(parent, self.field_name):
+            raise ValueError("{} already defines attribute {}"
+                             .format(parent.__name__, self.field_name))
+        setattr(parent, self.field_name, self)
+
+    @cached_property
+    def linked_manager_cls(self):
+        # FIXME: Inheriting from a distinct BaseItemManager allows us to limit
+        # FIXME: interface to only querying methods; but, this disallows inheritance
+        # FIXME: of user-defined ItemManager methods...
+        child_meta = self.item._meta
+        link_field = self.link_field
+        db_key = link_field.db_key
+
+        class LinkedItemQuery(managers.AbstractLinkedItemQuery):
+
+            name_child = child_meta.link_keys[db_key[0]]
+            child_field = child_meta.links[name_child]
+
+        class LinkedItemManager(managers.AbstractLinkedItemManager):
+
+            core_keys = db_key
+            query_cls = LinkedItemQuery
+
+        return LinkedItemManager
+
+
+class SingleReverseLinkProperty(AbstractReverseLinkFieldProperty):
+    """The one-to-one Item link field's reversed descriptor, providing access to
+    the single matching Item.
+
+    """
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        # NOTE: If ReverseLinkFieldProperty ever supports __set__ et al, below
+        # caching method won't work (it will be a data descriptor and take
+        # precendence over instance __dict__). (See LinkFieldProperty.)
+
+        default_manager = self.item.items
+        db_key = self.link_field.db_key
+        key_fields = set(default_manager.table.get_key_fields())
+        if set(db_key) >= key_fields:
+            # No need for related manager:
+            query = {key: value for (key, value) in zip(db_key, instance.pk)
+                     if key in key_fields}
+            linked = default_manager.get_item(**query)
+        else:
+            manager = self.linked_manager_cls(default_manager.table, instance)
+            linked = manager.filter_get()
+
+        vars(instance)[self.field_name] = linked
+        return linked
+
+
+class ReverseLinkManagerProperty(AbstractReverseLinkFieldProperty):
+    """The Item link field's reversed descriptor, providing access to all Items with
+    matching links.
+
+    """
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            return self
+
+        manager = self.linked_manager_cls(self.item.items.table, instance)
+        # NOTE: If ReverseLinkManagerProperty ever supports __set__ et al, below
+        # caching method won't work (it will be a data descriptor and take
+        # precendence over instance __dict__). (See LinkFieldProperty.)
+        vars(instance)[self.field_name] = manager
+        return manager
 
 
 class DeclarativeItemBase(type):
@@ -120,24 +297,56 @@ class DeclarativeItemBase(type):
             return super(DeclarativeItemBase, mcs).__new__(mcs, name, bases, attrs)
 
         # Set class defaults:
-        attrs.setdefault('items', ItemManager())
+        attrs.setdefault('items', managers.ItemManager())
         if mcs.update_field:
-            attrs.setdefault(mcs.update_field, ItemField(data_type=DATETIME))
+            attrs.setdefault(mcs.update_field, ItemField(data_type=types.DATETIME))
 
         # Collect field declarations from class defn, set field properties and wrap managers:
-        item_fields = {}
+        item_fields, link_fields, field_keys = {}, {}, {}
         for key, value in attrs.items():
             if isinstance(value, ItemField):
                 item_fields[key] = value
+                # Store reverse for ItemLinkField.db_key:
+                field_keys[value] = key
                 attrs[key] = FieldProperty(key)
-            elif isinstance(value, ItemManager):
+            elif isinstance(value, ItemLinkField):
+                # Resolve ItemField references:
+                value.db_key = tuple(
+                    field_keys[key_ref] if isinstance(key_ref, ItemField) else key_ref
+                    for key_ref in value.db_key
+                )
+                link_fields[key] = value
+                attrs[key] = LinkFieldProperty(key)
+            elif isinstance(value, managers.ItemManager):
                 attrs[key] = ItemManagerDescriptor(value, name=key)
 
         # Set meta:
-        attrs['_meta'] = Meta.__user__(name, item_fields, attrs.pop('Meta', None))
+        meta = attrs['_meta'] = Meta(name, item_fields, link_fields, attrs.pop('Meta', None))
+
+        # Resolve links:
+        for link_field in link_fields.values():
+            # Construct linked item manager property:
+            linked_name = link_field.linked_name
+            if linked_name:
+                is_single = isinstance(link_field, SingleItemLinkField)
+                if linked_name is link_field.Unset:
+                    linked_name = utils.camel_to_underscore(name).replace('_', '')
+                    if not is_single:
+                        if linked_name.endswith('s'):
+                            linked_name += '_set'
+                        else:
+                            linked_name += 's'
+                if is_single:
+                    reverse_link = SingleReverseLinkProperty(linked_name, meta.signed, link_field)
+                else:
+                    reverse_link = ReverseLinkManagerProperty(linked_name, meta.signed, link_field)
+            else:
+                reverse_link = None
+            link_field.link(reverse_descriptor=reverse_link)
 
         # Set Item-specific ItemDoesNotExist:
         attrs['DoesNotExist'] = type('DoesNotExist', (ItemDoesNotExist,), {})
+        attrs['MultipleItemsReturned'] = type('MultipleItemsReturned', (MultipleItemsReturned,), {})
 
         return super(DeclarativeItemBase, mcs).__new__(mcs, name, bases, attrs)
 
@@ -149,7 +358,7 @@ class DeclarativeItemBase(type):
 
         # Ensure managers set up with reference to table (and class):
         internal_fields = [field.make_internal(field_name)
-                           for field_name, field in cls._meta.fields.items()]
+                           for field_name, field in cls._meta.keys.items()]
         schema = [field for field in internal_fields
                   if isinstance(field, basefields.BaseSchemaField)]
         item_table = Table(
@@ -165,7 +374,7 @@ class DeclarativeItemBase(type):
         super(DeclarativeItemBase, cls).__init__(name, bases, attrs)
 
         # Notify listeners:
-        item_declared.send(sender=cls)
+        loading.item_declared.send(sender=cls)
 
 
 class Item(baseitems.Item):
@@ -197,24 +406,34 @@ class Item(baseitems.Item):
 
     """
     __metaclass__ = DeclarativeItemBase
-    get_dynamizer = Dynamizer
+    get_dynamizer = types.Dynamizer
 
     def __init__(self, data=None, loaded=False, **kwdata):
         self.table = type(self).items.table
+        self._dynamizer = self.get_dynamizer()
         self._loaded = loaded
 
+        # Clean data and gather links
+        self._data = {}
+        self._orig_data = {}
         data = {} if data is None else dict(data)
         data.update(kwdata)
-        self._data = {key: self._pre_set(key, value)
-                      for (key, value) in data.items()}
+        linked_data = []
+        for (key, value) in data.items():
+            if key in self._meta.links:
+                if loaded:
+                    # Allowing this would cause weird issues with _orig_data,
+                    # (and wouldn't make sense anyway):
+                    raise TypeError("Items loaded from database cannot populate link fields")
+                linked_data.append((key, value))
+            else:
+                self._data[key] = self._pre_set(key, value)
+                if loaded:
+                    self._orig_data[key] = self._pre_set(key, value, lossy=False)
 
-        if self._loaded:
-            self._orig_data = {key: self._pre_set(key, value, lossy=False)
-                               for (key, value) in data.items()}
-        else:
-            self._orig_data = {}
-
-        self._dynamizer = self.get_dynamizer()
+        # Apply linked objects
+        for (key, value) in linked_data:
+            setattr(self, key, value)
 
     def __repr__(self):
         pk = self.pk
@@ -223,10 +442,36 @@ class Item(baseitems.Item):
             keys = "({})".format(keys)
         return "<{name}: {keys}>".format(name=self.__class__.__name__, keys=keys)
 
+    def __getstate__(self):
+        """Return the Item object state for pickling."""
+        # It's probably worthwhile for ReverseLinkFieldProperty to cache
+        # LinkedItemManagers on the instance; but, not worthwhile, for the time
+        # being anyway, to support pickling of instances of these manufactured
+        # classes.
+        return {key: value for (key, value) in vars(self).items()
+                if not isinstance(value, managers.AbstractLinkedItemManager)}
+
     @property
     def pk(self):
         """The Item's signature in key-less, hashable form."""
         return tuple(self.get_keys().values())
+
+    @property
+    def document(self):
+        """The Item's data excluding its signature."""
+        meta_fields = set(itertools.chain(self.table.get_key_fields(),
+                                          [type(self).update_field]))
+        return {key: value for (key, value) in self.items()
+                if key not in meta_fields}
+
+    def __eq__(self, other):
+        return isinstance(other, type(self)) and self.pk == other.pk
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash(tuple(self.get_keys().items()))
 
     def __getitem__(self, key):
         # boto's Item[key] is really Item.get(key), but this causes various
@@ -239,20 +484,47 @@ class Item(baseitems.Item):
         # no need to lie about our underlying data:
         return self._data[key]
 
-    def _pre_set(self, key, value, lossy=True):
-        """Clean exotic types (e.g. DATE)."""
-        field = self._meta.fields.get(key)
-        if field:
-            decoder = field.decode_lossy if lossy else field.decode
-            value = decoder(value)
-        elif not self._meta.allow_undeclared_fields:
+    @classmethod
+    def _pre_set(cls, key, value, lossy=True):
+        """Clean incoming data values, including exotic types (e.g. DATE)."""
+        key_field = cls._meta.keys.get(key)
+        if key_field:
+            decoder = key_field.decode_lossy if lossy else key_field.decode
+            return decoder(value)
+
+        link_field = cls._meta.links.get(key)
+        if link_field:
+            raise TypeError("Access to {!r} required through descriptor"
+                            .format(link_field))
+
+        if not cls._meta.allow_undeclared_fields:
             raise TypeError("Field {!r} undeclared and unallowed by {} items"
-                            .format(key, type(self).__name__))
+                            .format(key, cls.__name__))
+
+        undeclared = cls._meta.undeclared_data_type
+        if isinstance(undeclared, types.DataType):
+            if lossy:
+                return undeclared.decode_lossy(value)
+            return undeclared.decode(value)
+
         return value
+
+    def _clear_link_cache(self, key):
+        try:
+            link_name = self._meta.link_keys[key]
+        except KeyError:
+            return
+        link_field = self._meta.links[link_name]
+        link_field.cache_clear(link_name, self)
 
     def __setitem__(self, key, value):
         value = self._pre_set(key, value)
+        self._clear_link_cache(key)
         super(Item, self).__setitem__(key, value)
+
+    def __delitem__(self, key):
+        self._clear_link_cache(key)
+        super(Item, self).__delitem__(key)
 
     # prepare_full determines data to put for save and BatchTable once they
     # know there's data to put. Insert timestamp for update:
@@ -264,7 +536,7 @@ class Item(baseitems.Item):
 
     def _remove_null_values(self):
         for key, value in self.items():
-            if is_null(value):
+            if types.is_null(value):
                 del self[key]
                 self._orig_data.pop(key, None)
 

@@ -8,7 +8,7 @@ from nose import tools
 
 from targetshare.models import datastructs, dynamo
 
-from . import EdgeFlipTestCase, DATA_PATH
+from .. import EdgeFlipTestCase, DATA_PATH
 
 
 def _remove_null_values(dict_):
@@ -316,7 +316,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     @staticmethod
     def save_edges(edges):
-        datastructs.Edge.write(datastructs.Edge(None, None, edge) for edge in edges)
+        datastructs.UserNetwork(datastructs.Edge(None, None, edge) for edge in edges).write()
 
     def save_edge(self):
         """helper to save a single edge, (100, 200)"""
