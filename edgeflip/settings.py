@@ -476,7 +476,7 @@ if ENV in ('staging', 'production'):
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
         'formatter': 'verbose',
     }
-    LOGGING['loggers']['crow']['handlers'].append('sentry')
+    LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[
