@@ -17,6 +17,84 @@ function init() {
     });
 }
 
+function on_fail(response) {
+    console.log('fail');
+    $('.loading').hide();
+    alert('Error message: ' + response.responseText);
+}
+
+
+function on_summary(response) {
+    // turn off our loading gif
+    $('.loading').hide();
+
+    // clear old data if this is a superuser change
+    $('tbody').remove();
+    $('#clientpicker').removeAttr('disabled');
+
+    window.response = response; 
+
+    // we're manually adding column headers in the template right now, TODO, send this serverside
+    var columns = ['name', 'visits', 'clicks', 'uniq_auths', 'shown', 'shares', 'audience', 'clickbacks'];
+    var table = d3.select('#sumtable');
+
+    // build rows
+    var body = table.append("tbody");
+    var rows = body.selectAll("tr").data(window.response)
+        .enter()
+        .append("tr")
+        .attr("class", "child")
+        .attr("id", function(d) {
+            return d.root_id;
+        });
+
+    // build cells per row
+    rows.selectAll("td").data(
+        /* so for each row, we end up wanting an array of values, in column order */
+        function(row) {
+            // columns.map makes a nice [] of datapoints per row
+            return columns.map(function(column) {
+                return row[column];
+            });
+        })
+        .enter()
+        .append("td")
+        .text(function(d) {
+            return d;
+        })
+        .attr("class", "datapoint");
+
+    // and a chart-toggler at the end
+    rows.append("td")
+        .append("button")
+        .attr("class", "charter")
+        .attr("root-id", function(d) {
+            return d.root_id;
+        });
+
+    // make them jquery buttons
+    $('.charter').button({
+        'icons': {
+            'primary': 'ui-icon-image'
+        },
+        'text': false
+    });
+    // bind a click function for charts
+    $('button.charter').click(mkchart);
+
+    // and a final summary row
+    body.append("tr").attr("class", "totals")
+        .selectAll("td")
+        .data(columns)
+        .enter()
+        .append("td")
+        .text(function(metric, i) {
+            return i === 0 ? 'TOTALS' : d3.sum(window.response.map(function(d) {
+                return d[metric];
+            }));
+        })
+        .attr("class", "datapoint");
+}
 
 function mksummary() {
     // initial load of summary data, the first view
@@ -27,78 +105,7 @@ function mksummary() {
     // send a client_id if we're a superuser, else send 0 and the server will check auths 
     var client_id = $('#clientpicker').length == 1 ? $('#clientpicker option:selected').val() : 0;
 
-    $.get("/reporting/client/" + client_id + "/summary/", function(response) {
-        // turn off our loading gif
-        $('.loading').hide();
-
-        // clear old data if this is a superuser change
-        $('tbody').remove();
-        $('#clientpicker').removeAttr('disabled');
-
-        window.response = response; 
-
-        // we're manually adding column headers in the template right now, TODO, send this serverside
-        var columns = ['name', 'visits', 'clicks', 'uniq_auths', 'shown', 'shares', 'audience', 'clickbacks'];
-        var table = d3.select('#sumtable');
-
-        // build rows
-        var body = table.append("tbody");
-        var rows = body.selectAll("tr").data(window.response)
-            .enter()
-            .append("tr")
-            .attr("class", "child")
-            .attr("id", function(d) {
-                return d.root_id;
-            });
-
-        // build cells per row
-        rows.selectAll("td").data(
-            /* so for each row, we end up wanting an array of values, in column order */
-            function(row) {
-                // columns.map makes a nice [] of datapoints per row
-                return columns.map(function(column) {
-                    return row[column];
-                });
-            })
-            .enter()
-            .append("td")
-            .text(function(d) {
-                return d;
-            })
-            .attr("class", "datapoint");
-
-        // and a chart-toggler at the end
-        rows.append("td")
-            .append("button")
-            .attr("class", "charter")
-            .attr("root-id", function(d) {
-                return d.root_id;
-            });
-
-        // make them jquery buttons
-        $('.charter').button({
-            'icons': {
-                'primary': 'ui-icon-image'
-            },
-            'text': false
-        });
-        // bind a click function for charts
-        $('button.charter').click(mkchart);
-
-        // and a final summary row
-        body.append("tr").attr("class", "totals")
-            .selectAll("td")
-            .data(columns)
-            .enter()
-            .append("td")
-            .text(function(metric, i) {
-                return i === 0 ? 'TOTALS' : d3.sum(window.response.map(function(d) {
-                    return d[metric];
-                }));
-            })
-            .attr("class", "datapoint");
-
-    });
+    $.get("/reporting/client/" + client_id + "/summary/", on_summary).fail(on_fail);
 }
 
 

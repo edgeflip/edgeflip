@@ -16,9 +16,6 @@ def client_summary(request, client_pk):
 
     client = Client.objects.using('mysql-readonly').get(pk=client_pk)
 
-    if not client:
-        raise Http404
-
     # very similar to the sums per campaign, but join on root campaign
     data = run_safe_query(
         connections['redshift'].cursor(),
