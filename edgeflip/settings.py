@@ -233,6 +233,7 @@ INSTALLED_APPS = (
     'targetadmin',
     'targetmock',
     'feed_crawler',
+    'reporting',
 )
 
 if ENV in ('staging', 'production'):

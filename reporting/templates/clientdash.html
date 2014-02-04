@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}EdgeFlip | Dashboard{% endblock %}
+
+
+{% block includes %}
+    <!-- <script src="//www.google.com/jsapi"></script> -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/d3.v3.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/floathead.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/rickshaw.min.js"></script>
+    <script type="text/javascript" src="{{ STATIC_URL }}js/dashboard.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/themes/smoothness/jquery-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/rickshaw.min.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/auth.css" />
+    <link rel="stylesheet" type="text/css" href="{{ STATIC_URL }}css/dash.css" />
+{% endblock %}
+
+
+{% block body %}
+
+{% if request.user.is_superuser %}
+ <select id="clientpicker" onchange="mksummary()">
+ {% for client_id, name in clients %}
+   <option value="{{client_id}}" >{{name}}</option>
+ {% endfor %}
+ </select>
+{% endif %}
+
+
+
+<div id="bounds">
+
+    <table class="floathead" id="sumtable">
+
+        <thead>
+            <tr>
+            <th id="name"><button class="sorter">Campaign</button></th>
+            <th id="visits"><button class="sorter">Visits</button></th>
+            <th id="clicks"><button class="sorter">Clicks</button></th>
+            <th id="uniq_auths"><button class="sorter">Unique Auths</button></th>
+            <th id="shown"><button class="sorter">Faces Shown</button></th>
+            <th id="shares"><button class="sorter">User Shares</button></th>
+            <th id="audience"><button class="sorter">Friends Shared With</button></th>
+            <th id="clickbacks"><button class="sorter">Clickbacks</button></th>
+            <th></th>
+            </tr>
+        </thead>
+
+    </table>
+
+    <img src="{{STATIC_URL}}img/aniprogress.gif" class="loading">
+
+</div>
+
+<div id="modal" style="display:none">
+
+    <div id="chart_container">
+        <div id="graph" class="chart"></div>
+        <div id="xAxis"></div>
+        <div id="yAxis"></div>
+
+        <div id="slider">
+        </div>
+        <span id="xMin"></span>
+        <span id="xMax"></span>
+
+        <div id="legend"></div>
+
+    </div>
+
+    <button id="tsver" style="display:none;">Data as TSV</button>
+
+    <table id="hourlytable" style="display:none;">
+        <thead>
+            <tr>
+            <th>Hourly Timestamp</th>
+            <th>Visits</th>
+            <th>Clicks</th>
+            <th>Unique Auths</th>
+            <th>Faces Shown</th>
+            <th>User Shares</th>
+            <th>Friends Shared With</th>
+            <th>Clickbacks</th>
+            </tr>
+        </thead>
+    </table>
+
+    <img src="{{STATIC_URL}}img/aniprogress.gif" class="loading">
+
+</div>
+
+
+<hr style="clear:both; margin-top:50px;">
+<div id="timestamp"><i style="font-size:12px">data last updated: {{ updated }}</i></div>
+{% endblock %}
