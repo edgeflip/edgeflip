@@ -6,12 +6,10 @@ import itertools
 import logging
 import math
 import random
-import re
 import sys
 import time
 import urllib
 from Crypto.Cipher import DES
-from StringIO import StringIO
 
 from django.conf import settings
 
@@ -33,11 +31,6 @@ cipher = DES.new(secret)
 def atan_norm(value):
     """Normalize the given value to 1."""
     return math.atan(float(value) / 2) * 2 / math.pi
-
-
-def camel_to_underscore(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 class classonlymethod(classmethod):
@@ -161,15 +154,6 @@ def doc_inheritor(cls):
                 func.__doc__ = inherited.__doc__
         return func
     return inheritor
-
-
-class DummyIO(StringIO):
-
-    def write(self, _buffer):
-        pass
-
-    def flush(self):
-        pass
 
 
 class LazySequence(object):

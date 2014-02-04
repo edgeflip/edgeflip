@@ -9,8 +9,8 @@ from boto.dynamodb2 import table, items
 from django.conf import settings
 
 from targetshare import utils
-from targetshare.models.dynamo import db
 
+from . import db
 from .results import BatchGetResultSet
 
 

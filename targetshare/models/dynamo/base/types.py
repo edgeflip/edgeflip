@@ -17,7 +17,7 @@ from boto.dynamodb2.types import (
     BINARY_SET,
 )
 
-from targetshare.models.dynamo import utils
+from . import utils
 
 
 # Exotic types to ease (de)serialization #

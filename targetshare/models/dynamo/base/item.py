@@ -4,17 +4,15 @@ DynamoDB tables and documents.
 """
 import itertools
 
-from boto.dynamodb2 import fields as basefields, items as baseitems
-from django.utils import timezone
+from boto.dynamodb2 import fields as basefields
+from boto.dynamodb2 import items as baseitems
 
 from . import loading
 from . import manager as managers
 from . import types
+from . import utils
 from .fields import ItemField, ItemLinkField, SingleItemLinkField
 from .table import Table
-from .utils import cached_property
-
-from targetshare import utils
 
 
 # Define framework for the definition of dynamo tables and #
@@ -205,7 +203,7 @@ class AbstractReverseLinkFieldProperty(BaseFieldProperty):
         self.item_name = item_name
         self.link_field = link_field
 
-    @cached_property
+    @utils.cached_property
     def item(self):
         try:
             return loading.cache[self.item_name]
@@ -219,7 +217,7 @@ class AbstractReverseLinkFieldProperty(BaseFieldProperty):
                              .format(parent.__name__, self.field_name))
         setattr(parent, self.field_name, self)
 
-    @cached_property
+    @utils.cached_property
     def linked_manager_cls(self):
         # FIXME: Inheriting from a distinct BaseItemManager allows us to limit
         # FIXME: interface to only querying methods; but, this disallows inheritance
@@ -531,7 +529,7 @@ class Item(baseitems.Item):
     def prepare_full(self):
         if type(self).update_field:
             # Always set "updated" time:
-            self[type(self).update_field] = timezone.now()
+            self[type(self).update_field] = utils.now()
         return super(Item, self).prepare_full()
 
     def _remove_null_values(self):
@@ -546,7 +544,7 @@ class Item(baseitems.Item):
         if self.needs_save():
             if type(self).update_field:
                 # Always set updated time:
-                self[type(self).update_field] = timezone.now()
+                self[type(self).update_field] = utils.now()
 
             # Changing a value to something NULL-y has special meaning for
             # partial_save() -- it is treated as a deletion directive.

@@ -15,7 +15,7 @@ from django.utils import timezone
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
-from targetshare.models.dynamo.utils import to_epoch
+from targetshare.models.dynamo.base.utils import to_epoch
 from feed_crawler import utils
 
 logger = get_task_logger(__name__)

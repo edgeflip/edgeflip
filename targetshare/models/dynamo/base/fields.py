@@ -3,6 +3,7 @@ from boto.dynamodb2 import fields as basefields
 from . import loading, types
 
 
+# FIXME: this doesn't make sense without celery
 class UpsertStrategy(object):
 
     @staticmethod

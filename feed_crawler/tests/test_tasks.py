@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from targetshare.tests import EdgeFlipTestCase, crawl_mock
 from targetshare import models
-from targetshare.models.dynamo.utils import to_epoch
+from targetshare.models.dynamo.base.utils import to_epoch
 
 from feed_crawler import tasks, utils
 

@@ -21,3 +21,5 @@ from .types import (
     NUMBER_SET,
     BINARY_SET,
 )
+
+__version__ = '0.1.0'
