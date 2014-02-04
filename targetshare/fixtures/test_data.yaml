@@ -369,8 +369,13 @@
             17:04:53+00:00', name: Matching, sort_order: 4}
     model: targetshare.filterfeaturetype
     pk: 5
--   model: targetshare.filterfeaturetype
+-   fields: {code: full_location, created: !!timestamp '2014-02-04 21:53:48+00:00',
+        modified: !!timestamp '2014-02-04 21:53:48+00:00', name: Full Location, px_rank: 3,
+        sort_order: 4}
+    model: targetshare.filterfeaturetype
     pk: 6
+-   model: targetshare.filterfeaturetype
+    pk: 7
     fields:
         name: topics
         code: topics
