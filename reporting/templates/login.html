@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block body %}
+
+
+<style type="text/css">
+
+    #bounds { 
+        margin: 50px auto;
+        width: 500px;
+
+        text-align: left;
+        padding-bottom: 20px;
+        background: white;
+
+        font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+        color: #397793;
+    }
+
+    #logo {
+        margin: 28px 0px 28px 0px;
+    }
+
+    label,
+    input[type='text'],
+    input[type='password']
+    {
+        display: block;
+        margin-bottom: 5px;
+    }
+
+    p {
+        padding-left: 30px;
+    }
+    
+    #errors {
+        text-align: center;
+        color: red;
+    }
+
+
+</style>
+
+
+<div id="bounds">
+    <img src="{{STATIC_URL}}img/logo.jpg" id="logo" />
+
+    <form method="post" action="">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <p><input type="submit" value="Enter"></p>
+    </form>
+
+</div>
+
+{% endblock %}

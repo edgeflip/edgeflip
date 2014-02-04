@@ -1,0 +1,174 @@
+body {
+    font-family: "Arial", Sans-serif
+    }
+
+
+#bounds {
+    margin: 0 auto;
+    width: 800px;
+    text-align:center;
+    }
+
+/* something, somewhere, is overriding font-sizes */
+.ui-widget {
+    font-size: 10px;
+    border: none;
+    }
+
+/* in theory, this will get rid of that damned blue "focus" highlight */
+.ui-state-highlight, .ui-state-focus{
+    }
+/* in practice, it does nothing */
+
+
+.loading {
+    margin: 30px auto;
+    }
+
+
+/* SUMMARY TABLE STYLING */
+
+
+table {
+    border-spacing:0;
+    border-collapse:collapse;
+    margin-top: 50px;
+    }
+
+table .name {
+    text-align: right;
+    }
+
+.child td {
+    border-bottom: 2px solid #E3E3E3;
+    } 
+
+.root td { 
+    border-top: 8px solid gray;
+    border-bottom: 2px solid gray; 
+    padding-top: 13px;
+    padding-bottom: 13px;
+    }
+
+.datapoint {
+    font-size: 13px;
+    text-align: center;
+    color: #424242;
+    padding-top:6px;
+    padding-bottom:6px;
+    }
+
+.chain .datapoint {
+    font-size: 15px;
+    }
+
+.totals td {
+    border-top: 4px solid gray;
+    font-size: 15px;
+    }
+
+tr:hover {
+    background: #EDF4FC;
+    }
+
+button.sorter, button.charter {
+    border: none !important;
+    background: white;
+    font-size: 12px;
+    color: #424242;
+    }
+
+.ascend button { font-weight:bold;color: black;}
+.descend button { font-weight:bold;color: black;}
+.ascend { border-bottom: 2px solid black;}
+.descend { border-bottom: 2px solid black;}
+
+button.charter {
+    height:21px;
+    width:21px;
+    margin:13px;
+    }
+
+table th {
+   /*  would be cool to match the edgeflip blue, but it reads as purple
+    *   on a thin line 
+    * border-bottom: 2px solid #4E5869;
+    */
+    border-bottom: 2px solid gray;
+    background: white;
+    padding: 5px;
+    }
+
+button.more {
+    padding:3px;
+    margin: 3px;
+    z-index:1! important;
+    }
+
+.tableFloatingHeader {
+    z-index:2;
+    }
+
+
+
+/* CHART MODAL STYLING */
+
+#modal {
+    text-align: center;
+    padding:30px 0;
+    }
+
+#graph {
+    margin: 30px auto 0;
+    width: 600px;
+    }
+
+#xAxis {
+    margin: 0 auto;
+    width: 600px;
+    }
+
+#yAxis{
+    position:absolute;
+    top: 60px;
+    left: 140px;
+    height:320px;
+    }
+
+#hourlytable {
+    margin: 30px auto;
+    }
+
+#slider {
+    margin: 10px auto 0;
+    background: #F5F5F5;
+    }
+
+#tsver {
+    margin: 50px auto 0;
+    }
+
+#xMin{ float: left; margin:8px 130px; }
+#xMax{ float: right; margin:8px 130px; }
+
+
+/* rickshaw default overrides, primarily the legend */
+
+.rickshaw_legend {
+    color: #404040;
+    background: #FFF;
+    text-align: left;
+    }
+
+#legend {
+    position:absolute;
+    top: 130px;
+    left: 30px;
+    }
+
+/* superuser controls */
+
+#clientpicker {
+    float:right;
+    margin: 30px;
+    }
