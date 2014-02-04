@@ -79,6 +79,8 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-new'),
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
         name='campaign-wizard'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/exit$', 'campaign_views.campaign_wizard_exit',
+        name='campaign-wizard-exit'),
 )
 
 urlpatterns += patterns('targetadmin.views',

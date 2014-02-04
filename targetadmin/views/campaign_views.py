@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.forms.models import modelformset_factory
+from django.utils import timezone
 
 from targetadmin import utils
 from targetadmin import forms
@@ -8,6 +9,7 @@ from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
 )
+from targetshare.utils import encodeDES
 
 
 class CampaignListView(ClientRelationListView):
@@ -84,7 +86,7 @@ def campaign_create(request, client_pk):
     })
 
 
-@utils.auth_client_required
+#@utils.auth_client_required
 def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     extra_forms = 5
@@ -92,21 +94,108 @@ def campaign_wizard(request, client_pk):
         relational.FilterFeature,
         form=forms.FilterFeatureForm,
         extra=extra_forms,
-        exclude=('end_dt', 'value_type', 'feature_type')
     )
     formset = ff_set(queryset=relational.FilterFeature.objects.none())
-    fb_obj_form = forms.FBObjectAttributeForm()
+    fb_obj_form = forms.FBObjectWizardForm()
     campaign_form = forms.CampaignWizardForm()
     if request.method == 'POST':
-        fb_obj_form = forms.FBObjectAttributeForm(request.POST)
+        fb_obj_form = forms.FBObjectWizardForm(request.POST)
         campaign_form = forms.CampaignWizardForm(request.POST)
         formset = ff_set(
             request.POST,
             queryset=relational.FilterFeature.objects.none()
         )
+        if formset.is_valid() and fb_obj_form.is_valid() and campaign_form.is_valid():
+            features = formset.save()
+            root_filter = relational.Filter.objects.create(
+                name='{} {}'.format(client.name, ','.join([x.feature for x in features])),
+                client=client
+            )
+            for feature in features:
+                feature.filter = root_filter
+                feature.save()
+
+            choice_sets = {}
+            if len(features) > 1:
+                for data in sorted(formset.cleaned_data,
+                                   key=lambda x: x.get('rank', 100)):
+                    if not data:
+                        continue
+
+                    cs = choice_sets.get(data['rank'])
+                    if not cs:
+                        single_filter = relational.Filter.objects.create(
+                            name='{} {}'.format(client.name, feature.feature),
+                            client=client
+                        )
+                        cs = relational.ChoiceSet.objects.create(client=client)
+                        relational.ChoiceSetFilter.objects.create(
+                            filter=single_filter,
+                            choice_set=cs
+                        )
+                        choice_sets[data['rank']] = cs
+                    feature = relational.FilterFeature.objects.create(
+                        operator=data.get('operator'),
+                        feature=data.get('feature'),
+                        value=data.get('value'),
+                        filter=cs.choicesetfilters.get().filter,
+                    )
+
+            fb_obj = relational.FBObject.objects.create(
+                name='{} {}'.format(client.name, timezone.now()),
+                client=client
+            )
+            fb_attr = fb_obj_form.save()
+            fb_attr.fb_object = fb_obj
+            fb_attr.save()
+
+            content = relational.ClientContent.objects.create(
+                url=campaign_form.cleaned_data.get('content_url'),
+                client=client
+            )
+
+            # Global Filter
+            empty_filters = client.filters.filter(filterfeatures__isnull=True)
+            if empty_filters.exists():
+                global_filter = empty_filters[0]
+            else:
+                global_filter = client.filters.create(
+                    name='{} empty global filter'.format(client.name))
+
+            # Button Style
+            if client.buttonstyles.exists():
+                button_style = client.buttonstyles.all()[0]
+            else:
+                button_style = client.buttonstyles.create()
+
+            last_camp = None
+            for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
+                camp = relational.Campaign.objects.create(client=client)
+                camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
+                camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
+                camp.campaignchoicesets.create(choice_set=cs, rand_cdf=1.0)
+                camp.campaignproperties.create(
+                    client_faces_url=campaign_form.cleaned_data['faces_url'],
+                    client_thanks_url=campaign_form.cleaned_data['thanks_url'],
+                    client_error_url=campaign_form.cleaned_data['error_url'],
+                    fallback_campaign=last_camp,
+                )
+                camp.campaignfbobjects.create(
+                    fb_object=fb_obj,
+                    rand_cdf=1.0
+                )
+                last_camp = camp
+            return render(request, 'targetadmin/campaign_wizard_exit.html', {
+                'code': encodeDES('{}/{}'.format(last_camp.pk, content.pk))
+            })
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'formset': formset,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
     })
+
+
+def campaign_wizard_exit(request):
+
+    return render(request, 'targetadmin/campaign_wizard_exit.html', {})
