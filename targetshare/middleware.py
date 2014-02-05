@@ -52,3 +52,18 @@ class CookieVerificationMiddleware(object):
             session.set_test_cookie()
 
         return response
+
+
+class P3PMiddleware(object):
+
+    def process_response(self, request, response):
+        ''' IE10 is a meanie, and remains the only browser to respect P3P
+        (http://www.w3.org/P3P/). Without a P3P setting, our cookies will be
+        rejected by IE10, and then a lot of our functionality breaks down.
+
+        For now, we have a dummy string in there that IE10 will amazingly
+        accept as valid. However, long term we need to handle this via:
+            https://trello.com/c/pTyZi1Rh
+        '''
+        response['P3P'] = 'CP="This is not a privacy policy!"'
+        return response
