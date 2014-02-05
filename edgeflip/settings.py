@@ -455,6 +455,10 @@ LOGGING = {
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
+        'django': {
+            'level': 'ERROR',
+            'handlers': ['console', 'syslog'],
+        },
         'django.request': {
             'level': 'ERROR',
             'handlers': ['mail_admins'],
