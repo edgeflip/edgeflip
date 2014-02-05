@@ -455,6 +455,11 @@ LOGGING = {
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['null'],
+            'propagate': False,
+        },
         'django.request': {
             'level': 'ERROR',
             'handlers': ['mail_admins'],
