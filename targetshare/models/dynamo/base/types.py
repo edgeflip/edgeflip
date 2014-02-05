@@ -1,4 +1,5 @@
 import csv
+import collections
 import datetime
 import itertools
 import json
@@ -124,7 +125,9 @@ class JsonType(DataType):
 
         if isinstance(value, basestring):
             try:
-                python = json.loads(value)
+                # Must use OrderedDict to avoid erroneous value drift during
+                # decode/encode cycle:
+                python = json.loads(value, object_pairs_hook=collections.OrderedDict)
             except ValueError as exc:
                 raise DataValidationError(str(exc))
             else:
