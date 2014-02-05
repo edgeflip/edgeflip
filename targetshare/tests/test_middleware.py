@@ -103,6 +103,6 @@ class TestP3PMiddleware(BaseMiddlewareTestCase):
     def test_p3p(self):
         request = self.get_request()
         response = HttpResponse()
-        self.assertFalse('P3P' in response)
+        self.assertNotIn('P3P', response)
         self.middleware.process_response(request, response)
-        self.assertTrue('P3P' in response)
+        self.assertIn('P3P', response)
