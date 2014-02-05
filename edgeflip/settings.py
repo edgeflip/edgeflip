@@ -203,6 +203,7 @@ MIDDLEWARE_CLASSES = (
 
     'targetshare.middleware.VisitorMiddleware',
     'targetshare.middleware.CookieVerificationMiddleware',
+    'targetshare.middleware.P3PMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'
