@@ -74,7 +74,7 @@ class UnifiedEdgeManager(ItemManager):
         return wrapped
 
     # Populate querying methods with _make_unified_method:
-    for method_name in ('get_item', 'batch_get', 'query', 'scan'):
+    for method_name in ('get_item', 'filter_get', 'batch_get', 'query', 'scan'):
         locals()[method_name] = _make_unified_method(method_name)
     del method_name # Clean up
 
