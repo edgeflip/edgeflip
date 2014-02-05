@@ -91,3 +91,18 @@ class TestCookieVerificationMiddleware(BaseMiddlewareTestCase):
         response = HttpResponse()
         self.middleware.process_response(request, response)
         assert 'testcookie' not in request.session
+
+
+class TestP3PMiddleware(BaseMiddlewareTestCase):
+
+    def setUp(self):
+        super(TestP3PMiddleware, self).setUp()
+        self.factory = RequestFactory()
+        self.middleware = middleware.P3PMiddleware()
+
+    def test_p3p(self):
+        request = self.get_request()
+        response = HttpResponse()
+        self.assertNotIn('P3P', response)
+        self.middleware.process_response(request, response)
+        self.assertIn('P3P', response)
