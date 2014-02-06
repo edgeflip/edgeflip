@@ -107,8 +107,13 @@ def campaign_wizard(request, client_pk):
         )
         if formset.is_valid() and fb_obj_form.is_valid() and campaign_form.is_valid():
             features = formset.save()
+            campaign_name = campaign_form.cleaned_data['name']
             root_filter = relational.Filter.objects.create(
-                name='{} {}'.format(client.name, ','.join([x.feature for x in features])),
+                name='{} {} {}'.format(
+                    client.name,
+                    campaign_name,
+                    ','.join([x.feature for x in features])
+                ),
                 client=client
             )
             for feature in features:
@@ -125,10 +130,14 @@ def campaign_wizard(request, client_pk):
                     cs = choice_sets.get(data['rank'])
                     if not cs:
                         single_filter = relational.Filter.objects.create(
-                            name='{} {}'.format(client.name, feature.feature),
+                            name='{} {} {}'.format(
+                                client.name, campaign_name, feature.feature),
                             client=client
                         )
-                        cs = relational.ChoiceSet.objects.create(client=client)
+                        cs = relational.ChoiceSet.objects.create(
+                            client=client,
+                            name=campaign_name
+                        )
                         relational.ChoiceSetFilter.objects.create(
                             filter=single_filter,
                             choice_set=cs
@@ -142,7 +151,7 @@ def campaign_wizard(request, client_pk):
                     )
 
             fb_obj = relational.FBObject.objects.create(
-                name='{} {}'.format(client.name, timezone.now()),
+                name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
                 client=client
             )
             fb_attr = fb_obj_form.save()
@@ -151,7 +160,8 @@ def campaign_wizard(request, client_pk):
 
             content = relational.ClientContent.objects.create(
                 url=campaign_form.cleaned_data.get('content_url'),
-                client=client
+                client=client,
+                name='{} {}'.format(client.name, campaign_name)
             )
 
             # Global Filter
@@ -170,7 +180,10 @@ def campaign_wizard(request, client_pk):
 
             last_camp = None
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
-                camp = relational.Campaign.objects.create(client=client)
+                camp = relational.Campaign.objects.create(
+                    client=client,
+                    name=campaign_name
+                )
                 camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                 camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
                 camp.campaignchoicesets.create(choice_set=cs, rand_cdf=1.0)

@@ -229,6 +229,7 @@ class CampaignForm(forms.Form):
 # Wizard Forms
 class CampaignWizardForm(forms.Form):
 
+    name = forms.CharField()
     faces_url = forms.CharField()
     error_url = forms.CharField()
     thanks_url = forms.CharField()

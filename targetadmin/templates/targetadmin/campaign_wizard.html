@@ -4,7 +4,13 @@
     <h2>Create Campaign</h2>
     <form action="" method="post">
         {% csrf_token %}
-        <span id="filtering" class="wizard-step">
+        <span id="campaign-settings" class="wizard-step">
+            <h4>Campaign Settings</h4>
+            {{ campaign_form.as_p }}
+            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="filtering">Next</a>
+            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+        </span>
+        <span id="filtering" class="wizard-step" style="display: none;">
             {{ formset.management_form }}
             {% if formset.initial_forms %}
                 <h4>Existing Features</h4>
@@ -14,23 +20,34 @@
                     {% endfor %}
             {% endif %}
             <h4>Add Filters</h4>
-            {% for form in formset.extra_forms %}
-                <div id="new-form-{{ forloop.counter0}}" class="new-filters">
-                    <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
-                    <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>
-                    <p style="display: none;">{{ form.value }}</p>
-                    <p id="{{ form.prefix }}-value-p">{{ form.value.errors }}
-                        <label for="id_{{ form.prefix }}-value-split-1">{{ form.value.label }}</label>
-                        <input id="id_{{ form.prefix }}-value-split-1" maxlength="1024" name="{{ form.prefix }}-value-split-1" type="text" class="{{ form.prefix }}-filter-val-input">
-                        <span id="{{ form.prefix }}-value-span"></span><a id="{{ form.prefix }}-value" class="icon-plus" href="#id_{{ form.prefix }}-value" style="display:none;"></a>
-                    </p>
-                    <p>{{ form.rank.errors }}<label for="id_{{ form.prefix }}-rank">{{ form.rank.label }}</label>{{ form.rank }}</p>
-                    <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addFilterFeature({{ forloop.counter }})">Add More</span>
-                    <hr>
-                </div>
-            {% endfor %}
-            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</a>
-            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+                {% for form in formset.extra_forms %}
+                {% if forloop.first %}
+                    <div class="row">
+                {% endif %}
+                    <div class="span5">
+                        <div id="new-form-{{ forloop.counter0}}" class="new-filters">
+                            <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
+                            <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>
+                            <p style="display: none;">{{ form.value }}</p>
+                            <p id="{{ form.prefix }}-value-p">{{ form.value.errors }}
+                                <label for="id_{{ form.prefix }}-value-split-1">{{ form.value.label }}</label>
+                                <input id="id_{{ form.prefix }}-value-split-1" maxlength="1024" name="{{ form.prefix }}-value-split-1" type="text" class="{{ form.prefix }}-filter-val-input">
+                                <span id="{{ form.prefix }}-value-span"></span><a id="{{ form.prefix }}-value" class="icon-plus" href="#id_{{ form.prefix }}-value" style="display:none;"></a>
+                            </p>
+                            <p>{{ form.rank.errors }}<label for="id_{{ form.prefix }}-rank">{{ form.rank.label }}</label>{{ form.rank }}</p>
+                            <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addFilterFeature({{ forloop.counter }})">Add More</span>
+                            <hr>
+                        </div>
+                    </div>
+                {% if forloop.counter|divisibleby:"2" %}
+                    </div><div class="row">
+                {% endif %}
+                {% if forloop.last %}
+                    </div>
+                {% endif %}
+                {% endfor %}
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit" data-step="campaign-settings">Previous</a>
         </span>
         <span id="fbobjects" class="wizard-step" style="display: none;">
             <h4>FaceBook Object Settings</h4>
@@ -49,14 +66,8 @@
                     <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
                 </div>
             </div>
-            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit" data-step="campaign-settings">Next</a>
-            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
-        </span>
-        <span id="campaign-settings" class="wizard-step" style="display: none;">
-            <h4>Campaign Settings</h4>
-            {{ campaign_form.as_p }}
             <input type="submit" class="btn btn-large btn-primary step-submit" value="Submit">
-            <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="fbobjects">Previous</a>
+            <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
         </span>
     </form>
 {% endblock %} {% block extrascript %}
