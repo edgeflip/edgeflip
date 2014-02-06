@@ -203,6 +203,7 @@ MIDDLEWARE_CLASSES = (
 
     'targetshare.middleware.VisitorMiddleware',
     'targetshare.middleware.CookieVerificationMiddleware',
+    'targetshare.middleware.P3PMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'
@@ -455,9 +456,10 @@ LOGGING = {
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
-        'django': {
-            'level': 'ERROR',
-            'handlers': ['console', 'syslog'],
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['null'],
+            'propagate': False,
         },
         'django.request': {
             'level': 'ERROR',
@@ -480,7 +482,7 @@ if ENV in ('staging', 'production'):
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
         'formatter': 'verbose',
     }
-    LOGGING['loggers']['crow']['handlers'].append('sentry')
+    LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[

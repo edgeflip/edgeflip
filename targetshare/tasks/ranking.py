@@ -435,7 +435,7 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
     campaigns = [campaign_id]
     fallback_id = _fallback_campaign(campaign_id)
     while fallback_id is not None:
-        campaigns.append[fallback_id]
+        campaigns.append(fallback_id)
         fallback_id = _fallback_campaign(fallback_id)
 
     # Build query to check for existence of relevant (px4) filter features:
