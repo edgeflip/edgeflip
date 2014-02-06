@@ -514,7 +514,7 @@ var outgoingRedirect = function(url) {
 	 * understandably, IE does not.
 	 */
 	// Nor does IE support location.origin:
-	origin = top.location.protocol + '//' + top.location.host;
+	origin = window.location.protocol + '//' + window.location.host;
 	redirectUrl = origin + url;
     }
     top.location = redirectUrl;
