@@ -21,6 +21,9 @@ def bulk_create(objects):
         objects: A sequence of Models or Items
 
     """
+    if not objects:
+        return
+
     (model,) = {type(obj) for obj in objects}
 
     if issubclass(model, Model):
