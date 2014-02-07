@@ -238,7 +238,16 @@ class CampaignWizardForm(forms.Form):
 
 class FilterFeatureForm(forms.ModelForm):
 
+    CHOICES = (
+        ('age', 'Age'),
+        ('city', 'City'),
+        ('state', 'State'),
+        ('full_location', 'Full Location'),
+        ('gender', 'Gender'),
+    )
+
     rank = forms.IntegerField()
+    feature = forms.ChoiceField(choices=CHOICES)
 
     class Meta:
         model = relational.FilterFeature
