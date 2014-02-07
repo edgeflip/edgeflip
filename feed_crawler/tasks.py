@@ -47,7 +47,12 @@ def crawl_user(token, retry_count=0, max_retries=3):
         fresh_token.save(overwrite=True)
         token = fresh_token
 
-    edges = _bg_px4_crawl(token)
+    try:
+        edges = _bg_px4_crawl(token)
+    except IOError as exc:
+        if 'invalid_token' in exc.headers.get('www-authenticate'):
+            return # dead token
+        raise
     fb_sync_maps = _get_sync_maps(edges, token)
 
     delay = 0
@@ -245,12 +250,18 @@ def back_fill_crawl(self, sync_map):
         result = facebook.client.exhaust_pagination(next_url)
         data['data'].extend(result)
 
-    full_data = json.loads(s3_key.get_contents_as_string())
-    full_data['data'].extend(data['data'])
-    full_data['updated'] = to_epoch(timezone.now())
-    s3_key.set_contents_from_string(json.dumps(full_data))
-    sync_map.back_filled = True
-    sync_map.save()
+    if 'data' in data:
+        # If we don't have any data, the back fill likely failed. We'll go
+        # ahead in that case and kick off the comment crawl, but not mark
+        # this job as back filled so that we can give it another shot at some
+        # later point
+        full_data = json.loads(s3_key.get_contents_as_string())
+        full_data['data'].extend(data['data'])
+        full_data['updated'] = to_epoch(timezone.now())
+        s3_key.set_contents_from_string(json.dumps(full_data))
+        sync_map.back_filled = True
+        sync_map.save()
+
     sync_map.save_status(models.FBSyncMap.COMMENT_CRAWL)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT

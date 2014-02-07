@@ -231,10 +231,10 @@ def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
             paginated_data = urlload(
                 url, timeout=timeout)
         except (ValueError, IOError):
-            LOG.exception('Failed to grab next page of data')
+            LOG.debug('Failed to grab next page of data')
             retry_count += 1
             if retry_count > retry_limit:
-                LOG.error('Giving up on this batch of data')
+                LOG.exception('Giving up on this batch of data')
                 break
             else:
                 time.sleep(sleep_duration)
@@ -866,10 +866,14 @@ class StreamReaderThread(threading.Thread):
                     'access_token': self.token,
                 })
             except IOError:
-                LOG.exception("Thread %s: error reading stream chunk for user %s (%s - %s)",
-                              self.name, user_id,
-                              time.strftime("%m/%d", time.localtime(min_time)),
-                              time.strftime("%m/%d", time.localtime(max_time)))
+                LOG.info(
+                    "Thread %s: error reading stream chunk for user %s (%s - %s)",
+                    self.name,
+                    user_id,
+                    time.strftime("%m/%d", time.localtime(min_time)),
+                    time.strftime("%m/%d", time.localtime(max_time)),
+                    exc_info=True
+                )
                 count_bad += 1
                 self.queue.task_done()
                 qcount += 1
