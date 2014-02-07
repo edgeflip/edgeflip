@@ -3,6 +3,7 @@ import logging
 
 import json
 import random
+import urllib2
 from datetime import timedelta
 
 from celery import shared_task
@@ -49,8 +50,8 @@ def crawl_user(token, retry_count=0, max_retries=3):
 
     try:
         edges = _bg_px4_crawl(token)
-    except IOError as exc:
-        if 'invalid_token' in exc.headers.get('www-authenticate'):
+    except urllib2.HTTPError as exc:
+        if 'invalid_token' in exc.headers.get('www-authenticate', ''):
             return # dead token
         raise
     fb_sync_maps = _get_sync_maps(edges, token)
