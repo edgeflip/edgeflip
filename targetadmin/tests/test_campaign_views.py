@@ -249,6 +249,16 @@ class TestCampaignViews(TestAdminBase):
             }
         )
         self.assertStatusCode(response, 302)
+        camp = new_client.campaigns.latest('pk')
+        content = new_client.clientcontent.latest('pk')
+        cs = camp.campaignchoicesets.get().choice_set
+        self.assertRedirects(response, '{}?campaign_pk={}&content_pk={}'.format(
+            reverse('snippets', args=[new_client.pk]),
+            camp.pk,
+            content.pk
+        ))
+        self.assertIn('Root', cs.name)
+        self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertTrue(new_client.filters.exists())
         self.assertTrue(new_client.fbobjects.exists())
         self.assertTrue(new_client.choicesets.exists())

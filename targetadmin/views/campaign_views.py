@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.forms.models import modelformset_factory
 from django.utils import timezone
+from django.core.urlresolvers import reverse
 
 from targetadmin import utils
 from targetadmin import forms
@@ -9,7 +10,6 @@ from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
 )
-from targetshare.utils import encodeDES
 
 
 class CampaignListView(ClientRelationListView):
@@ -127,6 +127,8 @@ def campaign_wizard(request, client_pk):
                 ),
                 client=client
             )
+            root_choiceset.choicesetfilters.create(
+                filter=root_filter)
 
             choice_sets = {0: root_choiceset}
             if len(features) > 1:
@@ -206,17 +208,14 @@ def campaign_wizard(request, client_pk):
                     rand_cdf=1.0
                 )
                 last_camp = camp
-            return redirect('campaign-wizard-exit', client.pk)
+            return redirect('{}?campaign_pk={}&content_pk={}'.format(
+                reverse('snippets', args=[client.pk]),
+                last_camp.pk,
+                content.pk
+            ))
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'formset': formset,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-    })
-
-
-def campaign_wizard_exit(request):
-
-    return render(request, 'targetadmin/campaign_wizard_exit.html', {
-        'code': request.GET.get('code', '')
     })
