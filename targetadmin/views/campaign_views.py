@@ -109,7 +109,7 @@ def campaign_wizard(request, client_pk):
             features = formset.save()
             campaign_name = campaign_form.cleaned_data['name']
             root_filter = relational.Filter.objects.create(
-                name='{} {} {}'.format(
+                name='{} {} {} Root Filter'.format(
                     client.name,
                     campaign_name,
                     ','.join([x.feature for x in features])
@@ -120,7 +120,15 @@ def campaign_wizard(request, client_pk):
                 feature.filter = root_filter
                 feature.save()
 
-            choice_sets = {}
+            root_choiceset = relational.ChoiceSet.objects.create(
+                name='{} {} Root ChoiceSet'.format(
+                    client.name,
+                    campaign_name
+                ),
+                client=client
+            )
+
+            choice_sets = {0: root_choiceset}
             if len(features) > 1:
                 for data in sorted(formset.cleaned_data,
                                    key=lambda x: x.get('rank', 100)):
@@ -198,9 +206,7 @@ def campaign_wizard(request, client_pk):
                     rand_cdf=1.0
                 )
                 last_camp = camp
-            return render(request, 'targetadmin/campaign_wizard_exit.html', {
-                'code': encodeDES('{}/{}'.format(last_camp.pk, content.pk))
-            })
+            return redirect('campaign-wizard-exit', client.pk)
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'formset': formset,
@@ -211,4 +217,6 @@ def campaign_wizard(request, client_pk):
 
 def campaign_wizard_exit(request):
 
-    return render(request, 'targetadmin/campaign_wizard_exit.html', {})
+    return render(request, 'targetadmin/campaign_wizard_exit.html', {
+        'code': request.GET.get('code', '')
+    })

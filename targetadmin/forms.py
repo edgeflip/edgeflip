@@ -239,6 +239,7 @@ class CampaignWizardForm(forms.Form):
 class FilterFeatureForm(forms.ModelForm):
 
     CHOICES = (
+        ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('city', 'City'),
         ('state', 'State'),
