@@ -5,6 +5,7 @@
     <div class="span9">
         <h4>Create New Elements</h4>
         <ul>
+            <li><a href="{% url 'campaign-wizard' client.pk %}">Campaign Wizard</a></li>
             <li><a href="{% url 'content-new' client.pk %}">Create Content</a></li>
             <li><a href="{% url 'fb-obj-new' client.pk %}">Create FaceBook Objects</a></li>
             <li><a href="{% url 'filter-new' client.pk %}">Create Filter</a></li>
