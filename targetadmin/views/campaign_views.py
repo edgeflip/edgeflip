@@ -86,7 +86,7 @@ def campaign_create(request, client_pk):
     })
 
 
-#@utils.auth_client_required
+@utils.auth_client_required
 def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     extra_forms = 5

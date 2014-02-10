@@ -210,25 +210,21 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 # Filter Feature 1
-                #'form-0-filter_feature_id': ' ',
                 'form-0-feature': relational.FilterFeature.Expression.AGE,
                 'form-0-value': '16',
                 'form-0-operator': 'min',
                 'form-0-rank': 1,
                 # Filter Feature 2
-                #'form-1-filter_feature_id': ' ',
                 'form-1-feature': relational.FilterFeature.Expression.AGE,
                 'form-1-value': '60',
                 'form-1-operator': 'max',
                 'form-1-rank': 1,
                 # Filter Feature 3
-                #'form-2-filter_feature_id': ' ',
                 'form-2-feature': relational.FilterFeature.Expression.STATE,
                 'form-2-value': 'Illinois||Missouri',
                 'form-2-operator': 'in',
                 'form-2-rank': 2,
                 # Filter Feature 4
-                #'form-3-filter_feature_id': ' ',
                 'form-3-feature': relational.FilterFeature.Expression.CITY,
                 'form-3-value': 'Chicago',
                 'form-3-operator': 'eq',
