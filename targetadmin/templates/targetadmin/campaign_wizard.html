@@ -73,7 +73,7 @@
 {% endblock %} {% block extrascript %}
     <script>
         $('.step-submit').click(function(e) {
-            step = $('#' + e.target.id).data('step');
+            var step = $('#' + e.target.id).data('step');
             $('.wizard-step').hide();
             $('#' + step).show();
         });
@@ -97,7 +97,7 @@
             $('.new-filters').on('change', '.{{ form.prefix }}-filter-val-input', function(e){
                 var filter_values = '';
                 $('.{{ form.prefix }}-filter-val-input').each(function(index){
-                    value = $('#' + this.id).val();
+                    var value = $('#' + this.id).val();
                     if (value) {
                         if (filter_values === ''){
                             filter_values = value;
@@ -114,12 +114,12 @@
         {% endfor %}
 
         $('.icon-plus').click(function(e){
-            split_id = e.target.id.split('-');
-            form_tag = split_id[0] + '-' + split_id[1];
+            var split_id = e.target.id.split('-');
+            var form_tag = split_id[0] + '-' + split_id[1];
             input_dict[form_tag] += 1;
-            input_count = input_dict[form_tag];
-            new_id = 'id_' + form_tag + '-value-split-' + input_count;
-            dest_id = '#' + e.target.id + '-span';
+            var input_count = input_dict[form_tag];
+            var new_id = 'id_' + form_tag + '-value-split-' + input_count;
+            var dest_id = '#' + e.target.id + '-span';
             $(dest_id).append('<input id="' + new_id + '" maxlength="1024" name="' + new_id + '" type="text" class="' + form_tag + '-filter-val-input">');
         });
     </script>
