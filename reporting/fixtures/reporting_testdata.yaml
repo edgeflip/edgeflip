@@ -1,0 +1,56 @@
+-   model: auth.group
+    pk: 1
+    fields:
+        name: 'stuff'
+-   model: auth.user
+    pk: 1
+    fields:
+        date_joined: 2013-08-19 18:58:26+00:00
+        email: test@example.com
+        first_name: ''
+        groups: []
+        is_active: true
+        is_staff: true
+        is_superuser: true
+        last_login: 2013-08-19 18:59:21+00:00
+        last_name: ''
+        password: pbkdf2_sha256$10000$sFY5wGtm14LB$5brwMgWFR2krPslH5lsLRvX4+84c9cmELGbRXXp6iHQ=
+        user_permissions: []
+        username: potus
+-   model: auth.user
+    pk: 2
+    fields:
+        date_joined: 2013-08-19 18:58:26+00:00
+        email: test2@example.com
+        first_name: ''
+        groups: [1]
+        is_active: true
+        is_staff: false
+        is_superuser: false
+        last_login: 2013-08-19 18:59:21+00:00
+        last_name: ''
+        password: pbkdf2_sha256$10000$sFY5wGtm14LB$5brwMgWFR2krPslH5lsLRvX4+84c9cmELGbRXXp6iHQ=
+        user_permissions: []
+        username: peon
+-   model: targetshare.client
+    pk: 1
+    fields:
+        create_dt: !!timestamp '2013-07-15 11:38:28'
+        domain: 'edgeflip.com:8080'
+        _fb_app_id: '471727162864364'
+        _fb_app_name: sharing-social-good
+        name: reportingclient
+        codename: reportingclient
+        subdomain: testserver
+        auth_groups: [1]
+-   model: targetshare.client
+    pk: 2
+    fields:
+        create_dt: !!timestamp '2013-07-15 11:38:28'
+        domain: 'edgeflip.com:8080'
+        _fb_app_id: '471727162864363'
+        _fb_app_name: sharing-social-good2
+        name: secretclient
+        codename: secretclient
+        subdomain: testserver
+        auth_groups: []
