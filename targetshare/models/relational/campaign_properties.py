@@ -1,7 +1,4 @@
-import urllib
-
 from django.db import models
-from django.core.urlresolvers import reverse
 
 from targetshare import utils
 from . import manager
@@ -33,14 +30,6 @@ class CampaignProperties(models.Model):
         url += '&' if '?' in url else '?'
         slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
         return url + 'efcmpgslug=' + str(slug)
-
-    def incoming_redirect(self, is_secure, host, content_id):
-        return urllib.quote_plus('{}{}{}'.format(
-            'https://' if is_secure else 'http://',
-            host,
-            reverse('incoming-encoded', args=[utils.encodeDES('%s/%s' % (
-                self.campaign.pk, content_id))])
-        ))
 
     class Meta(object):
         app_label = 'targetshare'

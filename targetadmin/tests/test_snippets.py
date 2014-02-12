@@ -3,7 +3,7 @@ import json
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
-from targetshare.utils import encodeDES
+from targetshare import utils
 from targetshare.models import relational
 
 
@@ -40,7 +40,6 @@ class TestSnippetViews(TestAdminBase):
 
     def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
-        props = self.campaign.campaignproperties.create()
         response = self.client.get(
             reverse('snippet-update', args=[
                 self.test_client.pk, self.campaign.pk, self.content.pk
@@ -50,9 +49,10 @@ class TestSnippetViews(TestAdminBase):
         json_data = json.loads(response.content)
         self.assertEqual(
             json_data['slug'],
-            encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+            utils.encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
         )
         self.assertEqual(
             json_data['faces_url'],
-            props.incoming_redirect(False, 'testserver', self.content.pk)
+            utils.incoming_redirect(False, 'testserver',
+                                    self.campaign.pk, self.content.pk)
         )

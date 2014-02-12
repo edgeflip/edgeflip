@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404, render
 
 from targetadmin.utils import auth_client_required
 from targetshare.models import relational
-from targetshare.utils import encodeDES
+from targetshare.utils import encodeDES, incoming_redirect
 from targetshare.views import utils
 
 
@@ -10,20 +10,26 @@ from targetshare.views import utils
 def snippets(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     first_campaign = first_content = None
-    if client.campaigns.exists():
-        first_campaign = client.campaigns.filter(
-            pk=request.GET.get('campaign_pk')) or client.campaigns.all()
-        first_campaign = first_campaign[0]
+    try:
+        first_campaign = client.campaigns.get(pk=request.GET.get('campaign_pk'))
+    except relational.Campaign.DoesNotExist:
+        try:
+            first_campaign = client.campaigns.all()[0]
+        except IndexError:
+            first_campaign = None
 
-    if client.clientcontent.exists():
-        first_content = client.clientcontent.filter(
-            pk=request.GET.get('content_pk')) or client.clientcontent.all()
-        first_content = first_content[0]
+    try:
+        first_content = client.clientcontent.get(pk=request.GET.get('content_pk'))
+    except relational.ClientContent.DoesNotExist:
+        try:
+            first_content = client.clientcontent.all()[0]
+        except IndexError:
+            first_content = None
 
     if first_campaign and first_content:
-        props = first_campaign.campaignproperties.get()
-        first_faces_url = props.incoming_redirect(
-            request.is_secure(), request.get_host(), first_content.pk)
+        first_faces_url = incoming_redirect(
+            request.is_secure(), request.get_host(),
+            first_campaign.pk, first_content.pk)
     return render(request, 'targetadmin/snippets.html', {
         'client': client,
         'first_campaign': first_campaign,
@@ -37,9 +43,8 @@ def snippet_update(request, client_pk, campaign_pk, content_pk):
     get_object_or_404(relational.Client, pk=client_pk)
     campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     content = get_object_or_404(relational.ClientContent, pk=content_pk)
-    props = campaign.campaignproperties.get()
-    faces_url = props.incoming_redirect(
-        request.is_secure(), request.get_host(), content.pk)
+    faces_url = incoming_redirect(
+        request.is_secure(), request.get_host(), campaign.pk, content.pk)
     return utils.JsonHttpResponse({
         'slug': encodeDES('{}/{}'.format(campaign.pk, content.pk)),
         'faces_url': faces_url

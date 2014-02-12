@@ -68,7 +68,7 @@
     <span style="text-decoration: underline;">OAuth URL</span>: <br />
         <pre><code>
             https://www.facebook.com/dialog/oauth?client_id={{ client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=<span id="faces_url">{{ first_faces_url }}</span>
-        </pre></code>
+        </code></pre>
     <br />
     <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
 {% endblock %}
