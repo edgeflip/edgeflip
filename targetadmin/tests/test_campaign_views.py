@@ -191,3 +191,75 @@ class TestCampaignViews(TestAdminBase):
             response.context['form'].initial,
             initial_dict
         )
+
+    def test_create_campaign_wizard(self):
+        new_client = relational.Client.objects.create(
+            name='Test Client'
+        )
+        self.assertFalse(new_client.filters.exists())
+        self.assertFalse(new_client.fbobjects.exists())
+        self.assertFalse(new_client.choicesets.exists())
+        self.assertFalse(new_client.buttonstyles.exists())
+        self.assertFalse(new_client.campaigns.exists())
+        response = self.client.post(
+            reverse('campaign-wizard', args=[new_client.pk]), {
+                # Campaign Details
+                'name': 'Test Campaign',
+                'faces_url': 'http://www.faces.com',
+                'error_url': 'http://www.error.com',
+                'thanks_url': 'http://www.thanks.com',
+                'content_url': 'http://www.content.com',
+                # Filter Feature 1
+                'form-0-feature': relational.FilterFeature.Expression.AGE,
+                'form-0-value': '16',
+                'form-0-operator': 'min',
+                'form-0-rank': 1,
+                # Filter Feature 2
+                'form-1-feature': relational.FilterFeature.Expression.AGE,
+                'form-1-value': '60',
+                'form-1-operator': 'max',
+                'form-1-rank': 1,
+                # Filter Feature 3
+                'form-2-feature': relational.FilterFeature.Expression.STATE,
+                'form-2-value': 'Illinois||Missouri',
+                'form-2-operator': 'in',
+                'form-2-rank': 2,
+                # Filter Feature 4
+                'form-3-feature': relational.FilterFeature.Expression.CITY,
+                'form-3-value': 'Chicago',
+                'form-3-operator': 'eq',
+                'form-3-rank': 3,
+                'form-INITIAL_FORMS': 0,
+                'form-TOTAL_FORMS': 5,
+                'form-MAX_NUM_FORMS': 1000,
+                # FB Object
+                'og_title': 'Test Title',
+                'org_name': 'Test Organization',
+                'msg1_pre': 'Hey, ',
+                'msg1_post': ' How goes it?',
+                'msg2_pre': 'Hey 2, ',
+                'msg2_post': ' How goes it 2?',
+                'og_image': 'http://imgur.com/VsiPr',
+                'sharing_prompt': 'SHARE IT',
+                'og_description': 'Description of FB stuff'
+            }
+        )
+        self.assertStatusCode(response, 302)
+        camp = new_client.campaigns.latest('pk')
+        content = new_client.clientcontent.latest('pk')
+        cs = camp.campaignchoicesets.get().choice_set
+        self.assertRedirects(response, '{}?campaign_pk={}&content_pk={}'.format(
+            reverse('snippets', args=[new_client.pk]),
+            camp.pk,
+            content.pk
+        ))
+        self.assertIn('Root', cs.name)
+        self.assertIn('Root', cs.choicesetfilters.get().filter.name)
+        self.assertTrue(new_client.filters.exists())
+        self.assertTrue(new_client.fbobjects.exists())
+        self.assertTrue(new_client.choicesets.exists())
+        self.assertTrue(new_client.buttonstyles.exists())
+        self.assertTrue(new_client.campaigns.exists())
+        self.assertEqual(new_client.campaigns.count(), 4)
+        self.assertEqual(new_client.filters.count(), 5)
+        self.assertEqual(new_client.choicesets.count(), 4)
