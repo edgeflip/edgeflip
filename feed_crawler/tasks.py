@@ -208,7 +208,7 @@ def initial_crawl(self, sync_map):
         try:
             self.retry()
         except MaxRetriesExceededError:
-            sync_map.change_state(models.FBSyncMap.WAITING)
+            sync_map.save_status(models.FBSyncMap.WAITING)
             return
 
     data['updated'] = now_epoch
