@@ -1,3 +1,5 @@
+import json
+
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
@@ -36,13 +38,20 @@ class TestSnippetViews(TestAdminBase):
         self.assertEqual(response.context['first_campaign'], campaign)
         self.assertEqual(response.context['first_content'], content)
 
-    def test_encode_campaign(self):
+    def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
         response = self.client.get(
-            reverse('encode', args=[self.test_client.pk, self.campaign.pk, self.content.pk])
+            reverse('snippet-update', args=[
+                self.test_client.pk, self.campaign.pk, self.content.pk
+            ])
         )
         self.assertStatusCode(response, 200)
+        json_data = json.loads(response.content)
         self.assertEqual(
-            response.content,
+            json_data['slug'],
             encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+        )
+        self.assertEqual(
+            json_data['faces_url'],
+            "http%3A%2F%2Ftestserver%2Fincoming%2FlSJLSpMCF7U%253D%2F"
         )
