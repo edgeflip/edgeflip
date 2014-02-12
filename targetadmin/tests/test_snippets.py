@@ -40,7 +40,7 @@ class TestSnippetViews(TestAdminBase):
 
     def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
-        self.campaign.campaignproperties.create()
+        props = self.campaign.campaignproperties.create()
         response = self.client.get(
             reverse('snippet-update', args=[
                 self.test_client.pk, self.campaign.pk, self.content.pk
@@ -54,5 +54,5 @@ class TestSnippetViews(TestAdminBase):
         )
         self.assertEqual(
             json_data['faces_url'],
-            "http%3A%2F%2Ftestserver%2Fincoming%2FlSJLSpMCF7U%253D%2F"
+            props.incoming_redirect(False, 'testserver', self.content.pk)
         )
