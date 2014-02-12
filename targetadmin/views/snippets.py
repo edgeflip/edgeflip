@@ -10,19 +10,15 @@ from targetshare.views import utils
 def snippets(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     first_campaign = first_content = None
-    if 'campaign_pk' in request.GET:
-        first_campaign = get_object_or_404(
-            relational.Campaign, pk=request.GET['campaign_pk'])
-    else:
-        if client.campaigns.exists():
-            first_campaign = client.campaigns.all()[0]
+    if client.campaigns.exists():
+        first_campaign = client.campaigns.filter(
+            pk=request.GET.get('campaign_pk')) or client.campaigns.all()
+        first_campaign = first_campaign[0]
 
-    if 'content_pk' in request.GET:
-        first_content = get_object_or_404(
-            relational.ClientContent, pk=request.GET['content_pk'])
-    else:
-        if client.clientcontent.exists():
-            first_content = client.clientcontent.all()[0]
+    if client.clientcontent.exists():
+        first_content = client.clientcontent.filter(
+            pk=request.GET.get('content_pk')) or client.clientcontent.all()
+        first_content = first_content[0]
 
     if first_campaign and first_content:
         props = first_campaign.campaignproperties.get()
