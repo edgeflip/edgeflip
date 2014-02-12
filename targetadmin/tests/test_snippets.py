@@ -40,6 +40,7 @@ class TestSnippetViews(TestAdminBase):
 
     def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
+        self.campaign.campaignproperties.create()
         response = self.client.get(
             reverse('snippet-update', args=[
                 self.test_client.pk, self.campaign.pk, self.content.pk

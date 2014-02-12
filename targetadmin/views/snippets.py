@@ -1,8 +1,4 @@
-import urllib
-
-from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
-from django.core.urlresolvers import reverse
 
 from targetadmin.utils import auth_client_required
 from targetshare.models import relational
@@ -28,12 +24,10 @@ def snippets(request, client_pk):
         if client.clientcontent.exists():
             first_content = client.clientcontent.all()[0]
 
-    first_faces_url = urllib.quote_plus('{}{}{}'.format(
-        'https://' if request.is_secure() else 'http://',
-        request.get_host(),
-        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (
-            first_campaign.pk, first_content.pk))])
-    ))
+    if first_campaign and first_content:
+        props = first_campaign.campaignproperties.get()
+        first_faces_url = props.incoming_redirect(
+            request.is_secure(), request.get_host(), first_content.pk)
     return render(request, 'targetadmin/snippets.html', {
         'client': client,
         'first_campaign': first_campaign,
@@ -47,11 +41,9 @@ def snippet_update(request, client_pk, campaign_pk, content_pk):
     get_object_or_404(relational.Client, pk=client_pk)
     campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     content = get_object_or_404(relational.ClientContent, pk=content_pk)
-    faces_url = urllib.quote_plus('{}{}{}'.format(
-        'https://' if request.is_secure() else 'http://',
-        request.get_host(),
-        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (campaign.pk, content.pk))])
-    ))
+    props = campaign.campaignproperties.get()
+    faces_url = props.incoming_redirect(
+        request.is_secure(), request.get_host(), content.pk)
     return utils.JsonHttpResponse({
         'slug': encodeDES('{}/{}'.format(campaign.pk, content.pk)),
         'faces_url': faces_url

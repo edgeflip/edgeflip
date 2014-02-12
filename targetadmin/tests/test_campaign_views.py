@@ -194,7 +194,8 @@ class TestCampaignViews(TestAdminBase):
 
     def test_create_campaign_wizard(self):
         new_client = relational.Client.objects.create(
-            name='Test Client'
+            name='Test Client',
+            _fb_app_id=1
         )
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
