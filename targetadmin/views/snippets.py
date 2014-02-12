@@ -9,7 +9,6 @@ from targetshare.views import utils
 @auth_client_required
 def snippets(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    first_campaign = first_content = None
     try:
         first_campaign = client.campaigns.get(pk=request.GET.get('campaign_pk'))
     except relational.Campaign.DoesNotExist:
