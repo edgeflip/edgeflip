@@ -1,3 +1,4 @@
+import logging
 import re
 from datetime import timedelta
 from optparse import make_option
@@ -9,6 +10,9 @@ from django.db.models.loading import get_model
 from django.utils import timezone
 
 from targetshare.models.dynamo import Token
+
+
+LOG = logging.getLogger('crow')
 
 
 def get_interval(number, unit):
@@ -63,7 +67,7 @@ class Command(NoArgsCommand):
             raise CommandError("database, model and appid required.")
 
         model = get_model('targetclient', model_name)
-        tokens = model.objects.using(database).filter(deleted_at=None)
+        tokens = model.objects.using(database).filter(deleted_at=None).order_by('facebook_id')
         if since:
             interval_match = re.search(r'^(\d+)([dhms])$', since)
             if interval_match:
@@ -78,13 +82,17 @@ class Command(NoArgsCommand):
         expires = timezone.now() + timedelta(days=60)
 
         count = 0
-        with Token.items.batch_write() as batch:
-            for (count, token) in enumerate(tokens, 1):
-                batch.put_item(
-                    fbid=token.facebook_id,
-                    token=token.facebook_access_token,
-                    appid=appid,
-                    expires=expires,
-                )
+        try:
+            with Token.items.batch_write() as batch:
+                for (count, token) in enumerate(tokens.iterator(), 1):
+                    batch.put_item(
+                        fbid=token.facebook_id,
+                        token=token.facebook_access_token,
+                        appid=appid,
+                        expires=expires,
+                    )
+        except Exception as exc:
+            LOG.exception("synctokens batch write failure")
+            self.stderr.write("Batch write failure: {}".format(exc))
 
         self.stdout.write("Wrote {} tokens from {} to DDB".format(count, database))
