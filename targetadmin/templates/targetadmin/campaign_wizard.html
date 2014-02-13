@@ -1,0 +1,127 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Campaign Wizard{% endblock %}
+{% block content %}
+    <h2>Create Campaign</h2>
+    <form action="" method="post">
+        {% csrf_token %}
+        <span id="campaign-settings" class="wizard-step">
+            <h4>Campaign Settings</h4>
+            {{ campaign_form.as_p }}
+            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="filtering">Next</a>
+            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+        </span>
+        <span id="filtering" class="wizard-step" style="display: none;">
+            {{ formset.management_form }}
+            {% if formset.initial_forms %}
+                <h4>Existing Features</h4>
+                    {% for form in formset.initial_forms %}
+                        {{ form.as_p }}
+                        <hr>
+                    {% endfor %}
+            {% endif %}
+            <h4>Add Filters</h4>
+                {% for form in formset.extra_forms %}
+                {% if forloop.first %}
+                    <div class="row">
+                {% endif %}
+                    <div class="span5">
+                        <div id="new-form-{{ forloop.counter0}}" class="new-filters">
+                            <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
+                            <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>
+                            <p style="display: none;">{{ form.value }}</p>
+                            <p id="{{ form.prefix }}-value-p">{{ form.value.errors }}
+                                <label for="id_{{ form.prefix }}-value-split-1">{{ form.value.label }}</label>
+                                <input id="id_{{ form.prefix }}-value-split-1" maxlength="1024" name="{{ form.prefix }}-value-split-1" type="text" class="{{ form.prefix }}-filter-val-input">
+                                <span id="{{ form.prefix }}-value-span"></span><a id="{{ form.prefix }}-value" class="icon-plus" href="#id_{{ form.prefix }}-value" style="display:none;"></a>
+                            </p>
+                            <p>{{ form.rank.errors }}<label for="id_{{ form.prefix }}-rank">{{ form.rank.label }}</label>{{ form.rank }}</p>
+                            <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addFilterFeature({{ forloop.counter }})">Add More</span>
+                            <hr>
+                        </div>
+                    </div>
+                {% if forloop.counter|divisibleby:"2" %}
+                    </div><div class="row">
+                {% endif %}
+                {% if forloop.last %}
+                    </div>
+                {% endif %}
+                {% endfor %}
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit" data-step="campaign-settings">Previous</a>
+        </span>
+        <span id="fbobjects" class="wizard-step" style="display: none;">
+            <h4>FaceBook Object Settings</h4>
+            <div class="row">
+                <div class="span5">
+                    <p>{{ fb_obj_form.og_title.errors }}<label for="{{ fb_obj_form.og_title.id_for_label }}">{{ fb_obj_form.og_title.label}}:</label>{{ fb_obj_form.og_title }}</p>
+                    <p>{{ fb_obj_form.org_name.errors }}<label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>{{ fb_obj_form.org_name }}</p>
+                    <p>{{ fb_obj_form.msg1_pre.errors }}<label for="{{ fb_obj_form.msg1_pre.id_for_label }}">{{ fb_obj_form.msg1_pre.label}}:</label>{{ fb_obj_form.msg1_pre }}</p>
+                    <p>{{ fb_obj_form.msg1_post.errors }}<label for="{{ fb_obj_form.msg1_post.id_for_label }}">{{ fb_obj_form.msg1_post.label}}:</label>{{ fb_obj_form.msg1_post }}</p>
+                    <p>{{ fb_obj_form.msg2_pre.errors }}<label for="{{ fb_obj_form.msg2_pre.id_for_label }}">{{ fb_obj_form.msg2_pre.label}}:</label>{{ fb_obj_form.msg2_pre }}</p>
+                    <p>{{ fb_obj_form.msg2_post.errors }}<label for="{{ fb_obj_form.msg2_post.id_for_label }}">{{ fb_obj_form.msg2_post.label}}:</label>{{ fb_obj_form.msg2_post }}</p>
+                </div>
+                <div class="span7">
+                    <p>{{ fb_obj_form.og_image.errors }}<label for="{{ fb_obj_form.og_image.id_for_label }}">{{ fb_obj_form.og_image.label}}:</label>{{ fb_obj_form.og_image }}</p>
+                    <p>{{ fb_obj_form.sharing_prompt.errors }}<label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>{{ fb_obj_form.sharing_prompt}}</p>
+                    <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
+                </div>
+            </div>
+            <input type="submit" class="btn btn-large btn-primary step-submit" value="Submit">
+            <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
+        </span>
+    </form>
+{% endblock %} {% block extrascript %}
+    <script>
+        $('.step-submit').click(function(e) {
+            var step = $('#' + e.target.id).data('step');
+            $('.wizard-step').hide();
+            $('#' + step).show();
+        });
+    </script>
+    <script>
+        $('.new-filters').hide();
+        $('#new-form-0').show();
+
+        function addFilterFeature(form_number){
+            $('#new-form-' + form_number).show();
+            $('#add-more-' + (form_number - 1)).hide();
+        }
+
+        var input_dict = {};
+
+        {% for form in formset.extra_forms %}
+            input_dict['{{ form.prefix }}'] = 1;
+            $('.new-filters').on('change', '#id_{{ form.prefix }}-operator', function(e){
+                $('#{{ form.prefix }}-value').toggle();
+            });
+            $('.new-filters').on('change', '.{{ form.prefix }}-filter-val-input', function(e){
+                var filter_values = '';
+                $('.{{ form.prefix }}-filter-val-input').each(function(index){
+                    var value = $('#' + this.id).val();
+                    if (value) {
+                        if (filter_values === ''){
+                            filter_values = value;
+                        } else {
+                            filter_values += '||' + value;
+                        }
+                    }
+                });
+                if (filter_values.slice(-2) === '||'){
+                    filter_values = filter_values.substr(0, filter_values.length - 2);
+                }
+                $('#id_{{ form.prefix }}-value').val(filter_values);
+            });
+        {% endfor %}
+
+        $('.icon-plus').click(function(e){
+            var split_id = e.target.id.split('-');
+            var form_tag = split_id[0] + '-' + split_id[1];
+            input_dict[form_tag] += 1;
+            var input_count = input_dict[form_tag];
+            var new_id = 'id_' + form_tag + '-value-split-' + input_count;
+            var dest_id = '#' + e.target.id + '-span';
+            $(dest_id).append('<input id="' + new_id + '" maxlength="1024" name="' + new_id + '" type="text" class="' + form_tag + '-filter-val-input">');
+        });
+    </script>
+{% endblock %}
+

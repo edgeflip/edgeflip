@@ -233,6 +233,7 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'targetclient',
     'feed_crawler',
     'reporting',
 )
@@ -408,6 +409,8 @@ NOSE_ARGS = (
     '--cover-package=targetadmin',
     '--cover-package=targetmock',
     '--cover-package=targetshare',
+    '--cover-package=targetclient',
+    '--cover-package=reporting',
     '--exclude=^fab$',
     '--logging-level=ERROR',
     '--logging-clear-handlers',

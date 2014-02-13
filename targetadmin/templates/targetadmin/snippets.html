@@ -4,17 +4,18 @@
         function doUpdate() {
             cmpg = $('#campaign').val();
             cnt = $('#content').val();
-            url = '/admin/client/encode/{{ client.pk }}/' + cmpg + '/' + cnt + '/';
+            url = '/admin/client/{{ client.pk }}/snippet-update/' + cmpg + '/' + cnt + '/';
 
             $.ajax({
                 type: "GET",
                 url: url,
-                dataType: 'html',
+                dataType: 'json',
                 error: function(jqXHR, textStatus, errorThrown) {
                     alert('Ruh-Roh! ' + errorThrown)
                 },
                 success: function(data, textStatus, jqXHR) {
-                    $('.cmpgslug').html(data);
+                    $('.cmpgslug').html(data.slug);
+                    $('#faces_url').html(data.faces_url);
                     $('#cmpg').html(cmpg);
                     $('#cnt').html(cnt);
                 }
@@ -52,7 +53,6 @@
             </code></pre>
     {% endwith %}
     <br />
-    <br />
     <span style="text-decoration: underline;">Faces Snippet</span>:<br />
         <pre><code>
         &lt;!-- SHARE FACES --&gt;
@@ -62,9 +62,14 @@
         &lt;!-- SHARE FACES --&gt;
         </code></pre>
     <br />
-    <br />
     <span style="text-decoration: underline;">Canvas URL</span>: <br />
         <pre><code>https://apps.facebook.com/sharing-social-good/<span class="cmpgslug">{{ firstSlug }}</span>/</pre></code>
+    <br />
+    <span style="text-decoration: underline;">OAuth URL</span>: <br />
+        <pre><code>
+            https://www.facebook.com/dialog/oauth?client_id={{ client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=<span id="faces_url">{{ first_faces_url }}</span>
+        </code></pre>
+    <br />
     <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
 {% endblock %}
 {% block extrascript %}
