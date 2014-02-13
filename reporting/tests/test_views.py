@@ -9,15 +9,16 @@ class TestReportingViews(TestReportingBase):
         self.login_superuser()
         response = self.client.get(reverse('reporting:main'))
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            str(response.context['clients']),
-            str([(2L, u'secretclient'), (1L, u'reportingclient')])
+        self.assertSequenceEqual(
+            response.context['clients'],
+           [(1L, u'reportingclient'), (2L, u'secretclient')]
         )
 
     def test_main_clientuser(self):
         self.login_clientuser()
         response = self.client.get(reverse('reporting:main'))
         self.assertStatusCode(response, 200)
+        self.assertEqual(len(response.context['clients']), 1)
         self.assertEqual(response.context['clients'][0], (1, 'reportingclient'))
 
     def test_client_summary(self):
@@ -36,8 +37,12 @@ class TestReportingViews(TestReportingBase):
             'name': 'Specific Campaign',
             'root_id': 2,
         }
-        for field, value in received_data[0].iteritems():
-            self.assertEqual(value, expected_data[field])
+        self.assertEqual(received_data[0], expected_data)
+
+    def test_client_summary_403(self):
+        self.login_clientuser()
+        response = self.client.get(reverse('reporting:client_summary', args=[2]))
+        self.assertStatusCode(response, 403)
 
     def test_campaign_hourly(self):
         self.login_clientuser()
@@ -65,5 +70,4 @@ class TestReportingViews(TestReportingBase):
             'time': '2013-12-01T13:00:00+00:00',
         }]
         for received, expected in zip(received_data, expected_data):
-            for field, value in received.iteritems():
-                self.assertEqual(value, expected[field])
+            self.assertEqual(received_data, expected_data)
