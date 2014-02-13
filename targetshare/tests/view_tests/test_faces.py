@@ -91,8 +91,20 @@ class TestFacesViews(EdgeFlipViewTestCase):
             'px4_task_id': 'dummypx4taskid'
         })
         response = self.client.post(reverse('faces'), data=self.params)
-        self.assertStatusCode(response, 500)
-        self.assertEqual(response.content, 'No friends were identified for you.')
+        self.assertContains(response, 'No friends were identified for you.',
+                            status_code=500)
+
+    @patch('targetshare.views.faces.celery')
+    def test_faces_px3_fail_px4_success(self, celery_mock):
+        """If px3 fails but px4 ranking succeeds, we return an error"""
+        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=True)
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid'
+        })
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertContains(response, 'No friends were identified for you.',
+                            status_code=500)
 
     @patch('targetshare.views.faces.celery')
     def test_faces_last_call(self, celery_mock):
