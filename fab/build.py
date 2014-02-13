@@ -226,17 +226,17 @@ def setup_redshift(env=None, force='0', testdata='1'):
     Requires that a virtual environment has been created, and is either
     already activated, or specified, e.g.:
 
-        db:MY-ENV
+        redshift:MY-ENV
 
     To force initialization during development, by tearing down any existing
     database, specify "force":
 
-        db:force=[1|true|yes|y]
+        redshift:force=[1|true|yes|y]
 
     In development, a test data fixture is loaded into the database by default; disable
     this by specifying "testdata":
 
-        db:testdata=[0|false|no|n]
+        redshift:testdata=[0|false|no|n]
 
     """
     roles = fab.env.roles or ['dev']

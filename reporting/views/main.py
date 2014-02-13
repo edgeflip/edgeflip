@@ -8,13 +8,11 @@ from targetshare.models.relational import Client
 @login_required(login_url='reporting:login')
 @require_GET
 def main(request):
-    ctx = {
-        'updated': timezone.now()
-    }
-
-    clients = Client.objects
+    client_queryset = Client.objects.all()
     if not request.user.is_superuser:
-        clients = clients.filter(auth_groups__user=request.user)
-    ctx['clients'] = clients.order_by('-client_id').values_list('client_id', 'name')
+        client_queryset = client_queryset.filter(auth_groups__user=request.user)
 
-    return render(request, 'clientdash.html', ctx)
+    return render(request, 'clientdash.html', {
+        'updated': timezone.now(),
+        'clients': client_queryset.order_by('name').values_list('client_id', 'name'),
+    })
