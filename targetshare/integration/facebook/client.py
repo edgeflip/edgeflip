@@ -214,9 +214,9 @@ def urlload(url, query=(), timeout=None):
             return json.load(response)
     except IOError as exc:
         exc_type, exc_value, trace = sys.exc_info()
-        LOG.exception("Error opening URL %s %r", url, getattr(exc, 'reason', ''))
+        LOG.warning("Error opening URL %s %r", url, getattr(exc, 'reason', ''), exc_info=True)
         try:
-            LOG.error("Returned error message was: %s", exc.read())
+            LOG.warning("Returned error message was: %s", exc.read())
         except Exception:
             pass
         raise exc_type, exc_value, trace
