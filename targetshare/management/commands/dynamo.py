@@ -1,4 +1,3 @@
-import logging
 import sys
 from optparse import make_option
 
@@ -6,6 +5,7 @@ from django.core.management.base import CommandError, LabelCommand
 from django.db import connection
 
 from targetshare.models import dynamo
+from targetshare.models.dynamo.base import db
 
 
 class Command(LabelCommand):
@@ -29,33 +29,33 @@ class Command(LabelCommand):
         ),
     )
 
-    def handle_label(self, label, **options):
-        logger = logging.getLogger('mysql_to_dynamo')
-
+    def handle_label(self, label, read_throughput, write_throughput, **options):
         if label == 'create':
-            throughput = {
-                'read': options.get('read_throughput') or 5,
-                'write': options.get('write_throughput') or 5,
-            }
-            dynamo.utils.database.create_all_tables(
+            db.build(
                 timeout=(60 * 3), # 3 minutes per table
-                console=sys.stdout,
-                throughput=throughput,
+                stdout=sys.stdout,
+                throughput={
+                    'read': read_throughput,
+                    'write': write_throughput,
+                },
             )
             self.stdout.write("Created all Dynamo tables. "
-                              "This make take several minutes to take effect.")
+                              "This make require several minutes to take effect.")
+
         elif label == 'status':
-            dynamo.utils.database.status()
+            for (table_name, status) in db.status():
+                self.stdout.write("{}: {}".format(table_name, status))
+
         elif label == 'destroy':
-            done = dynamo.utils.database.drop_all_tables(confirm=True)
-            if done:
+            if db.destroy(confirm=True):
                 self.stdout.write("Dropped all Dynamo tables. "
-                                  "This make take several minutes to take effect.")
+                                  "This make require several minutes to take effect.")
+
         elif label == 'migrate':
             curs = connection.cursor()
 
             # TOKENS
-            logger.debug('Loading tokens')
+            self.stdout.write('Loading tokens')
             curs.execute("""SELECT fbid, appid, token,
                                 unix_timestamp(expires) as expires,
                                 unix_timestamp(updated) as updated
@@ -67,10 +67,10 @@ class Command(LabelCommand):
                 for row in curs:
                     batch.put_item(data=dict(zip(names, row)))
 
-            logger.debug('Finished tokens')
+            self.stdout.write('Finished tokens')
 
             # USERS
-            logger.debug('Loading users')
+            self.stdout.write('Loading users')
             curs.execute("""SELECT fbid, fname, lname, email, gender,
                                 unix_timestamp(birthday) as birthday,
                                 city, state,
@@ -82,10 +82,10 @@ class Command(LabelCommand):
                 for row in curs:
                     batch.put_item(data=dict(zip(names, row)))
 
-            logger.debug('Finished users')
+            self.stdout.write('Finished users')
 
             # EDGES
-            logger.debug('Loading edges')
+            self.stdout.write('Loading edges')
 
             curs.execute("""SELECT fbid_source, fbid_target, post_likes, post_comms,
                                 stat_likes, stat_comms, wall_posts, wall_comms,
@@ -102,6 +102,7 @@ class Command(LabelCommand):
                                             'fbid_target': row[1],
                                             'updated': row[-1]})
 
-            logger.debug('Finished edges')
+            self.stdout.write('Finished edges')
+
         else:
             raise CommandError("No such subcommand '{}'.".format(label))
