@@ -4,7 +4,7 @@
         function doUpdate() {
             var cmpg = $('#id_campaign').val();
             var cnt = $('#id_content').val();
-            var url = '/admin/client/{{ client.pk }}/snippet-update/' + cmpg + '/' + cnt + '/';
+            var url = "{% url 'snippet-update' client.pk %}";
 
             $.ajax({
                 type: "GET",
@@ -20,8 +20,8 @@
                 success: function(data, textStatus, jqXHR) {
                     $('.cmpgslug').html(data.slug);
                     $('#faces_url').html(data.faces_url);
-                    $('#cmpg').html(cmpg);
-                    $('#cnt').html(cnt);
+                    $('.campaign-pk').html(cmpg);
+                    $('.content-pk').html(cnt);
                 }
             });
         }
