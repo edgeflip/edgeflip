@@ -25,6 +25,8 @@ class TestSnippetViews(TestAdminBase):
         assert response.context['client']
         assert response.context['first_campaign']
         assert response.context['first_content']
+        assert response.context['first_slug']
+        assert response.context['first_faces_url']
 
     def test_specified_snippets(self):
         ''' Test that campaign_pk and content_pk GET args are respected '''
@@ -41,9 +43,8 @@ class TestSnippetViews(TestAdminBase):
     def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
         response = self.client.get(
-            reverse('snippet-update', args=[
-                self.test_client.pk, self.campaign.pk, self.content.pk
-            ])
+            reverse('snippet-update', args=[self.test_client.pk]),
+            {'campaign': self.campaign.pk, 'content': self.content.pk},
         )
         self.assertStatusCode(response, 200)
         json_data = json.loads(response.content)

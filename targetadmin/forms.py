@@ -271,12 +271,18 @@ class FBObjectWizardForm(forms.ModelForm):
         )
 
 
+class SnippetModelChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return u'{} - {}'.format(obj.pk, obj.name)
+
+
 class SnippetForm(forms.Form):
 
-    campaign = forms.ModelChoiceField(
+    campaign = SnippetModelChoiceField(
         queryset=relational.Campaign.objects.none()
     )
-    content = forms.ModelChoiceField(
+    content = SnippetModelChoiceField(
         queryset=relational.ClientContent.objects.none()
     )
 
