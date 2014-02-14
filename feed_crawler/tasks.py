@@ -257,9 +257,8 @@ def back_fill_crawl(self, sync_map):
         # this job as back filled so that we can give it another shot at some
         # later point
         full_data = json.loads(s3_key.get_contents_as_string())
-        existing_data = full_data.get('data', [])
+        existing_data = full_data.setdefault('data', [])
         existing_data.extend(data['data'])
-        full_data['data'] = existing_data
         full_data['updated'] = to_epoch(timezone.now())
         s3_key.set_contents_from_string(json.dumps(full_data))
         sync_map.back_filled = True
