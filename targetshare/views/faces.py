@@ -14,7 +14,7 @@ from django.views.decorators.csrf import csrf_exempt
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
-from targetshare.utils import LazyList
+from targetshare.models.dynamo.base.utils import LazyList
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)

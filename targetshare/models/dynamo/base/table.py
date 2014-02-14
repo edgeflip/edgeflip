@@ -6,11 +6,9 @@ Models definition and interactions with a table in DynamoDB.
 import re
 
 from boto.dynamodb2 import table, items
-from django.conf import settings
 
-from targetshare import utils
-
-from . import db
+from . import db, utils
+from .conf import settings
 from .results import BatchGetResultSet
 
 
@@ -72,12 +70,12 @@ inherits_docs = utils.doc_inheritor(table.Table)
 
 
 def get_short_name(table_name):
-    return re.sub(r'^{}\.'.format(settings.DYNAMO.prefix), '', table_name)
+    return re.sub(r'^{}\.'.format(settings.PREFIX), '', table_name)
 
 
 def get_full_name(table_name):
     short_name = get_short_name(table_name)
-    return '.'.join(part for part in (settings.DYNAMO.prefix, short_name) if part)
+    return '.'.join(part for part in (settings.PREFIX, short_name) if part)
 
 
 class Table(table.Table):

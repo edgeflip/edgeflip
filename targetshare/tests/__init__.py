@@ -6,14 +6,13 @@ import urllib
 
 import us
 from django.core.urlresolvers import reverse
-from django.conf import settings
 from django.test import TestCase
 from django.utils import timezone
 from mock import Mock, patch
-from pymlconf import ConfigDict
 
 from targetshare import models
-from targetshare.models.dynamo import utils
+from targetshare.models.dynamo.base import db
+from targetshare.models.dynamo.base.conf import settings as faraday_settings
 from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
 
 
@@ -25,18 +24,19 @@ class EdgeFlipTestCase(TestCase):
     @classmethod
     def setUpClass(cls):
         cls.cls_patches = [
+            patch('django.conf.settings.CELERY_ALWAYS_EAGER', True),
             patch.multiple(
-                settings,
-                CELERY_ALWAYS_EAGER=True,
-                DYNAMO=ConfigDict({'prefix': 'test', 'engine': 'mock', 'port': 4444}),
-            )
+                faraday_settings,
+                PREFIX='test',
+                MOCK='localhost:4444',
+            ),
         ]
         # Start patches:
         for patch_ in cls.cls_patches:
             patch_.start()
 
         # In case a bad test class doesn't clean up after itself:
-        utils.database.drop_all_tables()
+        db.destroy(confirm=False)
 
     @classmethod
     def tearDownClass(cls):
@@ -49,10 +49,10 @@ class EdgeFlipTestCase(TestCase):
             # targetshare dynamo tables are installed without an app prefix
             # (ignore any that have one):
             if '.' not in signature:
-                utils.database.create_table(item.items.table)
+                db.create_table(item.items.table)
 
     def tearDown(self):
-        utils.database.drop_all_tables()
+        db.destroy(confirm=False)
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):

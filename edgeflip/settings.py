@@ -477,6 +477,9 @@ if ENV in ('staging', 'production'):
     }
     LOGGING['loggers']['crow']['handlers'].append('sentry')
 
+# Faraday settings #
+FARADAY.setdefault('DEBUG', DEBUG)
+
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[
     # Repo overrides file shouldn't have anything (committed), but check

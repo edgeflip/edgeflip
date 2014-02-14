@@ -9,7 +9,7 @@ from django.utils import timezone
 
 from targetshare.tests import EdgeFlipTestCase, crawl_mock
 from targetshare import models
-from targetshare.models.dynamo.base.utils import to_epoch
+from targetshare.models.dynamo.base.utils import epoch
 
 from feed_crawler import tasks, utils
 
@@ -116,11 +116,11 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_back_fill_crawl(self, bucket_mock, conn_mock):
-        the_past = to_epoch(timezone.now() - timedelta(days=365))
+        the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
-            incremental_epoch=to_epoch(timezone.now()),
+            incremental_epoch=epoch.from_date(timezone.now()),
             status=models.FBSyncMap.BACK_FILL, bucket='test_bucket_0'
         )
         existing_key = Mock()
@@ -139,11 +139,11 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_incremental_crawl(self, bucket_mock, conn_mock):
-        the_past = to_epoch(timezone.now() - timedelta(days=365))
+        the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         # Test runs in under a second typically, so we need to be slightly
         # behind present time, so that we can see fbm.incremental_epoch
         # get updated
-        present = to_epoch(timezone.now() - timedelta(seconds=30))
+        present = epoch.from_date(timezone.now() - timedelta(seconds=30))
         fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
@@ -165,11 +165,11 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')
     def test_crawl_comments_and_likes(self, bucket_mock, conn_mock, fb_mock):
-        the_past = to_epoch(timezone.now() - timedelta(days=365))
+        the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=the_past,
-            incremental_epoch=to_epoch(timezone.now()),
+            incremental_epoch=epoch.from_date(timezone.now()),
             status=models.FBSyncMap.COMMENT_CRAWL, bucket='test_bucket_0'
         )
         fb_mock.side_effect = [

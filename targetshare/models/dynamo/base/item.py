@@ -11,6 +11,7 @@ from . import loading
 from . import manager as managers
 from . import types
 from . import utils
+from .utils import epoch
 from .fields import ItemField, ItemLinkField, SingleItemLinkField
 from .table import Table
 
@@ -529,7 +530,7 @@ class Item(baseitems.Item):
     def prepare_full(self):
         if type(self).update_field:
             # Always set "updated" time:
-            self[type(self).update_field] = utils.now()
+            self[type(self).update_field] = epoch.utcnow()
         return super(Item, self).prepare_full()
 
     def _remove_null_values(self):
@@ -544,7 +545,7 @@ class Item(baseitems.Item):
         if self.needs_save():
             if type(self).update_field:
                 # Always set updated time:
-                self[type(self).update_field] = utils.now()
+                self[type(self).update_field] = epoch.utcnow()
 
             # Changing a value to something NULL-y has special meaning for
             # partial_save() -- it is treated as a deletion directive.

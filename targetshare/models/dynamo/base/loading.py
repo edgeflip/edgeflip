@@ -1,10 +1,17 @@
-from collections import defaultdict
+import collections
 
-from django.dispatch import Signal
+import dispatch
+
+from . import conf, utils
 
 
-# No need to depend on Django, but as long as we have access to
-# their signal/receiver implementation...:
+class Signal(dispatch.Signal):
+
+    @utils.class_property
+    def debug(_cls):
+        return conf.settings.DEBUG
+
+
 item_declared = Signal(providing_args=["item"])
 
 
@@ -15,7 +22,7 @@ def populate_cache(sender, **_kws):
     cache[sender._meta.signed] = sender
 
 
-pending_links = defaultdict(set)
+pending_links = collections.defaultdict(set)
 
 
 def resolve_links(sender, **_kws):

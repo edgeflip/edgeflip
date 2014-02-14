@@ -17,7 +17,7 @@ from boto.dynamodb2.types import (
     BINARY_SET,
 )
 
-from . import utils
+from .utils import epoch
 
 
 # Exotic types to ease (de)serialization #
@@ -93,7 +93,7 @@ class DateType(DataType):
         if is_null(value) or isinstance(value, datetime.date):
             return value
         elif basetypes.is_num(value):
-            return utils.epoch_to_date(value)
+            return epoch.to_date(value)
         raise DataValidationError(
             "Value is not an appropriate date specification: {!r}".format(value))
 
@@ -106,7 +106,7 @@ class DateTimeType(DataType):
         if is_null(value) or isinstance(value, datetime.datetime):
             return value
         elif basetypes.is_num(value):
-            return utils.epoch_to_datetime(value)
+            return epoch.to_datetime(value)
         raise DataValidationError(
             "Value is not an appropriate datetime specification: {!r}".format(value))
 
@@ -274,7 +274,7 @@ class Dynamizer(basetypes.Dynamizer):
 
     def _encode_n(self, attr):
         if isinstance(attr, datetime.date):
-            attr = utils.to_epoch(attr)
+            attr = epoch.from_date(attr)
         return super(Dynamizer, self)._encode_n(attr)
 
     def _encode_s(self, attr):

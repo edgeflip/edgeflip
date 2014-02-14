@@ -2,8 +2,6 @@ from functools import wraps
 
 from boto.dynamodb2 import fields
 
-from targetshare.utils import LazyList
-
 from .base import (
     Item,
     ItemField,
@@ -13,6 +11,7 @@ from .base import (
     RangeKeyField,
     NUMBER,
 )
+from .base.utils import LazyList
 
 
 class IncomingEdge(Item):

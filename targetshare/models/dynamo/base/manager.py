@@ -6,8 +6,7 @@ Item classes may extend ItemManager with class-specific methods, override the de
 manager and/or specify alternative managers. (See `Item`.)
 
 """
-from targetshare import utils
-
+from . import utils
 from .table import Table
 from .request import QueryRequest, Request
 

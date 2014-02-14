@@ -1,8 +1,6 @@
 import collections
 import logging
 
-from django.utils import timezone
-
 from targetshare import utils
 
 from .base import (
@@ -15,7 +13,7 @@ from .base import (
     DATETIME,
     STRING_SET,
 )
-from .base.item import cached_property
+from .base.utils import cached_property, epoch
 from .base.types import DOUBLE_NEWLINE
 
 from . import PostInteractions
@@ -65,7 +63,7 @@ class User(Item):
             # user has no birthday defined
             return None
 
-        today = timezone.now().date()
+        today = epoch.utcnow().date()
 
         try:
             birthday = born.replace(year=today.year)

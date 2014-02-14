@@ -1,18 +1,12 @@
 import collections
 import functools
-import logging
 
 from boto.dynamodb2 import fields as basefields
 
-from targetshare import utils
-
-from . import loading
+from . import loading, utils
 from .table import Table
 from .types import AbstractSetType
-from .utils import cached_property
 
-
-LOG = logging.getLogger('boto')
 
 inherits_docs = utils.doc_inheritor(Table)
 
@@ -204,7 +198,7 @@ class QueryRequest(BaseRequest, dict):
         filters = self.filter(**kws)
         return self.table.query_count(*args, **filters)
 
-    @cached_property
+    @utils.cached_property
     def _hash_keys(self):
         return {field.name for field in self.table.schema
                 if isinstance(field, basefields.HashKey)}
@@ -216,7 +210,7 @@ class QueryRequest(BaseRequest, dict):
     def all(self):
         if 'index' in self or any(key in self._hash_keys for key in self._opless):
             return self.query()
-        LOG.warning('Performed implicit scan %r', self)
+        utils.LOG.warning('Performed implicit scan %r', self)
         return self.scan()
 
     def filter_get(self, **kws):

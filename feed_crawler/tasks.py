@@ -15,15 +15,15 @@ from django.utils import timezone
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
-from targetshare.models.dynamo.base.utils import to_epoch
+from targetshare.models.dynamo.base.utils import epoch
 from feed_crawler import utils
 
 logger = get_task_logger(__name__)
 rvn_logger = logging.getLogger('crow')
 DELAY_INCREMENT = 300
 S3_CONN = utils.S3Manager(
-    aws_access_key_id=settings.AWS.AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=settings.AWS.AWS_SECRET_ACCESS_KEY
+    aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )
 
 
@@ -184,8 +184,8 @@ def initial_crawl(self, sync_map):
     sync_map.save_status(models.FBSyncMap.INITIAL_CRAWL)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
-    past_epoch = to_epoch(timezone.now() - timedelta(days=365))
-    now_epoch = to_epoch(timezone.now())
+    past_epoch = epoch.from_date(timezone.now() - timedelta(days=365))
+    now_epoch = epoch.from_date(timezone.now())
     try:
         data = facebook.client.urlload(
             'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
@@ -247,7 +247,7 @@ def back_fill_crawl(self, sync_map):
 
     full_data = json.loads(s3_key.get_contents_as_string())
     full_data['data'].extend(data['data'])
-    full_data['updated'] = to_epoch(timezone.now())
+    full_data['updated'] = epoch.from_date(timezone.now())
     s3_key.set_contents_from_string(json.dumps(full_data))
     sync_map.back_filled = True
     sync_map.save()
@@ -312,9 +312,9 @@ def incremental_crawl(self, sync_map):
 
     full_data = json.loads(s3_key.get_contents_as_string())
     data['data'].extend(full_data['data'])
-    data['updated'] = to_epoch(timezone.now())
+    data['updated'] = epoch.from_date(timezone.now())
     s3_key.set_contents_from_string(json.dumps(data))
-    sync_map.incremental_epoch = to_epoch(timezone.now())
+    sync_map.incremental_epoch = epoch.from_date(timezone.now())
     sync_map.save()
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     crawl_comments_and_likes.apply_async(

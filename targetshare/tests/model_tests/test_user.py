@@ -4,7 +4,7 @@ from decimal import Decimal
 import mock
 
 from targetshare import models, utils
-from targetshare.models.dynamo.base.item import cached_property
+from targetshare.models.dynamo.base.utils import cached_property
 
 from .. import EdgeFlipTestCase
 

@@ -11,6 +11,10 @@ from . import conf, loading, utils
 
 ### connection ###
 
+def _settings_or_environ(key):
+    return getattr(conf.settings, key) or os.environ.get(key)
+
+
 def _make_dynamo_aws():
     """Make a connection to dynamo, based on configuration.
 
@@ -19,14 +23,8 @@ def _make_dynamo_aws():
     :rtype: dynamo connection object
 
     """
-    access_id = getattr(conf.settings, 'AWS_ACCESS_KEY_ID', None)
-    if not access_id:
-        access_id = os.environ.get('AWS_ACCESS_KEY_ID')
-
-    secret = getattr(conf.settings, 'AWS_SECRET_ACCESS_KEY', None)
-    if not secret:
-        secret = os.environ.get('AWS_SECRET_ACCESS_KEY')
-
+    access_id = _settings_or_environ('AWS_ACCESS_KEY_ID')
+    secret = _settings_or_environ('AWS_SECRET_ACCESS_KEY')
     return DynamoDBConnection(aws_access_key_id=access_id,
                               aws_secret_access_key=secret)
 
@@ -61,7 +59,7 @@ def _make_dynamo():
     For internal use.
 
     """
-    engine = conf.settings.engine
+    engine = conf.settings.ENGINE
 
     if engine == 'aws':
         return _make_dynamo_aws()
@@ -99,7 +97,7 @@ connection = DynamoDBConnectionProxy()
 
 
 def _tables():
-    return (item.items.table for item in loading.cache)
+    return (item.items.table for item in loading.cache.itervalues())
 
 
 def _named_tables():
