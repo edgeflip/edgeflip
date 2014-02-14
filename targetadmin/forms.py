@@ -269,3 +269,18 @@ class FBObjectWizardForm(forms.ModelForm):
             'fb_object', 'og_action', 'og_type', 'page_title',
             'url_slug', 'end_dt'
         )
+
+
+class SnippetForm(forms.Form):
+
+    campaign = forms.ModelChoiceField(
+        queryset=relational.Campaign.objects.none()
+    )
+    content = forms.ModelChoiceField(
+        queryset=relational.ClientContent.objects.none()
+    )
+
+    def __init__(self, client=None, *args, **kwargs):
+        super(SnippetForm, self).__init__(*args, **kwargs)
+        self.fields['campaign'].queryset = client.campaigns.all()
+        self.fields['content'].queryset = client.clientcontent.all()
