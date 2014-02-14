@@ -247,7 +247,7 @@ def back_fill_crawl(self, sync_map):
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
 
     next_url = data.get('paging', {}).get('next')
-    if next_url:
+    if next_url and 'data' in data:
         result = facebook.client.exhaust_pagination(next_url)
         data['data'].extend(result)
 
@@ -257,7 +257,8 @@ def back_fill_crawl(self, sync_map):
         # this job as back filled so that we can give it another shot at some
         # later point
         full_data = json.loads(s3_key.get_contents_as_string())
-        full_data['data'].extend(data['data'])
+        existing_data = full_data.setdefault('data', [])
+        existing_data.extend(data['data'])
         full_data['updated'] = to_epoch(timezone.now())
         s3_key.set_contents_from_string(json.dumps(full_data))
         sync_map.back_filled = True
@@ -276,6 +277,10 @@ def crawl_comments_and_likes(self, sync_map):
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     feed = json.loads(s3_key.get_contents_as_string())
+    if 'data' not in feed:
+        # bogus/error'd out feed
+        return
+
     for item in feed['data']:
         next_url = item.get('comments', {}).get('paging', {}).get('next')
         if next_url:
