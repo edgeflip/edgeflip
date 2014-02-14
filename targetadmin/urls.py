@@ -77,18 +77,19 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-detail'),
     url(r'^client/(?P<client_pk>\d+)/campaign/new/$', 'campaign_views.campaign_create',
         name='campaign-new'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
+        name='campaign-wizard'),
 )
 
 urlpatterns += patterns('targetadmin.views',
     # Snippet URLs
     url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
         name='snippets'),
-    url(r'^client/encode/(?P<client_pk>\d+)/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/$',
-        'snippets.encode_campaign',
-        name='encode')
+    url(r'^client/(?P<client_pk>\d+)/snippet-update/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/$',
+        'snippets.snippet_update',
+        name='snippet-update')
 )
 
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
 )
-

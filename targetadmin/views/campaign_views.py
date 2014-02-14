@@ -1,4 +1,7 @@
 from django.shortcuts import get_object_or_404, redirect, render
+from django.forms.models import modelformset_factory
+from django.utils import timezone
+from django.core.urlresolvers import reverse
 
 from targetadmin import utils
 from targetadmin import forms
@@ -80,4 +83,139 @@ def campaign_create(request, client_pk):
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
+    })
+
+
+@utils.auth_client_required
+def campaign_wizard(request, client_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    extra_forms = 5
+    ff_set = modelformset_factory(
+        relational.FilterFeature,
+        form=forms.FilterFeatureForm,
+        extra=extra_forms,
+    )
+    formset = ff_set(queryset=relational.FilterFeature.objects.none())
+    fb_obj_form = forms.FBObjectWizardForm()
+    campaign_form = forms.CampaignWizardForm()
+    if request.method == 'POST':
+        fb_obj_form = forms.FBObjectWizardForm(request.POST)
+        campaign_form = forms.CampaignWizardForm(request.POST)
+        formset = ff_set(
+            request.POST,
+            queryset=relational.FilterFeature.objects.none()
+        )
+        if formset.is_valid() and fb_obj_form.is_valid() and campaign_form.is_valid():
+            features = formset.save()
+            campaign_name = campaign_form.cleaned_data['name']
+            root_filter = relational.Filter.objects.create(
+                name='{} {} {} Root Filter'.format(
+                    client.name,
+                    campaign_name,
+                    ','.join([x.feature for x in features])
+                ),
+                client=client
+            )
+            for feature in features:
+                feature.filter = root_filter
+                feature.save()
+
+            root_choiceset = relational.ChoiceSet.objects.create(
+                name='{} {} Root ChoiceSet'.format(
+                    client.name,
+                    campaign_name
+                ),
+                client=client
+            )
+            root_choiceset.choicesetfilters.create(
+                filter=root_filter)
+
+            choice_sets = {0: root_choiceset}
+            if len(features) > 1:
+                for data in sorted(formset.cleaned_data,
+                                   key=lambda x: x.get('rank', 100)):
+                    if not data:
+                        continue
+
+                    cs = choice_sets.get(data['rank'])
+                    if not cs:
+                        single_filter = relational.Filter.objects.create(
+                            name='{} {} {}'.format(
+                                client.name, campaign_name, feature.feature),
+                            client=client
+                        )
+                        cs = relational.ChoiceSet.objects.create(
+                            client=client,
+                            name=campaign_name
+                        )
+                        relational.ChoiceSetFilter.objects.create(
+                            filter=single_filter,
+                            choice_set=cs
+                        )
+                        choice_sets[data['rank']] = cs
+                    feature = relational.FilterFeature.objects.create(
+                        operator=data.get('operator'),
+                        feature=data.get('feature'),
+                        value=data.get('value'),
+                        filter=cs.choicesetfilters.get().filter,
+                    )
+
+            fb_obj = relational.FBObject.objects.create(
+                name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
+                client=client
+            )
+            fb_attr = fb_obj_form.save()
+            fb_attr.fb_object = fb_obj
+            fb_attr.save()
+
+            content = relational.ClientContent.objects.create(
+                url=campaign_form.cleaned_data.get('content_url'),
+                client=client,
+                name='{} {}'.format(client.name, campaign_name)
+            )
+
+            # Global Filter
+            empty_filters = client.filters.filter(filterfeatures__isnull=True)
+            if empty_filters.exists():
+                global_filter = empty_filters[0]
+            else:
+                global_filter = client.filters.create(
+                    name='{} empty global filter'.format(client.name))
+
+            # Button Style
+            if client.buttonstyles.exists():
+                button_style = client.buttonstyles.all()[0]
+            else:
+                button_style = client.buttonstyles.create()
+
+            last_camp = None
+            for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
+                camp = relational.Campaign.objects.create(
+                    client=client,
+                    name=campaign_name
+                )
+                camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
+                camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
+                camp.campaignchoicesets.create(choice_set=cs, rand_cdf=1.0)
+                camp.campaignproperties.create(
+                    client_faces_url=campaign_form.cleaned_data['faces_url'],
+                    client_thanks_url=campaign_form.cleaned_data['thanks_url'],
+                    client_error_url=campaign_form.cleaned_data['error_url'],
+                    fallback_campaign=last_camp,
+                )
+                camp.campaignfbobjects.create(
+                    fb_object=fb_obj,
+                    rand_cdf=1.0
+                )
+                last_camp = camp
+            return redirect('{}?campaign_pk={}&content_pk={}'.format(
+                reverse('snippets', args=[client.pk]),
+                last_camp.pk,
+                content.pk
+            ))
+    return render(request, 'targetadmin/campaign_wizard.html', {
+        'client': client,
+        'formset': formset,
+        'fb_obj_form': fb_obj_form,
+        'campaign_form': campaign_form,
     })

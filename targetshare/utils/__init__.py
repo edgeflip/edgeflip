@@ -9,6 +9,7 @@ import urllib
 from Crypto.Cipher import DES
 
 from django.conf import settings
+from django.core.urlresolvers import reverse
 
 
 logger = logging.getLogger(__name__)
@@ -221,3 +222,12 @@ partition_edges = functools.partial(partition,
                                     key=lambda edge: edge.score,
                                     min_value=0,
                                     max_value=1)
+
+
+def incoming_redirect(is_secure, host, campaign_id, content_id):
+    return urllib.quote_plus('{}{}{}'.format(
+        'https://' if is_secure else 'http://',
+        host,
+        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (
+            campaign_id, content_id))])
+    ))

@@ -127,8 +127,10 @@ def faces(request):
             )
             if px4_edges_result.filtered is None:
                 # px4 filtering didn't happen, so use px3
-                if px4_edges_result.ranked is None:
-                    # px4 ranking didn't happen either
+                if px4_edges_result.ranked is None or px3_edges_result.filtered is None:
+                    # px4 ranking didn't happen either;
+                    # or, it did but we have no px3 filtering result to rerank
+                    # (in which case we can error out later):
                     edges_result = px3_edges_result
                 else:
                     # Re-rank px3 edges by px4 ranking:

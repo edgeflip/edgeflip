@@ -203,6 +203,7 @@ MIDDLEWARE_CLASSES = (
 
     'targetshare.middleware.VisitorMiddleware',
     'targetshare.middleware.CookieVerificationMiddleware',
+    'targetshare.middleware.P3PMiddleware',
 )
 
 ROOT_URLCONF = 'edgeflip.urls'
@@ -232,7 +233,9 @@ INSTALLED_APPS = (
     'targetshare',
     'targetadmin',
     'targetmock',
+    'targetclient',
     'feed_crawler',
+    'reporting',
 )
 
 if ENV in ('staging', 'production'):
@@ -405,6 +408,8 @@ NOSE_ARGS = (
     '--cover-package=targetadmin',
     '--cover-package=targetmock',
     '--cover-package=targetshare',
+    '--cover-package=targetclient',
+    '--cover-package=reporting',
     '--exclude=^fab$',
     '--logging-level=ERROR',
     '--logging-clear-handlers',
@@ -454,6 +459,11 @@ LOGGING = {
         'handlers': ['console', 'syslog'],
     },
     'loggers': {
+        'django.db.backends': {
+            'level': 'DEBUG',
+            'handlers': ['null'],
+            'propagate': False,
+        },
         'django.request': {
             'level': 'ERROR',
             'handlers': ['mail_admins'],
@@ -475,7 +485,7 @@ if ENV in ('staging', 'production'):
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
         'formatter': 'verbose',
     }
-    LOGGING['loggers']['crow']['handlers'].append('sentry')
+    LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
 
 # Faraday settings #
 FARADAY.setdefault('DEBUG', DEBUG)

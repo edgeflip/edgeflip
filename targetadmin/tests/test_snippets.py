@@ -1,7 +1,10 @@
+import json
+
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
-from targetshare.utils import encodeDES
+from targetshare import utils
+from targetshare.models import relational
 
 
 class TestSnippetViews(TestAdminBase):
@@ -23,13 +26,33 @@ class TestSnippetViews(TestAdminBase):
         assert response.context['first_campaign']
         assert response.context['first_content']
 
-    def test_encode_campaign(self):
+    def test_specified_snippets(self):
+        ''' Test that campaign_pk and content_pk GET args are respected '''
+        campaign = relational.Campaign.objects.get(pk=2)
+        content = relational.ClientContent.objects.get(pk=2)
+        response = self.client.get('{}?campaign_pk={}&content_pk={}'.format(
+            reverse('snippets', args=[self.test_client.pk]),
+            campaign.pk,
+            content.pk,
+        ))
+        self.assertEqual(response.context['first_campaign'], campaign)
+        self.assertEqual(response.context['first_content'], content)
+
+    def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
         response = self.client.get(
-            reverse('encode', args=[self.test_client.pk, self.campaign.pk, self.content.pk])
+            reverse('snippet-update', args=[
+                self.test_client.pk, self.campaign.pk, self.content.pk
+            ])
         )
         self.assertStatusCode(response, 200)
+        json_data = json.loads(response.content)
         self.assertEqual(
-            response.content,
-            encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+            json_data['slug'],
+            utils.encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+        )
+        self.assertEqual(
+            json_data['faces_url'],
+            utils.incoming_redirect(False, 'testserver',
+                                    self.campaign.pk, self.content.pk)
         )
