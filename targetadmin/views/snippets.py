@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404, render
 
+from targetadmin import forms
 from targetadmin.utils import auth_client_required
 from targetshare.models import relational
 from targetshare.utils import encodeDES, incoming_redirect
@@ -25,15 +26,27 @@ def snippets(request, client_pk):
         except IndexError:
             first_content = None
 
+    first_slug = first_faces_url = None
+    snippet_form = forms.SnippetForm(client=client)
     if first_campaign and first_content:
         first_faces_url = incoming_redirect(
             request.is_secure(), request.get_host(),
             first_campaign.pk, first_content.pk)
+
+        first_slug = encodeDES('{}/{}'.format(
+            first_campaign.pk, first_content.pk))
+
+        snippet_form = forms.SnippetForm(client=client, initial={
+            'campaign': first_campaign,
+            'content': first_content
+        })
     return render(request, 'targetadmin/snippets.html', {
         'client': client,
         'first_campaign': first_campaign,
         'first_content': first_content,
+        'first_slug': first_slug,
         'first_faces_url': first_faces_url,
+        'snippet_form': snippet_form,
     })
 
 
