@@ -21,13 +21,11 @@
 
 {% block body %}
 
-{% if request.user.is_superuser %}
- <select id="clientpicker" onchange="mksummary()">
- {% for client_id, name in clients %}
-   <option value="{{client_id}}" >{{name}}</option>
- {% endfor %}
- </select>
-{% endif %}
+<select id="clientpicker" onchange="mksummary()">
+{% for client_id, name in clients %}
+<option value="{{client_id}}" >{{name}}</option>
+{% endfor %}
+</select>
 
 
 

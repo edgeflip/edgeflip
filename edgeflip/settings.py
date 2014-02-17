@@ -405,6 +405,7 @@ NOSE_ARGS = (
     '--cover-erase',
     '--cover-html',
     '--cover-package=feed_crawler',
+    '--cover-package=reporting',
     '--cover-package=targetadmin',
     '--cover-package=targetmock',
     '--cover-package=targetshare',
@@ -486,6 +487,8 @@ if ENV in ('staging', 'production'):
         'formatter': 'verbose',
     }
     LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
+
+DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[

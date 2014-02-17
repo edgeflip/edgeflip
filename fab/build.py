@@ -219,6 +219,66 @@ def setup_db(env=None, force='0', testdata='1'):
         manage('loaddata', ['test_data'], env=env)
 
 
+@fab.task(name='redshift')
+def setup_redshift(env=None, force='0', testdata='1'):
+    """Initialize a redshift (postgresql) database
+
+    Requires that a virtual environment has been created, and is either
+    already activated, or specified, e.g.:
+
+        redshift:MY-ENV
+
+    To force initialization during development, by tearing down any existing
+    database, specify "force":
+
+        redshift:force=[1|true|yes|y]
+
+    In development, a test data fixture is loaded into the database by default; disable
+    this by specifying "testdata":
+
+        redshift:testdata=[0|false|no|n]
+
+    """
+    roles = fab.env.roles or ['dev']
+    sql_path = join(BASEDIR, 'reporting', 'sql', 'redshift')
+    sql_context = {'DATABASE': 'redshift', 'USER': 'redshift', 'PASSWORD': 'root'}
+
+    # Database teardown
+    if 'dev' in roles:
+        if true(force):
+            teardown_commands = open(join(sql_path, 'teardown.sql')).read().split(';')
+            for command in teardown_commands:
+                l('sudo -u postgres psql --command="{}"'.format(
+                    command.strip().format(**sql_context),
+                ))
+
+        # Database initialization
+        role_exists = l(
+            'sudo -u postgres psql -tAc "select 1 from pg_roles where rolname=\'{USER}\'"'.format(**sql_context),
+            capture=True,
+        )
+        if not role_exists:
+            l('sudo -u postgres psql -c "create role {USER} with nosuperuser createdb nocreaterole login password \'{PASSWORD}\';"'.format(**sql_context))
+
+        database_exists = l(
+            'sudo -u postgres psql -tAc  "select 1 from pg_database where datname=\'{DATABASE}\'"'.format(**sql_context),
+            capture=True
+        )
+        if not database_exists:
+            l('sudo -u postgres psql -c "create database {DATABASE} with owner={USER} template=template0 encoding=\'utf-8\'"'.format(**sql_context))
+
+        # Application schema initialization
+        manage('syncdb', env=env, keyed={
+            'database': sql_context['DATABASE'],
+        })
+
+        # Load test data:
+        if true(testdata):
+            manage('loaddata', ['redshift_testdata'], env=env, keyed={
+                'database': sql_context['DATABASE'],    
+            })
+
+
 @fab.task
 def collect_static(noinput='false', clear='false'):
     """Collects static files from installed apps to project's static file path
