@@ -2,22 +2,26 @@
 {% block extrahead %}
     <script>
         function doUpdate() {
-            cmpg = $('#campaign').val();
-            cnt = $('#content').val();
-            url = '/admin/client/{{ client.pk }}/snippet-update/' + cmpg + '/' + cnt + '/';
+            var cmpg = $('#id_campaign').val();
+            var cnt = $('#id_content').val();
+            var url = "{% url 'snippet-update' client.pk %}";
 
             $.ajax({
                 type: "GET",
                 url: url,
                 dataType: 'json',
+                data: {
+                    campaign: cmpg,
+                    content: cnt
+                },
                 error: function(jqXHR, textStatus, errorThrown) {
                     alert('Ruh-Roh! ' + errorThrown)
                 },
                 success: function(data, textStatus, jqXHR) {
                     $('.cmpgslug').html(data.slug);
                     $('#faces_url').html(data.faces_url);
-                    $('#cmpg').html(cmpg);
-                    $('#cnt').html(cnt);
+                    $('.campaign-pk').html(cmpg);
+                    $('.content-pk').html(cnt);
                 }
             });
         }
@@ -27,51 +31,65 @@
 {% block content %}
     <h2>Generate Snippets for {{ name }}</h2>
 
-    Campaign: 
-    <select id="campaign" onChange="doUpdate();">
-      {% for campaign in client.campaigns.all %}
-      <option value="{{campaign.pk}}">{{ campaign.pk }} -- {{campaign.name}}</option>
-      {% endfor %}
-    </select> 
-
-    Content: 
-    <select id="content" onChange="doUpdate();">
-      {% for con in client.clientcontent.all %}
-      <option value="{{con.pk}}">{{ con.pk }} -- {{con.name}}</option>
-      {% endfor %}
-    </select><br />
-    <br />
-
-    {% with first_camp=client.campaigns.all|slice:":1" first_content=client.clientcontent_set.all|slice:":1" %}
-        <span style="text-decoration: underline;">Button Snippet</span> (<span id="cmpg">{{first_camp.pk}}</span>/<span id="cnt">{{first_content.pk}}</span>):<br />
-            <pre><code>
-            &lt;!-- SHARE BUTTON --&gt;
-            &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
-                &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span class="cmpgslug">{{firstSlug}}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
-            &lt;/div&gt;
-            &lt;!-- SHARE BUTTON --&gt;
-            </code></pre>
-    {% endwith %}
-    <br />
-    <span style="text-decoration: underline;">Faces Snippet</span>:<br />
-        <pre><code>
-        &lt;!-- SHARE FACES --&gt;
-        &lt;div id="ef_frame_div" style="width: 100%; height: 930px; border: none;"&gt;
-            &lt;script src="https://{{client.subdomain}}.{{client.domain}}/static/js/create_frame.js"&gt;&lt;/script&gt;
-        &lt;/div&gt;
-        &lt;!-- SHARE FACES --&gt;
-        </code></pre>
-    <br />
-    <span style="text-decoration: underline;">Canvas URL</span>: <br />
-        <pre><code>https://apps.facebook.com/sharing-social-good/<span class="cmpgslug">{{ firstSlug }}</span>/</pre></code>
-    <br />
-    <span style="text-decoration: underline;">OAuth URL</span>: <br />
+    <div id="snippet-form">
+        <form action="" method="get">
+            <div class="row">
+                <div class="span5">
+                    <p>{{ snippet_form.campaign.errors }}<label for="{{ snippet_form.campaign.id_for_label }}">{{ snippet_form.campaign.label }}:</label>{{ snippet_form.campaign }}</p>
+                </div>
+                <div class="span5">
+                    <p>{{ snippet_form.content.errors }}<label for="{{ snippet_form.content.id_for_label }}">{{ snippet_form.content.label }}:</label>{{ snippet_form.content }}</p>
+                </div>
+            </div>
+        </form>
+    </div>
+    <div id="button-snippet">
+        <h4>Button Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <div id="button-snippet-code">
+            <pre><code>{% spaceless %}
+&lt;!-- SHARE BUTTON --&gt;
+    &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
+        &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span class="cmpgslug">{{ first_slug }}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
+    &lt;/div&gt;
+&lt;!-- SHARE BUTTON --&gt;
+            {% endspaceless %}</code></pre>
+        </div>
+    </div>
+    <div id="faces-snippet">
+        <h4>Faces Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <div id="faces-snippet-code">
+            <pre><code>{% spaceless %}
+&lt;!-- SHARE FACES --&gt;
+    &lt;div id="ef_frame_div" style="width: 100%; height: 930px; border: none;"&gt;
+        &lt;script src="https://{{client.subdomain}}.{{client.domain}}/static/js/create_frame.js"&gt;&lt;/script&gt;
+&lt;/div&gt;
+&lt;!-- SHARE FACES --&gt;
+            {% endspaceless %}</code></pre>
+        </div>
+    </div>
+    <div id="canvas-snippet">
+        <h4>Faces Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <div id="canvas-snippet-code">
+            <pre><code>https://apps.facebook.com/{{ client.fb_app_name }}/<span class="cmpgslug">{{ first_slug }}</span>/</pre></code>
+        </div>
+    </div>
+    <div id="oauth-snippet">
+        <h4>OAuth Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <div id="oauth-snippet-code">
         <pre><code>
             https://www.facebook.com/dialog/oauth?client_id={{ client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=<span id="faces_url">{{ first_faces_url }}</span>
         </code></pre>
-    <br />
-    <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-inverse">Return Home</a>
+        </div>
+    </div>
 {% endblock %}
 {% block extrascript %}
-    <script>doUpdate();</script>
+<script>
+    $('#id_campaign').change(function() {
+        doUpdate();
+    });
+    $('#id_content').change(function() {
+        doUpdate();
+    });
+</script>
 {% endblock %}
+
