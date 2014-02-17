@@ -1,6 +1,4 @@
 from django.core.urlresolvers import reverse
-from django.utils.crypto import get_random_string
-import string
 
 from . import TestAdminBase
 from targetshare.models import relational

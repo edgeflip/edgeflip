@@ -171,7 +171,6 @@ class CampaignForm(forms.Form):
         else:
             return gen_fb_obj
 
-
     def save(self):
         ''' Currently only supports creating, not editing, campaigns '''
         data = self.cleaned_data
