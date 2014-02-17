@@ -31,24 +31,30 @@ class TestFacesViews(EdgeFlipViewTestCase):
         extended token saved to Dynamo
 
         '''
+        fbid = self.params['fbid'] = 1111111 # returned by patch
         expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
-            fbid=1111111,
+            fbid=fbid,
             appid=self.test_client.fb_app_id,
             token='test-token',
             expires=expires0,
             overwrite=True,
         )
+        clientuser = self.test_client.userclients.filter(fbid=fbid)
+        self.assertFalse(clientuser.exists())
+
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
+
         data = json.loads(response.content)
-        assert data['px3_task_id']
-        assert data['px4_task_id']
+        self.assertTrue(data['px3_task_id'])
+        self.assertTrue(data['px4_task_id'])
         refreshed_token = models.dynamo.Token.items.get_item(
-            fbid=1111111,
+            fbid=fbid,
             appid=self.test_client.fb_app_id,
         )
-        self.assertGreater(refreshed_token['expires'], expires0)
+        self.assertGreater(refreshed_token.expires, expires0)
+        self.assertTrue(clientuser.exists())
 
     @patch('targetshare.views.faces.celery')
     def test_faces_px3_wait(self, celery_mock):
