@@ -1,11 +1,12 @@
 import logging
 
 from django import http
-from django.shortcuts import render
+from django.db import transaction
 from django.db.models import F
+from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
-from targetshare import models
+from targetshare.models import relational
 from targetshare.views import utils
 from targetshare.integration import facebook
 from targetshare.tasks import db
@@ -51,7 +52,7 @@ def record_event(request):
     if friends and event_type not in updateable_events:
         for friend in friends:
             events.append(
-                models.relational.Event(
+                relational.Event(
                     visit=request.visit,
                     campaign_id=campaign_id,
                     client_content_id=content_id,
@@ -62,14 +63,16 @@ def record_event(request):
                 )
             )
     elif event_type in updateable_events:
-        event, created = models.relational.Event.objects.get_or_create(
-            visit=request.visit,
-            campaign_id=campaign_id,
-            client_content_id=content_id,
-            activity_id=action_id,
-            event_type=event_type,
-            defaults={'content': 1}
-        )
+        # This is (currently) just the 'heartbeat' event
+        with transaction.commit_on_success():
+            # We have no uniqueness constraint to defend against duplicate
+            # events created by competing threads, so lock get() via
+            # select_for_update:
+            (event, created) = relational.Event.objects.select_for_update().get_or_create(
+                event_type=event_type,
+                visit=request.visit,
+                defaults={'content': 1}
+            )
         if not created:
             # Maybe a count column on events would be useful? Hard to envision
             # many other events leveraging this
@@ -77,7 +80,7 @@ def record_event(request):
             event.save()
     else:
         events.append(
-            models.relational.Event(
+            relational.Event(
                 visit=request.visit,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
@@ -109,8 +112,8 @@ def record_event(request):
             return http.HttpResponseBadRequest(msg)
 
         try:
-            client = models.Client.objects.get(campaigns__campaign_id=campaign_id)
-        except models.Client.DoesNotExist:
+            client = relational.Client.objects.get(campaigns__campaign_id=campaign_id)
+        except relational.Client.DoesNotExist:
             LOG.exception(
                 "Failed to write authorization for fbid %r and token %r under "
                 "campaign %r for non-existent client",
@@ -138,7 +141,7 @@ def record_event(request):
             } for friend in friends
         ]
         if exclusions:
-            db.get_or_create.delay(models.relational.FaceExclusion, *exclusions)
+            db.get_or_create.delay(relational.FaceExclusion, *exclusions)
 
     error_msg = request.POST.get('errorMsg[message]')
     if error_msg:
@@ -153,7 +156,7 @@ def record_event(request):
     share_msg = request.POST.get('shareMsg')
     if share_msg:
         db.delayed_save.delay(
-            models.relational.ShareMessage(
+            relational.ShareMessage(
                 activity_id=action_id,
                 fbid=user_id,
                 campaign_id=campaign_id,
@@ -179,7 +182,7 @@ def suppress(request):
     lname = request.POST.get('lname')
 
     db.delayed_save.delay(
-        models.relational.Event(
+        relational.Event(
             visit=request.visit,
             campaign_id=campaign_id,
             client_content_id=content_id,
@@ -189,7 +192,7 @@ def suppress(request):
         )
     )
     db.get_or_create.delay(
-        models.relational.FaceExclusion,
+        relational.FaceExclusion,
         fbid=user_id,
         campaign_id=campaign_id,
         content_id=content_id,
@@ -199,7 +202,7 @@ def suppress(request):
 
     if new_id:
         db.delayed_save.delay(
-            models.relational.Event(
+            relational.Event(
                 visit=request.visit,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
