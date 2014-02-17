@@ -234,6 +234,13 @@ class CampaignWizardForm(forms.Form):
     error_url = forms.CharField()
     thanks_url = forms.CharField()
     content_url = forms.CharField()
+    include_empty_fallback = forms.BooleanField(
+        help_text=(
+            'Fills in network with people outside targeting criteria if an '
+            'insufficient number of people are found in the targeting critiera'
+        ),
+        initial=True
+    )
 
 
 class FilterFeatureForm(forms.ModelForm):

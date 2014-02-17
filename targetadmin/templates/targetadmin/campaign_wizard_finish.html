@@ -1,0 +1,26 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Campaign Wizard Final Step{% endblock %}
+{% block content %}
+    <h2>Confirm Campaign</h2>
+    <div class="row">
+        <div class="span9">
+            {% for camp in campaigns %}
+                <div id="campaign-{{ camp.pk }}">
+                    <h4>{{ camp.campaign.name }}</h4>
+                    <p>Filtering Criteria:</p>
+                    <ul>
+                        {% for csf in camp.campaign.choice_set.choice_set.choicesetfilters.all %}
+                            {% for ff in csf.filter.filterfeatures.all %}
+                                <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
+                            {% empty %}
+                                <li>No Filtering</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                    <p><b>Rank:</b> {{ forloop.counter }}</p>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
+

@@ -210,6 +210,7 @@ class TestCampaignViews(TestAdminBase):
                 'error_url': 'http://www.error.com',
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
+                'include_empty_fallback': 0,
                 # Filter Feature 1
                 'form-0-feature': relational.FilterFeature.Expression.AGE,
                 'form-0-value': '16',
@@ -249,10 +250,9 @@ class TestCampaignViews(TestAdminBase):
         camp = new_client.campaigns.latest('pk')
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
-        self.assertRedirects(response, '{}?campaign_pk={}&content_pk={}'.format(
-            reverse('snippets', args=[new_client.pk]),
-            camp.pk,
-            content.pk
+        self.assertRedirects(response, reverse(
+            'campaign-wizard-finish',
+            args=[new_client.pk, camp.pk, content.pk]
         ))
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
@@ -261,6 +261,11 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(new_client.choicesets.exists())
         self.assertTrue(new_client.buttonstyles.exists())
         self.assertTrue(new_client.campaigns.exists())
-        self.assertEqual(new_client.campaigns.count(), 4)
+        self.assertEqual(new_client.campaigns.count(), 5)
         self.assertEqual(new_client.filters.count(), 5)
-        self.assertEqual(new_client.choicesets.count(), 4)
+        self.assertEqual(new_client.choicesets.count(), 5)
+
+    def test_campaign_wizard_finish(self):
+        response = self.client.get(
+            reverse('campaign-wizard-finish', args=[1, 1, 1]))
+        self.assertStatusCode(response, 200)

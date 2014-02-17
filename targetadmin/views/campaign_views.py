@@ -1,7 +1,6 @@
 from django.shortcuts import get_object_or_404, redirect, render
 from django.forms.models import modelformset_factory
 from django.utils import timezone
-from django.core.urlresolvers import reverse
 
 from targetadmin import utils
 from targetadmin import forms
@@ -188,11 +187,29 @@ def campaign_wizard(request, client_pk):
             else:
                 button_style = client.buttonstyles.create()
 
+            # final fallback campaign init
+            if campaign_form.cleaned_data.get('include_empty_fallback'):
+                # Find an empty choiceset filter group
+                empty_choices = client.choicesets.filter(
+                    choicesetfilters__filter__filterfeatures__isnull=True)
+                if empty_choices.exists():
+                    empty_cs = empty_choices[0]
+                else:
+                    empty_cs = client.choicesets.create(
+                        name='{} {} Empty ChoiceSet'.format(
+                            client.name, campaign_name)
+                    )
+                    # Already have a known empty filter
+                    empty_cs.choicesetfilters.create(filter=global_filter)
+                # Find the end of the choice_sets dict
+                rank = sorted(choice_sets.keys())[-1] + 1
+                choice_sets[rank] = empty_cs
+
             last_camp = None
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
                 camp = relational.Campaign.objects.create(
                     client=client,
-                    name=campaign_name
+                    name='{} {}'.format(campaign_name, rank),
                 )
                 camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                 camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
@@ -202,20 +219,40 @@ def campaign_wizard(request, client_pk):
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                     client_error_url=campaign_form.cleaned_data['error_url'],
                     fallback_campaign=last_camp,
+                    fallback_is_cascading=True,
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,
                     rand_cdf=1.0
                 )
                 last_camp = camp
-            return redirect('{}?campaign_pk={}&content_pk={}'.format(
-                reverse('snippets', args=[client.pk]),
-                last_camp.pk,
-                content.pk
-            ))
+            return redirect(
+                'campaign-wizard-finish',
+                client.pk, last_camp.pk, content.pk
+            )
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'formset': formset,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
+    })
+
+
+@utils.auth_client_required
+def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
+    properties = root_campaign.campaignproperties.get()
+    content = get_object_or_404(relational.ClientContent, pk=content_pk)
+    campaigns = []
+    has_fallbacks = True
+    while has_fallbacks:
+        campaigns.append(properties)
+        has_fallbacks = True if properties.fallback_campaign else False
+        if has_fallbacks:
+            properties = properties.fallback_campaign.campaignproperties.get()
+    return render(request, 'targetadmin/campaign_wizard_finish.html', {
+        'campaigns': campaigns,
+        'content': content,
+        'client': client,
     })
