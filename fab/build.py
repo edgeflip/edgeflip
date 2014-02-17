@@ -54,6 +54,7 @@ def build_all(deps='1', env=None):
 
     # db
     fab.execute(setup_db)
+    fab.execute(setup_redshift)
 
     # static files
     fab.execute(collect_static, noinput='true')
@@ -275,7 +276,7 @@ def setup_redshift(env=None, force='0', testdata='1'):
         # Load test data:
         if true(testdata):
             manage('loaddata', ['redshift_testdata'], env=env, keyed={
-                'database': sql_context['DATABASE'],    
+                'database': sql_context['DATABASE'],
             })
 
 
