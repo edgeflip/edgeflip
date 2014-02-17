@@ -1,3 +1,4 @@
+from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
 from targetshare import utils
@@ -36,6 +37,28 @@ class CampaignProperties(models.Model):
         url += '&' if '?' in url else '?'
         slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
         return url + 'efcmpgslug=' + str(slug)
+
+
+    def save(self, *args, **kws):
+        if kws.has_key('root_campaign_override'):
+            self.root_campaign = kws['root_campaign_override']
+            del kws['root_campaign_override']
+            return super(CampaignProperties, self).save(*args, **kws)
+        else:
+            # set root campaign for me and all my friends
+            self.root_campaign = self.campaign
+            return_value = super(CampaignProperties, self).save(*args, **kws)
+            seen_campaign_ids = set()
+            get_fallback = lambda camp: camp.campaignproperties.get().fallback_campaign
+            fallback = get_fallback(self.campaign)
+            seen_campaign_ids.add(self.campaign_id)
+            while fallback is not None:
+                if fallback.campaign_id in seen_campaign_ids:
+                    raise ImproperlyConfigured('Fallback loop detected')
+                seen_campaign_ids.add(fallback.campaign_id)
+                fallback.campaignproperties.get().save(root_campaign_override=self.campaign)
+                fallback = get_fallback(fallback)
+            return return_value
 
     class Meta(object):
         app_label = 'targetshare'

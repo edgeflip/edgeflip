@@ -1,5 +1,4 @@
 from django import forms
-from django.core.exceptions import ImproperlyConfigured
 
 from targetshare.models import relational
 
@@ -108,22 +107,6 @@ class ButtonStyleForm(forms.ModelForm):
         exclude = ('button_style', 'end_dt')
 
 
-def _set_root_campaigns(campaign):
-    # set root campaign for fallbacks
-    seen_campaign_ids = set()
-    get_fallback = lambda camp: camp.campaignproperties.get().fallback_campaign
-    fallback = get_fallback(campaign)
-    seen_campaign_ids.add(campaign.campaign_id)
-    while fallback is not None:
-        if fallback.campaign_id in seen_campaign_ids:
-            raise ImproperlyConfigured('Fallback loop detected')
-        seen_campaign_ids.add(fallback.campaign_id)
-        fallback_properties = fallback.campaignproperties.get()
-        fallback_properties.root_campaign = campaign
-        fallback_properties.save()
-        fallback = get_fallback(fallback)
-
-
 class CampaignForm(forms.Form):
 
     name = forms.CharField()
@@ -197,8 +180,6 @@ class CampaignForm(forms.Form):
         properties.min_friends = data.get('min_friends_to_show')
         properties.root_campaign = campaign
         properties.save()
-
-        _set_root_campaigns(campaign)
 
         # Global Filter
         global_filter.filter = data.get('global_filter')
