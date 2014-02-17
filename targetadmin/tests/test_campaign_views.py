@@ -1,4 +1,6 @@
 from django.core.urlresolvers import reverse
+from django.utils.crypto import get_random_string
+import string
 
 from . import TestAdminBase
 from targetshare.models import relational
@@ -78,6 +80,57 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(fb_objs.count(), 1)
 
         assert campaign.campaigngenericfbobjects.exists()
+
+    def test_campaign_creation_with_fallback(self):
+        ''' Test creating a campaign with fallbacks and ensuring the roots show up correctly'''
+
+        def create_campaign(campaign_name, fallback_campaign=None):
+            filter_obj = relational.Filter.objects.create(
+                client=self.test_client, name='test filter')
+            choice_set = relational.ChoiceSet.objects.create(
+                client=self.test_client, name='test cs')
+            button_style = relational.ButtonStyle.objects.create(
+                client=self.test_client, name='test button')
+            fb_obj = relational.FBObject.objects.create(
+                client=self.test_client, name='test fbobj')
+
+            postdict = {
+                'name': campaign_name,
+                'description': 'Test Description',
+                'faces_url': 'http://test.com/faces/',
+                'thanks_url': 'http://test.com/thanks/',
+                'error_url': 'http://test.com/error/',
+                'global_filter': filter_obj.pk,
+                'button_style': button_style.pk,
+                'choice_set': choice_set.pk,
+                'cascading_fallback': False,
+                'min_friends_to_show': 1,
+                'allow_generic': True,
+                'generic_url_slug': 'testing',
+                'generic_fb_object': fb_obj.pk,
+                'fb_object': fb_obj.pk
+            }
+            if fallback_campaign is not None:
+                postdict['fallback_campaign'] = fallback_campaign.pk
+
+            response = self.client.post(
+                reverse('campaign-new', args=[self.test_client.pk]), postdict
+            )
+            self.assertStatusCode(response, 302)
+
+            return relational.Campaign.objects.get(name=campaign_name)
+
+        fallest_back = create_campaign('Fallest back', None)
+        faller_back = create_campaign('Faller back', fallest_back)
+        fall_back = create_campaign('Fall back', faller_back)
+        real = create_campaign('Real', fall_back)
+
+        for campaign in [fallest_back, faller_back, fall_back, real]:
+            self.assertEquals(
+                campaign.campaignproperties.get().root_campaign,
+                real
+            )
+
 
     def test_campaign_creation_without_generic_fb_obj(self):
         ''' Test creating a campaign without specifying a generic FB object '''

@@ -22,6 +22,12 @@ class CampaignProperties(models.Model):
     min_friends = models.IntegerField(default=1)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
+    root_campaign = models.ForeignKey(
+        'Campaign',
+        related_name='rootcampaign_properties',
+        null=True,
+        db_index=True
+    )
 
     objects = manager.TransitoryObjectManager.make()
 
