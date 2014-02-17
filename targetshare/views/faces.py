@@ -160,9 +160,18 @@ def faces(request):
             })
 
     else:
-        # Initiate ranking tasks:
+        # First request #
+
+        # Extend & store Token and record authorized UserClient:
         token = facebook.client.extend_token(data['fbid'], client.fb_app_id, data['token'])
         db.delayed_save(token, overwrite=True)
+        db.get_or_create(
+            models.relational.UserClient,
+            client_id=client.pk,
+            fbid=data['fbid'],
+        )
+
+        # Initiate ranking tasks:
         px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
@@ -185,8 +194,6 @@ def faces(request):
             'campaignid': campaign.pk,
             'contentid': content.pk,
         })
-
-    client.userclients.get_or_create(fbid=data['fbid'])
 
     # Apply campaign
     if data['efobjsrc']:
