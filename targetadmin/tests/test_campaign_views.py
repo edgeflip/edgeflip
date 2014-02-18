@@ -261,6 +261,6 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(new_client.choicesets.exists())
         self.assertTrue(new_client.buttonstyles.exists())
         self.assertTrue(new_client.campaigns.exists())
-        self.assertEqual(new_client.campaigns.count(), 4)
+        self.assertEqual(new_client.campaigns.count(), 5)
         self.assertEqual(new_client.filters.count(), 5)
-        self.assertEqual(new_client.choicesets.count(), 4)
+        self.assertEqual(new_client.choicesets.count(), 5)

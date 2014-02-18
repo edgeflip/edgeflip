@@ -188,11 +188,28 @@ def campaign_wizard(request, client_pk):
             else:
                 button_style = client.buttonstyles.create()
 
+            # final fallback campaign init
+            # Find an empty choiceset filter group
+            empty_choices = client.choicesets.filter(
+                choicesetfilters__filter__filterfeatures__isnull=True)
+            if empty_choices.exists():
+                empty_cs = empty_choices[0]
+            else:
+                empty_cs = client.choicesets.create(
+                    name='{} {} Empty ChoiceSet'.format(
+                        client.name, campaign_name)
+                )
+                # Already have a known empty filter
+                empty_cs.choicesetfilters.create(filter=global_filter)
+            # Find the end of the choice_sets dict
+            rank = sorted(choice_sets.keys())[-1] + 1
+            choice_sets[rank] = empty_cs
+
             last_camp = None
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
                 camp = relational.Campaign.objects.create(
                     client=client,
-                    name=campaign_name
+                    name='{} {}'.format(campaign_name, rank + 1),
                 )
                 camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                 camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
@@ -202,6 +219,7 @@ def campaign_wizard(request, client_pk):
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                     client_error_url=campaign_form.cleaned_data['error_url'],
                     fallback_campaign=last_camp,
+                    fallback_is_cascading=True,
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,
