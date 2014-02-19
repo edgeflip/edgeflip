@@ -58,11 +58,9 @@ class FBObjectAttributeForm(forms.ModelForm):
 
 class FilterForm(forms.ModelForm):
 
-    description = forms.CharField(required=False, widget=forms.Textarea)
-
     class Meta:
         model = relational.Filter
-        exclude = ('is_deleted', 'delete_dt')
+        exclude = ('is_deleted', 'delete_dt', 'client')
 
 
 class ChoiceSetForm(forms.ModelForm):

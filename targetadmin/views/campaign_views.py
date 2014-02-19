@@ -209,7 +209,7 @@ def campaign_wizard(request, client_pk):
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
                 camp = relational.Campaign.objects.create(
                     client=client,
-                    name='{} {}'.format(campaign_name, rank),
+                    name='{} {}'.format(campaign_name, rank + 1),
                 )
                 camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                 camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
@@ -255,4 +255,22 @@ def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
         'campaigns': campaigns,
         'content': content,
         'client': client,
+    })
+
+
+def spiking(request, client_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    extra_forms = 5
+    ff_set = modelformset_factory(
+        relational.FilterFeature,
+        form=forms.FilterFeatureForm,
+        extra=extra_forms,
+    )
+    formset = ff_set(queryset=relational.FilterFeature.objects.none())
+    filter_form = forms.FilterForm()
+    return render(request, 'targetadmin/spiking.html', {
+        'client': client,
+        'filters': client.filters.all(),
+        'formset': formset,
+        'filter_form': filter_form,
     })

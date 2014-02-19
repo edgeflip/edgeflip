@@ -1,9 +1,11 @@
-from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.forms.models import modelformset_factory
+from django.shortcuts import get_object_or_404, redirect, render
 
 from targetadmin import forms
 from targetadmin.utils import auth_client_required
 from targetshare.models import relational
+from targetshare.views.utils import JsonHttpResponse
 from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
@@ -86,4 +88,43 @@ def filter_edit(request, client_pk, pk):
         'filter_obj': filter_obj,
         'formset': formset,
         'filter_form': filter_form,
+    })
+
+
+@auth_client_required
+def add_filter(request, client_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    form = forms.FilterForm(instance=relational.Filter(client=client))
+    extra_forms = 5
+    ff_set = modelformset_factory(
+        relational.FilterFeature,
+        form=forms.FilterFeatureForm,
+        extra=extra_forms,
+    )
+    formset = ff_set(queryset=relational.FilterFeature.objects.none())
+    if request.method == 'POST':
+        form = forms.FilterForm(
+            request.POST,
+            instance=relational.Filter(client=client)
+        )
+        formset = ff_set(
+            request.POST,
+            queryset=relational.FilterFeature.objects.none()
+        )
+        if form.is_valid() and formset.is_valid():
+            features = formset.save()
+            _filter = form.save()
+            for x in features:
+                x.filter = _filter
+                x.save()
+
+            return JsonHttpResponse({
+                'html': render_to_string('targetadmin/filter_snippet.html', {
+                    'filter': _filter})
+            })
+
+    return render(request, 'targetadmin/add_filter.html', {
+        'client': client,
+        'form': form,
+        'formset': formset,
     })
