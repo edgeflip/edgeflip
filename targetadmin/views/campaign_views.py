@@ -202,7 +202,7 @@ def campaign_wizard(request, client_pk):
                 # Already have a known empty filter
                 empty_cs.choicesetfilters.create(filter=global_filter)
             # Find the end of the choice_sets dict
-            rank = sorted(choice_sets.keys())[-1] + 1
+            rank = max(choice_sets) + 1
             choice_sets[rank] = empty_cs
 
             last_camp = None
