@@ -1,20 +1,32 @@
 # -*- coding: utf-8 -*-
 import datetime
 from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
 from django.db import models
+from django.core.exceptions import ImproperlyConfigured
 
+class Migration(DataMigration):
 
-class Migration(SchemaMigration):
+    def traverse(self, start, root):
+        current = start
+        seen_campaign_ids = set()
+        while current is not None:
+            if current.campaign_id in seen_campaign_ids:
+                raise ImproperlyConfigured('Fallback loop detected')
+            seen_campaign_ids.add(current.campaign_id)
+            current.campaignproperties.update(root_campaign=root)
+            current = current.campaignproperties.get().fallback_campaign
 
     def forwards(self, orm):
-        db.add_column('campaign_properties', 'root_campaign',
-                      self.gf('django.db.models.fields.related.ForeignKey')(related_name='rootcampaign_properties', null=True, to=orm['targetshare.Campaign']),
-                      keep_default=False)
+        "Write your forwards methods here."
+        for campaign in orm.Campaign.objects.filter(fallbackcampaign_properties=None):
+            try:
+                self.traverse(campaign, campaign)
+            except (ImproperlyConfigured, orm.CampaignProperties.DoesNotExist):
+                print "Campaign ", campaign, " was improperly configured, skipping"
 
     def backwards(self, orm):
-        db.delete_column('campaign_properties', 'root_campaign_id')
-
+        orm.CampaignProperties.objects.update(root_campaign=None)
 
     models = {
         u'auth.group': {
@@ -635,3 +647,4 @@ class Migration(SchemaMigration):
     }
 
     complete_apps = ['targetshare']
+    symmetrical = True

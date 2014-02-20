@@ -1,9 +1,11 @@
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
+import logging
 
 from targetshare import utils
 from . import manager
 
+LOG = logging.getLogger('crow')
 
 class CampaignProperties(models.Model):
 
@@ -27,10 +29,18 @@ class CampaignProperties(models.Model):
         'Campaign',
         related_name='rootcampaign_properties',
         null=True,
-        db_index=True
     )
 
     objects = manager.TransitoryObjectManager.make()
+
+
+    def __init__(self, *args, **kws):
+        super(CampaignProperties, self).__init__(*args, **kws)
+        self._original = {'campaign': None, 'fallback_campaign': None}
+        if self.campaign_property_id:
+            # Assume retrieved from DB
+            self._original.update(campaign=self.campaign, fallback_campaign=self.fallback_campaign)
+
 
     def faces_url(self, content_id):
         url = self.client_faces_url
@@ -38,27 +48,73 @@ class CampaignProperties(models.Model):
         slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
         return url + 'efcmpgslug=' + str(slug)
 
+    def _calculate_root_campaign(self):
+        root_campaign = None
+        current_campaign = self
+        seen_campaign_ids = set()
+        while root_campaign is None:
+            parents = current_campaign.parent()
+            if len(parents) == 0:
+                root_campaign = current_campaign
+            elif len(parents) > 1:
+                raise ImproperlyConfigured(
+                    'Multiple campaign roots detected traversing forward at campaign_id {0}'
+                    .format(current_campaign.campaign_id)
+                )
+            elif parents[0].campaign_id in seen_campaign_ids:
+                raise ImproperlyConfigured(
+                    'Fallback loop detected traversing forward at campaign_id {0}'
+                    .format(parents[0].campaign_id)
+                )
+            else:
+                current_campaign = parents[0]
+                seen_campaign_ids.add(current_campaign.campaign_id)
+
+        return root_campaign.campaign
+
+
+    @staticmethod
+    def _traverse(start, root):
+        current = start
+        seen_campaign_ids = set()
+        while current is not None:
+            if current.campaign_id in seen_campaign_ids:
+                raise ImproperlyConfigured(
+                    'Fallback loop detected traversing backward at campaign_id {0}'
+                    .format(current.campaign_id)
+                )
+            seen_campaign_ids.add(current.campaign_id)
+            current.campaignproperties.update(root_campaign=root)
+            current = current.campaignproperties.get().fallback_campaign
+
+
+    def parent(self):
+        return self._default_manager.filter(fallback_campaign_id=self.campaign_id)
+
+    @property
+    def is_root(self):
+        return not self.parent().exists()
 
     def save(self, *args, **kws):
-        if kws.has_key('root_campaign_override'):
-            self.root_campaign = kws['root_campaign_override']
-            del kws['root_campaign_override']
-            return super(CampaignProperties, self).save(*args, **kws)
-        else:
-            # set root campaign for me and all my friends
+        if self.root_campaign is None and self.is_root:
             self.root_campaign = self.campaign
-            return_value = super(CampaignProperties, self).save(*args, **kws)
-            seen_campaign_ids = set()
-            get_fallback = lambda camp: camp.campaignproperties.get().fallback_campaign
-            fallback = get_fallback(self.campaign)
-            seen_campaign_ids.add(self.campaign_id)
-            while fallback is not None:
-                if fallback.campaign_id in seen_campaign_ids:
-                    raise ImproperlyConfigured('Fallback loop detected')
-                seen_campaign_ids.add(fallback.campaign_id)
-                fallback.campaignproperties.get().save(root_campaign_override=self.campaign)
-                fallback = get_fallback(fallback)
-            return return_value
+
+        result = super(CampaignProperties, self).save(*args, **kws)
+
+        if self.fallback_campaign != self._original['fallback_campaign']:
+            try:
+                self._traverse(self.fallback_campaign, self._calculate_root_campaign())
+                # fix orphan nodes
+                self._traverse(self._original['fallback_campaign'], None)
+                self._original.update(fallback_campaign=self.fallback_campaign)
+            except ImproperlyConfigured as e:
+                LOG.exception(
+                    "Could not save root campaign with campaign_id %s. Reason? %s" %
+                    (self.campaign.campaign_id, str(e))
+                )
+
+        return result
+
 
     class Meta(object):
         app_label = 'targetshare'

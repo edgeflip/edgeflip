@@ -178,7 +178,6 @@ class CampaignForm(forms.Form):
         properties.fallback_content = data.get('fallback_content')
         properties.fallback_is_cascading = data.get('cascading_fallback', False)
         properties.min_friends = data.get('min_friends_to_show')
-        properties.root_campaign = campaign
         properties.save()
 
         # Global Filter
