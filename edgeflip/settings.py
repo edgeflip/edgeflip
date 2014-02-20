@@ -243,6 +243,8 @@ if ENV in ('staging', 'production'):
         'raven.contrib.django.raven_compat',
     )
 
+DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
     'django.contrib.auth.context_processors.auth',
@@ -405,6 +407,7 @@ NOSE_ARGS = (
     '--cover-erase',
     '--cover-html',
     '--cover-package=feed_crawler',
+    '--cover-package=reporting',
     '--cover-package=targetadmin',
     '--cover-package=targetmock',
     '--cover-package=targetshare',

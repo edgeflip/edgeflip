@@ -269,3 +269,24 @@ class FBObjectWizardForm(forms.ModelForm):
             'fb_object', 'og_action', 'og_type', 'page_title',
             'url_slug', 'end_dt'
         )
+
+
+class SnippetModelChoiceField(forms.ModelChoiceField):
+
+    def label_from_instance(self, obj):
+        return u'{} - {}'.format(obj.pk, obj.name)
+
+
+class SnippetForm(forms.Form):
+
+    campaign = SnippetModelChoiceField(
+        queryset=relational.Campaign.objects.none()
+    )
+    content = SnippetModelChoiceField(
+        queryset=relational.ClientContent.objects.none()
+    )
+
+    def __init__(self, client=None, *args, **kwargs):
+        super(SnippetForm, self).__init__(*args, **kwargs)
+        self.fields['campaign'].queryset = client.campaigns.all()
+        self.fields['content'].queryset = client.clientcontent.all()

@@ -1,0 +1,25 @@
+-   model: reporting.client
+    pk: null
+    fields: {client_id: 1, create_dt: !!timestamp '2013-07-15 11:38:28'}
+-   model: reporting.campaign
+    pk: null
+    fields: {campaign_id: 1, client_id: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
+         is_deleted: false, name: Catchall Campaign}
+-   model: reporting.campaign
+    pk: null
+    fields: {campaign_id: 2, client_id: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
+         is_deleted: false, name: Specific Campaign}
+-   model: reporting.clientstats
+    pk: null
+    fields: {campaign_id: 1, hour: !!timestamp '2013-12-01 06:00:00', visits: 2, clicks: 1,
+        auths: 2, uniq_auths: 1, shown: 5, shares: 2, audience: 1, clickbacks: 1}
+-   model: reporting.clientstats
+    pk: null
+    fields: {campaign_id: 2, hour: !!timestamp '2013-12-01 07:00:00', visits: 2, clicks: 1,
+        auths: 4, uniq_auths: 2, shown: 5, shares: 2, audience: 1, clickbacks: 1}
+-   model: reporting.campchain
+    pk: null
+    fields: {root_id: 2, parent_id: 2, child_id: 1}
+-   model: reporting.campchain
+    pk: null
+    fields: {root_id: 2, parent_id: 1, child_id: null}

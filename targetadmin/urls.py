@@ -85,7 +85,7 @@ urlpatterns += patterns('targetadmin.views',
     # Snippet URLs
     url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
         name='snippets'),
-    url(r'^client/(?P<client_pk>\d+)/snippet-update/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/$',
+    url(r'^client/(?P<client_pk>\d+)/snippet-update/$',
         'snippets.snippet_update',
         name='snippet-update')
 )
