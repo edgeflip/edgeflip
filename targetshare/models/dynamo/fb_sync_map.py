@@ -1,4 +1,4 @@
-from .base import (
+from faraday import (
     BOOL, Item, ItemField, HashKeyField, RangeKeyField, NUMBER
 )
 

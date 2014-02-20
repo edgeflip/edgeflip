@@ -1,4 +1,4 @@
-from .base import (
+from faraday import (
     Item,
     ItemField,
     ItemLinkField,

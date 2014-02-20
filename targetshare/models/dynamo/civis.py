@@ -1,4 +1,4 @@
-from .base import Item, ItemField, HashKeyField, JSON, NUMBER
+from faraday import Item, ItemField, HashKeyField, JSON, NUMBER
 
 
 class CivisResult(Item):
