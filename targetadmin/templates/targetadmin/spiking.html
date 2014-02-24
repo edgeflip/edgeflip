@@ -1,0 +1,79 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Filter Testing{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="span5 well">
+        <h2>Filtering Options</h2>
+        <div class="sortable" id="existing-filters">
+            {% for filter in filters %}
+                <div class="row" id="filter-{{ filter.pk }}">
+                    <div class="span4 well">
+                        <p>{{ filter.name }}</p>
+                        <ul>
+                            {% for ff in filter.filterfeatures.all %}
+                                <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
+                            {% empty %}
+                                <li>No filtering criteria</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="span1"></div>
+    <div class="span5 well"> 
+        <h2>Enabled Filters</h2>
+        <div class="sortable" id="applied-filters">
+            <div class="row">
+                <div class="span4 well">
+                    <p>Place filters from the left over here</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="span9" id="buttons">
+        <a data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn" data-toggle="modal">Create New Filter</a>
+    </div>
+</div>
+<div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog" data-remote="{% url 'filter-add' client.pk %}">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="filter-modal-label">Create Filter</h3>
+    </div>
+    <div class="modal-body">
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button id="submit-filter-add" class="btn btn-primary">Save changes</button>
+    </div>
+</div>
+
+{% endblock %}
+{% block extrascript %}
+<script>
+    $(function() {
+        $('#existing-filters').sortable({'connectWith': '#applied-filters'});
+        $('#applied-filters').sortable({'connectWith': '#existing-filters'});
+        $( ".sortable" ).disableSelection();
+        $('.sortable').on("sortupdate", function(event, ui) {
+            console.log(event);
+            console.log(ui);
+        });
+    });
+</script>
+<script>
+    $('#submit-filter-add').click(function(event) {
+        $.ajax({
+            type: "POST",
+            url: "{% url 'filter-add' client.pk %}",
+            data: $('#add-filter-form').serialize()
+        }).done(function(data){
+            $('#existing-filters').prepend(data.html);
+            $('#filter-modal').modal('toggle');
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,12 @@
+<div class="row" id="filter-{{ filter.pk }}">
+    <div class="span4 well">
+        <p>{{ filter.name }}</p>
+        <ul>
+            {% for ff in filter.filterfeatures.all %}
+                <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
+            {% empty %}
+                <li>No filtering criteria</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>

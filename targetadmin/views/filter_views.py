@@ -120,7 +120,13 @@ def add_filter(request, client_pk):
 
             return JsonHttpResponse({
                 'html': render_to_string('targetadmin/filter_snippet.html', {
-                    'filter': _filter})
+                    'filter': _filter}),
+                'success': True
+            })
+        else:
+            return JsonHttpResponse({
+                'html': render_to_string('targetadmin/add_filter.html'),
+                'success': False,
             })
 
     return render(request, 'targetadmin/add_filter.html', {
