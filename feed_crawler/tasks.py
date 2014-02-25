@@ -12,11 +12,11 @@ from celery.exceptions import MaxRetriesExceededError
 
 from django.conf import settings
 from django.utils import timezone
+from faraday.utils import epoch
 
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
-from targetshare.models.dynamo.base.utils import epoch
 from feed_crawler import utils
 
 logger = get_task_logger(__name__)

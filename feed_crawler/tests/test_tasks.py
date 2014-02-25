@@ -6,10 +6,10 @@ from datetime import timedelta
 from mock import Mock, patch
 
 from django.utils import timezone
+from faraday.utils import epoch
 
-from targetshare.tests import EdgeFlipTestCase, crawl_mock
 from targetshare import models
-from targetshare.models.dynamo.base.utils import epoch
+from targetshare.tests import EdgeFlipTestCase, crawl_mock
 
 from feed_crawler import tasks, utils
 

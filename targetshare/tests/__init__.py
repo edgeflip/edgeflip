@@ -4,6 +4,7 @@ import random
 import re
 import urllib
 
+import faraday
 import us
 from django.core.urlresolvers import reverse
 from django.test import TestCase
@@ -11,8 +12,6 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from targetshare import models
-from targetshare.models.dynamo.base import db
-from targetshare.models.dynamo.base.conf import settings as faraday_settings
 from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
 
 
@@ -21,38 +20,34 @@ DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 class EdgeFlipTestCase(TestCase):
 
+    global_patches = (
+        patch('django.conf.settings.CELERY_ALWAYS_EAGER', True),
+        patch.multiple(
+            faraday.conf.settings,
+            PREFIX='test',
+            LOCAL_ENDPOINT='localhost:4444',
+        ),
+    )
+
     @classmethod
     def setUpClass(cls):
-        cls.cls_patches = [
-            patch('django.conf.settings.CELERY_ALWAYS_EAGER', True),
-            patch.multiple(
-                faraday_settings,
-                PREFIX='test',
-                MOCK='localhost:4444',
-            ),
-        ]
-        # Start patches:
-        for patch_ in cls.cls_patches:
+        for patch_ in cls.global_patches:
             patch_.start()
 
         # In case a bad test class doesn't clean up after itself:
-        db.destroy(confirm=False)
+        faraday.db.destroy(confirm=False)
 
     @classmethod
     def tearDownClass(cls):
-        for patch_ in cls.cls_patches:
+        for patch_ in cls.global_patches:
             patch_.stop()
 
     def setUp(self):
         super(EdgeFlipTestCase, self).setUp()
-        for (signature, item) in models.dynamo.base.loading.cache.items():
-            # targetshare dynamo tables are installed without an app prefix
-            # (ignore any that have one):
-            if '.' not in signature:
-                db.create_table(item.items.table)
+        faraday.db.build()
 
     def tearDown(self):
-        db.destroy(confirm=False)
+        faraday.db.destroy(confirm=False)
         super(EdgeFlipTestCase, self).tearDown()
 
     def assertStatusCode(self, response, status=200):

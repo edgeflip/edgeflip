@@ -2,7 +2,7 @@ from functools import wraps
 
 from boto.dynamodb2 import fields
 
-from .base import (
+from faraday import (
     Item,
     ItemField,
     ItemLinkField,
@@ -10,8 +10,8 @@ from .base import (
     HashKeyField,
     RangeKeyField,
     NUMBER,
+    structs,
 )
-from .base.utils import LazyList
 
 
 class IncomingEdge(Item):
@@ -66,7 +66,7 @@ class UnifiedEdgeManager(ItemManager):
                 keys = result.get_keys()
             except AttributeError:
                 # keys must be a list, but don't evaluate until caller initiates:
-                keys = LazyList(outgoing_edge.get_keys() for outgoing_edge in result)
+                keys = structs.LazyList(outgoing_edge.get_keys() for outgoing_edge in result)
                 return self.get_data_manager().batch_get(keys=keys)
             else:
                 return self.get_data_manager().get_item(**keys)
