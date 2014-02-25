@@ -109,8 +109,9 @@ class CampaignProperties(models.Model):
                 self._original.update(fallback_campaign=self.fallback_campaign)
             except ImproperlyConfigured as e:
                 LOG.exception(
-                    "Could not save root campaign with campaign_id %s. Reason? %s" %
-                    (self.campaign.campaign_id, str(e))
+                    "Could not save root campaign with campaign_id %s. Reason? %s",
+                    self.campaign.campaign_id, 
+                    str(e)
                 )
 
         return result

@@ -62,7 +62,12 @@ class TestCampaignProperties(EdgeFlipTestCase):
             one.campaignproperties.get().fallback_campaign,
             four
         )
-        self.assertIn('Fallback loop detected', logger_mock.exception.call_args[0][0])
+        self.assertIn('Could not save root campaign', logger_mock.exception.call_args[0][0])
+        self.assertEquals(
+            logger_mock.exception.call_args[0][1],
+            one.campaign_id
+        )
+        self.assertIn('Fallback loop detected', logger_mock.exception.call_args[0][2])
 
 
     def test_save_nonroot(self):
