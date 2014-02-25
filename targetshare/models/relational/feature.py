@@ -7,6 +7,7 @@ from django.core import validators
 from django.db import models
 
 from targetshare.integration import civis
+from targetshare.templatetags import string_format
 
 from .manager import transitory
 
@@ -344,6 +345,27 @@ class FilterFeature(models.Model, Feature):
             feature=self.feature,
             operator=self.get_operator_display(),
             value=value,
+        )
+
+    @property
+    def pretty_name(self):
+        operator = self.operator
+        value = self.value
+        if self.operator == 'min':
+            operator = '>'
+        elif self.operator == 'max':
+            operator = '<'
+        elif self.operator == 'eq':
+            operator = '='
+
+        if self.value_type == self.ValueType.LIST:
+            value = string_format.lexical_list(
+                self.value.split(self.ValueType.LIST_DELIM)
+            )
+        return u'{feature} {operator} {value}'.format(
+            feature=self.feature.capitalize(),
+            operator=operator,
+            value=value
         )
 
 

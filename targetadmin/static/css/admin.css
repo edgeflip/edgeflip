@@ -1,0 +1,7 @@
+.draggable {
+    border: solid black 0.1em;
+    border-radius: 5px;
+    background-color: darkgrey;
+    padding-left: 2px;
+    padding-top: 2px;
+}

@@ -1,6 +1,53 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Filter Testing{% endblock %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/admin.css">
+{% endblock %}
 {% block content %}
+<div class="row">
+    <div class="span12">
+        <div class="row" id="enabled-section">
+            <h2>Enabled Filters</h2>
+            <p>
+                The below items will be chained together with ANDs. 
+                We highly recommend adding extra, subsequent targeting layers 
+                as "fallbacks". For example, you may have a targeting criteria 
+                of 18-34, Female, and living in Illinois. If a person using 
+                the sharing platform doesn't have an adequate number of 
+                friends meeting those requirements they won't be served any 
+                friends to share with. 
+            </p><p>
+                As a result, a fallback criteria might 
+                be: Women that are 18-34. If that falls to find enough 
+                friends, a further fullback of simply: Women, might be 
+                applicable. As always, feel free to contact us for assistance
+            </p>
+            <h5>Top Layer</h5>
+            <div class="row">
+                <div class="span12 well target-well" id="enabled-filters-1"></div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="span4">
+                <button id="add-layer" class="btn btn-primary" data-layer-count="1">Add Layer</button>
+            </div>
+        </div>
+        <div class="row">
+            <h2>Available Filters</h2>
+            <div class="span12 well" id="existing-filters">
+                {% for filter in filters %}
+                    {% for ff in filter.filterfeatures.all %}
+                        <div class="span2 draggable"><p><abbr title="{{ ff.pretty_name }}">{{ ff.pretty_name|truncatechars:30 }}</abbr></p></div>
+                        {% if forloop.counter > 10 %}
+                            <br />
+                        {% endif %}
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+<!--
 <div class="row">
     <div class="span5 well">
         <h2>Filtering Options</h2>
@@ -50,17 +97,33 @@
         <button id="submit-filter-add" class="btn btn-primary">Save changes</button>
     </div>
 </div>
-
+-->
 {% endblock %}
 {% block extrascript %}
 <script>
     $(function() {
-        $('#existing-filters').sortable({'connectWith': '#applied-filters'});
-        $('#applied-filters').sortable({'connectWith': '#existing-filters'});
+        $('#existing-filters').sortable({
+            connectWith: "#enabled-filters-1"
+        });
+        $('#enabled-filters-1').sortable({
+            connectWith: ".target-well"
+        });
         $( ".sortable" ).disableSelection();
         $('.sortable').on("sortupdate", function(event, ui) {
             console.log(event);
             console.log(ui);
+        });
+    });
+</script>
+<script>
+    $('#add-layer').click(function(e){
+        var layer_count = $('#add-layer').data('layer-count') + 1;
+        $('#add-layer').data('layer-count', layer_count);
+        $('#enabled-section').append(
+            '<h5>New Layer</h5><div class="row"><div class="span12 well target-well" id="enabled-filters-' + layer_count + '"></div></div>'
+        );
+        $('#enabled-filters-' + layer_count).sortable({
+            connectWith: '#existing-filters'
         });
     });
 </script>
