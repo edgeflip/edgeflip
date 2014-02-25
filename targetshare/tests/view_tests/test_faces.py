@@ -226,6 +226,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
         client = models.Client.objects.get(campaigns__pk=1)
         campaign = models.Campaign.objects.get(pk=1)
@@ -250,6 +251,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
                          self.get_outgoing_url(campaign_properties.client_error_url, 1))
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
+        assert models.Event.objects.get(event_type='faces_iframe_load')
 
     def test_frame_faces_configurable_urls(self):
         success_url = '//disney.com/'
@@ -281,10 +283,14 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
     def test_canvas_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
             reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
         )
         self.assertStatusCode(response, 200)
+        assert models.Event.objects.get(event_type='session_start')
+        assert models.Event.objects.get(event_type='faces_page_load')
+        assert models.Event.objects.get(event_type='faces_canvas_load')
 
     def test_canvas_encoded_noslash(self):
         """Encoded canvas endpoint responds with 200 without trailing slash."""

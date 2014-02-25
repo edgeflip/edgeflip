@@ -28,14 +28,20 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = utils.test_mode(request)
-    db.delayed_save.delay(
+    db.bulk_create.delay([
         models.relational.Event(
             visit=request.visit,
             campaign=campaign,
             client_content=content,
             event_type='faces_page_load',
+        ),
+        models.relational.Event(
+            visit=request.visit,
+            campaign=campaign,
+            client_content=content,
+            event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
-    )
+    ])
 
     if test_mode:
         try:
