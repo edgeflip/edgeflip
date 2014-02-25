@@ -243,6 +243,8 @@ if ENV in ('staging', 'production'):
         'raven.contrib.django.raven_compat',
     )
 
+DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
     'django.contrib.auth.context_processors.auth',
@@ -488,7 +490,8 @@ if ENV in ('staging', 'production'):
     }
     LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
 
-DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
+# Faraday settings #
+FARADAY.setdefault('DEBUG', DEBUG)
 
 # Load override settings #
 overrides = pymlconf.ConfigManager(files=[

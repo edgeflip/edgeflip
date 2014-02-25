@@ -10,11 +10,11 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from faraday.structs import LazyList
 
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
-from targetshare.utils import LazyList
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)

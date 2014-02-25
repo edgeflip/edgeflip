@@ -1,6 +1,6 @@
 from targetshare.classify import classify as classifier
 
-from .base import Item, HashKeyField, NUMBER, STRING
+from faraday import Item, HashKeyField, NUMBER, STRING
 
 
 class PostTopics(Item):
