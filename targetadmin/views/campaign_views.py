@@ -188,22 +188,21 @@ def campaign_wizard(request, client_pk):
                 button_style = client.buttonstyles.create()
 
             # final fallback campaign init
-            if campaign_form.cleaned_data.get('include_empty_fallback'):
-                # Find an empty choiceset filter group
-                empty_choices = client.choicesets.filter(
-                    choicesetfilters__filter__filterfeatures__isnull=True)
-                if empty_choices.exists():
-                    empty_cs = empty_choices[0]
-                else:
-                    empty_cs = client.choicesets.create(
-                        name='{} {} Empty ChoiceSet'.format(
-                            client.name, campaign_name)
-                    )
-                    # Already have a known empty filter
-                    empty_cs.choicesetfilters.create(filter=global_filter)
-                # Find the end of the choice_sets dict
-                rank = sorted(choice_sets.keys())[-1] + 1
-                choice_sets[rank] = empty_cs
+            # Find an empty choiceset filter group
+            empty_choices = client.choicesets.filter(
+                choicesetfilters__filter__filterfeatures__isnull=True)
+            if empty_choices.exists():
+                empty_cs = empty_choices[0]
+            else:
+                empty_cs = client.choicesets.create(
+                    name='{} {} Empty ChoiceSet'.format(
+                        client.name, campaign_name)
+                )
+                # Already have a known empty filter
+                empty_cs.choicesetfilters.create(filter=global_filter)
+            # Find the end of the choice_sets dict
+            rank = max(choice_sets) + 1
+            choice_sets[rank] = empty_cs
 
             last_camp = None
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):

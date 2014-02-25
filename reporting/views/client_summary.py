@@ -14,9 +14,8 @@ def client_summary(request, client_pk):
     Data for the initial pageview, a summary of client stats grouped by campaign
     """
 
-    client = Client.objects.using('mysql-readonly').get(pk=client_pk)
+    client = Client.objects.get(pk=client_pk)
 
-    # very similar to the sums per campaign, but join on root campaign
     data = run_safe_query(
         connections['redshift'].cursor(),
         """

@@ -31,24 +31,30 @@ class TestFacesViews(EdgeFlipViewTestCase):
         extended token saved to Dynamo
 
         '''
+        fbid = self.params['fbid'] = 1111111 # returned by patch
         expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
-            fbid=1111111,
+            fbid=fbid,
             appid=self.test_client.fb_app_id,
             token='test-token',
             expires=expires0,
             overwrite=True,
         )
+        clientuser = self.test_client.userclients.filter(fbid=fbid)
+        self.assertFalse(clientuser.exists())
+
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
+
         data = json.loads(response.content)
-        assert data['px3_task_id']
-        assert data['px4_task_id']
+        self.assertTrue(data['px3_task_id'])
+        self.assertTrue(data['px4_task_id'])
         refreshed_token = models.dynamo.Token.items.get_item(
-            fbid=1111111,
+            fbid=fbid,
             appid=self.test_client.fb_app_id,
         )
-        self.assertGreater(refreshed_token['expires'], expires0)
+        self.assertGreater(refreshed_token.expires, expires0)
+        self.assertTrue(clientuser.exists())
 
     @patch('targetshare.views.faces.celery')
     def test_faces_px3_wait(self, celery_mock):
@@ -220,6 +226,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
         client = models.Client.objects.get(campaigns__pk=1)
         campaign = models.Campaign.objects.get(pk=1)
@@ -244,6 +251,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
                          self.get_outgoing_url(campaign_properties.client_error_url, 1))
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
+        assert models.Event.objects.get(event_type='faces_iframe_load')
 
     def test_frame_faces_configurable_urls(self):
         success_url = '//disney.com/'
@@ -275,10 +283,14 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
     def test_canvas_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
+        self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
             reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
         )
         self.assertStatusCode(response, 200)
+        assert models.Event.objects.get(event_type='session_start')
+        assert models.Event.objects.get(event_type='faces_page_load')
+        assert models.Event.objects.get(event_type='faces_canvas_load')
 
     def test_canvas_encoded_noslash(self):
         """Encoded canvas endpoint responds with 200 without trailing slash."""

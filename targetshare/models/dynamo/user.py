@@ -1,11 +1,7 @@
 import collections
 import logging
 
-from django.utils import timezone
-
-from targetshare import utils
-
-from .base import (
+from faraday import (
     Item,
     ItemField,
     HashKeyField,
@@ -14,9 +10,11 @@ from .base import (
     NUMBER,
     DATETIME,
     STRING_SET,
+    types,
+    utils,
 )
-from .base.item import cached_property
-from .base.types import DOUBLE_NEWLINE
+
+from targetshare.utils import atan_norm
 
 from . import PostInteractions
 
@@ -50,7 +48,7 @@ class User(Item):
     music = ItemField(data_type=STRING_SET)
     political = ItemField(data_type=STRING_SET)
     profile_update_time = ItemField(data_type=DATETIME)
-    quotes = ItemField(data_type=STRING_SET(DOUBLE_NEWLINE))
+    quotes = ItemField(data_type=STRING_SET(types.DOUBLE_NEWLINE))
     relationship_status = ItemField()
     religion = ItemField()
     sports = ItemField(data_type=JSON)
@@ -65,7 +63,7 @@ class User(Item):
             # user has no birthday defined
             return None
 
-        today = timezone.now().date()
+        today = utils.epoch.utcnow().date()
 
         try:
             birthday = born.replace(year=today.year)
@@ -111,10 +109,10 @@ class User(Item):
                      "of %i PostTopics items", uncached)
 
         # Normalize topic scores to 1:
-        return {topic: utils.atan_norm(value)
+        return {topic: atan_norm(value)
                 for (topic, value) in scores.items()}
 
-    @cached_property
+    @utils.cached_property
     def topics(self):
         """Aggregate topics scores of posts in which user has interacted."""
         return self.get_topics(self.postinteractions_set.prefetch('post_topics'))

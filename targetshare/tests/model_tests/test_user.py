@@ -2,9 +2,9 @@ from datetime import datetime
 from decimal import Decimal
 
 import mock
+from faraday.utils import cached_property
 
 from targetshare import models, utils
-from targetshare.models.dynamo.base.item import cached_property
 
 from .. import EdgeFlipTestCase
 

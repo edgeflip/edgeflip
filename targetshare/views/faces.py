@@ -10,11 +10,11 @@ from django.template import RequestContext
 from django.template.loader import render_to_string
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
+from faraday.structs import LazyList
 
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
-from targetshare.utils import LazyList
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -28,14 +28,20 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
     test_mode = utils.test_mode(request)
-    db.delayed_save.delay(
+    db.bulk_create.delay([
         models.relational.Event(
             visit=request.visit,
             campaign=campaign,
             client_content=content,
             event_type='faces_page_load',
+        ),
+        models.relational.Event(
+            visit=request.visit,
+            campaign=campaign,
+            client_content=content,
+            event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
-    )
+    ])
 
     if test_mode:
         try:
@@ -160,9 +166,18 @@ def faces(request):
             })
 
     else:
-        # Initiate ranking tasks:
+        # First request #
+
+        # Extend & store Token and record authorized UserClient:
         token = facebook.client.extend_token(data['fbid'], client.fb_app_id, data['token'])
         db.delayed_save(token, overwrite=True)
+        db.get_or_create(
+            models.relational.UserClient,
+            client_id=client.pk,
+            fbid=data['fbid'],
+        )
+
+        # Initiate ranking tasks:
         px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
@@ -185,8 +200,6 @@ def faces(request):
             'campaignid': campaign.pk,
             'contentid': content.pk,
         })
-
-    client.userclients.get_or_create(fbid=data['fbid'])
 
     # Apply campaign
     if data['efobjsrc']:
