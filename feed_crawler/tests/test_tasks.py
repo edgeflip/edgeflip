@@ -161,6 +161,40 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         self.assertGreater(int(new_fbm.incremental_epoch), present)
         self.assertTrue(existing_key.set_contents_from_string.called)
 
+    @patch('feed_crawler.tasks.incremental_crawl')
+    @patch('feed_crawler.utils.S3Manager.get_bucket')
+    @patch('feed_crawler.utils.BucketManager.get_key')
+    def test_incremental_crawl_failure(self, bucket_mock, conn_mock, crawl_mock):
+        def failure_feed(url):
+            if '/feed' in url:
+                return {'notdata': [{'ooga': 'booga'}]}
+        self.facebook_patch = patch(
+            'targetshare.integration.facebook.client.urllib2.urlopen',
+            crawl_mock(1, 250, failure_feed)
+        )
+        self.facebook_patch.start()
+        the_past = epoch.from_date(timezone.now() - timedelta(days=365))
+        # Test runs in under a second typically, so we need to be slightly
+        # behind present time, so that we can see fbm.incremental_epoch
+        # get updated
+        present = epoch.from_date(timezone.now() - timedelta(seconds=30))
+        fbm = models.FBSyncMap.items.create(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
+            back_filled=False, back_fill_epoch=the_past,
+            incremental_epoch=present,
+            status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
+        )
+        existing_key = Mock()
+        existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
+        bucket_mock.return_value = existing_key
+        conn_mock.return_value = utils.BucketManager()
+        tasks.incremental_crawl(fbm)
+        new_fbm = models.FBSyncMap.items.get_item(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid)
+        self.assertEqual(fbm.status, fbm.COMPLETE)
+        self.assertEqual(int(new_fbm.incremental_epoch), present)
+        self.assertFalse(existing_key.set_contents_from_string.called)
+
     @patch('targetshare.integration.facebook.client.urlload')
     @patch('feed_crawler.utils.S3Manager.get_bucket')
     @patch('feed_crawler.utils.BucketManager.get_key')

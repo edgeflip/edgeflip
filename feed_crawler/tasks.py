@@ -327,12 +327,16 @@ def incremental_crawl(self, sync_map):
         result = facebook.client.exhaust_pagination(next_url)
         data['data'].extend(result)
 
-    full_data = json.loads(s3_key.get_contents_as_string())
-    data['data'].extend(full_data['data'])
-    data['updated'] = epoch.from_date(timezone.now())
-    s3_key.set_contents_from_string(json.dumps(data))
-    sync_map.incremental_epoch = epoch.from_date(timezone.now())
-    sync_map.save()
+    if 'data' in data:
+        # If we have data, let's save it. If not, let's kick this guy over
+        # to crawl_comments_and_likes. We'll get that incremental data later
+        full_data = json.loads(s3_key.get_contents_as_string())
+        data['data'].extend(full_data['data'])
+        data['updated'] = epoch.from_date(timezone.now())
+        s3_key.set_contents_from_string(json.dumps(data))
+        sync_map.incremental_epoch = epoch.from_date(timezone.now())
+        sync_map.save()
+
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     crawl_comments_and_likes.apply_async(
         args=[sync_map], countdown=DELAY_INCREMENT
