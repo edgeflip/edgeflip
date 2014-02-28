@@ -1,12 +1,12 @@
 /* ALL TEH CODES */
 
-var FB_APP_ID = '{{ fb_params.fb_app_id }}';
-var FB_APP_NAME = '{{ fb_params.fb_app_name }}';
-var FB_ACTION_TYPE = '{{ fb_params.fb_action_type }}';
-var FB_OBJ_TYPE = '{{ fb_params.fb_object_type }}';
-var FB_OBJ_URL = '{{ fb_params.fb_object_url | safe }}';
+FB_APP_ID = '{{ fb_params.fb_app_id }}';
+FB_APP_NAME = '{{ fb_params.fb_app_name }}';
+FB_ACTION_TYPE = '{{ fb_params.fb_action_type }}';
+FB_OBJ_TYPE = '{{ fb_params.fb_object_type }}';
+FB_OBJ_URL = '{{ fb_params.fb_object_url | safe }}';
 
-var RECIPS_LIST_CONTAINER = "recips_list";
+RECIPS_LIST_CONTAINER = "recips_list";
 
 // all the friend data here
 var friendFromFbid = {
@@ -392,25 +392,21 @@ function doReplace(old_fbid) {
 // Ajax call to tell our server the friend has been suppressed and get the HTML for the next one
 function friendHTML(oldid, id, fname, lname, div_id) {
     var new_html;
-    var userid = myfbid; // myfbid should get set globablly upon login/auth
-
-    var params = {
-        userid: userid,
-        appid: FB_APP_ID,
-        content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-        oldid: oldid,
-        newid: id,
-        fname: fname,
-        lname: lname,
-        campaignid: campaignid, // campaignid and contentid set in frame_faces.html
-        contentid: contentid
-    };
-
     $.ajax({
         type: "POST",
         url: '/suppress/',
         dataType: 'html',
-        data: params,
+        data: {
+            userid: user.fbid, // FBUser constructed in frame_faces.html
+            appid: FB_APP_ID,
+            content: FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
+            oldid: oldid,
+            newid: id,
+            fname: fname,
+            lname: lname,
+            campaignid: campaignid, // campaignid and contentid set in frame_faces.html
+            contentid: contentid
+        },
         error: function(jqXHR, textStatus, errorThrown) {
             //new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
             //$(div_id).replaceWith(new_html);

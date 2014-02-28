@@ -5,7 +5,6 @@ or show user a button (same behavior)
 
 */
 
-var myfbid; // The FB ID of the current user to be filled in upon auth.
 var debug_mode;
 
 /* loads a bunch of images
@@ -16,42 +15,18 @@ function preload(arrayOfImages) {
     });
 }
 
-
-/* pops up facebook's signin page in a _top window */
-function doFBLogin() {
-
-    // Should never get here since we should only send someone to the faces page upon authorizing...
-    // Still, worth noting this will generate a pop-up without a click. Maybe we'd rather just give them
-    // a button to click on instead?
-    FB.login(function(response) {
-        if (response.status != 'connected') {
-            $('#your-friends-here').html(
-                '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="doFBLogin();">Connect</div>'
-            );
-            $('#progress').hide();
-            $('#friends_div').css('display', 'table');
-            $.ajax({
-                type: "POST",
-                url: "/record_event/",
-                data: {
-                    userid: myfbid,
-                    appid: appid,
-                    friends: [],
-                    eventType: "auth_fail",
-                    campaignid: campaignid,
-                    contentid: contentid,
-                    content: '',
-                    token: tok
-                }
-            });
-            $('#reconnect_button').click(function(){
-                $('#progress').show();
-                $('#reconnect_button').hide();
-                $('#reconnect_text').hide();
-            });
-        }
-    }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
-
+function authFailure() {
+    $('#your-friends-here').html(
+        '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="user.login();">Connect</div>'
+    );
+    $('#progress').hide();
+    $('#friends_div').css('display', 'table');
+    recordEvent('auth_fail');
+    $('#reconnect_button').click(function(){
+        $('#progress').show();
+        $('#reconnect_button').hide();
+        $('#reconnect_text').hide();
+    });
 }
 
 var pollingTimer;
@@ -59,8 +34,6 @@ var pollingCount = 0;
 /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
 function login(fbid, accessToken, response, px3_task_id, px4_task_id, last_call){
     if (response.authResponse) {
-        myfbid = fbid; // set the global variable for use elsewhere
-
         var friends_div = $('#friends_div');
         var progress = $('#progress');
         var your_friends_div = $('#your-friends-here');
@@ -139,13 +112,4 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-}
-
-var heartbeat_count = 0;
-function heartbeat(){
-    if (heartbeat_count < 60) {
-        recordEvent('heartbeat');
-        heartbeat_count += 1;
-        setTimeout(heartbeat, 2000);
-    }
 }

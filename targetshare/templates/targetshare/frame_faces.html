@@ -46,16 +46,20 @@
     </script>
 
     <!-- edgeflip javascript -->
+    <script type='text/javascript'>
+    {% include "core/includes/heartbeat.js" %}
+    {% include "core/includes/facebook.js" %}
+    </script>
     <script src="{{ STATIC_URL }}js/load_and_login.js?version={{ settings.RELEASE_VERSION }}"></script>
 {% endblock %}
 
 {% block js_inline %}
     <script>
-        var tok = '';
-        var appid = "{{ fb_params.fb_app_id }}";
+        FB_APP_ID = "{{ fb_params.fb_app_id }}";
+        debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
+
         var campaignid = {{ campaign.pk }};
         var contentid = {{ content.pk }};
-        var debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
         var num_face = 9;
 
         {% if test_mode %}
@@ -93,59 +97,16 @@
 
     <div id="fb-root"></div>
     <script type="text/javascript">
-        // Start the debugger heartbeat before FB interation comes into play
-        if (debug_mode){
-            heartbeat();
+        // Start the debugger heartbeat before FB interation comes into play:
+        if (debug_mode) {
+            var heartbeat = new Heartbeat();
         }
-        
-        /* standard facebook workflow */
-
-        window.fbAsyncInit = function() {
-
-
-            FB.init({ appId: '{{ fb_params.fb_app_id }}', //change the appId to your appId
-                status: true, 
-                cookie: true,
-                xfbml: true,
-                oauth: true});
-
-            FB.Event.subscribe('auth.statusChange', function(response) {
-                if (response.status === 'connected') {
-                    var uid = response.authResponse.userID;
-                    var tok = response.authResponse.accessToken;
-                    $.ajax({
-                        type: "POST",
-                        url: "{% url 'record-event' %}",
-                        data: {
-                            userid: uid,
-                            appid: appid,
-                            friends: [],
-                            eventType: 'authorized',
-                            campaignid: {{ campaign.pk }},
-                            contentid: {{ content.pk }},
-                            content: '',
-                            token: tok
-                       }
-                   });
-                   {% block run_sharing %}
-                       login(uid, tok, response, null);
-                   {% endblock %}
-                } else {
-                    // User isn't logged in or hasn't authed, so try doing the login directly
-                    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-                    doFBLogin();
-                }
+        {% block facebook %}
+            var user = new FBUser(FB_APP_ID, {
+                onAuth: login,
+                onAuthFailure: authFailure
             });
-
-        }; // fbAsyncInit
-
-        (function() {
-            var e = document.createElement('script'); e.async = true;
-            e.src = document.location.protocol 
-                + '//connect.facebook.net/en_US/all.js';
-            document.getElementById('fb-root').appendChild(e);
-        }());
-            
+        {% endblock %}
     </script>
     {% if canvas %}
         {% include 'targetshare/privacy_policy.html' %}

@@ -158,21 +158,28 @@ def get_object_or_none(klass, **kws):
         return None
 
 
-def _get(dict_, anykeys=(), default=None):
-    for key in anykeys:
-        try:
-            return dict_[key]
-        except KeyError:
-            pass
+def _get(dicts, anykeys=(), default=None):
+    """Find any of the given keys in any of the given dicts.
+
+    Returns the value of the first key found in the first dict in which
+    it was found.
+
+    """
+    for dict_ in dicts:
+        for key in anykeys:
+            try:
+                return dict_[key]
+            except KeyError:
+                pass
     return default
 
 
-def require_visit(view):
+def require_visit(view=None, **defaults):
     """Decorator manufacturing a view wrapper, which requires a Visit for the request.
 
     The Visit is added to the request at attribute "visit"::
 
-        @_require_visit
+        @require_visit
         def my_view(request, campaign_id, content_id):
             visit = request.visit
             ...
@@ -185,43 +192,60 @@ def require_visit(view):
     new Visit's "session start" Event.
 
     """
-    @functools.wraps(view)
-    def wrapped_view(request, *args, **kws):
-        # Gather info from path and query string
-        campaign_id = kws.get('campaign_id',
-                              _get(request.REQUEST, ['campaign', 'campaignid']))
-        content_id = kws.get('content_id',
-                             _get(request.REQUEST, ['content', 'contentid']))
-        fb_object_id = kws.get('fb_object_id')
-        fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
-        app_id = kws.get('app_id', request.REQUEST.get('appid'))
+    def decorator(view):
+        @functools.wraps(view)
+        def wrapped_view(request, *args, **kws):
+            # Gather info from path and query string;
+            # search both the view kws (path params) and REQUEST
+            # (query params) for any fitting aliases:
+            app_id = _get(
+                (kws, request.REQUEST),
+                ('app_id', 'appid'),
+                defaults.get('appid')
+            )
+            campaign_id = _get(
+                (kws, request.REQUEST),
+                ('campaign_id', 'campaign', 'campaignid'),
+                defaults.get('campaign_id')
+            )
+            content_id = _get(
+                (kws, request.REQUEST),
+                ('content_id', 'content', 'contentid'),
+                defaults.get('content_id')
+            )
+            fb_object_id = kws.get('fb_object_id')
+            fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
 
-        # Determine client, and campaign & client content if available
-        client = campaign = client_content = None
+            # Determine client, and campaign & client content if available
+            client = campaign = client_content = None
 
-        if campaign_id:
-            campaign = get_object_or_none(models.Campaign, campaign_id=campaign_id)
-            client = campaign and campaign.client
-        if content_id:
-            client_content = get_object_or_none(models.ClientContent, content_id=content_id)
-            client = client_content.client if (client_content and not client) else client
-        if fb_object_id and client is None:
-            client = get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
+            if campaign_id:
+                campaign = get_object_or_none(models.Campaign, campaign_id=campaign_id)
+                client = campaign and campaign.client
+            if content_id:
+                client_content = get_object_or_none(models.ClientContent, content_id=content_id)
+                client = client_content.client if (client_content and not client) else client
+            if fb_object_id and client is None:
+                client = get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
 
-        if not app_id:
-            if client is None:
-                return http.HttpResponseBadRequest("The application could not be determined")
-            else:
-                app_id = client.fb_app_id
+            if not app_id:
+                if client is None:
+                    return http.HttpResponseBadRequest("The application could not be determined")
+                else:
+                    app_id = client.fb_app_id
 
-        # Initialize Visit and add to request
-        set_visit(request, app_id, fbid, {
-            'campaign': campaign,
-            'client_content': client_content,
-        })
-        return view(request, *args, **kws)
+            # Initialize Visit and add to request
+            set_visit(request, app_id, fbid, {
+                'campaign': campaign,
+                'client_content': client_content,
+            })
+            return view(request, *args, **kws)
 
-    return wrapped_view
+        return wrapped_view
+
+    if view is None:
+        return decorator
+    return decorator(view)
 
 
 def encoded_endpoint(view):

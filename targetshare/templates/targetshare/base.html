@@ -93,39 +93,9 @@
 
                 return Url;
             })();
-        </script>
 
-        {# recordEvent #}
-        <script>
-            function recordEvent(eventType, options) {
-                var options = options || {};
-                if (typeof FB_APP_ID === 'undefined') {
-                    // Means we've been called before the faces have been
-                    // initialized. That's okay, let's still catch the 
-                    // event.
-                    FB_APP_ID = FB_OBJ_TYPE = FB_OBJ_URL = FB_APP_NAME = '';
-                }
-                $.ajax({
-                    type: "POST",
-                    url: "{% url 'record-event' %}",
-                    dataType: 'html',
-                    data: {
-                        userid: options.myfbid ? options.myfbid : myfbid, // set in load_and_login.js
-                        campaignid: options.campaignid ? options.campaignid : campaignid, // set in frame_faces.html
-                        contentid: options.contentid ? options.contentid : contentid, // set in frame_faces.html
-                        appid: options.fb_app_id ? options.fb_app_id : FB_APP_ID,
-                        content: options.content ? options.content : FB_APP_NAME + ':' + FB_OBJ_TYPE + ' ' + FB_OBJ_URL,
-                        eventType: eventType,
-                        actionid: options.actionid,
-                        friends: options.friends,
-                        shareMsg: options.shareMsg,
-                        errorMsg: options.errorMsg
-                    },
-                    error: options.error,
-                    success: options.success,
-                    complete: options.complete
-                });
-            }
+        {% include "core/includes/events.js" %}
+        {% include "core/includes/csrf.js" %}
         </script>
 
         {% block js_include %}
@@ -135,38 +105,8 @@
         {% endblock %}
     </head>
     <body>
-	{# CSRF Stuff #}
         {% csrf_token %} {# Ensures the token/cookie is available #}
-        <script type="text/javascript">
-            function getCookie(name) {
-                var cookieValue = null;
-                if (document.cookie && document.cookie != '') {
-                    var cookies = document.cookie.split(';');
-                    for (var i = 0; i < cookies.length; i++) {
-                        var cookie = jQuery.trim(cookies[i]);
-                        // Does this cookie string begin with the name we want?
-                        if (cookie.substring(0, name.length + 1) == (name + '=')) {
-                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                            break;
-                        }
-                    }
-                }
-                return cookieValue;
-            }
-            var csrftoken = getCookie('csrftoken');
-            function csrfSafeMethod(method) {
-                // these HTTP methods do not require CSRF protection
-                return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
-            }
-            $.ajaxSetup({
-                crossDomain: false, // obviates need for sameOrigin test
-                beforeSend: function(xhr, settings) {
-                    if (!csrfSafeMethod(settings.type)) {
-                        xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                    }
-                }
-            });
-        </script>
+        <script type="text/javascript">CSRF.setHeader();</script>
 	{% block js_inline %}{% endblock %}
 
         {% block body %}

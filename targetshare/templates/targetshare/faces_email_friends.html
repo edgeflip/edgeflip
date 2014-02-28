@@ -1,7 +1,12 @@
 {% extends "targetshare/frame_faces.html" %}
-{% block run_sharing %}
-    $('#progress').hide();
-    $('#friends_div').show();
+{% block facebook %}
+    var user = new FBUser(FB_APP_ID, {
+        onAuth: function() {
+            $('#progress').hide();
+            $('#friends_div').show();
+        },
+        onAuthFailure: authFailure
+    });
 {% endblock %}
 {% block friends_data %}
     {% include "targetshare/faces_table.html" %}
