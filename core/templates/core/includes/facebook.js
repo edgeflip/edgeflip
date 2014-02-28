@@ -20,8 +20,10 @@ var FBUser = function (fbAppId, options) {
     self.rootId = options.rootId || 'fb-root';
     self.onAuth = options.onAuth;
     self.onAuthFailure = options.onAuthFailure;
+};
 
-    // Connect to Facebook:
+FBUser.prototype.connect = function () {
+    var self = this;
     window.fbAsyncInit = self.fbAsyncInit.bind(self); // where FB looks
     $(self.fbAsyncLoad.bind(self)); // on ready
 };

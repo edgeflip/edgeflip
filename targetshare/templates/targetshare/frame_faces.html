@@ -102,10 +102,13 @@
             var heartbeat = new Heartbeat();
         }
         {% block facebook %}
+        {% block configure_facebook %}
             var user = new FBUser(FB_APP_ID, {
                 onAuth: login,
                 onAuthFailure: authFailure
             });
+        {% endblock %}
+            user.connect();
         {% endblock %}
     </script>
     {% if canvas %}
