@@ -6,7 +6,8 @@ Requires:
     recordEvent
 
 Use:
-    user = FBUser('<FB_APP_ID>', {onAuth: reportBack});
+    user = new FBUser('<FB_APP_ID>', {onAuth: reportBack});
+    user.connect();
 
 {% endcomment %}
 var FBUser = function (fbAppId, options) {
