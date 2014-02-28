@@ -237,6 +237,7 @@ INSTALLED_APPS = (
     'targetclient',
     'feed_crawler',
     'reporting',
+    'gimmick',
 )
 
 if ENV in ('staging', 'production'):

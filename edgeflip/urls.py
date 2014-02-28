@@ -17,5 +17,6 @@ if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += patterns('',
         url(r'^mocks/', include('targetmock.urls')),
-        url(r'^simpleadmin/', include(admin.site.urls))
+        url(r'^simpleadmin/', include(admin.site.urls)),
+        url(r'^devices/', include('gimmick.urls')),
     )
