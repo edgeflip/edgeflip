@@ -5,10 +5,10 @@ Requires:
     jQuery
 
 Use:
-    CSRF.setHeader();
+    edgeflip.CSRF.setHeader();
 
 {% endcomment %}
-var CSRF = (function () {
+edgeflip.CSRF = (function () {
     var self = {
         retrieveFromCookie: function (name) {
             var cookieValue = null;

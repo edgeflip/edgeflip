@@ -3,36 +3,34 @@ JavaScript include template for interacting with Facebook
 
 Requires:
     jQuery
-    recordEvent
+    edgeflip.Event
 
 Use:
-    user = new FBUser('<FB_APP_ID>', {onAuth: reportBack});
+    user = new edgeflip.User(<FB_APP_ID>, {onAuth: reportBack});
     user.connect();
 
 {% endcomment %}
-var FBUser = function (fbAppId, options) {
+edgeflip.User = function (fbAppId, options) {
     options = options || {};
-    var self = this;
-
-    // Init object context:
-    self.fbid = null;
-    self.token = null;
-    self.fbAppId = fbAppId;
-    self.rootId = options.rootId || 'fb-root';
-    self.onAuth = options.onAuth;
-    self.onAuthFailure = options.onAuthFailure;
+    this.fbid = null;
+    this.token = null;
+    this.fbAppId = fbAppId;
+    this.rootId = options.rootId || 'fb-root';
+    this.onAuth = options.onAuth;
+    this.onAuthFailure = options.onAuthFailure;
 };
 
-FBUser.prototype.connect = function () {
-    var self = this;
-    window.fbAsyncInit = self.fbAsyncInit.bind(self); // where FB looks
-    $(self.fbAsyncLoad.bind(self)); // on ready
+edgeflip.User.prototype.connect = function () {
+    /* Connect, auth & attempt login */
+    window.fbAsyncInit = this.fbAsyncInit.bind(this); // where FB looks for init
+    $(this.fbAsyncLoad.bind(this)); // load on ready
 };
 
-FBUser.prototype.fbAsyncLoad = function () {
+edgeflip.User.prototype.fbAsyncLoad = function () {
+    /* Load FB API */
     var rootSelector = '#' + this.rootId;
-    var apiSrc = document.location.protocol 
-        + '//connect.facebook.net/en_US/all.js';
+    var apiSrc = document.location.protocol +
+        '//connect.facebook.net/en_US/all.js';
     var scriptSelector = 'script[src="' + apiSrc + '"]';
     if ($(rootSelector).length === 0) {
         $('body').append('<div id="' + this.rootId + '"></div>');
@@ -45,7 +43,7 @@ FBUser.prototype.fbAsyncLoad = function () {
     }
 };
 
-FBUser.prototype.fbAsyncInit = function () {
+edgeflip.User.prototype.fbAsyncInit = function () {
     var self = this;
 
     FB.init({
@@ -60,7 +58,7 @@ FBUser.prototype.fbAsyncInit = function () {
         if (response.status === 'connected') {
             self.fbid = response.authResponse.userID;
             self.token = response.authResponse.accessToken;
-            recordEvent('authorized', {
+            edgeflip.Event.record('authorized', {
                 fbid: self.fbid,
                 fb_app_id: self.fbAppId,
                 content: '',
@@ -72,13 +70,14 @@ FBUser.prototype.fbAsyncInit = function () {
             }
         } else {
             // User isn't logged in or hasn't authed, so try doing the login directly
-            // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
+            // (NOTE: If we wanted to detect logged in to FB but not authed,
+            // could use status==='not_authorized')
             self.login();
         }
     });
 };
 
-FBUser.prototype.login = function () {
+edgeflip.User.prototype.login = function () {
     /* pops up facebook's signin page in a _top window */
     var self = this;
     FB.login(function(response) {
