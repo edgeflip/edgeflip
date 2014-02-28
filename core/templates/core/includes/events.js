@@ -1,5 +1,5 @@
 {% comment %}
-JavaScript include template for the recording events
+JavaScript include template for recording events
 
 Requires:
     jQuery
