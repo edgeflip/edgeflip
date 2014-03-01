@@ -6,8 +6,6 @@ import sys
 from django.core import validators
 from django.db import models
 
-from targetshare.integration import civis
-
 from .manager import transitory
 
 
@@ -282,6 +280,8 @@ class FilterFeature(models.Model, Feature):
             return user_value in value
 
     def filter_edges(self, edges, cache_match=False):
+        from targetshare.integration import civis
+
         if self.feature_type.code == self.feature_type.MATCHING:
             # Civis matching:
             if cache_match:
