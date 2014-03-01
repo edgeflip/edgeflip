@@ -1,8 +1,16 @@
+import collections
 import functools
 
+import celery
+from django import http
+from django import forms
 from django.shortcuts import render
-from django.views.decorators.http import require_GET
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_GET, require_POST
 
+from targetshare.integration import facebook
+# from targetshare.models import relational
+from targetshare.tasks import db, ranking
 from targetshare.views import utils
 
 
@@ -11,23 +19,55 @@ FB_APP_ID = 471727162864364
 require_visit = functools.partial(utils.require_visit, appid=FB_APP_ID)
 
 
-@require_GET
+class DataForm(forms.Form):
+    """Data request validation form."""
+    fbid = forms.IntegerField(min_value=1)
+    token = forms.CharField()
+
+
+@csrf_exempt
+@require_POST
 @require_visit
 def data(request):
-    try:
-        fbid = int(request.GET['fbid'])
-    except (KeyError, ValueError):
-        return utils.JsonHttpResponse({'error': ['missing or invalid Facebook ID']},
-                                      status=400)
+    form = DataForm(request.POST)
+    if not form.is_valid():
+        return utils.JsonHttpResponse(form.errors, status=400)
 
-    task_key = 'map_px3_task_id_{}'.format(fbid)
+    info = form.cleaned_data
+    task_key = 'map_px3_task_id_{}'.format(info['fbid'])
     px3_task_id = request.session.get(task_key, '')
     if not px3_task_id:
-        # Start task
-        # request.session[task_key] = ...
-        return #...
+        # Start task #
 
-    # Check status
+        # Extend & store Token and record authorized UserClient:
+        token = facebook.client.extend_token(info['fbid'], FB_APP_ID, info['token'])
+        db.delayed_save(token, overwrite=True)
+        # db.get_or_create(
+            # relational.UserClient,
+            # client_id=client.pk, # FIXME
+            # fbid=data['fbid'],
+        # )
+        # FIXME: Also a problem for record_event on "authorized"
+
+        # Initiate crawl task:
+        px3_task = ranking.px3_crawl.delay(token)
+        request.session[task_key] = px3_task.id
+        return utils.JsonHttpResponse({'status': 'waiting'})
+
+    # Check status #
+    px3_result = celery.current_app.AsyncResult(px3_task_id)
+    if not px3_result.ready():
+        return utils.JsonHttpResponse({'status': 'waiting'})
+
+    # Check result #
+    px3_edges = px3_result.result if px3_result.successful() else None
+    if not px3_edges:
+        return http.HttpResponseServerError('No friends were identified for you.')
+
+    return utils.JsonHttpResponse({
+        'status': 'success',
+        'scores': state_score(px3_edges),
+    })
 
 
 @require_GET
@@ -38,3 +78,19 @@ def main(request):
         'debug': True,
         'fb_app_id': FB_APP_ID,
     })
+
+
+def max_score(network):
+    score = None
+    for edge in network:
+        score = max(score, edge.score)
+    return score
+
+
+def state_score(network, normalized=True):
+    max_ = max_score(network) if normalized else 1
+    scores = collections.defaultdict(int)
+    for edge in network:
+        if edge.score and edge.secondary.state:
+            scores[edge.secondary.state] += edge.score / max_
+    return scores

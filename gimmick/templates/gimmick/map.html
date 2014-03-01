@@ -11,15 +11,35 @@
         <meta name="description" content="">
         <meta name="author" content="">
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-        {# Edgeflip JavaScript includes #}
+        <!-- Edgeflip JavaScript includes -->
         <script type='text/javascript'>
+            {% include "core/includes/edgeflip.js" %}
             {% include "core/includes/csrf.js" %}
             {% include "core/includes/events.js" %}
             {% include "core/includes/heartbeat.js" %}
             {% include "core/includes/facebook.js" %}
-            FB_APP_ID = {{ fb_app_id }};
+            edgeflip.FB_APP_ID = {{ fb_app_id }};
         </script>
-        {# End Edgeflip JavaScript includes #}
+        <!-- End Edgeflip JavaScript includes -->
+        <!-- Edgeflip JavaScript resources -->
+        <script src="{{ STATIC_URL }}js/map.js"></script>
+        <!-- End Edgeflip JavaScript resources -->
+        <!-- Edgeflip Map JavaScript -->
+        <script>
+            Map.init({
+                debug: {{ debug|yesno:"true,false" }},
+                dataURL: "{% url 'gimmick:map-data' %}"
+            });
+        </script>
+        <!-- End Edgeflip Map JavaScript -->
+    </head>
+    <body>
+        {% csrf_token %} {# Ensures the token/cookie is available #}
+        <script type="text/javascript">edgeflip.CSRF.setHeader();</script>
+
+        hello world
+        <div id="map" style="width: 900px; height: 500px;"></div>
+
         <script type='text/javascript' src='https://www.google.com/jsapi'></script>
         <script type='text/javascript'>
             google.load('visualization', '1', {'packages': ['geochart']});
@@ -36,24 +56,6 @@
                     resolution: 'provinces'
                 });
             });
-        </script>
-    </head>
-    <body>
-        {% csrf_token %} {# Ensures the token/cookie is available #}
-        <script type="text/javascript">CSRF.setHeader();</script>
-
-        hello world
-        <div id="map" style="width: 900px; height: 500px;"></div>
-
-        <script type='text/javascript'>
-            {% if debug %}
-            var heartbeat = new Heartbeat();
-            {% endif %}
-            var user = new FBUser(FB_APP_ID, {
-                onAuth: function() {console.log(user.fbid)},
-                onAuthFailure: null
-            });
-            user.connect();
         </script>
     </body>
 </html>
