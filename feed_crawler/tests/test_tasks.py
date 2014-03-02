@@ -101,14 +101,14 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.WAITING, bucket='test_bucket_0'
         )
-        new_key = Mock()
+        new_key = Mock(**{'get_contents_as_string.return_value': '{"test": true}'})
         new_bucket_mock.return_value = new_key
         bucket_mock.return_value = None
         conn_mock.return_value = utils.BucketManager()
         tasks.initial_crawl(fbm)
-        fbm = models.FBSyncMap.items.get_item(
-            fbid_primary=self.fbid, fbid_secondary=self.fbid)
-        self.assertEqual(fbm.status, fbm.BACK_FILL)
+        fbm = models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
+                                              fbid_secondary=self.fbid)
+        self.assertEqual(fbm.status, fbm.COMMENT_CRAWL)
         assert fbm.back_fill_epoch
         assert fbm.incremental_epoch
         self.assertTrue(new_key.set_contents_from_string.called)

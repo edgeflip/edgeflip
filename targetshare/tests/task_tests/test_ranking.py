@@ -33,15 +33,18 @@ class RankingTestCase(EdgeFlipTestCase):
 class TestProximityRankThree(RankingTestCase):
 
     @patch_facebook
-    def test_proximity_rank_three(self):
+    @patch.object(ranking, 'perform_filtering')
+    def test_proximity_rank_three(self, perform_filtering):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
         method is simply supposed to create a celery Task chain, and return the
         ID to the caller. As such, we assert that we receive a valid Celery
         task ID.
+
         '''
         task_id = ranking.proximity_rank_three(self.token)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
+        perform_filtering.s.assert_called_once_with(fbid=1)
 
     @patch_facebook
     def test_px3_crawl(self):

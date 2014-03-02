@@ -250,7 +250,7 @@ def crawl_mock(min_friends, max_friends, closure=None):
                         # or only give others 1 in 50 chance of representation
                         continue
                     if column == 'tags':
-                        user_ids = random.sample(fake_fbids, random.randint(1, 2))
+                        user_ids = random.sample(fake_fbids, min(friend_count, random.randint(1, 2)))
                     else:
                         user_ids = random.choice(fake_fbids)
                     column_data = {'post_id': post_id}
