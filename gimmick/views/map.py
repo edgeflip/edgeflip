@@ -66,7 +66,7 @@ def data(request):
 
     return utils.JsonHttpResponse({
         'status': 'success',
-        'scores': state_score(px3_edges),
+        'scores': state_scores(px3_edges).items(),
     })
 
 
@@ -87,9 +87,11 @@ def max_score(network):
     return score
 
 
-def state_score(network, normalized=True):
+def state_scores(network, normalized=True):
     max_ = max_score(network) if normalized else 1
     scores = collections.defaultdict(int)
+    # NOTE: calculate total score on backend? (and include px scores for
+    # secondaries w/o state?)
     for edge in network:
         if edge.score and edge.secondary.state:
             scores[edge.secondary.state] += edge.score / max_
