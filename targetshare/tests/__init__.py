@@ -1,3 +1,4 @@
+import functools
 import json
 import os.path
 import random
@@ -6,6 +7,7 @@ import urllib
 
 import faraday
 import us
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
@@ -18,10 +20,15 @@ from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-class EdgeFlipTestCase(TestCase):
+class EdgeFlipTestMixIn(object):
 
     global_patches = (
-        patch('django.conf.settings.CELERY_ALWAYS_EAGER', True),
+        patch.multiple(
+            settings,
+            create=True,
+            CELERY_ALWAYS_EAGER=True,
+            CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
+        ),
         patch.multiple(
             faraday.conf.settings,
             PREFIX='test',
@@ -43,15 +50,19 @@ class EdgeFlipTestCase(TestCase):
             patch_.stop()
 
     def setUp(self):
-        super(EdgeFlipTestCase, self).setUp()
+        super(EdgeFlipTestMixIn, self).setUp()
         faraday.db.build()
 
     def tearDown(self):
         faraday.db.destroy(confirm=False)
-        super(EdgeFlipTestCase, self).tearDown()
+        super(EdgeFlipTestMixIn, self).tearDown()
 
     def assertStatusCode(self, response, status=200):
         self.assertEqual(response.status_code, status)
+
+
+class EdgeFlipTestCase(EdgeFlipTestMixIn, TestCase):
+    pass
 
 
 class EdgeFlipViewTestCase(EdgeFlipTestCase):
@@ -287,25 +298,40 @@ def crawl_mock(min_friends, max_friends, closure=None):
     )
 
 
-def patch_facebook(func=None, min_friends=1, max_friends=1000, closure=None):
-    patches = (
-        patch(
+def patch_token(func=None):
+    patch_ = patch('targetshare.integration.facebook.client.extend_token', Mock(
+        return_value=models.dynamo.Token(
+            token='test-token',
+            fbid=1111111,
+            appid=471727162864364,
+            expires=timezone.now(),
+        )
+    ))
+    if func is None:
+        return patch_
+    return patch_(func)
+
+
+def patch_facebook(func=None, min_friends=1, max_friends=1000, bind=False, closure=None):
+    patches = {
+        'crawl': patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',
             crawl_mock(min_friends, max_friends, closure)
         ),
-        patch('targetshare.integration.facebook.client.extend_token', Mock(
-            return_value=models.dynamo.Token(
-                token='test-token',
-                fbid=1111111,
-                appid=471727162864364,
-                expires=timezone.now(),
-            )
-        )),
-    )
+        'token': patch_token(),
+    }
 
     def decorator(func):
-        for facebook_patch in patches:
+        for facebook_patch in patches.itervalues():
             func = facebook_patch(func)
+
+        if bind:
+            @functools.wraps(func)
+            def wrapped(*args, **kws):
+                kws['patches'] = patches
+                return func(*args, **kws)
+            return wrapped
+
         return func
 
     if func:

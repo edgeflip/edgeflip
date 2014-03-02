@@ -1,8 +1,9 @@
 import json
 
+import mock
 from django.core.urlresolvers import reverse
 
-from targetshare.tests import EdgeFlipTestCase, patch_facebook
+from targetshare.tests import EdgeFlipTestCase, patch_facebook, patch_token
 
 
 class TestMapView(EdgeFlipTestCase):
@@ -14,8 +15,8 @@ class TestMapView(EdgeFlipTestCase):
 
     def test_post(self):
         response = self.client.post(reverse('gimmick:map'))
-        self.assertStatusCode(response, 405)
-        self.assertTemplateNotUsed(response, 'gimmick/map.html')
+        self.assertStatusCode(response, 200)
+        self.assertTemplateUsed(response, 'gimmick/map.html')
 
 
 class TestDataView(EdgeFlipTestCase):
@@ -33,21 +34,43 @@ class TestDataView(EdgeFlipTestCase):
         self.assertStatusCode(response, 405)
         self.assertFalse(response.content)
 
-    @patch_facebook
-    def test_post(self):
+    @patch_token
+    @mock.patch('targetshare.tasks.ranking.px3_crawl')
+    def test_post_initial(self, px3_crawl):
+        px3_crawl.delay.return_value = mock.Mock(**{
+            'id': 'boo',
+            'ready.return_value': False,
+        })
+
         response = self.client.post(self.url, self.params)
         self.assertStatusCode(response, 200)
+
         content = json.loads(response.content)
         self.assertEqual(content, {'status': 'waiting'})
+
+        task_key = 'map_px3_task_id_{}'.format(self.params['fbid'])
+        task_id = self.client.session[task_key]
+        self.assertEqual(task_id, 'boo')
+
+        # Still waiting:
+        response = self.client.post(self.url, self.params)
+        self.assertStatusCode(response, 200)
+
+        content = json.loads(response.content)
+        self.assertEqual(content, {'status': 'waiting'})
+
+        self.assertEqual(self.client.session[task_key], task_id)
+
+    @patch_facebook
+    def test_post_final(self):
+        # Celery is eager, so it should be done immediately:
+        response = self.client.post(self.url, self.params)
+        self.assertStatusCode(response, 200)
+
         task_key = 'map_px3_task_id_{}'.format(self.params['fbid'])
         task_id = self.client.session[task_key]
         self.assertTrue(task_id)
 
-        # Celery is eager, so it should be done now:
-        response = self.client.post(self.url, self.params)
-        self.assertStatusCode(response, 200)
-        self.assertEqual(self.client.session[task_key], task_id)
         content = json.loads(response.content)
-        self.assertEqual(content['status'], 'successful')
+        self.assertEqual(content['status'], 'success')
         self.assertEqual(set(content), {'status', 'scores'})
-        assert 0

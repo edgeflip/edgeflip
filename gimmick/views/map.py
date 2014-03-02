@@ -6,7 +6,7 @@ from django import http
 from django import forms
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_GET, require_POST
+from django.views.decorators.http import require_http_methods, require_POST
 
 from targetshare.integration import facebook
 # from targetshare.models import relational
@@ -25,7 +25,6 @@ class DataForm(forms.Form):
     token = forms.CharField()
 
 
-@csrf_exempt
 @require_POST
 @require_visit
 def data(request):
@@ -36,7 +35,10 @@ def data(request):
     info = form.cleaned_data
     task_key = 'map_px3_task_id_{}'.format(info['fbid'])
     px3_task_id = request.session.get(task_key, '')
-    if not px3_task_id:
+
+    if px3_task_id:
+        px3_task = celery.current_app.AsyncResult(px3_task_id)
+    else:
         # Start task #
 
         # Extend & store Token and record authorized UserClient:
@@ -52,15 +54,13 @@ def data(request):
         # Initiate crawl task:
         px3_task = ranking.px3_crawl.delay(token)
         request.session[task_key] = px3_task.id
-        return utils.JsonHttpResponse({'status': 'waiting'})
 
     # Check status #
-    px3_result = celery.current_app.AsyncResult(px3_task_id)
-    if not px3_result.ready():
+    if not px3_task.ready():
         return utils.JsonHttpResponse({'status': 'waiting'})
 
     # Check result #
-    px3_edges = px3_result.result if px3_result.successful() else None
+    px3_edges = px3_task.result if px3_task.successful() else None
     if not px3_edges:
         return http.HttpResponseServerError('No friends were identified for you.')
 
@@ -70,7 +70,8 @@ def data(request):
     })
 
 
-@require_GET
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
 @require_visit
 def main(request):
     # TODO: log gimmick_map_load event?
