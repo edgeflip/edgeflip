@@ -2,7 +2,7 @@
 JavaScript include template for the heartbeat event record
 
 Requires:
-    edgeflip.Event
+    edgeflip.events
 
 Use:
     var heartbeat = new edgeflip.Heartbeat();
@@ -20,7 +20,7 @@ edgeflip.Heartbeat = function (options) {
 };
 edgeflip.Heartbeat.prototype.run = function () {
     if (this.on && this.count < this.maxCount) {
-        edgeflip.Event.record('heartbeat');
+        edgeflip.events.record('heartbeat');
         this.count += 1;
 
         var bound = this.run.bind(this); // setTimeout runs in global scope

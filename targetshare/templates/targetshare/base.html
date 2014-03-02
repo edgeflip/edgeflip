@@ -22,8 +22,8 @@
             <script src="{{ STATIC_URL }}js/ie_fixes.js"></script>
 
             <script type='text/javascript'>
-            {% include "core/includes/url.js" %}
             {% include "core/includes/edgeflip.js" %}
+            {% include "core/includes/url.js" %}
             {% include "core/includes/events.js" %}
             {% include "core/includes/csrf.js" %}
             </script>
@@ -31,7 +31,7 @@
     </head>
     <body>
         {% csrf_token %} {# Ensures the token/cookie is available #}
-        <script type="text/javascript">edgeflip.CSRF.setHeader();</script>
+        <script type="text/javascript">edgeflip.csrf.setHeader();</script>
 
         {% block js_inline %}{% endblock %}
 

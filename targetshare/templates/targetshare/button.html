@@ -67,9 +67,9 @@
         // Initial call on page load
         recordEvent('button_load', '');
 
-	var gotoURL = new Url("{{ goto }}");
+	var gotoURL = new edgeflip.Url("{{ goto }}");
 	$.each(['efobjsrc', 'efsuccessurl', 'eferrorurl'], function() {
-	    var carryThroughValue = Url.window.query[this];
+	    var carryThroughValue = edgeflip.Url.window.query[this];
 	    if (carryThroughValue)
 		gotoURL.query[this] = carryThroughValue;
 	});
