@@ -3,7 +3,7 @@ JavaScript include template for interacting with Facebook
 
 Requires:
     jQuery
-    edgeflip.Event
+    edgeflip.events
 
 Use:
     user = new edgeflip.User(<FB_APP_ID>, {onAuth: reportBack});
@@ -58,7 +58,7 @@ edgeflip.User.prototype.fbAsyncInit = function () {
         if (response.status === 'connected') {
             self.fbid = response.authResponse.userID;
             self.token = response.authResponse.accessToken;
-            edgeflip.Event.record('authorized', {
+            edgeflip.events.record('authorized', {
                 fbid: self.fbid,
                 fb_app_id: self.fbAppId,
                 content: '',

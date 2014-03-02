@@ -2,10 +2,10 @@
 JavaScript include template for the Url utility
 
 Use:
-    var successURL = new Url("http://www.site.com/?a=b");
+    var successURL = new edgeflip.Url("http://www.site.com/?a=b");
 
 {% endcomment %}
-var Url = (function() {
+edgeflip.Url = (function() {
     /* Define and return Url class (& nested UrlQuery module) */
     var UrlQuery = {
         parse: function(query) {

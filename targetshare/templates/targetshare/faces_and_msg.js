@@ -118,29 +118,45 @@ function commafy(things) {
     }
 }
 
-function selectFriend(fbid) {
-    //alert("selectFriend(" + fbid + ")");
-    if (isRecip(fbid)) {  // if the friend is already in the recips list, do nothing
-        return false;
-    }
-    else {
-        // if we've used the suggest button, we should have a recips list container,
-        // so stick it in there and reformat
-        if ($('#'+RECIPS_LIST_CONTAINER).length > 0) {
-            $('#'+RECIPS_LIST_CONTAINER).append(htmlRecip(fbid));
-            reformatRecipsList();
+function selectFriend() {
+    /* Register & record friend(s) UI selection
+     *
+     * Examples:
+     *
+     *     selectFriend(fbid)
+     *     selectFriend(fbid0, fbid1, fbid2)
+     *     selectFriend.apply(this, fbids)
+     *
+     */
+    var fbid, index, novelIds = [];
+    for (index in arguments) {
+        fbid = arguments[index];
+        if (isRecip(fbid)) {
+            continue;
         }
-        else {  // otherwise, insert at cursor
+
+        // If we've used the suggest button, we should have a recips list container,
+        // so stick it in there and reformat
+        if ($('#' + RECIPS_LIST_CONTAINER).length > 0) {
+            $('#' + RECIPS_LIST_CONTAINER).append(htmlRecip(fbid));
+            reformatRecipsList();
+        } else { // otherwise, insert at cursor
             insertRecipAtCursor(htmlRecip(fbid));
         }
 
         syncFriendBoxes();  // update the appearance of the friend box
         activateSuggestButton();  // advance the button highlight
-        if (edgeflip.Faces.debug) {
-            edgeflip.Event.record('selected_friend', {friends: [fbid]});
-        }
-        return true;
+        novelIds.push(fbid);
     }
+
+    if (novelIds.length === 0)
+        // we didn't do anything
+        return false;
+
+    if (edgeflip.faces.debug)
+        edgeflip.events.record('selected_friend', {friends: novelIds});
+
+    return true;
 }
 
 /* runs when user deselects a friend 
@@ -149,13 +165,12 @@ activated by unclick a friend to share with or from manual drop or in edit messa
 
 */
 function unselectFriend(fbid) {
-    //alert("unselectFriend(" + fbid + ")");
     if (isRecip(fbid)) {
         $('#recipient-'+fbid).remove();    // remove the friend from the message
         syncFriendBoxes();
         reformatRecipsList();
-        if (edgeflip.Faces.debug) {
-            edgeflip.Event.record('unselected_friend', {friends: [fbid]});
+        if (edgeflip.faces.debug) {
+            edgeflip.events.record('unselected_friend', {friends: [fbid]});
         }
         return true;
     } else {
@@ -304,7 +319,7 @@ function elementContainsSelection(el) {
 
 /* populates message div w/ suggested text */
 function useSuggested(msgs) {
-    edgeflip.Event.record('suggest_message_click');
+    edgeflip.events.record('suggest_message_click');
 
     // If they don't have anyone checked, using the suggested message adds everyone
     if (getRecipFbids().length == 0) {
@@ -328,21 +343,26 @@ function useSuggested(msgs) {
 /* selects all friends */
 function selectAll(skipRecord) {
     if (!skipRecord) {
-        edgeflip.Event.record('select_all_click');
+        edgeflip.events.record('select_all_click');
     }
     activateSuggestButton();
 
     // Have to filter for visible because a friend div might be hidden
-    // while awaiting response of an ajax suppression call...
-    var divs = $(".friend_box:visible");
-    for (var i=0; i < divs.length; i++) {
-        if (getRecipFbids().length >= 10) {
+    // while awaiting response of an ajax suppression call
+    var fbid,
+        fbids = [],
+        divs = $(".friend_box:visible"),
+        count = getRecipFbids().length;
+    for (var i = 0; i < divs.length; i++) {
+        if (!isRecip(fbid)) count++;
+        if (count >= 10) {
             alert("Sorry: only ten friends can be tagged.");
-            return;
+            break;
         }
-        var fbid = parseInt(divs[i].id.split('-')[1]);
-        selectFriend(fbid);
+        fbid = parseInt(divs[i].id.split('-')[1]);
+        fbids.push(fbid);
     }
+    selectFriend.apply(this, fbids);
 }
 
 // Toggle the recipient state of a friend upon checking or unchecking
@@ -397,15 +417,15 @@ function friendHTML(oldid, id, fname, lname, div_id) {
         url: '/suppress/',
         dataType: 'html',
         data: {
-            userid: edgeflip.Faces.user.fbid, // edgeflip.User constructed in frame_faces.html
+            userid: edgeflip.faces.user.fbid, // edgeflip.User constructed in frame_faces.html
             appid: edgeflip.FB_APP_ID,
             content: edgeflip.FB_APP_NAME + ':' + edgeflip.FB_OBJ_TYPE + ' ' + edgeflip.FB_OBJ_URL,
             oldid: oldid,
             newid: id,
             fname: fname,
             lname: lname,
-            campaignid: edgeflip.Faces.campaignid, // campaignid and contentid set in frame_faces.html
-            contentid: edgeflip.Faces.contentid
+            campaignid: edgeflip.faces.campaignid, // campaignid and contentid set in frame_faces.html
+            contentid: edgeflip.faces.contentid
         },
         error: function(jqXHR, textStatus, errorThrown) {
             //new_html = 'Error pants: ' + textStatus + ' ' + errorThrown;
@@ -459,11 +479,11 @@ function sendShare() {
             if (!response || response.error) {
                 // show an alert and then redirect them to wherever the client wants them to go in this case...
                 // console.log('Error occured ' + response.error.message)
-                edgeflip.Event.record('share_fail', {
+                edgeflip.events.record('share_fail', {
                     errorMsg: response.error,
                     complete: function() {
                         alert("Sorry. An error occured sending your message to facebook. Please try again later.");
-                        outgoingRedirect(edgeflip.Faces.errorURL); // set in frame_faces.html
+                        outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
                     }
 		});
             } else {
@@ -478,7 +498,7 @@ function sendShare() {
 // Called when someone actually shares a message
 function doShare() {
 
-    if (edgeflip.Faces.test_mode) {
+    if (edgeflip.faces.test_mode) {
         alert("Sharing is not allowed in test mode!");
         return;
     }
@@ -488,13 +508,13 @@ function doShare() {
         if (confirm("You haven't chosen any friends to share with.\n\nClick OK to share with all suggested friends or CANCEL to return to the page.")) {
             selectAll(true);
         } else {
-            if (edgeflip.Faces.debug) {
-                edgeflip.Event.record('empty_share');
+            if (edgeflip.faces.debug) {
+                edgeflip.events.record('empty_share');
             }
             return;
         }
     }
-    edgeflip.Event.record('share_click');
+    edgeflip.events.record('share_click');
     FB.login(function(request){ 
         sendShare();
     }, {scope: "publish_actions"});
@@ -519,12 +539,12 @@ var outgoingRedirect = function(url) {
 
 function recordShare(actionid, shareMsg, recips) {
     /* records share event on edgeflip servers; redirects user to thank you page */
-    edgeflip.Event.record('shared', {
+    edgeflip.events.record('shared', {
         actionid: actionid,
         friends: recips,
         shareMsg: shareMsg,
         complete: function() {
-            outgoingRedirect(edgeflip.Faces.thanksURL); // set in frame_faces.html
+            outgoingRedirect(edgeflip.faces.thanksURL); // set in frame_faces.html
         }
     });
 }
