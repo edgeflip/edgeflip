@@ -22,7 +22,7 @@ def record_event(request):
     app_id = request.POST.get('appid')
     campaign_id = request.POST.get('campaignid')
     content_id = request.POST.get('contentid')
-    content = request.POST.get('content')
+    content = request.POST.get('content', '')
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
     extend_token = request.POST.get('extend_token', False)
