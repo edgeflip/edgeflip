@@ -29,6 +29,15 @@ edgeflip.faces = (function (edgeflip, $) {
 
         // Instruct events.record to check faces for campaignid & contentid:
         edgeflip.events.setConfig(self);
+
+        if (self.debug) {
+            // Start heartbeat as soon as DOM ready:
+            $(function () {
+                self.heartbeat = new edgeflip.Heartbeat();
+            });
+        } else {
+            self.heartbeat = null;
+        }
     };
 
     self.poll = function (fbid, accessToken, response, px3_task_id, px4_task_id, last_call) {
@@ -104,15 +113,6 @@ edgeflip.faces = (function (edgeflip, $) {
             });
         }
     };
-
-    // Start heartbeat as soon as DOM ready:
-    $(function () {
-        if (self.debug) {
-            self.heartbeat = new edgeflip.Heartbeat();
-        } else {
-            self.heartbeat = null;
-        }
-    });
 
     return self;
 })(edgeflip, jQuery);
