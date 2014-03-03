@@ -1,7 +1,6 @@
 from __future__ import absolute_import
-import logging
 
-import json
+import logging
 import random
 import urllib2
 from datetime import timedelta
@@ -193,16 +192,8 @@ def initial_crawl(self, sync_map):
     past_epoch = epoch.from_date(timezone.now() - timedelta(days=365))
     now_epoch = epoch.from_date(timezone.now())
     try:
-        data = facebook.client.urlload(
-            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
-                'access_token': sync_map.token,
-                'method': 'GET',
-                'format': 'json',
-                'suppress_http_code': 1,
-                'limit': 5000,
-                'since': past_epoch,
-                'until': now_epoch,
-            }, timeout=120
+        s3_key.retrieve_fb_feed(
+            sync_map.fbid_secondary, sync_map.token, past_epoch, now_epoch
         )
     except (ValueError, IOError):
         try:
@@ -211,8 +202,8 @@ def initial_crawl(self, sync_map):
             sync_map.save_status(models.FBSyncMap.WAITING)
             return
 
-    data['updated'] = now_epoch
-    s3_key.set_contents_from_string(json.dumps(data))
+    s3_key.data['updated'] = now_epoch
+    s3_key.save_to_s3()
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
     sync_map.save_status(models.FBSyncMap.BACK_FILL)
@@ -226,15 +217,9 @@ def back_fill_crawl(self, sync_map):
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
-        data = facebook.client.urlload(
-            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
-                'access_token': sync_map.token,
-                'method': 'GET',
-                'format': 'json',
-                'suppress_http_code': 1,
-                'limit': 5000,
-                'until': sync_map.back_fill_epoch,
-            }, timeout=120
+        s3_key.retrieve_fb_feed(
+            sync_map.fbid_secondary, sync_map.token,
+            0, sync_map.back_fill_epoch
         )
     except (ValueError, IOError):
         try:
@@ -246,21 +231,13 @@ def back_fill_crawl(self, sync_map):
             rvn_logger.info(
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
 
-    next_url = data.get('paging', {}).get('next')
-    if next_url and 'data' in data:
-        result = facebook.client.exhaust_pagination(next_url)
-        data['data'].extend(result)
-
-    if 'data' in data:
+    s3_key.crawl_pagination()
+    if 'data' in s3_key.data:
         # If we don't have any data, the back fill likely failed. We'll go
         # ahead in that case and kick off the comment crawl, but not mark
         # this job as back filled so that we can give it another shot at some
         # later point
-        full_data = json.loads(s3_key.get_contents_as_string())
-        existing_data = full_data.setdefault('data', [])
-        existing_data.extend(data['data'])
-        full_data['updated'] = epoch.from_date(timezone.now())
-        s3_key.set_contents_from_string(json.dumps(full_data))
+        s3_key.extend_s3_data()
         sync_map.back_filled = True
         sync_map.save()
 
@@ -276,12 +253,12 @@ def crawl_comments_and_likes(self, sync_map):
     logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
-    feed = json.loads(s3_key.get_contents_as_string())
-    if 'data' not in feed:
+    s3_key.populate_from_s3()
+    if 'data' not in s3_key.data:
         # bogus/error'd out feed
         return
 
-    for item in feed['data']:
+    for item in s3_key.data['data']:
         next_url = item.get('comments', {}).get('paging', {}).get('next')
         if next_url:
             result = facebook.client.exhaust_pagination(next_url)
@@ -292,7 +269,7 @@ def crawl_comments_and_likes(self, sync_map):
             result = facebook.client.exhaust_pagination(next_url)
             item['likes']['data'].extend(result)
 
-    s3_key.set_contents_from_string(json.dumps(feed))
+    s3_key.save_to_s3()
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
 
@@ -304,15 +281,9 @@ def incremental_crawl(self, sync_map):
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
-        data = facebook.client.urlload(
-            'https://graph.facebook.com/{}/feed/'.format(sync_map.fbid_secondary), {
-                'access_token': sync_map.token,
-                'method': 'GET',
-                'format': 'json',
-                'suppress_http_code': 1,
-                'limit': 5000,
-                'since': sync_map.incremental_epoch,
-            }, timeout=120
+        s3_key.retrieve_fb_feed(
+            sync_map.fbid_secondary, sync_map.token,
+            sync_map.incremental_epoch, epoch.from_date(timezone.now())
         )
     except (ValueError, IOError):
         try:
@@ -322,18 +293,12 @@ def incremental_crawl(self, sync_map):
             sync_map.save_status(models.FBSyncMap.COMPLETE)
             return
 
-    next_url = data.get('paging', {}).get('next')
-    if next_url:
-        result = facebook.client.exhaust_pagination(next_url)
-        data['data'].extend(result)
+    s3_key.crawl_pagination()
 
-    if 'data' in data:
+    if 'data' in s3_key.data:
         # If we have data, let's save it. If not, let's kick this guy over
         # to crawl_comments_and_likes. We'll get that incremental data later
-        full_data = json.loads(s3_key.get_contents_as_string())
-        data['data'].extend(full_data['data'])
-        data['updated'] = epoch.from_date(timezone.now())
-        s3_key.set_contents_from_string(json.dumps(data))
+        s3_key.extend_s3_data(False)
         sync_map.incremental_epoch = epoch.from_date(timezone.now())
         sync_map.save()
 
