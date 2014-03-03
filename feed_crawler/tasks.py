@@ -16,12 +16,12 @@ from faraday.utils import epoch
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
-from feed_crawler import utils
+from feed_crawler import s3_feed
 
 logger = get_task_logger(__name__)
 rvn_logger = logging.getLogger('crow')
 DELAY_INCREMENT = 300
-S3_CONN = utils.S3Manager(
+S3_CONN = s3_feed.S3Manager(
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )

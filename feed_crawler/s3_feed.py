@@ -17,6 +17,7 @@ class FeedKey(key.Key):
         self.data = None
 
     def retrieve_fb_feed(self, fbid, token, since, until):
+        ''' Seeds to FeedKey.data element from FB '''
         self.data = facebook.client.urlload(
             'https://graph.facebook.com/{}/feed/'.format(fbid), {
                 'access_token': token,
@@ -30,12 +31,16 @@ class FeedKey(key.Key):
         )
 
     def crawl_pagination(self):
+        ''' Inspects the current data set for the next url to paginate through
+        and exhausts it
+        '''
         next_url = self.data.get('paging', {}).get('next')
         if next_url and 'data' in self.data:
             result = facebook.client.exhaust_pagination(next_url)
             self.data['data'].extend(result)
 
     def save_to_s3(self):
+        ''' Commits the current populated FeedKey to s3 '''
         self.data['updated'] = epoch.from_date(timezone.now())
         fh = NamedTemporaryFile(delete=False)
         json.dump(self.data, fh.file)
@@ -44,6 +49,10 @@ class FeedKey(key.Key):
         os.remove(fh.name)
 
     def extend_s3_data(self, append=True):
+        ''' Extends the data we have in S3, typically in incremental or
+        back_fill jobs. Append flag lets you dictate if the new data ends up
+        in front or in back of the existing data
+        '''
         fh = NamedTemporaryFile(delete=False)
         fh.close()
         self.get_contents_to_filename(fh.name)
@@ -52,6 +61,7 @@ class FeedKey(key.Key):
         existing_data = full_data.setdefault('data', [])
         if append:
             existing_data.extend(self.data['data'])
+            self.data = full_data
         else:
             self.data['data'].extend(existing_data)
         full_data['updated'] = epoch.from_date(timezone.now())
@@ -63,6 +73,7 @@ class FeedKey(key.Key):
         os.remove(fh.name)
 
     def populate_from_s3(self):
+        ''' Populates the FeedKey.data element from S3 '''
         fh = NamedTemporaryFile(delete=False)
         fh.close()
         self.get_contents_to_filename(fh.name)
