@@ -107,7 +107,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         new_bucket_mock.return_value = new_key
         bucket_mock.return_value = None
         conn_mock.return_value = s3_feed.BucketManager()
-        tasks.initial_crawl(fbm)
+        tasks.initial_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.BACK_FILL)
@@ -131,7 +131,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
         conn_mock.return_value = s3_feed.BucketManager()
-        tasks.back_fill_crawl(fbm)
+        tasks.back_fill_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMMENT_CRAWL)
@@ -159,7 +159,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         existing_key.data = {"updated": 1, "data": [{"test": "testing"}]}
         bucket_mock.return_value = existing_key
         conn_mock.return_value = s3_feed.BucketManager()
-        tasks.incremental_crawl(fbm)
+        tasks.incremental_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         new_fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)
@@ -197,7 +197,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
         conn_mock.return_value = s3_feed.BucketManager()
-        tasks.incremental_crawl(fbm)
+        tasks.incremental_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         new_fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)
@@ -248,7 +248,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         conn_mock.return_value = s3_feed.BucketManager()
         self.assertEqual(len(user_feed['data'][0]['comments']['data']), 1)
         self.assertEqual(len(user_feed['data'][0]['likes']['data']), 3)
-        tasks.crawl_comments_and_likes(fbm)
+        tasks.crawl_comments_and_likes(fbm.fbid_primary, fbm.fbid_secondary)
         self.assertEqual(len(existing_key.data['data'][0]['comments']['data']), 2)
         self.assertEqual(len(existing_key.data['data'][0]['likes']['data']), 4)
         fbm = models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
