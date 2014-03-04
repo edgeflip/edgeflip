@@ -1,4 +1,5 @@
 import os
+import shutil
 import unittest
 
 from mock import patch
@@ -9,8 +10,7 @@ DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
 def get_contents_to_filename(cls, filename):
-    with open(filename, 'wb') as fh:
-        fh.write(open(os.path.join(DATA_PATH, 'user_feed.json')).read())
+    shutil.copyfile(os.path.join(DATA_PATH, 'user_feed.json'), filename)
 
 
 class TestFeedKey(unittest.TestCase):

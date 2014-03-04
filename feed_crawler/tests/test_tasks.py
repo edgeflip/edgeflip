@@ -133,7 +133,6 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         )
         existing_key = Mock()
         existing_key.data = {"updated": 1, "data": [{"test": "testing"}]}
-        existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
         conn_mock.return_value = s3_feed.BucketManager()
         tasks.back_fill_crawl(fbm.fbid_primary, fbm.fbid_secondary)
