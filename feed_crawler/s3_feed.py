@@ -64,9 +64,9 @@ class FeedKey(key.Key):
             self.data = full_data
         else:
             self.data['data'].extend(existing_data)
-        full_data['updated'] = epoch.from_date(timezone.now())
+        self.data['updated'] = epoch.from_date(timezone.now())
         json_file = NamedTemporaryFile(delete=False)
-        json.dump(full_data, json_file.file)
+        json.dump(self.data, json_file.file)
         json_file.close()
         self.set_contents_from_filename(json_file.name)
         os.remove(json_file.name)

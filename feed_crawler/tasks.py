@@ -58,11 +58,13 @@ def crawl_user(token, retry_count=0, max_retries=3):
     delay = 0
     for count, fbm in enumerate(fb_sync_maps, 1):
         if fbm.status == models.FBSyncMap.WAITING:
+            fbm.save_status(models.FBSyncMap.QUEUED)
             initial_crawl.apply_async(
                 args=[fbm.fbid_primary, fbm.fbid_secondary],
                 countdown=delay
             )
         elif fbm.status == models.FBSyncMap.COMPLETE:
+            fbm.save_status(models.FBSyncMap.QUEUED)
             incremental_crawl.apply_async(
                 args=[fbm.fbid_primary, fbm.fbid_secondary],
                 countdown=delay
