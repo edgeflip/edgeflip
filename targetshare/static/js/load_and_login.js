@@ -21,7 +21,7 @@ edgeflip.faces = (function (edgeflip, $) {
         } else {
             self.user = new edgeflip.User(
                 edgeflip.FB_APP_ID, {
-                    onAuth: self.poll,
+                    onConnect: self.poll,
                     onAuthFailure: authFailure
                 }
             );

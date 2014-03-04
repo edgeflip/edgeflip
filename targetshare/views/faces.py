@@ -27,7 +27,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(models.relational.Campaign, campaign_id=campaign_id)
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
-    test_mode = utils.test_mode(request)
+
     db.bulk_create.delay([
         models.relational.Event(
             visit=request.visit,
@@ -42,16 +42,6 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
     ])
-
-    if test_mode:
-        try:
-            test_fbid = int(request.GET['fbid'])
-            test_token = request.GET['token']
-        except (KeyError, ValueError):
-            return http.HttpResponseBadRequest('Test mode requires numeric ID ("fbid") '
-                                               'and Token ("token")')
-    else:
-        test_fbid = test_token = None
 
     # Use campaign-custom template name if one exists:
     try:
@@ -99,9 +89,6 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'properties': properties,
         'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
         'client_css_simple': utils.locate_client_css(client, css_template),
-        'test_mode': test_mode,
-        'test_token': test_token,
-        'test_fbid': test_fbid,
         'canvas': canvas,
         # Debug mode currently on for all methods of targetted sharing
         # However will likely just reflect the canvas var in the future

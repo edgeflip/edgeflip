@@ -2,7 +2,8 @@ edgeflip.map = (function (edgeflip, $) {
     var defaults = {
         debug: false,
         dataURL: null,
-        header: ['State', 'Value']
+        header: ['State', 'Value'],
+        test: null
     };
 
     var self = {
@@ -28,7 +29,7 @@ edgeflip.map = (function (edgeflip, $) {
 
         self.user = new edgeflip.User(
             edgeflip.FB_APP_ID, {
-                onAuth: self.poll,
+                onConnect: self.poll,
                 onAuthFailure: self.authFailure
             }
         );
@@ -38,7 +39,11 @@ edgeflip.map = (function (edgeflip, $) {
                 self.heartbeat = new edgeflip.Heartbeat();
             }
 
-            self.user.connect();
+            if (self.test) {
+                self.user.connectNoAuth(self.test.fbid, self.test.token);
+            } else {
+                self.user.connect();
+            }
 
             var output = document.getElementById('map');
             self.chart = new google.visualization.GeoChart(output);
@@ -56,7 +61,7 @@ edgeflip.map = (function (edgeflip, $) {
     };
 
     self.poll = function (fbid, token, response) {
-        if (!response.authResponse) {
+        if (!self.test && !response.authResponse) {
             throw "Authentication failure";
         }
         $.ajax({

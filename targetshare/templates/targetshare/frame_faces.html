@@ -58,10 +58,10 @@
 
         // faces defined in load_and_login.js
         edgeflip.faces.init({
-            debug: {% if debug_mode %}true{% else %}false{% endif %},
-            test_mode: {% if test_mode %}true{% else %}false{% endif %},
-            test_fbid: {{ test_fbid|default:"null" }},
-            test_token: '{{ test_token|default:"" }}',
+            debug: {{ debug_mode|yesno:"true,false" }},
+	    test_mode: {{ test_mode|yesno:"true,false" }},
+            test_fbid: {{ test_mode.fbid|default:"null" }},
+            test_token: '{{ test_mode.token|default:"" }}',
             thanksURL: '{{ properties.client_thanks_url }}',
             errorURL: '{{ properties.client_error_url }}',
             campaignid: {{ campaign.pk }},

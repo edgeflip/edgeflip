@@ -6,7 +6,7 @@ Requires:
     edgeflip.events
 
 Use:
-    user = new edgeflip.User(<FB_APP_ID>, {onAuth: reportBack});
+    user = new edgeflip.User(<FB_APP_ID>, {onConnect: reportBack});
     user.connect();
 
 {% endcomment %}
@@ -16,17 +16,40 @@ edgeflip.User = function (fbAppId, options) {
     this.token = null;
     this.fbAppId = fbAppId;
     this.rootId = options.rootId || 'fb-root';
-    this.onAuth = options.onAuth;
+    this.onConnect = options.onConnect;
     this.onAuthFailure = options.onAuthFailure;
 };
 
 edgeflip.User.prototype.connect = function () {
     /* Connect, auth & attempt login */
-    window.fbAsyncInit = this.fbAsyncInit.bind(this); // where FB looks for init
-    $(this.fbAsyncLoad.bind(this)); // load on ready
+    window.fbAsyncInit = this.initAuth.bind(this); // where FB looks for init
+    $(this.loadFb.bind(this)); // load on ready
 };
 
-edgeflip.User.prototype.fbAsyncLoad = function () {
+edgeflip.User.prototype.connectNoAuth = function (fbid, token) {
+    /* Connect to Facebook without attempting any auth */
+    if (!fbid || !token) {
+        throw "connectNoAuth: 'fbid' and 'token' required";
+    }
+    var self = this;
+    self.fbid = fbid;
+    self.token = token;
+    window.fbAsyncInit = function () {
+        FB.init({
+            appId: self.fbAppId,
+            status: true,
+            cookie: true,
+            xfbml: true,
+            oauth: true
+        });
+        if (self.onConnect) {
+            self.onConnect(self.fbid, self.token);
+        }
+    };
+    $(self.loadFb.bind(self));
+};
+
+edgeflip.User.prototype.loadFb = function () {
     /* Load FB API */
     var rootSelector = '#' + this.rootId;
     var apiSrc = document.location.protocol +
@@ -43,7 +66,7 @@ edgeflip.User.prototype.fbAsyncLoad = function () {
     }
 };
 
-edgeflip.User.prototype.fbAsyncInit = function () {
+edgeflip.User.prototype.initAuth = function () {
     var self = this;
 
     FB.init({
@@ -65,8 +88,8 @@ edgeflip.User.prototype.fbAsyncInit = function () {
                 friends: [],
                 token: self.token
             });
-            if (self.onAuth) {
-                self.onAuth(self.fbid, self.token, response);
+            if (self.onConnect) {
+                self.onConnect(self.fbid, self.token, response);
             }
         } else {
             // User isn't logged in or hasn't authed, so try doing the login directly
