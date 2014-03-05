@@ -1,6 +1,6 @@
 {% extends "targetshare/frame_faces.html" %}
 {% block js_configure %}
-    edgeflip.faces.user.onAuth = function() {
+    edgeflip.faces.user.onConnect = function() {
         $('#progress').hide();
         $('#friends_div').show();
     };

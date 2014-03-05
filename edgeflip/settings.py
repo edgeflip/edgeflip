@@ -237,6 +237,7 @@ INSTALLED_APPS = (
     'targetclient',
     'feed_crawler',
     'reporting',
+    'gimmick',
 )
 
 if ENV in ('staging', 'production'):
@@ -257,7 +258,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
     # Edgeflip Processors
-    'targetshare.context_processors.context_settings',
+    'core.context_processors.context_settings',
+    'core.context_processors.test_mode',
 )
 
 

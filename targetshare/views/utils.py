@@ -308,8 +308,3 @@ def locate_client_css(client, css_name):
         return os.path.join(settings.STATIC_URL, client_path)
     else:
         return os.path.join(settings.STATIC_URL, 'css', css_name)
-
-
-def test_mode(request):
-    """Return whether the request may be put into "test mode"."""
-    return request.GET.get('secret') == settings.TEST_MODE_SECRET
