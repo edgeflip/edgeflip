@@ -10,9 +10,9 @@ class TestMode(object):
     def from_request(cls, request):
         """Whether the request may be put into "test mode".
 
-        Returns a TestMode object.
+        Returns: a TestMode object.
 
-        Raises ValueError or KeyError if the correct "secret" is supplied but
+        Raises: ValueError or KeyError if the correct "secret" is supplied but
         "fbid" or "token" is missing or invalid.
 
         """

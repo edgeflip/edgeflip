@@ -39,11 +39,13 @@ def data(request):
     if px3_task_id:
         px3_task = celery.current_app.AsyncResult(px3_task_id)
     else:
-        # Start task #
+        # Initial call #
 
-        # Extend & store Token and record authorized UserClient:
+        # Extend & store Token:
         token = facebook.client.extend_token(info['fbid'], FB_APP_ID, info['token'])
         db.delayed_save(token, overwrite=True)
+
+        # Record authorized UserClient:
         # db.get_or_create(
             # relational.UserClient,
             # client_id=client.pk, # FIXME
@@ -64,6 +66,7 @@ def data(request):
     if not px3_edges:
         return http.HttpResponseServerError('No friends were identified for you.')
 
+    # TODO: log event?
     return utils.JsonHttpResponse({
         'status': 'success',
         'scores': state_scores(px3_edges).items(),
@@ -81,19 +84,26 @@ def main(request):
     })
 
 
-def max_score(network):
-    score = None
-    for edge in network:
-        score = max(score, edge.score)
-    return score
-
-
 def state_scores(network, normalized=True):
-    max_ = max_score(network) if normalized else 1
+    """Sum the scored UserNetwork Edges' scores by state.
+
+    By default, each Edge's score is first normalized by the network's maximum
+    score.
+
+    Returns: a dict of states and their aggregate scores.
+
+    """
+    if normalized:
+        max_score = max(edge.score for edge in network)
+    else:
+        max_score = 1.0
+
+    # TODO: Consider calculation
+    # NOTE: also calculate total score on backend? (and include px scores
+    # for secondaries w/o state?)
     scores = collections.defaultdict(int)
-    # NOTE: calculate total score on backend? (and include px scores for
-    # secondaries w/o state?)
     for edge in network:
         if edge.score and edge.secondary.state:
-            scores[edge.secondary.state] += edge.score / max_
+            scores[edge.secondary.state] += edge.score / max_score
+
     return scores
