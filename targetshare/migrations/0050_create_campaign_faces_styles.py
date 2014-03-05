@@ -1,56 +1,65 @@
 # -*- coding: utf-8 -*-
-from south.db import db
-from south.v2 import SchemaMigration
+from south.v2 import DataMigration
+from django.conf import settings
 
+ADORABLE_CARE_ACT_PKS = (
+    142, 143, 144, 145, 146, 147,
+)
 
-PRIMARY_KEY_COLUMNS = (
-    # (table, column)
-    ('button_style_files', 'button_style_file_id'),
-    ('button_styles', 'button_style_id'),
-    ('campaign_button_styles', 'campaign_button_style_id'),
-    ('campaign_choice_sets', 'campaign_choice_set_id'),
-    ('campaign_faces_styles', 'campaign_faces_style_id'),
-    ('campaign_fb_objects', 'campaign_fb_object_id'),
-    ('campaign_global_filters', 'campaign_global_filter_id'),
-    ('campaign_properties', 'campaign_property_id'),
-    ('campaigns', 'campaign_id'),
-    ('choice_set_filters', 'choice_set_filter_id'),
-    ('choice_sets', 'choice_set_id'),
-    ('client_content', 'content_id'),
-    ('clients', 'client_id'),
-    ('faces_styles', 'faces_style_id',),
-    ('faces_style_files', 'faces_style_file_id',),
-    ('fb_object_attributes', 'fb_object_attributes_id'),
-    ('fb_objects', 'fb_object_id'),
-    ('filter_features', 'filter_feature_id'),
-    ('filters', 'filter_id'),
+HEALTHCARE_PKS = (
+    148, 149
 )
 
 
-class Migration(SchemaMigration):
+class Migration(DataMigration):
 
     def forwards(self, orm):
-        """Remind MySQL that its auto-incrementing primary key columns are
-        auto-incrementing primary keys ;(
-
-        """
-        if db.dry_run:
+        ''' Create CampaignFacesStyles for ofa campaigns '''
+        if settings.ENV != 'production':
             return
 
-        for table, column in PRIMARY_KEY_COLUMNS:
-            # Confirm we have the right column:
-            (result,) = db.execute('DESC %s %s' % (table, column))
-            assert result == (column, 'int(11)', 'NO', 'PRI', None, 'auto_increment'), \
-                "Column %s.%s in unexpected state" % (table, column)
+        # Adorable Campaigns
+        for camp in orm.Campaign.objects.filter(pk__in=ADORABLE_CARE_ACT_PKS):
+            fs = orm.FacesStyle.objects.create(client=camp.client)
+            fs.facesstylefiles.create(css_file='adorable_care_act.css')
+            camp.campaignfacesstyles.create(faces_style=fs, rand_cdf=1.0)
 
-            # Re-set column:
-            db.execute("ALTER TABLE %s MODIFY COLUMN %s int auto_increment NOT NULL" % (table, column))
-            print "%s.%s re-set as auto-incrementing column" % (table, column)
+        # HealthCare Campaigns
+        for camp in orm.Campaign.objects.filter(pk__in=HEALTHCARE_PKS):
+            fs = orm.FacesStyle.objects.create(client=camp.client)
+            fs.facesstylefiles.create(css_file='health_calculator.css')
+            camp.campaignfacesstyles.create(faces_style=fs, rand_cdf=1.0)
 
     def backwards(self, orm):
-        pass
+        ''' Blow away the CampaignFacesStyle we created '''
+        if settings.ENV != 'production':
+            return
+
+        for camp in orm.Campaign.objects.filter(
+                pk__in=ADORABLE_CARE_ACT_PKS + HEALTHCARE_PKS):
+            camp.campaignfacesstyles.all().delete()
 
     models = {
+        u'auth.group': {
+            'Meta': {'object_name': 'Group'},
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '80'}),
+            'permissions': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Permission']", 'symmetrical': 'False', 'blank': 'True'})
+        },
+        u'auth.permission': {
+            'Meta': {'ordering': "(u'content_type__app_label', u'content_type__model', u'codename')", 'unique_together': "((u'content_type', u'codename'),)", 'object_name': 'Permission'},
+            'codename': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
+            'content_type': ('django.db.models.fields.related.ForeignKey', [], {'to': u"orm['contenttypes.ContentType']"}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '50'})
+        },
+        u'contenttypes.contenttype': {
+            'Meta': {'ordering': "('name',)", 'unique_together': "(('app_label', 'model'),)", 'object_name': 'ContentType', 'db_table': "'django_content_type'"},
+            'app_label': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'model': ('django.db.models.fields.CharField', [], {'max_length': '100'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '100'})
+        },
         'targetshare.assignment': {
             'Meta': {'object_name': 'Assignment', 'db_table': "'assignments'"},
             'assign_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
@@ -114,9 +123,9 @@ class Migration(SchemaMigration):
         'targetshare.campaignchoiceset': {
             'Meta': {'object_name': 'CampaignChoiceSet', 'db_table': "'campaign_choice_sets'"},
             'allow_generic': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'campaignchoicesets'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_choice_set_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ChoiceSet']", 'null': 'True'}),
+            'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'campaignchoicesets'", 'null': 'True', 'to': "orm['targetshare.ChoiceSet']"}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'generic_url_slug': ('django.db.models.fields.CharField', [], {'max_length': '64', 'null': 'True'}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '10', 'decimal_places': '9', 'blank': 'True'}),
@@ -133,26 +142,28 @@ class Migration(SchemaMigration):
         },
         'targetshare.campaignfacesstyle': {
             'Meta': {'object_name': 'CampaignFacesStyle', 'db_table': "'campaign_faces_styles'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignfacesstyles'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_faces_style_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'faces_style': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.FacesStyle']", 'null': 'True', 'blank': 'True'}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '10', 'decimal_places': '9', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
-        'targetshare.campaignfbobjects': {
-            'Meta': {'object_name': 'CampaignFBObjects', 'db_table': "'campaign_fb_objects'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
+        'targetshare.campaignfbobject': {
+            'Meta': {'unique_together': "(('campaign', 'source_url'),)", 'object_name': 'CampaignFBObject', 'db_table': "'campaign_fb_objects'"},
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignfbobjects'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_fb_object_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.FBObject']", 'null': 'True', 'blank': 'True'}),
+            'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignfbobjects'", 'null': 'True', 'to': "orm['targetshare.FBObject']"}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Filter']", 'null': 'True', 'blank': 'True'}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '10', 'decimal_places': '9', 'blank': 'True'}),
+            'source_url': ('django.db.models.fields.URLField', [], {'max_length': '200', 'null': 'True', 'blank': 'True'}),
+            'sourced': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         'targetshare.campaigngenericfbobjects': {
             'Meta': {'object_name': 'CampaignGenericFBObjects', 'db_table': "'campaign_generic_fb_objects'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaigngenericfbobjects'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_generic_fb_object_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'fb_object': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.FBObject']", 'null': 'True', 'blank': 'True'}),
@@ -161,10 +172,10 @@ class Migration(SchemaMigration):
         },
         'targetshare.campaignglobalfilter': {
             'Meta': {'object_name': 'CampaignGlobalFilter', 'db_table': "'campaign_global_filters'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignglobalfilters'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_global_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Filter']", 'null': 'True', 'blank': 'True'}),
+            'filter': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignglobalfilters'", 'null': 'True', 'to': "orm['targetshare.Filter']"}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '10', 'decimal_places': '9', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
@@ -197,16 +208,17 @@ class Migration(SchemaMigration):
         },
         'targetshare.campaignproperties': {
             'Meta': {'object_name': 'CampaignProperties', 'db_table': "'campaign_properties'"},
-            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'campaignproperties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'campaign_property_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'client_error_url': ('django.db.models.fields.CharField', [], {'max_length': '2096'}),
             'client_faces_url': ('django.db.models.fields.CharField', [], {'max_length': '2096'}),
             'client_thanks_url': ('django.db.models.fields.CharField', [], {'max_length': '2096'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
-            'fallback_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'fallback_campaign'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
+            'fallback_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'fallbackcampaign_properties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'fallback_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True'}),
             'fallback_is_cascading': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
             'min_friends': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
+            'root_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'rootcampaign_properties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         'targetshare.campaignproximitymodel': {
@@ -216,6 +228,14 @@ class Migration(SchemaMigration):
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
             'proximity_model': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ProximityModel']", 'null': 'True', 'blank': 'True'}),
             'rand_cdf': ('django.db.models.fields.DecimalField', [], {'null': 'True', 'max_digits': '10', 'decimal_places': '9', 'blank': 'True'}),
+            'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
+        },
+        'targetshare.campaignrankingkey': {
+            'Meta': {'ordering': "('start_dt',)", 'object_name': 'CampaignRankingKey', 'db_table': "'campaign_ranking_keys'"},
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignrankingkeys'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
+            'campaign_ranking_key_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'ranking_key': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'campaignrankingkeys'", 'null': 'True', 'to': "orm['targetshare.RankingKey']"}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
         'targetshare.choiceset': {
@@ -259,7 +279,7 @@ class Migration(SchemaMigration):
             'choice_set': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'choicesetfilters'", 'null': 'True', 'to': "orm['targetshare.ChoiceSet']"}),
             'choice_set_filter_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'filter': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Filter']", 'null': 'True', 'blank': 'True'}),
+            'filter': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'choicesetfilters'", 'null': 'True', 'to': "orm['targetshare.Filter']"}),
             'propensity_model_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'url_slug': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'})
@@ -277,10 +297,13 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'Client', 'db_table': "'clients'"},
             '_fb_app_id': ('django.db.models.fields.CharField', [], {'max_length': '256', 'db_column': "'fb_app_id'", 'blank': 'True'}),
             '_fb_app_name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'db_column': "'fb_app_name'", 'blank': 'True'}),
+            'auth_groups': ('django.db.models.fields.related.ManyToManyField', [], {'to': u"orm['auth.Group']", 'symmetrical': 'False', 'blank': 'True'}),
             'client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'codename': ('django.db.models.fields.SlugField', [], {'unique': 'True', 'max_length': '50', 'blank': 'True'}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'domain': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255', 'blank': 'True'}),
+            'source_parameter': ('django.db.models.fields.CharField', [], {'default': "'rs'", 'max_length': '15', 'blank': 'True'}),
             'subdomain': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'})
         },
         'targetshare.clientcontent': {
@@ -314,7 +337,7 @@ class Migration(SchemaMigration):
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),
             'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "'content_id'"}),
-            'content': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
+            'content': ('django.db.models.fields.CharField', [], {'max_length': '1028', 'blank': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'event_datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
             'event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
@@ -347,7 +370,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'FacesStyleFiles', 'db_table': "'faces_style_files'"},
             'css_file': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True', 'blank': 'True'}),
-            'faces_style': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.FacesStyle']", 'null': 'True', 'blank': 'True'}),
+            'faces_style': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'facesstylefiles'", 'null': 'True', 'to': "orm['targetshare.FacesStyle']"}),
             'faces_style_file_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'html_template': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
@@ -411,15 +434,26 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True', 'blank': 'True'})
         },
         'targetshare.filterfeature': {
-            'Meta': {'object_name': 'FilterFeature', 'db_table': "'filter_features'"},
+            'Meta': {'ordering': "('feature_type__sort_order',)", 'object_name': 'FilterFeature', 'db_table': "'filter_features'"},
             'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
             'feature': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
+            'feature_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.FilterFeatureType']"}),
             'filter': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'filterfeatures'", 'null': 'True', 'to': "orm['targetshare.Filter']"}),
             'filter_feature_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'operator': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'value_type': ('django.db.models.fields.CharField', [], {'max_length': '32', 'blank': 'True'})
+        },
+        'targetshare.filterfeaturetype': {
+            'Meta': {'ordering': "('sort_order',)", 'object_name': 'FilterFeatureType', 'db_table': "'filter_feature_types'"},
+            'code': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '64'}),
+            'px_rank': ('django.db.models.fields.PositiveIntegerField', [], {'default': '3'}),
+            'sort_order': ('django.db.models.fields.IntegerField', [], {'default': '0'})
         },
         'targetshare.filtermeta': {
             'Meta': {'object_name': 'FilterMeta', 'db_table': "'filter_meta'"},
@@ -455,6 +489,50 @@ class Migration(SchemaMigration):
             'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'})
+        },
+        'targetshare.notification': {
+            'Meta': {'object_name': 'Notification', 'db_table': "'notifications'"},
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']"}),
+            'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']"}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'notification_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
+        },
+        'targetshare.notificationassignment': {
+            'Meta': {'object_name': 'NotificationAssignment', 'db_table': "'notification_assignments'"},
+            'assign_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True', 'blank': 'True'}),
+            'chosen_from_rows': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
+            'chosen_from_table': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
+            'content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'blank': 'True'}),
+            'feature_row': ('django.db.models.fields.IntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'feature_type': ('django.db.models.fields.CharField', [], {'max_length': '128', 'blank': 'True'}),
+            'notification_assignment_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'notification_user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'assignments'", 'to': "orm['targetshare.NotificationUser']"}),
+            'random_assign': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'})
+        },
+        'targetshare.notificationevent': {
+            'Meta': {'object_name': 'NotificationEvent', 'db_table': "'notification_events'"},
+            'activity_id': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'campaign': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.Campaign']", 'null': 'True'}),
+            'client_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True', 'db_column': "'content_id'"}),
+            'content': ('django.db.models.fields.CharField', [], {'max_length': '1028', 'blank': 'True'}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'event_datetime': ('django.db.models.fields.DateTimeField', [], {'default': 'datetime.datetime.now'}),
+            'event_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'db_column': "'type'"}),
+            'friend_fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
+            'notification_event_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'notification_user': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'events'", 'to': "orm['targetshare.NotificationUser']"}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
+        },
+        'targetshare.notificationuser': {
+            'Meta': {'object_name': 'NotificationUser', 'db_table': "'notification_users'"},
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
+            'notification': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'notificationusers'", 'to': "orm['targetshare.Notification']"}),
+            'notification_user_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'max_length': '128', 'db_index': 'True'})
         },
         'targetshare.propensitymodel': {
             'Meta': {'object_name': 'PropensityModel', 'db_table': "'propensity_models'"},
@@ -509,6 +587,37 @@ class Migration(SchemaMigration):
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'value': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'})
         },
+        'targetshare.rankingfeaturetype': {
+            'Meta': {'object_name': 'RankingFeatureType', 'db_table': "'ranking_feature_types'"},
+            'code': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '64'}),
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            u'id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'modified': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '64'})
+        },
+        'targetshare.rankingkey': {
+            'Meta': {'ordering': "('-create_dt',)", 'object_name': 'RankingKey', 'db_table': "'ranking_keys'"},
+            'client': ('django.db.models.fields.related.ForeignKey', [], {'blank': 'True', 'related_name': "'rankingkeys'", 'null': 'True', 'to': "orm['targetshare.Client']"}),
+            'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'delete_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'description': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
+            'is_deleted': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'name': ('django.db.models.fields.CharField', [], {'max_length': '256', 'null': 'True', 'blank': 'True'}),
+            'ranking_key_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'refinement_weight': ('django.db.models.fields.FloatField', [], {'default': '0.5', 'blank': 'True'})
+        },
+        'targetshare.rankingkeyfeature': {
+            'Meta': {'ordering': "('ordinal_position',)", 'unique_together': "(('ranking_key', 'ordinal_position'),)", 'object_name': 'RankingKeyFeature', 'db_table': "'ranking_key_features'"},
+            'end_dt': ('django.db.models.fields.DateTimeField', [], {'null': 'True'}),
+            'feature': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
+            'feature_type': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.RankingFeatureType']"}),
+            'global_maximum': ('django.db.models.fields.FloatField', [], {'null': 'True', 'blank': 'True'}),
+            'ordinal_position': ('django.db.models.fields.PositiveIntegerField', [], {'default': '0'}),
+            'ranking_key': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'rankingkeyfeatures'", 'null': 'True', 'to': "orm['targetshare.RankingKey']"}),
+            'ranking_key_feature_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'reverse': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
+            'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
+        },
         'targetshare.sharemessage': {
             'Meta': {'object_name': 'ShareMessage', 'db_table': "'share_messages'"},
             'activity_id': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
@@ -529,13 +638,24 @@ class Migration(SchemaMigration):
             'Meta': {'unique_together': "(('session_id', 'app_id'),)", 'object_name': 'Visit', 'db_table': "'visits'"},
             'app_id': ('django.db.models.fields.BigIntegerField', [], {'db_column': "'appid'"}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'fbid': ('django.db.models.fields.BigIntegerField', [], {'null': 'True', 'blank': 'True'}),
             'ip': ('django.db.models.fields.GenericIPAddressField', [], {'max_length': '39'}),
+            'referer': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '1028', 'blank': 'True'}),
             'session_id': ('django.db.models.fields.CharField', [], {'max_length': '40', 'db_index': 'True'}),
             'source': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '256', 'db_index': 'True', 'blank': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'visit_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
+            'user_agent': ('django.db.models.fields.CharField', [], {'default': "''", 'max_length': '1028', 'blank': 'True'}),
+            'visit_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'visitor': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'visits'", 'to': "orm['targetshare.Visitor']"})
+        },
+        'targetshare.visitor': {
+            'Meta': {'object_name': 'Visitor', 'db_table': "'visitors'"},
+            'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
+            'fbid': ('django.db.models.fields.BigIntegerField', [], {'unique': 'True', 'null': 'True', 'blank': 'True'}),
+            'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
+            'uuid': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '40'}),
+            'visitor_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
         }
     }
 
     complete_apps = ['targetshare']
+    symmetrical = True

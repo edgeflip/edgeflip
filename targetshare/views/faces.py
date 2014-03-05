@@ -64,7 +64,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         html_template = 'frame_faces.html'
         css_template = 'edgeflip_client_simple.css'
     else:
-        html_template = filenames.html_template or 'button.html'
+        html_template = filenames.html_template or 'frame_faces.html'
         css_template = filenames.css_file or 'edgeflip_client_simple.css'
 
     # Record assignment:
