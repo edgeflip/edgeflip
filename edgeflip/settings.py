@@ -230,6 +230,7 @@ INSTALLED_APPS = (
     'djcelery',
     'django_nose',
     # Edgeflip apps:
+    'core',
     'targetshare',
     'targetadmin',
     'targetmock',
