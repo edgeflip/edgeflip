@@ -347,7 +347,7 @@ class Migration(SchemaMigration):
         # Adding model 'FacesStyleFiles'
         db.create_table(u'faces_style_files', (
             ('faces_style_file_id', self.gf('django.db.models.fields.IntegerField')(primary_key=True)),
-            ('faces_style_id', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FacesStyle'], null=True, blank=True)),
+            ('faces_style', self.gf('django.db.models.fields.related.ForeignKey')(to=orm['targetshare.FacesStyle'], null=True, blank=True)),
             ('html_template', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
             ('css_file', self.gf('django.db.models.fields.CharField')(max_length=128L, blank=True)),
             ('start_dt', self.gf('django.db.models.fields.DateTimeField')()),

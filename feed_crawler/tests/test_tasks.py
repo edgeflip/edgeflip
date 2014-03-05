@@ -11,7 +11,7 @@ from faraday.utils import epoch
 from targetshare import models
 from targetshare.tests import EdgeFlipTestCase, crawl_mock
 
-from feed_crawler import tasks, utils
+from feed_crawler import tasks, s3_feed
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
@@ -62,6 +62,11 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
         )
+        models.FBSyncMap.items.create(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid + 1, token=self.token.token,
+            back_filled=False, back_fill_epoch=0, incremental_epoch=0,
+            status=models.FBSyncMap.QUEUED, bucket='test_bucket_0'
+        )
         tasks.crawl_user(self.token)
         self.assertTrue(initial_mock.apply_async.called)
         self.assertGreater(initial_mock.apply_async.call_count, 1)
@@ -92,30 +97,33 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
                                         fbid_secondary=self.fbid)
         self.assertGreater(models.FBSyncMap.items.count(), 1)
 
-    @patch('feed_crawler.utils.S3Manager.get_bucket')
-    @patch('feed_crawler.utils.BucketManager.get_key')
-    @patch('feed_crawler.utils.BucketManager.new_key')
-    def test_initial_crawl(self, new_bucket_mock, bucket_mock, conn_mock):
+    @patch('feed_crawler.tasks.back_fill_crawl')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
+    @patch('feed_crawler.s3_feed.BucketManager.new_key')
+    def test_initial_crawl(self, new_bucket_mock, bucket_mock, conn_mock, crawl_mock):
         fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.WAITING, bucket='test_bucket_0'
         )
-        new_key = Mock(**{'get_contents_as_string.return_value': '{"test": true}'})
+        new_key = Mock()
+        new_key.data = {'data': []}
         new_bucket_mock.return_value = new_key
         bucket_mock.return_value = None
-        conn_mock.return_value = utils.BucketManager()
-        tasks.initial_crawl(fbm)
-        fbm = models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
-                                              fbid_secondary=self.fbid)
-        self.assertEqual(fbm.status, fbm.COMMENT_CRAWL)
+        conn_mock.return_value = s3_feed.BucketManager()
+        tasks.initial_crawl(fbm.fbid_primary, fbm.fbid_secondary)
+        fbm = models.FBSyncMap.items.get_item(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid)
+        self.assertEqual(fbm.status, fbm.BACK_FILL)
         assert fbm.back_fill_epoch
         assert fbm.incremental_epoch
-        self.assertTrue(new_key.set_contents_from_string.called)
+        self.assertTrue(new_key.save_to_s3.called)
 
-    @patch('feed_crawler.utils.S3Manager.get_bucket')
-    @patch('feed_crawler.utils.BucketManager.get_key')
-    def test_back_fill_crawl(self, bucket_mock, conn_mock):
+    @patch('feed_crawler.tasks.crawl_comments_and_likes')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
+    def test_back_fill_crawl(self, bucket_mock, conn_mock, crawl_mock):
         the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap.items.create(
             fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
@@ -124,21 +132,60 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             status=models.FBSyncMap.BACK_FILL, bucket='test_bucket_0'
         )
         existing_key = Mock()
-        existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
+        existing_key.data = {"updated": 1, "data": [{"test": "testing"}]}
         bucket_mock.return_value = existing_key
-        conn_mock.return_value = utils.BucketManager()
-        tasks.back_fill_crawl(fbm)
+        conn_mock.return_value = s3_feed.BucketManager()
+        tasks.back_fill_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
-        self.assertEqual(fbm.status, fbm.COMPLETE)
+        self.assertEqual(fbm.status, fbm.COMMENT_CRAWL)
         assert fbm.back_fill_epoch
         assert fbm.back_filled
         assert fbm.incremental_epoch
-        self.assertTrue(existing_key.set_contents_from_string.called)
+        assert crawl_mock.apply_async.called
+        self.assertTrue(existing_key.extend_s3_data.called)
 
-    @patch('feed_crawler.utils.S3Manager.get_bucket')
-    @patch('feed_crawler.utils.BucketManager.get_key')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
     def test_incremental_crawl(self, bucket_mock, conn_mock):
+        the_past = epoch.from_date(timezone.now() - timedelta(days=365))
+        # Test runs in under a second typically, so we need to be slightly
+        # behind present time, so that we can see fbm.incremental_epoch
+        # get updated
+        present = epoch.from_date(timezone.now() - timedelta(seconds=30))
+        fbm = models.FBSyncMap.items.create(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
+            back_filled=False, back_fill_epoch=the_past,
+            incremental_epoch=present,
+            status=models.FBSyncMap.COMPLETE, bucket='test_bucket_0'
+        )
+        existing_key = Mock()
+        existing_key.data = {"updated": 1, "data": [{"test": "testing"}]}
+        bucket_mock.return_value = existing_key
+        conn_mock.return_value = s3_feed.BucketManager()
+        tasks.incremental_crawl(fbm.fbid_primary, fbm.fbid_secondary)
+        new_fbm = models.FBSyncMap.items.get_item(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid)
+        self.assertEqual(fbm.status, fbm.COMPLETE)
+        self.assertGreater(int(new_fbm.incremental_epoch), present)
+        self.assertTrue(existing_key.extend_s3_data.called)
+        self.assertSequenceEqual(
+            existing_key.extend_s3_data.call_args_list[0][0],
+            (False,)
+        )
+
+    @patch('feed_crawler.tasks.incremental_crawl')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
+    def test_incremental_crawl_failure(self, bucket_mock, conn_mock, crawl_mock):
+        def failure_feed(url):
+            if '/feed' in url:
+                return {'notdata': [{'ooga': 'booga'}]}
+        self.facebook_patch = patch(
+            'targetshare.integration.facebook.client.urllib2.urlopen',
+            crawl_mock(1, 250, failure_feed)
+        )
+        self.facebook_patch.start()
         the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         # Test runs in under a second typically, so we need to be slightly
         # behind present time, so that we can see fbm.incremental_epoch
@@ -153,17 +200,17 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         existing_key = Mock()
         existing_key.get_contents_as_string.return_value = '{"updated": 1, "data": [{"test": "testing"}]}'
         bucket_mock.return_value = existing_key
-        conn_mock.return_value = utils.BucketManager()
-        tasks.incremental_crawl(fbm)
+        conn_mock.return_value = s3_feed.BucketManager()
+        tasks.incremental_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         new_fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)
-        self.assertGreater(int(new_fbm.incremental_epoch), present)
-        self.assertTrue(existing_key.set_contents_from_string.called)
+        self.assertEqual(int(new_fbm.incremental_epoch), present)
+        self.assertFalse(existing_key.set_contents_from_string.called)
 
     @patch('targetshare.integration.facebook.client.urlload')
-    @patch('feed_crawler.utils.S3Manager.get_bucket')
-    @patch('feed_crawler.utils.BucketManager.get_key')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
     def test_crawl_comments_and_likes(self, bucket_mock, conn_mock, fb_mock):
         the_past = epoch.from_date(timezone.now() - timedelta(days=365))
         fbm = models.FBSyncMap.items.create(
@@ -198,18 +245,16 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             open(os.path.join(DATA_PATH, 'user_feed.json')).read()
         )
         existing_key = Mock()
-        existing_key.get_contents_as_string.return_value = open(
-            os.path.join(DATA_PATH, 'user_feed.json')).read()
+        existing_key.data = json.load(
+            open(os.path.join(DATA_PATH, 'user_feed.json'))
+        )
         bucket_mock.return_value = existing_key
-        conn_mock.return_value = utils.BucketManager()
+        conn_mock.return_value = s3_feed.BucketManager()
         self.assertEqual(len(user_feed['data'][0]['comments']['data']), 1)
         self.assertEqual(len(user_feed['data'][0]['likes']['data']), 3)
-        tasks.crawl_comments_and_likes(fbm)
-        extended_feed = json.loads(
-            existing_key.set_contents_from_string.call_args[0][0]
-        )
-        self.assertEqual(len(extended_feed['data'][0]['comments']['data']), 2)
-        self.assertEqual(len(extended_feed['data'][0]['likes']['data']), 4)
+        tasks.crawl_comments_and_likes(fbm.fbid_primary, fbm.fbid_secondary)
+        self.assertEqual(len(existing_key.data['data'][0]['comments']['data']), 2)
+        self.assertEqual(len(existing_key.data['data'][0]['likes']['data']), 4)
         fbm = models.FBSyncMap.items.get_item(fbid_primary=self.fbid,
                                               fbid_secondary=self.fbid)
         self.assertEqual(fbm.status, fbm.COMPLETE)

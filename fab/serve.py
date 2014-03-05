@@ -31,6 +31,7 @@ CELERY_QUEUES = (
     'bg_upsert',
     'bg_update_edges',
     'bg_partial_save',
+    'bg_bulk_create',
 )
 
 

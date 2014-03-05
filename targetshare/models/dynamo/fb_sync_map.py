@@ -7,6 +7,7 @@ class FBSyncMap(Item):
 
     # Statuses
     WAITING = 'waiting'
+    QUEUED = 'queued'
     INITIAL_CRAWL = 'initial_crawl'
     BACK_FILL = 'back_fill'
     INCREMENTAL = 'incremental'
