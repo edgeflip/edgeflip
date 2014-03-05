@@ -59,7 +59,7 @@
         // faces defined in load_and_login.js
         edgeflip.faces.init({
             debug: {{ debug_mode|yesno:"true,false" }},
-	    test_mode: {{ test_mode|yesno:"true,false" }},
+            test_mode: {{ test_mode|yesno:"true,false" }},
             test_fbid: {{ test_mode.fbid|default:"null" }},
             test_token: '{{ test_mode.token|default:"" }}',
             thanksURL: '{{ properties.client_thanks_url }}',
