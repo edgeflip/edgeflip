@@ -5,42 +5,57 @@ Requires:
     jQuery
 
 Use:
-    recordEvent('heartbeat');
+    edgeflip.events.record('heartbeat');
 
 {% endcomment %}
-var recordEvent = function (eventType, options) {
-    options = options || {};
+edgeflip.events = (function ($) {
+    var self = {
+        config: null,
+        setConfig: function (options) {
+            /* Point events at the given object for global configuration */
+            self.config = options;
+        }
+    };
 
-    // Support globals in frame_faces.html:
-    var fbid = typeof user !== 'undefined' ? user.fbid : null;
-    var campid = typeof campaignid !== 'undefined' ? campaignid : null;
-    var contid = typeof contentid !== 'undefined' ? contentid : null;
+    self.record = function (eventType, options) {
+        options = options || {};
+        var globalOptions = self.config || {};
+        var fbid = options.fbid ||
+                    (options.user && options.user.fbid) ||
+                    (globalOptions.user && globalOptions.user.fbid);
+        var content;
+        if (options.content) {
+            content = options.content;
+        } else if (edgeflip.FB_APP_NAME ||
+                   edgeflip.FB_OBJ_TYPE ||
+                   edgeflip.FB_OBJ_URL) {
+            content = edgeflip.FB_APP_NAME +
+                        ':' + edgeflip.FB_OBJ_TYPE +
+                        ' ' + edgeflip.FB_OBJ_URL;
+        }
 
-    // and other global settings:
-    var fb_app_id = typeof FB_APP_ID !== 'undefined' ? FB_APP_ID : '';
-    var fb_app_name = typeof FB_APP_NAME !== 'undefined' ? FB_APP_NAME : '';
-    var fb_obj_type = typeof FB_OBJ_TYPE !== 'undefined' ? FB_OBJ_TYPE : '';
-    var fb_obj_url = typeof FB_OBJ_URL !== 'undefined' ? FB_OBJ_URL : '';
+        $.ajax({
+            type: 'POST',
+            url: "{% url 'record-event' %}",
+            dataType: 'html',
+            data: {
+                eventType: eventType,
+                userid: fbid,
+                content: content,
+                campaignid: options.campaignid || globalOptions.campaignid,
+                contentid: options.contentid || globalOptions.contentid,
+                appid: options.fb_app_id || edgeflip.FB_APP_ID,
+                actionid: options.actionid,
+                token: options.token,
+                friends: options.friends,
+                shareMsg: options.shareMsg,
+                errorMsg: options.errorMsg
+            },
+            error: options.error,
+            success: options.success,
+            complete: options.complete
+        });
+    };
 
-    $.ajax({
-        type: 'POST',
-        url: "{% url 'record-event' %}",
-        dataType: 'html',
-        data: {
-            eventType: eventType,
-            userid: options.fbid || fbid,
-            campaignid: options.campaignid || campid,
-            contentid: options.contentid || contid,
-            appid: options.fb_app_id || fb_app_id,
-            content: options.content || fb_app_name + ':' + fb_obj_type + ' ' + fb_obj_url,
-            actionid: options.actionid,
-            token: options.token,
-            friends: options.friends,
-            shareMsg: options.shareMsg,
-            errorMsg: options.errorMsg
-        },
-        error: options.error,
-        success: options.success,
-        complete: options.complete
-    });
-};
+    return self;
+})(jQuery);

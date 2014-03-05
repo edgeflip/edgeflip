@@ -5,10 +5,13 @@ Requires:
     jQuery
 
 Use:
-    CSRF.setHeader();
+    <body>
+    {% csrf_token %}
+    <script>edgeflip.csrf.setHeader();</script>
+    ...
 
 {% endcomment %}
-var CSRF = (function () {
+edgeflip.csrf = (function ($) {
     var self = {
         retrieveFromCookie: function (name) {
             var cookieValue = null;
@@ -29,7 +32,7 @@ var CSRF = (function () {
             // these HTTP methods do not require CSRF protection
             return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
         },
-        setHeader: function() {
+        setHeader: function () {
             var csrftoken = self.retrieveFromCookie('csrftoken');
             $.ajaxSetup({
                 crossDomain: false, // obviates need for sameOrigin test
@@ -42,4 +45,4 @@ var CSRF = (function () {
         }
     };
     return self;
-})();
+})(jQuery);

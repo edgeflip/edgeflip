@@ -1,7 +1,6 @@
 {% extends "targetshare/frame_faces.html" %}
-{% block configure_facebook %}
-    {{ block.super }}
-    user.onAuth = function() {
+{% block js_configure %}
+    edgeflip.faces.user.onAuth = function() {
         $('#progress').hide();
         $('#friends_div').show();
     };

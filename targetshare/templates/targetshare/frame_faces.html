@@ -45,33 +45,33 @@
         dojo.require("dojox.html.ellipsis");
     </script>
 
-    <!-- edgeflip javascript -->
+    <!-- edgeflip faces javascript -->
     <script type='text/javascript'>
     {% include "core/includes/heartbeat.js" %}
     {% include "core/includes/facebook.js" %}
     </script>
+
     <script src="{{ STATIC_URL }}js/load_and_login.js?version={{ settings.RELEASE_VERSION }}"></script>
-{% endblock %}
 
-{% block js_inline %}
     <script>
-        FB_APP_ID = "{{ fb_params.fb_app_id }}";
-        debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
+        edgeflip.FB_APP_ID = "{{ fb_params.fb_app_id }}";
 
-        var campaignid = {{ campaign.pk }};
-        var contentid = {{ content.pk }};
-        var num_face = 9;
+        // faces defined in load_and_login.js
+        edgeflip.faces.init({
+            debug: {% if debug_mode %}true{% else %}false{% endif %},
+            test_mode: {% if test_mode %}true{% else %}false{% endif %},
+            test_fbid: {{ test_fbid|default:"null" }},
+            test_token: '{{ test_token|default:"" }}',
+            thanksURL: '{{ properties.client_thanks_url }}',
+            errorURL: '{{ properties.client_error_url }}',
+            campaignid: {{ campaign.pk }},
+            contentid: {{ content.pk }}
+        });
 
-        {% if test_mode %}
-            var test_mode = true;
-            var test_fbid = {{ test_fbid }};
-            var test_token = '{{ test_token }}';
-        {% else %}
-            var test_mode = false;
-        {% endif %}
+        {% block js_configure %}
+        {% endblock %}
 
-        var thanksURL = '{{ properties.client_thanks_url }}';
-        var errorURL = '{{ properties.client_error_url }}';
+        $(function () {edgeflip.faces.user.connect()});
     </script>
     <!-- edgeflip javascript -->
 {% endblock %}
@@ -96,21 +96,6 @@
 
 
     <div id="fb-root"></div>
-    <script type="text/javascript">
-        // Start the debugger heartbeat before FB interation comes into play:
-        if (debug_mode) {
-            var heartbeat = new Heartbeat();
-        }
-        {% block facebook %}
-        {% block configure_facebook %}
-            var user = new FBUser(FB_APP_ID, {
-                onAuth: login,
-                onAuthFailure: authFailure
-            });
-        {% endblock %}
-            user.connect();
-        {% endblock %}
-    </script>
     {% if canvas %}
         {% include 'targetshare/privacy_policy.html' %}
     {% endif %}

@@ -2,38 +2,38 @@
 JavaScript include template for the heartbeat event record
 
 Requires:
-    recordEvent
+    edgeflip.events
 
 Use:
-    var heartbeat = new Heartbeat();
+    var heartbeat = new edgeflip.Heartbeat();
     heartbeat.stop();
     heartbeat.start();
     heartbeat.reset();
 
 {% endcomment %}
-var Heartbeat = function (options) {
+edgeflip.Heartbeat = function (options) {
     options = options || {};
     this.maxCount = options.maxCount || 60;
     this.timeout = options.timeout || 2000;
     this.reset();
     this.start();
 };
-Heartbeat.prototype.run = function () {
+edgeflip.Heartbeat.prototype.run = function () {
     if (this.on && this.count < this.maxCount) {
-        recordEvent('heartbeat');
+        edgeflip.events.record('heartbeat');
         this.count += 1;
 
         var bound = this.run.bind(this); // setTimeout runs in global scope
         setTimeout(bound, this.timeout);
     }
 };
-Heartbeat.prototype.start = function () {
+edgeflip.Heartbeat.prototype.start = function () {
     this.on = true;
     this.run();
 };
-Heartbeat.prototype.stop = function () {
+edgeflip.Heartbeat.prototype.stop = function () {
     this.on = false;
 };
-Heartbeat.prototype.reset = function () {
+edgeflip.Heartbeat.prototype.reset = function () {
     this.count = 0;
 };
