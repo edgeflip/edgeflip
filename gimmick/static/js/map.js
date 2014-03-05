@@ -132,10 +132,10 @@ edgeflip.map = (function (edgeflip, $) {
     var totalScore = function (scores) {
         /* Calculate the user's total awesomeness from the given state scores.
          */
-        var score = 0;
-        for (var index = 0; index < scores.length; index++) {
-            score += scores[index][1];
-        }
+        var score = scores.reduce(
+            function (sum, pair) {return sum + pair[1];},
+            0
+        );
         return Math.round(score);
     };
 
