@@ -28,11 +28,11 @@
         <script>
             edgeflip.map.init({
                 debug: {{ debug|yesno:"true,false" }},
-		dataURL: "{% url 'gimmick:map-data' %}",
-		test: {% if test_mode %}{
-		    fbid: {{ test_mode.fbid }},
-		    token: '{{ test_mode.token }}'
-	        }{% else %}null{% endif %}
+                dataURL: '{% url "gimmick:map-data" %}',
+                test: {% if test_mode %}{
+                    fbid: {{ test_mode.fbid }},
+                    token: '{{ test_mode.token }}'
+                }{% else %}null{% endif %}
             });
         </script>
         <!-- End Edgeflip Map JavaScript -->
@@ -45,7 +45,7 @@
         {% csrf_token %} {# Ensures the token/cookie is available #}
         <script type="text/javascript">edgeflip.csrf.setHeader();</script>
 
-	hello you are <span id="total-score">&hellip;</span> popular
+        hello you are <span id="total-score">&hellip;</span> popular
         <div id="map" style="width: 900px; height: 500px;"></div>
     </body>
 </html>
