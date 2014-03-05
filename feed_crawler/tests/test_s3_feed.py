@@ -1,5 +1,4 @@
 import os
-import shutil
 import unittest
 
 from mock import patch
@@ -9,8 +8,8 @@ from feed_crawler import s3_feed
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
 
 
-def get_contents_to_filename(cls, filename):
-    shutil.copyfile(os.path.join(DATA_PATH, 'user_feed.json'), filename)
+def get_contents_to_file(cls, fp):
+    fp.write(open(os.path.join(DATA_PATH, 'user_feed.json')).read())
 
 
 class TestFeedKey(unittest.TestCase):
@@ -48,7 +47,7 @@ class TestFeedKey(unittest.TestCase):
             'tmp', self.key.set_contents_from_filename.call_args[0][0]
         )
 
-    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_filename', get_contents_to_filename)
+    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_file', get_contents_to_file)
     @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_filename')
     def test_append_data_to_s3(self, upload_mock):
         self.key.data = {
@@ -61,7 +60,7 @@ class TestFeedKey(unittest.TestCase):
         self.assertEqual(self.key.data['data'][0]['id'], '1357997116_10202851367949409')
         self.assertEqual(self.key.data['data'][1][1], 'some_data')
 
-    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_filename', get_contents_to_filename)
+    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_file', get_contents_to_file)
     @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_filename')
     def test_prepend_data_to_s3(self, upload_mock):
         self.key.data = {
@@ -74,7 +73,7 @@ class TestFeedKey(unittest.TestCase):
         self.assertEqual(self.key.data['data'][0][1], 'some_data')
         self.assertEqual(self.key.data['data'][1]['id'], '1357997116_10202851367949409')
 
-    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_filename', get_contents_to_filename)
+    @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_file', get_contents_to_file)
     def test_populate_from_s3(self):
         self.key.data = {}
         self.key.populate_from_s3()

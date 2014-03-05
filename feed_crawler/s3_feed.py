@@ -42,43 +42,40 @@ class FeedKey(key.Key):
     def save_to_s3(self):
         ''' Commits the current populated FeedKey to s3 '''
         self.data['updated'] = epoch.from_date(timezone.now())
-        fh = NamedTemporaryFile(delete=False)
-        json.dump(self.data, fh.file)
-        fh.file.close()
-        self.set_contents_from_filename(fh.name)
-        os.remove(fh.name)
+        with NamedTemporaryFile(delete=False) as tmp_file:
+            json.dump(self.data, tmp_file.file)
+            tmp_file.file.close()
+            self.set_contents_from_filename(tmp_file.name)
+            os.remove(tmp_file.name)
 
     def extend_s3_data(self, append=True):
         ''' Extends the data we have in S3, typically in incremental or
         back_fill jobs. Append flag lets you dictate if the new data ends up
         in front or in back of the existing data
         '''
-        fh = NamedTemporaryFile(delete=False)
-        fh.close()
-        self.get_contents_to_filename(fh.name)
-        fh = open(fh.name)
-        full_data = json.load(fh)
-        existing_data = full_data.setdefault('data', [])
-        if append:
-            existing_data.extend(self.data['data'])
-            self.data = full_data
-        else:
-            self.data['data'].extend(existing_data)
-        self.data['updated'] = epoch.from_date(timezone.now())
-        json_file = NamedTemporaryFile(delete=False)
-        json.dump(self.data, json_file.file)
-        json_file.close()
-        self.set_contents_from_filename(json_file.name)
-        os.remove(json_file.name)
-        os.remove(fh.name)
+        with NamedTemporaryFile(delete=False) as s3_file, NamedTemporaryFile(delete=False) as json_file:
+            self.get_contents_to_file(s3_file.file)
+            s3_file.seek(0)
+            full_data = json.load(s3_file.file)
+            existing_data = full_data.setdefault('data', [])
+            if append:
+                existing_data.extend(self.data['data'])
+                self.data = full_data
+            else:
+                self.data['data'].extend(existing_data)
+            self.data['updated'] = epoch.from_date(timezone.now())
+            json.dump(self.data, json_file.file)
+            json_file.close()
+            self.set_contents_from_filename(json_file.name)
+            os.remove(json_file.name)
+            os.remove(s3_file.name)
 
     def populate_from_s3(self):
         ''' Populates the FeedKey.data element from S3 '''
-        fh = NamedTemporaryFile(delete=False)
-        fh.close()
-        self.get_contents_to_filename(fh.name)
-        fh = open(fh.name)
-        self.data = json.load(fh)
+        with NamedTemporaryFile(delete=False) as tmp_file:
+            self.get_contents_to_file(tmp_file.file)
+            tmp_file.seek(0)
+            self.data = json.load(tmp_file.file)
 
 
 class BucketManager(bucket.Bucket):
