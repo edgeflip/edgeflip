@@ -1,6 +1,5 @@
-import os
 import json
-from tempfile import NamedTemporaryFile
+from tempfile import TemporaryFile
 
 import boto
 from boto.s3 import bucket, connection, key
@@ -42,21 +41,20 @@ class FeedKey(key.Key):
     def save_to_s3(self):
         ''' Commits the current populated FeedKey to s3 '''
         self.data['updated'] = epoch.from_date(timezone.now())
-        with NamedTemporaryFile(delete=False) as tmp_file:
-            json.dump(self.data, tmp_file.file)
-            tmp_file.file.close()
-            self.set_contents_from_filename(tmp_file.name)
-            os.remove(tmp_file.name)
+        with TemporaryFile() as tmp_file:
+            json.dump(self.data, tmp_file)
+            tmp_file.seek(0)
+            self.set_contents_from_file(tmp_file)
 
     def extend_s3_data(self, append=True):
         ''' Extends the data we have in S3, typically in incremental or
         back_fill jobs. Append flag lets you dictate if the new data ends up
         in front or in back of the existing data
         '''
-        with NamedTemporaryFile(delete=False) as s3_file, NamedTemporaryFile(delete=False) as json_file:
-            self.get_contents_to_file(s3_file.file)
+        with TemporaryFile() as s3_file, TemporaryFile() as json_file:
+            self.get_contents_to_file(s3_file)
             s3_file.seek(0)
-            full_data = json.load(s3_file.file)
+            full_data = json.load(s3_file)
             existing_data = full_data.setdefault('data', [])
             if append:
                 existing_data.extend(self.data['data'])
@@ -64,18 +62,16 @@ class FeedKey(key.Key):
             else:
                 self.data['data'].extend(existing_data)
             self.data['updated'] = epoch.from_date(timezone.now())
-            json.dump(self.data, json_file.file)
-            json_file.close()
-            self.set_contents_from_filename(json_file.name)
-            os.remove(json_file.name)
-            os.remove(s3_file.name)
+            json.dump(self.data, json_file)
+            json_file.seek(0)
+            self.set_contents_from_file(json_file)
 
     def populate_from_s3(self):
         ''' Populates the FeedKey.data element from S3 '''
-        with NamedTemporaryFile(delete=False) as tmp_file:
-            self.get_contents_to_file(tmp_file.file)
+        with TemporaryFile() as tmp_file:
+            self.get_contents_to_file(tmp_file)
             tmp_file.seek(0)
-            self.data = json.load(tmp_file.file)
+            self.data = json.load(tmp_file)
 
 
 class BucketManager(bucket.Bucket):

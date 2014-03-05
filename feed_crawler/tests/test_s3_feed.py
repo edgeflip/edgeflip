@@ -35,20 +35,20 @@ class TestFeedKey(unittest.TestCase):
         self.key.crawl_pagination()
         self.assertEqual(len(self.key.data), 2)
 
-    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_filename')
+    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_file')
     def test_save_to_s3(self, upload_mock):
         self.key.data = {
             'data': [{1: 'some_data'}],
             'paging': {'next': 'some_url'},
         }
         self.key.save_to_s3()
-        self.assertTrue(self.key.set_contents_from_filename.called)
-        self.assertIn(
-            'tmp', self.key.set_contents_from_filename.call_args[0][0]
+        self.assertTrue(self.key.set_contents_from_file.called)
+        self.assertEqual(
+            type(self.key.set_contents_from_file.call_args_list[0][0][0]), file
         )
 
     @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_file', get_contents_to_file)
-    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_filename')
+    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_file')
     def test_append_data_to_s3(self, upload_mock):
         self.key.data = {
             'data': [{1: 'some_data'}],
@@ -61,7 +61,7 @@ class TestFeedKey(unittest.TestCase):
         self.assertEqual(self.key.data['data'][1][1], 'some_data')
 
     @patch('feed_crawler.s3_feed.FeedKey.get_contents_to_file', get_contents_to_file)
-    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_filename')
+    @patch('feed_crawler.s3_feed.FeedKey.set_contents_from_file')
     def test_prepend_data_to_s3(self, upload_mock):
         self.key.data = {
             'data': [{1: 'some_data'}],
