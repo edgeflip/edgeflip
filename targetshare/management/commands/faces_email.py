@@ -125,13 +125,8 @@ def crawl_and_filter(campaign, content, notification, offset,
 
         try:
             (stream, edges) = ranking.px4_crawl(ut)
-        except IOError as exc:
-            LOG.exception('Failed to crawl %s', ut.fbid)
-            failed_fbids.append(ut.fbid)
-            error_dict['IOError'] += 1
-            continue
         except Exception as exc:
-            LOG.exception('Unknown error, failed to crawl %s', ut.fbid)
+            LOG.exception('Failed to crawl %s', ut.fbid)
             failed_fbids.append(ut.fbid)
             error_dict[exc.__class__.__name__] += 1
             continue
@@ -276,11 +271,11 @@ class Command(BaseCommand):
         self.stdout.write(
             'primary_fbid,email,friend_fbids,names,html_table\n')
         total_errors = defaultdict(int)
-        for result in results:
-            self.stdout.write(open(result[0]).read())
-            os.remove(result[0])
-            for key in result[1].keys():
-                total_errors[key] += result[1][key]
+        for (filename, errors) in results:
+            self.stdout.write(open(filename).read())
+            os.remove(filename)
+            for key in errors.keys():
+                total_errors[key] += errors[key]
 
         for key, value in total_errors.iteritems():
             LOG.info('{} total {} errors'.format(value, key))

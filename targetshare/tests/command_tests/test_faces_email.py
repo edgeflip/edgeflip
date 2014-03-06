@@ -155,7 +155,7 @@ class TestFacesEmail(EdgeFlipTestCase):
     @patch('targetshare.management.commands.faces_email.build_csv')
     @patch('targetshare.management.commands.faces_email.ranking')
     def test_crawl_and_filter_error(self, ranking_mock, build_csv_mock):
-        ''' Test the crawl_and_filter method '''
+        ''' Test the crawl_and_filter method error handling abilities '''
         ranking_mock.px4_crawl.side_effect = KeyError('foo')
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         error_dict = defaultdict(int)
