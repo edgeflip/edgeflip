@@ -3,6 +3,7 @@ import random
 from datetime import datetime
 
 from mock import Mock, patch
+from collections import defaultdict
 
 from django.utils import timezone
 
@@ -62,7 +63,10 @@ class TestFacesEmail(EdgeFlipTestCase):
         read_mocks = [Mock(), Mock()]
         open_mock.side_effect = read_mocks
         pool_mock = Mock()
-        pool_mock.map.return_value = ['filename_1', 'filename_2']
+        pool_mock.map.return_value = [
+            ('filename_1', {}),
+            ('filename_2', {})
+        ]
         mp_mock.Pool.return_value = pool_mock
 
         # Add more UserClients
@@ -128,6 +132,7 @@ class TestFacesEmail(EdgeFlipTestCase):
         ''' Test the crawl_and_filter method '''
         ranking_mock.px4_crawl.return_value = (None, Mock())
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        error_dict = defaultdict(int)
         for x in range(0, 3):
             relational.UserClient.objects.create(
                 fbid=x, client=self.client
@@ -140,11 +145,38 @@ class TestFacesEmail(EdgeFlipTestCase):
 
         edge_data = list(faces_email.crawl_and_filter(
             self.campaign, self.content,
-            self.notification, 0, 100, 3
+            self.notification, 0, 100, 3, error_dict
         ))
         # 4, one is pre-existing from the setUp
         self.assertEqual(relational.NotificationUser.objects.count(), 4)
         self.assertEqual(len(edge_data), 3)
+        self.assertEqual(error_dict.keys(), [])
+
+    @patch('targetshare.management.commands.faces_email.build_csv')
+    @patch('targetshare.management.commands.faces_email.ranking')
+    def test_crawl_and_filter_error(self, ranking_mock, build_csv_mock):
+        ''' Test the crawl_and_filter method '''
+        ranking_mock.px4_crawl.side_effect = KeyError('foo')
+        expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+        error_dict = defaultdict(int)
+        for x in range(0, 3):
+            relational.UserClient.objects.create(
+                fbid=x, client=self.client
+            )
+            token = dynamo.Token(
+                fbid=x, appid=self.client.fb_app_id,
+                token=x, expires=expires
+            )
+            token.save()
+
+        edge_data = list(faces_email.crawl_and_filter(
+            self.campaign, self.content,
+            self.notification, 0, 100, 3, error_dict
+        ))
+        # 4, one is pre-existing from the setUp
+        self.assertEqual(relational.NotificationUser.objects.count(), 4)
+        self.assertEqual(len(edge_data), 0)
+        self.assertEqual(error_dict['KeyError'], 3)
 
     @patch_facebook
     @patch('os.close')
