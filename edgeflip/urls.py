@@ -13,9 +13,14 @@ urlpatterns = patterns('',
     url(r'^reporting/', include('reporting.urls', namespace='reporting')),
 )
 
+if settings.ENV in ('development', 'staging'):
+    urlpatterns += patterns('',
+        url(r'^devices/', include('gimmick.urls', namespace='gimmick')),
+    )
+
 if settings.DEBUG:
     urlpatterns += staticfiles_urlpatterns()
     urlpatterns += patterns('',
         url(r'^mocks/', include('targetmock.urls')),
-        url(r'^simpleadmin/', include(admin.site.urls))
+        url(r'^simpleadmin/', include(admin.site.urls)),
     )

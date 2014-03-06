@@ -267,14 +267,29 @@ class TestFacesViews(EdgeFlipViewTestCase):
         self.assertEqual(properties['client_error_url'],
                          self.get_outgoing_url(error_url, 1))
 
-    def test_frame_faces_test_mode_bad_request(self):
-        ''' Tests views.frame_faces with test_mode enabled, but without
-        providing a test FB ID or Token
-        '''
+    def test_frame_faces_test_mode(self):
         response = self.client.get(reverse('frame-faces', args=[1, 1]), {
             'secret': settings.TEST_MODE_SECRET,
+            'fbid': 1234,
+            'token': 'boo-urns',
         })
-        self.assertStatusCode(response, 400)
+        self.assertStatusCode(response, 200)
+        test_mode = response.context['test_mode']
+        self.assertTrue(test_mode)
+        self.assertEqual(test_mode.fbid, 1234)
+        self.assertEqual(test_mode.token, 'boo-urns')
+
+    def test_frame_faces_test_mode_bad_secret(self):
+        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+            'secret': settings.TEST_MODE_SECRET[:4] + 'oops',
+            'fbid': 1234,
+            'token': 'oops',
+        })
+        self.assertStatusCode(response, 200)
+        test_mode = response.context['test_mode']
+        self.assertFalse(test_mode)
+        self.assertIsNone(test_mode.fbid)
+        self.assertIsNone(test_mode.token)
 
     def test_canvas(self):
         ''' Tests views.canvas '''

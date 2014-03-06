@@ -1,7 +1,9 @@
 {% extends "targetshare/frame_faces.html" %}
-{% block run_sharing %}
-    $('#progress').hide();
-    $('#friends_div').show();
+{% block js_configure %}
+    edgeflip.faces.user.onConnect = function() {
+        $('#progress').hide();
+        $('#friends_div').show();
+    };
 {% endblock %}
 {% block friends_data %}
     {% include "targetshare/faces_table.html" %}

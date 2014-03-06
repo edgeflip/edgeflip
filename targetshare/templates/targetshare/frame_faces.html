@@ -45,29 +45,33 @@
         dojo.require("dojox.html.ellipsis");
     </script>
 
-    <!-- edgeflip javascript -->
+    <!-- edgeflip faces javascript -->
+    <script type='text/javascript'>
+    {% include "core/includes/heartbeat.js" %}
+    {% include "core/includes/facebook.js" %}
+    </script>
+
     <script src="{{ STATIC_URL }}js/load_and_login.js?version={{ settings.RELEASE_VERSION }}"></script>
-{% endblock %}
 
-{% block js_inline %}
     <script>
-        var tok = '';
-        var appid = "{{ fb_params.fb_app_id }}";
-        var campaignid = {{ campaign.pk }};
-        var contentid = {{ content.pk }};
-        var debug_mode = {% if debug_mode %}true{% else %}false{% endif %};
-        var num_face = 9;
+        edgeflip.FB_APP_ID = "{{ fb_params.fb_app_id }}";
 
-        {% if test_mode %}
-            var test_mode = true;
-            var test_fbid = {{ test_fbid }};
-            var test_token = '{{ test_token }}';
-        {% else %}
-            var test_mode = false;
-        {% endif %}
+        // faces defined in load_and_login.js
+        edgeflip.faces.init({
+            debug: {{ debug_mode|yesno:"true,false" }},
+            test_mode: {{ test_mode|yesno:"true,false" }},
+            test_fbid: {{ test_mode.fbid|default:"null" }},
+            test_token: '{{ test_mode.token|default:"" }}',
+            thanksURL: '{{ properties.client_thanks_url }}',
+            errorURL: '{{ properties.client_error_url }}',
+            campaignid: {{ campaign.pk }},
+            contentid: {{ content.pk }}
+        });
 
-        var thanksURL = '{{ properties.client_thanks_url }}';
-        var errorURL = '{{ properties.client_error_url }}';
+        {% block js_configure %}
+        {% endblock %}
+
+        $(function () {edgeflip.faces.user.connect()});
     </script>
     <!-- edgeflip javascript -->
 {% endblock %}
@@ -92,61 +96,6 @@
 
 
     <div id="fb-root"></div>
-    <script type="text/javascript">
-        // Start the debugger heartbeat before FB interation comes into play
-        if (debug_mode){
-            heartbeat();
-        }
-        
-        /* standard facebook workflow */
-
-        window.fbAsyncInit = function() {
-
-
-            FB.init({ appId: '{{ fb_params.fb_app_id }}', //change the appId to your appId
-                status: true, 
-                cookie: true,
-                xfbml: true,
-                oauth: true});
-
-            FB.Event.subscribe('auth.statusChange', function(response) {
-                if (response.status === 'connected') {
-                    var uid = response.authResponse.userID;
-                    var tok = response.authResponse.accessToken;
-                    $.ajax({
-                        type: "POST",
-                        url: "{% url 'record-event' %}",
-                        data: {
-                            userid: uid,
-                            appid: appid,
-                            friends: [],
-                            eventType: 'authorized',
-                            campaignid: {{ campaign.pk }},
-                            contentid: {{ content.pk }},
-                            content: '',
-                            token: tok
-                       }
-                   });
-                   {% block run_sharing %}
-                       login(uid, tok, response, null);
-                   {% endblock %}
-                } else {
-                    // User isn't logged in or hasn't authed, so try doing the login directly
-                    // (note: if we wanted to detect logged in to FB but not authed, could use status==='not_authorized')
-                    doFBLogin();
-                }
-            });
-
-        }; // fbAsyncInit
-
-        (function() {
-            var e = document.createElement('script'); e.async = true;
-            e.src = document.location.protocol 
-                + '//connect.facebook.net/en_US/all.js';
-            document.getElementById('fb-root').appendChild(e);
-        }());
-            
-    </script>
     {% if canvas %}
         {% include 'targetshare/privacy_policy.html' %}
     {% endif %}
