@@ -192,10 +192,6 @@ def decode_date(date):
     if date:
         try:
             month, day, year = map(int, date.split('/'))
-        except ValueError:
-            return None
-
-        try:
             return timezone.datetime(year, month, day, tzinfo=timezone.utc)
         except ValueError:
             return None

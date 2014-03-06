@@ -28,3 +28,8 @@ class TestFacebookIntegration(unittest.TestCase):
     def test_decode_date_invalid_string(self):
         bday = facebook.client.decode_date('02/29/AAAA')
         self.assertEqual(bday, None)
+
+    def test_decode_date_missing_data(self):
+        ''' Facebook can't always provide us with the year someone was born '''
+        bday = facebook.client.decode_date('02/29')
+        self.assertEqual(bday, None)
