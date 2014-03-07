@@ -23,19 +23,14 @@
                 friends, a further fullback of simply: Women, might be 
                 applicable. As always, feel free to contact us for assistance
             </p>
-            <h3>Enabled Filters</h3>
+            <h3>Enabled Filters <button id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</button></h3>
             <h5>Top Layer</h5>
             <div class="row">
                 <div class="span12 well sortable target-well" id="enabled-filters-1"></div>
             </div>
         </div>
         <div class="row">
-            <div class="span4">
-                <button id="add-layer" class="btn btn-primary" data-layer-count="1">Add Layer</button>
-            </div>
-        </div>
-        <div class="row">
-            <h3>Available Filters</h3>
+            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px;">
                 {% for ff in filter_features %}
                 <div id="set_number={{ ff.pk }}" class="span2 draggable"><p><abbr title="{{ ff.pretty_name }}">{{ ff.pretty_name|truncatechars:30 }}</abbr></p></div>
@@ -43,11 +38,6 @@
                         <br />
                     {% endif %}
                 {% endfor %}
-            </div>
-        </div>
-        <div class="row">
-            <div class="span9" id="buttons">
-                <a data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn btn-primary" data-toggle="modal">Create New Filter</a>
             </div>
         </div>
     </div>
@@ -82,15 +72,19 @@
     });
 </script>
 <script>
+    var layer_count = 1;
     $('#add-layer').click(function(e){
-        var layer_count = $('#add-layer').data('layer-count') + 1;
+        layer_count = $('#add-layer').data('layer-count') + 1;
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
-            '<h5>New Layer</h5><div class="row"><div class="span12 well sortable target-well" id="enabled-filters-' + layer_count + '"></div></div>'
+            '<h5>Layer ' + layer_count + '</h5><div class="row"><div class="span12 well sortable target-well" id="enabled-filters-' + layer_count + '"></div></div>'
         );
         $('#enabled-filters-' + layer_count).sortable({
             connectWith: '.target-well'
         });
+        if (layer_count >= 5) {
+            $('#add-layer').prop('disabled', true);
+        }
     });
 </script>
 <script>
