@@ -7,7 +7,7 @@
 <div class="row">
     <div class="span12">
         <div class="row" id="enabled-section">
-            <h2>Enabled Filters</h2>
+            <h2>Targeting Criteria</h2>
             <p>
                 The below items will be chained together with ANDs. 
                 We highly recommend adding extra, subsequent targeting layers 
@@ -16,15 +16,17 @@
                 the sharing platform doesn't have an adequate number of 
                 friends meeting those requirements they won't be served any 
                 friends to share with. 
-            </p><p>
+            </p>
+            <p>
                 As a result, a fallback criteria might 
                 be: Women that are 18-34. If that falls to find enough 
                 friends, a further fullback of simply: Women, might be 
                 applicable. As always, feel free to contact us for assistance
             </p>
+            <h3>Enabled Filters</h3>
             <h5>Top Layer</h5>
             <div class="row">
-                <div class="span12 well target-well" id="enabled-filters-1"></div>
+                <div class="span12 well sortable target-well" id="enabled-filters-1"></div>
             </div>
         </div>
         <div class="row">
@@ -33,56 +35,21 @@
             </div>
         </div>
         <div class="row">
-            <h2>Available Filters</h2>
-            <div class="span12 well" id="existing-filters">
-                {% for filter in filters %}
-                    {% for ff in filter.filterfeatures.all %}
-                        <div class="span2 draggable"><p><abbr title="{{ ff.pretty_name }}">{{ ff.pretty_name|truncatechars:30 }}</abbr></p></div>
-                        {% if forloop.counter > 10 %}
-                            <br />
-                        {% endif %}
-                    {% endfor %}
+            <h3>Available Filters</h3>
+            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px;">
+                {% for ff in filter_features %}
+                <div id="set_number={{ ff.pk }}" class="span2 draggable"><p><abbr title="{{ ff.pretty_name }}">{{ ff.pretty_name|truncatechars:30 }}</abbr></p></div>
+                    {% if forloop.counter > 10 %}
+                        <br />
+                    {% endif %}
                 {% endfor %}
             </div>
         </div>
-    </div>
-</div>
-<!--
-<div class="row">
-    <div class="span5 well">
-        <h2>Filtering Options</h2>
-        <div class="sortable" id="existing-filters">
-            {% for filter in filters %}
-                <div class="row" id="filter-{{ filter.pk }}">
-                    <div class="span4 well">
-                        <p>{{ filter.name }}</p>
-                        <ul>
-                            {% for ff in filter.filterfeatures.all %}
-                                <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
-                            {% empty %}
-                                <li>No filtering criteria</li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-            {% endfor %}
-        </div>
-    </div>
-    <div class="span1"></div>
-    <div class="span5 well"> 
-        <h2>Enabled Filters</h2>
-        <div class="sortable" id="applied-filters">
-            <div class="row">
-                <div class="span4 well">
-                    <p>Place filters from the left over here</p>
-                </div>
+        <div class="row">
+            <div class="span9" id="buttons">
+                <a data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn btn-primary" data-toggle="modal">Create New Filter</a>
             </div>
         </div>
-    </div>
-</div>
-<div class="row">
-    <div class="span9" id="buttons">
-        <a data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn" data-toggle="modal">Create New Filter</a>
     </div>
 </div>
 <div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog" data-remote="{% url 'filter-add' client.pk %}">
@@ -97,13 +64,12 @@
         <button id="submit-filter-add" class="btn btn-primary">Save changes</button>
     </div>
 </div>
--->
 {% endblock %}
 {% block extrascript %}
 <script>
     $(function() {
         $('#existing-filters').sortable({
-            connectWith: "#enabled-filters-1"
+            connectWith: ".target-well"
         });
         $('#enabled-filters-1').sortable({
             connectWith: ".target-well"
@@ -120,10 +86,10 @@
         var layer_count = $('#add-layer').data('layer-count') + 1;
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
-            '<h5>New Layer</h5><div class="row"><div class="span12 well target-well" id="enabled-filters-' + layer_count + '"></div></div>'
+            '<h5>New Layer</h5><div class="row"><div class="span12 well sortable target-well" id="enabled-filters-' + layer_count + '"></div></div>'
         );
         $('#enabled-filters-' + layer_count).sortable({
-            connectWith: '#existing-filters'
+            connectWith: '.target-well'
         });
     });
 </script>

@@ -94,33 +94,19 @@ def filter_edit(request, client_pk, pk):
 @auth_client_required
 def add_filter(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    form = forms.FilterForm(instance=relational.Filter(client=client))
-    extra_forms = 5
-    ff_set = modelformset_factory(
-        relational.FilterFeature,
-        form=forms.FilterFeatureForm,
-        extra=extra_forms,
+    form = forms.FilterFeatureForm(
+        instance=relational.FilterFeature(client=client)
     )
-    formset = ff_set(queryset=relational.FilterFeature.objects.none())
     if request.method == 'POST':
-        form = forms.FilterForm(
+        form = forms.FilterFeatureForm(
             request.POST,
             instance=relational.Filter(client=client)
         )
-        formset = ff_set(
-            request.POST,
-            queryset=relational.FilterFeature.objects.none()
-        )
-        if form.is_valid() and formset.is_valid():
-            features = formset.save()
-            _filter = form.save()
-            for x in features:
-                x.filter = _filter
-                x.save()
-
+        if form.is_valid():
+            feature = form.save()
             return JsonHttpResponse({
                 'html': render_to_string('targetadmin/filter_snippet.html', {
-                    'filter': _filter}),
+                    'feature': feature}),
                 'success': True
             })
         else:
@@ -132,5 +118,4 @@ def add_filter(request, client_pk):
     return render(request, 'targetadmin/add_filter.html', {
         'client': client,
         'form': form,
-        'formset': formset,
     })

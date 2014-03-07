@@ -254,12 +254,11 @@ class FilterFeatureForm(forms.ModelForm):
         ('gender', 'Gender'),
     )
 
-    rank = forms.IntegerField()
     feature = forms.ChoiceField(choices=CHOICES)
 
     class Meta:
         model = relational.FilterFeature
-        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter', 'client')
 
 
 class FBObjectWizardForm(forms.ModelForm):

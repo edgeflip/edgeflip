@@ -269,7 +269,7 @@ def spiking(request, client_pk):
     filter_form = forms.FilterForm()
     return render(request, 'targetadmin/spiking.html', {
         'client': client,
-        'filters': client.filters.all(),
+        'filter_features': client.filterfeatures.all(),
         'formset': formset,
         'filter_form': filter_form,
     })
