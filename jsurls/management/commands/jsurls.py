@@ -9,6 +9,7 @@ from django.conf import settings
 from django.core import urlresolvers
 from django.core.management import BaseCommand, CommandError
 from django.template.loader import render_to_string
+from rjsmin import jsmin
 from six.moves import input
 
 
@@ -102,9 +103,12 @@ class Command(BaseCommand):
             help='JavaScript namespace under which to write the router (default: "{}")'
                  .format(JS_NAMESPACE),
         ),
-        # TODO:
-        #make_option('--minify', action='store_true', default=False,
-        #            help="..."),
+        make_option(
+            '--minify',
+            action='store_true',
+            default=False,
+            help="Minify JavaScript output",
+        ),
     )
 
     def handle(self, command=None, **options):
@@ -144,6 +148,8 @@ class Command(BaseCommand):
             # add additional 4-space indent for easy reading default block code:
             'paths': paths_encoded.replace('\n', '\n    '),
         })
+        if options['minify']:
+            javascript = jsmin(javascript)
 
         if install:
             if options['interactive'] and os.path.exists(INSTALL_PATH):
