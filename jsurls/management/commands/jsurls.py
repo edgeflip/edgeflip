@@ -1,4 +1,5 @@
 import json
+import os.path
 import re
 import sys
 from itertools import chain
@@ -8,11 +9,17 @@ from django.conf import settings
 from django.core import urlresolvers
 from django.core.management import BaseCommand, CommandError
 from django.template.loader import render_to_string
+from six.moves import input
 
 
 GROUP_NAME_PATTERN = re.compile(r'\?P<[^>]+>')
 
+# Options from Django settings:
+INSTALL_PATH = getattr(settings, 'JSURLS_INSTALL_PATH', None)
 JS_NAMESPACE = getattr(settings, 'JSURLS_JS_NAMESPACE', 'router')
+URL_INCLUDES = list(getattr(settings, 'JSURLS_URL_INCLUDES', ()))
+URL_EXCLUDES = list(getattr(settings, 'JSURLS_URL_EXCLUDES', ()))
+URL_NAMESPACES = list(getattr(settings, 'JSURLS_URL_NAMESPACES', ()))
 
 
 def strip_names(pattern):
@@ -40,13 +47,30 @@ def generate_reversals(resolver, namespace=None, prefix=''):
 class Command(BaseCommand):
 
     args = '<install>'
+    help = (
+        "Compiles a JavaScript URL path reversal library for the project based "
+        "on its urlconf.\n\n"
+        "Output is written by default to stdout, and may be redirected as needed. "
+        "Alternatively, an installation path may be managed within Django "
+        "settings (JSURLS_INSTALL_PATH), and output written to this path via the "
+        '"install" command.'
+    )
     option_list = BaseCommand.option_list + (
+        make_option(
+            '--noinput',
+            action='store_false',
+            dest='interactive',
+            default=True,
+            help='Tells Django to NOT prompt the user for input of any kind.',
+        ),
         make_option(
             '--namespace',
             action='append',
             dest='namespaces',
+            default=URL_NAMESPACES,
             metavar='NAMESPACE',
-            help="Include urls from the specified project namespace(s)",
+            help="Include urls from the specified project namespace(s) "
+                 "(default: {})".format(URL_NAMESPACES),
         ),
         make_option(
             '--all-namespaces',
@@ -58,15 +82,19 @@ class Command(BaseCommand):
             '--exclude',
             action='append',
             dest='excludes',
+            default=URL_EXCLUDES,
             metavar='EXPRESSION',
-            help="Exclude urls matching the given regular expression(s)",
+            help="Exclude urls matching the given regular expression(s) "
+                 "(default filters: {})".format(URL_EXCLUDES),
         ),
         make_option(
             '--include',
             action='append',
             dest='includes',
+            default=URL_INCLUDES,
             metavar='EXPRESSION',
-            help="Include only urls matching the given regular expression(s)",
+            help="Include only urls matching the given regular expression(s) "
+                 "(default filters: {})".format(URL_INCLUDES),
         ),
         make_option(
             '--js-namespace',
@@ -83,22 +111,20 @@ class Command(BaseCommand):
         if command and command not in ('install',):
             raise CommandError("unsupported command: {}".format(command))
         install = command == 'install'
-        install_path = getattr(settings, 'JSURLS_INSTALL_PATH', None)
-        if install and not install_path:
+        if install and not INSTALL_PATH:
             raise CommandError("cannot install: JSURLS_INSTALL_PATH is not set")
 
-        if options['namespaces'] and options['all_namespaces']:
+        namespaces = set(options['namespaces'] or ())
+        if options['all_namespaces'] and namespaces.difference(URL_NAMESPACES):
             raise CommandError("incompatible options: --namespace and --all-namespaces")
 
-        includes = [re.compile(include) for include in options['includes'] or ()]
-        excludes = [re.compile(exclude) for exclude in options['excludes'] or ()]
+        includes = {re.compile(include) for include in options['includes'] or ()}
+        excludes = {re.compile(exclude) for exclude in options['excludes'] or ()}
 
         resolver = urlresolvers.get_resolver(None)
 
         if options['all_namespaces']:
             namespaces = resolver.namespace_dict.keys()
-        else:
-            namespaces = options['namespaces'] or []
 
         paths = generate_reversals(resolver)
         for namespace in namespaces:
@@ -120,6 +146,19 @@ class Command(BaseCommand):
         })
 
         if install:
-            raise NotImplementedError # TODO
+            if options['interactive'] and os.path.exists(INSTALL_PATH):
+                self.stdout.write("Will OVERWRITE compiled url router to:")
+                self.stdout.write("    `{}'".format(INSTALL_PATH))
+                self.stdout.write("(To write to stdout, do not specify the 'install' command.)")
+                confirm = ''
+                while confirm not in ('yes', 'no'):
+                    confirm = input("Type 'yes' to continue, or 'no' to cancel: ").lower()
+                if confirm == 'no':
+                    self.stdout.write("Installation cancelled")
+                    return
+
+            out = open(INSTALL_PATH, 'wb')
         else:
-            sys.stdout.write(javascript)
+            out = sys.stdout
+
+        out.write(javascript)
