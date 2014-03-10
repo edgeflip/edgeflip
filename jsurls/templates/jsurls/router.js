@@ -116,7 +116,7 @@
         if (!re.test(url)) {
             throw standardNoReverse(slug, args, kwargs, 'failed');
         }
-        return url;
+        return '/' + url;
     };
     {% endblock %}
 
