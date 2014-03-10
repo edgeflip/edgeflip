@@ -101,13 +101,17 @@
         var template = values[0],
             bits = values[1],
             pattern = values[2];
-        var data = {}, bit;
+        var data = {}, datum, bit;
         for (index = 0; index < bits.length; index++) {
             bit = bits[index];
             if (index < args.length) {
                 data[bit] = args[index];
             } else {
-                data[bit] = kwargs[bit];
+                datum = kwargs[bit];
+                if (typeof datum === 'undefined') {
+                    throw standardNoReverse(slug, args, kwargs, 'failed');
+                }
+                data[bit] = datum;
             }
         }
 
