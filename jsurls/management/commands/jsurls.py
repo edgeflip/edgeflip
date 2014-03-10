@@ -1,6 +1,7 @@
 import json
 import re
 import sys
+from itertools import chain
 from optparse import make_option
 
 from django.conf import settings
@@ -17,43 +18,97 @@ def strip_names(pattern):
     return GROUP_NAME_PATTERN.sub('', pattern)
 
 
+def generate_reversals(resolver, namespace=None, prefix=''):
+    """Generate flat tuples of URL reversal data from the given URL resolver."""
+    for (slug, (bits, pattern, _defaults)) in resolver.reverse_dict.iteritems():
+        if not isinstance(slug, basestring):
+            continue
+
+        if namespace:
+            slug = "{}:{}".format(namespace, slug)
+
+        (template, args) = bits[0]
+        data = (prefix + template,
+                args,
+                prefix + strip_names(pattern))
+
+        yield (slug, data)
+
+
 class Command(BaseCommand):
 
+    args = '<install>'
     option_list = BaseCommand.option_list + (
-        make_option('--all', action='store_true', default=False, dest="compile_all",
-                    help="Compile urls from all namespaces"),
-        #make_options('--exclude', action='append',
-        #             help="..."),
-        #make_options('--include', action='append',
-        #             help="..."),
+        make_option(
+            '--namespace',
+            action='append',
+            dest='namespaces',
+            help="Include urls from the specified namespace(s)",
+        ),
+        make_option(
+            '--all-namespaces',
+            action='store_true',
+            default=False,
+            help="Include urls from all namespaces",
+        ),
+        make_option(
+            '--exclude',
+            action='append',
+            dest='excludes',
+            help="Exclude urls matching the given regular expression(s)",
+        ),
+        make_option(
+            '--include',
+            action='append',
+            dest='includes',
+            help="Include only urls matching the given regular expression(s)",
+        ),
+        # TODO:
         #make_option('--minify', action='store_true', default=False,
-        #            help="..."), # TODO
+        #            help="..."),
     )
 
-    def handle(self, *namespaces, **options):
-        if namespaces and options['compile_all']:
-            raise CommandError("option --all incompatible with namespace list")
+    def handle(self, command=None, **options):
+        if command and command not in ('install',):
+            raise CommandError("unsupported command: {}".format(command))
+        install = command == 'install'
+        install_path = getattr(settings, 'JSURLS_INSTALL_PATH', None)
+        if install and not install_path:
+            raise CommandError("cannot install: JSURLS_INSTALL_PATH is not set")
+
+        if options['namespaces'] and options['all_namespaces']:
+            raise CommandError("incompatible options: --namespace and --all-namespaces")
+
+        includes = [re.compile(include) for include in options['includes'] or ()]
+        excludes = [re.compile(exclude) for exclude in options['excludes'] or ()]
 
         resolver = urlresolvers.get_resolver(None)
-        namespace_dict = resolver.namespace_dict
-        reverse_dict = resolver.reverse_dict
 
-        if options['compile_all']:
-            namspaces = namespace_dict.keys()
+        if options['all_namespaces']:
+            namespaces = resolver.namespace_dict.keys()
+        else:
+            namespaces = options['namespaces'] or []
 
-        if namespaces:
-            raise NotImplementedError # TODO
+        paths = generate_reversals(resolver)
+        for namespace in namespaces:
+            (prefix, ns_resolver) = resolver.namespace_dict[namespace]
+            paths = chain(paths, generate_reversals(ns_resolver, namespace, prefix))
 
-        paths = {
-            slug: bits[0] + (strip_names(pattern),)
-            for (slug, (bits, pattern, _defaults)) in reverse_dict.iteritems()
-            if isinstance(slug, basestring)
+        paths_filtered = {
+            slug: (template, args, pattern)
+            for (slug, (template, args, pattern)) in paths
+            if all(include.search(template) for include in includes) and
+               not any(exclude.search(template) for exclude in excludes)
         }
-        paths_encoded = json.dumps(paths, indent=4)
+        paths_encoded = json.dumps(paths_filtered, indent=4)
 
         javascript = render_to_string('jsurls/router.js', {
             'namespace': getattr(settings, 'JSURLS_NAMESPACE', None),
-            # add 4-space indent for easy reading default block code:
+            # add additional 4-space indent for easy reading default block code:
             'paths': paths_encoded.replace('\n', '\n    '),
         })
-        sys.stdout.write(javascript)
+
+        if install:
+            raise NotImplementedError # TODO
+        else:
+            sys.stdout.write(javascript)
