@@ -11,11 +11,11 @@ from targetshare.models import dynamo
 class TestFeedCrawlerViews(EdgeFlipTestCase):
 
     def test_subscribe_get_forbidden(self):
-        response = self.client.get(reverse('realtime-subscription'))
+        response = self.client.get(reverse('feed-crawler:realtime-subscription'))
         self.assertStatusCode(response, 403)
 
     def test_subscribe_get(self):
-        response = self.client.get(reverse('realtime-subscription'), {
+        response = self.client.get(reverse('feed-crawler:realtime-subscription'), {
             'hub.mode': 'subscribe',
             'hub.challenge': 'this is a test',
             'hub.verify_token': settings.FB_REALTIME_TOKEN,
@@ -30,7 +30,7 @@ class TestFeedCrawlerViews(EdgeFlipTestCase):
     def test_subscribe_post(self, crawl_mock):
         dynamo.Token(fbid=12345, appid=1, expires=1, token='test').save()
         dynamo.Token(fbid=67890, appid=1, expires=1, token='test').save()
-        response = self.client.post(reverse('realtime-subscription'),
+        response = self.client.post(reverse('feed-crawler:realtime-subscription'),
             data=json.dumps({
                 "object": "feed",
                 "entry": [

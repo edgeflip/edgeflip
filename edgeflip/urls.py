@@ -8,8 +8,8 @@ admin.autodiscover()
 
 urlpatterns = patterns('',
     url(r'', include('targetshare.urls')),
-    url(r'^admin/', include('targetadmin.urls')),
-    url(r'^subscriptions/', include('feed_crawler.urls')),
+    url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
+    url(r'^subscriptions/', include('feed_crawler.urls', namespace='feed-crawler')),
     url(r'^reporting/', include('reporting.urls', namespace='reporting')),
 )
 

@@ -10,8 +10,8 @@ from targetadmin.views.base import (
 class FBObjectListView(ClientRelationListView):
     model = relational.FBObject
     object_string = 'Facebook Object'
-    detail_url_name = 'fb-obj-detail'
-    create_url_name = 'fb-obj-new'
+    detail_url_name = 'targetadmin:fb-obj-detail'
+    create_url_name = 'targetadmin:fb-obj-new'
 
 
 fb_object_list = FBObjectListView.as_view()
@@ -20,7 +20,7 @@ fb_object_list = FBObjectListView.as_view()
 class FBObjectDetailView(ClientRelationDetailView):
     model = relational.FBObject
     object_string = 'Facebook Object'
-    edit_url_name = 'fb-obj-edit'
+    edit_url_name = 'targetadmin:fb-obj-edit'
 
 
 fb_object_detail = FBObjectDetailView.as_view()
@@ -30,7 +30,7 @@ class FBObjectFormView(ClientRelationFormView):
     form_class = forms.FBObjectAttributeForm
     model = relational.FBObject
     queryset = relational.FBObject.objects.all()
-    success_url = 'fb-obj-detail'
+    success_url = 'targetadmin:fb-obj-detail'
     object_string = 'Facebook Object'
 
     def get_form(self, form_class):

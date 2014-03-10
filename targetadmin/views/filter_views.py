@@ -14,8 +14,8 @@ from targetadmin.views.base import (
 class FilterObjectListView(ClientRelationListView):
     model = relational.Filter
     object_string = 'Filter'
-    detail_url_name = 'filter-detail'
-    create_url_name = 'filter-new'
+    detail_url_name = 'targetadmin:filter-detail'
+    create_url_name = 'targetadmin:filter-new'
 
 
 filter_list = FilterObjectListView.as_view()
@@ -24,7 +24,7 @@ filter_list = FilterObjectListView.as_view()
 class FilterObjectDetailView(ClientRelationDetailView):
     model = relational.Filter
     object_string = 'Filter'
-    edit_url_name = 'filter-edit'
+    edit_url_name = 'targetadmin:filter-edit'
     template_name = 'targetadmin/filter_detail.html'
 
 
@@ -35,7 +35,7 @@ class FilterFormView(ClientRelationFormView):
     form_class = forms.FilterForm
     model = relational.Filter
     queryset = relational.Filter.objects.all()
-    success_url = 'filter-detail'
+    success_url = 'targetadmin:filter-detail'
     object_string = 'Filter'
     template_name = 'targetadmin/filter_create.html'
 
@@ -79,7 +79,7 @@ def filter_edit(request, client_pk, pk):
             for form in filled_forms:
                 form.save()
             filter_form.save()
-            return redirect('filter-detail', client.pk, filter_obj.pk)
+            return redirect('targetadmin:filter-detail', client.pk, filter_obj.pk)
 
     return render(request, 'targetadmin/filter_edit.html', {
         'client': client,

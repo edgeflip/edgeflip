@@ -20,7 +20,7 @@
         <p>{{ form.generic_fb_object.errors }}<label for='id_generic_fb_object'>{{ form.generic_fb_object.label }}: </label> {{ form.generic_fb_object }}</p>
         <p>{{ form.fb_object.errors }}<label for='id_fb_object'>{{ form.fb_object.label }}: </label> {{ form.fb_object }}</p>
         <input class="btn btn-large btn-primary" type="submit" value="Submit" />
-        <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+        <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
     </form>
 {% endblock %}
 {% block extrascript %}
