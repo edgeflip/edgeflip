@@ -12,6 +12,8 @@ from django.template.loader import render_to_string
 
 GROUP_NAME_PATTERN = re.compile(r'\?P<[^>]+>')
 
+JS_NAMESPACE = getattr(settings, 'JSURLS_JS_NAMESPACE', 'router')
+
 
 def strip_names(pattern):
     """Strip group names from the given regular expression."""
@@ -43,25 +45,34 @@ class Command(BaseCommand):
             '--namespace',
             action='append',
             dest='namespaces',
-            help="Include urls from the specified namespace(s)",
+            metavar='NAMESPACE',
+            help="Include urls from the specified project namespace(s)",
         ),
         make_option(
             '--all-namespaces',
             action='store_true',
             default=False,
-            help="Include urls from all namespaces",
+            help="Include urls from all project namespaces",
         ),
         make_option(
             '--exclude',
             action='append',
             dest='excludes',
+            metavar='EXPRESSION',
             help="Exclude urls matching the given regular expression(s)",
         ),
         make_option(
             '--include',
             action='append',
             dest='includes',
+            metavar='EXPRESSION',
             help="Include only urls matching the given regular expression(s)",
+        ),
+        make_option(
+            '--js-namespace',
+            default=JS_NAMESPACE,
+            help='JavaScript namespace under which to write the router (default: "{}")'
+                 .format(JS_NAMESPACE),
         ),
         # TODO:
         #make_option('--minify', action='store_true', default=False,
@@ -103,7 +114,7 @@ class Command(BaseCommand):
         paths_encoded = json.dumps(paths_filtered, indent=4)
 
         javascript = render_to_string('jsurls/router.js', {
-            'namespace': getattr(settings, 'JSURLS_NAMESPACE', None),
+            'namespace': options['js_namespace'],
             # add additional 4-space indent for easy reading default block code:
             'paths': paths_encoded.replace('\n', '\n    '),
         })
