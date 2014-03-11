@@ -354,13 +354,15 @@ function selectAll(skipRecord) {
         divs = $(".friend_box:visible"),
         count = getRecipFbids().length;
     for (var i = 0; i < divs.length; i++) {
-        if (!isRecip(fbid)) count++;
-        if (count >= 10) {
+        if (count >= edgeflip.faces.max_face) {
             alert("Sorry: only ten friends can be tagged.");
             break;
         }
         fbid = parseInt(divs[i].id.split('-')[1]);
         fbids.push(fbid);
+        if (!isRecip(fbid)) {
+            count++;
+        }
     }
     selectFriend.apply(this, fbids);
 }
