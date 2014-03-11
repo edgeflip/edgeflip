@@ -7,6 +7,7 @@ from optparse import make_option
 
 from django.conf import settings
 from django.core import urlresolvers
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import BaseCommand, CommandError
 from django.template.loader import render_to_string
 from rjsmin import jsmin
@@ -18,9 +19,9 @@ GROUP_NAME_PATTERN = re.compile(r'\?P<[^>]+>')
 # Options from Django settings:
 INSTALL_PATH = getattr(settings, 'JSURLS_INSTALL_PATH', None)
 JS_NAMESPACE = getattr(settings, 'JSURLS_JS_NAMESPACE', 'router')
-URL_INCLUDES = list(getattr(settings, 'JSURLS_URL_INCLUDES', ()))
-URL_EXCLUDES = list(getattr(settings, 'JSURLS_URL_EXCLUDES', ()))
-URL_NAMESPACES = list(getattr(settings, 'JSURLS_URL_NAMESPACES', ()))
+URL_INCLUDES = getattr(settings, 'JSURLS_URL_INCLUDES', ())
+URL_EXCLUDES = getattr(settings, 'JSURLS_URL_EXCLUDES', ())
+URL_NAMESPACES = getattr(settings, 'JSURLS_URL_NAMESPACES', ())
 
 
 def strip_names(pattern):
@@ -68,7 +69,7 @@ class Command(BaseCommand):
             '--namespace',
             action='append',
             dest='namespaces',
-            default=URL_NAMESPACES,
+            default=list(URL_NAMESPACES),
             metavar='NAMESPACE',
             help="Include urls from the specified project namespace(s) "
                  "(default: {})".format(URL_NAMESPACES),
@@ -83,7 +84,7 @@ class Command(BaseCommand):
             '--exclude',
             action='append',
             dest='excludes',
-            default=URL_EXCLUDES,
+            default=list(URL_EXCLUDES),
             metavar='EXPRESSION',
             help="Exclude urls matching the given regular expression(s) "
                  "(default filters: {})".format(URL_EXCLUDES),
@@ -92,7 +93,7 @@ class Command(BaseCommand):
             '--include',
             action='append',
             dest='includes',
-            default=URL_INCLUDES,
+            default=list(URL_INCLUDES),
             metavar='EXPRESSION',
             help="Include only urls matching the given regular expression(s) "
                  "(default filters: {})".format(URL_INCLUDES),
@@ -112,6 +113,13 @@ class Command(BaseCommand):
     )
 
     def handle(self, command=None, **options):
+        if not all(isinstance(setting, (tuple, list))
+                   for setting in (URL_INCLUDES, URL_EXCLUDES, URL_NAMESPACES)):
+            raise ImproperlyConfigured(
+                "the following settings must be sequences (list, tuple): "
+                "JSURLS_URL_INCLUDES, JSURLS_URL_EXCLUDES and JSURLS_URL_NAMESPACES"
+            )
+
         if command and command not in ('install',):
             raise CommandError("unsupported command: {}".format(command))
         install = command == 'install'
