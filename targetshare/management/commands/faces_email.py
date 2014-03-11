@@ -6,6 +6,7 @@ import multiprocessing
 from tempfile import mkstemp
 from decimal import Decimal
 from optparse import make_option
+from collections import defaultdict
 
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
@@ -32,14 +33,15 @@ def handle_threaded(notification_id, campaign_id, content_id, mock, num_face,
     notification = relational.Notification.objects.get(pk=notification_id)
     campaign = relational.Campaign.objects.get(pk=campaign_id)
     content = relational.ClientContent.objects.get(pk=content_id)
+    error_dict = defaultdict(int)
     filename = build_csv(
         crawl_and_filter(
             campaign, content, notification, offset,
-            count, num_face, cache, mock
+            count, num_face, error_dict, cache, mock
         ),
         num_face, campaign, content, url=url
     )
-    return filename
+    return filename, error_dict
 
 
 def build_csv(row_data, num_face, campaign, content, url=None):
@@ -92,7 +94,7 @@ def build_table(uuid, edges, num_face, url=None, client=None):
 
 
 def crawl_and_filter(campaign, content, notification, offset,
-                      end_count, num_face, cache=False, mock=False):
+                      end_count, num_face, error_dict, cache=False, mock=False):
     ''' Grabs all of the tokens for a given UserClient, and throws them
     through the px4 crawl again
     '''
@@ -123,9 +125,10 @@ def crawl_and_filter(campaign, content, notification, offset,
 
         try:
             (stream, edges) = ranking.px4_crawl(ut)
-        except IOError:
+        except Exception as exc:
             LOG.exception('Failed to crawl %s', ut.fbid)
             failed_fbids.append(ut.fbid)
+            error_dict[exc.__class__.__name__] += 1
             continue
 
         filtered_result = ranking.px4_filter(
@@ -263,11 +266,17 @@ class Command(BaseCommand):
             )
 
         pool = multiprocessing.Pool(workers)
-        filenames = pool.map(handle_star_threaded, worker_args)
+        results = pool.map(handle_star_threaded, worker_args)
         pool.terminate()
         self.stdout.write(
             'primary_fbid,email,friend_fbids,names,html_table\n')
-        for fn in filenames:
-            self.stdout.write(open(fn).read())
-            os.remove(fn)
+        total_errors = defaultdict(int)
+        for (filename, errors) in results:
+            self.stdout.write(open(filename).read())
+            os.remove(filename)
+            for key in errors.keys():
+                total_errors[key] += errors[key]
+
+        for key, value in total_errors.iteritems():
+            LOG.info('{} total {} errors'.format(value, key))
         LOG.info('Completed faces email run')
