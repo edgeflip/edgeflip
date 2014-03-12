@@ -15,7 +15,7 @@ class TestFilterViews(TestAdminBase):
     def test_filter_list_view(self):
         ''' View a listing of filter objects '''
         response = self.client.get(
-            reverse('filter-list', args=[self.test_client.pk])
+            reverse('targetadmin:filter-list', args=[self.test_client.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object_list']
@@ -23,7 +23,7 @@ class TestFilterViews(TestAdminBase):
     def test_filter_detail_view(self):
         ''' Test viewing a specific filter object '''
         response = self.client.get(
-            reverse('filter-detail', args=[self.test_client.pk, self.filter_obj.pk])
+            reverse('targetadmin:filter-detail', args=[self.test_client.pk, self.filter_obj.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object']
@@ -31,7 +31,7 @@ class TestFilterViews(TestAdminBase):
     def test_create_filter_object(self):
         ''' Test creating a new filter object '''
         response = self.client.post(
-            reverse('filter-new', args=[self.test_client.pk]),
+            reverse('targetadmin:filter-new', args=[self.test_client.pk]),
             {'name': 'test_create_filter_object', 'client': self.test_client.pk}
         )
         filter_obj = relational.Filter.objects.get(
@@ -40,7 +40,7 @@ class TestFilterViews(TestAdminBase):
         self.assertStatusCode(response, 302)
         self.assertRedirects(
             response,
-            reverse('filter-detail', args=[self.test_client.pk, filter_obj.pk])
+            reverse('targetadmin:filter-detail', args=[self.test_client.pk, filter_obj.pk])
         )
 
     def test_filter_edit(self):
@@ -54,7 +54,7 @@ class TestFilterViews(TestAdminBase):
             value_type='int'
         )
         response = self.client.post(
-            reverse('filter-edit', args=[self.test_client.pk, self.filter_obj.pk]),
+            reverse('targetadmin:filter-edit', args=[self.test_client.pk, self.filter_obj.pk]),
             {
                 'name': 'edit_view_test',
                 'description': 'edit view desc',
@@ -94,7 +94,7 @@ class TestFilterViews(TestAdminBase):
         )
         self.assertRedirects(
             response,
-            reverse('filter-detail', args=[self.test_client.pk, self.filter_obj.pk])
+            reverse('targetadmin:filter-detail', args=[self.test_client.pk, self.filter_obj.pk])
         )
         filter_obj = self.test_client.filters.get(name='edit_view_test')
 

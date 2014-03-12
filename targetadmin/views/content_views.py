@@ -30,7 +30,7 @@ class ContentFormView(ClientRelationFormView):
     form_class = forms.ContentForm
     model = relational.ClientContent
     queryset = relational.ClientContent.objects.all()
-    success_url = 'content-detail'
+    success_url = 'targetadmin:content-detail'
     object_string = 'Content'
 
 

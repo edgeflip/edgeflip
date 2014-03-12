@@ -230,6 +230,7 @@ INSTALLED_APPS = (
     'djcelery',
     'django_nose',
     # Edgeflip apps:
+    'jsurls',
     'core',
     'targetshare',
     'targetadmin',
@@ -367,6 +368,11 @@ CELERY_IMPORTS = (
     'targetshare.tasks.db',
     'feed_crawler.tasks',
 )
+
+# jsurls settings #
+JSURLS_JS_NAMESPACE = 'edgeflip.router'
+JSURLS_INSTALL_PATH = os.path.join(REPO_ROOT, 'core', 'static', 'js', 'router.js')
+JSURLS_URL_NAMESPACES = ('gimmick',)
 
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes

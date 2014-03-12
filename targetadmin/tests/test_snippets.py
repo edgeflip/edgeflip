@@ -20,7 +20,7 @@ class TestSnippetViews(TestAdminBase):
 
     def test_snippets(self):
         ''' Test the views.snippets.snippets view '''
-        response = self.client.get(reverse('snippets', args=[self.test_client.pk]))
+        response = self.client.get(reverse('targetadmin:snippets', args=[self.test_client.pk]))
         self.assertStatusCode(response, 200)
         assert response.context['client']
         assert response.context['first_campaign']
@@ -33,7 +33,7 @@ class TestSnippetViews(TestAdminBase):
         campaign = relational.Campaign.objects.get(pk=2)
         content = relational.ClientContent.objects.get(pk=2)
         response = self.client.get('{}?campaign_pk={}&content_pk={}'.format(
-            reverse('snippets', args=[self.test_client.pk]),
+            reverse('targetadmin:snippets', args=[self.test_client.pk]),
             campaign.pk,
             content.pk,
         ))
@@ -43,7 +43,7 @@ class TestSnippetViews(TestAdminBase):
     def test_snippet_update(self):
         ''' Test the encoding campaign endpoint '''
         response = self.client.get(
-            reverse('snippet-update', args=[self.test_client.pk]),
+            reverse('targetadmin:snippet-update', args=[self.test_client.pk]),
             {'campaign': self.campaign.pk, 'content': self.content.pk},
         )
         self.assertStatusCode(response, 200)

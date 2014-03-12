@@ -8,7 +8,7 @@
             <h4>Campaign Settings</h4>
             {{ campaign_form.as_p }}
             <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="filtering">Next</a>
-            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </span>
         <span id="filtering" class="wizard-step" style="display: none;">
             {{ formset.management_form }}

@@ -57,6 +57,7 @@ def build_all(deps='1', env=None):
     fab.execute(setup_redshift)
 
     # static files
+    fab.execute(install_jsurls, noinput='true')
     fab.execute(collect_static, noinput='true')
 
 
@@ -293,6 +294,12 @@ def collect_static(noinput='false', clear='false'):
     """
     flags = [key for key, value in locals().items() if true(value)]
     manage('collectstatic', flags=flags)
+
+
+@fab.task
+def install_jsurls(noinput='false', minify='true'):
+    flags = [key for key, value in locals().items() if true(value)]
+    manage('jsurls', ['install'], flags=flags)
 
 
 # Helpers #
