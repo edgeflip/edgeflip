@@ -33,7 +33,7 @@
                     <li><a href="{% url 'targetadmin:content-detail' client.pk content.pk %}">{{ content.name }}</a></li>
                 {% endfor %}
             </ul>
-            <a href="{% url 'content-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
+            <a href="{% url 'targetadmin:content-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
         </div>
     </div>
     <div class="span9">

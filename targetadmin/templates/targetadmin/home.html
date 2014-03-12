@@ -7,5 +7,5 @@
             <li><a href="{% url 'targetadmin:client-detail' client.pk %}">{{ client.name }}</a></li>
         {% endfor %}
     </ul>
-    {% if request.user.is_superuser %}Or, <a href="{% url 'client-new' %}">Create a Client</a>{% endif %}
+    {% if request.user.is_superuser %}Or, <a href="{% url 'targetadmin:client-new' %}">Create a Client</a>{% endif %}
 {% endblock %}

@@ -225,12 +225,12 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
-    # 3rd-party apps:
+    # External apps:
     'south',
     'djcelery',
     'django_nose',
-    # Edgeflip apps:
     'jsurls',
+    # Edgeflip apps:
     'core',
     'targetshare',
     'targetadmin',
@@ -371,7 +371,7 @@ CELERY_IMPORTS = (
 
 # jsurls settings #
 JSURLS_JS_NAMESPACE = 'edgeflip.router'
-JSURLS_INSTALL_PATH = os.path.join(REPO_ROOT, 'core', 'static', 'js', 'router.js')
+JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
 JSURLS_URL_NAMESPACES = ('gimmick',)
 
 # Session Settings

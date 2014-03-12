@@ -30,7 +30,7 @@ class ClientDetailView(DetailView):
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'
     form_class = forms.ClientForm
-    success_url = 'client-detail'
+    success_url = 'targetadmin:client-detail'
     queryset = relational.Client.objects.all()
 
 client_list_view = login_required(ClientListView.as_view(), login_url='login')
