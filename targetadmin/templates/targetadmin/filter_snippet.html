@@ -1,12 +1,1 @@
-<div class="row" id="filter-{{ filter.pk }}">
-    <div class="span4 well">
-        <p>{{ filter.name }}</p>
-        <ul>
-            {% for ff in filter.filterfeatures.all %}
-                <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
-            {% empty %}
-                <li>No filtering criteria</li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
+<div data-filter-id="set_number={{ feature.feature }}.{{ feature.operator }}.{{ feature.value }}" class="span2 draggable"><p><abbr title="{{ feature.feature }} {{ feature.operator }} {{ feature.value }}">{{ feature.feature }} {{ feature.operator }} {{ feature.value|truncatechars:"15" }}</abbr></p></div>

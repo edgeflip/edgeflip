@@ -88,34 +88,38 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    extra_forms = 5
-    ff_set = modelformset_factory(
-        relational.FilterFeature,
-        form=forms.FilterFeatureForm,
-        extra=extra_forms,
-    )
-    formset = ff_set(queryset=relational.FilterFeature.objects.none())
     fb_obj_form = forms.FBObjectWizardForm()
     campaign_form = forms.CampaignWizardForm()
-    if request.method == 'POST':
+    if request.method == 'POST': # Section below is dead for now
         fb_obj_form = forms.FBObjectWizardForm(request.POST)
         campaign_form = forms.CampaignWizardForm(request.POST)
-        formset = ff_set(
-            request.POST,
-            queryset=relational.FilterFeature.objects.none()
-        )
-        if formset.is_valid() and fb_obj_form.is_valid() and campaign_form.is_valid():
-            features = formset.save()
+        if fb_obj_form.is_valid() and campaign_form.is_valid() and request.POST.get('enabled-filters-1'):
             campaign_name = campaign_form.cleaned_data['name']
+            filter_feature_layers = []
+            for x in xrange(1, 5):
+                inputs = request.POST.get('enabled-filters-{}'.format(x))
+                if not inputs:
+                    continue
+
+                inputs = inputs.split(',')
+                layer = []
+                for feature_string in inputs:
+                    feature, operator, value = feature_string.split('.')
+                    ff = relational.FilterFeature.objects.filter(
+                        feature=feature, operator=operator, value=value)[0]
+                    ff.pk = None
+                    ff.save()
+                    layer.append(ff)
+                filter_feature_layers.append(layer)
+
             root_filter = relational.Filter.objects.create(
-                name='{} {} {} Root Filter'.format(
+                name='{} {} Root Filter'.format(
                     client.name,
                     campaign_name,
-                    ','.join([x.feature for x in features])
                 ),
                 client=client
             )
-            for feature in features:
+            for feature in filter_feature_layers[0]:
                 feature.filter = root_filter
                 feature.save()
 
@@ -128,37 +132,35 @@ def campaign_wizard(request, client_pk):
             )
             root_choiceset.choicesetfilters.create(
                 filter=root_filter)
+            del filter_feature_layers[0]
 
             choice_sets = {0: root_choiceset}
-            if len(features) > 1:
-                for data in sorted(formset.cleaned_data,
-                                   key=lambda x: x.get('rank', 100)):
-                    if not data:
-                        continue
+            layer_count = 1
+            if len(filter_feature_layers) > 1:
+                for layer in filter_feature_layers:
+                    for feature in layer:
+                        cs = choice_sets.get(layer_count)
+                        if not cs:
+                            single_filter = relational.Filter.objects.create(
+                                name='{} {} {}'.format(
+                                    client.name, campaign_name, feature.feature),
+                                client=client
+                            )
+                            cs = relational.ChoiceSet.objects.create(
+                                client=client,
+                                name=campaign_name
+                            )
+                            relational.ChoiceSetFilter.objects.create(
+                                filter=single_filter,
+                                choice_set=cs
+                            )
+                            choice_sets[layer_count] = cs
+                        feature.pk = None
+                        feature.filter = cs.choicesetfilters.get().filter
+                        feature.save()
+                    layer_count += 1
 
-                    cs = choice_sets.get(data['rank'])
-                    if not cs:
-                        single_filter = relational.Filter.objects.create(
-                            name='{} {} {}'.format(
-                                client.name, campaign_name, feature.feature),
-                            client=client
-                        )
-                        cs = relational.ChoiceSet.objects.create(
-                            client=client,
-                            name=campaign_name
-                        )
-                        relational.ChoiceSetFilter.objects.create(
-                            filter=single_filter,
-                            choice_set=cs
-                        )
-                        choice_sets[data['rank']] = cs
-                    feature = relational.FilterFeature.objects.create(
-                        operator=data.get('operator'),
-                        feature=data.get('feature'),
-                        value=data.get('value'),
-                        filter=cs.choicesetfilters.get().filter,
-                    )
-
+            import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
             fb_obj = relational.FBObject.objects.create(
                 name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
                 client=client
@@ -231,9 +233,10 @@ def campaign_wizard(request, client_pk):
             )
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
-        'formset': formset,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
+        'filter_features': client.filterfeatures.values(
+            'feature', 'operator', 'value').distinct(),
     })
 
 
@@ -254,22 +257,4 @@ def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
         'campaigns': campaigns,
         'content': content,
         'client': client,
-    })
-
-
-def spiking(request, client_pk):
-    client = get_object_or_404(relational.Client, pk=client_pk)
-    extra_forms = 5
-    ff_set = modelformset_factory(
-        relational.FilterFeature,
-        form=forms.FilterFeatureForm,
-        extra=extra_forms,
-    )
-    formset = ff_set(queryset=relational.FilterFeature.objects.none())
-    filter_form = forms.FilterForm()
-    return render(request, 'targetadmin/spiking.html', {
-        'client': client,
-        'filter_features': client.filterfeatures.all(),
-        'formset': formset,
-        'filter_form': filter_form,
     })

@@ -100,7 +100,7 @@ def add_filter(request, client_pk):
     if request.method == 'POST':
         form = forms.FilterFeatureForm(
             request.POST,
-            instance=relational.Filter(client=client)
+            instance=relational.FilterFeature(client=client)
         )
         if form.is_valid():
             feature = form.save()
