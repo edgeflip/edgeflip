@@ -258,6 +258,8 @@ TEMPLATE_CONTEXT_PROCESSORS = (
     'django.core.context_processors.tz',
     'django.contrib.messages.context_processors.messages',
     'django.core.context_processors.request',
+    # Third-party processors
+    'jsurls.context_processors.jsurls',
     # Edgeflip Processors
     'core.context_processors.context_settings',
     'core.context_processors.test_mode',
@@ -371,8 +373,12 @@ CELERY_IMPORTS = (
 
 # jsurls settings #
 JSURLS_JS_NAMESPACE = 'edgeflip.router'
-JSURLS_INSTALL_PATH = os.path.join(REPO_ROOT, 'core', 'static', 'js', 'router.js')
+JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
 JSURLS_URL_NAMESPACES = ('gimmick',)
+
+# jsurls only knows about DEBUG, but we switch off runserver in staging:
+if ENV != 'development':
+    JSURLS_DEBUG_URL = STATIC_URL
 
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes

@@ -3,6 +3,8 @@ from django.conf.urls import patterns, include, url
 from django.contrib import admin
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 
+from jsurls.urls import jsurl
+
 
 admin.autodiscover()
 
@@ -22,3 +24,4 @@ if settings.ENV in ('development', 'staging'):
 
 if settings.ENV == 'development':
     urlpatterns += staticfiles_urlpatterns()
+    urlpatterns += patterns('', jsurl('js/router.js'))
