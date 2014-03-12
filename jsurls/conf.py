@@ -10,6 +10,7 @@ class Settings(object):
 
     DEFAULTS = (
         ('DEBUG_URL', '/jsurls/'),
+        ('USE_DEBUG_URL', False),
         ('INSTALL_PATH', None),
         ('JS_NAMESPACE', 'router'),
         ('URL_INCLUDES', ()),
