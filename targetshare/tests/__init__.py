@@ -73,7 +73,6 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             'fbid': '1',
             'token': 1,
             'num_face': 9,
-            'sessionid': 'fake-session',
             'campaign': 1,
             'content': 1,
         }
