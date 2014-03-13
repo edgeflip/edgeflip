@@ -514,6 +514,25 @@ def verify_oauth_code(fb_app_id, code, redirect_uri):
     return token is not None
 
 
+def debug_token(token, appid):
+    url_params = {
+        'input_token': token,
+        'access_token': '{}|{}'.format(appid, settings.FACEBOOK.secrets[str(appid)]),
+    }
+
+    return requests.get(
+        'https://graph.facebook.com/debug_token',
+        params=url_params,
+    )
+
+
+def token_expiration(response):
+    return timezone.make_aware(
+        datetime.datetime.utcfromtimestamp(response['data']['expires_at']),
+        timezone.utc
+    )
+
+
 class Stream(list):
     """User stream list
 
