@@ -33,6 +33,6 @@ class ClientFormView(CRUDView):
     success_url = 'targetadmin:client-detail'
     queryset = relational.Client.objects.all()
 
-client_list_view = login_required(ClientListView.as_view(), login_url='login')
+client_list_view = login_required(ClientListView.as_view(), login_url='targetadmin:login')
 client_detail_view = utils.auth_client_required(ClientDetailView.as_view())
 client_form_view = ClientFormView.as_view()
