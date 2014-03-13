@@ -1,3 +1,5 @@
+import json
+
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
@@ -66,6 +68,7 @@ class TestFilterViews(TestAdminBase):
                 'form-0-value': '25',
                 'form-0-operator': 'eq',
                 'form-0-end_dt': '2010-1-1',
+                'form-0-client': self.test_client.pk,
                 # Filter Feature 2
                 'form-1-filter': self.filter_obj.pk,
                 'form-1-filter_feature_id': '',
@@ -73,6 +76,7 @@ class TestFilterViews(TestAdminBase):
                 'form-1-value': 'Illinois||Missouri',
                 'form-1-operator': 'in',
                 'form-1-end_dt': '2010-1-1',
+                'form-1-client': self.test_client.pk,
                 # Filter Feature 3
                 'form-2-filter': self.filter_obj.pk,
                 'form-2-filter_feature_id': '',
@@ -80,13 +84,15 @@ class TestFilterViews(TestAdminBase):
                 'form-2-value': 'Chicago',
                 'form-2-operator': 'eq',
                 'form-2-end_dt': '2010-1-1',
+                'form-2-client': self.test_client.pk,
                 # Filter Feature 4
                 'form-3-filter': self.filter_obj.pk,
                 'form-3-filter_feature_id': '',
-                'form-3-feature': relational.FilterFeature.Expression.TURNOUT_SCORE,
-                'form-3-value': '25.854',
+                'form-3-feature': relational.FilterFeature.Expression.GENDER,
+                'form-3-value': 'Male',
                 'form-3-operator': 'in',
                 'form-3-end_dt': '2010-1-1',
+                'form-3-client': self.test_client.pk,
                 'form-INITIAL_FORMS': 1,
                 'form-TOTAL_FORMS': 4,
                 'form-MAX_NUM_FORMS': 1000,
@@ -116,10 +122,11 @@ class TestFilterViews(TestAdminBase):
         )
         self.assertTrue(
             filter_obj.filterfeatures.filter(
-                value='25.85400000', value_type='float').exists()
+                value='Male', value_type='string').exists()
         )
 
         for ff in filter_obj.filterfeatures.all():
+            self.assertEqual(ff.client, self.test_client)
             if ff.value_type == 'int':
                 self.assertTrue(isinstance(ff.decode_value(), (int, long)))
             elif ff.value_type == 'list':
@@ -130,3 +137,24 @@ class TestFilterViews(TestAdminBase):
                 self.assertTrue(isinstance(ff.decode_value(), basestring))
             else:
                 assert False
+
+    def test_add_filter_feature(self):
+        ''' Test ajax view of creating a new filter feature '''
+        response = self.client.post(
+            reverse('filter-add', args=[self.test_client.pk]), {
+                'client': self.test_client.pk,
+                'feature': 'state',
+                'operator': 'eq',
+                'value': 'Wyoming'
+            }
+        )
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertIn('html', data)
+        ff = relational.FilterFeature.objects.get(value='Wyoming')
+        self.assertIn(
+            'set_number={}.{}.{}'.format(
+                ff.feature, ff.operator, ff.value
+            ),
+            data['html']
+        )

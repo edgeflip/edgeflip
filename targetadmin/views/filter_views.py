@@ -55,17 +55,20 @@ def filter_edit(request, client_pk, pk):
     ff_set = modelformset_factory(
         relational.FilterFeature,
         extra=extra_forms,
-        exclude=('end_dt', 'value_type', 'feature_type')
+        exclude=('end_dt', 'value_type', 'feature_type'),
+        form=forms.BaseFilterFeatureForm,
+        formfield_callback=forms.FilterFeatureFormCallback('client', client).callback,
     )
     formset = ff_set(
         queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
-        initial=[{'filter': filter_obj} for x in range(extra_forms)]
+        initial=[{'filter': filter_obj, 'client': client} for x in range(extra_forms)],
     )
     if request.method == 'POST':
         filter_form = forms.FilterForm(data=request.POST, instance=filter_obj)
         formset = ff_set(
             data=request.POST,
-            queryset=relational.FilterFeature.objects.filter(filter=filter_obj)
+            queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
+            initial=[{'filter': filter_obj, 'client': client} for x in range(extra_forms)]
         )
 
         # Filter Features are inherently nully things, but we know we should
@@ -95,12 +98,14 @@ def filter_edit(request, client_pk, pk):
 def add_filter(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     form = forms.FilterFeatureForm(
-        instance=relational.FilterFeature(client=client)
+        instance=relational.FilterFeature(client=client),
+        client=client,
     )
     if request.method == 'POST':
         form = forms.FilterFeatureForm(
-            request.POST,
-            instance=relational.FilterFeature(client=client)
+            data=request.POST,
+            instance=relational.FilterFeature(client=client),
+            client=client,
         )
         if form.is_valid():
             feature = form.save()

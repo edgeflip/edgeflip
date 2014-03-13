@@ -160,7 +160,6 @@ def campaign_wizard(request, client_pk):
                         feature.save()
                     layer_count += 1
 
-            import ipdb; ipdb.set_trace() ### XXX BREAKPOINT
             fb_obj = relational.FBObject.objects.create(
                 name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
                 client=client

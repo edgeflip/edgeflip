@@ -65,6 +65,46 @@ class FilterForm(forms.ModelForm):
         exclude = ('is_deleted', 'delete_dt', 'client')
 
 
+class BaseFilterFeatureForm(forms.ModelForm):
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('city', 'City'),
+        ('state', 'State'),
+        ('full_location', 'Full Location'),
+        ('gender', 'Gender'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+        widgets = {'client': forms.HiddenInput()}
+
+
+class FilterFeatureForm(BaseFilterFeatureForm):
+
+    def __init__(self, client, *args, **kwargs):
+        super(FilterFeatureForm, self).__init__(*args, **kwargs)
+        self.fields['client'].queryset = relational.Client.objects.filter(
+            pk=client.pk)
+
+
+class FilterFeatureFormCallback(object):
+
+    def __init__(self, field_name, client):
+        self.field_name = field_name
+        self.client = client
+
+    def callback(self, field, **kwargs):
+        new_field = field.formfield(**kwargs)
+        if self.field_name == field.name:
+            new_field.queryset = relational.Client.objects.filter(pk=self.client.pk)
+        return new_field
+
+
 class ChoiceSetForm(forms.ModelForm):
 
     description = forms.CharField(required=False, widget=forms.Textarea)
@@ -241,24 +281,6 @@ class CampaignWizardForm(forms.Form):
         ),
         initial=True
     )
-
-
-class FilterFeatureForm(forms.ModelForm):
-
-    CHOICES = (
-        ('', 'Select Filter Type'),
-        ('age', 'Age'),
-        ('city', 'City'),
-        ('state', 'State'),
-        ('full_location', 'Full Location'),
-        ('gender', 'Gender'),
-    )
-
-    feature = forms.ChoiceField(choices=CHOICES)
-
-    class Meta:
-        model = relational.FilterFeature
-        exclude = ('end_dt', 'value_type', 'feature_type', 'filter', 'client')
 
 
 class FBObjectWizardForm(forms.ModelForm):

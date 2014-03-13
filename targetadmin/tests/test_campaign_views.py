@@ -197,6 +197,26 @@ class TestCampaignViews(TestAdminBase):
             name='Test Client',
             _fb_app_id=1
         )
+        relational.FilterFeature.objects.create(
+            feature=relational.FilterFeature.Expression.AGE,
+            operator=relational.FilterFeature.Operator.MIN,
+            value=16
+        )
+        relational.FilterFeature.objects.create(
+            feature=relational.FilterFeature.Expression.AGE,
+            operator=relational.FilterFeature.Operator.MAX,
+            value=60
+        )
+        relational.FilterFeature.objects.create(
+            feature=relational.FilterFeature.Expression.STATE,
+            operator=relational.FilterFeature.Operator.IN,
+            value='Illinois||Missouri'
+        )
+        relational.FilterFeature.objects.create(
+            feature=relational.FilterFeature.Expression.CITY,
+            operator=relational.FilterFeature.Operator.EQ,
+            value='Chicago',
+        )
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
@@ -210,30 +230,10 @@ class TestCampaignViews(TestAdminBase):
                 'error_url': 'http://www.error.com',
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
-                'include_empty_fallback': 0,
-                # Filter Feature 1
-                'form-0-feature': relational.FilterFeature.Expression.AGE,
-                'form-0-value': '16',
-                'form-0-operator': 'min',
-                'form-0-rank': 1,
-                # Filter Feature 2
-                'form-1-feature': relational.FilterFeature.Expression.AGE,
-                'form-1-value': '60',
-                'form-1-operator': 'max',
-                'form-1-rank': 1,
-                # Filter Feature 3
-                'form-2-feature': relational.FilterFeature.Expression.STATE,
-                'form-2-value': 'Illinois||Missouri',
-                'form-2-operator': 'in',
-                'form-2-rank': 2,
-                # Filter Feature 4
-                'form-3-feature': relational.FilterFeature.Expression.CITY,
-                'form-3-value': 'Chicago',
-                'form-3-operator': 'eq',
-                'form-3-rank': 3,
-                'form-INITIAL_FORMS': 0,
-                'form-TOTAL_FORMS': 5,
-                'form-MAX_NUM_FORMS': 1000,
+                'include_empty_fallback': 1,
+                'enabled-filters-1': 'age.min.16,age.max.60',
+                'enabled-filters-2': 'state.in.Illinois||Missouri',
+                'enabled-filters-3': 'city.eq.Chicago',
                 # FB Object
                 'og_title': 'Test Title',
                 'org_name': 'Test Organization',
@@ -261,9 +261,9 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(new_client.choicesets.exists())
         self.assertTrue(new_client.buttonstyles.exists())
         self.assertTrue(new_client.campaigns.exists())
-        self.assertEqual(new_client.campaigns.count(), 5)
-        self.assertEqual(new_client.filters.count(), 5)
-        self.assertEqual(new_client.choicesets.count(), 5)
+        self.assertEqual(new_client.campaigns.count(), 4)
+        self.assertEqual(new_client.filters.count(), 4)
+        self.assertEqual(new_client.choicesets.count(), 4)
 
     def test_campaign_wizard_finish(self):
         response = self.client.get(

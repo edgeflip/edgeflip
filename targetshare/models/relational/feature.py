@@ -349,27 +349,6 @@ class FilterFeature(models.Model, Feature):
             value=value,
         )
 
-    @property
-    def pretty_name(self):
-        operator = self.operator
-        value = self.value
-        if self.operator == 'min':
-            operator = '>'
-        elif self.operator == 'max':
-            operator = '<'
-        elif self.operator == 'eq':
-            operator = '='
-
-        if self.value_type == self.ValueType.LIST:
-            value = string_format.lexical_list(
-                self.value.split(self.ValueType.LIST_DELIM)
-            )
-        return u'{feature} {operator} {value}'.format(
-            feature=self.feature.capitalize(),
-            operator=operator,
-            value=value
-        )
-
 
 class RankingKeyFeatureQuerySet(transitory.TransitoryObjectQuerySet):
 
