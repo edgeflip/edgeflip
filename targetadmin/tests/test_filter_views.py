@@ -141,7 +141,7 @@ class TestFilterViews(TestAdminBase):
     def test_add_filter_feature(self):
         ''' Test ajax view of creating a new filter feature '''
         response = self.client.post(
-            reverse('filter-add', args=[self.test_client.pk]), {
+            reverse('targetadmin:filter-add', args=[self.test_client.pk]), {
                 'client': self.test_client.pk,
                 'feature': 'state',
                 'operator': 'eq',

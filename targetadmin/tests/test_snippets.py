@@ -14,7 +14,10 @@ class TestSnippetViews(TestAdminBase):
     def setUp(self):
         super(TestSnippetViews, self).setUp()
         self.campaign = self.test_client.campaigns.create(
-            name='Test Campaign')
+            name='Test Campaign',
+            client=self.test_client
+        )
+        self.campaign.campaignproperties.create()
         self.content = self.test_client.clientcontent.create(
             name='Test Content')
 

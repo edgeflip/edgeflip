@@ -272,5 +272,5 @@ class TestCampaignViews(TestAdminBase):
 
     def test_campaign_wizard_finish(self):
         response = self.client.get(
-            reverse('campaign-wizard-finish', args=[1, 1, 1]))
+            reverse('targetadmin:campaign-wizard-finish', args=[1, 1, 1]))
         self.assertStatusCode(response, 200)
