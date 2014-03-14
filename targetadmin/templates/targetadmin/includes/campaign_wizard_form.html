@@ -4,31 +4,36 @@
         <p>
             {{ campaign_form.name.errors }}
             <label for="{{ campaign_form.name.id_for_label }}">{{ campaign_form.name.label }}:</label>
+            {% if campaign_form.name.help_text %}<span class="help-block">{{ campaign_form.name.help_text }}</span>{% endif %}
             {{ campaign_form.name }}
         </p>
         <p>
             {{ campaign_form.faces_url.errors }}
             <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
+            {% if campaign_form.faces_url.help_text %}<span class="help-block">{{ campaign_form.faces_url.help_text }}</span>{% endif %}
             {{ campaign_form.faces_url }}</p>
         <p>
             {{ campaign_form.thanks_url.errors }}
             <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
+            {% if campaign_form.thanks_url.help_text %}<span class="help-block">{{ campaign_form.thanks_url.help_text }}</span>{% endif %}
             {{ campaign_form.thanks_url }}</p>
         <p>
             {{ campaign_form.error_url.errors }}
             <label for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
+            {% if campaign_form.error_url.help_text %}<span class="help-block">{{ campaign_form.error_url.help_text }}</span>{% endif %}
             {{ campaign_form.error_url }}
         </p>
         <p>
             {{ campaign_form.content_url.errors }}
             <label for="{{ campaign_form.content_url.id_for_label }}">{{ campaign_form.content_url.label }}:</label>
+            {% if campaign_form.content_url.help_text %}<span class="help-block">{{ campaign_form.content_url.help_text }}</span>{% endif %}
             {{ campaign_form.content_url }}
         </p>
         <p>
             {{ campaign_form.include_empty_fallback.errors }}
             <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
             {{ campaign_form.include_empty_fallback }}
-            <div class="help-text">{{ campaign_form.include_empty_fallback.help_text }}</div>
+            {% if campaign_form.include_empty_fallback.help_text %}<span class="help-block">{{ campaign_form.include_empty_fallback.help_text }}</span>{% endif %}
         </p>
     </div>
 </div>

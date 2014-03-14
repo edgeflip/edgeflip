@@ -3,6 +3,7 @@ from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
 from targetshare.models import relational
+from targetshare.utils import encodeDES
 
 
 class TestCampaignViews(TestAdminBase):
@@ -268,6 +269,68 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(
             mail.outbox[0].body,
             'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
+        )
+
+    def test_create_campaign_wizard_generate_faces_url(self):
+        new_client = relational.Client.objects.create(
+            name='Test Client',
+            _fb_app_name='testing',
+            _fb_app_id=1
+        )
+        self.assertFalse(new_client.filters.exists())
+        self.assertFalse(new_client.fbobjects.exists())
+        self.assertFalse(new_client.choicesets.exists())
+        self.assertFalse(new_client.buttonstyles.exists())
+        self.assertFalse(new_client.campaigns.exists())
+        response = self.client.post(
+            reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
+                # Campaign Details
+                'name': 'Test Campaign',
+                'error_url': 'http://www.error.com',
+                'thanks_url': 'http://www.thanks.com',
+                'content_url': 'http://www.content.com',
+                'include_empty_fallback': 1,
+                'enabled-filters-1': 'state.eq.California',
+                # FB Object
+                'og_title': 'Test Title',
+                'org_name': 'Test Organization',
+                'msg1_pre': 'Hey, ',
+                'msg1_post': ' How goes it?',
+                'msg2_pre': 'Hey 2, ',
+                'msg2_post': ' How goes it 2?',
+                'og_image': 'http://imgur.com/VsiPr',
+                'sharing_prompt': 'SHARE IT',
+                'og_description': 'Description of FB stuff'
+            }
+        )
+        self.assertStatusCode(response, 302)
+        camp = new_client.campaigns.latest('pk')
+        content = new_client.clientcontent.latest('pk')
+        cs = camp.campaignchoicesets.get().choice_set
+        self.assertRedirects(response, reverse(
+            'targetadmin:campaign-wizard-finish',
+            args=[new_client.pk, camp.pk, content.pk]
+        ))
+        self.assertIn('Root', cs.name)
+        self.assertIn('Root', cs.choicesetfilters.get().filter.name)
+        self.assertTrue(new_client.filters.exists())
+        self.assertTrue(new_client.fbobjects.exists())
+        self.assertTrue(new_client.choicesets.exists())
+        self.assertTrue(new_client.buttonstyles.exists())
+        self.assertTrue(new_client.campaigns.exists())
+        self.assertEqual(new_client.campaigns.count(), 2)
+        self.assertEqual(new_client.filters.count(), 2)
+        self.assertEqual(new_client.choicesets.count(), 2)
+        self.assertEqual(
+            mail.outbox[0].body,
+            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
+        )
+        self.assertEqual(
+            camp.campaignproperties.get().client_faces_url,
+            'https://apps.facebook.com/{}/{}/'.format(
+                new_client.fb_app_name,
+                encodeDES('{}/{}'.format(camp.pk, content.pk))
+            )
         )
 
     def test_campaign_wizard_finish(self):

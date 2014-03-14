@@ -270,7 +270,10 @@ class CampaignForm(forms.Form):
 class CampaignWizardForm(forms.Form):
 
     name = forms.CharField()
-    faces_url = forms.CharField()
+    faces_url = forms.CharField(
+        required=False,
+        help_text='Optional, only provide if you plan on embedding on your site.',
+    )
     error_url = forms.CharField()
     thanks_url = forms.CharField()
     content_url = forms.CharField()

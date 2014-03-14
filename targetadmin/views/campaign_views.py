@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from targetadmin import utils
 from targetadmin import forms
 from targetshare.models import relational
+from targetshare.utils import encodeDES
 from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
@@ -230,8 +231,18 @@ def campaign_wizard(request, client_pk):
                 campaigns.append(camp)
                 last_camp = camp
 
+            # Check to see if we need to generate the faces_url
+            if campaign_form.cleaned_data['faces_url']:
+                faces_url = campaign_form.cleaned_data['faces_url']
+            else:
+                encoded_url = encodeDES('{}/{}'.format(
+                    last_camp.pk, content.pk))
+                faces_url = 'https://apps.facebook.com/{}/{}/'.format(
+                    client.fb_app_name, encoded_url)
+
             for camp in campaigns:
                 properties = camp.campaignproperties.get()
+                properties.client_faces_url = faces_url
                 properties.root_campaign = last_camp
                 properties.save()
 
