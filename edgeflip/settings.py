@@ -225,10 +225,11 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.admin',
-    # 3rd-party apps:
+    # External apps:
     'south',
     'djcelery',
     'django_nose',
+    'jsurls',
     # Edgeflip apps:
     'core',
     'targetshare',
@@ -368,6 +369,11 @@ CELERY_IMPORTS = (
     'feed_crawler.tasks',
 )
 
+# jsurls settings #
+JSURLS_JS_NAMESPACE = 'edgeflip.router'
+JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
+JSURLS_URL_NAMESPACES = ('gimmick',)
+
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes
 SESSION_COOKIE_DOMAIN = '.edgeflip.com'
@@ -393,7 +399,7 @@ VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # feedcrawler settings
-FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_BUCKET_PREFIX = 'user_feeds_'
 FEED_MAX_BUCKETS = 5
 FEED_AGE_LIMIT = 7 # In days
 FEED_BUCKET_NAMES = [

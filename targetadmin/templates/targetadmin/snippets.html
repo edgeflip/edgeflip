@@ -4,7 +4,7 @@
         function doUpdate() {
             var cmpg = $('#id_campaign').val();
             var cnt = $('#id_content').val();
-            var url = "{% url 'snippet-update' client.pk %}";
+            var url = "{% url 'targetadmin:snippet-update' client.pk %}";
 
             $.ajax({
                 type: "GET",

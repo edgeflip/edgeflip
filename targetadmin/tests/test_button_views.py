@@ -16,7 +16,7 @@ class TestButtonViews(TestAdminBase):
     def test_button_list_view(self):
         ''' Test viewing a list of Button Styles '''
         response = self.client.get(
-            reverse('button-list', args=[self.test_client.pk])
+            reverse('targetadmin:button-list', args=[self.test_client.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object_list']
@@ -24,7 +24,7 @@ class TestButtonViews(TestAdminBase):
     def test_button_detail(self):
         ''' Test viewing a specific Button Style object '''
         response = self.client.get(
-            reverse('button-detail', args=[self.test_client.pk, self.button.pk])
+            reverse('targetadmin:button-detail', args=[self.test_client.pk, self.button.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object']
@@ -32,7 +32,7 @@ class TestButtonViews(TestAdminBase):
     def test_create_button_object(self):
         ''' Test creation of a Button Style object '''
         response = self.client.post(
-            reverse('button-new', args=[self.test_client.pk]),
+            reverse('targetadmin:button-new', args=[self.test_client.pk]),
             {
                 'name': 'Test Object',
                 'html_template': 'test.html',
@@ -42,7 +42,7 @@ class TestButtonViews(TestAdminBase):
         bsf = relational.ButtonStyleFile.objects.get(html_template='test.html')
         self.assertRedirects(
             response,
-            reverse('button-detail', args=[self.test_client.pk, bsf.button_style.pk])
+            reverse('targetadmin:button-detail', args=[self.test_client.pk, bsf.button_style.pk])
         )
         self.assertEqual(bsf.button_style.name, 'Test Object')
         self.assertEqual(bsf.html_template, 'test.html')
@@ -52,7 +52,7 @@ class TestButtonViews(TestAdminBase):
         ''' Test editing a Button Style Object '''
         bsf = self.button.buttonstylefiles.create()
         response = self.client.post(
-            reverse('button-edit', args=[self.test_client.pk, self.button.pk]),
+            reverse('targetadmin:button-edit', args=[self.test_client.pk, self.button.pk]),
             {
                 'name': 'Edit Test Edited',
                 'html_template': 'test.html',
@@ -64,7 +64,7 @@ class TestButtonViews(TestAdminBase):
         bsf = button.buttonstylefiles.get()
         self.assertRedirects(
             response,
-            reverse('button-detail', args=[self.test_client.pk, self.button.pk])
+            reverse('targetadmin:button-detail', args=[self.test_client.pk, self.button.pk])
         )
         self.assertEqual(bsf.button_style.name, 'Edit Test Edited')
         self.assertEqual(bsf.html_template, 'test.html')

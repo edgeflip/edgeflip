@@ -10,7 +10,7 @@
         <span id="campaign-settings" class="wizard-step">
             {% include 'targetadmin/includes/campaign_wizard_form.html' %}
             <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
-            <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </span>
         <span id="filtering" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/filter_wizard_form.html' %}
@@ -95,7 +95,7 @@
         $('#id_value').val(filter_values);
         $.ajax({
             type: "POST",
-            url: "{% url 'filter-add' client.pk %}",
+            url: "{% url 'targetadmin:filter-add' client.pk %}",
             data: $('#add-filter-form').serialize()
         }).done(function(data){
             $('#existing-filters').prepend(data.html);

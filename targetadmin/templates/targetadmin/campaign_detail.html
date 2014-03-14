@@ -21,7 +21,7 @@
             <li><b>Facebook Object</b>: {{ object.fb_object.fb_object.name }}</li>
         </ul>
         {% block extra_content %}{% endblock %}
-        <a href="{% url 'client-detail' client.pk %}" class="btn btn-small btn-primary">Return Home</a>
-        <a href="{% url 'campaign-new' client.pk %}?clone_pk={{ object.pk }}" class="btn btn-small btn-inverse">Clone Campaign</a>
+        <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-small btn-primary">Return Home</a>
+        <a href="{% url 'targetadmin:campaign-new' client.pk %}?clone_pk={{ object.pk }}" class="btn btn-small btn-inverse">Clone Campaign</a>
      </div>
 {% endblock %}

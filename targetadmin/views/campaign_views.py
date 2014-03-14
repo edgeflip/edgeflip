@@ -15,8 +15,8 @@ from targetadmin.views.base import (
 class CampaignListView(ClientRelationListView):
     model = relational.Campaign
     object_string = 'Campaign'
-    detail_url_name = 'campaign-detail'
-    create_url_name = 'campaign-new'
+    detail_url_name = 'targetadmin:campaign-detail'
+    create_url_name = 'targetadmin:campaign-new'
 
 
 campaign_list = CampaignListView.as_view()
@@ -25,7 +25,7 @@ campaign_list = CampaignListView.as_view()
 class CampaignDetailView(ClientRelationDetailView):
     model = relational.Campaign
     object_string = 'Campaign'
-    edit_url_name = 'campaign-edit'
+    edit_url_name = 'targetadmin:campaign-edit'
     template_name = 'targetadmin/campaign_detail.html'
 
     def get_context_data(self, **kwargs):
@@ -78,7 +78,7 @@ def campaign_create(request, client_pk):
             client=client, data=request.POST)
         if form.is_valid():
             campaign = form.save()
-            return redirect('campaign-detail', client.pk, campaign.pk)
+            return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
 
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
@@ -243,7 +243,7 @@ def campaign_wizard(request, client_pk):
                 fail_silently=True
             )
             return redirect(
-                'campaign-wizard-finish',
+                'targetadmin:campaign-wizard-finish',
                 client.pk, last_camp.pk, content.pk
             )
     return render(request, 'targetadmin/campaign_wizard.html', {

@@ -22,13 +22,13 @@
         </script>
         <!-- End Edgeflip JavaScript includes -->
         <!-- Edgeflip JavaScript resources -->
+        <script src="{{ STATIC_URL }}js/router.js"></script>
         <script src="{{ STATIC_URL }}js/map.js"></script>
         <!-- End Edgeflip JavaScript resources -->
         <!-- Edgeflip Map JavaScript -->
         <script>
             edgeflip.map.init({
                 debug: {{ debug|yesno:"true,false" }},
-                dataURL: '{% url "gimmick:map-data" %}',
                 test: {% if test_mode %}{
                     fbid: {{ test_mode.fbid }},
                     token: '{{ test_mode.token }}'

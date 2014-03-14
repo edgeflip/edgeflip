@@ -32,7 +32,7 @@
             </div>
         {% endfor %}
         <input class="btn btn-large btn-primary" type="submit" value="Submit" />
-        <a href="{% url 'client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+        <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
     </form>
 {% endblock %}
 {% block extrascript %}

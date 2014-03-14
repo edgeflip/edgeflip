@@ -13,6 +13,7 @@ edgeflip.faces = (function (edgeflip, $) {
         self.campaignid = options.campaignid;
         self.contentid = options.contentid;
         self.num_face = options.num_face || 9;
+        self.max_face = 10;
         self.test_fbid = self.test_mode ? options.test_fbid : null;
         self.test_token = self.test_mode ? options.test_token : null;
 

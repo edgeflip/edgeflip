@@ -15,7 +15,7 @@ class TestChoiceSetViews(TestAdminBase):
     def test_cs_list_view(self):
         ''' View a listing of Choice Set objects '''
         response = self.client.get(
-            reverse('cs-list', args=[self.test_client.pk])
+            reverse('targetadmin:cs-list', args=[self.test_client.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object_list']
@@ -23,7 +23,7 @@ class TestChoiceSetViews(TestAdminBase):
     def test_cs_detail_view(self):
         ''' Test viewing a specific Choice Set object '''
         response = self.client.get(
-            reverse('cs-detail', args=[self.test_client.pk, self.cs.pk])
+            reverse('targetadmin:cs-detail', args=[self.test_client.pk, self.cs.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object']
@@ -31,7 +31,7 @@ class TestChoiceSetViews(TestAdminBase):
     def test_create_cs_object(self):
         ''' Test creating a new Choice Set object '''
         response = self.client.post(
-            reverse('cs-new', args=[self.test_client.pk]),
+            reverse('targetadmin:cs-new', args=[self.test_client.pk]),
             {'name': 'test_create_cs_object', 'client': self.test_client.pk}
         )
         cs = relational.ChoiceSet.objects.get(
@@ -40,7 +40,7 @@ class TestChoiceSetViews(TestAdminBase):
         self.assertStatusCode(response, 302)
         self.assertRedirects(
             response,
-            reverse('cs-detail', args=[self.test_client.pk, cs.pk])
+            reverse('targetadmin:cs-detail', args=[self.test_client.pk, cs.pk])
         )
 
     def test_cs_edit(self):
@@ -51,7 +51,7 @@ class TestChoiceSetViews(TestAdminBase):
         csf = self.cs.choicesetfilters.create(
             choice_set=self.cs, filter=filter_obj, url_slug='edit_view')
         response = self.client.post(
-            reverse('cs-edit', args=[self.test_client.pk, self.cs.pk]),
+            reverse('targetadmin:cs-edit', args=[self.test_client.pk, self.cs.pk]),
             {
                 'name': 'edit_view_test',
                 'description': 'edit view desc',
@@ -75,7 +75,7 @@ class TestChoiceSetViews(TestAdminBase):
         )
         self.assertRedirects(
             response,
-            reverse('cs-detail', args=[self.test_client.pk, self.cs.pk])
+            reverse('targetadmin:cs-detail', args=[self.test_client.pk, self.cs.pk])
         )
         cs = self.test_client.choicesets.get(name='edit_view_test')
         csf = relational.ChoiceSetFilter.objects.get(pk=csf.pk)

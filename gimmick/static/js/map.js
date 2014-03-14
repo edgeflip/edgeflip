@@ -3,7 +3,11 @@ edgeflip.map = (function (edgeflip, $) {
     var Required = new Object();
     var defaults = {
         debug: false,
-        dataURL: Required,
+        dataURL: null, // set lazily
+        drawOptions: {
+            region: 'US',
+            resolution: 'provinces'
+        },
         header: ['State', 'Value'],
         test: null
     };
@@ -33,6 +37,10 @@ edgeflip.map = (function (edgeflip, $) {
             } else {
                 self[property] = givenValue;
             }
+        }
+
+        if (self.dataURL === null) {
+            self.dataURL = edgeflip.router.reverse('gimmick:map-data');
         }
 
         self.user = new edgeflip.User(
@@ -113,10 +121,7 @@ edgeflip.map = (function (edgeflip, $) {
         /* Draw state-by-state data to the chart.
          */
         values = values || [self.header];
-        options = options || {
-            region: 'US',
-            resolution: 'provinces'
-        };
+        options = options || self.drawOptions;
         var data = google.visualization.arrayToDataTable(values);
         self.chart.draw(data, options);
     };

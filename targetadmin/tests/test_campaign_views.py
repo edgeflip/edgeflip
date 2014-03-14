@@ -16,7 +16,7 @@ class TestCampaignViews(TestAdminBase):
     def test_campaign_list_view(self):
         ''' Test viewing a content list '''
         response = self.client.get(
-            reverse('campaign-list', args=[self.test_client.pk])
+            reverse('targetadmin:campaign-list', args=[self.test_client.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object_list']
@@ -24,7 +24,7 @@ class TestCampaignViews(TestAdminBase):
     def test_campaign_detail_view(self):
         ''' Test viewing a content object '''
         response = self.client.get(
-            reverse('campaign-detail', args=[self.test_client.pk, self.campaign.pk])
+            reverse('targetadmin:campaign-detail', args=[self.test_client.pk, self.campaign.pk])
         )
         self.assertStatusCode(response, 200)
         assert response.context['object']
@@ -40,7 +40,7 @@ class TestCampaignViews(TestAdminBase):
         fb_obj = relational.FBObject.objects.create(
             client=self.test_client, name='test fbobj')
         response = self.client.post(
-            reverse('campaign-new', args=[self.test_client.pk]), {
+            reverse('targetadmin:campaign-new', args=[self.test_client.pk]), {
                 'name': 'Test Campaign Creation',
                 'description': 'Test Description',
                 'faces_url': 'http://test.com/faces/',
@@ -61,7 +61,7 @@ class TestCampaignViews(TestAdminBase):
         campaign = relational.Campaign.objects.get(name='Test Campaign Creation')
         self.assertRedirects(
             response,
-            reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
+            reverse('targetadmin:campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
         properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
@@ -91,7 +91,7 @@ class TestCampaignViews(TestAdminBase):
         fb_obj = relational.FBObject.objects.create(
             client=self.test_client, name='test fbobj')
         response = self.client.post(
-            reverse('campaign-new', args=[self.test_client.pk]), {
+            reverse('targetadmin:campaign-new', args=[self.test_client.pk]), {
                 'name': 'Test Campaign Creation',
                 'description': 'Test Description',
                 'faces_url': 'http://test.com/faces/',
@@ -111,7 +111,7 @@ class TestCampaignViews(TestAdminBase):
         campaign = relational.Campaign.objects.get(name='Test Campaign Creation')
         self.assertRedirects(
             response,
-            reverse('campaign-detail', args=[self.test_client.pk, campaign.pk])
+            reverse('targetadmin:campaign-detail', args=[self.test_client.pk, campaign.pk])
         )
         properties = campaign.campaignproperties.get()
         self.assertEqual(properties.client_faces_url, 'http://test.com/faces/')
@@ -142,7 +142,7 @@ class TestCampaignViews(TestAdminBase):
         fb_obj = relational.FBObject.objects.create(
             client=self.test_client, name='test fbobj')
         response = self.client.post(
-            reverse('campaign-new', args=[self.test_client.pk]), {
+            reverse('targetadmin:campaign-new', args=[self.test_client.pk]), {
                 'name': 'Test Campaign Creation',
                 'description': 'Test Description',
                 'faces_url': 'http://test.com/faces/',
@@ -166,7 +166,7 @@ class TestCampaignViews(TestAdminBase):
 
     def test_campaign_clone(self):
         response = self.client.get(
-            reverse('campaign-new', args=[self.test_client.pk]), {
+            reverse('targetadmin:campaign-new', args=[self.test_client.pk]), {
                 'clone_pk': 1
             }
         )
@@ -224,7 +224,7 @@ class TestCampaignViews(TestAdminBase):
         self.assertFalse(new_client.buttonstyles.exists())
         self.assertFalse(new_client.campaigns.exists())
         response = self.client.post(
-            reverse('campaign-wizard', args=[new_client.pk]), {
+            reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
                 # Campaign Details
                 'name': 'Test Campaign',
                 'faces_url': 'http://www.faces.com',
@@ -252,7 +252,7 @@ class TestCampaignViews(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         self.assertRedirects(response, reverse(
-            'campaign-wizard-finish',
+            'targetadmin:campaign-wizard-finish',
             args=[new_client.pk, camp.pk, content.pk]
         ))
         self.assertIn('Root', cs.name)

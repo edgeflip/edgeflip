@@ -23,7 +23,7 @@ function setDropdown(friends) {
 		select: function( event, ui ) {
             var fbid = parseInt(ui.item.value);
 
-            if (getRecipFbids().length >= 10) {
+            if (getRecipFbids().length >= edgeflip.faces.max_face) {
                 alert("Sorry: only ten friends can be tagged.");
             }
             else if (!isRecip(fbid)) {

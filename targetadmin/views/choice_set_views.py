@@ -14,8 +14,8 @@ from targetadmin.views.base import (
 class ChoiceSetListView(ClientRelationListView):
     model = relational.ChoiceSet
     object_string = 'Choice Set'
-    detail_url_name = 'cs-detail'
-    create_url_name = 'cs-new'
+    detail_url_name = 'targetadmin:cs-detail'
+    create_url_name = 'targetadmin:cs-new'
 
 
 cs_list = ChoiceSetListView.as_view()
@@ -24,7 +24,7 @@ cs_list = ChoiceSetListView.as_view()
 class ChoiceSetDetailView(ClientRelationDetailView):
     model = relational.ChoiceSet
     object_string = 'Choice Set'
-    edit_url_name = 'cs-edit'
+    edit_url_name = 'targetadmin:cs-edit'
     template_name = 'targetadmin/cs_detail.html'
 
 
@@ -35,7 +35,7 @@ class ChoiceSetFormView(ClientRelationFormView):
     form_class = forms.ChoiceSetForm
     model = relational.ChoiceSet
     queryset = relational.ChoiceSet.objects.all()
-    success_url = 'cs-detail'
+    success_url = 'targetadmin:cs-detail'
     object_string = 'Choice Set'
 
 
@@ -91,7 +91,7 @@ def cs_edit(request, client_pk, pk):
             for form in filled_forms:
                 form.save()
             cs_form.save()
-            return redirect('cs-detail', client.pk, cs.pk)
+            return redirect('targetadmin:cs-detail', client.pk, cs.pk)
 
     return render(request, 'targetadmin/cs_edit.html', {
         'client': client,
