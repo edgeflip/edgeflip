@@ -91,7 +91,7 @@ def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     fb_obj_form = forms.FBObjectWizardForm()
     campaign_form = forms.CampaignWizardForm()
-    if request.method == 'POST': # Section below is dead for now
+    if request.method == 'POST':
         fb_obj_form = forms.FBObjectWizardForm(request.POST)
         campaign_form = forms.CampaignWizardForm(request.POST)
         if fb_obj_form.is_valid() and campaign_form.is_valid() and request.POST.get('enabled-filters-1'):

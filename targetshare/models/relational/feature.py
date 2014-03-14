@@ -6,8 +6,6 @@ import sys
 from django.core import validators
 from django.db import models
 
-from targetshare.templatetags import string_format
-
 from .manager import transitory
 
 
