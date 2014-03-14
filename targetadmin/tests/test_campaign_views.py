@@ -1,3 +1,4 @@
+from django.core import mail
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
@@ -264,6 +265,10 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(new_client.campaigns.count(), 4)
         self.assertEqual(new_client.filters.count(), 4)
         self.assertEqual(new_client.choicesets.count(), 4)
+        self.assertEqual(
+            mail.outbox[0].body,
+            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
+        )
 
     def test_campaign_wizard_finish(self):
         response = self.client.get(

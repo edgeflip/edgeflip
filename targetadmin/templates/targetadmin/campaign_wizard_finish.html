@@ -1,10 +1,16 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Campaign Wizard Final Step{% endblock %}
 {% block content %}
-    <h2>Confirm Campaign</h2>
-    <div id="sortable">
+    <h2>Campaign Confirmation</h2>
+    <div class="row">
+        <div class="span5">
+            <p>Listed below are the campaigns that you have created. The admins
+             have been contacted in regards to these new campaigns, and we'll be
+             validating them shortly. We'll contact you as soon as these are ready
+             for use.
+            </p>
     {% for camp in campaigns %}
-        <div class="row" id="setname_{{ camp.pk }}" class="campaign-box">
+        <div class="row" class="campaign-box">
             <div class="span5 well">
                 <h4>{{ camp.campaign.name }}</h4> 
                 <p>Filtering Criteria:</p>
@@ -17,35 +23,12 @@
                         {% endfor %}
                     {% endfor %}
                 </ul>
-                <p><button id="remove-{{ camp.pk }}" class="btn btn-danger remove-campaign" data-campaign="{{ camp.pk }}">Remove</button></p>
             </div>
         </div>
     {% endfor %}
-        <div id="buttons" style="padding-bottom: 40px;">
-            <button id="submit-campaigns" class="btn btn-primary">Submit</button> <button id="undo" class="btn">Undo Deletion(s)</button>
+        <div class="row">
+            <div id="buttons" style="padding-bottom: 40px;">
+                <a href="{% url 'client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
+            </div>
         </div>
-    </div>
-{% endblock %}
-{% block extrascript %}
-<script>
-    // Drag and Drop
-    removed_campaigns = [];
-    $(function() {
-        $( "#sortable" ).sortable();
-        $( "#sortable" ).disableSelection();
-        $('#sortable').on("sortupdate", function(event, ui) {
-            console.log(event);
-            console.log(ui);
-        });
-    });
-    $('.remove-campaign').click(function(e){
-        var campaign = '#setname_' + $('#' + e.target.id).data('campaign');
-        $(campaign).hide()
-        removed_campaigns.push(campaign);
-    });
-    $('#undo').click(function(e){
-        var campaign = removed_campaigns.pop();
-        $(campaign).show();
-    });
-</script>
 {% endblock %}

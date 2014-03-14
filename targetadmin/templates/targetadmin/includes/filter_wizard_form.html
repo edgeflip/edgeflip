@@ -25,7 +25,7 @@
             </div>
         </div>
         <div class="row">
-            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
+            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'filter-add' client.pk %}" id="something" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px;">
                 {% for ff in filter_features %}
                 <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable"><p><abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">{{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}</abbr></p></div>

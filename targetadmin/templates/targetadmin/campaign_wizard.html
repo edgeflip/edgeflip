@@ -37,8 +37,6 @@
                     {key: 'ff_' + i, attribute: 'data-filter-id'}).split('&');
                 var values = [];
                 for (var x = 0; x < filters.length; x++) {
-                    console.log(x);
-                    console.log(filters[x]);
                     values.push(filters[x].split('=')[1]);
                 }
                 $('#id_enabled-filters-' + i).val(values);
@@ -57,16 +55,6 @@
             connectWith: ".target-well"
         });
         $( ".sortable" ).disableSelection();
-        $('.sortable').on("sortupdate", function(event, ui) {
-            if (event.target.id === 'existing-filters') {
-                // Don't think I need this anymore:
-                /*var new_node = ui.item.clone();
-                * new_node.addClass('hidden-elements')
-                * new_node.hide();
-                * $('#existing-filters').append(new_node);
-                */
-            }
-        });
     });
 
     // Layer addition
@@ -74,7 +62,6 @@
         event.preventDefault();
         var previous_layer_html = $('#enabled-filters-' + layer_count).html()
         var hidden_elements = $('.hidden-elements')
-        $('#enabled-filters-' + layer_count).sortable("disable");
         layer_count = $('#add-layer').data('layer-count') + 1;
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
@@ -113,20 +100,8 @@
         }).done(function(data){
             $('#existing-filters').prepend(data.html);
             $('#filter-modal').modal('toggle');
+            $('#filter-modal').removeData();
         });
     });
-
-    /* Final Form Submission handling
-    $('#wizard-form').submit(function(event) {
-        event.preventDefault();
-        data = $('#wizard-form').serialize();
-        for (var i = 1; i <= layer_count; i++){
-            var filters = $('#enabled-filters-' + i).sortable('serialize', 
-                {key: 'ff_' + i, attribute: 'data-filter-id'});
-            data = data + '&' + filters;
-        }
-        console.log(data);
-    })
-    */
 </script>
 {% endblock %}

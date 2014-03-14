@@ -1,6 +1,7 @@
-from django.shortcuts import get_object_or_404, redirect, render
-from django.forms.models import modelformset_factory
+from django.conf import settings
 from django.utils import timezone
+from django.core.mail import send_mail
+from django.shortcuts import get_object_or_404, redirect, render
 
 from targetadmin import utils
 from targetadmin import forms
@@ -206,6 +207,7 @@ def campaign_wizard(request, client_pk):
             choice_sets[rank] = empty_cs
 
             last_camp = None
+            campaigns = []
             for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
                 camp = relational.Campaign.objects.create(
                     client=client,
@@ -225,7 +227,21 @@ def campaign_wizard(request, client_pk):
                     fb_object=fb_obj,
                     rand_cdf=1.0
                 )
+                campaigns.append(camp)
                 last_camp = camp
+
+            for camp in campaigns:
+                properties = camp.campaignproperties.get()
+                properties.root_campaign = last_camp
+                properties.save()
+
+            send_mail(
+                '{} Created New Campaigns'.format(client.name),
+                'Campaign PK: {} created. Please verify it and its children.'.format(last_camp.pk),
+                settings.ADMIN_FROM_ADDRESS,
+                settings.ADMIN_NOTIFICATION_LIST,
+                fail_silently=True
+            )
             return redirect(
                 'campaign-wizard-finish',
                 client.pk, last_camp.pk, content.pk
