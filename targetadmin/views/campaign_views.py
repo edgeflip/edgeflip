@@ -108,7 +108,9 @@ def campaign_wizard(request, client_pk):
                 for feature_string in inputs:
                     feature, operator, value = feature_string.split('.')
                     ff = relational.FilterFeature.objects.filter(
-                        feature=feature, operator=operator, value=value)[0]
+                        feature=feature, operator=operator, value=value,
+                        client=client
+                    )[0]
                     ff.pk = None
                     ff.save()
                     layer.append(ff)
@@ -137,8 +139,9 @@ def campaign_wizard(request, client_pk):
             del filter_feature_layers[0]
 
             choice_sets = {0: root_choiceset}
+            # First layer is the root_choiceset
             layer_count = 1
-            if len(filter_feature_layers) > 1:
+            while filter_feature_layers:
                 for layer in filter_feature_layers:
                     for feature in layer:
                         cs = choice_sets.get(layer_count)
@@ -161,6 +164,7 @@ def campaign_wizard(request, client_pk):
                         feature.filter = cs.choicesetfilters.get().filter
                         feature.save()
                     layer_count += 1
+                    filter_feature_layers.remove(layer)
 
             fb_obj = relational.FBObject.objects.create(
                 name='{} {} {}'.format(client.name, campaign_name, timezone.now()),

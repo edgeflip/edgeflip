@@ -202,22 +202,22 @@ class TestCampaignViews(TestAdminBase):
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.AGE,
             operator=relational.FilterFeature.Operator.MIN,
-            value=16
+            value=16, client=new_client
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.AGE,
             operator=relational.FilterFeature.Operator.MAX,
-            value=60
+            value=60, client=new_client
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.STATE,
             operator=relational.FilterFeature.Operator.IN,
-            value='Illinois||Missouri'
+            value='Illinois||Missouri', client=new_client
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.CITY,
             operator=relational.FilterFeature.Operator.EQ,
-            value='Chicago',
+            value='Chicago', client=new_client
         )
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
@@ -277,6 +277,7 @@ class TestCampaignViews(TestAdminBase):
             _fb_app_name='testing',
             _fb_app_id=1
         )
+        relational.FilterFeature.objects.update(client=new_client)
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())

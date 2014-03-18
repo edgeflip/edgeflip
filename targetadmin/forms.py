@@ -320,5 +320,9 @@ class SnippetForm(forms.Form):
     def __init__(self, client=None, *args, **kwargs):
         super(SnippetForm, self).__init__(*args, **kwargs)
         self.fields['campaign'].queryset = client.campaigns.filter(
-            campaignproperties__root_campaign__isnull=False)
+            pk__in=client.campaigns.filter(
+                campaignproperties__root_campaign__isnull=False).values_list(
+                    'campaignproperties__root_campaign', flat=True
+                )
+        ).distinct()
         self.fields['content'].queryset = client.clientcontent.all()

@@ -32,14 +32,14 @@
     $('.step-submit').click(function(e) {
         var step = $('#' + e.target.id).data('step');
         if ($('#' + e.target.id).hasClass('filter-step')) {
-            for (var i = 1; i <= layer_count; i++) {
-                var filters = $('#enabled-filters-' + i).sortable('serialize', 
-                    {key: 'ff_' + i, attribute: 'data-filter-id'}).split('&');
+            for (var layer = 1; layer <= layer_count; layer++) {
+                var filters = $('#enabled-filters-' + layer).sortable('serialize', 
+                    {key: 'ff_' + layer, attribute: 'data-filter-id'}).split('&');
                 var values = [];
-                for (var x = 0; x < filters.length; x++) {
-                    values.push(filters[x].split('=')[1]);
+                for (var v = 0; v < filters.length; v++) {
+                    values.push(filters[v].split('=')[1]);
                 }
-                $('#id_enabled-filters-' + i).val(values);
+                $('#id_enabled-filters-' + layer).val(values);
             }
         }
         $('.wizard-step').hide();
