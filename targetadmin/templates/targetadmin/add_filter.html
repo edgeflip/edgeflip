@@ -1,4 +1,4 @@
-<form id="add-filter-form" action="{% url 'filter-add' client.pk %}" method="post">
+<form id="add-filter-form" action="{% url 'targetadmin:filter-add' client.pk %}" method="post">
     {% csrf_token %}
     <div class="row">
         <div class="span5">

@@ -65,7 +65,7 @@ class FilterForm(forms.ModelForm):
         exclude = ('is_deleted', 'delete_dt', 'client')
 
 
-class BaseFilterFeatureForm(forms.ModelForm):
+class FilterFeatureForm(forms.ModelForm):
 
     CHOICES = (
         ('', 'Select Filter Type'),
@@ -81,15 +81,6 @@ class BaseFilterFeatureForm(forms.ModelForm):
     class Meta:
         model = relational.FilterFeature
         exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
-        widgets = {'client': forms.HiddenInput()}
-
-
-class FilterFeatureForm(BaseFilterFeatureForm):
-
-    def __init__(self, client, *args, **kwargs):
-        super(FilterFeatureForm, self).__init__(*args, **kwargs)
-        self.fields['client'].queryset = relational.Client.objects.filter(
-            pk=client.pk)
 
 
 class FilterFeatureFormCallback(object):

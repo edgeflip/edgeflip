@@ -29,9 +29,6 @@
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px;">
                 {% for ff in filter_features %}
                 <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable"><p><abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">{{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}</abbr></p></div>
-                    {% if forloop.counter > 10 %}
-                        <br />
-                    {% endif %}
                 {% endfor %}
             </div>
         </div>

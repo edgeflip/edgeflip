@@ -56,8 +56,7 @@ def filter_edit(request, client_pk, pk):
         relational.FilterFeature,
         extra=extra_forms,
         exclude=('end_dt', 'value_type', 'feature_type'),
-        form=forms.BaseFilterFeatureForm,
-        formfield_callback=forms.FilterFeatureFormCallback('client', client).callback,
+        form=forms.FilterFeatureForm,
     )
     formset = ff_set(
         queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
@@ -97,16 +96,9 @@ def filter_edit(request, client_pk, pk):
 @auth_client_required
 def add_filter(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    form = forms.FilterFeatureForm(
-        instance=relational.FilterFeature(client=client),
-        client=client,
-    )
+    form = forms.FilterFeatureForm()
     if request.method == 'POST':
-        form = forms.FilterFeatureForm(
-            data=request.POST,
-            instance=relational.FilterFeature(client=client),
-            client=client,
-        )
+        form = forms.FilterFeatureForm(request.POST)
         if form.is_valid():
             feature = form.save()
             return JsonHttpResponse({

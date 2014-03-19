@@ -30,12 +30,13 @@
 
     // "Steps"
     $('.step-submit').click(function(e) {
-        var step = $('#' + e.target.id).data('step');
-        if ($('#' + e.target.id).hasClass('filter-step')) {
-            for (var layer = 1; layer <= layer_count; layer++) {
-                var filters = $('#enabled-filters-' + layer).sortable('serialize', 
+        var step = $(this).data('step');
+        if ($(this).hasClass('filter-step')) {
+            var v, values, filters;
+            for (layer = 1; layer <= layer_count; layer++) {
+                filters = $('#enabled-filters-' + layer).sortable('serialize', 
                     {key: 'ff_' + layer, attribute: 'data-filter-id'}).split('&');
-                var values = [];
+                values = [];
                 for (var v = 0; v < filters.length; v++) {
                     values.push(filters[v].split('=')[1]);
                 }
@@ -80,7 +81,7 @@
         event.preventDefault();
         var filter_values = '';
         $('.filter-val-input').each(function(index){
-            value = $('#' + this.id).val();
+            var value = $(this).val();
             if (value) {
                 if (filter_values === ''){
                     filter_values = value;

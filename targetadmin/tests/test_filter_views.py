@@ -126,7 +126,6 @@ class TestFilterViews(TestAdminBase):
         )
 
         for ff in filter_obj.filterfeatures.all():
-            self.assertEqual(ff.client, self.test_client)
             if ff.value_type == 'int':
                 self.assertTrue(isinstance(ff.decode_value(), (int, long)))
             elif ff.value_type == 'list':
@@ -142,7 +141,6 @@ class TestFilterViews(TestAdminBase):
         ''' Test ajax view of creating a new filter feature '''
         response = self.client.post(
             reverse('targetadmin:filter-add', args=[self.test_client.pk]), {
-                'client': self.test_client.pk,
                 'feature': 'state',
                 'operator': 'eq',
                 'value': 'Wyoming'

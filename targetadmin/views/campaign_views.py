@@ -109,7 +109,6 @@ def campaign_wizard(request, client_pk):
                     feature, operator, value = feature_string.split('.')
                     ff = relational.FilterFeature.objects.filter(
                         feature=feature, operator=operator, value=value,
-                        client=client
                     )[0]
                     ff.pk = None
                     ff.save()
@@ -265,8 +264,10 @@ def campaign_wizard(request, client_pk):
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': client.filterfeatures.values(
-            'feature', 'operator', 'value').distinct(),
+        'filter_features': relational.FilterFeature.objects.filter(
+            filter__client=client, feature__isnull=False,
+            operator__isnull=False, value__isnull=False)
+        .values('feature', 'operator', 'value').distinct()
     })
 
 
