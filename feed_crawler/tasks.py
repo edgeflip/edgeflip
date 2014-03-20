@@ -4,6 +4,7 @@ import logging
 import random
 import urllib2
 from datetime import timedelta
+from httplib import HTTPException
 
 from celery import shared_task
 from celery.utils.log import get_task_logger
@@ -207,7 +208,11 @@ def initial_crawl(self, primary, secondary):
             return
 
     s3_key.data['updated'] = now_epoch
-    s3_key.save_to_s3()
+    try:
+        s3_key.save_to_s3()
+    except HTTPException:
+        self.retry()
+
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
     sync_map.save_status(models.FBSyncMap.BACK_FILL)
@@ -246,7 +251,10 @@ def back_fill_crawl(self, primary, secondary):
         # ahead in that case and kick off the comment crawl, but not mark
         # this job as back filled so that we can give it another shot at some
         # later point
-        s3_key.extend_s3_data()
+        try:
+            s3_key.extend_s3_data()
+        except HTTPException:
+            self.retry()
         sync_map.back_filled = True
         sync_map.save()
 
@@ -265,7 +273,11 @@ def crawl_comments_and_likes(self, primary, secondary):
     logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
-    s3_key.populate_from_s3()
+    try:
+        s3_key.populate_from_s3()
+    except HTTPException:
+        self.retry()
+
     if 'data' not in s3_key.data:
         # bogus/error'd out feed
         return
@@ -281,7 +293,11 @@ def crawl_comments_and_likes(self, primary, secondary):
             result = facebook.client.exhaust_pagination(next_url)
             item['likes']['data'].extend(result)
 
-    s3_key.save_to_s3()
+    try:
+        s3_key.save_to_s3()
+    except HTTPException:
+        self.retry()
+
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
 
@@ -312,7 +328,10 @@ def incremental_crawl(self, primary, secondary):
     if 'data' in s3_key.data:
         # If we have data, let's save it. If not, let's kick this guy over
         # to crawl_comments_and_likes. We'll get that incremental data later
-        s3_key.extend_s3_data(False)
+        try:
+            s3_key.extend_s3_data(False)
+        except HTTPException:
+            self.retry()
         sync_map.incremental_epoch = epoch.from_date(timezone.now())
         sync_map.save()
 
