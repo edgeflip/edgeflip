@@ -285,6 +285,7 @@ CELERY_QUEUES = (
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
@@ -317,6 +318,10 @@ CELERY_ROUTES = {
     'targetshare.tasks.ranking.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
+    },
+    'targetshare.tasks.integration.facebook.store_oauth_token': {
+        'queue': 'oauth_token',
+        'routing_key': 'oauth.token'
     },
     'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',
@@ -364,8 +369,9 @@ CELERY_ROUTES = {
     },
 }
 CELERY_IMPORTS = (
-    'targetshare.tasks.ranking',
     'targetshare.tasks.db',
+    'targetshare.tasks.ranking',
+    'targetshare.tasks.integration.facebook',
     'feed_crawler.tasks',
 )
 

@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
+from targetshare.tasks.integration.facebook import store_oauth_token
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -96,15 +97,35 @@ def incoming(request, campaign_id, content_id):
             )
         )
         return redirect(url)
-    else:
-        # Inherit incoming query string:
-        parsed_url = urlparse.urlparse(faces_url)
-        query_params = '&'.join(part for part in [
-            parsed_url.query,
-            request.META.get('QUERY_STRING', ''),
-        ] if part)
-        url = parsed_url._replace(query=query_params).geturl()
 
+    code = request.GET.get('code')
+    if code:
+        # Build OAuth redirect uri from request, removing FB junk:
+        redirect_query = request.GET.copy()
+        for key in ('code', 'error', 'error_reason', 'error_description'):
+            try:
+                del redirect_query[key]
+            except KeyError:
+                pass
+
+        if redirect_query:
+            redirect_path = "{}?{}".format(request.path, redirect_query)
+        else:
+            redirect_path = request.path
+
+        store_oauth_token.delay(
+            campaign.client.fb_app_id,
+            code,
+            request.build_absolute_uri(redirect_path),
+        )
+
+    # Inherit incoming query string:
+    parsed_url = urlparse.urlparse(faces_url)
+    query_params = '&'.join(part for part in [
+        parsed_url.query,
+        request.META.get('QUERY_STRING', ''),
+    ] if part)
+    url = parsed_url._replace(query=query_params).geturl()
     db.delayed_save.delay(
         models.relational.Event(
             visit=request.visit,
