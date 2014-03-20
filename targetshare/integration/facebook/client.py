@@ -503,6 +503,7 @@ def get_oauth_token(fb_app_id, code, redirect_uri):
             'code': code
         }
     )
+    response.raise_for_status()
     return dict(urlparse.parse_qsl(response.content))
 
 
