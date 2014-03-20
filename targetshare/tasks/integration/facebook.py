@@ -18,7 +18,6 @@ def store_oauth_token(fb_app_id, code, redirect_uri):
         return
 
     token_value = token_data['access_token']
-    token_expires = token_data['expires']
 
     try:
         debug_data = facebook.client.debug_token(fb_app_id, token_value)
@@ -26,10 +25,11 @@ def store_oauth_token(fb_app_id, code, redirect_uri):
         LOG.exception("Failed to retrieve OAuth token debug data")
         return
 
-    fbid = debug_data['data']['user_id']
+    token_fbid = debug_data['data']['user_id']
+    token_expires = debug_data['data']['expires_at']
 
     token = Token(
-        fbid=fbid,
+        fbid=token_fbid,
         appid=fb_app_id,
         token=token_value,
         expires=token_expires,
