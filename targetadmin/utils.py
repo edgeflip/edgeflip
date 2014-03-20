@@ -20,13 +20,13 @@ def superuser_required(view):
 # superuser only views, but we don't really have any of these now.
 def internal(view):
     is_superuser = superuser_required(view)
-    logged_in_superuser = decorators.login_required(is_superuser, login_url='login')
+    logged_in_superuser = decorators.login_required(is_superuser, login_url='targetadmin:login')
     return logged_in_superuser
 
 
 def auth_client_required(view):
     @functools.wraps(view)
-    @decorators.login_required(login_url='login')
+    @decorators.login_required(login_url='targetadmin:login')
     def verify_client_auth_relation(request, *args, **kwargs):
         pk = kwargs.get('client_pk')
         if (request.user.is_superuser or
