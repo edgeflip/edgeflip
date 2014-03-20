@@ -508,14 +508,10 @@ def get_oauth_token(fb_app_id, code, redirect_uri):
 
 def debug_token(appid, token):
     secret = settings.FACEBOOK.secrets[str(appid)]
-    response = requests.get(
-        'https://graph.facebook.com/debug_token',
-        params={
-            'access_token': "{}|{}".format(appid, secret),
-            'input_token': token,
-        }
-    )
-    return response.json()
+    return urlload('https://graph.facebook.com/debug_token', {
+        'access_token': "{}|{}".format(appid, secret),
+        'input_token': token,
+    })
 
 
 class Stream(list):
