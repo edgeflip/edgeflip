@@ -17,7 +17,6 @@
         <h4>Add Filters</h4>
         {% for form in formset.extra_forms %}
             <div id="new-form-{{ forloop.counter0}}" class="new-filters">
-                {{ form.client }}
                 <p>{{ form.filter.errors }}<label for="id_{{ form.prefix }}-filter">{{ form.filter.label }}: </label>{{ form.filter }}</p>
                 <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
                 <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>

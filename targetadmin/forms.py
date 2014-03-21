@@ -83,19 +83,6 @@ class FilterFeatureForm(forms.ModelForm):
         exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
 
 
-class FilterFeatureFormCallback(object):
-
-    def __init__(self, field_name, client):
-        self.field_name = field_name
-        self.client = client
-
-    def callback(self, field, **kwargs):
-        new_field = field.formfield(**kwargs)
-        if self.field_name == field.name:
-            new_field.queryset = relational.Client.objects.filter(pk=self.client.pk)
-        return new_field
-
-
 class ChoiceSetForm(forms.ModelForm):
 
     description = forms.CharField(required=False, widget=forms.Textarea)

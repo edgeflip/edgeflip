@@ -60,14 +60,14 @@ def filter_edit(request, client_pk, pk):
     )
     formset = ff_set(
         queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
-        initial=[{'filter': filter_obj, 'client': client} for x in range(extra_forms)],
+        initial=[{'filter': filter_obj} for x in range(extra_forms)],
     )
     if request.method == 'POST':
         filter_form = forms.FilterForm(data=request.POST, instance=filter_obj)
         formset = ff_set(
             data=request.POST,
             queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
-            initial=[{'filter': filter_obj, 'client': client} for x in range(extra_forms)]
+            initial=[{'filter': filter_obj} for x in range(extra_forms)]
         )
 
         # Filter Features are inherently nully things, but we know we should

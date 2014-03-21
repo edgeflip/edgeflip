@@ -32,12 +32,12 @@
     $('.step-submit').click(function(e) {
         var step = $(this).data('step');
         if ($(this).hasClass('filter-step')) {
-            var v, values, filters;
+            var v, values, filters, layer;
             for (layer = 1; layer <= layer_count; layer++) {
                 filters = $('#enabled-filters-' + layer).sortable('serialize', 
                     {key: 'ff_' + layer, attribute: 'data-filter-id'}).split('&');
                 values = [];
-                for (var v = 0; v < filters.length; v++) {
+                for (v = 0; v < filters.length; v++) {
                     values.push(filters[v].split('=')[1]);
                 }
                 $('#id_enabled-filters-' + layer).val(values);
@@ -59,7 +59,7 @@
     });
 
     // Layer addition
-    $('#add-layer').click(function(e){
+    $('#add-layer').click(function(event){
         event.preventDefault();
         var previous_layer_html = $('#enabled-filters-' + layer_count).html()
         var hidden_elements = $('.hidden-elements')

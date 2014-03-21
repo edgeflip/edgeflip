@@ -199,27 +199,30 @@ class TestCampaignViews(TestAdminBase):
             name='Test Client',
             _fb_app_id=1
         )
+        new_filter = relational.Filter.objects.create(
+            name='new filter', client=new_client
+        )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.AGE,
             operator=relational.FilterFeature.Operator.MIN,
-            value=16
+            value=16, filter=new_filter
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.AGE,
             operator=relational.FilterFeature.Operator.MAX,
-            value=60
+            value=60, filter=new_filter
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.STATE,
             operator=relational.FilterFeature.Operator.IN,
-            value='Illinois||Missouri'
+            value='Illinois||Missouri', filter=new_filter
         )
         relational.FilterFeature.objects.create(
             feature=relational.FilterFeature.Expression.CITY,
             operator=relational.FilterFeature.Operator.EQ,
-            value='Chicago'
+            value='Chicago', filter=new_filter
         )
-        self.assertFalse(new_client.filters.exists())
+        self.assertEqual(new_client.filters.count(), 1)
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
         self.assertFalse(new_client.buttonstyles.exists())
@@ -264,7 +267,8 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(new_client.buttonstyles.exists())
         self.assertTrue(new_client.campaigns.exists())
         self.assertEqual(new_client.campaigns.count(), 4)
-        self.assertEqual(new_client.filters.count(), 4)
+        # 4 filters, plus the one we created earlier
+        self.assertEqual(new_client.filters.count(), 5)
         self.assertEqual(new_client.choicesets.count(), 4)
         self.assertEqual(
             mail.outbox[0].body,
@@ -277,7 +281,8 @@ class TestCampaignViews(TestAdminBase):
             _fb_app_name='testing',
             _fb_app_id=1
         )
-        self.assertFalse(new_client.filters.exists())
+        relational.Filter.objects.update(client=new_client)
+        self.assertEqual(new_client.filters.count(), 6)
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
         self.assertFalse(new_client.buttonstyles.exists())
@@ -319,7 +324,8 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(new_client.buttonstyles.exists())
         self.assertTrue(new_client.campaigns.exists())
         self.assertEqual(new_client.campaigns.count(), 2)
-        self.assertEqual(new_client.filters.count(), 2)
+        # 1 new one, plus the existing 6
+        self.assertEqual(new_client.filters.count(), 7)
         self.assertEqual(new_client.choicesets.count(), 2)
         self.assertEqual(
             mail.outbox[0].body,

@@ -1,3 +1,5 @@
+import itertools
+
 from django.conf import settings
 from django.utils import timezone
 from django.core.mail import send_mail
@@ -109,9 +111,9 @@ def campaign_wizard(request, client_pk):
                     feature, operator, value = feature_string.split('.')
                     ff = relational.FilterFeature.objects.filter(
                         feature=feature, operator=operator, value=value,
+                        filter__client=client
                     )[0]
                     ff.pk = None
-                    ff.save()
                     layer.append(ff)
                 filter_feature_layers.append(layer)
 
@@ -137,36 +139,33 @@ def campaign_wizard(request, client_pk):
                 filter=root_filter)
             del filter_feature_layers[0]
 
-            choice_sets = {0: root_choiceset}
+            choice_sets = [root_choiceset]
             # First layer is the root_choiceset
-            layer_count = 1
-            while filter_feature_layers:
-                for layer in filter_feature_layers:
-                    for feature in layer:
-                        cs = choice_sets.get(layer_count)
-                        if not cs:
-                            single_filter = relational.Filter.objects.create(
-                                name='{} {} {}'.format(
-                                    client.name, campaign_name, feature.feature),
-                                client=client
-                            )
-                            cs = relational.ChoiceSet.objects.create(
-                                client=client,
-                                name=campaign_name
-                            )
-                            relational.ChoiceSetFilter.objects.create(
-                                filter=single_filter,
-                                choice_set=cs
-                            )
-                            choice_sets[layer_count] = cs
-                        feature.pk = None
-                        feature.filter = cs.choicesetfilters.get().filter
-                        feature.save()
-                    layer_count += 1
-                    filter_feature_layers.remove(layer)
+            for (layer_count, layer) in enumerate(filter_feature_layers, 1):
+                for feature in layer:
+                    try:
+                        cs = choice_sets[layer_count]
+                    except IndexError:
+                        single_filter = relational.Filter.objects.create(
+                            name='{} {}'.format(
+                                client.name, campaign_name),
+                            client=client
+                        )
+                        cs = relational.ChoiceSet.objects.create(
+                            client=client,
+                            name=campaign_name
+                        )
+                        relational.ChoiceSetFilter.objects.create(
+                            filter=single_filter,
+                            choice_set=cs
+                        )
+                        choice_sets.append(cs)
+                    feature.pk = None
+                    feature.filter = cs.choicesetfilters.get().filter
+                    feature.save()
 
             fb_obj = relational.FBObject.objects.create(
-                name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
+                name='{} {} {}'.format(client.name, campaign_name),
                 client=client
             )
             fb_attr = fb_obj_form.save()
@@ -207,12 +206,12 @@ def campaign_wizard(request, client_pk):
                 # Already have a known empty filter
                 empty_cs.choicesetfilters.create(filter=global_filter)
             # Find the end of the choice_sets dict
-            rank = max(choice_sets) + 1
-            choice_sets[rank] = empty_cs
+            choice_sets.append(empty_cs)
 
             last_camp = None
             campaigns = []
-            for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
+            for rank, cs in itertools.izip(reversed(
+                    xrange(len(choice_sets))), reversed(choice_sets)):
                 camp = relational.Campaign.objects.create(
                     client=client,
                     name='{} {}'.format(campaign_name, rank + 1),
@@ -277,13 +276,10 @@ def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
     root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     properties = root_campaign.campaignproperties.get()
     content = get_object_or_404(relational.ClientContent, pk=content_pk)
-    campaigns = []
-    has_fallbacks = True
-    while has_fallbacks:
+    campaigns = [properties]
+    while properties.fallback_campaign:
+        properties = properties.fallback_campaign.campaignproperties.get()
         campaigns.append(properties)
-        has_fallbacks = True if properties.fallback_campaign else False
-        if has_fallbacks:
-            properties = properties.fallback_campaign.campaignproperties.get()
     return render(request, 'targetadmin/campaign_wizard_finish.html', {
         'campaigns': campaigns,
         'content': content,
