@@ -210,8 +210,8 @@ def initial_crawl(self, primary, secondary):
     s3_key.data['updated'] = now_epoch
     try:
         s3_key.save_to_s3()
-    except HTTPException:
-        self.retry()
+    except HTTPException as exc:
+        self.retry(exc=exc)
 
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
@@ -253,8 +253,8 @@ def back_fill_crawl(self, primary, secondary):
         # later point
         try:
             s3_key.extend_s3_data()
-        except HTTPException:
-            self.retry()
+        except HTTPException as exc:
+            self.retry(exc=exc)
         sync_map.back_filled = True
         sync_map.save()
 
@@ -275,8 +275,8 @@ def crawl_comments_and_likes(self, primary, secondary):
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
         s3_key.populate_from_s3()
-    except HTTPException:
-        self.retry()
+    except HTTPException as exc:
+        self.retry(exc=exc)
 
     if 'data' not in s3_key.data:
         # bogus/error'd out feed
@@ -295,8 +295,8 @@ def crawl_comments_and_likes(self, primary, secondary):
 
     try:
         s3_key.save_to_s3()
-    except HTTPException:
-        self.retry()
+    except HTTPException as exc:
+        self.retry(exc=exc)
 
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
@@ -330,8 +330,8 @@ def incremental_crawl(self, primary, secondary):
         # to crawl_comments_and_likes. We'll get that incremental data later
         try:
             s3_key.extend_s3_data(False)
-        except HTTPException:
-            self.retry()
+        except HTTPException as exc:
+            self.retry(exc=exc)
         sync_map.incremental_epoch = epoch.from_date(timezone.now())
         sync_map.save()
 
