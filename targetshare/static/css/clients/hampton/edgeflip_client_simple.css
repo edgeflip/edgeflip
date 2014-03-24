@@ -58,8 +58,7 @@ body {
 
 .text_title_prompt {
   font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
-  font-size: 5.15em;
-  letter-spacing: -1px;
+  font-size: 6.15em;
   line-height: 0.9em;
   margin: 0.4em 0 0 0;
   text-rendering: optimizeLegibility;
@@ -67,9 +66,7 @@ body {
   text-align: center;
   padding: 0;
   color: inherit;
-  padding-bottom: 30px;
-  margin-bottom: 30px;
-  border-bottom: 2px solid #a7a9a8;}
+}
 
 .text_instructions {
 	font-family: "FranklinGothicLTCom-DmXCm", "PT Sans Narrow", Arial, sans-serif;
@@ -264,4 +261,17 @@ float: left;
     width: 348px;
     height: 408px;
     background-position: center center;
+}
+
+.subheader {
+    font-family: "FranklinGothicLTCom-BkCm", "PT Sans Narrow", Arial, sans-serif;
+    font-size: 100%;
+    color: #000000;
+    text-align: center;
+}
+
+.header-end {
+    padding-bottom: 15px;
+    margin-bottom: 30px;
+    border-bottom: 2px solid #a7a9a8;
 }
