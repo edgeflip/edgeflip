@@ -100,10 +100,11 @@ class TestSyncTokens(EdgeFlipTestCase):
         (token,) = tokens
         self.assertEqual(token.fbid, 2)
 
-    def test_ofa_filter_interval(self):
+    @patch('targetclient.management.commands.synctokens.get_db_now')
+    def test_ofa_filter_interval(self, db_now_mock):
+        db_now_mock.return_value = datetime.datetime(2014, 2, 14)
         self.assertEqual(OFAToken.objects.count(), 3)
         self.assertEqual(Token.items.count(), 0)
-        synctokens.get_db_now = Mock(return_value=datetime.datetime(2014, 2, 14))
 
         self.command.run_from_argv([
             'manage.py',
@@ -142,7 +143,7 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
     def test_ensure_user_client(self):
         new_expires_ts = time.time()
         new_expires_obj = timezone.make_aware(datetime.datetime.utcfromtimestamp(new_expires_ts), timezone.utc)
-        self.token_patch = patch(
+        with patch(
             'targetshare.integration.facebook.client.debug_token',
             Mock(
                 return_value=json.dumps({
@@ -154,8 +155,7 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
                     },
                 })
             )
-        )
-        with self.token_patch:
+        ):
             queryset = UserClient.objects.filter(fbid__in=[self.visited_fbid, self.synced_fbid], client_id=1)
             self.assertEqual(queryset.count(), 0)
 
@@ -169,21 +169,27 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
             self.assertEqual(queryset.count(), 2)
 
 
-    def test_ensure_user_client_invalid(self):
-        self.token_patch = patch(
+    @patch('django.core.management.base.OutputWrapper')
+    def test_ensure_user_client_exception(self, output_wrapper):
+        with patch(
             'targetshare.integration.facebook.client.debug_token',
             side_effect=exceptions.RequestException
-        )
-        with self.token_patch:
+        ):
             self.command.execute()
             self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
             self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, self.the_future)
 
-        self.token_patch = patch(
+        self.assertTrue(self.command.stderr.write.called)
+
+
+    @patch('django.core.management.base.OutputWrapper')
+    def test_ensure_user_client_bad_data(self, output_wrapper):
+        with patch(
             'targetshare.integration.facebook.client.debug_token',
             Mock(return_value='not json')
-        )
-        with self.token_patch:
+        ):
             self.command.execute()
             self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
             self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, self.the_future)
+        self.assertTrue(self.command.stderr.write.called)
+

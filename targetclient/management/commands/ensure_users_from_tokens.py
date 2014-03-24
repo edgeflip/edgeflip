@@ -19,20 +19,19 @@ class Command(NoArgsCommand):
 
     def crawl(self):
         for token in dynamo.Token.items.scan():
-            self.stdout.write('Checking token for {}'.format(token.fbid))
+            self.stdout.write('Checking {}'.format(token))
             if token.expires > timezone.now():
                 try:
-                    response = json.loads(facebook.client.debug_token(
+                    debug_response = json.loads(facebook.client.debug_token(
                         token.appid, token.token
                     ))
-                    token_expiration = facebook.client.token_expiration(response)
-                    if token_expiration != token.expires:
-                        token.expires = token_expiration
+                    token.expires = debug_response['data']['expires_at']
+                    if token.needs_save():
                         token.save(overwrite=True)
                 except requests.exceptions.RequestException as e:
-                    self.stdout.write('Token check request failed for {} with error {}'.format(token.fbid, e))
+                    self.stderr.write('Token check request failed for {} with error {}'.format(token.fbid, e))
                 except ValueError as e:
-                    self.stdout.write('Token check response for {} is unparseable: {}'.format(token.fbid, e))
+                    self.stderr.write('Token check response for {} is unparseable: {}'.format(token.fbid, e))
 
             clients = None
             client_queryset = Client.objects.filter(_fb_app_id=token.appid).all()
