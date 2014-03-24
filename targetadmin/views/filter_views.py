@@ -97,21 +97,6 @@ def filter_edit(request, client_pk, pk):
 def add_filter(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     form = forms.FilterFeatureForm()
-    if request.method == 'POST':
-        form = forms.FilterFeatureForm(request.POST)
-        if form.is_valid():
-            feature = form.save()
-            return JsonHttpResponse({
-                'html': render_to_string('targetadmin/filter_snippet.html', {
-                    'feature': feature}),
-                'success': True
-            })
-        else:
-            return JsonHttpResponse({
-                'html': render_to_string('targetadmin/add_filter.html'),
-                'success': False,
-            })
-
     return render(request, 'targetadmin/add_filter.html', {
         'client': client,
         'form': form,

@@ -1,5 +1,3 @@
-import json
-
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
@@ -138,21 +136,9 @@ class TestFilterViews(TestAdminBase):
                 assert False
 
     def test_add_filter_feature(self):
-        ''' Test ajax view of creating a new filter feature '''
-        response = self.client.post(
-            reverse('targetadmin:filter-add', args=[self.test_client.pk]), {
-                'feature': 'state',
-                'operator': 'eq',
-                'value': 'Wyoming'
-            }
+        ''' Test view of loading a new filter feature form '''
+        response = self.client.get(
+            reverse('targetadmin:filter-add', args=[self.test_client.pk])
         )
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertIn('html', data)
-        ff = relational.FilterFeature.objects.get(value='Wyoming')
-        self.assertIn(
-            'set_number={}.{}.{}'.format(
-                ff.feature, ff.operator, ff.value
-            ),
-            data['html']
-        )
+        assert response.context['form']

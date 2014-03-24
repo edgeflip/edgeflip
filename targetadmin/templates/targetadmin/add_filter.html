@@ -3,11 +3,12 @@
     <div class="row">
         <div class="span5">
             <div id="new-form-1" class="new-filters">
-                <p>{{ form.feature.errors }}{{ form.feature.label_tag }} {{ form.feature }}</p>
-                <p>{{ form.operator.errors }}{{ form.operator.label_tag }} {{ form.operator }}</p>
+                <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
+                <p style="display: none;">Asdkfljasdkjfa</p>
+                <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
                 <p style="display: none;">{{ form.value }}</p>
                 <p id="value-p">{{ form.value.errors }}
-                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
+                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
                     <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
                     <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
                 </p>

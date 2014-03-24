@@ -1,7 +1,6 @@
 import itertools
 
 from django.conf import settings
-from django.utils import timezone
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -109,11 +108,18 @@ def campaign_wizard(request, client_pk):
                 layer = []
                 for feature_string in inputs:
                     feature, operator, value = feature_string.split('.')
-                    ff = relational.FilterFeature.objects.filter(
-                        feature=feature, operator=operator, value=value,
-                        filter__client=client
-                    )[0]
-                    ff.pk = None
+                    try:
+                        # Go for an existing one
+                        ff = relational.FilterFeature.objects.filter(
+                            feature=feature, operator=operator, value=value,
+                            filter__client=client
+                        )[0]
+                        ff.pk = None
+                    except IndexError:
+                        # It'll get saved further down below
+                        ff = relational.FilterFeature(
+                            feature=feature, operator=operator, value=value
+                        )
                     layer.append(ff)
                 filter_feature_layers.append(layer)
 
@@ -165,7 +171,7 @@ def campaign_wizard(request, client_pk):
                     feature.save()
 
             fb_obj = relational.FBObject.objects.create(
-                name='{} {} {}'.format(client.name, campaign_name),
+                name='{} {}'.format(client.name, campaign_name),
                 client=client
             )
             fb_attr = fb_obj_form.save()
