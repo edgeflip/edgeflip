@@ -96,7 +96,7 @@ def campaign_wizard(request, client_pk):
     if request.method == 'POST':
         fb_obj_form = forms.FBObjectWizardForm(request.POST)
         campaign_form = forms.CampaignWizardForm(request.POST)
-        if fb_obj_form.is_valid() and campaign_form.is_valid() and request.POST.get('enabled-filters-1'):
+        if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
             filter_feature_layers = []
             for x in xrange(1, 5):
@@ -130,9 +130,12 @@ def campaign_wizard(request, client_pk):
                 ),
                 client=client
             )
-            for feature in filter_feature_layers[0]:
-                feature.filter = root_filter
-                feature.save()
+            if filter_feature_layers:
+                for feature in filter_feature_layers[0]:
+                    feature.filter = root_filter
+                    feature.save()
+
+                del filter_feature_layers[0]
 
             root_choiceset = relational.ChoiceSet.objects.create(
                 name='{} {} Root ChoiceSet'.format(
@@ -143,7 +146,6 @@ def campaign_wizard(request, client_pk):
             )
             root_choiceset.choicesetfilters.create(
                 filter=root_filter)
-            del filter_feature_layers[0]
 
             choice_sets = [root_choiceset]
             # First layer is the root_choiceset
@@ -198,21 +200,23 @@ def campaign_wizard(request, client_pk):
             else:
                 button_style = client.buttonstyles.create()
 
-            # final fallback campaign init
-            # Find an empty choiceset filter group
-            empty_choices = client.choicesets.filter(
-                choicesetfilters__filter__filterfeatures__isnull=True)
-            if empty_choices.exists():
-                empty_cs = empty_choices[0]
-            else:
-                empty_cs = client.choicesets.create(
-                    name='{} {} Empty ChoiceSet'.format(
-                        client.name, campaign_name)
-                )
-                # Already have a known empty filter
-                empty_cs.choicesetfilters.create(filter=global_filter)
-            # Find the end of the choice_sets dict
-            choice_sets.append(empty_cs)
+            # Need to make sure they didn't want a filterless campaign,
+            # which would make the empty fallback irrelevant.
+            if (campaign_form.cleaned_data['include_empty_fallback'] and
+                    root_filter.filterfeatures.exists()):
+                # Find an empty choiceset filter group
+                empty_choices = client.choicesets.filter(
+                    choicesetfilters__filter__filterfeatures__isnull=True)
+                if empty_choices.exists():
+                    empty_cs = empty_choices[0]
+                else:
+                    empty_cs = client.choicesets.create(
+                        name='{} {} Empty ChoiceSet'.format(
+                            client.name, campaign_name)
+                    )
+                    # Already have a known empty filter
+                    empty_cs.choicesetfilters.create(filter=global_filter)
+                choice_sets.append(empty_cs)
 
             last_camp = None
             campaigns = []

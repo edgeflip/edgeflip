@@ -4,6 +4,8 @@
     background-color: darkgrey;
     padding-left: 2px;
     padding-top: 2px;
+    height: 50px;
+    margin-left: 10px;
 }
 
 .form-error {
