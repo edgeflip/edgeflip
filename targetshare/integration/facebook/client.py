@@ -493,25 +493,26 @@ def _get_friend_edges_simple(user, token):
     return network
 
 
-def verify_oauth_code(fb_app_id, code, redirect_uri):
-    url_params = {
-        'client_id': fb_app_id,
-        'redirect_uri': redirect_uri,
-        'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
-        'code': code
-    }
-    try:
-        resp = requests.get(
-            'https://graph.facebook.com/oauth/access_token',
-            params=url_params
-        )
-    except requests.exceptions.RequestException:
-        token = None
-    else:
-        token = urlparse.parse_qs(resp.content).get('access_token')
+def get_oauth_token(fb_app_id, code, redirect_uri):
+    response = requests.get(
+        'https://graph.facebook.com/oauth/access_token',
+        params={
+            'client_id': fb_app_id,
+            'redirect_uri': redirect_uri,
+            'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
+            'code': code
+        }
+    )
+    response.raise_for_status()
+    return dict(urlparse.parse_qsl(response.content))
 
-    token = token[0] if token else None
-    return token is not None
+
+def debug_token(appid, token):
+    secret = settings.FACEBOOK.secrets[str(appid)]
+    return urlload('https://graph.facebook.com/debug_token', {
+        'access_token': "{}|{}".format(appid, secret),
+        'input_token': token,
+    })
 
 
 def debug_token(token, appid):
