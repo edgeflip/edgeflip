@@ -114,7 +114,7 @@ def incoming(request, campaign_id, content_id):
             redirect_path = request.path
 
         store_oauth_token.delay(
-            campaign.client.fb_app_id,
+            campaign.client_id,
             code,
             request.build_absolute_uri(redirect_path),
         )

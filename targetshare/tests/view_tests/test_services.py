@@ -112,7 +112,8 @@ class TestServicesViews(EdgeFlipViewTestCase):
         event = visit.events.get(event_type='outgoing_redirect')
         self.assertEqual(event.content, final_url)
 
-    def test_incoming_url_redirect(self):
+    @patch('targetshare.views.services.store_oauth_token')
+    def test_incoming_url_redirect(self, task_mock):
         response = self.client.get(
             reverse('incoming-encoded', args=[
                 encodeDES('1/1')])
@@ -125,6 +126,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
             response['Location'],
             'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=t0AGY7FMXjM%3D'
         )
+        self.assertFalse(task_mock.delay.called)
 
     def test_incoming_url_redirect_fb_auth_declined(self):
         events = models.Event.objects.filter(event_type='auth_fail')
@@ -147,3 +149,10 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
         event = events.get()
         self.assertEqual(event.content, 'oauth')
+
+    @patch('targetshare.views.services.store_oauth_token')
+    def test_incoming_url_token(self, task_mock):
+        path = reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
+        response = self.client.get(path, {'code': 'PIEZ'})
+        self.assertStatusCode(response, 302)
+        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path)
