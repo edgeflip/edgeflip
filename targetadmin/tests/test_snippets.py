@@ -14,7 +14,10 @@ class TestSnippetViews(TestAdminBase):
     def setUp(self):
         super(TestSnippetViews, self).setUp()
         self.campaign = self.test_client.campaigns.create(
-            name='Test Campaign')
+            name='Test Campaign',
+            client=self.test_client
+        )
+        self.campaign.campaignproperties.create()
         self.content = self.test_client.clientcontent.create(
             name='Test Content')
 
@@ -27,6 +30,15 @@ class TestSnippetViews(TestAdminBase):
         assert response.context['first_content']
         assert response.context['first_slug']
         assert response.context['first_faces_url']
+        form = response.context['snippet_form']
+        self.assertEqual(
+            form.fields['campaign'].queryset.count(),
+            1
+        )
+        self.assertEqual(
+            form.fields['campaign'].queryset[0].pk,
+            self.campaign.pk
+        )
 
     def test_specified_snippets(self):
         ''' Test that campaign_pk and content_pk GET args are respected '''

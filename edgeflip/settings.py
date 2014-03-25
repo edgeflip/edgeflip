@@ -412,6 +412,9 @@ FEED_BUCKET_NAMES = [
     '{}{}'.format(FEED_BUCKET_PREFIX, x) for x in range(0, FEED_MAX_BUCKETS)
 ]
 
+# targetadmin settings
+ADMIN_FROM_ADDRESS = 'admin@edgeflip.com'
+
 # Test settings #
 SOUTH_TESTS_MIGRATE = False
 TEST_RUNNER = 'django_nose.NoseTestSuiteRunner'
