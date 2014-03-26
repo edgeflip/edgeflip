@@ -517,7 +517,19 @@ function doShare() {
         }
     }
     edgeflip.events.record('share_click');
-    FB.login(function(request){ 
+    FB.login(function(response){ 
+        // In my testing, using an async ajax call won't complete before we're
+        // redirected away. Also, FB.login will tell you if a user is authorized
+        // but will not tell you which permissions they have granted us.
+        $.ajax({
+            url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
+            async: false,
+            data: {access_token: edgeflip.faces.user.token},
+        }).success(function(resp) {
+            if (!resp.data[0].publish_actions) {
+                edgeflip.events.record('declined_publish_permission');
+            }
+        });
         sendShare();
     }, {scope: "publish_actions"});
 }
@@ -637,3 +649,5 @@ $(document).ready(function() {
 }); // document ready
 
 
+// The line below allows this script to show up in Chrome's debugger.
+//# sourceURL=faces_and_msg.js
