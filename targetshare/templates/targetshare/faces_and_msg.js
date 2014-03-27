@@ -487,7 +487,7 @@ function sendShare() {
                         alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                         outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
                     }
-		});
+                });
             } else {
                 // thank you page redirect happens in recordShare()
                 recordShare(response.id, msg, recips);
@@ -523,14 +523,23 @@ function doShare() {
         // but will not tell you which permissions they have granted us.
         $.ajax({
             url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
-            async: false,
             data: {access_token: edgeflip.faces.user.token},
         }).success(function(resp) {
-            if (!resp.data[0].publish_actions) {
-                edgeflip.events.record('declined_publish_permission');
-            }
+            if (resp.data[0].publish_actions) {
+                sendShare();
+            } else {
+                edgeflip.events.record('publish_declined');
+                // FIXME: Is the share_fail necessary, or do we want just publish_declined?
+                // Also still waiting to figure out if this the exact flow we want.
+                edgeflip.events.record('share_fail', {
+                    errorMsg: response.error,
+                    complete: function() {
+                        alert("Sorry, but without publishing permissions we can not share this message with your friends");
+                        outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
+                    }
+                });
+            } 
         });
-        sendShare();
     }, {scope: "publish_actions"});
 }
 
