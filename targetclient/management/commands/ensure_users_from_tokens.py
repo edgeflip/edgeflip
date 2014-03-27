@@ -22,16 +22,16 @@ class Command(NoArgsCommand):
             self.stdout.write('Checking {}'.format(token))
             if token.expires > timezone.now():
                 try:
-                    debug_response = json.loads(facebook.client.debug_token(
+                    debug_response = facebook.client.debug_token(
                         token.appid, token.token
-                    ))
+                    )
+                    old_expires = token.expires
                     token.expires = debug_response['data']['expires_at']
                     if token.needs_save():
+                        self.stdout.write("Overwriting Token.expires ({} => {})".format(old_expires, token.expires))
                         token.save(overwrite=True)
                 except requests.exceptions.RequestException as e:
-                    self.stderr.write('Token check request failed for {} with error {}'.format(token.fbid, e))
-                except ValueError as e:
-                    self.stderr.write('Token check response for {} is unparseable: {}'.format(token.fbid, e))
+                    self.stderr.write('Token check request failed for {} with error {}'.format(token, e))
 
             clients = None
             client_queryset = Client.objects.filter(_fb_app_id=token.appid).all()
@@ -47,6 +47,6 @@ class Command(NoArgsCommand):
                 client.userclients.get_or_create(fbid=token.fbid)
 
             if len(clients) == 0:
-                self.stdout.write(
+                self.stderr.write(
                     "fbid {} has no associated clients".format(token.fbid)
                 )

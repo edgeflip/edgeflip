@@ -140,21 +140,20 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
         self.visited_token.save()
 
 
+    @patch.dict('django.conf.settings.FACEBOOK.secrets', {'10101': '10101'})
     def test_ensure_user_client(self):
         new_expires_ts = time.time()
         new_expires_obj = timezone.make_aware(datetime.datetime.utcfromtimestamp(new_expires_ts), timezone.utc)
         with patch(
-            'targetshare.integration.facebook.client.debug_token',
-            Mock(
-                return_value=json.dumps({
-                    'data': {
-                        'expires_at': new_expires_ts,
-                        'app_id': self.appid,
-                        'user_id': self.synced_fbid,
-                        'application': 'This organization',
-                    },
-                })
-            )
+            'urllib2.urlopen',
+            **{'return_value.read.return_value': json.dumps({
+                'data': {
+                    'expires_at': new_expires_ts,
+                    'app_id': self.appid,
+                    'user_id': self.synced_fbid,
+                    'application': 'This organization',
+                },
+            })}
         ):
             queryset = UserClient.objects.filter(fbid__in=[self.visited_fbid, self.synced_fbid], client_id=1)
             self.assertEqual(queryset.count(), 0)
@@ -179,17 +178,5 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
             self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
             self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, self.the_future)
 
-        self.assertTrue(self.command.stderr.write.called)
-
-
-    @patch('django.core.management.base.OutputWrapper')
-    def test_ensure_user_client_bad_data(self, output_wrapper):
-        with patch(
-            'targetshare.integration.facebook.client.debug_token',
-            Mock(return_value='not json')
-        ):
-            self.command.execute()
-            self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
-            self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, self.the_future)
         self.assertTrue(self.command.stderr.write.called)
 
