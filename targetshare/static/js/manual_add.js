@@ -45,3 +45,6 @@ function setDropdown(friends) {
 function removeFriend(fbid) {
 	unselectFriend(fbid);
 }
+
+// This line makes this file show up properly in the Chrome debugger
+//# sourceURL=manual_add.js
