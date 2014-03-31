@@ -13,7 +13,6 @@ from targetshare.tests import EdgeFlipTestCase
 
 from targetclient.models import OFAToken
 from targetclient.management.commands import ensure_users_from_tokens, synctokens
-from targetclient import tasks
 
 
 @freeze_time('2014-02-14')

@@ -5,7 +5,6 @@ import requests
 from django.core.management.base import NoArgsCommand
 from django.utils import timezone
 
-from targetclient import tasks
 from targetshare.integration import facebook
 from targetshare.models import dynamo, Client
 
