@@ -34,7 +34,7 @@ def record_event(request):
         'share_click', 'share_fail', 'shared', 'clickback',
         'suggest_message_click', 'selected_friend', 'unselected_friend',
         'faces_page_rendered', 'empty_share', 'manually_selected_friend',
-        'unselected_manual_friend'
+        'manually_unselected_friend'
     }
     updateable_events = {'heartbeat'}
 

@@ -22,13 +22,6 @@ var faceFriends = [
     {% endfor %}
 ].slice({{ num_face }});
 
-var visibleFaces = [
-    {% for friend in  show_faces %}
-        {{ friend.fbid }},
-    {% endfor %}
-]
-
-
 function getRecipElts() {
     return $('#message_form_editable .recipient');
 }
@@ -160,11 +153,9 @@ function selectFriend() {
         return false;
 
     if (edgeflip.faces.debug) {
-        // Check to see if the fbid is in visibleFaces, and then set event_type
         var selection_type = 'selected_friend';
-        if (novelIds.length === 1 && visibleFaces.indexOf(novelIds[0]) === -1) {
+        if (novelIds.length === 1 && document.getElementById('wrapper-' + novelIds[0]) === null) 
             selection_type = 'manually_selected_friend';
-        }
         edgeflip.events.record(selection_type, {friends: novelIds});
     }
 
@@ -183,8 +174,8 @@ function unselectFriend(fbid) {
         reformatRecipsList();
         if (edgeflip.faces.debug) {
             var unselection_type = 'unselected_friend';
-            if (visibleFaces.indexOf(fbid) === -1)
-                unselection_type = 'unselected_manual_friend';
+            if (document.getElementById('wrapper-' + fbid) === null)
+                unselection_type = 'manually_unselected_friend';
 
             edgeflip.events.record(unselection_type, {friends: [fbid]});
         }
@@ -416,9 +407,6 @@ function doReplace(old_fbid) {
 
         // Update the friends shown
         friendHTML(old_fbid, fbid, fname, lname, div_id);
-        var old_fbid_index = visibleFaces.indexOf(old_fbid);
-        if (old_fbid_index > -1)
-            visibleFaces.splice(old_fbid_index, 1);
 
     } else {
         // No new friends to add, so just remove this one
@@ -459,7 +447,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
                 new_html = data;
                 $(div_id).replaceWith(new_html);
                 $(div_id).show();
-                visibleFaces.push(id);
             } else {
                 // We hid it above, but still need to actually remove it if there's
                 // no new friend coming in (otherwise, a select all will still add this friend...)
