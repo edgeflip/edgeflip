@@ -58,11 +58,29 @@ class FBObjectAttributeForm(forms.ModelForm):
 
 class FilterForm(forms.ModelForm):
 
-    description = forms.CharField(required=False, widget=forms.Textarea)
+    name = forms.CharField(required=True)
 
     class Meta:
         model = relational.Filter
-        exclude = ('is_deleted', 'delete_dt')
+        exclude = ('is_deleted', 'delete_dt', 'client')
+
+
+class FilterFeatureForm(forms.ModelForm):
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('city', 'City'),
+        ('state', 'State'),
+        ('full_location', 'Full Location'),
+        ('gender', 'Gender'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
 
 
 class ChoiceSetForm(forms.ModelForm):
@@ -230,29 +248,20 @@ class CampaignForm(forms.Form):
 class CampaignWizardForm(forms.Form):
 
     name = forms.CharField()
-    faces_url = forms.CharField()
+    faces_url = forms.CharField(
+        required=False,
+        help_text='Optional, only provide if you plan on embedding on your site.',
+    )
     error_url = forms.CharField()
     thanks_url = forms.CharField()
     content_url = forms.CharField()
-
-
-class FilterFeatureForm(forms.ModelForm):
-
-    CHOICES = (
-        ('', 'Select Filter Type'),
-        ('age', 'Age'),
-        ('city', 'City'),
-        ('state', 'State'),
-        ('full_location', 'Full Location'),
-        ('gender', 'Gender'),
+    include_empty_fallback = forms.BooleanField(
+        help_text=(
+            'Fills in network with people outside targeting criteria if an '
+            'insufficient number of people are found in the targeting critiera'
+        ),
+        initial=True
     )
-
-    rank = forms.IntegerField()
-    feature = forms.ChoiceField(choices=CHOICES)
-
-    class Meta:
-        model = relational.FilterFeature
-        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
 
 
 class FBObjectWizardForm(forms.ModelForm):
@@ -288,5 +297,7 @@ class SnippetForm(forms.Form):
 
     def __init__(self, client=None, *args, **kwargs):
         super(SnippetForm, self).__init__(*args, **kwargs)
-        self.fields['campaign'].queryset = client.campaigns.all()
+        self.fields['campaign'].queryset = client.campaigns.exclude(
+            rootcampaign_properties=None
+        )
         self.fields['content'].queryset = client.clientcontent.all()
