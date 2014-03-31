@@ -383,24 +383,29 @@
         sort_order: 6
         created: !!timestamp '2013-10-01 17:04:53+00:00'
         modified: !!timestamp '2013-10-01 17:04:53+00:00'
--   fields: {end_dt: null, feature: state, filter: 2, operator: in, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Illinois||California||Massachusetts||New York, value_type: list, feature_type: 3}
+-   fields: {end_dt: null, feature: state, feature_type: 3, filter: 2,
+        operator: in, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: Illinois||California||Massachusetts||New
+            York, value_type: list}
     model: targetshare.filterfeature
     pk: 1
--   fields: {end_dt: null, feature: state, filter: 3, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Illinois, value_type: string, feature_type: 3}
+-   fields: {end_dt: null, feature: state, feature_type: 3, filter: 3,
+        operator: eq, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: Illinois,
+        value_type: string}
     model: targetshare.filterfeature
     pk: 2
--   fields: {end_dt: null, feature: state, filter: 4, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: Massachusetts, value_type: string, feature_type: 3}
+-   fields: {end_dt: null, feature: state, feature_type: 3, filter: 4,
+        operator: eq, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: Massachusetts,
+        value_type: string}
     model: targetshare.filterfeature
     pk: 3
--   fields: {end_dt: null, feature: state, filter: 5, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: California, value_type: string, feature_type: 3}
+-   fields: {end_dt: null, feature: state, feature_type: 3, filter: 5,
+        operator: eq, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: California,
+        value_type: string}
     model: targetshare.filterfeature
     pk: 4
--   fields: {end_dt: null, feature: state, filter: 6, operator: eq, start_dt: !!timestamp '2013-07-15
-            11:38:28', value: New York, value_type: string, feature_type: 3}
+-   fields: {end_dt: null, feature: state, feature_type: 3, filter: 6,
+        operator: eq, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: New
+            York, value_type: string}
     model: targetshare.filterfeature
     pk: 5
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,

@@ -26,6 +26,8 @@ REPEATED_EVENTS = {
     'suggest_message_click',
     'selected_friend',
     'unselected_friend',
+    'manually_selected_friend',
+    'manually_unselected_friend',
     'faces_page_rendered',
     'empty_share',
 }

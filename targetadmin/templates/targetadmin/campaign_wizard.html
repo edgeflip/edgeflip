@@ -1,127 +1,132 @@
 {% extends "targetadmin/base.html" %}
+{% block extrahead %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/admin.css">
+{% endblock %}
 {% block title %}Campaign Wizard{% endblock %}
 {% block content %}
     <h2>Create Campaign</h2>
-    <form action="" method="post">
+    <form id="wizard-form" action="" method="post">
         {% csrf_token %}
         <span id="campaign-settings" class="wizard-step">
-            <h4>Campaign Settings</h4>
-            {{ campaign_form.as_p }}
-            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit" data-step="filtering">Next</a>
+            {% include 'targetadmin/includes/campaign_wizard_form.html' %}
+            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
             <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </span>
         <span id="filtering" class="wizard-step" style="display: none;">
-            {{ formset.management_form }}
-            {% if formset.initial_forms %}
-                <h4>Existing Features</h4>
-                    {% for form in formset.initial_forms %}
-                        {{ form.as_p }}
-                        <hr>
-                    {% endfor %}
-            {% endif %}
-            <h4>Add Filters</h4>
-                {% for form in formset.extra_forms %}
-                {% if forloop.first %}
-                    <div class="row">
-                {% endif %}
-                    <div class="span5">
-                        <div id="new-form-{{ forloop.counter0}}" class="new-filters">
-                            <p>{{ form.feature.errors }}<label for="id_{{ form.prefix }}-feature">{{ form.feature.label }}</label>{{ form.feature }}</p>
-                            <p>{{ form.operator.errors }}<label for="id_{{ form.prefix }}-operator">{{ form.operator.label }}</label>{{ form.operator }}</p>
-                            <p style="display: none;">{{ form.value }}</p>
-                            <p id="{{ form.prefix }}-value-p">{{ form.value.errors }}
-                                <label for="id_{{ form.prefix }}-value-split-1">{{ form.value.label }}</label>
-                                <input id="id_{{ form.prefix }}-value-split-1" maxlength="1024" name="{{ form.prefix }}-value-split-1" type="text" class="{{ form.prefix }}-filter-val-input">
-                                <span id="{{ form.prefix }}-value-span"></span><a id="{{ form.prefix }}-value" class="icon-plus" href="#id_{{ form.prefix }}-value" style="display:none;"></a>
-                            </p>
-                            <p>{{ form.rank.errors }}<label for="id_{{ form.prefix }}-rank">{{ form.rank.label }}</label>{{ form.rank }}</p>
-                            <span id="add-more-{{ forloop.counter0 }}" class="btn btn-inverse" onclick="addFilterFeature({{ forloop.counter }})">Add More</span>
-                            <hr>
-                        </div>
-                    </div>
-                {% if forloop.counter|divisibleby:"2" %}
-                    </div><div class="row">
-                {% endif %}
-                {% if forloop.last %}
-                    </div>
-                {% endif %}
-                {% endfor %}
-            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</a>
-            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit" data-step="campaign-settings">Previous</a>
+            {% include 'targetadmin/includes/filter_wizard_form.html' %}
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="fbobjects">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="campaign-settings">Previous</a>
         </span>
         <span id="fbobjects" class="wizard-step" style="display: none;">
-            <h4>FaceBook Object Settings</h4>
-            <div class="row">
-                <div class="span5">
-                    <p>{{ fb_obj_form.og_title.errors }}<label for="{{ fb_obj_form.og_title.id_for_label }}">{{ fb_obj_form.og_title.label}}:</label>{{ fb_obj_form.og_title }}</p>
-                    <p>{{ fb_obj_form.org_name.errors }}<label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>{{ fb_obj_form.org_name }}</p>
-                    <p>{{ fb_obj_form.msg1_pre.errors }}<label for="{{ fb_obj_form.msg1_pre.id_for_label }}">{{ fb_obj_form.msg1_pre.label}}:</label>{{ fb_obj_form.msg1_pre }}</p>
-                    <p>{{ fb_obj_form.msg1_post.errors }}<label for="{{ fb_obj_form.msg1_post.id_for_label }}">{{ fb_obj_form.msg1_post.label}}:</label>{{ fb_obj_form.msg1_post }}</p>
-                    <p>{{ fb_obj_form.msg2_pre.errors }}<label for="{{ fb_obj_form.msg2_pre.id_for_label }}">{{ fb_obj_form.msg2_pre.label}}:</label>{{ fb_obj_form.msg2_pre }}</p>
-                    <p>{{ fb_obj_form.msg2_post.errors }}<label for="{{ fb_obj_form.msg2_post.id_for_label }}">{{ fb_obj_form.msg2_post.label}}:</label>{{ fb_obj_form.msg2_post }}</p>
-                </div>
-                <div class="span7">
-                    <p>{{ fb_obj_form.og_image.errors }}<label for="{{ fb_obj_form.og_image.id_for_label }}">{{ fb_obj_form.og_image.label}}:</label>{{ fb_obj_form.og_image }}</p>
-                    <p>{{ fb_obj_form.sharing_prompt.errors }}<label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>{{ fb_obj_form.sharing_prompt}}</p>
-                    <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
-                </div>
-            </div>
-            <input type="submit" class="btn btn-large btn-primary step-submit" value="Submit">
+            {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
+            <input type="submit" class="btn btn-large btn-primary step-submit fbobject-step" value="Submit" id="wizard-submit">
             <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
         </span>
     </form>
 {% endblock %} {% block extrascript %}
-    <script>
-        $('.step-submit').click(function(e) {
-            var step = $('#' + e.target.id).data('step');
-            $('.wizard-step').hide();
-            $('#' + step).show();
-        });
-    </script>
-    <script>
-        $('.new-filters').hide();
-        $('#new-form-0').show();
+<script>
+    // Tracks number of layers in play on Filtering screen
+    var layer_count = 1;
 
-        function addFilterFeature(form_number){
-            $('#new-form-' + form_number).show();
-            $('#add-more-' + (form_number - 1)).hide();
-        }
-
-        var input_dict = {};
-
-        {% for form in formset.extra_forms %}
-            input_dict['{{ form.prefix }}'] = 1;
-            $('.new-filters').on('change', '#id_{{ form.prefix }}-operator', function(e){
-                $('#{{ form.prefix }}-value').toggle();
-            });
-            $('.new-filters').on('change', '.{{ form.prefix }}-filter-val-input', function(e){
-                var filter_values = '';
-                $('.{{ form.prefix }}-filter-val-input').each(function(index){
-                    var value = $('#' + this.id).val();
-                    if (value) {
-                        if (filter_values === ''){
-                            filter_values = value;
-                        } else {
-                            filter_values += '||' + value;
-                        }
-                    }
-                });
-                if (filter_values.slice(-2) === '||'){
-                    filter_values = filter_values.substr(0, filter_values.length - 2);
+    // "Steps"
+    $('.step-submit').click(function(e) {
+        var step = $(this).data('step');
+        if ($(this).hasClass('filter-step')) {
+            var v, values, filters, layer;
+            for (layer = 1; layer <= layer_count; layer++) {
+                filters = $('#enabled-filters-' + layer).sortable('serialize', 
+                    {key: 'ff_' + layer, attribute: 'data-filter-id'}).split('&');
+                values = [];
+                for (v = 0; v < filters.length; v++) {
+                    values.push(filters[v].split('=')[1]);
                 }
-                $('#id_{{ form.prefix }}-value').val(filter_values);
-            });
-        {% endfor %}
+                $('#id_enabled-filters-' + layer).val(values);
+            }
+        }
+        $('.wizard-step').hide();
+        $('#' + step).show();
+    });
 
-        $('.icon-plus').click(function(e){
-            var split_id = e.target.id.split('-');
-            var form_tag = split_id[0] + '-' + split_id[1];
-            input_dict[form_tag] += 1;
-            var input_count = input_dict[form_tag];
-            var new_id = 'id_' + form_tag + '-value-split-' + input_count;
-            var dest_id = '#' + e.target.id + '-span';
-            $(dest_id).append('<input id="' + new_id + '" maxlength="1024" name="' + new_id + '" type="text" class="' + form_tag + '-filter-val-input">');
+    // Sortables - Drag and Drop stuff
+    $(function() {
+        $('#existing-filters').sortable({
+            connectWith: ".target-well"
         });
-    </script>
-{% endblock %}
+        $('#enabled-filters-1').sortable({
+            connectWith: ".target-well"
+        });
+        $( ".sortable" ).disableSelection();
+    });
 
+    // Layer addition
+    $('#add-layer').click(function(event){
+        event.preventDefault();
+        var previous_layer_html = $('#enabled-filters-' + layer_count).html()
+        var hidden_elements = $('.hidden-elements')
+        layer_count = $('#add-layer').data('layer-count') + 1;
+        $('#add-layer').data('layer-count', layer_count);
+        $('#enabled-section').append(
+            '<h5>Layer ' + layer_count + 
+            '</h5><div class="row"><input type="hidden" id="id_enabled-filters-' + 
+            layer_count + '" name="enabled-filters-' + layer_count + 
+            '"><div class="span12 well sortable target-well" id="enabled-filters-' + 
+            layer_count + '">' + previous_layer_html  + '</div></div>'
+        );
+        $('#enabled-filters-' + layer_count).sortable({
+            connectWith: '.target-well'
+        });
+        // Aribtrary limit, but seems about right. Subject to change
+        if (layer_count >= 4) {
+            $('#add-layer').prop('disabled', true);
+        }
+    });
+
+    // New FilterFeature creation
+    $('#filter-add').click(function(event) {
+        event.preventDefault()
+        var filter_values = '';
+        $('.filter-val-input').each(function(index){
+            var value = $(this).val();
+            if (value) {
+                if (filter_values === ''){
+                    filter_values = value;
+                } else {
+                    filter_values += '||' + value;
+                }
+            }
+        });
+        if (filter_values.slice(-2) === '||'){
+            filter_values = filter_values.substr(0, filter_values.length - 2);
+        }
+        $('#id_value').val(filter_values);
+        var validation_elems = [
+            [$('#id_feature'), $('#feature-error')],
+            [$('#id_operator'), $('#operator-error')],
+            [$('#id_value'), $('#value-error')]
+        ]
+        var form_errors = false;
+        for (var elem=0; elem < validation_elems.length; elem++) {
+            if (validation_elems[elem][0].val() === ""){
+                validation_elems[elem][1].show();
+                form_errors = true;
+            } else {
+                validation_elems[elem][1].hide();
+            }
+        }
+        if (!form_errors) {
+            var feature = $('#id_feature').val();
+            var operator = $('#id_operator').val();
+            var filter_values = $('#id_value').val();
+            $('#existing-filters').prepend(
+                '<div data-filter-id="set_number=' + feature + '.' + operator + 
+                '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
+                feature + ' ' + operator + ' ' + filter_values + '">' + 
+                feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
+                '</abbr></p></div>'
+            );
+            $('#filter-modal').modal('toggle');
+            $('#filter-modal').removeData();
+        }
+    });
+</script>
+{% endblock %}

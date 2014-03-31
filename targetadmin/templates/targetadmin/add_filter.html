@@ -1,0 +1,33 @@
+<form id="add-filter-form" action="{% url 'targetadmin:filter-add' client.pk %}" method="post">
+    {% csrf_token %}
+    <div class="row">
+        <div class="span5">
+            <div id="new-form-1" class="new-filters">
+                <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
+                <p style="display: none;">Asdkfljasdkjfa</p>
+                <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
+                <p style="display: none;">{{ form.value }}</p>
+                <p id="value-p">{{ form.value.errors }}
+                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
+                    <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
+                    <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
+                </p>
+                <hr>
+            </div>
+        </div>
+    </div>
+</form>
+<script>
+    var input_count = 1;
+
+    $('.icon-plus').click(function(e){
+        var split_id = e.target.id.split('-');
+        var form_tag = split_id[0] + '-' + split_id[1];
+        input_count += 1;
+        var new_id = 'id_value-split-' + input_count;
+        var dest_id = '#' + e.target.id + '-span';
+        $('#value-span').append(
+            '<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">'
+        );
+    });
+</script>

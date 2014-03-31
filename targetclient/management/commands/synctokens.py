@@ -10,6 +10,7 @@ from django.db.models.loading import get_model
 from django.utils import timezone
 
 from targetshare.models.dynamo import Token
+from targetshare.models.relational import Client, UserClient
 
 
 LOG = logging.getLogger('crow')
@@ -47,7 +48,7 @@ class Command(NoArgsCommand):
     option_list = NoArgsCommand.option_list + (
         make_option('-d', '--database', help='Client database connection name'),
         make_option('-m', '--model', dest='model_name', help='Token model name'),
-        make_option('-a', '--appid', help='Facebook application ID'),
+        make_option('-c', '--clientid', help='Client ID'),
         make_option(
             '--since',
             help="Limit import to rows updated since timestamp YYYY-MM-DD[ HH:MM:[SS...]] "
@@ -59,13 +60,14 @@ class Command(NoArgsCommand):
 
         For example:
 
-            synctokens --database=ofa --model=OFAToken --appid=2349590 --since="2013-07-15 01:01"
+            synctokens --database=ofa --model=OFAToken --clientid=19 --since="2013-07-15 01:01"
         """)
 
-    def handle_noargs(self, database, model_name, appid, since=None, **options):
-        if not all([database, model_name, appid]):
-            raise CommandError("database, model and appid required.")
+    def handle_noargs(self, database, model_name, clientid, since=None, **options):
+        if not all([database, model_name, clientid]):
+            raise CommandError("database, model and clientid required.")
 
+        appid = Client.objects.get(pk=clientid).fb_app_id
         model = get_model('targetclient', model_name)
         tokens = model.objects.using(database).filter(deleted_at=None).order_by('facebook_id')
         if since:
@@ -91,6 +93,10 @@ class Command(NoArgsCommand):
                         appid=appid,
                         expires=expires,
                     )
+
+
+                    UserClient.objects.get_or_create(client_id=clientid, fbid=token.facebook_id)
+
         except Exception as exc:
             LOG.exception("synctokens batch write failure")
             self.stderr.write("Batch write failure: {}".format(exc))

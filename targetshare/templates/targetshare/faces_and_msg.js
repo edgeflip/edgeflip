@@ -22,7 +22,6 @@ var faceFriends = [
     {% endfor %}
 ].slice({{ num_face }});
 
-
 function getRecipElts() {
     return $('#message_form_editable .recipient');
 }
@@ -153,8 +152,12 @@ function selectFriend() {
         // we didn't do anything
         return false;
 
-    if (edgeflip.faces.debug)
-        edgeflip.events.record('selected_friend', {friends: novelIds});
+    if (edgeflip.faces.debug) {
+        var selection_type = 'selected_friend';
+        if (novelIds.length === 1 && document.getElementById('wrapper-' + novelIds[0]) === null) 
+            selection_type = 'manually_selected_friend';
+        edgeflip.events.record(selection_type, {friends: novelIds});
+    }
 
     return true;
 }
@@ -170,7 +173,11 @@ function unselectFriend(fbid) {
         syncFriendBoxes();
         reformatRecipsList();
         if (edgeflip.faces.debug) {
-            edgeflip.events.record('unselected_friend', {friends: [fbid]});
+            var unselection_type = 'unselected_friend';
+            if (document.getElementById('wrapper-' + fbid) === null)
+                unselection_type = 'manually_unselected_friend';
+
+            edgeflip.events.record(unselection_type, {friends: [fbid]});
         }
         return true;
     } else {
@@ -637,3 +644,5 @@ $(document).ready(function() {
 }); // document ready
 
 
+// This line makes this file show up properly in the Chrome debugger
+//# sourceURL=faces_and_msg.js

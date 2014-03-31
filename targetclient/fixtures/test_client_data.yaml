@@ -1,0 +1,34 @@
+-   model: targetshare.client
+    pk: 1
+    fields:
+        _fb_app_id: 10101
+        create_dt: "2014-02-02 00:00:00"
+-   model: targetshare.campaign
+    pk: 1
+    fields:
+        client: 1
+        create_dt: !!timestamp '2013-07-15 11:38:28'
+        delete_dt: null
+        is_deleted: false
+        name: Gun Control
+-   model: targetshare.visitor
+    pk: 1
+    fields:
+        fbid: 456
+        created: "2014-02-02 00:00:00"
+        updated: "2014-02-02 00:00:00"
+-   model: targetshare.visit
+    pk: 1
+    fields:
+        visitor: 1
+        app_id: 10101
+        ip: "127.0.0.1"
+        created: "2014-02-02 00:00:00"
+        updated: "2014-02-02 00:00:00"
+-   model: targetshare.event
+    pk: 1
+    fields:
+        visit: 1
+        campaign: 1
+        created: "2014-02-02 00:00:00"
+        updated: "2014-02-02 00:00:00"

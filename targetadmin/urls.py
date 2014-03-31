@@ -41,6 +41,8 @@ urlpatterns += patterns('targetadmin.views',
         name='filter-detail'),
     url(r'^client/(?P<client_pk>\d+)/filter/new/$', 'filter_views.filter_new',
         name='filter-new'),
+    url(r'^client/(?P<client_pk>\d+)/filter/add/$', 'filter_views.add_filter',
+        name='filter-add'),
     url(r'^client/(?P<client_pk>\d+)/filter/edit/(?P<pk>\d+)/$', 'filter_views.filter_edit',
         name='filter-edit'),
 )
@@ -79,6 +81,9 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-new'),
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
         name='campaign-wizard'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/finish/$',
+        'campaign_views.campaign_wizard_finish',
+        name='campaign-wizard-finish'),
 )
 
 urlpatterns += patterns('targetadmin.views',
