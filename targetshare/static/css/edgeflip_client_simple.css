@@ -142,3 +142,12 @@ body {
     height: 48px;
     background-position: center center;
 }
+
+/* Optional for sub header styling */
+.subheader {
+}
+
+/* If the subheader is used, the header-end div can be used to make a simple,
+ * nice border between the subheader and faces */
+.header-end {
+}

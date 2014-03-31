@@ -286,6 +286,7 @@ def faces(request):
         'html': render_to_string(utils.locate_client_template(client, 'faces_table.html'), {
             'msg_params': {
                 'sharing_prompt': fb_attrs.sharing_prompt,
+                'sharing_sub_header': fb_attrs.sharing_sub_header,
                 'msg1_pre': fb_attrs.msg1_pre,
                 'msg1_post': fb_attrs.msg1_post,
                 'msg2_pre': fb_attrs.msg2_pre,

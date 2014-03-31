@@ -22,6 +22,9 @@ class FBObjectAttributeForm(forms.ModelForm):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
+    sharing_prompt = forms.CharField(label="Sharing Prompt")
+    sharing_sub_header = forms.CharField(
+        label="Sharing Sub Header", required=False)
     og_description = forms.CharField(
         label='FB Object Description',
         required=False,

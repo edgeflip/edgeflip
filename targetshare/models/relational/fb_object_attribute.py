@@ -17,6 +17,7 @@ class FBObjectAttribute(models.Model):
                                 max_length=1024, blank=True)
     page_title = models.CharField(max_length=256, blank=True)
     sharing_prompt = models.CharField(max_length=2096, blank=True)
+    sharing_sub_header = models.CharField(max_length=2096, blank=True)
     msg1_pre = models.CharField('Message 1 Pre', max_length=1024, blank=True)
     msg1_post = models.CharField('Message 1 Post', max_length=1024, blank=True)
     msg2_pre = models.CharField('Message 2 Pre', max_length=1024, blank=True)
