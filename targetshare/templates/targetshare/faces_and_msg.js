@@ -505,7 +505,7 @@ function sendShare() {
 
 /* hits facebook API */
 // Called when someone actually shares a message
-function doShare() {
+function doShare(recursive) {
 
     if (edgeflip.faces.test_mode) {
         alert("Sharing is not allowed in test mode!");
@@ -523,28 +523,40 @@ function doShare() {
             return;
         }
     }
-    edgeflip.events.record('share_click');
-    FB.login(function(response){ 
+    if (!recursive)
+        // In case the user is indecisive about publishing, let's only record
+        // share_click once.
+        edgeflip.events.record('share_click');
+
+    FB.login(function(response) {
         // FB.login will tell you if a user is authorized but will not tell 
         // you which permissions they have granted us.
-        $.ajax({
+        var perm_check = $.ajax({
             url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
             data: {access_token: edgeflip.faces.user.token},
-        }).success(function(resp) {
+        })
+        perm_check.done(function(resp) {
             if (resp.data[0].publish_actions) {
+                edgeflip.events.record('publish_accepted'); 
                 sendShare();
             } else {
                 edgeflip.events.record('publish_declined');
-                // FIXME: Is the share_fail necessary, or do we want just publish_declined?
-                // Also still waiting to figure out if this the exact flow we want.
-                edgeflip.events.record('share_fail', {
-                    errorMsg: response.error,
-                    complete: function() {
-                        alert("Sorry, but without publishing permissions we can not share this message with your friends");
-                        outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
-                    }
-                });
-            } 
+                if (confirm("Without permission to publish, we're unable to share this message with your friends. \n\nClick OK to grant permission, or CANCEL to leave the page")) {
+                    edgeflip.events.record('publish_reminder_accepted');
+                    doShare(true);
+                } else {
+                    edgeflip.events.record('publish_reminder_declined', {
+                        errorMsg: response.error,
+                        complete: function() {
+                            outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
+                        }
+                    });
+                }
+            }
+        });
+        perm_check.fail(function(resp, textStatus) {
+            edgeflip.events.record('publish_unknown', {content: textStatus})
+            sendShare();
         });
     }, {scope: "publish_actions"});
 }
