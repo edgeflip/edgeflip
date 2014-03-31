@@ -518,9 +518,8 @@ function doShare() {
     }
     edgeflip.events.record('share_click');
     FB.login(function(response){ 
-        // In my testing, using an async ajax call won't complete before we're
-        // redirected away. Also, FB.login will tell you if a user is authorized
-        // but will not tell you which permissions they have granted us.
+        // FB.login will tell you if a user is authorized but will not tell 
+        // you which permissions they have granted us.
         $.ajax({
             url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
             data: {access_token: edgeflip.faces.user.token},
