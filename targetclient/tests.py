@@ -18,7 +18,7 @@ from targetclient.management.commands import ensure_users_from_tokens, synctoken
 @freeze_time('2014-02-14')
 class TestSyncTokens(EdgeFlipTestCase):
 
-    fixtures = ['test_data']
+    fixtures = ['targetclient_test_data']
 
     def setUp(self):
         super(TestSyncTokens, self).setUp()
