@@ -155,5 +155,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
         path = reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
+        session_id = self.client.cookies['sessionid'].value
+        visit_id = models.Visit.objects.only('visit_id').get(session_id=session_id).visit_id
         task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path,
-                                                visit_id=1, campaign_id=1, content_id=1)
+                                                visit_id=visit_id, campaign_id=1, content_id=1)
