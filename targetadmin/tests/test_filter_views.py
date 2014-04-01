@@ -6,7 +6,7 @@ from targetshare.models import relational
 
 class TestFilterViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def setUp(self):
         super(TestFilterViews, self).setUp()
