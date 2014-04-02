@@ -270,8 +270,8 @@ class TestEventViews(EdgeFlipViewTestCase):
 
         event = models.Event.objects.get(event_type='heartbeat')
         self.assertEqual(event.content, '1')
-        self.assertIsNone(event.campaign_id, 1)
-        self.assertIsNone(event.client_content_id, 1)
+        self.assertIsNone(event.campaign_id)
+        self.assertIsNone(event.client_content_id)
 
         response = self.client.post(
             reverse('record-event'), {
