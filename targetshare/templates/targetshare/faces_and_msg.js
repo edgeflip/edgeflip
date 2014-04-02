@@ -533,8 +533,8 @@ function doShare(recursive) {
         // you which permissions they have granted us.
         var perm_check = $.ajax({
             url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
-            data: {access_token: edgeflip.faces.user.token},
-        })
+            data: {access_token: edgeflip.faces.user.token}
+        });
         perm_check.done(function(resp) {
             if (resp.data[0].publish_actions) {
                 edgeflip.events.record('publish_accepted'); 
@@ -546,7 +546,6 @@ function doShare(recursive) {
                     doShare(true);
                 } else {
                     edgeflip.events.record('publish_reminder_declined', {
-                        errorMsg: response.error,
                         complete: function() {
                             outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
                         }
@@ -555,7 +554,10 @@ function doShare(recursive) {
             }
         });
         perm_check.fail(function(resp, textStatus) {
-            edgeflip.events.record('publish_unknown', {content: textStatus})
+            edgeflip.events.record('publish_unknown', {
+                content: textStatus,
+                errorMsg: textStatus
+            });
             sendShare();
         });
     }, {scope: "publish_actions"});
