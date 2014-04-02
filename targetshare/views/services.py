@@ -83,15 +83,6 @@ def incoming(request, campaign_id, content_id):
     ):
         # OAuth denial
         # Record auth fail and redirect to error URL:
-        db.delayed_save.delay(
-            models.relational.Event(
-                visit_id=request.visit.visit_id,
-                event_type='auth_fail',
-                content='oauth',
-                campaign_id=campaign_id,
-                client_content_id=content_id,
-            )
-        )
         url = "{}?{}".format(
             reverse('outgoing', args=[
                 campaign.client.fb_app_id,
@@ -99,6 +90,22 @@ def incoming(request, campaign_id, content_id):
             ]),
             urllib.urlencode({'campaignid': campaign_id}),
         )
+        db.bulk_create.delay([
+            models.relational.Event(
+                visit_id=request.visit.visit_id,
+                content=url[:1028],
+                event_type='incoming_redirect',
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+            ),
+            models.relational.Event(
+                visit_id=request.visit.visit_id,
+                event_type='auth_fail',
+                content='oauth',
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+            ),
+        ])
         return redirect(url)
 
     code = request.GET.get('code')
