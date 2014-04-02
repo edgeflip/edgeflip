@@ -8,7 +8,7 @@ from targetshare.utils import encodeDES
 
 class TestCampaignViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def setUp(self):
         super(TestCampaignViews, self).setUp()

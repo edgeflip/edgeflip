@@ -5,7 +5,7 @@ from . import TestAdminBase
 
 class TestClientViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def test_login(self):
         self.client.logout()
