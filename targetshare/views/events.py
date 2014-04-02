@@ -30,6 +30,11 @@ REPEATED_EVENTS = {
     'manually_unselected_friend',
     'faces_page_rendered',
     'empty_share',
+    'publish_declined',
+    'publish_accepted',
+    'publish_reminder_accepted',
+    'publish_reminder_declined',
+    'publish_unknown',
 }
 ALL_EVENTS = SINGULAR_EVENTS | REPEATED_EVENTS | UPDATED_EVENTS
 
