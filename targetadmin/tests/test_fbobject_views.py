@@ -6,7 +6,7 @@ from targetshare.models import relational
 
 class TestFBObjectViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def setUp(self):
         super(TestFBObjectViews, self).setUp()
@@ -34,7 +34,8 @@ class TestFBObjectViews(TestAdminBase):
             reverse('targetadmin:fb-obj-new', args=[self.test_client.pk]),
             {
                 'name': 'Test Object',
-                'og_title': 'Test Title'
+                'og_title': 'Test Title',
+                'sharing_prompt': 'Test Prompt',
             }
         )
         fb_obj_attr = relational.FBObjectAttribute.objects.get(
@@ -54,7 +55,8 @@ class TestFBObjectViews(TestAdminBase):
             reverse('targetadmin:fb-obj-edit', args=[self.test_client.pk, self.fb_obj.pk]),
             {
                 'name': 'Edit Test Edited',
-                'og_title': 'Test Title Edited'
+                'og_title': 'Test Title Edited',
+                'sharing_prompt': 'Test Prompt',
             }
         )
         fb_obj = relational.FBObject.objects.get(pk=self.fb_obj.pk)

@@ -9,7 +9,7 @@ from targetshare.models import relational
 
 class TestSnippetViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def setUp(self):
         super(TestSnippetViews, self).setUp()

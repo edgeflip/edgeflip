@@ -26,7 +26,9 @@ this is the message div and the faces themselves
 
 <div id="faces_form_container">
 
-    <div class="text_title_prompt">{{ msg_params.sharing_prompt|safe }}</div>
+    <div class="text_title_prompt">{{ msg_params.sharing_prompt }}</div>
+    <div class="subheader">{{ msg_params.sharing_sub_header|safe }}</div>
+    <div class="header-end"></div>
 
     {% block faces_prompt %}
         <div class="text_instructions">STEP 1. CLICK ON THE FRIENDS YOU WANT TO SHARE WITH:</div>

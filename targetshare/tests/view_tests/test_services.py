@@ -129,30 +129,52 @@ class TestServicesViews(EdgeFlipViewTestCase):
         self.assertFalse(task_mock.delay.called)
 
     def test_incoming_url_redirect_fb_auth_declined(self):
-        events = models.Event.objects.filter(event_type='auth_fail')
-        self.assertFalse(events.exists())
+        auth_fails = models.Event.objects.filter(event_type='auth_fail')
+        redirects = models.Event.objects.filter(event_type='incoming_redirect')
+        self.assertFalse(auth_fails.exists())
+        self.assertFalse(redirects.exists())
 
         response = self.client.get(
             reverse('incoming-encoded', args=[encodeDES('1/1')]),
             {'error': 'access_denied', 'error_reason': 'user_denied'}
         )
-        campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
         self.assertStatusCode(response, 302)
-        expected_url = 'http://testserver{}?{}'.format(
-            reverse('outgoing', args=[
-                campaign_props.campaign.client.fb_app_id,
-                urllib.quote_plus(campaign_props.client_error_url)]
-            ),
-            urllib.urlencode({'campaignid': campaign_props.campaign.pk})
+
+        campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
+        outgoing_path = reverse('outgoing', args=[
+            campaign_props.campaign.client.fb_app_id,
+            urllib.quote_plus(campaign_props.client_error_url)]
         )
+        outgoing_url = "{}?{}".format(outgoing_path, urllib.urlencode({
+            'campaignid': campaign_props.campaign.pk,
+        }))
+        expected_url = 'http://testserver' + outgoing_url
         self.assertEqual(response['Location'], expected_url)
 
-        event = events.get()
-        self.assertEqual(event.content, 'oauth')
+        session_id = self.client.cookies['sessionid'].value
+        visit = models.Visit.objects.get(
+            session_id=session_id,
+            app_id=campaign_props.campaign.client.fb_app_id,
+        )
+
+        auth_fail = auth_fails.get()
+        self.assertEqual(auth_fail.content, 'oauth')
+        self.assertEqual(auth_fail.visit_id, visit.visit_id)
+        self.assertEqual(auth_fail.campaign_id, 1)
+        self.assertEqual(auth_fail.client_content_id, 1)
+
+        incoming = redirects.get()
+        self.assertEqual(incoming.content, outgoing_url)
+        self.assertEqual(incoming.visit_id, visit.visit_id)
+        self.assertEqual(incoming.campaign_id, 1)
+        self.assertEqual(incoming.client_content_id, 1)
 
     @patch('targetshare.views.services.store_oauth_token')
-    def test_incoming_url_token(self, task_mock):
+    def test_incoming_url_fb_auth_permitted(self, task_mock):
         path = reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
-        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path)
+        session_id = self.client.cookies['sessionid'].value
+        visit_id = models.Visit.objects.only('visit_id').get(session_id=session_id).visit_id
+        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path,
+                                                visit_id=visit_id, campaign_id=1, content_id=1)

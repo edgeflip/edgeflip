@@ -1,4 +1,5 @@
 import json
+import urllib
 from datetime import datetime
 
 import mock
@@ -13,13 +14,23 @@ from .. import EdgeFlipTestCase
 
 requests_patch = mock.patch('requests.get', **{'return_value.content': 'access_token=TOKZ'})
 
-urllib2_patch = mock.patch('urllib2.urlopen', **{'return_value.read.return_value': json.dumps({
+DEBUG_TOKEN_MOCK = json.dumps({
     'data': {
         'is_valid': True,
         'user_id': 100,
         'expires_at': epoch.from_date(datetime(2013, 5, 15, 12, 1, 1)),
     }
-})})
+})
+
+EXTEND_TOKEN_MOCK = urllib.urlencode([
+    ('access_token', 'tok1'),
+    ('expires', str(60 * 60 * 24 * 60)), # 60 days in seconds
+])
+
+urllib2_patch = mock.patch('urllib2.urlopen', **{'return_value.read.side_effect': [
+    DEBUG_TOKEN_MOCK,
+    EXTEND_TOKEN_MOCK,
+]})
 
 
 @freeze_time('2013-01-01')
@@ -48,3 +59,77 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
         facebook.store_oauth_token(1, 'PIEZ', 'http://testserver/incoming/SLUGZ/')
         self.assertEqual(user_clients.count(), 0)
         self.assertEqual(tokens.query_count(), 0)
+
+    @requests_patch
+    @urllib2_patch
+    def test_record_auth(self, urllib_mock, requests_mock):
+        client = models.Client.objects.get(pk=1)
+        user_clients = client.userclients.filter(fbid=100)
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        visitor = models.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='sid001', app_id=client.fb_app_id, ip='0.0.0.0')
+
+        facebook.store_oauth_token(client.pk, 'PIEZ', 'http://testserver/incoming/SLUGZ/', visit.pk)
+        self.assertEqual(user_clients.count(), 1)
+        self.assertEqual(tokens.query_count(), 1)
+
+        auths = visit.events.filter(event_type='authorized')
+        self.assertEqual(len(auths), 1)
+        (auth,) = auths
+        self.assertEqual(auth.content, 'oauth')
+        self.assertIsNone(auth.campaign_id)
+        self.assertEqual(auth.visit, visit)
+
+        visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
+        self.assertEqual(visitor, visit.visitor)
+        self.assertEqual(visitor.fbid, 100)
+
+    @requests_patch
+    @urllib2_patch
+    def test_record_auth_meta(self, urllib_mock, requests_mock):
+        client = models.Client.objects.get(pk=1)
+        user_clients = client.userclients.filter(fbid=100)
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        visitor = models.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='sid001', app_id=client.fb_app_id, ip='0.0.0.0')
+
+        facebook.store_oauth_token(client.pk, 'PIEZ', 'http://testserver/incoming/SLUGZ/',
+                                   visit_id=visit.pk, campaign_id=1, content_id=1)
+        self.assertEqual(user_clients.count(), 1)
+        self.assertEqual(tokens.query_count(), 1)
+
+        auths = visit.events.filter(event_type='authorized')
+        self.assertEqual(len(auths), 1)
+        (auth,) = auths
+        self.assertEqual(auth.content, 'oauth')
+        self.assertEqual(auth.campaign_id, 1)
+        self.assertEqual(auth.client_content_id, 1)
+        self.assertEqual(auth.visit, visit)
+
+        visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
+        self.assertEqual(visitor, visit.visitor)
+        self.assertEqual(visitor.fbid, 100)
+
+    @requests_patch
+    @urllib2_patch
+    def test_new_visitor(self, urllib_mock, requests_mock):
+        client = models.Client.objects.get(pk=1)
+        user_clients = client.userclients.filter(fbid=100)
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        visitor = models.Visitor.objects.create(fbid=222)
+        visit = visitor.visits.create(session_id='sid001', app_id=client.fb_app_id, ip='0.0.0.0')
+
+        facebook.store_oauth_token(client.pk, 'PIEZ', 'http://testserver/incoming/SLUGZ/', visit.pk)
+        self.assertEqual(user_clients.count(), 1)
+        self.assertEqual(tokens.query_count(), 1)
+
+        auths = visit.events.filter(event_type='authorized')
+        self.assertEqual(len(auths), 1)
+        (auth,) = auths
+        self.assertEqual(auth.content, 'oauth')
+        self.assertIsNone(auth.campaign_id)
+
+        visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
+        self.assertEqual(auth.visit, visit)
+        self.assertNotEqual(visitor, visit.visitor)
+        self.assertEqual(visitor.fbid, 100)

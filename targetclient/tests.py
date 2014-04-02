@@ -5,7 +5,7 @@ from requests import exceptions
 import time
 
 from freezegun import freeze_time
-from mock import patch, Mock
+from mock import patch
 
 from targetshare.models.dynamo import Token
 from targetshare.models.relational import UserClient
@@ -13,13 +13,12 @@ from targetshare.tests import EdgeFlipTestCase
 
 from targetclient.models import OFAToken
 from targetclient.management.commands import ensure_users_from_tokens, synctokens
-from targetclient import tasks
 
 
 @freeze_time('2014-02-14')
 class TestSyncTokens(EdgeFlipTestCase):
 
-    fixtures = ['test_data']
+    fixtures = ['targetclient_test_data']
 
     def setUp(self):
         super(TestSyncTokens, self).setUp()
@@ -139,7 +138,6 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
         self.visited_token = Token(fbid=self.visited_fbid, appid=self.appid, token='1', expires=self.the_past)
         self.visited_token.save()
 
-
     @patch.dict('django.conf.settings.FACEBOOK.secrets', {'10101': '10101'})
     def test_ensure_user_client(self):
         new_expires_ts = time.time()
@@ -160,13 +158,15 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
 
             self.command.execute()
             self.assertEqual(queryset.count(), 2)
-            self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, new_expires_obj)
+            self.assertEqual(
+                Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires.timetuple(),
+                new_expires_obj.timetuple()
+            )
             self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
 
             # don't put in duplicates
             self.command.execute()
             self.assertEqual(queryset.count(), 2)
-
 
     @patch('django.core.management.base.OutputWrapper')
     def test_ensure_user_client_exception(self, output_wrapper):
@@ -179,4 +179,3 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
             self.assertEqual(Token.items.get_item(fbid=self.synced_fbid, appid=self.appid).expires, self.the_future)
 
         self.assertTrue(self.command.stderr.write.called)
-

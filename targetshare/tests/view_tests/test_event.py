@@ -166,32 +166,56 @@ class TestEventViews(EdgeFlipViewTestCase):
             expires=expires0,
             overwrite=True,
         )
-        response = self.client.post(
-            '%s?token=1' % reverse('record-event'), {
-                'userid': 1111111,
-                'appid': self.test_client.fb_app_id,
-                'campaignid': 1,
-                'contentid': 1,
-                'content': 'Testing',
-                'actionid': 100,
-                'friends[]': [10, 11, 12], # jQuery thinks it's clever with []
-                'eventType': 'authorized',
-                'shareMsg': 'Testing Share',
-                'token': 'test-token',
-                'extend_token': 'True'
-            }
-        )
+        events = models.Event.objects.filter(event_type='authorized')
+        self.assertEqual(events.count(), 0)
+
+        response = self.client.post(reverse('record-event'), {
+            'token': 'test-token',
+            'userid': 1111111,
+            'appid': self.test_client.fb_app_id,
+            'campaignid': 1,
+            'contentid': 1,
+            'content': 'Testing',
+            'eventType': 'authorized',
+            'token': 'test-token',
+            'extend_token': '1'
+        })
         self.assertStatusCode(response, 200)
         refreshed_token = models.dynamo.Token.items.get_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
         )
         self.assertGreater(refreshed_token['expires'], expires0)
-        events = models.Event.objects.filter(
-            event_type='authorized',
-            friend_fbid__in=[10, 11, 12]
-        )
-        self.assertEqual(events.count(), 3)
+        self.assertEqual(events.count(), 1)
+
+    @patch('targetshare.views.events.facebook.client')
+    def test_record_event_preauthed(self, fb_mock):
+        # Make bad request to init visit
+        response = self.client.post(reverse('record-event'), {
+            'eventType': 'no-events-here',
+            'appid': self.test_client.fb_app_id,
+        })
+        self.assertStatusCode(response, 403)
+
+        visit = models.Visit.objects.get(session_id=self.client.cookies['sessionid'].value)
+        visit.events.create(event_type='authorized')
+
+        auths = models.Event.objects.filter(event_type='authorized')
+        self.assertEqual(auths.count(), 1)
+
+        response = self.client.post(reverse('record-event'), {
+            'userid': 1111111,
+            'appid': self.test_client.fb_app_id,
+            'campaignid': 1,
+            'contentid': 1,
+            'content': 'Testing',
+            'eventType': 'authorized',
+            'token': 'test-token',
+            'extend_token': 'True'
+        })
+        self.assertStatusCode(response, 200)
+        self.assertEqual(auths.count(), 1)
+        self.assertEqual(fb_mock.extend_token.call_count, 1)
 
     def test_record_event_heartbeat(self):
         ''' Testing the record_event view with a heartbeat event '''
@@ -207,8 +231,12 @@ class TestEventViews(EdgeFlipViewTestCase):
             }
         )
         self.assertStatusCode(response, 200)
+
         event = models.Event.objects.get(event_type='heartbeat')
         self.assertEqual(event.content, '1')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
         response = self.client.post(
             reverse('record-event'), {
                 'userid': 1,
@@ -220,5 +248,63 @@ class TestEventViews(EdgeFlipViewTestCase):
                 'eventType': 'heartbeat',
             }
         )
+        self.assertStatusCode(response, 200)
+
         event = models.Event.objects.get(event_type='heartbeat')
         self.assertEqual(event.content, '2')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
+    def test_update_event_heartbeat_meta(self):
+        """heartbeat metadata updated but not overwritten"""
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '1')
+        self.assertIsNone(event.campaign_id)
+        self.assertIsNone(event.client_content_id)
+
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '2')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 2,
+                'contentid': 2,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '3')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
