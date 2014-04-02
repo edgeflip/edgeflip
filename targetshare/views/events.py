@@ -82,9 +82,17 @@ def record_event(request):
             (event, created) = relational.Event.objects.select_for_update().get_or_create(
                 event_type=event_type,
                 visit=request.visit,
-                defaults={'content': 1}
+                defaults={
+                    'campaign_id': campaign_id,
+                    'client_content_id': content_id,
+                    'content': 1,
+                },
             )
         if not created:
+            if campaign_id and not event.campaign_id:
+                event.campaign_id = campaign_id
+            if content_id and not event.client_content_id:
+                event.client_content_id = content_id
             event.content = F('content') + 1
             event.save()
     elif friends:

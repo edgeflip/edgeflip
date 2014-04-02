@@ -231,8 +231,12 @@ class TestEventViews(EdgeFlipViewTestCase):
             }
         )
         self.assertStatusCode(response, 200)
+
         event = models.Event.objects.get(event_type='heartbeat')
         self.assertEqual(event.content, '1')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
         response = self.client.post(
             reverse('record-event'), {
                 'userid': 1,
@@ -244,5 +248,63 @@ class TestEventViews(EdgeFlipViewTestCase):
                 'eventType': 'heartbeat',
             }
         )
+        self.assertStatusCode(response, 200)
+
         event = models.Event.objects.get(event_type='heartbeat')
         self.assertEqual(event.content, '2')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
+    def test_update_event_heartbeat_meta(self):
+        """heartbeat metadata updated but not overwritten"""
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '1')
+        self.assertIsNone(event.campaign_id, 1)
+        self.assertIsNone(event.client_content_id, 1)
+
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 1,
+                'contentid': 1,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '2')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
+
+        response = self.client.post(
+            reverse('record-event'), {
+                'userid': 1,
+                'appid': self.test_client.fb_app_id,
+                'campaignid': 2,
+                'contentid': 2,
+                'content': 'Testing',
+                'actionid': 100,
+                'eventType': 'heartbeat',
+            }
+        )
+        self.assertStatusCode(response, 200)
+
+        event = models.Event.objects.get(event_type='heartbeat')
+        self.assertEqual(event.content, '3')
+        self.assertEqual(event.campaign_id, 1)
+        self.assertEqual(event.client_content_id, 1)
