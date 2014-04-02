@@ -151,8 +151,11 @@ class TestServicesViews(EdgeFlipViewTestCase):
         self.assertEqual(event.content, 'oauth')
 
     @patch('targetshare.views.services.store_oauth_token')
-    def test_incoming_url_token(self, task_mock):
+    def test_incoming_url_fb_auth_permitted(self, task_mock):
         path = reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
-        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path)
+        session_id = self.client.cookies['sessionid'].value
+        visit_id = models.Visit.objects.only('visit_id').get(session_id=session_id).visit_id
+        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path,
+                                                visit_id=visit_id, campaign_id=1, content_id=1)

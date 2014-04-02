@@ -262,7 +262,7 @@ def _urlload_thread(url, query=(), results=None):
     return len(data)
 
 
-def extend_token(fbid, appid, token):
+def extend_token(fbid, appid, token, default_expiry=None):
     """Extend lifetime of a user token from FB."""
     url = 'https://graph.facebook.com/oauth/access_token?' + urllib.urlencode({
         'grant_type': 'fb_exchange_token',
@@ -280,7 +280,10 @@ def extend_token(fbid, appid, token):
         token1 = params['access_token'][0]
         expires = int(params['expires'][0])
         LOG.debug("Extended access token %s expires in %s seconds", token1, expires)
-        expires1 = ts + expires
+        expires1 = timezone.make_aware(
+            datetime.datetime.utcfromtimestamp(ts + expires),
+            timezone.utc
+        )
     except (IOError, IndexError, KeyError) as exc:
         if hasattr(exc, 'read'): # built-in hasattr won't overwrite exc_info
             error_response = exc.read()
@@ -293,15 +296,15 @@ def extend_token(fbid, appid, token):
             exc_info=True,
         )
         token1 = token
-        expires1 = ts
+        expires1 = default_expiry or timezone.make_aware(
+            datetime.datetime.utcfromtimestamp(ts),
+            timezone.utc
+        )
 
     return dynamo.Token(
         fbid=fbid,
         appid=appid,
-        expires=timezone.make_aware(
-            datetime.datetime.utcfromtimestamp(expires1),
-            timezone.utc
-        ),
+        expires=expires1,
         token=token1,
     )
 
