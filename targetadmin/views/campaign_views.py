@@ -91,10 +91,13 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    fb_obj_form = forms.FBObjectWizardForm()
+    fb_attr_inst = relational.FBObjectAttribute(
+        og_action='support', og_type='cause')
+    fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
     campaign_form = forms.CampaignWizardForm()
     if request.method == 'POST':
-        fb_obj_form = forms.FBObjectWizardForm(request.POST)
+        fb_obj_form = forms.FBObjectWizardForm(
+            request.POST, instance=fb_attr_inst)
         campaign_form = forms.CampaignWizardForm(request.POST)
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
