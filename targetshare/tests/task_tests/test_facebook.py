@@ -112,7 +112,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_new_visitor(self, urllib_mock, requests_mock):
+    def test_visitor_switch(self, urllib_mock, requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
@@ -132,4 +132,54 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
         visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
         self.assertEqual(auth.visit, visit)
         self.assertNotEqual(visitor, visit.visitor)
+        self.assertEqual(visitor.fbid, 100)
+
+    @requests_patch
+    @urllib2_patch
+    def test_visitor_match(self, urllib_mock, requests_mock):
+        client = models.Client.objects.get(pk=1)
+        user_clients = client.userclients.filter(fbid=100)
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        visitor = models.Visitor.objects.create(fbid=100)
+        visit = visitor.visits.create(session_id='sid001', app_id=client.fb_app_id, ip='0.0.0.0')
+
+        facebook.store_oauth_token(client.pk, 'PIEZ', 'http://testserver/incoming/SLUGZ/', visit.pk)
+        self.assertEqual(user_clients.count(), 1)
+        self.assertEqual(tokens.query_count(), 1)
+
+        auths = visit.events.filter(event_type='authorized')
+        self.assertEqual(len(auths), 1)
+        (auth,) = auths
+        self.assertEqual(auth.content, 'oauth')
+        self.assertIsNone(auth.campaign_id)
+
+        visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
+        self.assertEqual(auth.visit, visit)
+        self.assertEqual(visitor, visit.visitor)
+        self.assertEqual(visitor.fbid, 100)
+
+    @requests_patch
+    @urllib2_patch
+    def test_existing_visitor(self, urllib_mock, requests_mock):
+        client = models.Client.objects.get(pk=1)
+        user_clients = client.userclients.filter(fbid=100)
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        existing_visitor = models.Visitor.objects.create(fbid=100)
+        visitor = models.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='sid001', app_id=client.fb_app_id, ip='0.0.0.0')
+
+        facebook.store_oauth_token(client.pk, 'PIEZ', 'http://testserver/incoming/SLUGZ/', visit.pk)
+        self.assertEqual(user_clients.count(), 1)
+        self.assertEqual(tokens.query_count(), 1)
+
+        auths = visit.events.filter(event_type='authorized')
+        self.assertEqual(len(auths), 1)
+        (auth,) = auths
+        self.assertEqual(auth.content, 'oauth')
+        self.assertIsNone(auth.campaign_id)
+
+        visitor = models.Visitor.objects.get(visits__visit_id=auth.visit_id) # refresh
+        self.assertEqual(auth.visit, visit)
+        self.assertNotEqual(visitor, visit.visitor)
+        self.assertEqual(visitor, existing_visitor)
         self.assertEqual(visitor.fbid, 100)

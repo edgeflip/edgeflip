@@ -58,12 +58,19 @@ def store_oauth_token(client_id, code, redirect_uri,
 
         # Ensure Visitor.fbid:
         visitor = visit.visitor
-        if not visitor.fbid:
-            visitor.fbid = token.fbid
-            visitor.save(update_fields=['fbid'])
-        elif visitor.fbid != token.fbid:
-            LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
-            (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token.fbid)
+        if visitor.fbid != token.fbid:
+            if visitor.fbid:
+                LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
+                (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token.fbid)
+            else:
+                try:
+                    # Check for pre-existing Visitor with this fbid:
+                    visitor = relational.Visitor.objects.get(fbid=token.fbid)
+                except relational.Visitor.DoesNotExist:
+                    # Update the visitor we have:
+                    visitor.fbid = token.fbid
+                    visitor.save(update_fields=['fbid'])
+
             visit.visitor = visitor
             visit.save(update_fields=['visitor'])
 
