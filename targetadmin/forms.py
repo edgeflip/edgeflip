@@ -263,7 +263,8 @@ class CampaignWizardForm(forms.Form):
             'Fills in network with people outside targeting criteria if an '
             'insufficient number of people are found in the targeting critiera'
         ),
-        initial=True
+        initial=True,
+        required=False
     )
 
 
