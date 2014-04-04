@@ -1,6 +1,5 @@
 from datetime import datetime
 import json
-import requests
 
 from django.core.management.base import NoArgsCommand
 from django.utils import timezone
@@ -29,7 +28,7 @@ class Command(NoArgsCommand):
                     if token.needs_save():
                         self.stdout.write("Overwriting Token.expires ({} => {})".format(old_expires, token.expires))
                         token.save(overwrite=True)
-                except requests.exceptions.RequestException as e:
+                except IOError as e:
                     self.stderr.write('Token check request failed for {} with error {}'.format(token, e))
 
             clients = None
