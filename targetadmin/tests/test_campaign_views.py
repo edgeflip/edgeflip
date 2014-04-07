@@ -236,9 +236,9 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 'include_empty_fallback': 1,
-                'enabled-filters-1': 'age.min.16,age.max.60',
-                'enabled-filters-2': 'state.in.Illinois||Missouri',
-                'enabled-filters-3': 'city.eq.Chicago',
+                'enabled-filters-1': '"age.min.16","age.max.60"',
+                'enabled-filters-2': '"state.in.Illinois||Missouri"',
+                'enabled-filters-3': '"city.eq.Chicago"',
                 # FB Object
                 'og_title': 'Test Title',
                 'org_name': 'Test Organization',
@@ -286,6 +286,10 @@ class TestCampaignViews(TestAdminBase):
         )
         relational.Filter.objects.update(client=new_client)
         self.assertEqual(new_client.filters.count(), 6)
+        self.assertEqual(
+            relational.FilterFeature.objects.filter(filter__client=new_client).count(),
+            5
+        )
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
         self.assertFalse(new_client.buttonstyles.exists())
@@ -298,7 +302,7 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 'include_empty_fallback': 1,
-                'enabled-filters-1': 'state.eq.California',
+                'enabled-filters-1': '"state.eq.California","full_location.eq.Sacremento, CA United States"',
                 # FB Object
                 'og_title': 'Test Title',
                 'org_name': 'Test Organization',
@@ -330,6 +334,10 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(new_client.campaigns.count(), 2)
         # 1 new one, plus the existing 6
         self.assertEqual(new_client.filters.count(), 7)
+        self.assertEqual(
+            relational.FilterFeature.objects.filter(filter__client=new_client).count(),
+            7
+        )
         self.assertEqual(new_client.choicesets.count(), 2)
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
@@ -368,7 +376,7 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 'include_empty_fallback': 1,
-                'enabled-filters-1': 'state.eq.Kansas,city.eq.Topeka',
+                'enabled-filters-1': '"state.eq.Kansas","city.eq.Topeka"',
                 # FB Object
                 'og_title': 'Test Title',
                 'org_name': 'Test Organization',
@@ -500,7 +508,7 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 'include_empty_fallback': False,
-                'enabled-filters-1': 'state.eq.California',
+                'enabled-filters-1': '"state.eq.California"',
                 # FB Object
                 'og_title': 'Test Title',
                 'org_name': 'Test Organization',

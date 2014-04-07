@@ -34,11 +34,11 @@
         if ($(this).hasClass('filter-step')) {
             var v, values, filters, layer;
             for (layer = 1; layer <= layer_count; layer++) {
-                filters = $('#enabled-filters-' + layer).sortable('serialize', 
-                    {key: 'ff_' + layer, attribute: 'data-filter-id'}).split('&');
+                filters = $('#enabled-filters-' + layer).sortable('toArray', 
+                    {attribute: 'data-filter-id'});
                 values = [];
                 for (v = 0; v < filters.length; v++) {
-                    values.push(filters[v].split('=')[1]);
+                    values.push('"' + filters[v].split('=')[1] + '"');
                 }
                 $('#id_enabled-filters-' + layer).val(values);
             }
