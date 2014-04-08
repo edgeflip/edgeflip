@@ -1,7 +1,6 @@
 import datetime
 from django.utils import timezone
 import json
-from requests import exceptions
 import time
 
 from freezegun import freeze_time
@@ -172,7 +171,7 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
     def test_ensure_user_client_exception(self, output_wrapper):
         with patch(
             'targetshare.integration.facebook.client.debug_token',
-            side_effect=exceptions.RequestException
+            side_effect=IOError
         ):
             self.command.execute()
             self.assertEqual(Token.items.get_item(fbid=self.visited_fbid, appid=self.appid).expires, self.the_past)
