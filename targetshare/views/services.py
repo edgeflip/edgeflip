@@ -62,7 +62,8 @@ def outgoing(request, app_id, url):
     # Record event:
     db.delayed_save.delay(
         models.relational.Event(
-            visit=request.visit,
+            visit_id=request.visit.visit_id,
+            campaign_id=(campaign_id or None),
             content=url[:1028],
             event_type='outgoing_redirect',
         )

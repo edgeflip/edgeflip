@@ -111,6 +111,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
                          {'session_start', 'outgoing_redirect'})
         event = visit.events.get(event_type='outgoing_redirect')
         self.assertEqual(event.content, final_url)
+        self.assertEqual(event.campaign, campaign)
 
     @patch('targetshare.views.services.store_oauth_token')
     def test_incoming_url_redirect(self, task_mock):
