@@ -8,9 +8,11 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 
-from targetshare.integration import facebook
+from targetshare.tasks.integration.facebook import extend_token
 # from targetshare.models import relational
-from targetshare.tasks import db, ranking
+from targetshare.models import dynamo
+# from targetshare.tasks import db
+from targetshare.tasks import ranking
 from targetshare.views import utils
 
 
@@ -42,11 +44,10 @@ def data(request):
         # Initial call #
 
         # Extend & store Token:
-        token = facebook.client.extend_token(info['fbid'], FB_APP_ID, info['token'])
-        db.delayed_save(token, overwrite=True)
+        extend_token.delay(info['fbid'], FB_APP_ID, info['token'])
 
         # Record authorized UserClient:
-        # db.get_or_create(
+        # db.get_or_create.delay(
             # relational.UserClient,
             # client_id=client.pk, # FIXME
             # fbid=data['fbid'],
@@ -54,6 +55,11 @@ def data(request):
         # FIXME: Also a problem for record_event on "authorized"
 
         # Initiate crawl task:
+        token = dynamo.Token(
+            fbid=info['fbid'],
+            appid=FB_APP_ID,
+            token=info['token'],
+        )
         px3_task = ranking.px3_crawl.delay(token)
         request.session[task_key] = px3_task.id
 

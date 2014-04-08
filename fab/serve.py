@@ -16,6 +16,7 @@ CELERY_QUEUES = (
     'px3_filter',
     'px4',
     'oauth_token',
+    'extend_token',
     'celery',
     'delayed_save',
     'get_or_create',

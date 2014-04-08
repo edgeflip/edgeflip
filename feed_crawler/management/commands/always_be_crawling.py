@@ -13,15 +13,11 @@ logger = logging.getLogger(__name__)
 class Command(NoArgsCommand):
     help = "Starts the crawler service"
 
-    def handle_noargs(self, *args, **options):
-        logger.info('Starting up...')
-        self.crawl()
-
-    def crawl(self):
+    def handle_noargs(self, **options):
         logger.info('Starting crawl of all tokens')
         count = 0
-        for token in dynamo.Token.items.scan(expires__gt=timezone.now()):
-            logger.info('Crawling token for {}'.format(token.fbid))
-            tasks.crawl_user.delay(token)
-            count += 1
-        logger.info('Placed {} tokens on the queue'.format(count))
+        tokens = dynamo.Token.items.scan(expires__gt=timezone.now())
+        for (count, token) in enumerate(tokens, 1):
+            logger.info('Crawling token %s', token)
+            tasks.crawl_user.delay(token.fbid, token.appid)
+        logger.info('Placed %s tokens on the queue', count)

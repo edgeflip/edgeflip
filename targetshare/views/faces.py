@@ -15,6 +15,7 @@ from faraday.structs import LazyList
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
+from targetshare.tasks.integration.facebook import extend_token
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -156,15 +157,19 @@ def faces(request):
         # First request #
 
         # Extend & store Token and record authorized UserClient:
-        token = facebook.client.extend_token(data['fbid'], client.fb_app_id, data['token'])
-        db.delayed_save(token, overwrite=True)
-        db.get_or_create(
+        extend_token.delay(data['fbid'], client.fb_app_id, data['token'])
+        db.get_or_create.delay(
             models.relational.UserClient,
             client_id=client.pk,
             fbid=data['fbid'],
         )
 
         # Initiate ranking tasks:
+        token = models.dynamo.Token(
+            fbid=data['fbid'],
+            appid=client.fb_app_id,
+            token=data['token'],
+        )
         px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,

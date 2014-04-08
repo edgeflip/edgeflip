@@ -28,23 +28,21 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
 
         self.fbid = 1111111
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        self.token = models.dynamo.Token(fbid=self.fbid, appid=1,
-                                         token='1', expires=expires)
+        self.token = models.dynamo.Token.items.create(
+            fbid=self.fbid, appid=1, token='1', expires=expires)
 
         self.facebook_patch = patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',
             crawl_mock(1, 250, mock_feed)
         )
         self.token_patch = patch(
-            'targetshare.integration.facebook.client.extend_token',
-            Mock(
-                return_value=models.dynamo.Token(
-                    token='test-token',
-                    fbid=1111111,
-                    appid=471727162864364,
-                    expires=timezone.now(),
-                )
-            )
+            'targetshare.integration.facebook.client.debug_token',
+            return_value={
+                'data': {
+                    'is_valid': True,
+                    'expires_at': expires,
+                }
+            }
         )
         self.facebook_patch.start()
         self.token_patch.start()
@@ -67,7 +65,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.QUEUED, bucket='test_bucket_0'
         )
-        tasks.crawl_user(self.token)
+        tasks.crawl_user(self.token.fbid, self.token.appid)
         self.assertTrue(initial_mock.apply_async.called)
         self.assertGreater(initial_mock.apply_async.call_count, 1)
         self.assertEqual(incremental_mock.apply_async.call_count, 1)
