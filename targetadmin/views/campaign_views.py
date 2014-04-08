@@ -1,6 +1,5 @@
 import csv
 import itertools
-from StringIO import StringIO
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -104,14 +103,9 @@ def campaign_wizard(request, client_pk):
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
             filter_feature_layers = []
-            for x in xrange(1, 5):
-                try:
-                    inputs = csv.reader(
-                        StringIO(request.POST.get('enabled-filters-{}'.format(x), ''))
-                    ).next()
-                except StopIteration:
-                    break
-
+            enabled_filters = (request.POST.get(
+                'enabled-filters-{}'.format(index), '') for index in range(1, 5))
+            for inputs in csv.reader(enabled_filters):
                 if not inputs:
                     continue
 
