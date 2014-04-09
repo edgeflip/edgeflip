@@ -1,21 +1,22 @@
 <div class="row">
     <div class="span12">
         <div class="row" id="enabled-section">
-            <h2>Targeting Criteria</h2>
+            <h2>Define Targeting Criteria</h2>
             <p>
-                The below items will be chained together with ANDs. 
-                We highly recommend adding extra, subsequent targeting layers 
-                as "fallbacks". For example, you may have a targeting criteria 
-                of 18-34, Female, and living in Illinois. If a person using 
-                the sharing platform doesn't have an adequate number of 
-                friends meeting those requirements they won't be served any 
-                friends to share with. 
+                The filters below will be chained together with ANDs. For example if you put four filters:
+                Gender eq male, Age min 22, Age max 30, and State eq New York you will be targeting 22-30 year old men in New York.
+                We highly recommend adding "fallback" targeting layers to deal with cases where your 
+                initial targeting criteria is too strict or if your users don't have friends who match 
+                those criteria.
+            
             </p>
             <p>
-                As a result, a fallback criteria might 
-                be: Women that are 18-34. If that falls to find enough 
-                friends, a further fullback of simply: Women, might be 
-                applicable. As always, feel free to contact us for assistance
+                An example of a Layer 2 (fallback) criteria might 
+                be: 22-30 year old Men. If that fails to find enough 
+                friends, you can add a third layer simply targeting Men. 
+                Targeted Sharing will always start with the top layer and keep filling in friends from subseuqnet layers if it does
+                not find enough on a given layer.
+                As always, feel free to contact us for assistance
             </p>
             <h3>Enabled Filters <button id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</button></h3>
             <h5>Top Layer</h5>

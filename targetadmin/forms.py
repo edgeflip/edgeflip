@@ -22,11 +22,11 @@ class FBObjectAttributeForm(forms.ModelForm):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    sharing_prompt = forms.CharField(label="Sharing Prompt")
+    sharing_prompt = forms.CharField(label="Headline Text for the Sharing Page")
     sharing_sub_header = forms.CharField(
-        label="Sharing Sub Header", required=False)
+        label="Sub-Header Text for the Sharing Page", required=False)
     og_description = forms.CharField(
-        label='FB Object Description',
+        label='Description Text for the shared Facebook Post',
         required=False,
         widget=forms.Textarea
     )
@@ -74,9 +74,9 @@ class FilterFeatureForm(forms.ModelForm):
         ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('city', 'City'),
-        ('state', 'State'),
-        ('full_location', 'Full Location'),
-        ('gender', 'Gender'),
+        ('state', 'State (Ohio, Illinois, ...)'),
+        ('full_location', 'Full Location (City, State, Country)'),
+        ('gender', 'Gender (male or female)'),
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
@@ -253,15 +253,16 @@ class CampaignWizardForm(forms.Form):
     name = forms.CharField()
     faces_url = forms.CharField(
         required=False,
-        help_text='Optional, only provide if you plan on embedding on your site.',
+        help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) yoyu cna leave this blank'
     )
     error_url = forms.CharField()
     thanks_url = forms.CharField()
     content_url = forms.CharField()
     include_empty_fallback = forms.BooleanField(
         help_text=(
-            'Fills in network with people outside targeting criteria if an '
-            'insufficient number of people are found in the targeting critiera'
+            'Some users will not have enough friends who fit the targeting criteria. Checking this box will fill'
+            'in the friend suggestions with friends that do not fit the targeting criteria but are still influencable.'
+            'You should check this box if you would rather reach more people than people strictly in your targeting criteria.'
         ),
         initial=True,
         required=False
