@@ -1,3 +1,4 @@
+import itertools
 import logging
 
 from django.core.management.base import NoArgsCommand
@@ -15,9 +16,16 @@ class Command(NoArgsCommand):
 
     def handle_noargs(self, **options):
         logger.info('Starting crawl of all tokens')
-        count = 0
+
         tokens = dynamo.Token.items.scan(expires__gt=timezone.now())
-        for (count, token) in enumerate(tokens, 1):
-            logger.info('Crawling token %s', token)
-            tasks.crawl_user.delay(token.fbid, token.appid)
+        # Tokens should already be sorted by fbid (hash); group-by:
+        users_tokens = itertools.groupby(tokens, lambda token: token.fbid)
+
+        count = 0
+        for (count, (fbid, user_tokens)) in enumerate(users_tokens, 1):
+            # Of all apps' tokens for user, use freshest:
+            token = sorted(user_tokens, key=lambda token: token.expires)[-1]
+            logger.debug('Crawling token %s', token)
+            tasks.crawl_user.delay(fbid, token.appid)
+
         logger.info('Placed %s tokens on the queue', count)

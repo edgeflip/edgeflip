@@ -30,7 +30,7 @@ S3_CONN = s3_feed.S3Manager(
 
 
 @shared_task(default_retry_delay=(20 * 60), max_retries=4)
-def crawl_user(fbid, appid):
+def crawl_user(fbid, appid, failed=()):
     token = models.Token.items.get_item(fbid=fbid, appid=appid)
 
     # Confirm token expiration time and validity #
@@ -53,6 +53,18 @@ def crawl_user(fbid, appid):
 
     if not token_valid or token.expires <= epoch.utcnow():
         # Token is dead
+        failed += (appid,)
+
+        # Check for another user token:
+        for token in models.Token.items.query(fbid__eq=fbid):
+            if token.appid not in failed and token.expires > epoch.utcnow():
+                # This one is worth another shot.
+                # If the expires is wrong, we'll update it,
+                # (and if it's just invalid, it'll still go into "failed"):
+                crawl_user.delay(fbid, token.appid, failed)
+                break
+
+        # We're done here
         return
 
     try:
