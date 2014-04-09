@@ -6,6 +6,7 @@ import urllib2
 from datetime import timedelta
 from httplib import HTTPException
 
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from celery.exceptions import MaxRetriesExceededError
@@ -28,25 +29,31 @@ S3_CONN = s3_feed.S3Manager(
 )
 
 
-@shared_task
-def crawl_user(token, retry_count=0, max_retries=3):
+@shared_task(default_retry_delay=(20 * 60), max_retries=4)
+def crawl_user(fbid, appid):
+    token = models.Token.items.get_item(fbid=fbid, appid=appid)
+
+    # Confirm token expiration time and validity #
     try:
-        fresh_token = facebook.client.extend_token(
-            token.fbid, token.appid, token.token
-        )
-    except IOError:
-        # well, we tried
-        rvn_logger.exception(
-            'Failed to extend token for {}'.format(token.fbid)
-        )
-        if retry_count <= max_retries:
-            return crawl_user(token, retry_count + 1)
-        else:
-            # Token is probably dead
-            return
-    else:
-        fresh_token.save(overwrite=True)
-        token = fresh_token
+        debug_result = facebook.client.debug_token(token.appid, token.token)
+        debug_data = debug_result['data']
+        token_valid = debug_data['is_valid']
+        token_expires = debug_data['expires_at']
+    except (KeyError, IOError, RuntimeError) as exc:
+        # Facebook is being difficult; retry later:
+        crawl_user.retry(exc=exc)
+
+    if token_expires:
+        token.expires = token_expires
+        try:
+            token.partial_save()
+        except ConditionalCheckFailedException as exc:
+            # Token has changed since we loaded it; retry:
+            crawl_user.retry(exc=exc)
+
+    if not token_valid or token.expires <= epoch.utcnow():
+        # Token is dead
+        return
 
     try:
         edges = _bg_px4_crawl(token)
@@ -54,10 +61,11 @@ def crawl_user(token, retry_count=0, max_retries=3):
         if 'invalid_token' in exc.headers.get('www-authenticate', ''):
             return # dead token
         raise
+
     fb_sync_maps = _get_sync_maps(edges, token)
 
     delay = 0
-    for count, fbm in enumerate(fb_sync_maps, 1):
+    for (count, fbm) in enumerate(fb_sync_maps, 1):
         if fbm.status == models.FBSyncMap.WAITING:
             fbm.save_status(models.FBSyncMap.QUEUED)
             initial_crawl.apply_async(
@@ -97,12 +105,6 @@ def _bg_px4_crawl(token, retries=0, max_retries=3):
         require_outgoing=False,
     )
 
-    db.delayed_save.apply_async(
-        args=[token],
-        kwargs={'overwrite': True},
-        queue='bg_delayed_save',
-        routing_key='bg.delayed_save',
-    )
     db.upsert.apply_async(
         args=[user],
         kwargs={'partial_save_queue': 'bg_partial_save'},

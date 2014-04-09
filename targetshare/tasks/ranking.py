@@ -377,7 +377,6 @@ def px4_crawl(token):
     )
 
     # Persist novel data
-    db.delayed_save.delay(token, overwrite=True)
     db.upsert.delay(user)
 
     if stream is not None:

@@ -16,26 +16,33 @@ LOG = logging.getLogger(__name__)
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def realtime_subscription(request):
-
     if request.method == 'GET':
-        if (request.GET.get('hub.mode') == 'subscribe' and
-                request.GET.get('hub.verify_token') == settings.FB_REALTIME_TOKEN):
+        if (
+            request.GET.get('hub.mode') == 'subscribe' and
+            request.GET.get('hub.verify_token') == settings.FB_REALTIME_TOKEN
+        ):
             return http.HttpResponse(request.GET.get('hub.challenge'))
+
+        return http.HttpResponseForbidden()
+
+    data = json.load(request)
+    for entry in data['entry']:
+        try:
+            fbid = int(entry['uid'])
+        except KeyError:
+            LOG.exception('Invalid user update entry %s', entry)
+        except ValueError:
+            LOG.exception('Invalid FBID %s', entry['uid'])
         else:
-            return http.HttpResponseForbidden()
-    else:
-        data = json.loads(request.body)
-        for entry in data['entry']:
-            try:
-                token = dynamo.Token.items.query(fbid__eq=int(entry['uid']))[0]
-            except IndexError:
-                # Somehow no tokens for this user
-                LOG.exception('No tokens found for {}'.format(
-                    entry['uid']))
-            except ValueError:
-                LOG.exception('Invalid FBID {}'.format(entry['uid']))
+            tokens = dynamo.Token.items.query(fbid__eq=fbid)
+            if tokens:
+                # Grab the most recent token:
+                token = sorted(tokens, key=lambda token: token.expires)[-1]
+                # Run px4 on the user, but via a different queue, so as to
+                # not disturb the main user flow:
+                tasks.crawl_user.delay(token.fbid, token.appid)
             else:
-                # Run px4 on the user, but place it on a different queue
-                # as to not disturb the main user flow
-                tasks.crawl_user.delay(token)
-        return http.HttpResponse()
+                # Somehow no tokens for this user
+                LOG.error('No tokens found for %s', fbid)
+
+    return http.HttpResponse()

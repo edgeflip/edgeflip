@@ -298,14 +298,10 @@ def crawl_mock(min_friends, max_friends, closure=None):
 
 
 def patch_token(func=None):
-    patch_ = patch('targetshare.integration.facebook.client.extend_token', Mock(
-        return_value=models.dynamo.Token(
-            token='test-token',
-            fbid=1111111,
-            appid=471727162864364,
-            expires=timezone.now(),
-        )
-    ))
+    patch_ = patch('targetshare.integration.facebook.client.extend_token', Mock(return_value={
+        'access_token': 'test-token',
+        'expires': str(55 * 24 * 60 * 60),
+    }))
     if func is None:
         return patch_
     return patch_(func)

@@ -1,6 +1,5 @@
 import sys
 import time
-import datetime
 import urllib
 import urllib2
 import urlparse
@@ -262,51 +261,17 @@ def _urlload_thread(url, query=(), results=None):
     return len(data)
 
 
-def extend_token(fbid, appid, token, default_expiry=None):
-    """Extend lifetime of a user token from FB."""
+def extend_token(fbid, appid, token):
+    """Exchange a short-lived FB user token for an extended token."""
     url = 'https://graph.facebook.com/oauth/access_token?' + urllib.urlencode({
         'grant_type': 'fb_exchange_token',
         'fb_exchange_token': token,
         'client_id': appid,
         'client_secret': settings.FACEBOOK.secrets[str(appid)],
     })
-    ts = time.time()
-
-    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
-    # even if you try passing &format=json in the URL.
-    try:
-        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as response:
-            params = urlparse.parse_qs(response.read())
-        token1 = params['access_token'][0]
-        expires = int(params['expires'][0])
-        LOG.debug("Extended access token %s expires in %s seconds", token1, expires)
-        expires1 = timezone.make_aware(
-            datetime.datetime.utcfromtimestamp(ts + expires),
-            timezone.utc
-        )
-    except (IOError, IndexError, KeyError) as exc:
-        if hasattr(exc, 'read'): # built-in hasattr won't overwrite exc_info
-            error_response = exc.read()
-        else:
-            error_response = ''
-        LOG.warning(
-            "Failed to extend token %s%s",
-            token,
-            error_response and ': %r' % error_response,
-            exc_info=True,
-        )
-        token1 = token
-        expires1 = default_expiry or timezone.make_aware(
-            datetime.datetime.utcfromtimestamp(ts),
-            timezone.utc
-        )
-
-    return dynamo.Token(
-        fbid=fbid,
-        appid=appid,
-        expires=expires1,
-        token=token1,
-    )
+    request = urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)
+    with closing(request) as response:
+        return dict(urlparse.parse_qsl(response.read()))
 
 
 def get_user(uid, token):
