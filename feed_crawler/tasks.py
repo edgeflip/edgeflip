@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import logging
+import operator
 import random
 import urllib2
 from datetime import timedelta
@@ -29,43 +30,46 @@ S3_CONN = s3_feed.S3Manager(
 )
 
 
-@shared_task(default_retry_delay=(20 * 60), max_retries=4)
-def crawl_user(fbid, appid, failed=()):
-    token = models.Token.items.get_item(fbid=fbid, appid=appid)
+@shared_task(max_retries=6)
+def crawl_user(fbid, retry_delay=0):
+    """Enqueue crawl tasks for the user (`fbid`) and the users of his/her network."""
+    # Find a valid token for the user #
+    tokens = models.Token.items.query(fbid__eq=fbid)
+    # Iterate over user's tokens, starting with most recent:
+    for token in sorted(tokens, key=operator.attrgetter('expires'), reverse=True):
+        # We expect values of "expires" to be optimistic, meaning we trust dates
+        # in the past, but must confirm dates in the future.
+        # (We sometimes set field optimistically; and, user can invalidate our
+        # token, throwing its actual expires to 0.)
 
-    # Confirm token expiration time and validity #
-    try:
-        debug_result = facebook.client.debug_token(token.appid, token.token)
-        debug_data = debug_result['data']
-        token_valid = debug_data['is_valid']
-        token_expires = debug_data['expires_at']
-    except (KeyError, IOError, RuntimeError) as exc:
-        # Facebook is being difficult; retry later:
-        crawl_user.retry(exc=exc)
+        if token.expires <= epoch.utcnow():
+            return # This, and all remaining, invalid
 
-    if token_expires:
+        # Confirm token expiration (and validity)
+        try:
+            debug_result = facebook.client.debug_token(token.appid, token.token)
+            debug_data = debug_result['data']
+            token_valid = debug_data['is_valid']
+            token_expires = debug_data['expires_at']
+        except (KeyError, IOError, RuntimeError) as exc:
+            # Facebook is being difficult; retry later (with increasing wait):
+            crawl_user.retry((fbid, 2 * (retry_delay + 60)), {},
+                             countdown=retry_delay, exc=exc)
+
+        # Update token, if needed; but, restart if another process has changed
+        # the token (meaning it may now refer to new value):
         token.expires = token_expires
         try:
             token.partial_save()
         except ConditionalCheckFailedException as exc:
             # Token has changed since we loaded it; retry:
-            crawl_user.retry(exc=exc)
+            crawl_user.retry((fbid, retry_delay), {}, countdown=0, exc=exc)
 
-    if not token_valid or token.expires <= epoch.utcnow():
-        # Token is dead
-        failed += (appid,)
-
-        # Check for another user token:
-        for token in models.Token.items.query(fbid__eq=fbid):
-            if token.appid not in failed and token.expires > epoch.utcnow():
-                # This one is worth another shot.
-                # If the expires is wrong, we'll update it,
-                # (and if it's just invalid, it'll still go into "failed"):
-                crawl_user.delay(fbid, token.appid, failed)
-                break
-
-        # We're done here
-        return
+        if token_valid and token.expires > epoch.utcnow():
+            # We have our token, no lie!
+            break
+    else:
+        return # All tokens were invalid (and liars)
 
     try:
         edges = _bg_px4_crawl(token)
