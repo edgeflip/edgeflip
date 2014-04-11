@@ -40,5 +40,5 @@ class TestFeedCrawlerViews(EdgeFlipTestCase):
         )
         self.assertStatusCode(response, 200)
         (call_one, call_two) = crawl_mock.delay.call_args_list
-        self.assertEqual(call_one[0], (12345, 1))
-        self.assertEqual(call_two[0], (67890, 1))
+        self.assertEqual(call_one, ((12345,), {}))
+        self.assertEqual(call_two, ((67890,), {}))
