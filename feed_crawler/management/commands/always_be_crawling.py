@@ -1,4 +1,6 @@
+import itertools
 import logging
+import operator
 
 from django.core.management.base import NoArgsCommand
 from django.utils import timezone
@@ -14,10 +16,15 @@ class Command(NoArgsCommand):
     help = "Starts the crawler service"
 
     def handle_noargs(self, **options):
-        logger.info('Starting crawl of all tokens')
-        count = 0
+        logger.info('Enqueuing crawl tasks for all users with active tokens')
+
         tokens = dynamo.Token.items.scan(expires__gt=timezone.now())
-        for (count, token) in enumerate(tokens, 1):
-            logger.info('Crawling token %s', token)
-            tasks.crawl_user.delay(token.fbid, token.appid)
-        logger.info('Placed %s tokens on the queue', count)
+        # Tokens should already be grouped by hash (fbid); group-by:
+        fbid_tokens = itertools.groupby(tokens, operator.attrgetter('fbid'))
+
+        count = 0
+        for (count, (fbid, _tokens)) in enumerate(fbid_tokens, 1):
+            logger.debug('Crawling user %s', fbid)
+            tasks.crawl_user.delay(fbid)
+
+        logger.info('Enqueued %s tasks', count)

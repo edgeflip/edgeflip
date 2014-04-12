@@ -65,7 +65,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
             back_filled=False, back_fill_epoch=0, incremental_epoch=0,
             status=models.FBSyncMap.QUEUED, bucket='test_bucket_0'
         )
-        tasks.crawl_user(self.token.fbid, self.token.appid)
+        tasks.crawl_user(self.token.fbid)
         self.assertTrue(initial_mock.apply_async.called)
         self.assertGreater(initial_mock.apply_async.call_count, 1)
         self.assertEqual(incremental_mock.apply_async.call_count, 1)

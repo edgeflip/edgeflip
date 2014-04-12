@@ -6,7 +6,6 @@ from django.conf import settings
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 
-from targetshare.models import dynamo
 from feed_crawler import tasks
 
 
@@ -30,19 +29,10 @@ def realtime_subscription(request):
         try:
             fbid = int(entry['uid'])
         except KeyError:
-            LOG.exception('Invalid user update entry %s', entry)
+            LOG.exception('Invalid user update entry')
         except ValueError:
-            LOG.exception('Invalid FBID %s', entry['uid'])
+            LOG.exception('Invalid user update FBID: %s', entry['uid'])
         else:
-            tokens = dynamo.Token.items.query(fbid__eq=fbid)
-            if tokens:
-                # Grab the most recent token:
-                token = sorted(tokens, key=lambda token: token.expires)[-1]
-                # Run px4 on the user, but via a different queue, so as to
-                # not disturb the main user flow:
-                tasks.crawl_user.delay(token.fbid, token.appid)
-            else:
-                # Somehow no tokens for this user
-                LOG.error('No tokens found for %s', fbid)
+            tasks.crawl_user.delay(fbid)
 
     return http.HttpResponse()
