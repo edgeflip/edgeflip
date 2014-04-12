@@ -16,7 +16,7 @@ class Command(NoArgsCommand):
     help = "Starts the crawler service"
 
     def handle_noargs(self, **options):
-        logger.info('Starting crawl of all active tokens')
+        logger.info('Enqueuing crawl tasks for all users with active tokens')
 
         tokens = dynamo.Token.items.scan(expires__gt=timezone.now())
         # Tokens should already be grouped by hash (fbid); group-by:
@@ -27,4 +27,4 @@ class Command(NoArgsCommand):
             logger.debug('Crawling user %s', fbid)
             tasks.crawl_user.delay(fbid)
 
-        logger.info('Placed %s tokens on the queue', count)
+        logger.info('Enqueued %s tasks', count)

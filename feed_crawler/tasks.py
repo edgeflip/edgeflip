@@ -53,6 +53,9 @@ def crawl_user(fbid, retry_delay=0):
             token_expires = debug_data['expires_at']
         except (KeyError, IOError, RuntimeError) as exc:
             # Facebook is being difficult; retry later (with increasing wait):
+            # (We would use self.request.retries rather than define
+            # retry_delay; but, we don't want to increase the countdown for
+            # *all* retries.)
             crawl_user.retry((fbid, 2 * (retry_delay + 60)), {},
                              countdown=retry_delay, exc=exc)
 
