@@ -1,10 +1,9 @@
 from __future__ import absolute_import
 
 import logging
-import operator
 import random
 import urllib2
-from datetime import timedelta
+from datetime import datetime, timedelta
 from httplib import HTTPException
 
 from boto.dynamodb2.exceptions import ConditionalCheckFailedException
@@ -28,6 +27,11 @@ S3_CONN = s3_feed.S3Manager(
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )
+UTCMIN = datetime.min.replace(tzinfo=epoch.UTC)
+
+
+def expires_safe(token):
+    return token.get('expires', UTCMIN)
 
 
 @shared_task(max_retries=6)
@@ -36,14 +40,14 @@ def crawl_user(fbid, retry_delay=0):
     # Find a valid token for the user #
     tokens = models.Token.items.query(fbid__eq=fbid)
     # Iterate over user's tokens, starting with most recent:
-    for token in sorted(tokens, key=operator.attrgetter('expires'), reverse=True):
+    for token in sorted(tokens, key=expires_safe, reverse=True):
         # We expect values of "expires" to be optimistic, meaning we trust dates
         # in the past, but must confirm dates in the future.
         # (We sometimes set field optimistically; and, user can invalidate our
         # token, throwing its actual expires to 0.)
 
-        if token.expires <= epoch.utcnow():
-            return # This, and all remaining, invalid
+        if not token.expires or token.expires <= epoch.utcnow():
+            return # This, and any remaining, invalid
 
         # Confirm token expiration (and validity)
         try:
