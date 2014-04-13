@@ -12,6 +12,10 @@ from targetshare.utils import classonlymethod
 LOG = logging.getLogger(__name__)
 
 
+# Token class for newly-received tokens, before extension and db-persistence:
+ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token'))
+
+
 _EdgeBase = collections.namedtuple('EdgeBase',
     ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
 
