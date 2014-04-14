@@ -155,9 +155,14 @@ def faces(request):
 
     else:
         # First request #
+        token = models.datastructs.ShortToken(
+            fbid=data['fbid'],
+            appid=client.fb_app_id,
+            token=data['token'],
+        )
 
         # Extend & store Token and record authorized UserClient:
-        extend_token.delay(data['fbid'], client.fb_app_id, data['token'])
+        extend_token.delay(*token)
         db.get_or_create.delay(
             models.relational.UserClient,
             client_id=client.pk,
@@ -165,11 +170,6 @@ def faces(request):
         )
 
         # Initiate ranking tasks:
-        token = models.dynamo.Token(
-            fbid=data['fbid'],
-            appid=client.fb_app_id,
-            token=data['token'],
-        )
         px3_task = ranking.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
