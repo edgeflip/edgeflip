@@ -26,7 +26,7 @@ class FBObjectAttributeForm(forms.ModelForm):
     sharing_sub_header = forms.CharField(
         label="Sub-Header Text for the Sharing Page", required=False)
     og_description = forms.CharField(
-        label='Description Text for the shared Facebook Post',
+        label='Description Text for the Shared Facebook Post',
         required=False,
         widget=forms.Textarea
     )
@@ -132,9 +132,9 @@ class CampaignForm(forms.Form):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    faces_url = forms.CharField()
-    thanks_url = forms.CharField()
-    error_url = forms.CharField()
+    faces_url = forms.CharField(label='URL for the page this campaign will be on your website. Leave blank if using Facebook canvas.')
+    thanks_url = forms.CharField(label='URL where user will go after successfully sharing with targeted friends')
+    error_url = forms.CharField(label-'URL where user will go if there is a Facebook error when atempting sharing')
     fallback_campaign = forms.ModelChoiceField(
         queryset=relational.Campaign.objects.none(),
         required=False
@@ -253,7 +253,7 @@ class CampaignWizardForm(forms.Form):
     name = forms.CharField()
     faces_url = forms.CharField(
         required=False,
-        help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) yoyu cna leave this blank'
+        help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) you can leave this blank'
     )
     error_url = forms.CharField()
     thanks_url = forms.CharField()
