@@ -15,14 +15,13 @@ class Command(NoArgsCommand):
     help = "Purges completed/failed tasks from the celery result tables"
 
     def handle_noargs(self, **options):
+        delta = timedelta(seconds=settings.CELERY_TASK_RESULT_EXPIRES)
         logger.info(
             'Purging all celery tasks that have failed/succeeded '
-            'and are over an hour old'
+            'and are over %s old', delta
         )
-        expired_time = timezone.now() - timedelta(
-            seconds=settings.CELERY_TASK_RESULT_EXPIRES)
         TaskMeta.objects.filter(
             status__in=['SUCCESS', 'FAILURE'],
-            date_done__lte=expired_time
+            date_done__lte=timezone.now() - delta
         ).delete()
         logger.info('Purge complete')
