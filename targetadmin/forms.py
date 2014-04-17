@@ -74,9 +74,9 @@ class FilterFeatureForm(forms.ModelForm):
         ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('city', 'City'),
-        ('state', 'State (Ohio, Illinois, ...)'),
+        ('state', 'State'),
         ('full_location', 'Full Location (City, State, Country)'),
-        ('gender', 'Gender (male or female)'),
+        ('gender', 'Gender'),
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
@@ -132,9 +132,9 @@ class CampaignForm(forms.Form):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    faces_url = forms.CharField(label='URL for the page this campaign will be on your website. Leave blank if using Facebook canvas.')
-    thanks_url = forms.CharField(label='Post-Sharing URL')
-    error_url = forms.CharField(label-'Share Error URL')
+    faces_url = forms.CharField(label='Host URL', help_text='Provide the URL where this campaign will be embedded. Leave blank if using Facebook canvas')
+    thanks_url = forms.CharField(label='Post-Share URL',help_text='This is the URL users get sent to after they share. This is usually a thank you page or a secondary ask.')
+    error_url = forms.CharField(label-'Sharing Error URL', help_text='If the user does not have any friends that fit the targeting criteria or if there is a sharing error, they will be sent to this URL')
     fallback_campaign = forms.ModelChoiceField(
         queryset=relational.Campaign.objects.none(),
         required=False
