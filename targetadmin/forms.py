@@ -22,11 +22,11 @@ class FBObjectAttributeForm(forms.ModelForm):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    sharing_prompt = forms.CharField(label="Headline Text for the Sharing Page")
+    sharing_prompt = forms.CharField(label="Headline")
     sharing_sub_header = forms.CharField(
-        label="Sub-Header Text for the Sharing Page", required=False)
+        label="Sub-Header", required=False)
     og_description = forms.CharField(
-        label='Description Text for the Shared Facebook Post',
+        label='Facebook Post Description',
         required=False,
         widget=forms.Textarea
     )
@@ -133,8 +133,8 @@ class CampaignForm(forms.Form):
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
     faces_url = forms.CharField(label='URL for the page this campaign will be on your website. Leave blank if using Facebook canvas.')
-    thanks_url = forms.CharField(label='URL where user will go after successfully sharing with targeted friends')
-    error_url = forms.CharField(label-'URL where user will go if there is a Facebook error when atempting sharing')
+    thanks_url = forms.CharField(label='Post-Sharing URL')
+    error_url = forms.CharField(label-'Share Error URL')
     fallback_campaign = forms.ModelChoiceField(
         queryset=relational.Campaign.objects.none(),
         required=False
@@ -272,7 +272,7 @@ class CampaignWizardForm(forms.Form):
 class FBObjectWizardForm(forms.ModelForm):
 
     og_description = forms.CharField(
-        label='FB Object Description',
+        label='Description for Shared Facebook Post',
         required=False,
         widget=forms.Textarea
     )
