@@ -54,8 +54,13 @@ class TestProximityRankThree(RankingTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        ranked_edges = ranking.px3_crawl(self.token)
+        visitor = models.relational.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+        ranked_edges = ranking.px3_crawl(self.token, visit_id=visit.pk)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
+        events = models.relational.Event.objects.filter(visit=visit)
+        self.assertEqual(events.filter(event_type='px3_started').count(), 1)
+        self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
 
 @freeze_time('2013-01-01')
@@ -68,7 +73,7 @@ class TestFiltering(RankingTestCase):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        ranked_edges = ranking.px3_crawl(self.token)
+        ranked_edges = ranking.px3_crawl(self.token, visit_id=visit.pk)
         # Ensure at least one edge passes filter:
         # (NOTE: May have to fiddle with campaign properties as well.)
         ranked_edges[0].secondary.state = 'Illinois'
@@ -163,6 +168,9 @@ class TestProximityRankFour(RankingTestCase):
         self.choice_set = self.client.choicesets.create()
         self.default_filter.choicesetfilters.create(choice_set=self.choice_set, url_slug='test')
         self.campaign.campaignchoicesets.create(rand_cdf=1, choice_set=self.choice_set)
+        visitor = models.relational.Visitor.objects.create()
+        self.visit = visitor.visits.create(
+            session_id='123456', app_id=123, ip='127.0.0.1')
 
     @patch_facebook(min_friends=101, max_friends=120)
     @patch('targetshare.tasks.ranking.LOG')
@@ -170,9 +178,13 @@ class TestProximityRankFour(RankingTestCase):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
-                                             content_id=None, visit_id=None, num_faces=None)
+                                             content_id=None, visit_id=self.visit.pk,
+                                             num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
+        events = models.relational.Event.objects.filter(visit=self.visit)
+        self.assertEqual(events.filter(event_type='px4_started').count(), 1)
+        self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
         interactions_set = tuple(ranked_edges.iter_interactions())
         self.assertTrue(interactions_set)
@@ -195,11 +207,15 @@ class TestProximityRankFour(RankingTestCase):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
-                                             content_id=None, visit_id=None, num_faces=None)
+                                             content_id=None, visit_id=self.visit.pk,
+                                             num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
+        events = models.relational.Event.objects.filter(visit=self.visit)
+        self.assertEqual(events.filter(event_type='px4_started').count(), 1)
+        self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
         self.assertIn(
@@ -219,11 +235,15 @@ class TestProximityRankFour(RankingTestCase):
             models.User.items.create(fbid=x)
 
         result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
-                                             content_id=None, visit_id=None, num_faces=None)
+                                             content_id=None, visit_id=self.visit.pk,
+                                             num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
+        events = models.relational.Event.objects.filter(visit=self.visit)
+        self.assertEqual(events.filter(event_type='px4_started').count(), 1)
+        self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
         self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
         self.assertIn(
