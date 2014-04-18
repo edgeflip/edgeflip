@@ -132,9 +132,22 @@ class CampaignForm(forms.Form):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    faces_url = forms.CharField(label='Host URL', help_text='Provide the URL where this campaign will be embedded. Leave blank if using Facebook canvas')
-    thanks_url = forms.CharField(label='Post-Share URL',help_text='This is the URL users get sent to after they share. This is usually a thank you page or a secondary ask.')
-    error_url = forms.CharField(label-'Sharing Error URL', help_text='If the user does not have any friends that fit the targeting criteria or if there is a sharing error, they will be sent to this URL')
+    faces_url = forms.CharField(
+        label='Host URL',
+        help_text='Provide the URL where this campaign will be embedded. '
+                  'Leave blank if using Facebook canvas'
+    )
+    thanks_url = forms.CharField(
+        label='Post-Share URL',
+        help_text='This is the URL users get sent to after they share. '
+                  'This is usually a thank you page or a secondary ask.'
+    )
+    error_url = forms.CharField(
+        label='Sharing Error URL',
+        help_text='If the user does not have any friends that fit the '
+                  'targeting criteria or if there is a sharing error, '
+                  'they will be sent to this URL'
+    )
     fallback_campaign = forms.ModelChoiceField(
         queryset=relational.Campaign.objects.none(),
         required=False
@@ -260,9 +273,12 @@ class CampaignWizardForm(forms.Form):
     content_url = forms.CharField()
     include_empty_fallback = forms.BooleanField(
         help_text=(
-            'Some users will not have enough friends who fit the targeting criteria. Checking this box will fill'
-            'in the friend suggestions with friends that do not fit the targeting criteria but are still influencable.'
-            'You should check this box if you would rather reach more people than people strictly in your targeting criteria.'
+            'Some users will not have enough friends who fit the targeting '
+            'criteria. Checking this box will fill in the friend suggestions '
+            'with friends that do not fit the targeting criteria but are '
+            'still influencable. You should check this box if you would '
+            'rather reach more people than people strictly in your targeting '
+            'criteria.'
         ),
         initial=True,
         required=False
@@ -272,10 +288,22 @@ class CampaignWizardForm(forms.Form):
 class FBObjectWizardForm(forms.ModelForm):
 
     og_description = forms.CharField(
-        label='Description for Shared Facebook Post',
+        label='Facebook Post Description',
         required=False,
         widget=forms.Textarea
     )
+    og_title = forms.CharField(label='Facebook Post Title')
+    og_image = forms.CharField(label='Facebook Post Image URL')
+    org_name = forms.CharField(
+        label='Cause or Organization being supported - Chris supported ______'
+    )
+    msg1_pre = forms.CharField(label='Text Before Friend Names')
+    msg1_post = forms.CharField(label='Text After Friend Names')
+    msg2_pre = forms.CharField(label='Text Before Friend Names')
+    msg2_post = forms.CharField(label='Text After Friend Names')
+    sharing_prompt = forms.CharField(label="Headline")
+    sharing_sub_header = forms.CharField(
+        label="Sub-Header", required=False)
 
     class Meta:
         model = relational.FBObjectAttribute
