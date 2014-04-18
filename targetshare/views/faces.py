@@ -292,6 +292,7 @@ def faces(request):
             'msg_params': {
                 'sharing_prompt': fb_attrs.sharing_prompt,
                 'sharing_sub_header': fb_attrs.sharing_sub_header,
+                'sharing_button': fb_attrs.sharing_button,
                 'msg1_pre': fb_attrs.msg1_pre,
                 'msg1_post': fb_attrs.msg1_post,
                 'msg2_pre': fb_attrs.msg2_pre,
