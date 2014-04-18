@@ -268,7 +268,11 @@ def setup_redshift(env=None, force='0', testdata='1'):
             capture=True
         )
         if not database_exists:
-            l('sudo -u postgres psql -c "create database {DATABASE} with owner={USER} template=template0 encoding=\'utf-8\'"'.format(**sql_context))
+            l('sudo -u postgres psql -c "create database {DATABASE} with '
+              'owner={USER} template=template0 encoding=\'utf-8\' '
+              'lc_collate=\'en_US.utf8\' lc_ctype=\'en_US.utf8\'"'.format(
+                  **sql_context)
+              )
 
         # Application schema initialization
         manage('syncdb', env=env, keyed={
