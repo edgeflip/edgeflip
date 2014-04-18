@@ -1,5 +1,6 @@
 """Fabric tasks to prepare and build the project and its environment"""
 import itertools
+import os
 import os.path
 from os.path import join
 
@@ -190,7 +191,7 @@ def setup_db(env=None, force='0', testdata='1'):
 
     # Database teardown
     if 'dev' in roles:
-        password = fab.prompt("Enter mysql password:")
+        password = os.environ.get('MYSQL_ROOT_PW') or fab.prompt("Enter mysql password:")
         if true(force):
             teardown_sql = open(join(sql_path, 'teardown.sql')).read()
             l('mysql --user=root --password={} --execute="{}"'.format(
