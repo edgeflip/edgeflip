@@ -91,7 +91,7 @@ def install_deps():
     deps = itertools.chain.from_iterable(open(deps_path).readlines()
                                          for deps_path in deps_paths
                                          if os.path.exists(deps_path))
-    l('sudo apt-get install -y {}'.format(
+    l('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q {}'.format(
         ' '.join(dep.strip() for dep in deps)))
 
     # Install fake dynamo:
