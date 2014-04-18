@@ -81,7 +81,6 @@ def px3_crawl(token, **filtering_args):
         edges_unranked = facebook.client.get_friend_edges(user, token.token)
     except IOError as exc:
         try:
-            create_crawl_track_event('px3_retrying', **filtering_args)
             px3_crawl.retry(exc=exc)
         except IOError:
             # Celery reraises the original Exception Type when Max Retries
@@ -344,7 +343,6 @@ def proximity_rank_four(token, **filtering_args):
     try:
         (stream, edges_ranked) = px4_crawl(token)
     except IOError as exc:
-        create_crawl_track_event('px4_retrying', **filtering_args)
         try:
             proximity_rank_four.retry(exc=exc)
         except IOError:
