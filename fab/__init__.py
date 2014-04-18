@@ -16,13 +16,14 @@ def manage(command, args=(), flags=(), keyed=None, env=None):
     keyed = keyed or {}
     with workon(env):
         with fab.lcd(BASEDIR):
-            l('python manage.py {command} {args} {flags} {keyed}'.format(
+            command = 'python manage.py {command} {args} {flags} {keyed}'.format(
                 command=command,
                 args=' '.join(args),
                 flags=' '.join('--' + flag for flag in flags),
                 keyed=' '.join('--{}={}'.format(key, value)
                                for key, value in keyed.items()),
-            ))
+            )
+            l(command.rstrip())
 
 
 def true(inp):
