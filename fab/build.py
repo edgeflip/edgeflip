@@ -191,7 +191,7 @@ def setup_db(env=None, force='0', testdata='1'):
 
     # Database teardown
     if 'dev' in roles:
-        password = os.environ.get('MYSQL_ROOT_PW') or fab.prompt("Enter mysql password:")
+        password = os.environ.get('MYSQL_PWD') or fab.prompt("Enter mysql password:")
         if true(force):
             teardown_sql = open(join(sql_path, 'teardown.sql')).read()
             l('mysql --user=root --password={} --execute="{}"'.format(
