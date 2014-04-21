@@ -47,6 +47,27 @@
         $('#' + step).show();
     });
 
+    $('#filtering').on( 'click', '.remove-layer', function() {
+
+        var deleted_layer_no = $(this).data('layer'),
+            layer_count = $('#add-layer').data('layer-count');
+
+        $('section[data-layer="' + deleted_layer_no + '"]').fadeOut( 400, function() {
+            $(this).empty().remove();
+
+            $.each( $('*[data-layer]'), function( i, el ) {
+                var $el = $(el),
+                    el_layer_no = $el.data('layer');
+
+                if( el_layer_no > deleted_layer_no ) { $el.data( 'layer', el_layer_no-- ); }
+
+            } );
+        } );
+
+        $('#add-layer').data( 'layer-count', --layer_count )
+        
+    } );
+
     // Sortables - Drag and Drop stuff
     $(function() {
         $('#existing-filters').sortable({
@@ -66,11 +87,13 @@
         layer_count = $('#add-layer').data('layer-count') + 1;
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
-            '<h5>Layer ' + layer_count + 
-            '</h5><div class="row"><input type="hidden" id="id_enabled-filters-' + 
+            '<section data-layer="' + layer_count + '">' +
+            '<div class="clearfix"><h5 class="pull-left">Layer ' + layer_count + '</h5>' +
+            '<h5 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
+            '<i class="icon-remove"></i></h5></div><div><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
-            '"><div class="span12 well sortable target-well" id="enabled-filters-' + 
-            layer_count + '">' + previous_layer_html  + '</div></div>'
+            '"><div class="well sortable target-well" id="enabled-filters-' + 
+            layer_count + '">' + previous_layer_html  + '</div></div></section>'
         );
         $('#enabled-filters-' + layer_count).sortable({
             connectWith: '.target-well'
