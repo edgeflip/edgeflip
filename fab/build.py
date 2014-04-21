@@ -92,7 +92,7 @@ def install_deps():
     deps = itertools.chain.from_iterable(open(deps_path).readlines()
                                          for deps_path in deps_paths
                                          if os.path.exists(deps_path))
-    l('DEBIAN_FRONTEND=noninteractive sudo apt-get install -y -q {}'.format(
+    l('sudo apt-get install -y -q {}'.format(
         ' '.join(dep.strip() for dep in deps)))
 
     # Install fake dynamo:
@@ -215,7 +215,7 @@ def setup_db(env=None, force='0', testdata='1'):
         ))
 
     # Application schema initialization
-    manage('syncdb', flags=['migrate'], env=env)
+    manage('syncdb', flags=['migrate', 'noinput'], env=env)
 
     # Load test data (dev):
     if 'dev' in roles and true(testdata):
