@@ -58,8 +58,8 @@ def build_all(deps='1', env=None):
     fab.execute(setup_redshift)
 
     # static files
-    fab.execute(install_jsurls, noinput='true')
     fab.execute(collect_static, noinput='true')
+    fab.execute(install_jsurls, noinput='true')
 
 
 @fab.task(name='dependencies')
