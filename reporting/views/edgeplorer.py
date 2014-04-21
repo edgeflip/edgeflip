@@ -6,7 +6,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 from logging import debug
 from targetadmin.utils import internal
-from reporting.utils import isoformat_row, run_safe_query, JsonResponse
+from reporting.utils import isoformat_dict, run_safe_dict_query, JsonResponse
 
 @internal
 @require_http_methods(['GET', 'POST'])
@@ -24,15 +24,15 @@ def edgeplorer(request):
     except (KeyError, ValueError):
         return HttpResponseBadRequest('fbid missing or badly formed')
 
-    users = run_safe_query(
+    users = run_safe_dict_query(
         connections['redshift'].cursor(),
         'SELECT * FROM users WHERE fbid=%s',
         (fbid,)
     )
-    users = [isoformat_row(row, ['birthday','updated']) for row in users]
+    users = [isoformat_dict(row, ['birthday','updated']) for row in users]
     debug(users)
 
-    events = run_safe_query(
+    events = run_safe_dict_query(
         connections['redshift'].cursor(),
         """
         SELECT events.* FROM events,visits,visitors
@@ -46,7 +46,7 @@ def edgeplorer(request):
     events = [isoformat_row(row, ['updated', 'event_datetime', 'created']) for row in events]
     debug(events)
 
-    edges = run_safe_query(
+    edges = run_safe_dict_query(
         connections['redshift'].cursor(),
         'SELECT * FROM edges WHERE fbid_target=%s',
         (fbid,)

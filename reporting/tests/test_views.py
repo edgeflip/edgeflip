@@ -25,19 +25,34 @@ class TestReportingViews(TestReportingBase):
         self.login_clientuser()
         response = self.client.get(reverse('reporting:client_summary', args=[1]))
         received_data = json.loads(response.content)
-        expected_data = {
+        expected_summary_data = {
             'visits': 4,
-            'clicks': 2,
-            'auths': 6,
-            'uniq_auths': 3,
-            'shown': 10,
-            'shares': 4,
-            'audience': 2,
+            'authorized_visits': 4,
+            'uniq_users_authorized': 4,
+            'auth_fails': 4,
+            'visits_generated_faces': 3,
+            'visits_shown_faces': 3,
+            'visits_with_shares': 2,
+            'total_shares': 4,
             'clickbacks': 2,
             'name': 'Specific Campaign',
             'root_id': 2,
         }
-        self.assertEqual(received_data[0], expected_data)
+
+        expected_rollup_data = {
+            'visits': 4,
+            'authorized_visits': 4,
+            'uniq_users_authorized': 1,
+            'auth_fails': 4,
+            'visits_generated_faces': 3,
+            'visits_shown_faces': 3,
+            'visits_with_shares': 2,
+            'total_shares': 4,
+            'clickbacks': 2,
+        }
+        self.assertEqual(received_data['data'][0], expected_summary_data)
+        self.assertEqual(received_data['rollups'][0], expected_rollup_data)
+
 
     def test_client_summary_403(self):
         self.login_clientuser()
@@ -50,22 +65,24 @@ class TestReportingViews(TestReportingBase):
         received_data = json.loads(response.content)['data']
         expected_data = [{
             'visits': 2,
-            'clicks': 1,
-            'auths': 2,
-            'uniq_auths': 1,
-            'shown': 5,
-            'shares': 2,
-            'audience': 1,
+            'authorized_visits': 2,
+            'uniq_users_authorized': 2,
+            'auth_fails': 1,
+            'visits_generated_faces': 1,
+            'visits_shown_faces': 1,
+            'visits_with_shares': 1,
+            'total_shares': 2,
             'clickbacks': 1,
             'time': '2013-12-01T12:00:00+00:00',
         }, {
             'visits': 2,
-            'clicks': 1,
-            'auths': 4,
-            'uniq_auths': 2,
-            'shown': 5,
-            'shares': 2,
-            'audience': 1,
+            'authorized_visits': 2,
+            'uniq_users_authorized': 2,
+            'auth_fails': 3,
+            'visits_generated_faces': 2,
+            'visits_shown_faces': 2,
+            'visits_with_shares': 1,
+            'total_shares': 2,
             'clickbacks': 1,
             'time': '2013-12-01T13:00:00+00:00',
         }]

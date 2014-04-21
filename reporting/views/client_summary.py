@@ -2,7 +2,7 @@ from django.core.exceptions import PermissionDenied
 from django.db import connections
 from django.http import Http404
 from django.views.decorators.http import require_GET
-from reporting.utils import run_safe_query, JsonResponse
+from reporting.utils import run_safe_dict_query, JsonResponse
 from targetadmin.utils import auth_client_required
 from targetshare.models.relational import Client
 
@@ -16,29 +16,46 @@ def client_summary(request, client_pk):
 
     client = Client.objects.get(pk=client_pk)
 
-    data = run_safe_query(
+    data = run_safe_dict_query(
         connections['redshift'].cursor(),
         """
-          SELECT meta.root_id, meta.name, visits, clicks, auths, uniq_auths,
-                      shown, shares, audience, clickbacks
-          FROM
-              (SELECT campchain.root_id, SUM(visits) AS visits, SUM(clicks) AS clicks, SUM(auths) AS auths,
-                      SUM(uniq_auths) AS uniq_auths, SUM(shown) AS shown, SUM(shares) AS shares,
-                      SUM(audience) AS audience, SUM(clickbacks) AS clickbacks
-                  FROM clientstats, campchain
-                  WHERE campchain.parent_id=clientstats.campaign_id
-                  GROUP BY root_id
-              ) AS stats,
-
-              (SELECT campchain.root_id, campaigns.campaign_id, campaigns.name 
-                  FROM campaigns, campchain
-                  WHERE campchain.parent_id=campaigns.campaign_id
-                  AND client_id=%s
-              ) AS meta
-
-          WHERE stats.root_id=meta.campaign_id
-          ORDER BY meta.root_id DESC;
+        SELECT
+            clientstats.campaign_id as root_id,
+            campaigns.name,
+            SUM(visits) AS visits,
+            SUM(authorized_visits) as authorized_visits,
+            SUM(uniq_users_authorized) as uniq_users_authorized,
+            SUM(auth_fails) as auth_fails,
+            SUM(visits_generated_faces) as visits_generated_faces,
+            SUM(visits_shown_faces) as visits_shown_faces,
+            SUM(visits_with_shares) as visits_with_shares,
+            SUM(total_shares) AS total_shares,
+            SUM(clickbacks) AS clickbacks
+        FROM clientstats
+        JOIN campaigns using (campaign_id)
+        WHERE campaigns.client_id = %s
+        GROUP BY clientstats.campaign_id, campaigns.name
         """,
          (client.client_id,)
     )
-    return JsonResponse(data)
+
+    rollup_data = run_safe_dict_query(
+        connections['redshift'].cursor(),
+        """
+        SELECT
+            SUM(visits) AS visits,
+            SUM(authorized_visits) as authorized_visits,
+            SUM(uniq_users_authorized) as uniq_users_authorized,
+            SUM(auth_fails) as auth_fails,
+            SUM(visits_generated_faces) as visits_generated_faces,
+            SUM(visits_shown_faces) as visits_shown_faces,
+            SUM(visits_with_shares) as visits_with_shares,
+            SUM(total_shares) AS total_shares,
+            SUM(clickbacks) AS clickbacks
+        FROM clientrollups
+        WHERE client_id = %s
+        """,
+        (client.client_id,)
+    )
+
+    return JsonResponse({'data': data, 'rollups': rollup_data})

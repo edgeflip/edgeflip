@@ -5,7 +5,7 @@ from django.http import HttpResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_http_methods
 from targetadmin.utils import internal
-from reporting.utils import isoformat_row, run_safe_query, JsonResponse
+from reporting.utils import isoformat_dict, run_safe_dict_query, JsonResponse
 
 @internal
 @require_http_methods(['GET', 'POST'])
@@ -24,7 +24,7 @@ def edgedash(request):
         tstart = request.POST.get('tstart', datetime.today() - timedelta(days=1))
 
         # hrm, kinda want to group by campaign_id also
-        data = run_safe_query(
+        data = run_safe_dict_query(
             connections['redshift'].cursor(),
             """
             SELECT type, COUNT(event_id) as count, DATE_TRUNC('hour', event_datetime) AS hour, events.campaign_id, campaigns.name
@@ -36,5 +36,5 @@ def edgedash(request):
             (tstart,)
         )
 
-        data = [isoformat_row(row, ['hour']) for row in data]
+        data = [isoformat_dict(row, ['hour']) for row in data]
         return JsonResponse({'data':data})
