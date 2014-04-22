@@ -40,10 +40,12 @@ class TestProximityRankThree(RankingTestCase):
         task ID.
 
         '''
-        task_id = ranking.proximity_rank_three(self.token)
+        visitor = models.relational.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+        task_id = ranking.proximity_rank_three(self.token, visit_id=visit.pk)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
-        perform_filtering.s.assert_called_once_with(fbid=1)
+        perform_filtering.s.assert_called_once_with(fbid=1, visit_id=visit.pk)
 
     @patch_facebook
     def test_px3_crawl(self):

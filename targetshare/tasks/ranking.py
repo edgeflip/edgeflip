@@ -52,7 +52,7 @@ empty_filtering_result = FilteringResult._make((None,) * 6)
 
 
 def create_crawl_track_event(event_type, visit_id, visit_type='targetshare.Visit',
-                             campaign_id=None, content_id=None, **kwargs):
+                             campaign_id=None, content_id=None):
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
     event = interaction.events.model(
@@ -64,28 +64,39 @@ def create_crawl_track_event(event_type, visit_id, visit_type='targetshare.Visit
     db.delayed_save.delay(event)
 
 
+def get_recording_args(filtering_args):
+    recording_args = {key: filtering_args[key] for key in ('visit_id',)}
+    recording_args.update(
+        (key, filtering_args[key])
+        for key in ('visit_type', 'campaign_id', 'content_id')
+        if key in filtering_args
+    )
+    return recording_args
+
+
 def proximity_rank_three(token, **filtering_args):
     """Build the px3 crawl-and-filter chain."""
+    recording_args = get_recording_args(filtering_args)
     chain = (
-        px3_crawl.s(token, **filtering_args) |
+        px3_crawl.s(token, **recording_args) |
         perform_filtering.s(fbid=token.fbid, **filtering_args)
     )
     return chain.apply_async()
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
-def px3_crawl(self, token, **tracking_args):
+def px3_crawl(self, token, **recording_args):
     """Crawl and rank a user's network to proximity level three."""
-    create_crawl_track_event('px3_started', **tracking_args)
+    create_crawl_track_event('px3_started', **recording_args)
     try:
         user = facebook.client.get_user(token.fbid, token.token)
         edges_unranked = facebook.client.get_friend_edges(user, token.token)
     except IOError as exc:
         if self.request.retries == self.max_retries:
-            create_crawl_track_event('px3_failed', **tracking_args)
+            create_crawl_track_event('px3_failed', **recording_args)
         px3_crawl.retry(exc=exc)
 
-    create_crawl_track_event('px3_completed', **tracking_args)
+    create_crawl_track_event('px3_completed', **recording_args)
     return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
@@ -336,15 +347,16 @@ def proximity_rank_four(self, token, **filtering_args):
     (See `px4_crawl`, `px4_filter` and `px4_rank`.)
 
     """
-    create_crawl_track_event('px4_started', **filtering_args)
+    recording_args = get_recording_args(filtering_args)
+    create_crawl_track_event('px4_started', **recording_args)
     try:
         (stream, edges_ranked) = px4_crawl(token)
     except IOError as exc:
         if self.request.retries == self.max_retries:
-            create_crawl_track_event('px4_failed', **filtering_args)
+            create_crawl_track_event('px4_failed', **recording_args)
         proximity_rank_four.retry(exc=exc)
 
-    create_crawl_track_event('px4_completed', **filtering_args)
+    create_crawl_track_event('px4_completed', **recording_args)
     return px4_rank(px4_filter(stream, edges_ranked, fbid=token.fbid, **filtering_args))
 
 
