@@ -8,23 +8,6 @@ from django.db import models
 class Migration(SchemaMigration):
 
     def forwards(self, orm):
-        # Adding model 'PageStyleSet'
-        db.create_table('page_style_sets', (
-            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
-            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
-            ('page_style_set_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
-        ))
-        db.send_create_signal('targetshare', ['PageStyleSet'])
-
-        # Adding M2M table for field page_styles on 'PageStyleSet'
-        m2m_table_name = db.shorten_name('page_style_sets_page_styles')
-        db.create_table(m2m_table_name, (
-            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
-            ('pagestyleset', models.ForeignKey(orm['targetshare.pagestyleset'], null=False)),
-            ('pagestyle', models.ForeignKey(orm['targetshare.pagestyle'], null=False))
-        ))
-        db.create_unique(m2m_table_name, ['pagestyleset_id', 'pagestyle_id'])
-
         # Adding model 'Page'
         db.create_table('pages', (
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
@@ -46,6 +29,23 @@ class Migration(SchemaMigration):
         ))
         db.send_create_signal('targetshare', ['CampaignPageStyleSet'])
 
+        # Adding model 'PageStyleSet'
+        db.create_table('page_style_sets', (
+            ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
+            ('updated', self.gf('django.db.models.fields.DateTimeField')(auto_now=True, blank=True)),
+            ('page_style_set_id', self.gf('django.db.models.fields.AutoField')(primary_key=True)),
+        ))
+        db.send_create_signal('targetshare', ['PageStyleSet'])
+
+        # Adding M2M table for field page_styles on 'PageStyleSet'
+        m2m_table_name = db.shorten_name('page_style_sets_page_styles')
+        db.create_table(m2m_table_name, (
+            ('id', models.AutoField(verbose_name='ID', primary_key=True, auto_created=True)),
+            ('pagestyleset', models.ForeignKey(orm['targetshare.pagestyleset'], null=False)),
+            ('pagestyle', models.ForeignKey(orm['targetshare.pagestyle'], null=False))
+        ))
+        db.create_unique(m2m_table_name, ['pagestyleset_id', 'pagestyle_id'])
+
         # Adding model 'PageStyle'
         db.create_table('page_styles', (
             ('created', self.gf('django.db.models.fields.DateTimeField')(auto_now_add=True, blank=True)),
@@ -56,6 +56,7 @@ class Migration(SchemaMigration):
             ('page', self.gf('django.db.models.fields.related.ForeignKey')(related_name='pagestyles', to=orm['targetshare.Page'])),
             ('client', self.gf('django.db.models.fields.related.ForeignKey')(related_name='pagestyles', null=True, to=orm['targetshare.Client'])),
             ('starred', self.gf('django.db.models.fields.BooleanField')(default=False)),
+            ('visible', self.gf('django.db.models.fields.BooleanField')(default=True)),
             ('url', self.gf('django.db.models.fields.URLField')(max_length=255)),
         ))
         db.send_create_signal('targetshare', ['PageStyle'])
@@ -68,17 +69,17 @@ class Migration(SchemaMigration):
         # Removing unique constraint on 'PageStyle', fields ['name', 'client']
         db.delete_unique('page_styles', ['name', 'client_id'])
 
-        # Deleting model 'PageStyleSet'
-        db.delete_table('page_style_sets')
-
-        # Removing M2M table for field page_styles on 'PageStyleSet'
-        db.delete_table(db.shorten_name('page_style_sets_page_styles'))
-
         # Deleting model 'Page'
         db.delete_table('pages')
 
         # Deleting model 'CampaignPageStyleSet'
         db.delete_table('campaign_page_style_sets')
+
+        # Deleting model 'PageStyleSet'
+        db.delete_table('page_style_sets')
+
+        # Removing M2M table for field page_styles on 'PageStyleSet'
+        db.delete_table(db.shorten_name('page_style_sets_page_styles'))
 
         # Deleting model 'PageStyle'
         db.delete_table('page_styles')
@@ -609,7 +610,8 @@ class Migration(SchemaMigration):
             'page_style_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'starred': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'url': ('django.db.models.fields.URLField', [], {'max_length': '255'})
+            'url': ('django.db.models.fields.URLField', [], {'max_length': '255'}),
+            'visible': ('django.db.models.fields.BooleanField', [], {'default': 'True'})
         },
         'targetshare.pagestyleset': {
             'Meta': {'object_name': 'PageStyleSet', 'db_table': "'page_style_sets'"},

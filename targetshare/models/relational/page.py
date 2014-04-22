@@ -35,6 +35,7 @@ class PageStyle(BaseModel):
     client = models.ForeignKey('Client', null=True, related_name='pagestyles')
     starred = models.BooleanField(default=False) # offer to user to link to new campaign
                                                  # (rather than globals and/or inheritance)
+    visible = models.BooleanField(default=True)
     url = models.URLField(max_length=255)
 
     class Meta(BaseModel.Meta):

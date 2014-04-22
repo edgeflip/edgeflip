@@ -607,7 +607,8 @@ class Migration(DataMigration):
             'page_style_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
             'starred': ('django.db.models.fields.BooleanField', [], {'default': 'False'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
-            'url': ('django.db.models.fields.URLField', [], {'max_length': '255'})
+            'url': ('django.db.models.fields.URLField', [], {'max_length': '255'}),
+            'visible': ('django.db.models.fields.BooleanField', [], {'default': 'True'})
         },
         'targetshare.pagestyleset': {
             'Meta': {'object_name': 'PageStyleSet', 'db_table': "'page_style_sets'"},
