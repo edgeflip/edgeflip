@@ -16,11 +16,6 @@ edgeflip.dashboard = (function (edgeflip, $) {
 
     self.columns = $.extend({'name': 'Campaign'}, self.metrics)
 
-    self.column_displays = function() {
-        return Object.keys(self.columns).map(function(col, display_name) {
-            display_name
-        });
-    }
     self.init = function() {
         self.set_client_id()
         // first pageview, get summary data and draw main table
@@ -59,7 +54,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
         $('tbody').remove();
         $('#clientpicker').removeAttr('disabled');
 
-        window.response = response; 
+        window.response = response;
 
         var table = d3.select('#sumtable');
 
@@ -78,7 +73,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
             /* so for each row, we end up wanting an array of values, in column order */
             function(row) {
                 // columns.map makes a nice [] of datapoints per row
-                return Object.keys(self.columns).map(function(col, display_name) {
+                return Object.keys(self.columns).map(function(col) {
                     return row[col];
                 });
             })

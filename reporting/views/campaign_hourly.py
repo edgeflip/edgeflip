@@ -1,8 +1,10 @@
 import csv
+from datetime import date
 from django.db import connections
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
 from targetadmin.utils import auth_client_required
+from targetshare.models import Client
 from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse
 
 
@@ -40,7 +42,7 @@ def campaign_hourly(request, client_pk, campaign_pk):
         )
         data = [isoformat_row(row, [0]) for row in data]
         data.insert(0, [col.name for col in cursor.description])
-        return generate_csv(data)
+        return generate_csv(data, client_pk)
     else:
         data = run_safe_dict_query(
             cursor,
@@ -50,9 +52,10 @@ def campaign_hourly(request, client_pk, campaign_pk):
         return JsonResponse({'data':[isoformat_dict(row) for row in data]})
 
 
-def generate_csv(data):
+def generate_csv(data, client_pk):
+    client = Client.objects.get(pk=client_pk)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="somefilename.csv"'
+    response['Content-Disposition'] = 'attachment; filename="{}-report-{}.csv"'.format(client.name, date.today().strftime('%Y%m%d'))
     writer = csv.writer(response)
     for row in data:
         writer.writerow(row)
