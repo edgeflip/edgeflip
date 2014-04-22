@@ -21,12 +21,14 @@
         <div id="enabled-section" class="row">
             <h3>Enabled Filters <button id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</button></h3>
             <h5>Top Layer</h5>
-            <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
-            <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; height:54px;"></div>
+            <div class="clearfix">
+                <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
+                <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
+            </div>
         </div>
         <div class="row">
             <h3>Available Filters <button data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="something" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
-            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; height:54px;">
+            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
                         <p>
@@ -35,9 +37,6 @@
                             </abbr>
                         </p>
                     </div>
-                    {% if forloop.counter|divisibleby:"6" %}
-                        <br />
-                    {% endif %}
                 {% endfor %}
             </div>
         </div>

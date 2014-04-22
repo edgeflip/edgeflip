@@ -56,10 +56,23 @@
         $.each( $('section[data-layer]'), function( i, layer_section ) {
             var $layer_section = $( layer_section );
             if( $layer_section.data('layer') == deleted_layer_no ) {
+
+                $.each( $layer_section.find('div[data-filter-id]'), function( j, layer_filter ) {
+                    var $layer_filter = $(layer_filter),
+                        layer_filter_id = $layer_filter.data('filter-id');
+                        
+                    if( ( $('#existing-filters').find( 'div[data-filter-id="' + layer_filter_id + '"]' ).length === 0 ) &&
+                        ( $('#enabled-filters-1').find( 'div[data-filter-id="' + layer_filter_id + '"]' ).length === 0 ) ) {
+
+                        $('#existing-filters').append( $layer_filter );
+                    }
+                    
+                } );
+
                 $layer_section.fadeOut( 400, function() {
                     $(this).empty().remove();
 
-                    $.each( $('*[data-layer]'), function( i, el ) {
+                    $.each( $('*[data-layer]'), function( k, el ) {
                         var $el = $(el),
                             el_layer_no = $el.data('layer'),
                             new_layer_no = el_layer_no - 1;
@@ -116,9 +129,9 @@
             '<section data-layer="' + layer_count + '">' +
             '<div class="clearfix"><h5 class="layer-text-header pull-left">Layer ' + layer_count + '</h5>' +
             '<h5 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
-            '<i class="icon-remove"></i></h5></div><div><input type="hidden" id="id_enabled-filters-' + 
+            '<i class="icon-remove"></i></h5></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
-            '"><div style="margin-left: 0px; height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
+            '"><div style="margin-left: 0px; min-height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
             layer_count + '">' + previous_layer_html  + '</div></div></section>'
         );
 
