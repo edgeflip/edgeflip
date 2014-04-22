@@ -40,6 +40,7 @@ from .mix_model_definition import MixModelDefinition
 from .mix_model_meta import MixModelMeta
 from .mix_model import MixModel
 from .notification import Notification, NotificationUser
+from .page import Page, PageStyle, PageStyleSet, CampaignPageStyleSet
 from .propensity_model_definition import PropensityModelDefinition
 from .propensity_model_meta import PropensityModelMeta
 from .propensity_model import PropensityModel
