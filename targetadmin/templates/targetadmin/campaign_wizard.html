@@ -47,24 +47,50 @@
         $('#' + step).show();
     });
 
+    // Remove Layer "X" clicked
     $('#filtering').on( 'click', '.remove-layer', function() {
 
         var deleted_layer_no = $(this).data('layer'),
-            layer_count = $('#add-layer').data('layer-count');
+            add_layer_btn = $('#add-layer');
 
-        $('section[data-layer="' + deleted_layer_no + '"]').fadeOut( 400, function() {
-            $(this).empty().remove();
+        $.each( $('section[data-layer]'), function( i, layer_section ) {
+            var $layer_section = $( layer_section );
+            if( $layer_section.data('layer') == deleted_layer_no ) {
+                $layer_section.fadeOut( 400, function() {
+                    $(this).empty().remove();
 
-            $.each( $('*[data-layer]'), function( i, el ) {
-                var $el = $(el),
-                    el_layer_no = $el.data('layer');
+                    $.each( $('*[data-layer]'), function( i, el ) {
+                        var $el = $(el),
+                            el_layer_no = $el.data('layer'),
+                            new_layer_no = el_layer_no - 1;
 
-                if( el_layer_no > deleted_layer_no ) { $el.data( 'layer', el_layer_no-- ); }
+                        if( el_layer_no > deleted_layer_no ) {
+                            
+                            $el.data( 'layer', new_layer_no );
 
-            } );
+                            if( $el.prop('tagName') === 'SECTION' ) {
+
+                                $el.find('h5').first().text( 'Layer ' + new_layer_no );
+
+                                $('#id_enabled-filters-' + el_layer_no )
+                                    .attr( { "id": 'id_enabled-filters-' + new_layer_no,
+                                             "name": 'enabled-filters-' + new_layer_no } );
+                                           
+                                $('#enabled-filters-' + el_layer_no )
+                                    .attr( { "id": 'enabled-filters-' + new_layer_no } );
+                            }
+                        }
+                    } );
+                } );
+            }
         } );
 
-        $('#add-layer').data( 'layer-count', --layer_count )
+        layer_count--;
+        add_layer_btn.data( 'layer-count', layer_count );
+
+        if( add_layer_btn.prop( 'disabled' ) ) {
+            add_layer_btn.prop( 'disabled', false );
+        }
         
     } );
 
@@ -88,7 +114,7 @@
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
             '<section data-layer="' + layer_count + '">' +
-            '<div class="clearfix"><h5 class="pull-left">Layer ' + layer_count + '</h5>' +
+            '<div class="clearfix"><h5 class="layer-text-header pull-left">Layer ' + layer_count + '</h5>' +
             '<h5 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
             '<i class="icon-remove"></i></h5></div><div><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
