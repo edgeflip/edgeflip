@@ -51,13 +51,14 @@ FilteringResult = namedtuple('FilteringResult', [
 empty_filtering_result = FilteringResult._make((None,) * 6)
 
 
-def create_crawl_track_event(event_type, visit_id, visit_type='targetshare.Visit', **kwargs):
+def create_crawl_track_event(event_type, visit_id, visit_type='targetshare.Visit',
+                             campaign_id=None, content_id=None, **kwargs):
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
     event = interaction.events.model(
         visit_id=visit_id,
-        campaign_id=kwargs.get('campaign_id'),
-        client_content_id=kwargs.get('content_id'),
+        campaign_id=campaign_id,
+        client_content_id=content_id,
         event_type=event_type,
     )
     db.delayed_save.delay(event)
@@ -72,23 +73,19 @@ def proximity_rank_three(token, **filtering_args):
     return chain.apply_async()
 
 
-@shared_task(default_retry_delay=1, max_retries=3)
-def px3_crawl(token, **filtering_args):
+@shared_task(default_retry_delay=1, max_retries=3, bind=True)
+def px3_crawl(self, token, **tracking_args):
     """Crawl and rank a user's network to proximity level three."""
-    create_crawl_track_event('px3_started', **filtering_args)
+    create_crawl_track_event('px3_started', **tracking_args)
     try:
         user = facebook.client.get_user(token.fbid, token.token)
         edges_unranked = facebook.client.get_friend_edges(user, token.token)
     except IOError as exc:
-        try:
-            px3_crawl.retry(exc=exc)
-        except IOError:
-            # Celery reraises the original Exception Type when Max Retries
-            # has been hit IF the exception has been passed to retry()
-            create_crawl_track_event('px3_failed', **filtering_args)
-            raise
+        if self.request.retries == self.max_retries:
+            create_crawl_track_event('px3_failed', **tracking_args)
+        px3_crawl.retry(exc=exc)
 
-    create_crawl_track_event('px3_completed', **filtering_args)
+    create_crawl_track_event('px3_completed', **tracking_args)
     return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
@@ -330,8 +327,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         return FilteringResult(edges_ranked, already_picked, **last_tier)
 
 
-@shared_task(default_retry_delay=1, max_retries=3)
-def proximity_rank_four(token, **filtering_args):
+@shared_task(default_retry_delay=1, max_retries=3, bind=True)
+def proximity_rank_four(self, token, **filtering_args):
     """Crawl, filter and rank a user's network to proximity level four, and
     persist the User, secondary Users, Token, PostInteractions and Edges to
     the database.
@@ -343,13 +340,9 @@ def proximity_rank_four(token, **filtering_args):
     try:
         (stream, edges_ranked) = px4_crawl(token)
     except IOError as exc:
-        try:
-            proximity_rank_four.retry(exc=exc)
-        except IOError:
-            # Celery reraises the original Exception Type when Max Retries
-            # has been hit IF the exception has been passed to retry()
+        if self.request.retries == self.max_retries:
             create_crawl_track_event('px4_failed', **filtering_args)
-            raise
+        proximity_rank_four.retry(exc=exc)
 
     create_crawl_track_event('px4_completed', **filtering_args)
     return px4_rank(px4_filter(stream, edges_ranked, fbid=token.fbid, **filtering_args))

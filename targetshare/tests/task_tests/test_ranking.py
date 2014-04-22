@@ -62,6 +62,21 @@ class TestProximityRankThree(RankingTestCase):
         self.assertEqual(events.filter(event_type='px3_started').count(), 1)
         self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
+    @patch('targetshare.tasks.ranking.facebook')
+    def test_px3_crawl_fail(self, fb_mock):
+        ''' Test that asserts we create a px3_failed event when px3 fails '''
+        # 4 exceptions: 3 retries, 1 initial call
+        fb_mock.client.get_user.side_effect = [IOError, IOError, IOError, IOError]
+        visitor = models.relational.Visitor.objects.create()
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+        with self.assertRaises(IOError):
+            ranking.px3_crawl.delay(self.token, visit_id=visit.pk)
+        self.assertEqual(
+            models.relational.Event.objects.filter(
+                visit=visit, event_type='px3_failed').count(),
+            1
+        )
+
 
 @freeze_time('2013-01-01')
 class TestFiltering(RankingTestCase):
@@ -316,3 +331,20 @@ class TestProximityRankFour(RankingTestCase):
                            result.ranked[14].secondary.topics.get('Weather', 0))
         self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
                            result.filtered.secondaries[-1].topics['Weather'])
+
+    @patch('targetshare.tasks.ranking.facebook')
+    def test_proximity_rank_four_failure(self, fb_mock):
+        ''' Test that asserts px4 failure results in a px4_failed event '''
+        # 4 exceptions: 3 retries, 1 initial call
+        fb_mock.client.get_user.side_effect = [IOError, IOError, IOError, IOError]
+        with self.assertRaises(IOError):
+            ranking.proximity_rank_four.delay(
+                self.token, campaign_id=self.campaign.pk,
+                content_id=None, visit_id=self.visit.pk,
+                num_faces=None
+            )
+        self.assertEqual(
+            models.relational.Event.objects.filter(
+                visit=self.visit, event_type='px4_failed').count(),
+            1
+        )

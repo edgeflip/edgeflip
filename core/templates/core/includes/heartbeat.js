@@ -13,7 +13,7 @@ Use:
 {% endcomment %}
 edgeflip.Heartbeat = function (options) {
     options = options || {};
-    this.maxCount = options.maxCount || 900;
+    this.maxCount = options.maxCount || 450;
     this.timeout = options.timeout || 2000;
     this.reset();
     this.start();
