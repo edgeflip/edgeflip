@@ -20,6 +20,7 @@ def button(request, campaign_id, content_id):
         reverse('incoming-encoded', args=[encodeDES('%s/%s' % (campaign_id, content_id))])
     )
 
+    # TODO
     # Use campaign-custom button style template name if one exists:
     try:
         # rand_assign raises ValueError if list is empty:
@@ -45,6 +46,7 @@ def button(request, campaign_id, content_id):
         )
     )
 
+    # TODO
     return render(request, utils.locate_client_template(client, html_template), {
         'goto': faces_url,
         'campaign': campaign,

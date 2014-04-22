@@ -5,6 +5,7 @@ import os.path
 
 from django import http
 from django.conf import settings
+from django.core.cache import cache
 from django.shortcuts import _get_queryset
 from django.template import TemplateDoesNotExist
 from django.template.loader import find_template
@@ -278,6 +279,7 @@ def encoded_endpoint(view):
 
 
 def locate_client_template(client, template_name):
+    raise NotImplementedError
     """Attempt to locate a given template in the client's template path.
 
     If none is found, the default template is returned.
@@ -298,6 +300,7 @@ def locate_client_template(client, template_name):
 
 
 def locate_client_css(client, css_name):
+    raise NotImplementedError
     """Attempt to locate a given css file in the static path.
 
     If none is found, the default is returned.
@@ -308,3 +311,45 @@ def locate_client_css(client, css_name):
         return os.path.join(settings.STATIC_URL, client_path)
     else:
         return os.path.join(settings.STATIC_URL, 'css', css_name)
+
+
+def assign_page_styles(visit, page_code, campaign, content=None):
+    """Randomly assign a set of stylesheets to the page for the given campaign,
+    and record that assignment.
+
+    Database results are cached according to the `PAGE_STYLE_CACHE_TIMEOUT` setting.
+
+    """
+    # Look up PageStyles:
+    cache_key = 'pagestyles|{}|{}'.format(page_code, campaign.pk)
+    options = cache.get(cache_key)
+    if options is None:
+        # Retrieve from DB:
+        campaign_page_style_sets = campaign.campaignpagestylesets.filter(
+            page_style_set__page_styles__page__code=page_code,
+        ).values_list('pk', 'page_style_set_id', 'rand_cdf').distinct()
+        options = tuple(campaign_page_style_sets.iterator())
+
+        # Store in cache:
+        cache.set(cache_key, options, settings.PAGE_STYLE_CACHE_TIMEOUT)
+
+    # Assign PageStyles:
+    page_style_set_id = utils.random_assign(
+        (page_style_set_id, rand_cdf)
+        for (_pk, page_style_set_id, rand_cdf) in options
+    )
+
+    # Record assignment:
+    db.delayed_save.delay(
+        models.relational.Assignment.make_managed(
+            visit_id=visit.pk,
+            campaign_id=campaign.pk,
+            content_id=(content and content.pk),
+            feature_row=page_style_set_id,
+            chosen_from_rows=[pk for (pk, _page_style_set_id, _rand_cdf) in options],
+            manager=campaign.campaignpagestylesets,
+        )
+    )
+
+    page_style_set = models.relational.PageStyleSet.objects.get(pk=page_style_set_id)
+    return page_style_set.page_styles.all()
