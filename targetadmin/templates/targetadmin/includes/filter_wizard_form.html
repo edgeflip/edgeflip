@@ -41,6 +41,14 @@
                 {% endfor %}
             </div>
         </div>
+        <div class="row empty-fallback">
+            <p>
+                {{ campaign_form.include_empty_fallback.errors }}
+                <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+                {{ campaign_form.include_empty_fallback }}
+                {% if campaign_form.include_empty_fallback.help_text %}<span class="help-block">{{ campaign_form.include_empty_fallback.help_text }}</span>{% endif %}
+            </p>
+        </div>
     </div>
 </div>
 <div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog" data-remote="{% url 'targetadmin:filter-add' client.pk %}">
