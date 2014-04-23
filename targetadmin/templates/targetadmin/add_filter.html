@@ -12,6 +12,7 @@
                     <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
                     <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
                     <select id="gender-dropdown" style="display:none;">
+                        <option value="" selected="selected">--------</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
@@ -38,7 +39,7 @@
     $('#id_feature').on( 'change', function() {
         if( $(this).val() === 'gender' ) {
             $('#id_operator').val('eq').attr( 'disabled', true );
-            $('#id_value-split-1').val('Male').hide();
+            $('#id_value-split-1').hide();
             $('#value-span').hide();
             $('#value-a').hide();
             $('#gender-dropdown').fadeIn();
