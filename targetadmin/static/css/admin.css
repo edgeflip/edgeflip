@@ -11,3 +11,15 @@
 .form-error {
     display: none;
 }
+
+.empty-fallback {
+    margin-bottom: 20px;
+}
+
+.empty-fallback label {
+    display: inline-block;
+}
+
+.empty-fallback input {
+    margin: 0px 5px;
+}

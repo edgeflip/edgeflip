@@ -1,4 +1,4 @@
-<h4>Campaign Settings</h4>
+<h4>Let's start with the basics</h4>
 <div class="row">
     <div class="span5">
         <p>
@@ -28,12 +28,6 @@
             <label for="{{ campaign_form.content_url.id_for_label }}">{{ campaign_form.content_url.label }}:</label>
             {% if campaign_form.content_url.help_text %}<span class="help-block">{{ campaign_form.content_url.help_text }}</span>{% endif %}
             {{ campaign_form.content_url }}
-        </p>
-        <p>
-            {{ campaign_form.include_empty_fallback.errors }}
-            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
-            {{ campaign_form.include_empty_fallback }}
-            {% if campaign_form.include_empty_fallback.help_text %}<span class="help-block">{{ campaign_form.include_empty_fallback.help_text }}</span>{% endif %}
         </p>
     </div>
 </div>
