@@ -54,7 +54,7 @@ class PageStyle(BaseModel):
 class PageStyleSet(BaseModel):
 
     page_style_set_id = models.AutoField(primary_key=True)
-    page_styles = models.ManyToManyField('PageStyle')
+    page_styles = models.ManyToManyField('PageStyle', related_name='pagestylesets')
 
     class Meta(BaseModel.Meta):
         db_table = 'page_style_sets'

@@ -5,8 +5,8 @@
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
-    <!-- Campaign stylesheets --> {% for client_css in client_css_links %}
-    <link rel="stylesheet" type="text/css" href="{{ client_css.href }}" />
+    <!-- Campaign stylesheets --> {% for css_link in campaign_css %}
+    <link rel="stylesheet" type="text/css" href="{{ css_link.href }}" />
     {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
