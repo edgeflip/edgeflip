@@ -11,6 +11,11 @@
                     <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
                     <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
                     <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
+                    <select id="gender-dropdown" style="display:none;">
+                        <option value="" selected="selected">--------</option>
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                    </select>
                 </p>
                 <hr>
             </div>
@@ -30,4 +35,23 @@
             '<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">'
         );
     });
+
+    $('#id_feature').on( 'change', function() {
+        if( $(this).val() === 'gender' ) {
+            $('#id_operator').val('eq').attr( 'disabled', true );
+            $('#id_value-split-1').hide();
+            $('#value-span').hide();
+            $('#value-a').hide();
+            $('#gender-dropdown').fadeIn();
+        } else if( $('#gender-dropdown').is(':visible') ) {
+            $('#gender-dropdown').hide();
+            $('#id_operator').val('').removeAttr( 'disabled' );
+            $('#id_value-split-1').val('').fadeIn();
+            $('#value-span').fadeIn();
+            $('#value-a').fadeIn();
+        }
+    } );
+
+    $('#gender-dropdown').on( 'change', function() { $('#id_value-split-1').val( $(this).val() ); } );
+
 </script>
