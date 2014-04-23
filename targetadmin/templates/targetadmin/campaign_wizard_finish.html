@@ -1,13 +1,10 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Campaign Wizard Final Step{% endblock %}
 {% block content %}
-    <h2>Campaign Confirmation</h2>
+    <h2>Congratulations!</h2>
     <div class="row">
         <div class="span5">
-            <p>Listed below are the campaigns that you have created. The admins
-             have been contacted in regards to these new campaigns, and we'll be
-             validating them shortly. We'll contact you as soon as these are ready
-             for use.
+            <p>Your new campaign has been created. Edgeflip is validating the campaign and will notify you when it has been deployed and ready for you to use. 
             </p>
     {% for camp in campaigns %}
         <div class="row" class="campaign-box">

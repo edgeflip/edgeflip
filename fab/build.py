@@ -1,5 +1,6 @@
 """Fabric tasks to prepare and build the project and its environment"""
 import itertools
+import os
 import os.path
 from os.path import join
 
@@ -57,8 +58,8 @@ def build_all(deps='1', env=None):
     fab.execute(setup_redshift)
 
     # static files
-    fab.execute(install_jsurls, noinput='true')
     fab.execute(collect_static, noinput='true')
+    fab.execute(install_jsurls, noinput='true')
 
 
 @fab.task(name='dependencies')
@@ -91,7 +92,7 @@ def install_deps():
     deps = itertools.chain.from_iterable(open(deps_path).readlines()
                                          for deps_path in deps_paths
                                          if os.path.exists(deps_path))
-    l('sudo apt-get install -y {}'.format(
+    l('sudo apt-get install -y -q {}'.format(
         ' '.join(dep.strip() for dep in deps)))
 
     # Install fake dynamo:
@@ -190,7 +191,7 @@ def setup_db(env=None, force='0', testdata='1'):
 
     # Database teardown
     if 'dev' in roles:
-        password = fab.prompt("Enter mysql password:")
+        password = os.environ.get('MYSQL_PWD') or fab.prompt("Enter mysql password:")
         if true(force):
             teardown_sql = open(join(sql_path, 'teardown.sql')).read()
             l('mysql --user=root --password={} --execute="{}"'.format(
@@ -214,7 +215,7 @@ def setup_db(env=None, force='0', testdata='1'):
         ))
 
     # Application schema initialization
-    manage('syncdb', flags=['migrate'], env=env)
+    manage('syncdb', flags=['migrate', 'noinput'], env=env)
 
     # Load test data (dev):
     if 'dev' in roles and true(testdata):
@@ -267,7 +268,11 @@ def setup_redshift(env=None, force='0', testdata='1'):
             capture=True
         )
         if not database_exists:
-            l('sudo -u postgres psql -c "create database {DATABASE} with owner={USER} template=template0 encoding=\'utf-8\'"'.format(**sql_context))
+            l('sudo -u postgres psql -c "create database {DATABASE} with '
+              'owner={USER} template=template0 encoding=\'utf-8\' '
+              'lc_collate=\'en_US.utf8\' lc_ctype=\'en_US.utf8\'"'.format(
+                  **sql_context)
+              )
 
         # Application schema initialization
         manage('syncdb', env=env, keyed={
