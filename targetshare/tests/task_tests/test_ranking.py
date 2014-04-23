@@ -26,8 +26,7 @@ class RankingTestCase(EdgeFlipTestCase):
 
     def setUp(self):
         super(RankingTestCase, self).setUp()
-        expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
-        self.token = models.dynamo.Token(fbid=1, appid=1, token='1', expires=expires)
+        self.token = models.datastructs.ShortToken(fbid=1, appid='1', token='1Z')
 
 
 class TestProximityRankThree(RankingTestCase):

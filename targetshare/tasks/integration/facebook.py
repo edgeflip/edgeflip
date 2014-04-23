@@ -1,8 +1,10 @@
 import logging
+import sys
 import time
 
 from celery import shared_task
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import six
 
 from targetshare.models import dynamo, relational
 from targetshare.integration import facebook
@@ -82,16 +84,26 @@ def store_oauth_token(client_id, code, redirect_uri,
         visitor = visit.visitor
         if visitor.fbid != token_fbid:
             if visitor.fbid:
+                # Visitor-in-hand already set; get-or-create matching visitor
                 LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
                 (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token_fbid)
             else:
+                # Get matching visitor or update visitor-in-hand
                 try:
                     # Check for pre-existing Visitor with this fbid:
                     visitor = relational.Visitor.objects.get(fbid=token_fbid)
                 except relational.Visitor.DoesNotExist:
-                    # Update the visitor we have:
-                    visitor.fbid = token_fbid
-                    visitor.save(update_fields=['fbid'])
+                    try:
+                        # Update the visitor we have:
+                        visitor.fbid = token_fbid
+                        visitor.save(update_fields=['fbid'])
+                    except IntegrityError:
+                        exc_info = sys.exc_info()
+                        try:
+                            # Check for race condition:
+                            visitor = relational.Visitor.objects.get(fbid=token_fbid)
+                        except relational.Visitor.DoesNotExist:
+                            six.reraise(*exc_info)
 
             visit.visitor = visitor
             visit.save(update_fields=['visitor'])
