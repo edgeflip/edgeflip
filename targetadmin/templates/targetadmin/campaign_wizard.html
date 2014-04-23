@@ -26,7 +26,8 @@
 {% endblock %} {% block extrascript %}
 <script>
     // Tracks number of layers in play on Filtering screen
-    var layer_count = 1;
+    var layer_count = 1,
+        can_close_modal = true;
 
     // "Steps"
     $('.step-submit').click(function(e) {
@@ -124,8 +125,11 @@
                 feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
                 '</abbr></p></div>'
             );
-            $('#filter-modal').modal('toggle');
-            $('#filter-modal').removeData();
+
+            if( can_close_modal ) {
+                $('#filter-modal').modal('toggle');
+                $('#filter-modal').removeData();
+            }
         }
     });
 </script>
