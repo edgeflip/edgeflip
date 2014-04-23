@@ -1,5 +1,5 @@
 import csv
-from datetime import date
+from datetime import datetime
 from django.db import connections
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
@@ -53,9 +53,9 @@ def campaign_hourly(request, client_pk, campaign_pk):
 
 
 def generate_csv(data, client_pk):
-    client = Client.objects.get(pk=client_pk)
+    client = Client.objects.only('codename').get(pk=client_pk)
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="{}-report-{}.csv"'.format(client.name, date.today().strftime('%Y%m%d'))
+    response['Content-Disposition'] = 'attachment; filename="{}-report-{}.csv"'.format(client.codename, datetime.today().strftime('%Y-%m-%dT%H:%M:%S'))
     writer = csv.writer(response)
     for row in data:
         writer.writerow(row)
