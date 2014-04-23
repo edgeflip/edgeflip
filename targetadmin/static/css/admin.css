@@ -6,6 +6,26 @@
     padding-top: 2px;
     height: 50px;
     margin-left: 10px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.draggable:hover,
+.draggable p:hover,
+.draggable p abbr:hover {
+    cursor: move;
+}
+
+.draggable p {
+    display: table;
+    margin 0px !important;
+    height: 100%;
+    width: 100%;
+}
+
+.draggable p abbr {
+    display: table-cell;
+    vertical-align: middle;
 }
 
 .form-error {
