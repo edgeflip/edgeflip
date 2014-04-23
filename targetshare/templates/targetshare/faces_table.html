@@ -61,11 +61,14 @@ this is the message div and the faces themselves
                         </div>
                     </div>
                 </td>
-                {% if forloop.counter0 == 2 and num_face > 3 %}
-                    </tr><tr>
-                {% endif %}
-                {% if forloop.counter0 == 5 and num_face > 6 %}
-                    </tr><tr>
+                {% if num_face|divisibleby:"3" %}
+                    {% if forloop.counter|divisibleby:"3" and num_face > forloop.counter %}
+                        </tr><tr>
+                    {% endif %}
+                {% elif num_face|divisibleby:"5" %}
+                    {% if forloop.counter|divisibleby:"5" and num_face > forloop.counter %}
+                        </tr><tr>
+                    {% endif %}
                 {% endif %}
             {% endfor %}
         </tr>
@@ -124,7 +127,7 @@ this is the message div and the faces themselves
 
     {% block button %}
         <div id="button_share_container">
-            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">Show Your Support</div>
+            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
         </div>
     {% endblock button %}
 

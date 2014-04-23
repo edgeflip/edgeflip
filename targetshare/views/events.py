@@ -8,8 +8,8 @@ from django.views.decorators.http import require_POST
 
 from targetshare.models import relational
 from targetshare.views import utils
-from targetshare.integration import facebook
 from targetshare.tasks import db
+from targetshare.tasks.integration.facebook import extend_token
 
 LOG = logging.getLogger('crow')
 
@@ -50,7 +50,7 @@ def record_event(request):
     content = request.POST.get('content', '')
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
-    extend_token = request.POST.get('extend_token', False)
+    extend = request.POST.get('extend_token', False)
     friends = [int(fid) for fid in request.POST.getlist('friends[]')]
 
     if campaign_id:
@@ -145,9 +145,8 @@ def record_event(request):
             return http.HttpResponseBadRequest(msg)
 
         campaign.client.userclients.get_or_create(fbid=fbid)
-        if extend_token:
-            token = facebook.client.extend_token(fbid, appid, token_string)
-            token.save(overwrite=True)
+        if extend:
+            extend_token.delay(fbid, appid, token_string)
 
     elif event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so

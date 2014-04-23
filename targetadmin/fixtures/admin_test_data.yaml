@@ -384,6 +384,11 @@
             17:04:53+00:00', name: Matching, sort_order: 4}
     model: targetshare.filterfeaturetype
     pk: 5
+-   fields: {code: full_location, created: !!timestamp '2014-02-05 03:53:48+00:00',
+        modified: !!timestamp '2014-02-05 03:53:48+00:00', name: Full Location, px_rank: 3,
+        sort_order: 4}
+    model: targetshare.filterfeaturetype
+    pk: 6
 -   fields: {end_dt: null, feature: state, feature_type: 3, filter: 2,
         operator: in, start_dt: !!timestamp '2013-07-15 16:38:28+00:00', value: Illinois||California||Massachusetts||New
             York, value_type: list}

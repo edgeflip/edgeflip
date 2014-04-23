@@ -1,13 +1,39 @@
 import logging
+import sys
+import time
 
 from celery import shared_task
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.utils import six
 
-from targetshare.models import relational
+from targetshare.models import dynamo, relational
 from targetshare.integration import facebook
 
 
 LOG = logging.getLogger('crow')
+
+
+@shared_task(default_retry_delay=300, max_retries=9)
+def extend_token(fbid, appid, token_value):
+    now = time.time()
+
+    try:
+        extension = facebook.client.extend_token(fbid, appid, token_value)
+        access_token = extension['access_token']
+        expires_in = int(extension['expires'])
+    except (KeyError, IOError, ValueError) as exc:
+        LOG.warning("Failed to extend token", exc_info=True)
+        extend_token.retry(exc=exc)
+
+    LOG.debug("Extended access token %s expires in %s seconds", access_token, expires_in)
+
+    token = dynamo.Token(
+        fbid=fbid,
+        appid=appid,
+        token=access_token,
+        expires=(now + expires_in),
+    )
+    token.save(overwrite=True)
 
 
 @shared_task(default_retry_delay=300, max_retries=2)
@@ -44,32 +70,40 @@ def store_oauth_token(client_id, code, redirect_uri,
             return
 
         token_fbid = debug_data['data']['user_id']
-        token_expires = debug_data['data']['expires_at']
     except (KeyError, IOError) as exc:
-        LOG.warning("Failed to retrieve OAuth token data", exc_info=True)
-        store_oauth_token.retry(exc=exc)
+        LOG.fatal("Failed to retrieve OAuth token data & giving up", exc_info=True)
+        return
 
-    token = facebook.client.extend_token(token_fbid, client.fb_app_id, token_value, token_expires)
-    token.save(overwrite=True)
-    client.userclients.get_or_create(fbid=token.fbid)
+    extend_token.delay(token_fbid, client.fb_app_id, token_value)
+    client.userclients.get_or_create(fbid=token_fbid)
 
     if visit_id:
         visit = relational.Visit.objects.get(visit_id=visit_id)
 
         # Ensure Visitor.fbid:
         visitor = visit.visitor
-        if visitor.fbid != token.fbid:
+        if visitor.fbid != token_fbid:
             if visitor.fbid:
+                # Visitor-in-hand already set; get-or-create matching visitor
                 LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
-                (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token.fbid)
+                (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token_fbid)
             else:
+                # Get matching visitor or update visitor-in-hand
                 try:
                     # Check for pre-existing Visitor with this fbid:
-                    visitor = relational.Visitor.objects.get(fbid=token.fbid)
+                    visitor = relational.Visitor.objects.get(fbid=token_fbid)
                 except relational.Visitor.DoesNotExist:
-                    # Update the visitor we have:
-                    visitor.fbid = token.fbid
-                    visitor.save(update_fields=['fbid'])
+                    try:
+                        # Update the visitor we have:
+                        visitor.fbid = token_fbid
+                        visitor.save(update_fields=['fbid'])
+                    except IntegrityError:
+                        exc_info = sys.exc_info()
+                        try:
+                            # Check for race condition:
+                            visitor = relational.Visitor.objects.get(fbid=token_fbid)
+                        except relational.Visitor.DoesNotExist:
+                            six.reraise(*exc_info)
 
             visit.visitor = visitor
             visit.save(update_fields=['visitor'])

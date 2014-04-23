@@ -38,7 +38,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
             appid=self.test_client.fb_app_id,
             token='test-token',
             expires=expires0,
-            overwrite=True,
         )
         clientuser = self.test_client.userclients.filter(fbid=fbid)
         self.assertFalse(clientuser.exists())

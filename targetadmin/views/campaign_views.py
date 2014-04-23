@@ -1,3 +1,4 @@
+import csv
 import itertools
 
 from django.conf import settings
@@ -102,12 +103,12 @@ def campaign_wizard(request, client_pk):
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
             filter_feature_layers = []
-            for x in xrange(1, 5):
-                inputs = request.POST.get('enabled-filters-{}'.format(x))
+            enabled_filters = (request.POST.get(
+                'enabled-filters-{}'.format(index), '') for index in range(1, 5))
+            for inputs in csv.reader(enabled_filters):
                 if not inputs:
                     continue
 
-                inputs = inputs.split(',')
                 layer = []
                 for feature_string in inputs:
                     feature, operator, value = feature_string.split('.')
@@ -237,7 +238,7 @@ def campaign_wizard(request, client_pk):
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                     client_error_url=campaign_form.cleaned_data['error_url'],
                     fallback_campaign=last_camp,
-                    fallback_is_cascading=True,
+                    fallback_is_cascading=bool(last_camp),
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,

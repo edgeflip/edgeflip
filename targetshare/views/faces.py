@@ -15,6 +15,7 @@ from faraday.structs import LazyList
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db, ranking
+from targetshare.tasks.integration.facebook import extend_token
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -154,11 +155,15 @@ def faces(request):
 
     else:
         # First request #
+        token = models.datastructs.ShortToken(
+            fbid=data['fbid'],
+            appid=client.fb_app_id,
+            token=data['token'],
+        )
 
         # Extend & store Token and record authorized UserClient:
-        token = facebook.client.extend_token(data['fbid'], client.fb_app_id, data['token'])
-        db.delayed_save(token, overwrite=True)
-        db.get_or_create(
+        extend_token.delay(*token)
+        db.get_or_create.delay(
             models.relational.UserClient,
             client_id=client.pk,
             fbid=data['fbid'],
@@ -287,6 +292,7 @@ def faces(request):
             'msg_params': {
                 'sharing_prompt': fb_attrs.sharing_prompt,
                 'sharing_sub_header': fb_attrs.sharing_sub_header,
+                'sharing_button': fb_attrs.sharing_button,
                 'msg1_pre': fb_attrs.msg1_pre,
                 'msg1_post': fb_attrs.msg1_post,
                 'msg2_pre': fb_attrs.msg2_pre,

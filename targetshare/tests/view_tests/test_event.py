@@ -149,22 +149,14 @@ class TestEventViews(EdgeFlipViewTestCase):
             1
         )
 
-    @patch('targetshare.views.events.facebook.client')
-    def test_record_event_authorized(self, fb_mock):
+    @patch('targetshare.views.events.extend_token')
+    def test_record_event_authorized(self, task_mock):
         ''' Test views.record_event with authorized event_type '''
-        fb_mock.extend_token.return_value = models.dynamo.Token(
-            token='test-token',
-            fbid=1111111,
-            appid=self.test_client.fb_app_id,
-            expires=timezone.now()
-        )
-        expires0 = timezone.now() - datetime.timedelta(days=5)
         models.dynamo.Token.items.put_item(
             fbid=1111111,
             appid=self.test_client.fb_app_id,
             token='test-token',
-            expires=expires0,
-            overwrite=True,
+            expires=(timezone.now() - datetime.timedelta(days=5)),
         )
         events = models.Event.objects.filter(event_type='authorized')
         self.assertEqual(events.count(), 0)
@@ -181,15 +173,11 @@ class TestEventViews(EdgeFlipViewTestCase):
             'extend_token': '1'
         })
         self.assertStatusCode(response, 200)
-        refreshed_token = models.dynamo.Token.items.get_item(
-            fbid=1111111,
-            appid=self.test_client.fb_app_id,
-        )
-        self.assertGreater(refreshed_token['expires'], expires0)
         self.assertEqual(events.count(), 1)
+        task_mock.delay.assert_called_once_with(1111111, self.test_client.fb_app_id, 'test-token')
 
-    @patch('targetshare.views.events.facebook.client')
-    def test_record_event_preauthed(self, fb_mock):
+    @patch('targetshare.views.events.extend_token')
+    def test_record_event_preauthed(self, task_mock):
         # Make bad request to init visit
         response = self.client.post(reverse('record-event'), {
             'eventType': 'no-events-here',
@@ -215,7 +203,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         })
         self.assertStatusCode(response, 200)
         self.assertEqual(auths.count(), 1)
-        self.assertEqual(fb_mock.extend_token.call_count, 1)
+        self.assertEqual(task_mock.delay.call_count, 1)
 
     def test_record_event_heartbeat(self):
         ''' Testing the record_event view with a heartbeat event '''

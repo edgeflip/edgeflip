@@ -1,6 +1,6 @@
 import json
 import urllib
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import mock
 from freezegun import freeze_time
@@ -11,8 +11,6 @@ from targetshare.tasks.integration import facebook
 
 from .. import EdgeFlipTestCase
 
-
-requests_patch = mock.patch('requests.get', **{'return_value.content': 'access_token=TOKZ'})
 
 DEBUG_TOKEN_MOCK = json.dumps({
     'data': {
@@ -27,16 +25,18 @@ EXTEND_TOKEN_MOCK = urllib.urlencode([
     ('expires', str(60 * 60 * 24 * 60)), # 60 days in seconds
 ])
 
-urllib2_patch = mock.patch('urllib2.urlopen', **{'return_value.read.side_effect': [
-    DEBUG_TOKEN_MOCK,
-    EXTEND_TOKEN_MOCK,
-]})
-
 
 @freeze_time('2013-01-01')
 class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     fixtures = ('test_data',)
+
+    requests_patch = mock.patch('requests.get', **{'return_value.content': 'access_token=TOKZ'})
+
+    urllib2_patch = mock.patch('urllib2.urlopen', **{'return_value.read.side_effect': [
+        DEBUG_TOKEN_MOCK,
+        EXTEND_TOKEN_MOCK,
+    ]})
 
     @requests_patch
     @urllib2_patch
@@ -183,3 +183,21 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
         self.assertNotEqual(visitor, visit.visitor)
         self.assertEqual(visitor, existing_visitor)
         self.assertEqual(visitor.fbid, 100)
+
+
+class TestExtendToken(EdgeFlipTestCase):
+
+    urllib2_patch = mock.patch('urllib2.urlopen', **{'return_value.read.return_value': EXTEND_TOKEN_MOCK})
+
+    @urllib2_patch
+    def test_extension(self, _urllib_mock):
+        tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
+        self.assertEqual(tokens.query_count(), 0)
+
+        now = epoch.utcnow()
+        facebook.extend_token(100, 471727162864364, 'xyz')
+
+        token = tokens.filter_get()
+        self.assertEqual(token.token, 'tok1')
+        self.assertAlmostEqual(token.expires, now + timedelta(days=60),
+                               delta=timedelta(seconds=1))

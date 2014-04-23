@@ -14,14 +14,11 @@
 
 {% block style_inline %}
     <!-- Document-specific style -->
-    <STYLE>
-        /* May eventually want to template these style rules and pass from Flask */
+    <style>
         body {
             background-color: transparent;
-            /* May also need ALLOWTRANSPARENCY="true" in the iframe tag... */
         }
-
-    </STYLE>
+    </style>
     <!-- Document-specific style -->
 {% endblock %}
 
@@ -65,7 +62,8 @@
             thanksURL: '{{ properties.client_thanks_url }}',
             errorURL: '{{ properties.client_error_url }}',
             campaignid: {{ campaign.pk }},
-            contentid: {{ content.pk }}
+            contentid: {{ content.pk }},
+            num_face: {{ properties.num_faces }}
         });
 
         {% block js_configure %}
