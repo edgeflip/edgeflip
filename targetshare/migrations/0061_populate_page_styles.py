@@ -13,74 +13,205 @@ PAGES = (
     (FRAME_FACES, "Faces frame"),
 )
 
-DEFAULT_CSS_URL_TEMPLATE = '//assets-edgeflip.s3.amazonaws.com/{env_initial}/c/edgeflip-base-0{min_ext}.css'
-
+css_url_context = {
+    'base_url': '//assets-edgeflip.s3.amazonaws.com/',
+}
 if settings.ENV == 'production':
-    DEFAULT_CSS_URL_CONTEXT = {
-        'env_initial': 'p',
-        'min_ext': '.min',
-    }
+    css_url_context.update(
+        env_initial='p',
+        min_ext='.min',
+    )
 else:
-    DEFAULT_CSS_URL_CONTEXT = {
-        'env_initial': 's',
-        'min_ext': '',
-    }
+    css_url_context.update(
+        env_initial='s',
+        min_ext='',
+    )
 
-DEFAULT_CSS_URL = DEFAULT_CSS_URL_TEMPLATE.format(**DEFAULT_CSS_URL_CONTEXT)
+css_url_template = '{base_url}{env_initial}/c/{{}}{min_ext}.css'.format(**css_url_context)
 
-CLIENTS_WITH_CSS = () # TODO
 
-# TODO: give all existing campaigns the appropriate base css
-# TODO: ...and whatever custom stuff
+def cssurl(filename):
+    return css_url_template.format(filename)
+
+
+DEFAULT_CSS_URL = cssurl('edgeflip-base-0')
+
+
+# For clients who have overridden our css (globally):
+# e.g. ofa's edgeflip_client.css + our edgeflip_client_simple.css
+CLIENT_DEFAULT_CSS = (
+    # client code, CSS URL
+    ('terrymcauliffe', cssurl('terrymcauliffe-base-c5c5b2377f064e6f6486114df6edd432')),
+    ('global-giving', cssurl('globalgiving-base-edd081735f92e610019cdf8c9f62d17b')),
+    ('hampton', cssurl('hampton-base-6fc25f7ea8ff584879c5040eeb14b368')),
+)
+
+# For client campaigns which have overridden our css:
+# (for these campaigns, generated cat of [client's] edgeflip_client.css and the
+# custom "simple" css file, and uploaded to clientcode-cssname-md5.css --
+# md5[client|name|datetime])
+CAMPAIGN_CUSTOM_CSS = (
+    # client code, style name, CSS URL, campaign IDs
+    ('ofa',
+     "Adorable Care Act",
+     cssurl('ofa-adorable-8138c950d6d557a6c0a4d4c715592610'),
+     [142, 143, 144, 145, 146, 147]),
+
+    ('ofa',
+     "Health Calculator",
+     cssurl('ofa-calculator-a0618f8b35f0d759369ec37f458a0dff'),
+     [148, 149]),
+
+    ('ofa',
+     "Bumper Sticker",
+     cssurl('ofa-bumpersticker-ff9aee679a4c7cc71120f3edd9643ac3'),
+     [153, 155]),
+)
+
+CLIENT_EXTRA_CSS = (
+    # client code, style name, CSS URL
+    ('ofa', 'Fonts', '//cloud.typography.com/7553052/630502/css/fonts.css'),
+    ('terrymcauliffe', 'Fonts', '//fonts.googleapis.com/css?family=Open+Sans:400,600,400italic,600italic,700,700italic'),
+)
 
 
 class Migration(DataMigration):
 
     @classmethod
-    def puts(cls, *args, **kws):
+    def puts(cls, s, *args, **kws):
         (app, _dir, name) = cls.__module__.split('.')
-        print("[{}:{}]".format(app, name), *args, **kws)
+        print("[{}:{}]".format(app, name), s.format(*args, **kws))
 
     def forwards(self, orm):
         """Populate pages, page_styles and campaign_page_style_sets tables for
         existing client CSS.
 
         """
-        # Page types:
+        # Create page types and default CSS
         pages = {}
+        default_styles = {}
         for (page_code, page_name) in PAGES:
-            pages[page_code] = orm.Page.objects.create(name=page_name, code=page_code)
-            self.puts("Created {} page".format(page_code))
+            # Create page:
+            page = pages[page_code] = orm.Page.objects.create(name=page_name, code=page_code)
+            self.puts("Created {} page", page.code)
 
-        # Our base CSS:
-        default_page_style = orm.PageStyle.objects.create(
-            name="Edgeflip default styles",
-            description="Default stylesheet provided by Edgeflip",
-            page=pages[FRAME_FACES],
-            starred=True,
-            url=DEFAULT_CSS_URL,
-        )
-        self.puts("Created {} page style for `{}' [{}]".format(
-            FRAME_FACES, DEFAULT_CSS_URL, default_page_style.pk))
+            # Create page style:
+            page_style = default_styles[page_code] = page.pagestyles.create(
+                name="Edgeflip default styles",
+                description="Default stylesheet provided by Edgeflip",
+                client=None,
+                starred=True,
+                url=DEFAULT_CSS_URL,
+            )
+            self.puts("Created {} page style for `{}' [{}]",
+                      page.code, DEFAULT_CSS_URL, page_style.pk)
 
-        # Generic campaigns:
-        for campaign in orm.Campaign.objects.exclude(
-            client__codename__in=CLIENTS_WITH_CSS,
+        page = pages[FRAME_FACES] # we only care about faces frame for now
+
+        # Create and attach custom campaign CSS (for faces frame page)
+        for (client_code, css_name, css_url, campaign_ids) in CAMPAIGN_CUSTOM_CSS:
+            try:
+                client = orm.Client.objects.get(codename=client_code)
+            except orm.Client.DoesNotExist:
+                if settings.ENV == 'development':
+                    self.puts("Skipping {} page style in development", client_code)
+                    continue
+                raise
+
+            page_style = page.pagestyles.create(
+                name="{} styles".format(css_name),
+                client=client,
+                url=css_url,
+            )
+            self.puts("Created {} page style for `{}' [{}] [{}]",
+                      page.code, css_url, client_code, page_style.pk)
+
+            for campaign_id in campaign_ids:
+                style_set = page_style.pagestylesets.create()
+                orm.CampaignPageStyleSet.objects.create(
+                    campaign_id=campaign_id,
+                    page_style_set=style_set,
+                    rand_cdf=1,
+                )
+                self.puts("Attached page style [{}] to {} campaign [{}]",
+                          page_style.pk, client_code, campaign_id)
+
+        # Create and attach client-wide custom CSS
+        for (client_code, css_url) in CLIENT_DEFAULT_CSS:
+            try:
+                client = orm.Client.objects.get(codename=client_code)
+            except orm.Client.DoesNotExist:
+                if settings.ENV == 'development':
+                    self.puts("Skipping {} page style in development", client_code)
+                    continue
+                raise
+
+            page_style = page.pagestyles.create(
+                name="{} styles (imported)".format(client_code),
+                client=client,
+                url=css_url,
+            )
+            self.puts("Created {} page style for `{}' [{}] [{}]",
+                      page.code, css_url, client_code, page_style.pk)
+
+            # Client's campaigns unaffected above:
+            for campaign in client.campaigns.filter(
+                campaignpagestylesets=None,
+            ).distinct():
+                style_set = page_style.pagestylesets.create()
+                campaign.campaignpagestylesets.create(
+                    page_style_set=style_set,
+                    rand_cdf=1,
+                )
+                self.puts("Attached page style [{}] to {} campaign [{}]",
+                          page_style.pk, client_code, campaign_id)
+
+        # Attach default CSS to generic campaigns
+        page_style = default_styles[FRAME_FACES]
+        # All campaigns unaffected above:
+        for campaign in orm.Campaign.objects.filter(
+            campaignpagestylesets=None,
         ).distinct():
-            style_set = orm.PageStyleSet.objects.create()
-            style_set.page_styles = [default_page_style]
+            style_set = page_style.pagestylesets.create()
             campaign.campaignpagestylesets.create(
                 page_style_set=style_set,
                 rand_cdf=1,
             )
-            self.puts("Attached default page style [{}] to {} campaign [{}]".format(
-                default_page_style.pk, campaign.client.codename, campaign.pk))
+            self.puts("Attached default page style [{}] to {} campaign [{}]",
+                      page_style.pk, campaign.client.codename, campaign.pk)
 
-        # TODO
+        # Create and attach additional CSS links
+        for (client_code, css_name, css_url) in CLIENT_EXTRA_CSS:
+            try:
+                client = orm.Client.objects.get(codename=client_code)
+            except orm.Client.DoesNotExist:
+                if settings.ENV == 'development':
+                    self.puts("Skipping {} page style in development", client_code)
+                    continue
+                raise
+
+            page_style = page.pagestyles.create(
+                name=css_name,
+                client=client,
+                url=css_url,
+            )
+            self.puts("Created additional {} page style for `{}' [{}] [{}]",
+                      page.code, css_url, client_code, page_style.pk)
+
+            for campaign in client.campaigns.all():
+                # Add extra CSS link to existing set;
+                # (there should be only one, as we're not exercising rand_cdf):
+                campaign_page_style_set = campaign.campaignpagestylesets.get()
+                campaign_page_style_set.page_style_set.page_styles.add(page_style)
+                self.puts("Attached additional page style [{}] to {} campaign [{}]",
+                          page_style.pk, client.codename, campaign.pk)
+
+        self.puts("Created {} page style sets", orm.CampaignPageStyleSet.objects.count())
 
     def backwards(self, orm):
         """Remove pages, page_styles and campaign_page_styles tables."""
         orm.Page.objects.all().delete()
+        orm.PageStyleSet.objects.all().delete()
 
     models = {
         u'auth.group': {
@@ -614,7 +745,7 @@ class Migration(DataMigration):
             'Meta': {'object_name': 'PageStyleSet', 'db_table': "'page_style_sets'"},
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'page_style_set_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'page_styles': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['targetshare.PageStyle']", 'symmetrical': 'False'}),
+            'page_styles': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'pagestylesets'", 'symmetrical': 'False', 'to': "orm['targetshare.PageStyle']"}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         'targetshare.propensitymodel': {

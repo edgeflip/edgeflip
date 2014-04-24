@@ -617,7 +617,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'PageStyleSet', 'db_table': "'page_style_sets'"},
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'page_style_set_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
-            'page_styles': ('django.db.models.fields.related.ManyToManyField', [], {'to': "orm['targetshare.PageStyle']", 'symmetrical': 'False'}),
+            'page_styles': ('django.db.models.fields.related.ManyToManyField', [], {'related_name': "'pagestylesets'", 'symmetrical': 'False', 'to': "orm['targetshare.PageStyle']"}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'})
         },
         'targetshare.propensitymodel': {
