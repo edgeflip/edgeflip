@@ -16,6 +16,13 @@
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
+                    <div id="age-range-container" style="display:none;">
+                        <div style="padding-bottom: 10px;">
+                            <span>Age range:</span>
+                            <span id="age-range-display">25 - 75</span>
+                        </div>
+                        <div id="age-range"></div>
+                    </div>
                 </p>
                 <hr>
             </div>
@@ -36,22 +43,175 @@
         );
     });
 
-    $('#id_feature').on( 'change', function() {
-        if( $(this).val() === 'gender' ) {
-            $('#id_operator').val('eq').attr( 'disabled', true );
-            $('#id_value-split-1').hide();
-            $('#value-span').hide();
-            $('#value-a').hide();
-            $('#gender-dropdown').fadeIn();
-        } else if( $('#gender-dropdown').is(':visible') ) {
-            $('#gender-dropdown').hide();
-            $('#id_operator').val('').removeAttr( 'disabled' );
-            $('#id_value-split-1').val('').fadeIn();
-            $('#value-span').fadeIn();
-            $('#value-a').fadeIn();
+    //object constructor -- manages filter creation modal
+    //binds events, cache's jQuery DOM lookups
+    //I'd really like to incorporate a templating engine ( that front and backend can use )
+    //  in order to utilize a .js helper function that does this caching, event binding automatically
+    //  as well as separate .js from HTML
+    //creates a separate save changes button for age filter because it creates two filters
+    //initializes age range slider
+    var CreateFilterManager = function() {
+        var self = this;
+
+        this.featureDropdown =  $('#id_feature').on( 'change', function() { self.handleFeatureChange(); } );
+        this.genderDropdown = $('#gender-dropdown').on( 'change', function() { self.handleGenderChange(); } );
+        
+        this.operatorDropdown = $('#id_operator');
+        this.operatorLabel = $('label[for="id_operator"]');
+        this.operatorError = $('#operator-error');
+
+        this.valueLabel = $('label[for="id_value"]');
+        this.firstValueInput = $('#id_value-split-1');
+        this.valueSpan = $('#value-span');
+        this.valueError = $('#value-error');
+        this.addValueIcon = $('#value-a');
+
+        this.saveChangesBtn = $('#filter-add');
+
+        this.saveAgeChangesBtn =
+            this.saveChangesBtn.clone().insertAfter( this.saveChangesBtn )
+                .attr( 'id', 'age-filter-add' )
+                .on( 'click', $.proxy( this.submitAgeFilter, this ) )
+                .hide();
+
+        this.ageRangeContainer = $('#age-range-container');
+
+        $( "#age-range" ).slider( {
+            range: true,
+            min: 0,
+            max: 100,
+            values: [ 25, 75 ],
+            slide: function( event, ui ) {
+              $( "#age-range-display" ).text( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+            }
+        } );
+
+        return this;
+    }
+
+    //adding methods to our filter creation manager
+    $.extend( CreateFilterManager.prototype, {
+
+        //called when feature type changes
+        //cleans up former state's UI
+        //looks for object method to handle selected feature type
+        //calls that method if it exists, else, vanilla form
+        handleFeatureChange: function() {
+
+            var feature = this.featureDropdown.val(),
+                method = 'show' + feature.charAt(0).toUpperCase() + feature.slice(1) + 'UI';
+
+            //should add a state to this object so we know what to clean up
+            // instead of checking twice
+            if( this.genderDropdown.is(':visible') ) { this.cleanUpGenderUI(); }
+            if( this.ageRangeContainer.is(':visible') ) { this.cleanUpAgeUI(); }
+
+            if( this[ method ] ) { this[ method ](); }
+
+            return this;
+        },
+
+        //'Age' was selected from the dropdown
+        //hide default UI, show age ui
+        showAgeUI: function() {
+            this.valueSpan.empty();
+            this.toggleOperatorElements( 'hide' );
+            this.toggleDefaultValueInputs( 'hide', [ 'valueLabel' ] );  
+            this.ageRangeContainer.fadeIn();
+            this.saveChangesBtn.hide();
+            this.saveAgeChangesBtn.show();
+        },
+
+        //'Gender' was selected from the dropdown
+        //hide default UI, show gender ui
+        showGenderUI: function() {
+            this.valueSpan.empty();
+            this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.toggleDefaultValueInputs( 'hide' );  
+            this.genderDropdown.fadeIn();
+        },
+
+        //hide Age UI, show default UI
+        cleanUpAgeUI: function() {
+
+            window.can_close_modal = true;
+
+            this.saveChangesBtn.show();
+            this.saveAgeChangesBtn.hide();
+
+            this.ageRangeContainer.hide();
+            this.firstValueInput.val('');
+            this.toggleOperatorElements( 'fadeIn' );
+            this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
+        },
+
+        //hide gender UI, show default UI
+        cleanUpGenderUI: function() {
+
+            this.genderDropdown.hide();
+            this.operatorDropdown.val('').removeAttr( 'disabled' );
+            this.firstValueInput.val('');
+            this.toggleDefaultValueInputs( 'fadeIn' );
+        },
+
+        //special age version of 'Save Changes' button clicked 
+        //set min value, click original 'Save Changes' button
+        //set max value, click original 'Save Changes' button
+        submitAgeFilter: function( e ) {
+            var values = $( '#age-range' ).slider( 'values' );
+
+            e.preventDefault();
+
+            window.can_close_modal = false;
+
+            this.operatorDropdown.val('min');
+            this.firstValueInput.val( values[0] );
+            this.saveChangesBtn.click();
+
+            window.can_close_modal = true;
+
+            this.operatorDropdown.val('max');
+            this.firstValueInput.val( values[1] );
+            this.saveChangesBtn.click();
+                
+            this.saveAgeChangesBtn.hide();
+            this.saveChangesBtn.show();
+        },
+
+        //gender dropdown changed, update hidden value input
+        handleGenderChange: function() { this.firstValueInput.val( this.genderDropdown.val() ); },
+
+        //func is string referencing a jquery method
+        //func is called on the 'Operator' UI elements
+        //will not show "Error" elements
+        toggleOperatorElements: function( func ) {
+            var elements = [ 'operatorLabel', 'operatorDropdown', 'operatorError' ];
+            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'operatorError' ), 1 ); }
+            this.toggleElements( elements, func );
+        },
+
+        //func is string referencing a jquery method
+        //func is called on the 'Value' UI elements
+        //will not show "Error" elements
+        //extra Els is an optional parameter allowing for the inclusion
+        // of extra elements
+        toggleDefaultValueInputs: function( func, extraEls ) {
+            var elements = [ 'firstValueInput', 'valueSpan', 'addValueIcon', 'valueError' ];
+            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'valueError' ), 1 ); }
+            if( extraEls ) { elements = elements.concat( extraEls ); }
+            this.toggleElements( elements, func );
+        },
+
+        //takes a list of strings referring to this objects cached elements
+        //calls jQuery method func on these cached elements
+        toggleElements: function( elementList, func ) {
+            var self = this;
+            $.each( elementList, function( i, elReference ) { self[ elReference ][ func ](); } );
         }
+
     } );
 
-    $('#gender-dropdown').on( 'change', function() { $('#id_value-split-1').val( $(this).val() ); } );
+    //create istance of CreateFilterManager
+    new CreateFilterManager();
 
 </script>
