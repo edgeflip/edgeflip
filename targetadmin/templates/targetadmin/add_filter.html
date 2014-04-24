@@ -43,10 +43,18 @@
         );
     });
 
-    var createFilterManager = function() {
+    //object constructor -- manages filter creation modal
+    //binds events, cache's jQuery DOM lookups
+    //I'd really like to incorporate a templating engine ( that front and backend can use )
+    //  in order to utilize a .js helper function that does this caching, event binding automatically
+    //  as well as separate .js from HTML
+    //creates a separate save changes button for age filter because it creates two filters
+    //initializes age range slider
+    var CreateFilterManager = function() {
+        var self = this;
 
-        this.featureDropdown =  $('#id_feature').on( 'change', $.proxy( this.handleFeatureChange, this ) );
-        this.genderDropdown = $('#gender-dropdown').on( 'change', $.proxy( this.handleGenderChange, this ) );
+        this.featureDropdown =  $('#id_feature').on( 'change', function() { self.handleFeatureChange(); } );
+        this.genderDropdown = $('#gender-dropdown').on( 'change', function() { self.handleGenderChange(); } );
         
         this.operatorDropdown = $('#id_operator');
         this.operatorLabel = $('label[for="id_operator"]');
@@ -81,13 +89,20 @@
         return this;
     }
 
-    $.extend( createFilterManager.prototype, {
+    //adding methods to our filter creation manager
+    $.extend( CreateFilterManager.prototype, {
 
+        //called when feature type changes
+        //cleans up former state's UI
+        //looks for object method to handle selected feature type
+        //calls that method if it exists, else, vanilla form
         handleFeatureChange: function() {
 
             var feature = this.featureDropdown.val(),
                 method = 'show' + feature.charAt(0).toUpperCase() + feature.slice(1) + 'UI';
 
+            //should add a state to this object so we know what to clean up
+            // instead of checking twice
             if( this.genderDropdown.is(':visible') ) { this.cleanUpGenderUI(); }
             if( this.ageRangeContainer.is(':visible') ) { this.cleanUpAgeUI(); }
 
@@ -96,6 +111,8 @@
             return this;
         },
 
+        //'Age' was selected from the dropdown
+        //hide default UI, show age ui
         showAgeUI: function() {
             this.valueSpan.empty();
             this.toggleOperatorElements( 'hide' );
@@ -105,6 +122,8 @@
             this.saveAgeChangesBtn.show();
         },
 
+        //'Gender' was selected from the dropdown
+        //hide default UI, show gender ui
         showGenderUI: function() {
             this.valueSpan.empty();
             this.operatorDropdown.val('eq').attr( 'disabled', true );
@@ -112,9 +131,10 @@
             this.genderDropdown.fadeIn();
         },
 
+        //hide Age UI, show default UI
         cleanUpAgeUI: function() {
 
-            can_close_modal = true;
+            window.can_close_modal = true;
 
             this.saveChangesBtn.show();
             this.saveAgeChangesBtn.hide();
@@ -125,6 +145,7 @@
             this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
         },
 
+        //hide gender UI, show default UI
         cleanUpGenderUI: function() {
 
             this.genderDropdown.hide();
@@ -133,19 +154,21 @@
             this.toggleDefaultValueInputs( 'fadeIn' );
         },
 
+        //special age version of 'Save Changes' button clicked 
+        //set min value, click original 'Save Changes' button
+        //set max value, click original 'Save Changes' button
         submitAgeFilter: function( e ) {
-            
             var values = $( '#age-range' ).slider( 'values' );
 
             e.preventDefault();
 
-            can_close_modal = false;
+            window.can_close_modal = false;
 
             this.operatorDropdown.val('min');
             this.firstValueInput.val( values[0] );
             this.saveChangesBtn.click();
 
-            can_close_modal = true;
+            window.can_close_modal = true;
 
             this.operatorDropdown.val('max');
             this.firstValueInput.val( values[1] );
@@ -155,14 +178,23 @@
             this.saveChangesBtn.show();
         },
 
+        //gender dropdown changed, update hidden value input
         handleGenderChange: function() { this.firstValueInput.val( this.genderDropdown.val() ); },
 
+        //func is string referencing a jquery method
+        //func is called on the 'Operator' UI elements
+        //will not show "Error" elements
         toggleOperatorElements: function( func ) {
             var elements = [ 'operatorLabel', 'operatorDropdown', 'operatorError' ];
             if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'operatorError' ), 1 ); }
             this.toggleElements( elements, func );
         },
 
+        //func is string referencing a jquery method
+        //func is called on the 'Value' UI elements
+        //will not show "Error" elements
+        //extra Els is an optional parameter allowing for the inclusion
+        // of extra elements
         toggleDefaultValueInputs: function( func, extraEls ) {
             var elements = [ 'firstValueInput', 'valueSpan', 'addValueIcon', 'valueError' ];
             if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'valueError' ), 1 ); }
@@ -170,6 +202,8 @@
             this.toggleElements( elements, func );
         },
 
+        //takes a list of strings referring to this objects cached elements
+        //calls jQuery method func on these cached elements
         toggleElements: function( elementList, func ) {
             var self = this;
             $.each( elementList, function( i, elReference ) { self[ elReference ][ func ](); } );
@@ -177,6 +211,7 @@
 
     } );
 
-    new createFilterManager();
+    //create istance of CreateFilterManager
+    new CreateFilterManager();
 
 </script>
