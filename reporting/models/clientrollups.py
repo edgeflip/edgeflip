@@ -1,9 +1,8 @@
 from django.db import models
 
-class Clientstats(models.Model):
+class Clientrollups(models.Model):
     
-    campaign_id = models.PositiveIntegerField()
-    hour = models.DateTimeField()
+    client_id = models.PositiveIntegerField()
     visits = models.PositiveIntegerField(default=0)
     clicks = models.PositiveIntegerField(default=0)
     authorized_visits = models.PositiveIntegerField(default=0)
@@ -25,4 +24,4 @@ class Clientstats(models.Model):
 
     class Meta(object):
         app_label = 'reporting'
-        db_table = 'clientstats'
+        db_table = 'clientrollups'

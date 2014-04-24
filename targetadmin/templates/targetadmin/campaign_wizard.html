@@ -2,9 +2,9 @@
 {% block extrahead %}
     <link rel="stylesheet" href="{{ STATIC_URL }}css/admin.css">
 {% endblock %}
-{% block title %}Campaign Wizard{% endblock %}
+{% block title %}Campaign Setup Wizard{% endblock %}
 {% block content %}
-    <h2>Create Campaign</h2>
+    <h2>Create a New Targeted Sharing Campaign</h2>
     <form id="wizard-form" action="" method="post">
         {% csrf_token %}
         <span id="campaign-settings" class="wizard-step">
