@@ -16,6 +16,13 @@
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
+                    <div id="age-range-container" style="display:none;">
+                        <div style="padding-bottom: 10px;">
+                            <span>Age range:</span>
+                            <span id="age-range-display">25 - 75</span>
+                        </div>
+                        <div id="age-range"></div>
+                    </div>
                 </p>
                 <hr>
             </div>
@@ -36,22 +43,140 @@
         );
     });
 
-    $('#id_feature').on( 'change', function() {
-        if( $(this).val() === 'gender' ) {
-            $('#id_operator').val('eq').attr( 'disabled', true );
-            $('#id_value-split-1').hide();
-            $('#value-span').hide();
-            $('#value-a').hide();
-            $('#gender-dropdown').fadeIn();
-        } else if( $('#gender-dropdown').is(':visible') ) {
-            $('#gender-dropdown').hide();
-            $('#id_operator').val('').removeAttr( 'disabled' );
-            $('#id_value-split-1').val('').fadeIn();
-            $('#value-span').fadeIn();
-            $('#value-a').fadeIn();
+    var createFilterManager = function() {
+
+        this.featureDropdown =  $('#id_feature').on( 'change', $.proxy( this.handleFeatureChange, this ) );
+        this.genderDropdown = $('#gender-dropdown').on( 'change', $.proxy( this.handleGenderChange, this ) );
+        
+        this.operatorDropdown = $('#id_operator');
+        this.operatorLabel = $('label[for="id_operator"]');
+        this.operatorError = $('#operator-error');
+
+        this.valueLabel = $('label[for="id_value"]');
+        this.firstValueInput = $('#id_value-split-1');
+        this.valueSpan = $('#value-span');
+        this.valueError = $('#value-error');
+        this.addValueIcon = $('#value-a');
+
+        this.saveChangesBtn = $('#filter-add');
+
+        this.saveAgeChangesBtn =
+            this.saveChangesBtn.clone().insertAfter( this.saveChangesBtn )
+                .attr( 'id', 'age-filter-add' )
+                .on( 'click', $.proxy( this.submitAgeFilter, this ) )
+                .hide();
+
+        this.ageRangeContainer = $('#age-range-container');
+
+        $( "#age-range" ).slider( {
+            range: true,
+            min: 0,
+            max: 100,
+            values: [ 25, 75 ],
+            slide: function( event, ui ) {
+              $( "#age-range-display" ).text( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
+            }
+        } );
+
+        return this;
+    }
+
+    $.extend( createFilterManager.prototype, {
+
+        handleFeatureChange: function() {
+
+            var feature = this.featureDropdown.val(),
+                method = 'show' + feature.charAt(0).toUpperCase() + feature.slice(1) + 'UI';
+
+            if( this.genderDropdown.is(':visible') ) { this.cleanUpGenderUI(); }
+            if( this.ageRangeContainer.is(':visible') ) { this.cleanUpAgeUI(); }
+
+            if( this[ method ] ) { this[ method ](); }
+
+            return this;
+        },
+
+        showAgeUI: function() {
+            this.valueSpan.empty();
+            this.toggleOperatorElements( 'hide' );
+            this.toggleDefaultValueInputs( 'hide', [ 'valueLabel' ] );  
+            this.ageRangeContainer.fadeIn();
+            this.saveChangesBtn.hide();
+            this.saveAgeChangesBtn.show();
+        },
+
+        showGenderUI: function() {
+            this.valueSpan.empty();
+            this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.toggleDefaultValueInputs( 'hide' );  
+            this.genderDropdown.fadeIn();
+        },
+
+        cleanUpAgeUI: function() {
+
+            can_close_modal = true;
+
+            this.saveChangesBtn.show();
+            this.saveAgeChangesBtn.hide();
+
+            this.ageRangeContainer.hide();
+            this.firstValueInput.val('');
+            this.toggleOperatorElements( 'fadeIn' );
+            this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
+        },
+
+        cleanUpGenderUI: function() {
+
+            this.genderDropdown.hide();
+            this.operatorDropdown.val('').removeAttr( 'disabled' );
+            this.firstValueInput.val('');
+            this.toggleDefaultValueInputs( 'fadeIn' );
+        },
+
+        submitAgeFilter: function( e ) {
+            
+            var values = $( '#age-range' ).slider( 'values' );
+
+            e.preventDefault();
+
+            can_close_modal = false;
+
+            this.operatorDropdown.val('min');
+            this.firstValueInput.val( values[0] );
+            this.saveChangesBtn.click();
+
+            can_close_modal = true;
+
+            this.operatorDropdown.val('max');
+            this.firstValueInput.val( values[1] );
+            this.saveChangesBtn.click();
+                
+            this.saveAgeChangesBtn.hide();
+            this.saveChangesBtn.show();
+        },
+
+        handleGenderChange: function() { this.firstValueInput.val( this.genderDropdown.val() ); },
+
+        toggleOperatorElements: function( func ) {
+            var elements = [ 'operatorLabel', 'operatorDropdown', 'operatorError' ];
+            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'operatorError' ), 1 ); }
+            this.toggleElements( elements, func );
+        },
+
+        toggleDefaultValueInputs: function( func, extraEls ) {
+            var elements = [ 'firstValueInput', 'valueSpan', 'addValueIcon', 'valueError' ];
+            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'valueError' ), 1 ); }
+            if( extraEls ) { elements = elements.concat( extraEls ); }
+            this.toggleElements( elements, func );
+        },
+
+        toggleElements: function( elementList, func ) {
+            var self = this;
+            $.each( elementList, function( i, elReference ) { self[ elReference ][ func ](); } );
         }
+
     } );
 
-    $('#gender-dropdown').on( 'change', function() { $('#id_value-split-1').val( $(this).val() ); } );
+    new createFilterManager();
 
 </script>
