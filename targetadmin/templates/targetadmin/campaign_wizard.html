@@ -24,10 +24,12 @@
         </span>
     </form>
 {% endblock %} {% block extrascript %}
+<script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script>
     // Tracks number of layers in play on Filtering screen
-    var layer_count = 1,
-        can_close_modal = true;
+    var layer_count = 1;
+        
+    window.can_close_modal = true;
 
     // "Steps"
     $('.step-submit').click(function(e) {
@@ -146,6 +148,7 @@
     });
 
     // New FilterFeature creation
+    /*
     $('#filter-add').click(function(event) {
         event.preventDefault()
         var filter_values = '';
@@ -189,11 +192,12 @@
                 '</abbr></p></div>'
             );
 
-            if( can_close_modal ) {
+            if( window.can_close_modal ) {
                 $('#filter-modal').modal('toggle');
                 $('#filter-modal').removeData();
             }
         }
     });
+    */
 </script>
 {% endblock %}

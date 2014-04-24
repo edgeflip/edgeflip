@@ -23,6 +23,24 @@
                         </div>
                         <div id="age-range"></div>
                     </div>
+                    <div id="location-options-container" style="display: none;">
+                        <div>
+                            <label for="country-dropdown">Country</label>
+                            <select id="country-dropdown" readonly>
+                                <option value="us" selected="selected">United States</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="us-state-dropdown">State</label>
+                            <select id="us-state-dropdown">
+                                <option value="" selected="selected">--------</option>
+                            </select>
+                        </div>
+                        <div id="city-container" style="display: none;">
+                            <label for="city-input">City</label>
+                            <input type="text" id="city-input" placeholder="Enter a city" />
+                        </div>
+                    </div>
                 </p>
                 <hr>
             </div>
@@ -45,28 +63,16 @@
 
     var createFilterManager = function() {
 
-        this.featureDropdown =  $('#id_feature').on( 'change', $.proxy( this.handleFeatureChange, this ) );
-        this.genderDropdown = $('#gender-dropdown').on( 'change', $.proxy( this.handleGenderChange, this ) );
-        
-        this.operatorDropdown = $('#id_operator');
-        this.operatorLabel = $('label[for="id_operator"]');
-        this.operatorError = $('#operator-error');
+        this.state = 'default';
 
-        this.valueLabel = $('label[for="id_value"]');
-        this.firstValueInput = $('#id_value-split-1');
-        this.valueSpan = $('#value-span');
-        this.valueError = $('#value-error');
-        this.addValueIcon = $('#value-a');
+        this.cacheDomElements();
 
-        this.saveChangesBtn = $('#filter-add');
-
-        this.saveAgeChangesBtn =
+        this.saveMultipleChangesBtn =
             this.saveChangesBtn.clone().insertAfter( this.saveChangesBtn )
-                .attr( 'id', 'age-filter-add' )
-                .on( 'click', $.proxy( this.submitAgeFilter, this ) )
+                .removeAttr( 'id' )
                 .hide();
 
-        this.ageRangeContainer = $('#age-range-container');
+        this.delegateEvents();
 
         $( "#age-range" ).slider( {
             range: true,
@@ -78,89 +84,220 @@
             }
         } );
 
+        this.addStatesToDropdown();
+
         return this;
     }
 
     $.extend( createFilterManager.prototype, {
 
+        cacheDomElements: function() {
+
+            this.featureDropdown =  $('#id_feature');
+            
+            this.operatorDropdown = $('#id_operator');
+            this.operatorLabel = $('label[for="id_operator"]');
+            this.operatorError = $('#operator-error');
+
+            this.valueLabel = $('label[for="id_value"]');
+            this.firstValueInput = $('#id_value-split-1');
+            this.valueSpan = $('#value-span');
+            this.valueError = $('#value-error');
+            this.addValueIcon = $('#value-a');
+
+            this.saveChangesBtn = $('#filter-add');
+
+            this.locationContainer = $('#location-options-container');
+            this.usStateDropdown = $('#us-state-dropdown');
+            this.cityContainer = $('#city-container');
+            this.cityInput = $('#city-input');
+
+            this.genderDropdown = $('#gender-dropdown');
+
+            this.ageRangeContainer = $('#age-range-container');
+
+            return this;
+        },
+
+        delegateEvents: function() {
+            var self = this;
+
+            this.featureDropdown.on( 'change', function() { self.handleFeatureChange() } );
+            this.genderDropdown.on( 'change', function() { self.handleGenderChange() } );
+            this.usStateDropdown.on( 'change', function() { self.handleStateChange() } );
+            
+            this.saveMultipleChangesBtn.on( 'click', function(e) { e.preventDefault(); self.submitMultipleFilters() } );
+
+            return this;
+        },
+
         handleFeatureChange: function() {
 
             var feature = this.featureDropdown.val(),
-                method = 'show' + feature.charAt(0).toUpperCase() + feature.slice(1) + 'UI';
+                capitalizedFeature = feature.charAt(0).toUpperCase() + feature.slice(1),
+                cleanupMethod = 'cleanup' + this.state + 'UI',
+                showMethod = 'show' + capitalizedFeature + 'UI';
 
-            if( this.genderDropdown.is(':visible') ) { this.cleanUpGenderUI(); }
-            if( this.ageRangeContainer.is(':visible') ) { this.cleanUpAgeUI(); }
+            if( this[ cleanupMethod ] ) { this[ cleanupMethod ](); }
+            if( this[ showMethod ] ) { this[ showMethod ](); }
 
-            if( this[ method ] ) { this[ method ](); }
+            this.state = capitalizedFeature;
+
+            return this;
+        },
+
+        handleStateChange: function() {
+
+            this.cityContainer[
+                ( this.usStateDropdown.val() === '' )
+                    ? 'fadeOut'
+                    : 'fadeIn' ]();
+            
+            return this;
+        },
+
+        showLocationUI: function() {
+
+            this.valueSpan.empty();
+            this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.toggleDefaultValueInputs( 'hide', [ 'valueLabel' ] );  
+            this.locationContainer.fadeIn();
+            this.saveChangesBtn.hide();
+            this.saveMultipleChangesBtn.show();
 
             return this;
         },
 
         showAgeUI: function() {
+
             this.valueSpan.empty();
             this.toggleOperatorElements( 'hide' );
             this.toggleDefaultValueInputs( 'hide', [ 'valueLabel' ] );  
             this.ageRangeContainer.fadeIn();
             this.saveChangesBtn.hide();
-            this.saveAgeChangesBtn.show();
+            this.saveMultipleChangesBtn.show();
+            
+            return this;
         },
 
         showGenderUI: function() {
+
             this.valueSpan.empty();
             this.operatorDropdown.val('eq').attr( 'disabled', true );
             this.toggleDefaultValueInputs( 'hide' );  
             this.genderDropdown.fadeIn();
+            
+            return this;
         },
 
-        cleanUpAgeUI: function() {
+        cleanupLocationUI: function() {
 
-            can_close_modal = true;
-
+            window.can_close_modal = true;
             this.saveChangesBtn.show();
-            this.saveAgeChangesBtn.hide();
+            this.saveMultipleChangesBtn.hide();
+
+            this.locationContainer.hide();
+            this.firstValueInput.val('');
+            this.operatorDropdown.val('').removeAttr( 'disabled' );
+            this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
+
+            return this;
+        },
+
+        cleanupAgeUI: function() {
+
+            window.can_close_modal = true;
+            this.saveChangesBtn.show();
+            this.saveMultipleChangesBtn.hide();
 
             this.ageRangeContainer.hide();
             this.firstValueInput.val('');
             this.toggleOperatorElements( 'fadeIn' );
             this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
+            
+            return this;
         },
 
-        cleanUpGenderUI: function() {
+        cleanupGenderUI: function() {
 
             this.genderDropdown.hide();
             this.operatorDropdown.val('').removeAttr( 'disabled' );
             this.firstValueInput.val('');
             this.toggleDefaultValueInputs( 'fadeIn' );
+            
+            return this;
         },
 
-        submitAgeFilter: function( e ) {
+        submitMultipleFilters: function() {
+
+            this[ 'submit' + this.state + 'Filters' ]();
+            
+            return this;
+        },
+
+        submitLocationFilters: function() {
+
+            var cityVal = $.trim( this.cityInput.val() );
+
+            if( this.cityContainer.is( ':visible' ) &&
+                cityVal != '' ) {
+                window.can_close_modal = false;
+                this.firstValueInput.val( cityVal );
+            }
+
+
+        },
+
+        submitAgeFilters: function() {
             
             var values = $( '#age-range' ).slider( 'values' );
 
-            e.preventDefault();
-
-            can_close_modal = false;
+            window.can_close_modal = false;
 
             this.operatorDropdown.val('min');
             this.firstValueInput.val( values[0] );
             this.saveChangesBtn.click();
 
-            can_close_modal = true;
+            window.can_close_modal = true;
 
             this.operatorDropdown.val('max');
             this.firstValueInput.val( values[1] );
             this.saveChangesBtn.click();
                 
-            this.saveAgeChangesBtn.hide();
+            this.saveMultipleChangesBtn.hide();
             this.saveChangesBtn.show();
+
+            return this;
         },
 
-        handleGenderChange: function() { this.firstValueInput.val( this.genderDropdown.val() ); },
+        handleGenderChange: function() {
+
+            this.firstValueInput.val( this.genderDropdown.val() );
+
+            return this;
+        },
+
+        addStatesToDropdown: function() {
+
+            var fragment = document.createDocumentFragment()
+                placeholder = document.createElement('div');
+            
+            $.each( usStates, function( i, state ) {
+                placeholder.innerHTML = '<option value="' + state + '">' + state + '</option>';
+                fragment.appendChild( placeholder.firstChild );
+            } );
+
+            this.usStateDropdown.append( fragment );
+
+            return this;
+        },
 
         toggleOperatorElements: function( func ) {
             var elements = [ 'operatorLabel', 'operatorDropdown', 'operatorError' ];
             if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'operatorError' ), 1 ); }
             this.toggleElements( elements, func );
+
+            return this;
         },
 
         toggleDefaultValueInputs: function( func, extraEls ) {
@@ -168,15 +305,93 @@
             if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'valueError' ), 1 ); }
             if( extraEls ) { elements = elements.concat( extraEls ); }
             this.toggleElements( elements, func );
+
+            return this;
         },
 
         toggleElements: function( elementList, func ) {
             var self = this;
             $.each( elementList, function( i, elReference ) { self[ elReference ][ func ](); } );
+            return this;
+        },
+
+        getMultipleValues: function() {
+            var filter_values = '';
+
+            $('.filter-val-input').each( function( index ) {
+                var value = $(this).val();
+                if( value ) {
+                    if( filter_values === '' ) {
+                        filter_values = value;
+                    } else {
+                        filter_values += '||' + value;
+                    }
+                }
+            } );
+
+            if( filter_values.slice(-2) === '||' ) {
+                filter_values = filter_values.substr(0, filter_values.length - 2);
+            }
+
+            return filter_values;
+        },
+
+        validate: function() {
         }
 
     } );
 
     new createFilterManager();
+
+    /*
+    $('#filter-add').click(function(event) {
+        var filter_values = '';
+        $('.filter-val-input').each(function(index){
+            var value = $(this).val();
+            if (value) {
+                if (filter_values === ''){
+                    filter_values = value;
+                } else {
+                    filter_values += '||' + value;
+                }
+            }
+        });
+        if (filter_values.slice(-2) === '||'){
+            filter_values = filter_values.substr(0, filter_values.length - 2);
+        }
+        $('#id_value').val(filter_values);
+        var validation_elems = [
+            [$('#id_feature'), $('#feature-error')],
+            [$('#id_operator'), $('#operator-error')],
+            [$('#id_value'), $('#value-error')]
+        ]
+        var form_errors = false;
+        for (var elem=0; elem < validation_elems.length; elem++) {
+            if (validation_elems[elem][0].val() === ""){
+                validation_elems[elem][1].show();
+                form_errors = true;
+            } else {
+                validation_elems[elem][1].hide();
+            }
+        }
+        if (!form_errors) {
+            var feature = $('#id_feature').val();
+            var operator = $('#id_operator').val();
+            var filter_values = $('#id_value').val();
+            $('#existing-filters').prepend(
+                '<div data-filter-id="set_number=' + feature + '.' + operator + 
+                '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
+                feature + ' ' + operator + ' ' + filter_values + '">' + 
+                feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
+                '</abbr></p></div>'
+            );
+
+            if( window.can_close_modal ) {
+                $('#filter-modal').modal('toggle');
+                $('#filter-modal').removeData();
+            }
+        }
+    });
+    */
 
 </script>

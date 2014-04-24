@@ -73,10 +73,8 @@ class FilterFeatureForm(forms.ModelForm):
     CHOICES = (
         ('', 'Select Filter Type'),
         ('age', 'Age'),
-        ('city', 'City'),
-        ('state', 'State'),
-        ('full_location', 'Full Location (City, State, Country)'),
-        ('gender', 'Gender'),
+        ('location', 'Location'),
+        ('gender', 'Gender')
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
