@@ -43,3 +43,7 @@
 .empty-fallback input {
     margin: 0px 5px;
 }
+
+#age-range:hover {
+    cursor: pointer;
+}
