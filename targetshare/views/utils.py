@@ -283,7 +283,7 @@ def assign_page_styles(visit, page_code, campaign, content=None):
 
     """
     # Look up PageStyles:
-    cache_key = 'pagestyles|{}|{}'.format(page_code, campaign.pk)
+    cache_key = 'campaignpagestylesets|{}|{}'.format(page_code, campaign.pk)
     options = django.core.cache.cache.get(cache_key)
     if options is None:
         # Retrieve from DB:
@@ -313,5 +313,13 @@ def assign_page_styles(visit, page_code, campaign, content=None):
         )
     )
 
-    page_style_set = models.relational.PageStyleSet.objects.get(pk=page_style_set_id)
-    return page_style_set.page_styles.all()
+    cache_key = 'pagestyleset|{}'.format(page_style_set_id)
+    hrefs = django.core.cache.cache.get(cache_key)
+    if hrefs is None:
+        page_style_set = models.relational.PageStyleSet.objects.get(pk=page_style_set_id)
+        page_styles = page_style_set.page_styles.only('url')
+        hrefs = tuple(page_style.href for page_style in page_styles.iterator())
+
+        django.core.cache.cache.set(cache_key, hrefs, settings.PAGE_STYLE_CACHE_TIMEOUT)
+
+    return hrefs
