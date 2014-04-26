@@ -164,7 +164,7 @@ class Migration(DataMigration):
                     rand_cdf=1,
                 )
                 self.puts("Attached page style [{}] to {} campaign [{}]",
-                          page_style.pk, client_code, campaign_id)
+                          page_style.pk, client_code, campaign.pk)
 
         # Attach default CSS to generic campaigns
         page_style = default_styles[FRAME_FACES]
