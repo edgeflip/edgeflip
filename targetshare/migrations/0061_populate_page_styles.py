@@ -21,6 +21,11 @@ if settings.ENV == 'production':
         env_initial='p',
         min_ext='.min',
     )
+elif settings.ENV == 'staging':
+    css_url_context.update(
+        env_initial='s',
+        min_ext='.min',
+    )
 else:
     css_url_context.update(
         env_initial='s',
