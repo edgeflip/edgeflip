@@ -17,7 +17,8 @@ ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token'))
 
 
 _EdgeBase = collections.namedtuple('EdgeBase',
-    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions', 'score'])
+    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions',
+     'old_score', 'score'])
 
 
 class Edge(_EdgeBase):
@@ -35,9 +36,10 @@ class Edge(_EdgeBase):
     __slots__ = () # No need for object __dict__ or stored attributes
 
     # Set outgoing, interactions and score defaults:
-    def __new__(cls, primary, secondary, incoming, outgoing=None, interactions=(), score=None):
+    def __new__(cls, primary, secondary, incoming, outgoing=None,
+                interactions=(), old_score=None, score=None):
         return super(Edge, cls).__new__(cls, primary, secondary, incoming,
-                                        outgoing, interactions, score)
+                                        outgoing, interactions, old_score, score)
 
     def __repr__(self):
         return '{}({})'.format(
@@ -325,23 +327,25 @@ class TieredEdges(tuple):
 
         """
         for tier in self:
-            edge_ids = set(edge.secondary.fbid for edge in tier['edges'])
+            edge_map = dict((edge.secondary.fbid, edge.score) for edge in tier['edges'])
             reranked = []
             for edge in ranking:
-                if edge.secondary.fbid in edge_ids:
+                if edge.secondary.fbid in edge_map:
+                    edge = edge._replace(old_score=edge_map[edge.secondary.fbid])
                     reranked.append(edge)
-                    edge_ids.remove(edge.secondary.fbid)
+                    del edge_map[edge.secondary.fbid]
 
-            if edge_ids:
+            if edge_map:
                 # the new ranking was missing some edges. Note it in
                 # the logs, then iterate through the original order and
                 # append the remaining edges to the end of the list
                 LOG.warn("Edges missing (%d) from new edge rankings for user %s",
-                         len(edge_ids), tier['edges'][0].primary.fbid)
+                         len(edge_map), tier['edges'][0].primary.fbid)
                 for edge in tier['edges']:
-                    if edge.secondary.fbid in edge_ids:
+                    if edge.secondary.fbid in edge_map:
+                        edge = edge._replace(old_score=edge_map[edge.secondary.fbid])
                         reranked.append(edge)
-                        edge_ids.remove(edge.secondary.fbid)
+                        del edge_map[edge.secondary.fbid]
 
             tier = tier.copy()
             tier['edges'] = reranked
