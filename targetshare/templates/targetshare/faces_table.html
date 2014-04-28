@@ -76,9 +76,12 @@ this is the message div and the faces themselves
 
     <div id="manual_add">
         <div id="manual_add_text">
-            <span>You can add extra friends by typing their names here:&nbsp;</span>
+            {# Only one input will be displayed by CSS #}
+            {% with text="You can add extra friends by typing their names here" %}
+            <label for="manual_input">{{ text }}:&nbsp;</label>
             <input id="manual_input" class="manual_input" />
-            <input id="manual_input_placeholder" class="manual_input" placeholder="You can add extra friends by typing their names here" />
+            <input id="manual_input_placeholder" class="manual_input" placeholder="{{ text }}" />
+            {% endwith %}
         </div>
         <div id="picked_friends_container"></div>
     </div> <!-- manual_add -->
