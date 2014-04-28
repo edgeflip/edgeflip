@@ -4,12 +4,10 @@
 {% block style_includes %}
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
-    <!-- edgeflip stylesheets -->
-    <link rel="stylesheet" type="text/css" href="{{ client_css }}" />
-    {% if client_css_simple %}
-        <link rel="stylesheet" type="text/css" href="{{ client_css_simple }}" />
-    {% endif %}
-    <!-- edgeflip stylesheets -->
+
+    <!-- Campaign stylesheets -->
+    {% for css_link in campaign_css %} <link rel="stylesheet" type="text/css" href="{{ css_link }}" />
+    {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
 {% block style_inline %}

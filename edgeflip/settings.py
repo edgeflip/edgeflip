@@ -395,6 +395,7 @@ CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours
     'campaign_max_age': (3600 * 24), # 24 hours
 }
+PAGE_STYLE_CACHE_TIMEOUT = 60 * 30 # 30 minutes
 FB_PERMS_LIST = [
     'read_stream', 'user_photos', 'friends_photos',
     'email', 'user_birthday', 'friends_birthday',

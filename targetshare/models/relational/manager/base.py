@@ -1,3 +1,4 @@
+import re
 import sys
 
 from django.db import IntegrityError, models, transaction
@@ -62,6 +63,31 @@ class Manager(models.Manager):
 
     def get_query_set(self):
         return RepeatableReadQuerySet(self.model, using=self._db)
+
+
+class TypeObjectManager(Manager):
+
+    code_field_name = 'code'
+    code_pattern = re.compile(r'^get_([a-z_]+)$')
+
+    def __getattr__(self, attr):
+        code_match = self.code_pattern.search(attr)
+        if code_match:
+            code_name = code_match.group(1)
+            try:
+                code = getattr(self.model, code_name.upper())
+            except AttributeError:
+                pass
+            else:
+                if isinstance(code, basestring):
+                    def getter():
+                        return self.get(**{self.code_field_name: code})
+                    getter.__name__ = attr
+                    setattr(self, attr, getter)
+                    return getter
+
+        raise AttributeError("'{}' object has no attribute {!r}"
+                             .format(self.__class__.__name__, attr))
 
 
 ## Configurable RelatedManagers ##

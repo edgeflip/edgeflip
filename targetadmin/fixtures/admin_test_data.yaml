@@ -45,18 +45,6 @@
     model: targetshare.campaign
     pk: 5
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
-         is_deleted: false, name: VA Share Button}
-    model: targetshare.buttonstyle
-    pk: 1
--   fields: {button_style: 1,  end_dt: null, html_template: share_button.html,
-        start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.buttonstylefile
-    pk: 1
--   fields: {button_style: 1, campaign: 4, end_dt: null, rand_cdf: '1.000000000',
-        start_dt: !!timestamp '2013-07-15 11:38:28'}
-    model: targetshare.campaignbuttonstyle
-    pk: 1
--   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
         description: Default element created by edgeflip, is_deleted: false, name: edgeflip
             default}
     model: targetshare.choiceset
