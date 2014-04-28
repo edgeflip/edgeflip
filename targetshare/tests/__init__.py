@@ -6,8 +6,10 @@ import re
 import urllib
 
 import faraday
+import pymlconf
 import us
 from django.conf import settings
+from django.core import cache
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
@@ -30,6 +32,12 @@ class EdgeFlipTestMixIn(object):
             CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
         ),
         patch.multiple(
+            settings,
+            CACHES=pymlconf.ConfigDict({
+                'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+            }),
+        ),
+        patch.multiple(
             faraday.conf.settings,
             PREFIX='test',
             LOCAL_ENDPOINT='localhost:4444',
@@ -41,6 +49,9 @@ class EdgeFlipTestMixIn(object):
         for patch_ in cls.global_patches:
             patch_.start()
 
+        # Ensure cache backend isn't itself cached:
+        reload(cache)
+
         # In case a bad test class doesn't clean up after itself:
         faraday.db.destroy(confirm=False)
 
@@ -48,6 +59,8 @@ class EdgeFlipTestMixIn(object):
     def tearDownClass(cls):
         for patch_ in cls.global_patches:
             patch_.stop()
+
+        reload(cache)
 
     def setUp(self):
         super(EdgeFlipTestMixIn, self).setUp()

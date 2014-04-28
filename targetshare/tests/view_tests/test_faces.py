@@ -1,7 +1,6 @@
 import datetime
 import json
 import os.path
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -198,26 +197,22 @@ class TestFacesViews(EdgeFlipViewTestCase):
         self.assertIn(obj_attrs.og_image, data1['html'])
 
     def test_frame_faces_with_recs(self):
-        ''' Tests views.frame_faces '''
+        """frame_faces respects page styles"""
         campaign = models.Campaign.objects.get(pk=1)
-        client = campaign.client
-        fs = models.FacesStyle.objects.create(client=client, name='test')
-        models.FacesStyleFiles.objects.create(
-            html_template='frame_faces.html', faces_style=fs)
-        models.CampaignFacesStyle.objects.create(
-            campaign=campaign, faces_style=fs,
-            rand_cdf=Decimal('1.000000')
+        campaign_page_style_set = campaign.campaignpagestylesets.get(
+            page_style_set__page_styles__page=models.Page.objects.get_frame_faces(),
         )
-        assert not models.Assignment.objects.exists()
+        page_style = campaign_page_style_set.page_style_set.page_styles.get()
+
+        self.assertFalse(models.Assignment.objects.exists())
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
 
-        # copied from test_button_with_recs, unclear why this check means success
-        self.assertStatusCode(response, 200)
-        self.assertEqual(
-            response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
-        )
-        assert models.Assignment.objects.exists()
+        self.assertEqual(page_style.url, '//assets.com/edgeflip-base-0.css')
+        link_html = '<link rel="stylesheet" type="text/css" href="//assets.com/edgeflip-base-0.css" />'
+        self.assertContains(response, link_html, count=1, html=True)
+
+        assignment = models.Assignment.objects.get(feature_type='page_style_set_id')
+        self.assertEqual(assignment.feature_row, campaign_page_style_set.page_style_set_id)
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
