@@ -47,3 +47,29 @@
 #age-range:hover {
     cursor: pointer;
 }
+
+#add-location-filter {
+    display: inline-block;
+    text-shadow: none;
+    color: black;
+}
+
+.filter-or {
+    padding-left: 10px;
+    color: lightgray;
+}
+
+.location-filter-value {
+    float: left;
+    width: 90%;
+}
+
+.remove-filter-item {
+    float: right;
+    width: 10%;
+}
+
+.remove-filter-item:hover {
+    cursor: pointer;
+    color: red;
+}

@@ -1,7 +1,7 @@
 <form id="add-filter-form" action="{% url 'targetadmin:filter-add' client.pk %}" method="post">
     {% csrf_token %}
     <div class="row">
-        <div class="span5">
+        <div class="span3">
             <div id="new-form-1" class="new-filters">
                 <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
                 <p style="display: none;">Asdkfljasdkjfa</p>
@@ -25,25 +25,37 @@
                     </div>
                     <div id="location-options-container" style="display: none;">
                         <div>
+                            <label for="location-type">Location Type (one per filter)</label>
+                            <select id="location-type-dropdown" data-placement="right" data-content="Please select a location type.">
+                                <option value="" data-dropdown="" selected="selected">--------</option>
+                                <option value="country">Country</option>
+                                <option value="state">State</option>
+                                <option value="city">City</option>
+                            </select>
+                        </div>
+                        <div id="country-container" style="display: none;">
                             <label for="country-dropdown">Country</label>
-                            <select id="country-dropdown" readonly>
+                            <select id="country-dropdown">
                                 <option value="us" selected="selected">United States</option>
                             </select>
                         </div>
-                        <div>
+                        <div id="state-container" style="display: none;">
                             <label for="us-state-dropdown">State</label><span id="state-error" class="alert form-error">Required</span>
-                            <select id="us-state-dropdown">
-                                <option value="" selected="selected">--------</option>
-                            </select>
+                            <input type="text" id="state-input" placeholder="Enter a state" autocomplete="off"/>
                         </div>
                         <div id="city-container" style="display: none;">
                             <label for="city-input">City</label>
                             <input type="text" id="city-input" placeholder="Enter a city" />
                         </div>
+                        <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right" data-content="This filter has already been added.">Add Filter</button>
                     </div>
                 </p>
                 <hr>
             </div>
+        </div>
+        <div id="location-filter-view" class="span2" style="display:none;">
+            <h5 style="margin-top: 0px; border-bottom: 2px inset lightgray">Current Location Filter</h5>
+            <div id="location-filters" style="padding-left: 10px;"></div>
         </div>
     </div>
 </form>

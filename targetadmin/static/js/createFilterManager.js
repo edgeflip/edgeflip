@@ -8,6 +8,7 @@
 var createFilterManager = function() {
 
     this.state = 'default';
+    this.locationState = '';
 
     this.cacheDomElements();
 
@@ -44,10 +45,18 @@ $.extend( createFilterManager.prototype, {
         this.saveChangesBtn = $('#filter-add');
 
         this.locationContainer = $('#location-options-container');
-        this.usStateDropdown = $('#us-state-dropdown');
+        this.locationTypeDropdown = $('#location-type-dropdown');
+        this.addLocationFilterButton = $('#add-location-filter');
+        this.countryInput = $('#country-dropdown');
+        this.stateInput = $('#state-input');
         this.cityContainer = $('#city-container');
+        this.stateContainer = $('#state-container');
+        this.countryContainer = $('#country-container');
         this.cityInput = $('#city-input');
         this.stateError = $('#state-error');
+
+        this.locationFilterView = $('#location-filter-view'); 
+        this.locationFilters = $('#location-filters'); 
 
         this.genderDropdown = $('#gender-dropdown');
 
@@ -63,9 +72,25 @@ $.extend( createFilterManager.prototype, {
 
         this.featureDropdown.on( 'change', function() { self.handleFeatureChange() } );
         this.genderDropdown.on( 'change', function() { self.handleGenderChange() } );
-        this.usStateDropdown.on( 'change', function() { self.handleUsStateChange() } );
 
-        this.saveChangesBtn.on( 'click', function(e) { e.preventDefault(); self.handleSaveClick(); } );
+        this.locationTypeDropdown
+            .on( 'change', function() { self.handleLocationTypeChange() } )
+            .popover( { trigger: 'manual' } );
+
+        this.addLocationFilterButton.on( 'click', function(e) { self.handleAddLocationClick(e); return false; } );
+        this.addLocationFilterButton.popover( { trigger: 'manual' } );
+        
+
+        this.locationFilterView.on( 'click', '.remove-filter-item', function(e) { self.removeLocationFilter(e); } );
+
+        this.saveChangesBtn.on( 'click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            self.handleSaveClick();
+            return false;
+        } );
+
+        $('#filter-modal').on( 'hide', function(e) { self.cleanUpModal(e); } );
 
         $( "#age-range" ).slider( {
             range: true,
@@ -90,23 +115,29 @@ $.extend( createFilterManager.prototype, {
     // namespaced object with the handlers for different feature types for adding filters
     addFilter: {
 
-        //if no city, no worries, if no state, show error and return
-        //  creates a city and state filter
         location: function() {
+            var self = this;
 
-            var cityVal = $.trim( this.cityInput.val() ),
-                stateVal = this.usStateDropdown.val();
-
-            if( this.cityContainer.is( ':visible' ) && cityVal != '' ) {
-                this.valueInput.val( cityVal );
-                this.createFilter( { feature: 'city' } );
+            if( ! this.locationTypeDropdown.val() ) {
+                this.locationTypeDropdown.popover('show');
+                this.delegateRemovePopover( this.locationTypeDropdown );
+                return this;
             }
 
-            if( stateVal === "" ) { this.stateError.show(); return this; }
+            this.locationFilters.children().each( function( i, filterEl ) {
+                var new_id = 'id_value-split-' + parseInt( i + 1 );
+                if( i === 0 ) { self.firstValueInput.val( $(filterEl).data('val') ); }
+                else {
+                    self.valueSpan.append(    
+                        $('<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">').val( $(filterEl).data('val') )
+                    );
+                }
+            } );
 
-            this.valueInput.val( stateVal );
-            this.createFilter( { feature: 'state' } );
-            this.stateError.hide();
+            this.setFilterValue();
+            this.operatorDropdown.val('in');
+            this.createFilter( { feature: this.locationState } );
+
             return this.close();
         },
 
@@ -147,6 +178,10 @@ $.extend( createFilterManager.prototype, {
 
         var feature = this.featureDropdown.val();
 
+        if( feature != '' && this.featureError.is(':visible') ) {
+            this.featureError.hide();
+        }
+
         this.cleanupUI[ ( this.cleanupUI[ this.state ] ) ? this.state : 'default' ].call( this );
         this.showUI[ ( this.showUI[ feature ] ) ? feature : 'default' ].call( this );
 
@@ -155,15 +190,91 @@ $.extend( createFilterManager.prototype, {
         return this;
     },
 
-    // show/hide city text input if we have a state selected
-    handleUsStateChange: function() {
+    handleLocationTypeChange: function() {
 
-        this.cityContainer[
-            ( this.usStateDropdown.val() === '' )
-                ? 'fadeOut'
-                : 'fadeIn' ]();
-        
-        return this;
+        var locationType = this.locationTypeDropdown.val(),
+            capitalizedLocationType = locationType.charAt(0).toUpperCase() + locationType.slice(1);
+
+        if( this.locationState ) {
+            $('#' + this.locationState + '-container').hide();
+        }
+
+        $('#' + locationType + '-container').fadeIn();
+
+        if( locationType ) {
+            this.addLocationFilterButton
+                .text( 'Add ' + capitalizedLocationType + ' Filter' )
+                .fadeIn();
+        } else {
+            
+            this.addLocationFilterButton.hide();
+        }
+
+        this.locationState = locationType;
+
+        this.locationFilterView.hide();
+        this.locationFilters.empty();
+
+    },
+
+    delegateRemovePopover: function( popoverEl ) {
+        var self = this;
+
+        if( ! this.removePopoverHandler ) {
+            this.removePopoverHandler = function() { self.removePopup(); };
+        }
+
+        this.currentPopover = popoverEl;
+        $(document).on( 'click', this.removePopoverHandler );
+    },
+
+    removePopup: function() {
+        this.currentPopover.popover('hide');
+        $(document).off( 'click', this.removePopoverHandler );
+    },
+
+    handleAddLocationClick: function(e) {
+
+        var input = this[ this.locationState + 'Input' ],
+            val = $.trim( input.val() ),
+            self = this;
+
+        var text = ( input.prop('tagName') === 'SELECT' )
+            ? $( input.find('option[value="' + val + '"]') ).text()
+            : val;
+
+        if( val === '' ) { return; }
+
+        this.locationFilterView.fadeIn();
+
+        if( this.locationFilters.children().length ) {
+
+            if( this.locationFilters.find( 'div[data-val="' + val + '"]' ).length ) {
+
+                e.stopPropagation();
+
+                this.addLocationFilterButton.popover('show');
+                this.delegateRemovePopover( this.addLocationFilterButton );
+                return;
+            }
+
+            $('<div class="filter-or">or</div>').appendTo( this.locationFilters );
+        }
+
+        $('<div class="clearfix" data-val="' + val + '"><div class="location-filter-value">' + text + '</div><div class="remove-filter-item"><i class="icon-remove"></i></div>').appendTo( this.locationFilters );
+
+        input.val('');
+    },
+
+    removeLocationFilter: function( e ) {
+        var row = $( $( e.currentTarget ).parent() ),
+            prevEl = row.prev('.filter-or'),
+            nextEl = row.next('.filter-or');
+
+        if( prevEl.length ) { prevEl.fadeOut( 400, function() { prevEl.remove(); } ); }
+        else if( nextEl.length ) { nextEl.fadeOut( 400, function() { nextEl.remove(); } ); }
+
+        row.fadeOut( 400, function() { row.empty().remove() } );
     },
 
     //namespace to show the proper ui for the filter type
@@ -174,11 +285,12 @@ $.extend( createFilterManager.prototype, {
             this.valueSpan.empty();
         },
 
-        //set operator to 'Equal'
+        //set operator to 'in', hide
         // hide value text inputs, show location container
         location: function() {
             this.showUI.default.call(this);
-            this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.operatorDropdown.val('in');
+            this.toggleOperatorElements( 'hide' );
             this.toggleGenericValueInputs( 'hide', [ 'valueLabel' ] );  
             this.locationContainer.fadeIn();
         },
@@ -204,6 +316,7 @@ $.extend( createFilterManager.prototype, {
     cleanupUI: {
 
         default: function() {
+            this.valueSpan.empty();
             this.firstValueInput.val('');
             this.operatorDropdown.val('').removeAttr( 'disabled' );
             this.toggleOperatorElements( 'fadeIn' );
@@ -212,9 +325,17 @@ $.extend( createFilterManager.prototype, {
 
         location: function() {
             this.cleanupUI.default.call(this);
+            this.locationTypeDropdown.val('');
             this.locationContainer.hide();
+            this.countryInput.val('');
             this.cityInput.val('');
-            this.usStateDropdown.val('');
+            this.stateInput.val('');
+            this.cityContainer.hide();
+            this.stateContainer.hide();
+            this.countryContainer.hide();
+            this.addLocationFilterButton.hide();
+            this.locationFilterView.hide();
+            this.locationFilters.empty();
         },
 
         age: function() {
@@ -240,15 +361,10 @@ $.extend( createFilterManager.prototype, {
     //populates us states dropdown for location filter
     addStatesToDropdown: function() {
 
-        var fragment = document.createDocumentFragment()
-            placeholder = document.createElement('div');
-        
-        $.each( usStates, function( i, state ) {
-            placeholder.innerHTML = '<option value="' + state + '">' + state + '</option>';
-            fragment.appendChild( placeholder.firstChild );
+        this.stateInput.typeahead( {
+             source: usStates,
+             items: 3
         } );
-
-        this.usStateDropdown.append( fragment );
 
         return this;
     },
@@ -299,7 +415,7 @@ $.extend( createFilterManager.prototype, {
             filter_values = filter_values.substr(0, filter_values.length - 2);
         }
 
-        this.valueInput.val ( filter_values );
+        this.valueInput.val( filter_values );
     },
 
     //this function was lifted from legacy code
@@ -347,12 +463,17 @@ $.extend( createFilterManager.prototype, {
 
     //closes modal window
     close: function() {
-            
         $('#filter-modal').modal('hide');
+        this.cleanUpModal();
+        
+        return this;
+    },
+
+    cleanUpModal: function(e) {
+        if( e && $(e.target).attr('data-content') ) { return; }
         this.featureDropdown.val('');
         this.cleanupUI[ ( this.cleanupUI[ this.state ] ) ? this.state : 'default' ].call( this );
-
-        return this;
+        this.state = 'default';
     }
 
 } );
