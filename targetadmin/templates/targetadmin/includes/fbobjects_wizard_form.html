@@ -1,10 +1,13 @@
-<h4>Create the Facebook Post that will be shared/posted</h4>
+<h4 class="page-sub-header">Create the Facebook Post that will be shared/posted</h4>
 <div class="row">
     <div class="span5">
-        
-
-
-        <p>{{ fb_obj_form.org_name.errors }}<label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>{{ fb_obj_form.org_name }}</p>
+        <div class="fb-obj-input-wrapper">
+            {% if fb_obj_form.org_name.errors %}
+                <div>{{ fb_obj_form.org_name.errors }}</div>
+            {% endif %}
+            <label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>
+            <div>{{ fb_obj_form.org_name }}</div>
+        </div>
 
         <h5>Suggested Message 1</h5>
         <p>The following messages will be suggested when user clicks on the "Suggest Message" button<p>
@@ -18,8 +21,10 @@
         <p>{{ fb_obj_form.og_title.errors }}<label for="{{ fb_obj_form.og_title.id_for_label }}">{{ fb_obj_form.og_title.label}}:</label>{{ fb_obj_form.og_title }}</p>
         <p>{{ fb_obj_form.og_image.errors }}<label for="{{ fb_obj_form.og_image.id_for_label }}">{{ fb_obj_form.og_image.label}}:</label>{{ fb_obj_form.og_image }}</p>
         <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
-        
-        
+    </div>
+    <div class="span7 img-helper-wrapper">
+        <div class="underliner"></div>
+        <img id="fb-obj-img" class="img-helper" src="{{ STATIC_URL }}img/fb-obj-example.png">
     </div>
 </div>
 <h5>Create the Friend Suggestion Page users will see</h5>

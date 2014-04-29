@@ -1,3 +1,44 @@
+.page-header {
+    text-align: center;
+}
+
+.page-sub-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.icon-question-sign {
+    margin-left: 10px;
+}
+
+.img-helper {
+    height: 100%;
+}
+
+.basics-button-container,
+.filter-button-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.step-submit {
+    margin-right: 50px;
+}
+
+.targeting-header {
+    margin-bottom: 40px;
+}
+
+.fb-obj-input-wrapper {
+    margin-bottom: 40px;
+}
+
+.underliner {
+    position: absolute;
+    height: 1px;
+    border-bottom: 1px solid red;
+}
+
 .draggable {
     border: solid black 0.1em;
     border-radius: 5px;
@@ -33,6 +74,7 @@
 }
 
 .empty-fallback {
+    margin-top: 20px;
     margin-bottom: 20px;
 }
 
