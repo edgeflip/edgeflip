@@ -1,6 +1,6 @@
 from django.db import models
 
-from . import manager
+from core.models.manager import Manager
 
 
 class Visit(models.Model):
@@ -16,7 +16,7 @@ class Visit(models.Model):
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
 
-    objects = manager.Manager()
+    objects = Manager()
 
     class Meta(object):
         app_label = 'targetshare'

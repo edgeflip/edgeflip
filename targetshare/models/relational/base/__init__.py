@@ -1,18 +1,8 @@
-from django.db import models
-
-from targetshare.models.relational import manager
+from core.models import base
 
 
-class BaseModel(models.Model):
+class BaseModel(base.BaseModel):
 
-    created = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=True)
-
-    objects = manager.Manager()
-
-    class Meta(object):
+    class Meta(base.BaseModel.Meta):
         abstract = True
         app_label = 'targetshare'
-
-    def __str__(self):
-        return unicode(self).encode('utf8')

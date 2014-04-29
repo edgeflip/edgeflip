@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils.functional import cached_property
 
-from .manager import base
+from core.models.manager import RepeatableReadQuerySet
 
 
-class AssignmentQuerySet(base.RepeatableReadQuerySet):
+class AssignmentQuerySet(RepeatableReadQuerySet):
 
     def create_managed(self, **kws):
         obj = self.model.make_managed(**kws)
