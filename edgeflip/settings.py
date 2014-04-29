@@ -239,6 +239,7 @@ INSTALLED_APPS = (
     'feed_crawler',
     'reporting',
     'gimmick',
+    'chapo',
 )
 
 if ENV in ('staging', 'production'):

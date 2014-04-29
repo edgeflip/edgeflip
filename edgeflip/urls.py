@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
     url(r'^subscriptions/', include('feed_crawler.urls', namespace='feed-crawler')),
     url(r'^reporting/', include('reporting.urls', namespace='reporting')),
+    url(r'^r/', include('chapo.urls', namespace='chapo')),
 )
 
 if settings.ENV in ('development', 'staging'):
