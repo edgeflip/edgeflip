@@ -109,11 +109,11 @@ $.extend( createFilterManager.prototype, {
     //  if we have a special handler for the feature type, call it, else use the generic add filter
     handleSaveClick: function() {
 
-        return this.addFilter[ ( this.addFilter[ this.state ] ) ? this.state : 'generic' ].call( this );
+        return this.filterHandlers[ ( this.filterHandlers[ this.state ] ) ? this.state : 'generic' ].call( this );
     },
 
     // namespaced object with the handlers for different feature types for adding filters
-    addFilter: {
+    filterHandlers: {
 
         location: function() {
             var self = this,
