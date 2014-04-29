@@ -28,14 +28,14 @@
                             <label for="location-type">Location Type (one per filter)</label>
                             <select id="location-type-dropdown" data-placement="right" data-content="Please select a location type.">
                                 <option value="" data-dropdown="" selected="selected">--------</option>
-                                <option value="country">Country</option>
+                                <!--<option value="country">Country</option>-->
                                 <option value="state">State</option>
                                 <option value="city">City</option>
                             </select>
                         </div>
                         <div id="country-container" style="display: none;">
                             <label for="country-dropdown">Country</label>
-                            <select id="country-dropdown">
+                            <select id="country-dropdown" data-placement="right">
                                 <option value="us" selected="selected">United States</option>
                             </select>
                         </div>
@@ -47,7 +47,7 @@
                             <label for="city-input">City</label>
                             <input type="text" id="city-input" placeholder="Enter a city" />
                         </div>
-                        <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right" data-content="This filter has already been added.">Add Filter</button>
+                        <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right">Add Filter</button>
                     </div>
                 </p>
                 <hr>

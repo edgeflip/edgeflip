@@ -116,15 +116,22 @@ $.extend( createFilterManager.prototype, {
     addFilter: {
 
         location: function() {
-            var self = this;
+            var self = this,
+                filters = this.locationFilters.children();
 
             if( ! this.locationTypeDropdown.val() ) {
                 this.locationTypeDropdown.popover('show');
                 this.delegateRemovePopover( this.locationTypeDropdown );
-                return this;
+                return;
             }
 
-            this.locationFilters.children().each( function( i, filterEl ) {
+            if( filters.length === 0 ) {
+                this.addLocationFilterButton.attr( 'data-content', 'Please add a filter.' ).popover('show');
+                this.delegateRemovePopover( this.addLocationFilterButton );
+                return;
+            }
+
+            filters.each( function( i, filterEl ) {
                 var new_id = 'id_value-split-' + parseInt( i + 1 );
                 if( i === 0 ) { self.firstValueInput.val( $(filterEl).data('val') ); }
                 else {
@@ -253,7 +260,7 @@ $.extend( createFilterManager.prototype, {
 
                 e.stopPropagation();
 
-                this.addLocationFilterButton.popover('show');
+                this.addLocationFilterButton.attr( 'data-content', 'This filter has already been added' ).popover('show');
                 this.delegateRemovePopover( this.addLocationFilterButton );
                 return;
             }
