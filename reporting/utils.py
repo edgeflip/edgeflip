@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-import json 
+import json
 
 # taken from https://docs.djangoproject.com/en/1.5/topics/db/sql/#executing-custom-sql-directly
 def dictfetchall(cursor):
