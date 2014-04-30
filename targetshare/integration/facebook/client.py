@@ -451,7 +451,7 @@ def _get_friend_edges_simple(user, token):
             fbid_target=user.fbid,
             photos_target=primary_photo_tags,
             photos_other=other_photo_tags,
-            mut_friends=rec['mutual_friend_count'],
+            mut_friends=rec['mutual_friend_count'] or 0,
         )
 
         friends.add(friend.fbid)
