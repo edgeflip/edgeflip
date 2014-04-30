@@ -24,6 +24,13 @@ class TestShortenedUrl(TestCase):
         self.assertEqual(short.url, URL)
         self.assertEqual(short.slug, 'foobar43')
 
+    @patch.object(models, 'urlsafe_b64encode', return_value='foobar43====')
+    def test_friendly_slug(self, _mock):
+        nice_slug = models.ShortenedUrl.make_slug('Healthy Food')
+        short = models.ShortenedUrl.objects.create(slug=nice_slug, url=URL)
+        self.assertEqual(short.url, URL)
+        self.assertEqual(short.slug, 'healthy-food-foobar43')
+
     def test_description(self):
         """ShortenedUrl accepts a description"""
         description = "The marketing URL for dem guyz"

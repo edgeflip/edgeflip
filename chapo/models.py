@@ -2,6 +2,7 @@ from uuid import uuid4
 from base64 import urlsafe_b64encode
 
 from django.db import models
+from django.utils.text import slugify
 
 from core.models import base
 
@@ -25,10 +26,28 @@ class ShortenedUrl(base.BaseModel):
     slug = models.SlugField(primary_key=True, default=make_slug)
     url = models.URLField(max_length=2048)
 
-    make_slug = staticmethod(make_slug)
-
     class Meta(base.BaseModel.Meta):
         db_table = 'shortened_urls'
+
+    @staticmethod
+    def make_slug(prepend=None):
+        """Generate an appropriate, unique slug.
+
+            >>> ShortenedUrl.make_slug()
+            'vytxeTZskVKR'
+
+        To prepend a recognizable, non-arbitrary value, specify `prepend`:
+
+            >>> ShortenedUrl.make_slug('Good Food')
+            'good-food-vytxeTZskVKR'
+
+        """
+        slug = make_slug()
+
+        if prepend:
+            return '{}-{}'.format(slugify(unicode(prepend)), slug)
+
+        return slug
 
     def __unicode__(self):
         return u"{0.slug} => {0.url}".format(self)
