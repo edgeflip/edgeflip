@@ -28,36 +28,13 @@
     var sizeImgHelper = function() {
         var window_height = $(window).height(),
             img_helper_wrapper = $('.img-helper-wrapper:visible');
-            fbObjImg = $('#fb-obj-image');
 
         if( img_helper_wrapper ) {
             img_helper_wrapper.height( window_height - img_helper_wrapper.offset().top - 30 );
         }
-
-        fbObjExampleImg.currentDims = {
-            x: fbObjImg.width(),
-            y: fbObjImg.height()
-        };
-        
-        fbObjExampleImg.mutlipier = {
-            x: fbObjExampleImg.currentDims.x / fbObjExampleImg.originalDims.x
-            y: fbObjExampleImg.currentDims.y / fbObjExampleImg.originalDims.y
-        };
     }
 
-    var fbObjExampleImg = {
-
-        originalDims: { x: 960, y: 1076 },
-        currentDims: { x: undefined, y: undefined },
-        multiplier: { x: undefined, y: undefined },
-        offset: { x: undefined, y: undefined },
-
-        org_name: {
-            start: { x: 424, y: 68 },
-            length: 239
-        }        
-    }
-
+    //TODO: add debouncer
     $(window).resize(sizeImgHelper);
     $( sizeImgHelper );
 
@@ -93,10 +70,7 @@
 
         if( step === 'fbobjects' ) {
             sizeImgHelper();
-            var fbObjImg = $('#fb-obj-image');
-            var offset = fbObjImg.offset();
-            fbObjExampleImg.offset =
-                { x: offset.left, y: offset.top };
+            window.fbObjIndicator.handleWindowResize();
         }
     });
 

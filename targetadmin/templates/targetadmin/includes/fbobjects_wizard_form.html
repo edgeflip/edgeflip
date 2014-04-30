@@ -23,7 +23,7 @@
         <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
     </div>
     <div class="span7 img-helper-wrapper">
-        <div class="underliner"></div>
+        <div id="fb-obj-popover"></div>
         <img id="fb-obj-img" class="img-helper" src="{{ STATIC_URL }}img/fb-obj-example.png">
     </div>
 </div>
@@ -36,3 +36,169 @@
         
     </div>
 </div>
+
+<script>
+
+    $( function() {
+
+        var imageIndicator = function() {
+            var self = this;
+
+            $.extend( this, {
+
+                imageEl: $('#fb-obj-img'),
+                popoverEl: $('#fb-obj-popover'),
+
+                currentField: null,
+
+                originalDims: { x: 960, y: 1076 },
+                currentDims: { x: undefined, y: undefined },
+                multiplier: { x: undefined, y: undefined },
+                offset: { x: undefined, y: undefined },
+
+                formFields: {
+
+                    org_name: {
+                        el: $('input[name="org_name"]'),
+                        start: { x: 540, y: 34 },
+                        placement: 'top',
+                        text: "The cause or organization you enter will replace 'Freakonomics Radio' here."
+                    },
+
+                    msg1_pre: {
+                        el: $('input[name="msg1_pre"]'),
+                        start: { x: 20, y: 177 },
+                        placement: 'left',
+                        text: "Set the text to be displayed before friend names."
+                    },
+                    
+                    msg1_post: {
+                        el: $('input[name="msg1_post"]'),
+                        start: { x: 519, y: 204 },
+                        placement: 'bottom',
+                        text: "Set the text that will go after the friend names."
+                    },
+
+                    msg2_pre: {
+                        el: $('input[name="msg2_pre"]'),
+                        start: { x: 20, y: 177 },
+                        placement: 'left',
+                        text: "Alternate text to display before friend names so that your user's feeds don't all look the same."
+                    },
+                    
+                    msg2_post: {
+                        el: $('input[name="msg2_post"]'),
+                        start: { x: 519, y: 204 },
+                        placement: 'bottom',
+                        text: "Alternate text for after the friend names.  If specified, we will randomly pick one message for each post."
+                    },
+
+                    og_title: {
+                        el: $('input[name="og_title"]'),
+                        start: { x: 735, y: 729 },
+                        placement: 'right',
+                        text: "Your title will go here."
+                    },
+                    
+                    og_image: {
+                        el: $('input[name="og_image"]'),
+                        start: { x: 678, y: 429 },
+                        placement: 'right',
+                        text: "Your image will go here."
+                    },
+                    
+                    og_description: {
+                        el: $('textarea[name="og_description"]'),
+                        start: { x: 898, y: 800 },
+                        placement: 'right',
+                        text: "Your description will go here."
+                    }
+                }
+            } );
+
+            this.popoverEl.popover( {
+                animation: false,
+                trigger: 'manual',
+                content: function() { return self.getPopoverText(); },
+                placement: function() { return self.getPlacement(); }
+            } );
+
+            $.each( this.formFields, function( fieldName, value ) {
+
+                value.el.on( 'focus', function() {
+                                 self.setCurrentField( fieldName )
+                                     .updateImagePosition()
+                                     .showIndicator( value ); } )
+
+                        .on( 'blur', function() {
+                                self.setCurrentField( null ).hideIndicator( value ); } );
+            } );
+
+            //TODO: add debouncer
+            $(window).resize( function() { self.handleWindowResize(); } );
+
+            return this;
+        }
+
+        $.extend( imageIndicator.prototype, {
+
+            setCurrentField: function( fieldName ) { this.currentField = fieldName; return this; },
+
+            showIndicator: function( coordData ) {
+
+                this.popoverEl
+                    .css( {
+                        top: this.offset.y + ( coordData.start.y * this.multiplier.y ),
+                        left: this.offset.x + ( coordData.start.x * this.multiplier.x ) } ).popover('show');
+            },
+
+            hideIndicator: function() {
+                this.popoverEl.popover('hide');
+            },
+
+            getPopoverText: function() { return this.formFields[ this.currentField ].text; },
+
+            getPlacement: function() { return this.formFields[ this.currentField ].placement; },
+
+            updateImagePosition: function() {
+
+                var difference =
+                    this.formFields[ this.currentField ].el.offset().top -
+                    ( this.offset.y + ( this.currentDims.y / 2 ) );
+
+                if( difference > 0 ) {
+
+                    this.imageEl.animate( { 'top': '+=' + difference } );
+                }
+
+                return this;
+            },
+
+            handleWindowResize: function() {
+
+                var window_height = $(window).height(),
+                    offset = this.imageEl.offset();
+
+                this.offset = { x: offset.left, y: offset.top };
+
+                this.currentDims = {
+                    x: this.imageEl.width(),
+                    y: this.imageEl.height()
+                };
+               
+                this.multiplier = {
+                    x: this.currentDims.x / this.originalDims.x,
+                    y: this.currentDims.y / this.originalDims.y
+                };
+
+                if( this.currentField ) {
+                    this.showIndicator( this.formFields[ this.currentField ] );
+                }
+            }
+        } );
+
+        window.fbObjIndicator = new imageIndicator();
+
+    } );
+
+</script>
