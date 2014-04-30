@@ -210,7 +210,7 @@ $.extend( createFilterManager.prototype, {
 
         if( locationType ) {
             this.addLocationFilterButton
-                .text( 'Add ' + capitalizedLocationType + ' Filter' )
+                .text( 'Add ' + capitalizedLocationType )
                 .fadeIn();
         } else {
             
@@ -290,6 +290,8 @@ $.extend( createFilterManager.prototype, {
         //not sure if we should remove valueSpan
         default: function() {
             this.valueSpan.empty();
+            $('.add-input-container').css( { top: 0 } );
+            window.input_count = 1;
         },
 
         //set operator to 'in', hide
@@ -324,6 +326,8 @@ $.extend( createFilterManager.prototype, {
 
         default: function() {
             this.valueSpan.empty();
+            $('.add-input-container').css( { top: 0 } );
+            window.input_count = 1;
             this.firstValueInput.val('');
             this.operatorDropdown.val('').removeAttr( 'disabled' );
             this.toggleOperatorElements( 'fadeIn' );

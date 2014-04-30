@@ -1,16 +1,23 @@
 <form id="add-filter-form" action="{% url 'targetadmin:filter-add' client.pk %}" method="post">
     {% csrf_token %}
-    <div class="row">
-        <div class="span3">
+    <div class="row add-filter-row">
+        <div class="filter-selection-col">
             <div id="new-form-1" class="new-filters">
                 <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
-                <p style="display: none;">Asdkfljasdkjfa</p>
                 <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
                 <p style="display: none;">{{ form.value }}</p>
-                <p id="value-p">{{ form.value.errors }}
+                <div class="value-container">
+                    {{ form.value.errors }}
                     <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
-                    <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
-                    <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
+                    <div class="clearfix">
+                        <div class="text-input-list">
+                            <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
+                            <span id="value-span"></span>
+                        </div>
+                        <div class="add-input-container">
+                            <a id="value-a" class="icon-plus" href="#" style=""></a>
+                        </div>
+                    </div>
                     <select id="gender-dropdown" style="display:none;">
                         <option value="" selected="selected">--------</option>
                         <option value="Male">Male</option>
@@ -49,11 +56,10 @@
                         </div>
                         <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right">Add Filter</button>
                     </div>
-                </p>
-                <hr>
+                </div>
             </div>
         </div>
-        <div id="location-filter-view" class="span2" style="display:none;">
+        <div id="location-filter-view" class="filter-builder-col">
             <h5 style="margin-top: 0px; border-bottom: 2px inset lightgray">Current Location Filter</h5>
             <div id="location-filters" style="padding-left: 10px;"></div>
         </div>
@@ -63,14 +69,25 @@
     var input_count = 1;
 
     $('.icon-plus').click(function(e){
-        var split_id = e.target.id.split('-');
-        var form_tag = split_id[0] + '-' + split_id[1];
+        var split_id = e.target.id.split('-'),
+            form_tag = split_id[0] + '-' + split_id[1],
+            iconContainer = $(this).parent();
+
         input_count += 1;
         var new_id = 'id_value-split-' + input_count;
         var dest_id = '#' + e.target.id + '-span';
         $('#value-span').append(
             '<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">'
         );
+
+        //10 accounts for the margin-bottom of the input element
+        //todo: rework html so we don't have to do this
+        console.log( "input count : " + input_count );
+        console.log( "outerheight : " +  iconContainer.outerHeight( true ) );
+        iconContainer.css( { top:
+            ( ( iconContainer.outerHeight( true ) + 2 ) * ( input_count - 1 ) ) +
+            ( ( input_count - 1 ) * 10 )
+        } );
     });
 </script>
 <script src="{{ STATIC_URL }}js/createFilterManager.js"></script>

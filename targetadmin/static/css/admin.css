@@ -1,3 +1,41 @@
+
+.add-filter-row {
+    margin: 0px;
+}
+
+.filter-selection-col {
+    width: 50%;
+    float: left;
+}
+
+.filter-builder-col {
+    display: none;
+    width: 50%;
+    float: left;
+}
+
+.text-input-list {
+    max-width: 230px;
+    width: 90%;
+    float: left;
+}
+
+.filter-val-input {
+    width: 90%;
+    max-width: 206px;
+}
+
+.add-input-container {
+    width: 10%;
+    float: left;
+    padding: 4px 0px;
+    position: relative;
+}
+
+#location-options-container {
+    margin-bottom: 30px;
+}
+
 .draggable {
     border: solid black 0.1em;
     border-radius: 5px;
