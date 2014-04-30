@@ -21,8 +21,12 @@ from targetshare.tasks import db
 LOG = get_task_logger(__name__)
 LOG_RVN = logging.getLogger('crow')
 
-DB_MIN_FRIEND_COUNT = 100
-DB_FRIEND_THRESHOLD = 90 # percent
+# FIXME: Restore these values to their former glory after we handle
+# null mutual friend counts from FB properly
+#DB_MIN_FRIEND_COUNT = 100
+#DB_FRIEND_THRESHOLD = 90 # percent
+DB_MIN_FRIEND_COUNT = 1
+DB_FRIEND_THRESHOLD = 50
 
 # The below width(s) of the proximity score spectrum from 1 to 0 will be
 # partitioned during rank refinement:
