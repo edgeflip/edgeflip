@@ -44,29 +44,11 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         )
     ])
 
-    # Use campaign-custom template name if one exists:
-    try:
-        # rand_assign raises ValueError if list is empty:
-        faces_style = campaign.campaignfacesstyles.random_assign()
-        filenames = faces_style.facesstylefiles.get()
-    except (ValueError, models.relational.FacesStyleFiles.DoesNotExist):
-        # The default template name will do:
-        faces_style = None
-        html_template = 'frame_faces.html'
-        css_template = 'edgeflip_client_simple.css'
-    else:
-        html_template = filenames.html_template or 'frame_faces.html'
-        css_template = filenames.css_file or 'edgeflip_client_simple.css'
-
-    # Record assignment:
-    db.delayed_save.delay(
-        models.relational.Assignment.make_managed(
-            visit=request.visit,
-            campaign=campaign,
-            content=content,
-            feature_row=faces_style,
-            chosen_from_rows=campaign.campaignfacesstyles,
-        )
+    page_styles = utils.assign_page_styles(
+        request.visit,
+        models.relational.Page.FRAME_FACES,
+        campaign,
+        content,
     )
 
     properties = campaign.campaignproperties.values().get()
@@ -80,7 +62,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             urllib.urlencode({'campaignid': campaign_id}),
         )
 
-    return render(request, utils.locate_client_template(client, html_template), {
+    return render(request, 'targetshare/frame_faces.html', {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,
@@ -88,10 +70,9 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'campaign': campaign,
         'content': content,
         'properties': properties,
-        'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': utils.locate_client_css(client, css_template),
+        'campaign_css': page_styles,
         'canvas': canvas,
-        # Debug mode currently on for all methods of targetted sharing
+        # Debug mode currently on for all methods of targeted sharing
         # However will likely just reflect the canvas var in the future
         'debug_mode': True,
     })
@@ -288,7 +269,7 @@ def faces(request):
         'status': 'success',
         'campaignid': campaign.pk,
         'contentid': content.pk,
-        'html': render_to_string(utils.locate_client_template(client, 'faces_table.html'), {
+        'html': render_to_string('targetshare/faces_table.html', {
             'msg_params': {
                 'sharing_prompt': fb_attrs.sharing_prompt,
                 'sharing_sub_header': fb_attrs.sharing_sub_header,
@@ -345,7 +326,7 @@ def faces_email_friends(request, notification_uuid):
 
     db.delayed_save.delay(
         models.Event(
-            visit=request.visit,
+            visit_id=request.visit.pk,
             campaign_id=campaign.pk,
             client_content_id=content.pk,
             event_type='faces_email_page_load',
@@ -356,9 +337,9 @@ def faces_email_friends(request, notification_uuid):
     fb_object = campaign.campaignfbobjects.for_datetime().random_assign()
     db.delayed_save.delay(
         models.relational.Assignment.make_managed(
-            visit=request.visit,
-            campaign=campaign,
-            content=content,
+            visit_id=request.visit.pk,
+            campaign_id=campaign.pk,
+            content_id=content.pk,
             feature_row=fb_object,
             chosen_from_rows=campaign.campaignfbobjects.for_datetime(),
         )
@@ -401,7 +382,7 @@ def faces_email_friends(request, notification_uuid):
     for event in notification_user.events.all():
         events.append(
             models.Event(
-                visit=request.visit,
+                visit_id=request.visit.pk,
                 campaign_id=event.campaign.pk,
                 client_content_id=event.client_content.pk,
                 friend_fbid=event.friend_fbid,
@@ -414,9 +395,9 @@ def faces_email_friends(request, notification_uuid):
     for assignment in notification_user.assignments.all():
         assignments.append(
             models.Assignment(
-                visit=request.visit,
-                campaign=assignment.campaign,
-                content=assignment.content,
+                visit_id=request.visit.pk,
+                campaign_id=assignment.campaign.pk,
+                content_id=assignment.content.pk,
                 feature_type=assignment.feature_type,
                 feature_row=assignment.feature_row,
                 random_assign=assignment.random_assign,
@@ -427,14 +408,20 @@ def faces_email_friends(request, notification_uuid):
     db.bulk_create.delay(events)
     db.bulk_create.delay(assignments)
 
-    return render(request, utils.locate_client_template(client, 'faces_email_friends.html'), {
+    page_styles = utils.assign_page_styles(
+        request.visit,
+        models.relational.Page.FRAME_FACES,
+        campaign,
+        content,
+    )
+
+    return render(request, 'targetshare/faces_email_friends.html', {
         'fb_params': fb_params,
         'msg_params': msg_params,
         'campaign': campaign,
         'content': content,
         'properties': campaign.campaignproperties.get(),
-        'client_css': utils.locate_client_css(client, 'edgeflip_client.css'),
-        'client_css_simple': utils.locate_client_css(client, 'edgeflip_client_simple.css'),
+        'campaign_css': page_styles,
         'all_friends': all_friends,
         'face_friends': face_friends,
         'show_faces': show_faces,
