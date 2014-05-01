@@ -23,6 +23,7 @@ def client_summary(request, client_pk):
         SELECT
             clientstats.campaign_id as root_id,
             campaigns.name,
+            to_char(max(clientstats.hour), 'YYYY-MM-DD') as most_recent_data,
             {}
         FROM clientstats
         JOIN campaigns using (campaign_id)
