@@ -1,3 +1,41 @@
+
+.add-filter-row {
+    margin: 0px;
+}
+
+.filter-selection-col {
+    width: 50%;
+    float: left;
+}
+
+.filter-builder-col {
+    display: none;
+    width: 50%;
+    float: left;
+}
+
+.text-input-list {
+    max-width: 230px;
+    width: 90%;
+    float: left;
+}
+
+.filter-val-input {
+    width: 90%;
+    max-width: 206px;
+}
+
+.add-input-container {
+    width: 10%;
+    float: left;
+    padding: 4px 0px;
+    position: relative;
+}
+
+#location-options-container {
+    margin-bottom: 30px;
+}
+
 .draggable {
     border: solid black 0.1em;
     border-radius: 5px;
@@ -42,4 +80,34 @@
 
 .empty-fallback input {
     margin: 0px 5px;
+}
+
+#age-range:hover {
+    cursor: pointer;
+}
+
+#add-location-filter {
+    display: inline-block;
+    text-shadow: none;
+    color: black;
+}
+
+.filter-or {
+    padding-left: 10px;
+    color: lightgray;
+}
+
+.location-filter-value {
+    float: left;
+    width: 90%;
+}
+
+.remove-filter-item {
+    float: right;
+    width: 10%;
+}
+
+.remove-filter-item:hover {
+    cursor: pointer;
+    color: red;
 }
