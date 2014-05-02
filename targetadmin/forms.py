@@ -291,9 +291,9 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
-    num_faces = forms.IntegerField(label='Number of faces to show', min_value=1 )
+    num_faces = forms.IntegerField(label='Number of faces to show', min_value=1, initial=9 )
 
-    def __init__(self, client=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super(CampaignWizardForm, self).__init__(*args, **kwargs)
         for i, field in enumerate( ['name','faces_url','thanks_url','error_url','content_url'] ):
             print self.fields[field].widget.attrs
