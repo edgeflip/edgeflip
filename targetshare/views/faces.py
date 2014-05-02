@@ -113,6 +113,12 @@ def faces(request):
                         ranked=px4_edges_result.ranked,
                         filtered=px3_edges_result.filtered.reranked(px4_edges_result.ranked)
                     )
+            elif px3_edges_result.ranked:
+                edges_result = px4_edges_result._replace(
+                    filtered=px4_edges_result.filtered.rescored(
+                        px3_edges_result.ranked
+                    )
+                )
             else:
                 # px4 filtering completed, so use it:
                 edges_result = px4_edges_result
@@ -223,15 +229,6 @@ def faces(request):
         'fb_object_description': fb_attrs.og_description
     }
     LOG.debug('fb_object_url: %s', fb_params['fb_object_url'])
-    # FIXME: Still trying to determine if the `content_str` serves any
-    # significant purpose. Commented out for now to suppress linter warnings
-    """
-    content_str = '%s:%s %s' % (
-        fb_params['fb_app_name'],
-        fb_params['fb_object_type'],
-        fb_params['fb_object_url']
-    )
-    """
 
     num_gen = max_faces = 50
     events = []
@@ -241,14 +238,9 @@ def faces(request):
         tier_campaign_id = tier['campaign_id']
         tier_content_id = tier['content_id']
         for edge in edges_list:
-            if px4_edges_result.ranked:
-                shown_score_str = 'px4_score: {}'.format(edge.score)
-                gen_score_str = 'px3_score: {}, px4_score: {}'.format(
-                    edge.old_score, edge.score)
-            else:
-                shown_score_str = 'px3_score: {}'.format(edge.score)
-                gen_score_str = 'px3_score: {}, px4_score: N/A'.format(edge.score)
-
+            scores = ('N/A' if score is None else score for score in (edge.px3_score, edge.px4_score))
+            gen_score_str = "px3_score: {}, px4_score: {}".format(*scores)
+            shown_score_str = "px3_score: {}".format(edge.px3_score) if edge.px4_score is None else "px4_score: {}".format(edge.px4_score)
             events.append(
                 models.relational.Event(
                     visit=request.visit,

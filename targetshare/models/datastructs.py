@@ -18,7 +18,7 @@ ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token'))
 
 _EdgeBase = collections.namedtuple('EdgeBase',
     ['primary', 'secondary', 'incoming', 'outgoing', 'interactions',
-     'old_score', 'score'])
+     'px3_score', 'px4_score'])
 
 
 class Edge(_EdgeBase):
@@ -37,9 +37,9 @@ class Edge(_EdgeBase):
 
     # Set outgoing, interactions and score defaults:
     def __new__(cls, primary, secondary, incoming, outgoing=None,
-                interactions=(), old_score=None, score=None):
+                interactions=(), px3_score=None, px4_score=None):
         return super(Edge, cls).__new__(cls, primary, secondary, incoming,
-                                        outgoing, interactions, old_score, score)
+                                        outgoing, interactions, px3_score, px4_score)
 
     def __repr__(self):
         return '{}({})'.format(
@@ -47,6 +47,10 @@ class Edge(_EdgeBase):
             ', '.join('{}={!r}'.format(key, value)
                     for key, value in itertools.izip(self._fields, self))
         )
+
+    @property
+    def score(self):
+        return self.px3_score if self.px4_score is None else self.px4_score
 
 
 class UserNetwork(list):
@@ -238,9 +242,12 @@ class UserNetwork(list):
                                   aggregator=max,
                                   require_incoming=require_incoming,
                                   require_outgoing=require_outgoing)
-        return self._clone(
-            edge._replace(score=edges_max.score(edge)) for edge in self
-        )
+        if require_incoming:
+            mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
+        else:
+            mapper = lambda edge: edge._replace(px3_score=edges_max.score(edge))
+
+        return self._clone(mapper(edge) for edge in self)
 
     def rank(self):
         """Sort the UserNetwork by its Edges' scores."""
@@ -327,13 +334,16 @@ class TieredEdges(tuple):
 
         """
         for tier in self:
-            edge_map = dict((edge.secondary.fbid, edge.score) for edge in tier['edges'])
+            edge_map = {edge.secondary.fbid: edge.score for edge in tier['edges']}
             reranked = []
             for edge in ranking:
                 if edge.secondary.fbid in edge_map:
-                    edge = edge._replace(old_score=edge_map[edge.secondary.fbid])
-                    reranked.append(edge)
-                    del edge_map[edge.secondary.fbid]
+                    try:
+                        px3_score = edge_map.pop(edge.secondary.fbid)
+                    except KeyError:
+                        pass
+                    else:
+                        reranked.append(edge._replace(px3_score=px3_score))
 
             if edge_map:
                 # the new ranking was missing some edges. Note it in
@@ -343,9 +353,12 @@ class TieredEdges(tuple):
                          len(edge_map), tier['edges'][0].primary.fbid)
                 for edge in tier['edges']:
                     if edge.secondary.fbid in edge_map:
-                        edge = edge._replace(old_score=edge_map[edge.secondary.fbid])
-                        reranked.append(edge)
-                        del edge_map[edge.secondary.fbid]
+                        try:
+                            px3_score = edge_map.pop(edge.secondary.fbid)
+                        except KeyError:
+                            pass
+                        else:
+                            reranked.append(edge._replace(px3_score=px3_score))
 
             tier = tier.copy()
             tier['edges'] = reranked
@@ -360,6 +373,19 @@ class TieredEdges(tuple):
 
         """
         return type(self)(self._reranked(ranking))
+
+    def _rescored(self, edges):
+        edge_scores = {edge.secondary.fbid: edge.px3_score for edge in edges}
+        for tier in self:
+            tier = tier.copy()
+            tier['edges'] = [
+                edge._replace(px3_score=edge_scores.get(edge.secondary.fbid, edge.px3_score))
+                for edge in tier['edges']
+            ]
+            yield tier
+
+    def rescored(self, edges):
+        return type(self)(self._rescored(edges))
 
 
 class EdgeAggregate(object):
