@@ -163,7 +163,7 @@
                     sharing_prompt: {
                         imgData: this.images.faces,
                         el: $('input[name="sharing_prompt"]'),
-                        coords: { x: 647, y: 70 },
+                        coords: { x: 647, y: 65 },
                         placement: 'right',
                         text: "Your headline will go here."
                     },
@@ -196,7 +196,9 @@
                                      .handleFormFocus() } )
 
                         .on( 'blur', function() {
-                                self.setCurrentFormField( null ).hidePopover( formMetaData ); } );
+                                self.setCurrentFormField( null )
+                                    .hidePopover()
+                                    .hideImage(); } );
             } );
 
             //handle window resize so our popovers and images look alright
@@ -239,7 +241,15 @@
                 return this;    
             },
 
-            hidePopover: function() { this.popoverEl.popover('hide'); },
+            hideImage: function(form) {
+
+                this.currentImageMetaData.el.hide();
+
+                return this;
+            },
+
+
+            hidePopover: function() { this.popoverEl.popover('hide'); return this; },
 
             getPopoverText: function() { return this.formFields[ this.currentFormField ].text; },
 
