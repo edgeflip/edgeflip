@@ -334,16 +334,15 @@ class TieredEdges(tuple):
 
         """
         for tier in self:
-            edge_map = {edge.secondary.fbid: edge.score for edge in tier['edges']}
+            edge_map = {edge.secondary.fbid: edge.px3_score for edge in tier['edges']}
             reranked = []
             for edge in ranking:
-                if edge.secondary.fbid in edge_map:
-                    try:
-                        px3_score = edge_map.pop(edge.secondary.fbid)
-                    except KeyError:
-                        pass
-                    else:
-                        reranked.append(edge._replace(px3_score=px3_score))
+                try:
+                    px3_score = edge_map.pop(edge.secondary.fbid)
+                except KeyError:
+                    pass
+                else:
+                    reranked.append(edge._replace(px3_score=px3_score))
 
             if edge_map:
                 # the new ranking was missing some edges. Note it in
@@ -352,13 +351,12 @@ class TieredEdges(tuple):
                 LOG.warn("Edges missing (%d) from new edge rankings for user %s",
                          len(edge_map), tier['edges'][0].primary.fbid)
                 for edge in tier['edges']:
-                    if edge.secondary.fbid in edge_map:
-                        try:
-                            px3_score = edge_map.pop(edge.secondary.fbid)
-                        except KeyError:
-                            pass
-                        else:
-                            reranked.append(edge._replace(px3_score=px3_score))
+                    try:
+                        px3_score = edge_map.pop(edge.secondary.fbid)
+                    except KeyError:
+                        pass
+                    else:
+                        reranked.append(edge._replace(px3_score=px3_score))
 
             tier = tier.copy()
             tier['edges'] = reranked

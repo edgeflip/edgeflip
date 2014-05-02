@@ -146,7 +146,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.faces.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
-        self.test_edge = self.test_edge._replace(px4_score=1.0)
+        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
         self.patch_ranking(celery_mock)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
@@ -160,8 +160,8 @@ class TestFacesViews(EdgeFlipViewTestCase):
         assert data['html']
         generated = models.Event.objects.get(event_type='generated')
         shown = models.Event.objects.get(event_type='shown')
-        self.assertEqual(generated.content, 'px3_score: 1.0, px4_score: 1.0')
-        self.assertEqual(shown.content, 'px4_score: 1.0')
+        self.assertEqual(generated.content, 'px3_score: 1.0, px4_score: 1.5')
+        self.assertEqual(shown.content, 'px4_score: 1.5')
 
     @patch('targetshare.integration.facebook.third_party.requests.get')
     @patch('targetshare.views.faces.celery')
