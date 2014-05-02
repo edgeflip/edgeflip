@@ -22,6 +22,14 @@
     height: 100%;
 }
 
+.fb-obj-group {
+    margin-bottom: 50px;
+}
+
+.fb-obj-item {
+    margin-bottom: 20px;
+}
+
 .basics-button-container,
 .filter-button-container {
     text-align: center;
@@ -36,8 +44,8 @@
     margin-bottom: 40px;
 }
 
-#.fb-obj-input-wrapper {
-    margin-bottom: 40px;
+#fb-obj-input-wrapper label {
+    display: inline-block;
 }
 
 #fb-obj-popover {

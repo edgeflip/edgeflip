@@ -55,11 +55,11 @@
         $('.wizard-step').hide();
         $('#' + step).show();
 
-        $( $('input:visible')[0] ).focus();
-
         if( step === 'fbobjects' ) {
             window.fbObjIndicator.init();
         }
+        
+        $( $('input:visible')[0] ).focus();
     } );
 
     // Remove Layer "X" clicked
