@@ -22,7 +22,9 @@ class ShortenedUrl(base.BaseModel):
     The `slug` defaults to the result of `make_slug`. Only `url` is required.
 
     """
+    campaign = models.ForeignKey('targetshare.Campaign', null=True)
     description = models.TextField(blank=True, default='')
+    event_type = models.SlugField(default='generic_redirect')
     slug = models.SlugField(primary_key=True, default=make_slug)
     url = models.URLField(max_length=2048)
 
