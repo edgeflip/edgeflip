@@ -25,7 +25,7 @@ class Migration(SchemaMigration):
             'Meta': {'object_name': 'ShortenedUrl', 'db_table': "'shortened_urls'"},
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'description': ('django.db.models.fields.TextField', [], {'default': "''", 'blank': 'True'}),
-            'slug': ('django.db.models.fields.SlugField', [], {'default': "'2kSiPbxMShClQRTX6R2RwA'", 'max_length': '50', 'primary_key': 'True'}),
+            'slug': ('django.db.models.fields.SlugField', [], {'max_length': '50', 'primary_key': 'True'}),
             'updated': ('django.db.models.fields.DateTimeField', [], {'auto_now': 'True', 'blank': 'True'}),
             'url': ('django.db.models.fields.URLField', [], {'max_length': '2048'})
         }
