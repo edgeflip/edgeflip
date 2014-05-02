@@ -237,6 +237,7 @@ def campaign_wizard(request, client_pk):
                     client_faces_url=campaign_form.cleaned_data['faces_url'],
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                     client_error_url=campaign_form.cleaned_data['error_url'],
+                    num_faces=campaign_form.cleaned_data['num_faces'],
                     fallback_campaign=last_camp,
                     fallback_is_cascading=bool(last_camp),
                 )

@@ -71,8 +71,12 @@
                 <label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>
                 <div>{{ fb_obj_form.sharing_sub_header }}</div>
             </div>
+            <div class="fb-obj-item">
+                <div>{{ campaign_form.num_faces.errors }}</div>
+                <label for="{{ campaign_form.num_faces.id_for_label }}">{{ campaign_form.num_faces.label }}:</label>
+                <div>{{ campaign_form.num_faces }}</div>
+            </div>
         </div>
-
     </div>
 
     <div id="img-helper-container" class="span7 img-helper-wrapper">
@@ -205,7 +209,7 @@
                         text: "Your description will go here."
                     },
 
-                    //y: should be 90, but I have reason to believe
+                    //coords:y: should be 90, but I have reason to believe
                     // bootstrap is doing something weird here
                     //when I change the placement to anything other than right
                     //the popover points in the correct spot
@@ -217,13 +221,21 @@
                         text: "Your headline will go here."
                     },
 
-                    //y: should be 170, see above
+                    //coords:y: should be 170, see above
                     sharing_sub_header: {
                         imgData: this.images.faces,
                         el: $('input[name="sharing_sub_header"]'),
                         coords: { x: 612, y: 150 },
                         placement: 'right',
                         text: "Your sub header will go here."
+                    },
+
+                    num_faces: {
+                        imgData: this.images.faces,
+                        el: $('input[name="num_faces"]'),
+                        coords: { x: 369, y: 457 },
+                        placement: 'bottom',
+                        text: "Tell us how many friends to display to your users."
                     }
                 }
             } );
@@ -351,7 +363,7 @@
                     { 'top': difference },
                     { complete: function() { self.setImageContainerOffset(); } } );
 
-                $('body').animate( { 'scrollTop' : ( formElTop - ( this.myWindow.height() / 2 ) ) } );
+                $('body,html').animate( { 'scrollTop' : ( formElTop - ( this.myWindow.height() / 2 ) ) } );
 
                 return this;
             },

@@ -265,24 +265,19 @@ class CampaignWizardForm(forms.Form):
 
     name = forms.CharField(
         help_text='Give your campaign a name.',
-        widget=forms.TextInput(attrs={'tabindex':'1'})
     )
     faces_url = forms.CharField(
         required=False,
-        widget=forms.TextInput(attrs={'tabindex':'2'}),
         help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) you can leave this blank'
     )
     error_url = forms.CharField(
         help_text='If something goes wrong, we will send users here.',
-        widget=forms.TextInput(attrs={'tabindex':'4'})
     )
     thanks_url = forms.CharField(
         help_text='After a user shares this campaign with their friends, they will be directed here.',
-        widget=forms.TextInput(attrs={'tabindex':'3'})
     )
     content_url = forms.CharField(
         help_text='The URL you are targeting with this campaign.  This is where users are directed upon clicking the facebook post.',
-        widget=forms.TextInput(attrs={'tabindex':'5'})
     )
     include_empty_fallback = forms.BooleanField(
         help_text=(
@@ -296,6 +291,13 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
+    num_faces = forms.IntegerField(label='Number of faces to show', min_value=1 )
+
+    def __init__(self, client=None, *args, **kwargs):
+        super(CampaignWizardForm, self).__init__(*args, **kwargs)
+        for i, field in enumerate( ['name','faces_url','thanks_url','error_url','content_url'] ):
+            print self.fields[field].widget.attrs
+            self.fields[field].widget.attrs={'tabindex':i+1}
 
 
 class FBObjectWizardForm(forms.ModelForm):
