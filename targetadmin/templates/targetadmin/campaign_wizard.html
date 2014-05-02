@@ -25,19 +25,6 @@
     var layer_count = 1,
         can_close_modal = true;
 
-    var sizeImgHelper = function() {
-        var window_height = $(window).height(),
-            img_helper_wrapper = $('.img-helper-wrapper:visible');
-
-        if( img_helper_wrapper ) {
-            img_helper_wrapper.height( window_height - img_helper_wrapper.offset().top - 30 );
-        }
-    }
-
-    //TODO: add debouncer
-    $(window).resize(sizeImgHelper);
-    $( sizeImgHelper );
-
     $('i.icon-question-sign').popover( { trigger: 'hover' } );
     
     $('div[data-helper="img"] input').on( 'focus', function() {
@@ -69,10 +56,9 @@
         $('#' + step).show();
 
         if( step === 'fbobjects' ) {
-            sizeImgHelper();
-            window.fbObjIndicator.handleWindowResize();
+            window.fbObjIndicator.init();
         }
-    });
+    } );
 
     // Remove Layer "X" clicked
     $('#filtering').on( 'click', '.remove-layer', function() {

@@ -1,13 +1,11 @@
 <h4 class="page-sub-header">Create the Facebook Post that will be shared/posted</h4>
 <div class="row">
-    <div class="span5">
-        <div class="fb-obj-input-wrapper">
-            {% if fb_obj_form.org_name.errors %}
-                <div>{{ fb_obj_form.org_name.errors }}</div>
-            {% endif %}
-            <label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>
-            <div>{{ fb_obj_form.org_name }}</div>
-        </div>
+    <div class="span5" id="fb-obj-input-wrapper">
+        {% if fb_obj_form.org_name.errors %}
+            <div>{{ fb_obj_form.org_name.errors }}</div>
+        {% endif %}
+        <label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>
+        <div>{{ fb_obj_form.org_name }}</div>
 
         <h5>Suggested Message 1</h5>
         <p>The following messages will be suggested when user clicks on the "Suggest Message" button<p>
@@ -21,179 +19,328 @@
         <p>{{ fb_obj_form.og_title.errors }}<label for="{{ fb_obj_form.og_title.id_for_label }}">{{ fb_obj_form.og_title.label}}:</label>{{ fb_obj_form.og_title }}</p>
         <p>{{ fb_obj_form.og_image.errors }}<label for="{{ fb_obj_form.og_image.id_for_label }}">{{ fb_obj_form.og_image.label}}:</label>{{ fb_obj_form.og_image }}</p>
         <p>{{ fb_obj_form.og_description.errors }}<label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>{{ fb_obj_form.og_description}}</p>
-    </div>
-    <div class="span7 img-helper-wrapper">
-        <div id="fb-obj-popover"></div>
-        <img id="fb-obj-img" class="img-helper" src="{{ STATIC_URL }}img/fb-obj-example.png">
-    </div>
-</div>
-<h5>Create the Friend Suggestion Page users will see</h5>
-<div class="row">
-    <div class="span5">
+
+        <h5>Create the Friend Suggestion Page users will see</h5>
         <p>Friend Suggestion Page</p>
         <p>{{ fb_obj_form.sharing_prompt.errors }}<label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>{{ fb_obj_form.sharing_prompt}}</p>
-        <p>{{ fb_obj_form.sharing_sub_header.errors }}<label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>{{ fb_obj_form.sharing_sub_header }}</p>     
-        
+        <p>{{ fb_obj_form.sharing_sub_header.errors }}<label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>{{ fb_obj_form.sharing_sub_header }}</p>
+    </div>
+
+    <div id="img-helper-container" class="span7 img-helper-wrapper">
+        <div id="fb-obj-popover"></div>
+        <img id="fb-obj-img" class="img-helper hide" src="{{ STATIC_URL }}img/fb-obj-example.png">
+        <img id="faces-img" class="img-helper hide" src="{{ STATIC_URL }}img/faces-example-with-sub-header.png">
     </div>
 </div>
 
 <script>
 
+    // call on document ready
     $( function() {
 
+        //constructor
         var imageIndicator = function() {
             var self = this;
 
+            //add properties to our instance
             $.extend( this, {
 
-                imageEl: $('#fb-obj-img'),
+                //store $ stuff
+                myWindow: $(window),
+                imageContainer: $('#img-helper-container'),
                 popoverEl: $('#fb-obj-popover'),
+                inputWrapper: $('#fb-obj-input-wrapper'),
 
-                currentField: null,
+                //store calculations
+                imageContainerOffset: { top: undefined, left: undefined },
+                inputWrapperHeight: 0,
+                imageContainerHeight: undefined,
 
-                originalDims: { x: 960, y: 1076 },
-                currentDims: { x: undefined, y: undefined },
-                multiplier: { x: undefined, y: undefined },
-                offset: { x: undefined, y: undefined },
+                //store "models"
+                currentFormField: undefined,
+                currentImageMetaData: undefined,
+                previousImageMetaData: undefined,
 
+
+                //data about instance images
+                //TODO: should be passed into constructor for reuse
+                images: {
+
+                    fbObj: {
+                        el: $('#fb-obj-img'),
+                        originalDims: { x: 960, y: 1076 },
+                        multiplier: { x: undefined, y: undefined },
+                        currentDims: { x: undefined, y: undefined }
+                    },
+
+                    faces: {
+                        el: $('#faces-img'),
+                        originalDims: { x: 739, y: 519 },
+                        multiplier: { x: undefined, y: undefined },
+                        currentDims: { x: undefined, y: undefined }
+                    }
+
+                }
+            } );
+
+
+            //add more properties, these rely on things extended above
+            //this is why another extend is called
+            $.extend( this, {
+              
+                //data about form fields and their relation to images 
+                //TODO: should be passed into constructor for reuse 
                 formFields: {
 
                     org_name: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="org_name"]'),
-                        start: { x: 540, y: 34 },
+                        coords: { x: 540, y: 34 },
                         placement: 'top',
                         text: "The cause or organization you enter will replace 'Freakonomics Radio' here."
                     },
 
                     msg1_pre: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="msg1_pre"]'),
-                        start: { x: 20, y: 177 },
+                        coords: { x: 20, y: 177 },
                         placement: 'left',
                         text: "Set the text to be displayed before friend names."
                     },
                     
                     msg1_post: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="msg1_post"]'),
-                        start: { x: 519, y: 204 },
+                        coords: { x: 519, y: 204 },
                         placement: 'bottom',
                         text: "Set the text that will go after the friend names."
                     },
 
                     msg2_pre: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="msg2_pre"]'),
-                        start: { x: 20, y: 177 },
+                        coords: { x: 20, y: 177 },
                         placement: 'left',
                         text: "Alternate text to display before friend names so that your user's feeds don't all look the same."
                     },
                     
                     msg2_post: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="msg2_post"]'),
-                        start: { x: 519, y: 204 },
+                        coords: { x: 519, y: 204 },
                         placement: 'bottom',
                         text: "Alternate text for after the friend names.  If specified, we will randomly pick one message for each post."
                     },
 
                     og_title: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="og_title"]'),
-                        start: { x: 735, y: 729 },
+                        coords: { x: 735, y: 729 },
                         placement: 'right',
                         text: "Your title will go here."
                     },
                     
                     og_image: {
+                        imgData: this.images.fbObj,
                         el: $('input[name="og_image"]'),
-                        start: { x: 678, y: 429 },
+                        coords: { x: 678, y: 429 },
                         placement: 'right',
                         text: "Your image will go here."
                     },
                     
                     og_description: {
+                        imgData: this.images.fbObj,
                         el: $('textarea[name="og_description"]'),
-                        start: { x: 898, y: 800 },
+                        coords: { x: 898, y: 800 },
                         placement: 'right',
                         text: "Your description will go here."
+                    },
+
+                    //y: should be 90, but I have reason to believe
+                    // bootstrap is doing something weird here
+                    //when I change the placement to anything other than right
+                    //the popover points in the correct spot
+                    sharing_prompt: {
+                        imgData: this.images.faces,
+                        el: $('input[name="sharing_prompt"]'),
+                        coords: { x: 647, y: 70 },
+                        placement: 'right',
+                        text: "Your headline will go here."
+                    },
+
+                    //y: should be 170, see above
+                    sharing_sub_header: {
+                        imgData: this.images.faces,
+                        el: $('input[name="sharing_sub_header"]'),
+                        coords: { x: 612, y: 150 },
+                        placement: 'right',
+                        text: "Your sub header will go here."
                     }
                 }
             } );
 
+            //instantiate boostrap popover
             this.popoverEl.popover( {
                 animation: false,
                 trigger: 'manual',
                 content: function() { return self.getPopoverText(); },
-                placement: function() { return self.getPlacement(); }
+                placement: function() { return self.getPopoverPlacement(); }
             } );
 
-            $.each( this.formFields, function( fieldName, value ) {
+            //binds form focus / blur events
+            $.each( this.formFields, function( fieldName, formMetaData ) {
 
-                value.el.on( 'focus', function() {
-                                 self.setCurrentField( fieldName )
-                                     .updateImagePosition()
-                                     .showIndicator( value ); } )
+                formMetaData.el.on( 'focus', function() {
+                                 self.setCurrentFormField( fieldName )
+                                     .setCurrentImageMetaData( formMetaData.imgData )
+                                     .handleFormFocus() } )
 
                         .on( 'blur', function() {
-                                self.setCurrentField( null ).hideIndicator( value ); } );
+                                self.setCurrentFormField( null ).hidePopover( formMetaData ); } );
             } );
 
+            //handle window resize so our popovers and images look alright
             //TODO: add debouncer
-            $(window).resize( function() { self.handleWindowResize(); } );
+            this.myWindow.resize( function() { self.handleWindowResize(); } );
 
             return this;
         }
 
+        //add methods to our object
         $.extend( imageIndicator.prototype, {
 
-            setCurrentField: function( fieldName ) { this.currentField = fieldName; return this; },
+            init: function() {
+                this.setImageContainerOffset();
+                this.setImageContainerSize();
+                this.setImageMetaData();
+            },
 
-            showIndicator: function( coordData ) {
+            setCurrentFormField: function( fieldName ) { this.currentFormField = fieldName; return this; },
 
+            setCurrentImageMetaData: function( metaData ) {
+
+                if( this.currentImageMetaData === metaData ) { return this; }
+
+                this.previousImageMetaData = this.currentImageMetaData;
+                this.currentImageMetaData = metaData;
+                
+                return this;
+            },
+
+            positionAndShowPopover: function() {
+ 
+                var focusedFormMetaData = this.formFields[ this.currentFormField ];
+               
                 this.popoverEl
                     .css( {
-                        top: this.offset.y + ( coordData.start.y * this.multiplier.y ),
-                        left: this.offset.x + ( coordData.start.x * this.multiplier.x ) } ).popover('show');
+                        top: ( focusedFormMetaData.coords.y * focusedFormMetaData.imgData.multiplier.y ),
+                        left: ( focusedFormMetaData.coords.x * focusedFormMetaData.imgData.multiplier.x ) } ).popover('show');
+
+                return this;    
             },
 
-            hideIndicator: function() {
-                this.popoverEl.popover('hide');
-            },
+            hidePopover: function() { this.popoverEl.popover('hide'); },
 
-            getPopoverText: function() { return this.formFields[ this.currentField ].text; },
+            getPopoverText: function() { return this.formFields[ this.currentFormField ].text; },
 
-            getPlacement: function() { return this.formFields[ this.currentField ].placement; },
+            getPopoverPlacement: function() { return this.formFields[ this.currentFormField ].placement; },
 
-            updateImagePosition: function() {
+            handleFormFocus: function() {
 
-                var difference =
-                    this.formFields[ this.currentField ].el.offset().top -
-                    ( this.offset.y + ( this.currentDims.y / 2 ) );
+                var self = this;
+                        
+                if( ( ! this.currentImageMetaData.el.is(':visible') ) &&
+                    this.previousImageMetaData != undefined ) {
 
-                if( difference > 0 ) {
-
-                    this.imageEl.animate( { 'top': '+=' + difference } );
+                    this.previousImageMetaData.el.hide( 10, function() {
+                        self.showAndPositionImage();
+                    } );
+                    
+                    return this;
                 }
+
+                return this.showAndPositionImage();
+            },
+
+            showAndPositionImage: function() {
+
+                this.currentImageMetaData.el.show();
+                this.setImageMetaData();
+                this.updateImagePosition();
+                this.positionAndShowPopover();
 
                 return this;
             },
 
+            updateImagePosition: function() {
+
+                var difference,
+                    maxDifference = this.inputWrapperHeight - this.imageContainerHeight,
+                    formElTop = this.formFields[ this.currentFormField ].el.offset().top,
+                    self = this;
+
+                this.inputWrapperHeight = this.inputWrapper.height();
+
+                difference =
+                    ( formElTop ) -
+                    ( ( this.imageContainerOffset.top - parseFloat( this.imageContainer.css('top' ) ) ) + ( this.currentImageMetaData.currentDims.y / 2 ) );
+
+                if( difference < 0 ) { difference = 0; }
+                else if( difference > maxDifference ) { difference = maxDifference; }
+
+                this.imageContainer.animate(
+                    { 'top': difference },
+                    { complete: function() { self.setImageContainerOffset(); } } );
+
+                $('body').animate( { 'scrollTop' : ( formElTop - ( this.myWindow.height() / 2 ) ) } );
+
+                return this;
+            },
+
+            setImageContainerSize: function() {
+               
+                if( this.imageContainer.is(':visible') ) {
+
+                    //TODO: 30 should be obj property
+                    this.imageContainerHeight =
+                        this.myWindow.height() -
+                        ( this.imageContainerOffset.top - parseFloat( this.imageContainer.css('top') ) ) -
+                        30;
+
+                    this.imageContainer.height( this.imageContainerHeight );
+                }
+            },
+
             handleWindowResize: function() {
 
-                var window_height = $(window).height(),
-                    offset = this.imageEl.offset();
+                this.setImageContainerSize();
+                this.setImageMetaData();
+                
+                if( this.currentFormField ) { this.positionAndShowPopover(); }
+            },
 
-                this.offset = { x: offset.left, y: offset.top };
+            setImageContainerOffset: function() {
+                this.imageContainerOffset = this.imageContainer.offset();
+            },
 
-                this.currentDims = {
-                    x: this.imageEl.width(),
-                    y: this.imageEl.height()
-                };
-               
-                this.multiplier = {
-                    x: this.currentDims.x / this.originalDims.x,
-                    y: this.currentDims.y / this.originalDims.y
-                };
+            setImageMetaData: function() {
 
-                if( this.currentField ) {
-                    this.showIndicator( this.formFields[ this.currentField ] );
-                }
+                this.inputWrapperHeight = this.inputWrapper.height();
+
+                $.each( this.images, function( imgKey, data ) {
+
+                    data.currentDims = {
+                        x: data.el.width(),
+                        y: data.el.height()
+                    };    
+
+                    data.multiplier = {
+                        x: data.currentDims.x / data.originalDims.x,
+                        y: data.currentDims.y / data.originalDims.y
+                    }
+
+                } );
+              
             }
         } );
 

@@ -56,7 +56,21 @@
             <a tabindex="7" href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </div>
     </div>
-    <div class="span7 img-helper-wrapper">
+    <div id="basic-info-faces-example" class="span7 img-helper-wrapper">
         <img id="faces_url-img-helper" class="img-helper hide" src="{{ STATIC_URL }}img/faces-example.png">
     </div>
 </div>
+<script>
+    var sizeBasicInfoFaces = function() {
+        var basic_info_faces = $('#basic-info-faces-example');
+
+        if( basic_info_faces.is(':visible') ) {
+            basic_info_faces.height( $(window).height() - basic_info_faces.offset().top - 30 );
+        }
+    }
+
+    //TODO: add debouncer
+    $(window).resize( sizeBasicInfoFaces );
+
+    $( sizeBasicInfoFaces );
+</script>

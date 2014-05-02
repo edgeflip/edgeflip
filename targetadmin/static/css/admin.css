@@ -15,6 +15,7 @@
 
 .img-helper-wrapper {
     position: relative;
+    top: 0px;
 }
 
 .img-helper {
@@ -35,7 +36,7 @@
     margin-bottom: 40px;
 }
 
-.fb-obj-input-wrapper {
+#.fb-obj-input-wrapper {
     margin-bottom: 40px;
 }
 
