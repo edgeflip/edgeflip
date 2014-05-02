@@ -291,7 +291,6 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
-    num_faces = forms.IntegerField(label='Number of faces to show', min_value=1, initial=9 )
 
     def __init__(self, *args, **kwargs):
         super(CampaignWizardForm, self).__init__(*args, **kwargs)

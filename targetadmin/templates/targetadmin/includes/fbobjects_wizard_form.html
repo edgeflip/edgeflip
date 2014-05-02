@@ -71,11 +71,6 @@
                 <label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>
                 <div>{{ fb_obj_form.sharing_sub_header }}</div>
             </div>
-            <div class="fb-obj-item">
-                <div>{{ campaign_form.num_faces.errors }}</div>
-                <label for="{{ campaign_form.num_faces.id_for_label }}">{{ campaign_form.num_faces.label }}:</label>
-                <div>{{ campaign_form.num_faces }}</div>
-            </div>
         </div>
     </div>
 
@@ -228,14 +223,6 @@
                         coords: { x: 612, y: 150 },
                         placement: 'right',
                         text: "Your sub header will go here."
-                    },
-
-                    num_faces: {
-                        imgData: this.images.faces,
-                        el: $('input[name="num_faces"]'),
-                        coords: { x: 369, y: 457 },
-                        placement: 'bottom',
-                        text: "Tell us how many friends to display to your users."
                     }
                 }
             } );
