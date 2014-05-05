@@ -1,12 +1,10 @@
+
+        <img id="faces_url-img-helper" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png" />
+
 .page-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 10px;
-}
-
-.page-sub-header {
-    text-align: center;
-    margin-bottom: 50px;
 }
 
 .icon-question-sign {
