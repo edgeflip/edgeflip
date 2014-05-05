@@ -119,7 +119,7 @@ class Command(NoArgsCommand):
 
         # Re-process failed tokens #
         while retries:
-            self.stdout.write('Retrying {} tokens ...'.format(len(retries)))
+            self.echo('Retrying {} tokens ...'.format(len(retries)))
             tokens = dynamo.Token.items.batch_get(retries)
             (count, update_count, retries) = self.try_many_tokens(tokens.iterable, count, update_count) # FIXME: faraday #9
             self.stdout.write('') # carriage return
@@ -129,24 +129,22 @@ class Command(NoArgsCommand):
         self.stdout.write("Updated {} tokens".format(update_count))
 
         if client_codenames:
-            self.stdout.write('')
             self.write_header("Client results")
-            self.stdout.write('')
             self.report((client_codename, self.stats[client_codename]) for client_codename in client_codenames)
 
             remainder = [client_codename for client_codename in self.stats if client_codename not in client_codenames]
             if remainder:
-                self.stdout.write('')
                 self.write_header("Other client results")
-                self.stdout.write('')
                 self.report((client_codename, self.stats[client_codename]) for client_codename in remainder)
         else:
             self.report(self.stats.iteritems())
 
     def write_header(self, content):
+        self.stdout.write('')
         self.stdout.write('-' * len(content))
         self.stdout.write(content)
         self.stdout.write('-' * len(content))
+        self.stdout.write('')
 
     def report(self, client_counters):
         # Print header
