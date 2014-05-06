@@ -1,33 +1,76 @@
-<h4>Let's start with the basics</h4>
+<h4 class="page-sub-header">Let's start with the basics</h4>
 <div class="row">
     <div class="span5">
-        <p>
+        <div class="control-group">
             {{ campaign_form.name.errors }}
-            <label for="{{ campaign_form.name.id_for_label }}">{{ campaign_form.name.label }}:</label>
-            {% if campaign_form.name.help_text %}<span class="help-block">{{ campaign_form.name.help_text }}</span>{% endif %}
-            {{ campaign_form.name }}
-        </p>
-        <p>
+            <label class="control-label" for="{{ campaign_form.name.id_for_label }}">{{ campaign_form.name.label }}:</label>
+            <div class="controls">
+                {{ campaign_form.name }}
+                {% if campaign_form.name.help_text %}
+                    <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.name.help_text }}"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="control-group">
             {{ campaign_form.faces_url.errors }}
-            <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
-            {% if campaign_form.faces_url.help_text %}<span class="help-block">{{ campaign_form.faces_url.help_text }}</span>{% endif %}
-            {{ campaign_form.faces_url }}</p>
-        <p>
+            <label class="control-label" for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
+            <div data-helper="img" class="controls">
+                {{ campaign_form.faces_url }}
+                {% if campaign_form.faces_url.help_text %}
+                    <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.faces_url.help_text }}"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="control-group">
             {{ campaign_form.thanks_url.errors }}
-            <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
-            {% if campaign_form.thanks_url.help_text %}<span class="help-block">{{ campaign_form.thanks_url.help_text }}</span>{% endif %}
-            {{ campaign_form.thanks_url }}</p>
-        <p>
+            <label class="control-label" for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
+            <div class="controls">
+                {{ campaign_form.thanks_url }}
+                {% if campaign_form.thanks_url.help_text %}
+                    <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.thanks_url.help_text }}"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="control-group">
             {{ campaign_form.error_url.errors }}
-            <label for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
-            {% if campaign_form.error_url.help_text %}<span class="help-block">{{ campaign_form.error_url.help_text }}</span>{% endif %}
-            {{ campaign_form.error_url }}
-        </p>
-        <p>
+            <label class="control-label" for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
+            <div class="controls">
+                {{ campaign_form.error_url }}
+                {% if campaign_form.error_url.help_text %}
+                    <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.error_url.help_text }}"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="control-group">
             {{ campaign_form.content_url.errors }}
-            <label for="{{ campaign_form.content_url.id_for_label }}">{{ campaign_form.content_url.label }}:</label>
-            {% if campaign_form.content_url.help_text %}<span class="help-block">{{ campaign_form.content_url.help_text }}</span>{% endif %}
-            {{ campaign_form.content_url }}
-        </p>
+            <label class="control-label" for="{{ campaign_form.content_url.id_for_label }}">{{ campaign_form.content_url.label }}:</label>
+            <div class="controls">
+                {{ campaign_form.content_url }}
+                {% if campaign_form.content_url.help_text %}
+                    <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.content_url.help_text }}"></i>
+                {% endif %}
+            </div>
+        </div>
+        <div class="basics-button-container">
+            <a tabindex="6" href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
+            <a tabindex="7" href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+        </div>
+    </div>
+    <div id="basic-info-faces-example" class="span7 img-helper-wrapper">
+        <img id="faces_url-img-helper" class="img-helper hide" src="{{ STATIC_URL }}img/faces-example.png">
     </div>
 </div>
+<script>
+    var sizeBasicInfoFaces = function() {
+        var basic_info_faces = $('#basic-info-faces-example');
+
+        if( basic_info_faces.is(':visible') ) {
+            basic_info_faces.height( $(window).height() - basic_info_faces.offset().top - 30 );
+        }
+    }
+
+    //TODO: add debouncer
+    $(window).resize( sizeBasicInfoFaces );
+
+    $( sizeBasicInfoFaces );
+</script>

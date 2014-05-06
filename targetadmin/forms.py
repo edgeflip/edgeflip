@@ -261,26 +261,40 @@ class CampaignForm(forms.Form):
 # Wizard Forms
 class CampaignWizardForm(forms.Form):
 
-    name = forms.CharField()
+    name = forms.CharField(
+        help_text='Give your campaign a name.',
+    )
     faces_url = forms.CharField(
         required=False,
         help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) you can leave this blank'
     )
-    error_url = forms.CharField()
-    thanks_url = forms.CharField()
-    content_url = forms.CharField()
+    error_url = forms.CharField(
+        help_text='If something goes wrong, we will send users here.',
+    )
+    thanks_url = forms.CharField(
+        help_text='After a user shares this campaign with their friends, they will be directed here.',
+    )
+    content_url = forms.CharField(
+        help_text='The URL you are targeting with this campaign.  This is where users are directed upon clicking the facebook post.',
+    )
     include_empty_fallback = forms.BooleanField(
         help_text=(
             'Some users will not have enough friends who fit the targeting '
             'criteria. Checking this box will fill in the friend suggestions '
             'with friends that do not fit the targeting criteria but are '
-            'still influencable. You should check this box if you would '
+            'still influenceable. You should check this box if you would '
             'rather reach more people than people strictly in your targeting '
             'criteria.'
         ),
         initial=True,
         required=False
     )
+
+    def __init__(self, *args, **kwargs):
+        super(CampaignWizardForm, self).__init__(*args, **kwargs)
+        for i, field in enumerate( ['name','faces_url','thanks_url','error_url','content_url'] ):
+            print self.fields[field].widget.attrs
+            self.fields[field].widget.attrs={'tabindex':i+1}
 
 
 class FBObjectWizardForm(forms.ModelForm):
@@ -293,7 +307,7 @@ class FBObjectWizardForm(forms.ModelForm):
     og_title = forms.CharField(label='Facebook Post Title')
     og_image = forms.CharField(label='Facebook Post Image URL')
     org_name = forms.CharField(
-        label='Cause or Organization being supported - Chris supported ______'
+        label='Cause or Organization being supported'
     )
     msg1_pre = forms.CharField(label='Text Before Friend Names')
     msg1_post = forms.CharField(label='Text After Friend Names')

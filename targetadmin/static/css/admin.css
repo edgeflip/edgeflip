@@ -1,3 +1,56 @@
+.page-header {
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+.page-sub-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.icon-question-sign {
+    margin-left: 10px;
+}
+
+.img-helper-wrapper {
+    position: relative;
+    top: 0px;
+}
+
+.img-helper {
+    height: 100%;
+}
+
+.fb-obj-group {
+    margin-bottom: 50px;
+}
+
+.fb-obj-item {
+    margin-bottom: 20px;
+}
+
+.basics-button-container,
+.filter-button-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.step-submit {
+    margin-right: 50px;
+}
+
+.targeting-header {
+    margin-bottom: 40px;
+}
+
+#fb-obj-input-wrapper label {
+    display: inline-block;
+}
+
+#fb-obj-popover {
+    position: absolute;
+}
 
 .add-filter-row {
     margin: 0px;
@@ -71,6 +124,7 @@
 }
 
 .empty-fallback {
+    margin-top: 20px;
     margin-bottom: 20px;
 }
 

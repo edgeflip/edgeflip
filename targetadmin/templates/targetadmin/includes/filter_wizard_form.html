@@ -1,6 +1,6 @@
 <div class="row">
     <div class="span12">
-        <div class="row">
+        <div class="row targeting-header">
             <h2>Define Targeting Criteria</h2>
             <p>
                 The filters below will be chained together with ANDs. For example if you put four filters:
@@ -41,12 +41,16 @@
             </div>
         </div>
         <div class="row empty-fallback">
-            <p>
-                {{ campaign_form.include_empty_fallback.errors }}
-                <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
-                {{ campaign_form.include_empty_fallback }}
-                {% if campaign_form.include_empty_fallback.help_text %}<span class="help-block">{{ campaign_form.include_empty_fallback.help_text }}</span>{% endif %}
-            </p>
+            {{ campaign_form.include_empty_fallback.errors }}
+            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+            {{ campaign_form.include_empty_fallback }}
+            {% if campaign_form.include_empty_fallback.help_text %}
+                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+            {% endif %}
+        </div>
+        <div class="row filter-button-container">
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="fbobjects">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="campaign-settings">Previous</a>
         </div>
     </div>
 </div>
