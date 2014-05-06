@@ -15,6 +15,7 @@ class Clientrollups(models.Model):
     users_shown_faces = models.PositiveIntegerField(default=0)
     total_faces_shown = models.PositiveIntegerField(default=0)
     distinct_faces_shown = models.PositiveIntegerField(default=0)
+    visits_with_share_clicks = models.PositiveIntegerField(default=0)
     visits_with_shares = models.PositiveIntegerField(default=0)
     users_who_shared = models.PositiveIntegerField(default=0)
     audience = models.PositiveIntegerField(default=0)

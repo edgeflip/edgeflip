@@ -113,6 +113,12 @@ def faces(request):
                         ranked=px4_edges_result.ranked,
                         filtered=px3_edges_result.filtered.reranked(px4_edges_result.ranked)
                     )
+            elif px3_edges_result.ranked:
+                edges_result = px4_edges_result._replace(
+                    filtered=px4_edges_result.filtered.rescored(
+                        px3_edges_result.ranked
+                    )
+                )
             else:
                 # px4 filtering completed, so use it:
                 edges_result = px4_edges_result
@@ -223,19 +229,18 @@ def faces(request):
         'fb_object_description': fb_attrs.og_description
     }
     LOG.debug('fb_object_url: %s', fb_params['fb_object_url'])
-    content_str = '%s:%s %s' % (
-        fb_params['fb_app_name'],
-        fb_params['fb_object_type'],
-        fb_params['fb_object_url']
-    )
 
     num_gen = max_faces = 50
     events = []
+    shown_count = 0
     for tier in edges_result.filtered:
         edges_list = tier['edges'][:num_gen]
         tier_campaign_id = tier['campaign_id']
         tier_content_id = tier['content_id']
         for edge in edges_list:
+            scores = ('N/A' if score is None else score for score in (edge.px3_score, edge.px4_score))
+            gen_score_str = "px3_score: {}, px4_score: {}".format(*scores)
+            shown_score_str = "px3_score: {}".format(edge.px3_score) if edge.px4_score is None else "px4_score: {}".format(edge.px4_score)
             events.append(
                 models.relational.Event(
                     visit=request.visit,
@@ -243,28 +248,27 @@ def faces(request):
                     client_content_id=tier_content_id,
                     friend_fbid=edge.secondary.fbid,
                     event_type='generated',
-                    content=content_str,
+                    content=gen_score_str,
                 )
             )
+            if shown_count < data['num_face']:
+                events.append(
+                    models.relational.Event(
+                        visit=request.visit,
+                        campaign_id=campaign.pk,
+                        client_content_id=content.pk,
+                        friend_fbid=edge.secondary.fbid,
+                        content=shown_score_str,
+                        event_type='shown',
+                    )
+                )
+                shown_count += 1
         num_gen -= len(edges_list)
         if num_gen <= 0:
             break
 
-    face_friends = edges_result.filtered.secondaries[:max_faces]
-    for friend in face_friends[:data['num_face']]:
-        events.append(
-            models.relational.Event(
-                visit=request.visit,
-                campaign_id=campaign.pk,
-                client_content_id=content.pk,
-                friend_fbid=friend.fbid,
-                content=content_str,
-                event_type='shown',
-            )
-        )
-
     db.bulk_create.delay(events)
-
+    face_friends = edges_result.filtered.secondaries[:max_faces]
     return utils.JsonHttpResponse({
         'status': 'success',
         'campaignid': campaign.pk,
