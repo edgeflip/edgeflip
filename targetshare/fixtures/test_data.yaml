@@ -452,7 +452,7 @@
   fields:
     name: Edgeflip defaults
     page: 1
-    url: //assets.com/edgeflip-base-0.css
+    url: //assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css
     starred: True
     created: '2013-10-01 17:04:53'
     updated: '2013-10-01 17:04:53'
@@ -461,7 +461,7 @@
   fields:
     name: Edgeflip defaults
     page: 2
-    url: //assets.com/edgeflip-base-0.css
+    url: //assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css
     starred: True
     created: '2013-10-01 17:04:53'
     updated: '2013-10-01 17:04:53'

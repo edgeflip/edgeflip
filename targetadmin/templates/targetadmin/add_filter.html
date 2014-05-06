@@ -1,16 +1,23 @@
 <form id="add-filter-form" action="{% url 'targetadmin:filter-add' client.pk %}" method="post">
     {% csrf_token %}
-    <div class="row">
-        <div class="span5">
+    <div class="row add-filter-row">
+        <div class="filter-selection-col">
             <div id="new-form-1" class="new-filters">
                 <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
-                <p style="display: none;">Asdkfljasdkjfa</p>
                 <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
                 <p style="display: none;">{{ form.value }}</p>
-                <p id="value-p">{{ form.value.errors }}
+                <div class="value-container">
+                    {{ form.value.errors }}
                     <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
-                    <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
-                    <span id="value-span"></span><a id="value-a" class="icon-plus" href="#id-value" style=""></a>
+                    <div class="clearfix">
+                        <div class="text-input-list">
+                            <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
+                            <span id="value-span"></span>
+                        </div>
+                        <div class="add-input-container">
+                            <a id="value-a" class="icon-plus" href="#" style=""></a>
+                        </div>
+                    </div>
                     <select id="gender-dropdown" style="display:none;">
                         <option value="" selected="selected">--------</option>
                         <option value="Male">Male</option>
@@ -23,9 +30,38 @@
                         </div>
                         <div id="age-range"></div>
                     </div>
-                </p>
-                <hr>
+                    <div id="location-options-container" style="display: none;">
+                        <div>
+                            <label for="location-type">Location Type (one per filter)</label>
+                            <select id="location-type-dropdown" data-placement="right" data-content="Please select a location type.">
+                                <option value="" data-dropdown="" selected="selected">--------</option>
+                                <!--<option value="country">Country</option>-->
+                                <option value="state">State</option>
+                                <option value="city">City</option>
+                            </select>
+                        </div>
+                        <div id="country-container" style="display: none;">
+                            <label for="country-dropdown">Country</label>
+                            <select id="country-dropdown" data-placement="right">
+                                <option value="us" selected="selected">United States</option>
+                            </select>
+                        </div>
+                        <div id="state-container" style="display: none;">
+                            <label for="us-state-dropdown">State</label><span id="state-error" class="alert form-error">Required</span>
+                            <input type="text" id="state-input" placeholder="Enter a state" autocomplete="off"/>
+                        </div>
+                        <div id="city-container" style="display: none;">
+                            <label for="city-input">City</label>
+                            <input type="text" id="city-input" placeholder="Enter a city" />
+                        </div>
+                        <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right">Add Filter</button>
+                    </div>
+                </div>
             </div>
+        </div>
+        <div id="location-filter-view" class="filter-builder-col">
+            <h5 style="margin-top: 0px; border-bottom: 2px inset lightgray">Current Location Filter</h5>
+            <div id="location-filters" style="padding-left: 10px;"></div>
         </div>
     </div>
 </form>
@@ -33,185 +69,23 @@
     var input_count = 1;
 
     $('.icon-plus').click(function(e){
-        var split_id = e.target.id.split('-');
-        var form_tag = split_id[0] + '-' + split_id[1];
+        var split_id = e.target.id.split('-'),
+            form_tag = split_id[0] + '-' + split_id[1],
+            iconContainer = $(this).parent();
+
         input_count += 1;
         var new_id = 'id_value-split-' + input_count;
         var dest_id = '#' + e.target.id + '-span';
         $('#value-span').append(
             '<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">'
         );
-    });
 
-    //object constructor -- manages filter creation modal
-    //binds events, cache's jQuery DOM lookups
-    //I'd really like to incorporate a templating engine ( that front and backend can use )
-    //  in order to utilize a .js helper function that does this caching, event binding automatically
-    //  as well as separate .js from HTML
-    //creates a separate save changes button for age filter because it creates two filters
-    //initializes age range slider
-    var CreateFilterManager = function() {
-        var self = this;
-
-        this.featureDropdown =  $('#id_feature').on( 'change', function() { self.handleFeatureChange(); } );
-        this.genderDropdown = $('#gender-dropdown').on( 'change', function() { self.handleGenderChange(); } );
-        
-        this.operatorDropdown = $('#id_operator');
-        this.operatorLabel = $('label[for="id_operator"]');
-        this.operatorError = $('#operator-error');
-
-        this.valueLabel = $('label[for="id_value"]');
-        this.firstValueInput = $('#id_value-split-1');
-        this.valueSpan = $('#value-span');
-        this.valueError = $('#value-error');
-        this.addValueIcon = $('#value-a');
-
-        this.saveChangesBtn = $('#filter-add');
-
-        this.saveAgeChangesBtn =
-            this.saveChangesBtn.clone().insertAfter( this.saveChangesBtn )
-                .attr( 'id', 'age-filter-add' )
-                .on( 'click', $.proxy( this.submitAgeFilter, this ) )
-                .hide();
-
-        this.ageRangeContainer = $('#age-range-container');
-
-        $( "#age-range" ).slider( {
-            range: true,
-            min: 0,
-            max: 100,
-            values: [ 25, 75 ],
-            slide: function( event, ui ) {
-              $( "#age-range-display" ).text( ui.values[ 0 ] + " - " + ui.values[ 1 ] );
-            }
+        //10 accounts for the margin-bottom of the input element
+        //todo: rework html so we don't have to do this
+        iconContainer.css( { top:
+            ( ( iconContainer.outerHeight( true ) + 2 ) * ( input_count - 1 ) ) +
+            ( ( input_count - 1 ) * 10 )
         } );
-
-        return this;
-    }
-
-    //adding methods to our filter creation manager
-    $.extend( CreateFilterManager.prototype, {
-
-        //called when feature type changes
-        //cleans up former state's UI
-        //looks for object method to handle selected feature type
-        //calls that method if it exists, else, vanilla form
-        handleFeatureChange: function() {
-
-            var feature = this.featureDropdown.val(),
-                method = 'show' + feature.charAt(0).toUpperCase() + feature.slice(1) + 'UI';
-
-            //should add a state to this object so we know what to clean up
-            // instead of checking twice
-            if( this.genderDropdown.is(':visible') ) { this.cleanUpGenderUI(); }
-            if( this.ageRangeContainer.is(':visible') ) { this.cleanUpAgeUI(); }
-
-            if( this[ method ] ) { this[ method ](); }
-
-            return this;
-        },
-
-        //'Age' was selected from the dropdown
-        //hide default UI, show age ui
-        showAgeUI: function() {
-            this.valueSpan.empty();
-            this.toggleOperatorElements( 'hide' );
-            this.toggleDefaultValueInputs( 'hide', [ 'valueLabel' ] );  
-            this.ageRangeContainer.fadeIn();
-            this.saveChangesBtn.hide();
-            this.saveAgeChangesBtn.show();
-        },
-
-        //'Gender' was selected from the dropdown
-        //hide default UI, show gender ui
-        showGenderUI: function() {
-            this.valueSpan.empty();
-            this.operatorDropdown.val('eq').attr( 'disabled', true );
-            this.toggleDefaultValueInputs( 'hide' );  
-            this.genderDropdown.fadeIn();
-        },
-
-        //hide Age UI, show default UI
-        cleanUpAgeUI: function() {
-
-            window.can_close_modal = true;
-
-            this.saveChangesBtn.show();
-            this.saveAgeChangesBtn.hide();
-
-            this.ageRangeContainer.hide();
-            this.firstValueInput.val('');
-            this.toggleOperatorElements( 'fadeIn' );
-            this.toggleDefaultValueInputs( 'fadeIn', [ 'valueLabel' ] );
-        },
-
-        //hide gender UI, show default UI
-        cleanUpGenderUI: function() {
-
-            this.genderDropdown.hide();
-            this.operatorDropdown.val('').removeAttr( 'disabled' );
-            this.firstValueInput.val('');
-            this.toggleDefaultValueInputs( 'fadeIn' );
-        },
-
-        //special age version of 'Save Changes' button clicked 
-        //set min value, click original 'Save Changes' button
-        //set max value, click original 'Save Changes' button
-        submitAgeFilter: function( e ) {
-            var values = $( '#age-range' ).slider( 'values' );
-
-            e.preventDefault();
-
-            window.can_close_modal = false;
-
-            this.operatorDropdown.val('min');
-            this.firstValueInput.val( values[0] );
-            this.saveChangesBtn.click();
-
-            window.can_close_modal = true;
-
-            this.operatorDropdown.val('max');
-            this.firstValueInput.val( values[1] );
-            this.saveChangesBtn.click();
-                
-            this.saveAgeChangesBtn.hide();
-            this.saveChangesBtn.show();
-        },
-
-        //gender dropdown changed, update hidden value input
-        handleGenderChange: function() { this.firstValueInput.val( this.genderDropdown.val() ); },
-
-        //func is string referencing a jquery method
-        //func is called on the 'Operator' UI elements
-        //will not show "Error" elements
-        toggleOperatorElements: function( func ) {
-            var elements = [ 'operatorLabel', 'operatorDropdown', 'operatorError' ];
-            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'operatorError' ), 1 ); }
-            this.toggleElements( elements, func );
-        },
-
-        //func is string referencing a jquery method
-        //func is called on the 'Value' UI elements
-        //will not show "Error" elements
-        //extra Els is an optional parameter allowing for the inclusion
-        // of extra elements
-        toggleDefaultValueInputs: function( func, extraEls ) {
-            var elements = [ 'firstValueInput', 'valueSpan', 'addValueIcon', 'valueError' ];
-            if( func === 'fadeIn' || func === 'show' ) { elements.splice( elements.indexOf( 'valueError' ), 1 ); }
-            if( extraEls ) { elements = elements.concat( extraEls ); }
-            this.toggleElements( elements, func );
-        },
-
-        //takes a list of strings referring to this objects cached elements
-        //calls jQuery method func on these cached elements
-        toggleElements: function( elementList, func ) {
-            var self = this;
-            $.each( elementList, function( i, elReference ) { self[ elReference ][ func ](); } );
-        }
-
-    } );
-
-    //create istance of CreateFilterManager
-    new CreateFilterManager();
-
+    });
 </script>
+<script src="{{ STATIC_URL }}js/createFilterManager.js"></script>

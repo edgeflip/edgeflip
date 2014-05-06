@@ -20,6 +20,7 @@
         </span>
     </form>
 {% endblock %} {% block extrascript %}
+<script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script>
     
     var layer_count = 1,
@@ -159,59 +160,6 @@
         }
     });
 
-    // New FilterFeature creation
-    $('#filter-add').click(function(event) {
-        event.preventDefault()
-        var filter_values = '';
-        $('.filter-val-input').each(function(index){
-            var value = $(this).val();
-            if (value) {
-                if (filter_values === ''){
-                    filter_values = value;
-                } else {
-                    filter_values += '||' + value;
-                }
-            }
-        });
-        if (filter_values.slice(-2) === '||'){
-            filter_values = filter_values.substr(0, filter_values.length - 2);
-        }
-        $('#id_value').val(filter_values);
-        var validation_elems = [
-            [$('#id_feature'), $('#feature-error')],
-            [$('#id_operator'), $('#operator-error')],
-            [$('#id_value'), $('#value-error')]
-        ]
-        var form_errors = false;
-        for (var elem=0; elem < validation_elems.length; elem++) {
-            if (validation_elems[elem][0].val() === ""){
-                validation_elems[elem][1].show();
-                form_errors = true;
-            } else {
-                validation_elems[elem][1].hide();
-            }
-        }
-        if (!form_errors) {
-            var feature = $('#id_feature').val();
-            var operator = $('#id_operator').val();
-            var filter_values = $('#id_value').val();
-            $('#existing-filters').prepend(
-                '<div data-filter-id="set_number=' + feature + '.' + operator + 
-                '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-                feature + ' ' + operator + ' ' + filter_values + '">' + 
-                feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
-                '</abbr></p></div>'
-            );
-
-            if( can_close_modal ) {
-                $('#filter-modal').modal('toggle');
-                $('#filter-modal').removeData();
-            }
-        }
-    });
-    
     $( $('input:visible')[0] ).focus();
-
-    
 </script>
 {% endblock %}
