@@ -7,6 +7,9 @@ from chapo import models
 
 URL = "http://www.reddit.com/r/food/"
 
+BYTES = '\xad\xe0\xd0\x9a\xf5\xe1\xedz\xe9\xd9\xd2\x8b'
+urandom_patch = patch('os.urandom', return_value=BYTES)
+
 
 class TestShortenedUrl(TestCase):
 
@@ -17,19 +20,18 @@ class TestShortenedUrl(TestCase):
         self.assertEqual(short.url, URL)
         self.assertEqual(short.description, '')
 
-    @patch.object(models, 'urlsafe_b64encode', return_value='foobar43====')
-    def test_no_pad_slug(self, _mock):
-        """ShortenedUrl.slug is not padded"""
+    @urandom_patch
+    def test_slug(self, _mock):
         short = models.ShortenedUrl.objects.create(url=URL)
         self.assertEqual(short.url, URL)
-        self.assertEqual(short.slug, 'foobar43')
+        self.assertEqual(short.slug, 'jSgnUTqptPrV')
 
-    @patch.object(models, 'urlsafe_b64encode', return_value='foobar43====')
+    @urandom_patch
     def test_friendly_slug(self, _mock):
         nice_slug = models.ShortenedUrl.make_slug('Healthy Food')
         short = models.ShortenedUrl.objects.create(slug=nice_slug, url=URL)
         self.assertEqual(short.url, URL)
-        self.assertEqual(short.slug, 'healthy-food-foobar43')
+        self.assertEqual(short.slug, 'healthy-food-jSgnUTqp')
 
     def test_description(self):
         """ShortenedUrl accepts a description"""
@@ -42,12 +44,12 @@ class TestShortenedUrl(TestCase):
         self.assertEqual(short.url, URL)
         self.assertEqual(short.description, description)
 
-    @patch.object(models, 'urlsafe_b64encode', return_value='foobar43====')
+    @urandom_patch
     def test_print_pretty(self, _mock):
         """ShortenedUrl prints pretty"""
         short = models.ShortenedUrl.objects.create(url=URL)
-        self.assertEqual(unicode(short), u'foobar43 => http://www.reddit.com/r/food/')
-        self.assertEqual(str(short), 'foobar43 => http://www.reddit.com/r/food/')
+        self.assertEqual(unicode(short), u'jSgnUTqptPrV => http://www.reddit.com/r/food/')
+        self.assertEqual(str(short), 'jSgnUTqptPrV => http://www.reddit.com/r/food/')
 
 
 class TestRedirectService(TestCase):

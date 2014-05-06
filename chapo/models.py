@@ -1,5 +1,7 @@
-from uuid import uuid4
-from base64 import urlsafe_b64encode
+import base64
+import binascii
+import os
+import string
 
 from django.db import models
 from django.utils.text import slugify
@@ -7,13 +9,48 @@ from django.utils.text import slugify
 from core.models import base
 
 
-def make_slug():
-    """Return a URL-safe, base64-encoded, universally-unique identifier.
+MIN_SLUG = 8
+MAX_SLUG = 12
 
-    Padding is stripped (and so length cannot be ensured).
+
+def number_to_string(number, length, alphabet):
+    """Convert the given number to a string of the given length, from the given alphabet.
+
+    For example:
+
+        >>> number_to_string(665218483893421, 10, string.letters)
+        'dILjbrCXM'
+
+    The result is unpadded, and so length cannot be ensured.
 
     """
-    return urlsafe_b64encode(uuid4().bytes).rstrip('=')
+    alpha_len = len(alphabet)
+    count = 0
+    output = ''
+
+    while number and count < length:
+        (number, remainder) = divmod(number, alpha_len)
+        output += alphabet[remainder]
+        count += 1
+
+    return output
+
+
+def make_slug(length=MAX_SLUG, alphabet=string.letters):
+    """Return an arbitrary identifier of given length from the given alphabet.
+
+    If alphabet is None, a URL-safe, base64-encoded encoded slug is returned.
+
+    The result is unpadded, and so length cannot be ensured.
+
+    """
+    unique = os.urandom(length)
+
+    if alphabet is None:
+        return base64.urlsafe_b64encode(unique).rstrip('=')
+
+    number = int(binascii.hexlify(unique), 16)
+    return number_to_string(number, length, alphabet)
 
 
 class ShortenedUrl(base.BaseModel):
@@ -32,24 +69,22 @@ class ShortenedUrl(base.BaseModel):
         db_table = 'shortened_urls'
 
     @staticmethod
-    def make_slug(prepend=None):
+    def make_slug(prefix=''):
         """Generate an appropriate, unique slug.
 
             >>> ShortenedUrl.make_slug()
             'vytxeTZskVKR'
 
-        To prepend a recognizable, non-arbitrary value, specify `prepend`:
+        To prepend a recognizable, non-arbitrary value, specify `prefix`:
 
             >>> ShortenedUrl.make_slug('Good Food')
             'good-food-vytxeTZskVKR'
 
         """
-        slug = make_slug()
-
-        if prepend:
-            return '{}-{}'.format(slugify(unicode(prepend)), slug)
-
-        return slug
+        prefix = prefix and slugify(unicode(prefix)) + '-'
+        length = max(MIN_SLUG, MAX_SLUG - len(prefix))
+        slug = make_slug(length)
+        return prefix + slug
 
     def __unicode__(self):
         return u"{0.slug} => {0.url}".format(self)
