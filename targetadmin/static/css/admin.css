@@ -1,7 +1,80 @@
+/*
+edgeflip blue #094063
+main red #98050C
+*/
+
+.navbar-inverse .navbar-inner {
+    background-color: #3982B1 !important;
+    background-image: none !important;
+}
+
+.navbar-inverse .nav > li > a,
+.navbar-inverse .brand {
+    color: #094063;
+}
+
+.navbar-inverse .nav > li > a:hover {
+    color: white;
+}
+
+.navbar-inverse .nav > .active > a {
+    background-color: #032A40;
+}
+
+.navbar-inverse .nav > .active > a:hover {
+    background-color: #032A40;
+}
+
 .page-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 10px;
+    color: #98050C;
+}
+
+.page-header-information {
+    text-align: center;
+    margin: 20px 0px 40px 0px;
+}
+
+.name-input-label {
+    padding: 20px 0px 20px 0px;
+    text-align: center;
+    color: #98050C;
+    font-size: large;
+}
+
+.name-input-container {
+    text-align: center;
+}
+
+.name-input-container input {
+    padding: 20px;
+    width: 400px;
+    font-size: xx-large;
+    text-align: center;
+    color: black;
+}
+
+.wizard-button-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.wizard-button-container > .btn {
+    background-color: #3982B1;
+    color: #094063;
+    background-image: none;
+    border: none;
+    text-shadow: none;
+}
+
+.wizard-button-container > .btn:hover {
+    color: white;
+}
+
+.targeting-header {
+    margin-bottom: 40px;
 }
 
 .page-sub-header {
@@ -30,18 +103,39 @@
     margin-bottom: 20px;
 }
 
-.basics-button-container,
-.filter-button-container {
-    text-align: center;
-    margin-top: 50px;
-}
-
 .step-submit {
     margin-right: 50px;
 }
 
-.targeting-header {
-    margin-bottom: 40px;
+.filter-info-item {
+    margin-top: 40px;
+}
+
+.filter-info-item:first-child {
+    margin-top: 0px;
+}
+
+.filter-info-item > div,
+.filter-info-item > h4 {
+    text-align: center;
+}
+
+#available-section h3,
+#enabled-section h3 {
+    color: #98050C;
+}
+
+#available-section button,
+#enabled-section button {
+    vertical-align: bottom;
+    margin: 10px;
+    background-image: none;
+    background-color: #CDB960;
+}
+
+#available-section button:hover,
+#enabled-section button:hover {
+    background-color: #CDB238;
 }
 
 #fb-obj-input-wrapper label {
@@ -89,16 +183,27 @@
     margin-bottom: 30px;
 }
 
+.draggable.ui-sortable-helper {
+    background-color: rgba(204, 95, 101, 0.3);
+}
+
 .draggable {
-    border: solid black 0.1em;
+    font-weight: bold;
+    color: #094063;
+    border-width: 1px;
+    border-style: solid;
     border-radius: 5px;
-    background-color: darkgrey;
+    border-color: #598EB1;
     padding-left: 2px;
     padding-top: 2px;
     height: 50px;
     margin-left: 10px;
     margin-top: 10px;
     text-align: center;
+}
+
+.draggable:hover {
+    background-color: rgba(204, 95, 101, 0.1);
 }
 
 .draggable:hover,
@@ -117,6 +222,7 @@
 .draggable p abbr {
     display: table-cell;
     vertical-align: middle;
+    border-bottom: none;
 }
 
 .form-error {

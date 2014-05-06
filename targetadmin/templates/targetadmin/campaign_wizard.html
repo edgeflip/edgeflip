@@ -1,19 +1,35 @@
 {% extends "targetadmin/base.html" %}
+
 {% block extrahead %}
     <link rel="stylesheet" href="{{ STATIC_URL }}css/admin.css">
 {% endblock %}
+
 {% block title %}Campaign Setup Wizard{% endblock %}
+
+
 {% block content %}
-    <h2 class="page-header">Create a New Targeted Sharing Campaign</h2>
+    <h2 class="page-header">Create a Targeted Sharing Campaign</h2>
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
-        <span id="campaign-settings" class="wizard-step">
-            {% include 'targetadmin/includes/campaign_wizard_form.html' %}
-        </span>
-        <span id="filtering" class="wizard-step" style="display: none;">
+        <div id="intro" class="wizard-step">
+            <div class="page-header-information">
+                <div>Our targeted sharing application will spread your message across the web by asking your supporters to share your content with their friends.</div>
+                <div>We found that trusted friends are more likely to convince people to take some action than the same message coming from a large, non-personal organization.</div>
+            </div>
+            <div class="name-input-label">Let's get started.  Please give your campaign a name</div>
+            <div class="name-input-container">{{ campaign_form.name }}</div>
+            <div class="wizard-button-container">
+                <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
+                <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            </div>
+        </div>
+        <div id="filtering" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/filter_wizard_form.html' %}
-        </span>
-        <span id="fbobjects" class="wizard-step" style="display: none;">
+        </div>
+        <div id="faces" class="wizard-step" style="display: none;">
+            {% include 'targetadmin/includes/faces_wizard_form.html' %}
+        </div>
+        <div id="fbobjects" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
             <input type="submit" class="btn btn-large btn-primary step-submit fbobject-step" value="Submit" id="wizard-submit">
             <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
@@ -56,6 +72,10 @@
         $('.wizard-step').hide();
         $('#' + step).show();
         
+        if( step === 'faces' && (! window.facesIndicator.isInitialized ) ) {
+            window.facesIndicator.init();
+        }
+
         if( step === 'fbobjects' ) {
             window.fbObjIndicator.init();
         }
