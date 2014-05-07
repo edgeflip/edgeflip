@@ -11,7 +11,7 @@ URL = "http://www.reddit.com/r/food/"
 chapo_settings = patch('django.conf.settings.CHAPO_REDIRECTOR_DOMAIN', 'edgefl.ip', create=True)
 
 
-class TestShortUrlsTemplateTags(TestCase):
+class TestShortUrl(TestCase):
 
     @chapo_settings
     def test_short_url(self):
@@ -54,6 +54,9 @@ class TestShortUrlsTemplateTags(TestCase):
             "{% shorturl short protocol='ssh:' %}"
         ).render(template.Context({'short': short}))
         self.assertEqual(out, "ssh://edgefl.ip/r/ooga-booga/")
+
+
+class TestShorten(TestCase):
 
     @urandom_patch
     @chapo_settings
