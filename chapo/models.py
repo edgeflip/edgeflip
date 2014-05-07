@@ -2,6 +2,7 @@ import base64
 import binascii
 import os
 import string
+import sys
 
 from django.db import models
 from django.utils.text import slugify
@@ -13,15 +14,32 @@ MIN_SLUG = 8
 MAX_SLUG = 12
 
 
-def number_to_string(number, length, alphabet):
-    """Convert the given number to a string of the given length, from the given alphabet.
+def int2str(number, alphabet, length=sys.maxint):
+    """Convert the given int to a str of the given length, from the given alphabet.
 
     For example:
 
-        >>> number_to_string(665218483893421, 10, string.letters)
+        >>> int2str(665218483893421, string.letters, 10)
         'dILjbrCXM'
 
     The result is unpadded, and so length cannot be ensured.
+
+    Note that this is no different from converting the given base-10 number to an
+    arbitrary base, using an arbitrary alphabet.
+
+    Base-10 to base-2:
+
+        >>> int2str(2, '01')
+        '01'
+        >>> int2str(5, '01')
+        '101'
+
+    Base-10 to base-10 (the result is not reversed):
+
+        >>> int2str(5, string.digits)
+        '5'
+        >>> int2str(10, string.digits)
+        '01'
 
     """
     alpha_len = len(alphabet)
@@ -50,7 +68,7 @@ def make_slug(length=MAX_SLUG, alphabet=string.letters):
         return base64.urlsafe_b64encode(unique).rstrip('=')
 
     number = int(binascii.hexlify(unique), 16)
-    return number_to_string(number, length, alphabet)
+    return int2str(number, alphabet, length)
 
 
 class ShortenedUrl(base.BaseModel):
@@ -59,7 +77,7 @@ class ShortenedUrl(base.BaseModel):
     The `slug` defaults to the result of `make_slug`. Only `url` is required.
 
     """
-    campaign = models.ForeignKey('targetshare.Campaign', null=True)
+    campaign = models.ForeignKey('targetshare.Campaign', null=True, related_name='shortenedurls')
     description = models.TextField(blank=True, default='')
     event_type = models.SlugField(default='generic_redirect')
     slug = models.SlugField(primary_key=True, default=make_slug)
@@ -70,7 +88,7 @@ class ShortenedUrl(base.BaseModel):
 
     @staticmethod
     def make_slug(prefix=''):
-        """Generate an appropriate, unique slug.
+        """Generate an appropriate, random slug.
 
             >>> ShortenedUrl.make_slug()
             'vytxeTZskVKR'
@@ -78,7 +96,7 @@ class ShortenedUrl(base.BaseModel):
         To prepend a recognizable, non-arbitrary value, specify `prefix`:
 
             >>> ShortenedUrl.make_slug('Good Food')
-            'good-food-vytxeTZskVKR'
+            'good-food-vytxeTZs'
 
         """
         prefix = prefix and slugify(unicode(prefix)) + '-'
