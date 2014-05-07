@@ -24,7 +24,10 @@ class FBObjectAttributeForm(forms.ModelForm):
     description = forms.CharField(required=False, widget=forms.Textarea)
     sharing_prompt = forms.CharField(label="Headline")
     sharing_sub_header = forms.CharField(
-        label="Sub-Header", required=False)
+        label="Sub-Header",
+        required=False,
+        widget=forms.Textarea
+    )
     og_description = forms.CharField(
         label='Facebook Post Description',
         required=False,
@@ -261,22 +264,16 @@ class CampaignForm(forms.Form):
 # Wizard Forms
 class CampaignWizardForm(forms.Form):
 
-    name = forms.CharField(
-        help_text='Give your campaign a name.',
-    )
+    name = forms.CharField()
+
     faces_url = forms.CharField(
         required=False,
-        help_text='Optional. Only provide this if you plan on embedding this campaign inside an iframe on your site. If using the Facebook canvas (default) you can leave this blank'
+        label='Host url (optional)'
     )
-    error_url = forms.CharField(
-        help_text='If something goes wrong, we will send users here.',
-    )
-    thanks_url = forms.CharField(
-        help_text='After a user shares this campaign with their friends, they will be directed here.',
-    )
-    content_url = forms.CharField(
-        help_text='The URL you are targeting with this campaign.  This is where users are directed upon clicking the facebook post.',
-    )
+    error_url = forms.CharField()
+    thanks_url = forms.CharField()
+    content_url = forms.CharField()
+
     include_empty_fallback = forms.BooleanField(
         help_text=(
             'Some users will not have enough friends who fit the targeting '
@@ -289,13 +286,6 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
-
-    def __init__(self, *args, **kwargs):
-        super(CampaignWizardForm, self).__init__(*args, **kwargs)
-        for i, field in enumerate( ['name','faces_url','thanks_url','error_url','content_url'] ):
-            print self.fields[field].widget.attrs
-            self.fields[field].widget.attrs={'tabindex':i+1}
-
 
 class FBObjectWizardForm(forms.ModelForm):
 
@@ -315,7 +305,10 @@ class FBObjectWizardForm(forms.ModelForm):
     msg2_post = forms.CharField(label='Text After Friend Names')
     sharing_prompt = forms.CharField(label="Headline")
     sharing_sub_header = forms.CharField(
-        label="Sub-Header", required=False)
+        label="Sub-Header (optional)",
+        required=False,
+        widget=forms.Textarea
+    )
 
     class Meta:
         model = relational.FBObjectAttribute

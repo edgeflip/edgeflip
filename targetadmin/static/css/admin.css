@@ -95,16 +95,38 @@ main red #98050C
     height: 100%;
 }
 
-.fb-obj-group {
-    margin-bottom: 50px;
+.fb-obj-item {
+    margin-bottom: 40px;
 }
 
-.fb-obj-item {
-    margin-bottom: 20px;
+.fb-obj-item label {
+    color: #98050C;
+    font-size: medium;
 }
+
+.fb-obj-item input {
+    padding: 8px;
+    font-size: medium;
+    font-weight: bold;
+    width: 80%;
+}
+
+.fb-obj-item textarea {
+    padding: 8px;
+    font-size: medium;
+    width: 80%;
+}
+
+.fb-obj-item:last-child {
+    margin-bottom: 0px;
+ }
 
 .step-submit {
     margin-right: 50px;
+}
+
+.faces-info-item {
+    text-align: center;
 }
 
 .filter-info-item {
@@ -142,6 +164,30 @@ main red #98050C
     display: inline-block;
 }
 
+.popover {
+    color: #98050C;
+    font-weight: bold;
+    background-color: #CDB638;
+}
+
+.popover.right .arrow:after {
+    border-right-color: #CDB638;
+}
+
+.popover.bottom .arrow:after {
+    border-bottom-color: #CDB638;
+}
+
+.popover.left .arrow:after {
+    border-left-color: #CDB638;
+}
+
+.popover.top .arrow:after {
+    border-left-color: #CDB638;
+}
+
+#input-popover,
+#faces-img-popover,
 #fb-obj-popover {
     position: absolute;
 }
