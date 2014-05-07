@@ -2,6 +2,10 @@ from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
+from targetshare.models.relational import Event
+from targetshare.tasks.db import delayed_save
+from targetshare.views.utils import set_visit
+
 from chapo.models import ShortenedUrl
 
 
@@ -24,5 +28,18 @@ def main(request, slug):
 
     """
     shortened = get_object_or_404(ShortenedUrl, slug=slug)
+
+    if shortened.campaign and shortened.event_type:
+        app_id = shortened.campaign.client.fb_app_id
+        set_visit(request, app_id, start_event={'campaign_id': shortened.campaign.campaign_id})
+        delayed_save.delay(
+            Event(
+                visit_id=request.visit.visit_id,
+                event_type=shortened.event_type,
+                campaign_id=shortened.campaign.campaign_id,
+                content=slug,
+            )
+        )
+
     content = REDIRECTION_NOTICE.format(shortened) if request.method == 'GET' else ''
     return HttpResponsePermanentRedirect(shortened.url, content)
