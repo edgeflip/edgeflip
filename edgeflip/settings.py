@@ -386,6 +386,9 @@ JSURLS_JS_NAMESPACE = 'edgeflip.router'
 JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
 JSURLS_URL_NAMESPACES = ('gimmick', 'reporting',)
 
+# chapo settings #
+CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
+
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes
 SESSION_COOKIE_DOMAIN = '.edgeflip.com'
