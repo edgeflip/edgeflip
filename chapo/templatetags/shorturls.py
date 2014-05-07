@@ -14,6 +14,7 @@ from chapo.models import ShortenedUrl
 
 LOG = logging.getLogger('crow')
 
+SHORTEN_EVENT_TYPE = 'initial_redirect'
 SHORTEN_MAX_ATTEMPTS = 100 # set to 0 to try infinitely
 
 register = template.Library()
@@ -54,10 +55,11 @@ def shorten(context, long_url, prefix='', campaign=None, protocol=''):
         {% shorten 'http://www.english.com/alphabet/a/b/c/defghi/' prefix='en' campaign=campaign protocol='https:' %}
 
     """
-    cache_key = 'shorturl|initial_redirect|{PREFIX}|{CAMPAIGN}|{URL}'.format(
-        PREFIX=(prefix and str(slugify(unicode(prefix)))),
-        CAMPAIGN=(getattr(campaign, 'pk', campaign) or ''),
-        URL=uuid.uuid5(uuid.NAMESPACE_URL, long_url).hex,
+    cache_key = 'shorturl|{event_type}|{prefix}|{campaign_id}|{url}'.format(
+        event_type=SHORTEN_EVENT_TYPE,
+        prefix=str(slugify(unicode(prefix))) if prefix else '',
+        campaign_id=getattr(campaign, 'pk', campaign) or '',
+        url=uuid.uuid5(uuid.NAMESPACE_URL, long_url.encode('utf-8')).hex,
     )
     slug = django.core.cache.cache.get(cache_key)
 
@@ -68,7 +70,7 @@ def shorten(context, long_url, prefix='', campaign=None, protocol=''):
                 ShortenedUrl.objects.create(
                     slug=slug,
                     campaign=campaign,
-                    event_type='initial_redirect',
+                    event_type=SHORTEN_EVENT_TYPE,
                     url=long_url,
                 )
             except IntegrityError:
