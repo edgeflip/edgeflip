@@ -31,9 +31,7 @@
         </div>
         <div id="fbobjects" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
-            <input type="submit" class="btn btn-large btn-primary step-submit fbobject-step" value="Submit" id="wizard-submit">
-            <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
-        </span>
+        </div>
     </form>
 {% endblock %} {% block extrascript %}
 <script src="{{ STATIC_URL }}js/usStates.js" async></script>
@@ -68,7 +66,7 @@
             window.facesIndicator.init();
         }
 
-        if( step === 'fbobjects' ) {
+        if( step === 'fbobjects' && (! window.fbObjIndicator.isInitialized ) ) {
             window.fbObjIndicator.init();
         }
         

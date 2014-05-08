@@ -254,6 +254,16 @@ $.extend( createFilterManager.prototype, {
 
         this.locationFilterView.fadeIn();
 
+        if( ( this.stateContainer.is(':visible') ) &&
+            ( ! _.contains( usStates, val ) ) ) {
+
+            e.stopPropagation();
+
+            this.addLocationFilterButton.attr( 'data-content', 'Invalid State' ).popover('show');
+            this.delegateRemovePopover( this.addLocationFilterButton );
+            return;
+        }
+
         if( this.locationFilters.children().length ) {
 
             if( this.locationFilters.find( 'div[data-val="' + val + '"]' ).length ) {

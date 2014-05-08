@@ -77,6 +77,10 @@ main red #98050C
     margin-bottom: 40px;
 }
 
+.targeting-header h4 {
+    text-align: center;
+}
+
 .page-sub-header {
     text-align: center;
     margin-bottom: 50px;
@@ -93,6 +97,38 @@ main red #98050C
 
 .img-helper {
     height: 100%;
+}
+
+.suggested-message-container {
+    width: 80%;
+    padding-bottom: 10px;
+    margin-bottom: 50px;
+}
+
+.suggested-message-container p {
+    font-size: small;
+    text-align: center;
+}
+
+.suggested-message-container .fb-obj-item {
+    margin-bottom: 30px;
+}
+
+.suggested-message-container .fb-obj-item input {
+    width: 100%;
+}
+
+.suggested-message-container h4 {
+    text-align: center;
+}
+
+.fb-obj-group:last-child h5 {
+    margin-top: 30px;
+}
+
+.fb-obj-group h5 {
+    margin-top: 10px;
+    width: 80%;
 }
 
 .fb-obj-item {
@@ -125,7 +161,7 @@ main red #98050C
     margin-right: 50px;
 }
 
-.faces-info-item {
+.fb-obj-info-item p {
     text-align: center;
 }
 
@@ -183,9 +219,10 @@ main red #98050C
 }
 
 .popover.top .arrow:after {
-    border-left-color: #CDB638;
+    border-top-color: #CDB638;
 }
 
+#fb-obj-input-popover,
 #input-popover,
 #faces-img-popover,
 #fb-obj-popover {
@@ -296,6 +333,7 @@ main red #98050C
     display: inline-block;
     text-shadow: none;
     color: black;
+    margin-top: 20px;
 }
 
 .filter-or {
@@ -316,4 +354,30 @@ main red #98050C
 .remove-filter-item:hover {
     cursor: pointer;
     color: red;
+}
+
+.modal-header h3 {
+    color: #094063;
+    text-align: center;
+}
+
+.new-filters {
+    color: #98050C;
+}
+
+.modal-footer > .btn {
+    background-color: #3982B1;
+    color: #094063;
+    background-image: none;
+    border: none;
+    text-shadow: none;
+}
+
+.modal-footer > .btn:hover {
+    color: white;
+}
+
+#state-container,
+#city-container {
+    margin-top: 20px;
 }

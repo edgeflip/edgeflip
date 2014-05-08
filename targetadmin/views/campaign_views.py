@@ -82,7 +82,6 @@ def campaign_create(request, client_pk):
         if form.is_valid():
             campaign = form.save()
             return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
-
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
@@ -273,6 +272,7 @@ def campaign_wizard(request, client_pk):
                 'targetadmin:campaign-wizard-finish',
                 client.pk, last_camp.pk, content.pk
             )
+
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,
