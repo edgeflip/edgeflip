@@ -55,10 +55,11 @@ def shorten(context, long_url, prefix='', campaign=None, protocol=''):
         {% shorten 'http://www.english.com/alphabet/a/b/c/defghi/' prefix='en' campaign=campaign protocol='https:' %}
 
     """
+    campaign_id = getattr(campaign, 'pk', campaign)
     cache_key = 'shorturl|{event_type}|{prefix}|{campaign_id}|{url}'.format(
         event_type=SHORTEN_EVENT_TYPE,
         prefix=str(slugify(unicode(prefix))) if prefix else '',
-        campaign_id=getattr(campaign, 'pk', campaign) or '',
+        campaign_id=campaign_id or '',
         url=uuid.uuid5(uuid.NAMESPACE_URL, long_url.encode('utf-8')).hex,
     )
     slug = django.core.cache.cache.get(cache_key)
@@ -69,7 +70,7 @@ def shorten(context, long_url, prefix='', campaign=None, protocol=''):
             try:
                 ShortenedUrl.objects.create(
                     slug=slug,
-                    campaign=campaign,
+                    campaign_id=campaign_id or None,
                     event_type=SHORTEN_EVENT_TYPE,
                     url=long_url,
                 )
