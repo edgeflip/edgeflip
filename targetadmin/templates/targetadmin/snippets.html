@@ -4,11 +4,9 @@
         function doUpdate() {
             var cmpg = $('#id_campaign').val();
             var cnt = $('#id_content').val();
-            var url = "{% url 'targetadmin:snippet-update' client.pk %}";
-
             $.ajax({
                 type: "GET",
-                url: url,
+                url: "{% url 'targetadmin:snippet-update' client.pk %}",
                 dataType: 'json',
                 data: {
                     campaign: cmpg,
@@ -19,7 +17,7 @@
                 },
                 success: function(data, textStatus, jqXHR) {
                     $('.cmpgslug').html(data.slug);
-                    $('#faces_url').html(data.faces_url);
+                    $('#oauth_url').html(data.oauth_url);
                     $('.campaign-pk').html(cmpg);
                     $('.content-pk').html(cnt);
                 }
@@ -68,28 +66,20 @@
         </div>
     </div>
     <div id="canvas-snippet">
-        <h4>Faces Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <h4>Canvas URL (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
         <div id="canvas-snippet-code">
             <pre><code>https://apps.facebook.com/{{ client.fb_app_name }}/<span class="cmpgslug">{{ first_slug }}</span>/</pre></code>
         </div>
     </div>
     <div id="oauth-snippet">
-        <h4>OAuth Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
+        <h4>OAuth URL (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
         <div id="oauth-snippet-code">
-        <pre><code>
-            https://www.facebook.com/dialog/oauth?client_id={{ client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=<span id="faces_url">{{ first_faces_url }}</span>
-        </code></pre>
+        <pre><code id="oauth_url">{{ oauth_url }}</code></pre>
         </div>
     </div>
 {% endblock %}
 {% block extrascript %}
 <script>
-    $('#id_campaign').change(function() {
-        doUpdate();
-    });
-    $('#id_content').change(function() {
-        doUpdate();
-    });
+    $('#id_campaign, #id_content').change(doUpdate);
 </script>
 {% endblock %}
-
