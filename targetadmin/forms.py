@@ -68,13 +68,36 @@ class FilterForm(forms.ModelForm):
         exclude = ('is_deleted', 'delete_dt', 'client')
 
 
-class FilterFeatureForm(forms.ModelForm):
+class WizardFilterFeatureForm(forms.ModelForm):
 
     CHOICES = (
         ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('location', 'Location'),
-        ('gender', 'Gender')
+        ('gender', 'Gender'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+
+
+class FilterFeatureForm(forms.ModelForm):
+    ''' This class should really be deprecated along with the direct editing
+    of filters view that it belongs to. Then again, maybe that serves a
+    real purpose that justifies keeping it, food for thought
+    '''
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('location', 'Location'),
+        ('gender', 'Gender'),
+        # For the direct Filter editing forms
+        ('city', 'City'),
+        ('state', 'State'),
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
@@ -292,9 +315,8 @@ class CampaignWizardForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super(CampaignWizardForm, self).__init__(*args, **kwargs)
-        for i, field in enumerate( ['name','faces_url','thanks_url','error_url','content_url'] ):
-            print self.fields[field].widget.attrs
-            self.fields[field].widget.attrs={'tabindex':i+1}
+        for i, field in enumerate(['name', 'faces_url', 'thanks_url', 'error_url', 'content_url']):
+            self.fields[field].widget.attrs = {'tabindex': i + 1}
 
 
 class FBObjectWizardForm(forms.ModelForm):

@@ -222,6 +222,13 @@ def campaign_wizard(request, client_pk):
                     empty_cs.choicesetfilters.create(filter=global_filter)
                 choice_sets.append(empty_cs)
 
+            # Page Style
+            if client.pagestyles.exists():
+                page_styles = client.pagestyles.filter(starred=True)
+            else:
+                page_styles = relational.PageStyle.objects.filter(
+                    client=None, starred=True)
+
             last_camp = None
             campaigns = []
             for rank, cs in itertools.izip(reversed(
@@ -242,6 +249,13 @@ def campaign_wizard(request, client_pk):
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,
+                    rand_cdf=1.0
+                )
+                page_style_set = relational.PageStyleSet.objects.create()
+                for ps in page_styles:
+                    page_style_set.page_styles.add(ps)
+                camp.campaignpagestylesets.create(
+                    page_style_set=page_style_set,
                     rand_cdf=1.0
                 )
                 campaigns.append(camp)

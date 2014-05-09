@@ -273,6 +273,12 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(new_client.choicesets.count(), 4)
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
+        # Page Style
+        self.assertTrue(camp.campaignpagestylesets.exists())
+        self.assertEqual(
+            camp.campaignpagestylesets.get().page_style_set.page_styles.count(),
+            2
+        )
         self.assertEqual(
             mail.outbox[0].body,
             'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
@@ -527,6 +533,57 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(new_client.campaigns.count(), 1)
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
+
+    def test_campaign_wizard_existing_styles(self):
+        new_client = relational.Client.objects.create(
+            name='Test Client',
+            _fb_app_name='testing',
+            _fb_app_id=1
+        )
+        frame_faces = relational.Page.objects.get(code='frame_faces')
+        page_style = new_client.pagestyles.create(
+            page=frame_faces, name='testing',
+            starred=True
+        )
+        relational.Filter.objects.update(client=new_client)
+        self.assertFalse(new_client.campaigns.exists())
+        response = self.client.post(
+            reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
+                # Campaign Details
+                'name': 'Test Campaign',
+                'error_url': 'http://www.error.com',
+                'thanks_url': 'http://www.thanks.com',
+                'content_url': 'http://www.content.com',
+                'include_empty_fallback': False,
+                'enabled-filters-1': '"state.eq.California"',
+                # FB Object
+                'og_title': 'Test Title',
+                'org_name': 'Test Organization',
+                'msg1_pre': 'Hey, ',
+                'msg1_post': ' How goes it?',
+                'msg2_pre': 'Hey 2, ',
+                'msg2_post': ' How goes it 2?',
+                'og_image': 'http://imgur.com/VsiPr',
+                'sharing_prompt': 'SHARE IT',
+                'og_description': 'Description of FB stuff'
+            }
+        )
+        self.assertStatusCode(response, 302)
+        camp = new_client.campaigns.latest('pk')
+        fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
+        self.assertEqual(new_client.campaigns.count(), 1)
+        self.assertEqual(fb_attr.og_action, 'support')
+        self.assertEqual(fb_attr.og_type, 'cause')
+        # Page Style
+        self.assertTrue(camp.campaignpagestylesets.exists())
+        self.assertEqual(
+            camp.campaignpagestylesets.get().page_style_set.page_styles.count(),
+            1
+        )
+        self.assertEqual(
+            camp.campaignpagestylesets.get().page_style_set.page_styles.get(),
+            page_style
+        )
 
     def test_campaign_wizard_finish(self):
         response = self.client.get(
