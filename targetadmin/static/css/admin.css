@@ -1,4 +1,5 @@
 /*
+
 edgeflip blue #094063
 main red #98050C
 */
@@ -49,11 +50,13 @@ main red #98050C
 }
 
 .name-input-container input {
-    padding: 20px;
+    padding: 10px;
     width: 400px;
     font-size: xx-large;
     text-align: center;
     color: black;
+    height: 30px;
+    line-height: 30px;
 }
 
 .wizard-button-container {
@@ -200,6 +203,26 @@ main red #98050C
     display: inline-block;
 }
 
+.invalid-input-popover:hover {
+    background-color: red;
+}
+
+.invalid-input-popover:hover.right .arrow:after {
+    border-right-color: red;
+}
+
+.invalid-input-popover:hover.left .arrow:after {
+    border-left-color: red;
+}
+
+.invalid-input-popover:hover.bottom .arrow:after {
+    border-bottom-color: red;
+}
+
+.invalid-input-popover:hover.top .arrow:after {
+    border-bottom-color: red;
+}
+
 .popover {
     color: #98050C;
     font-weight: bold;
@@ -222,6 +245,7 @@ main red #98050C
     border-top-color: #CDB638;
 }
 
+.invalid-input-popover,
 #fb-obj-input-popover,
 #input-popover,
 #faces-img-popover,

@@ -179,15 +179,15 @@
 
                     og_title: {
                         el: $('input[name="og_title"]'),
-                        coords: { x: 735, y: 729 },
-                        placement: 'right',
+                        coords: { x: 386, y: 754 },
+                        placement: 'bottom',
                         text: "Your title will go here.",
                         title: ''
                     },
                     
                     og_image: {
                         el: $('input[name="og_image"]'),
-                        coords: { x: 678, y: 429 },
+                        coords: { x: 641, y: 417 },
                         placement: 'right',
                         text: "Your image will go here.",
                         title: ''
@@ -195,8 +195,8 @@
                     
                     og_description: {
                         el: $('textarea[name="og_description"]'),
-                        coords: { x: 898, y: 800 },
-                        placement: 'right',
+                        coords: { x: 464, y: 861 },
+                        placement: 'bottom',
                         text: "Your description will go here.",
                         title: ''
                     },
@@ -218,7 +218,12 @@
 
             init: function() {
                 this.storeElementDimensions();
-                this.imageContainer.height( this.windowHeight - this.imageContainerOffset.top - 10 );
+                this.imageContainerHeight =
+                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
+                if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                    this.imageContainerHeight = this.inputWrapperHeight;
+                }
+                this.imageContainer.height( this.imageContainerHeight );
                 $('body,html').scrollTop( 0 );
                 this.maxScroll = this.body.height() - this.windowHeight;
                 this.sizeAndPositionImage();
@@ -350,7 +355,13 @@
                     if( diff < 60 ) {
                         stickyHeaderBump = 60 - diff;
                     } 
+
                     this.imageContainerHeight = this.windowHeight - diff - this.verticalImagePadding - stickyHeaderBump;
+
+                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                        this.imageContainerHeight = this.inputWrapperHeight;
+                    }
+
                     top = stickyHeaderBump;
 
                 //if the viewport contains only our form fields and our image

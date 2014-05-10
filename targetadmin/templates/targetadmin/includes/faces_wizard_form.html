@@ -68,6 +68,7 @@
                     //store calculations
                     imageContainerOffset: { top: undefined, left: undefined },
                     inputWrapperHeight: 0,
+                    scrollTop: 0,
                     imageContainerHeight: undefined,
 
                     //store "models"
@@ -96,8 +97,8 @@
 
                         sharing_prompt: {
                             el: $('input[name="sharing_prompt"]'),
-                            coords: { x: 636, y: 87 },
-                            placement: 'right',
+                            coords: { x: 380, y: 134 },
+                            placement: 'bottom',
                             text: "Your headline will go here.",
                             title: ''
                         },
@@ -112,9 +113,9 @@
 
                         thanks_url: {
                             el: $('input[name="thanks_url"]'),
-                            coords: { x: 716, y: 814 },
-                            placement: 'right',
-                            text: "Where should we send your supporters after they share with their friends? This is usually a thank you page or a secondary ask.",
+                            coords: { x: 524, y: 813 },
+                            placement: 'left',
+                            text: "Where should we send your supporters after they share with their friends?.",
                             title: ''
                         },
                         
@@ -144,7 +145,12 @@
 
                 init: function() {
                     this.storeElementDimensions();
-                    this.imageContainer.height( this.windowHeight - this.imageContainerOffset.top - 10 );
+                    this.imageContainerHeight =
+                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
+                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                        this.imageContainerHeight = this.inputWrapperHeight;
+                    }
+                    this.imageContainer.height( this.imageContainerHeight );
                     $('body,html').scrollTop( 0 );
                     this.maxScroll = this.body.height() - this.windowHeight;
                     this.sizeAndPositionImage();
@@ -277,11 +283,17 @@
                             stickyHeaderBump = 60 - diff;
                         } 
                         this.imageContainerHeight = this.windowHeight - diff - this.verticalImagePadding - stickyHeaderBump;
+                    
+                        if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                            this.imageContainerHeight = this.inputWrapperHeight;
+                        }
+                            
                         top = stickyHeaderBump;
 
                     //if the viewport contains only our form fields and our image
                     } else if( ( this.scrollTop + this.windowHeight ) <
                                ( this.inputWrapperHeight + this.inputWrapperOffset.top ) ) {
+                        
 
                         this.imageContainerHeight = this.windowHeight -
                             this.navbarHeight -
@@ -310,10 +322,6 @@
                           } } );
             
                     return;
-                    this.imageContainer.css( 'top', top );
-                    this.imageContainer.height( this.imageContainerHeight );
-                    self.setImageMetaData();
-                    if( self.currentFormField ) { self.positionAndShowPopover(); }
                 },
 
                 handleWindowResize: function() {

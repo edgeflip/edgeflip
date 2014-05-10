@@ -9,6 +9,7 @@
 
 {% block content %}
     <h2 class="page-header">Create a Targeted Sharing Campaign</h2>
+    <div class="invalid-input-popover"></div>
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
         <div id="intro" class="wizard-step">
@@ -19,7 +20,7 @@
             <div class="name-input-label">Let's get started.  Please give your campaign a name</div>
             <div class="name-input-container">{{ campaign_form.name }}</div>
             <div class="wizard-button-container">
-                <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
+                <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Get Started</a>
                 <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
             </div>
         </div>
@@ -35,10 +36,11 @@
     </form>
 {% endblock %} {% block extrascript %}
 <script src="{{ STATIC_URL }}js/usStates.js" async></script>
+<script src="{{ STATIC_URL }}js/inputValidator.js"></script>
 <script>
-    
-    var layer_count = 1,
-        can_close_modal = true;
+
+$( function() {    
+    var layer_count = 1;
 
     $('i.icon-question-sign').popover( { trigger: 'hover' } );
     
@@ -171,5 +173,6 @@
     });
 
     $( $('input:visible')[0] ).focus();
+} );
 </script>
 {% endblock %}
