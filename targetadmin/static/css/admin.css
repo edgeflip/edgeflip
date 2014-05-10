@@ -203,23 +203,24 @@ main red #98050C
     display: inline-block;
 }
 
-.invalid-input-popover:hover {
+.invalid-input-message:hover {
     background-color: red;
+    cursor: pointer;
 }
 
-.invalid-input-popover:hover.right .arrow:after {
+.invalid-input-message:hover.right .arrow:after {
     border-right-color: red;
 }
 
-.invalid-input-popover:hover.left .arrow:after {
+.invalid-input-message:hover.left .arrow:after {
     border-left-color: red;
 }
 
-.invalid-input-popover:hover.bottom .arrow:after {
+.invalid-input-message:hover.bottom .arrow:after {
     border-bottom-color: red;
 }
 
-.invalid-input-popover:hover.top .arrow:after {
+.invalid-input-message:hover.top .arrow:after {
     border-bottom-color: red;
 }
 

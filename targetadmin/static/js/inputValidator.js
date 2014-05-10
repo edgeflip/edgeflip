@@ -3,38 +3,64 @@ $( function() {
     var errorPopovers = [ $('.invalid-input-popover') ],
         config = {
             rightOffset: 5,
+            bottomOffset: 5,
             popoverOpts: {
                 animation: false,
                 trigger: 'manual',
+                //TODO: figure out why these are called twice
                 content: function() { return popoverText; },
-                placement: 'right'
+                placement: function() { return placement; }
             }
         },
         isEmpty = function( val ) { return ( $.trim( val ) === '' ); },
+        isElValid = function( el ) { return ( isEmpty( el.val() ) === false ) },
         popoverText = undefined,
+        placement = undefined,
+        makeInputModel = function( opts ) {
+            return  {
+                el: $( opts.id ),
+                invalidText: ( opts.text ) ? opts.text : 'Required field.',
+                placement: ( opts.placement ) ? opts.placement :'bottom',
+                popoverEl: undefined
+            }
+        },
         getPopoverClone = function() { 
             var clone = errorPopovers[0].clone()
-                .before(errorPopovers[0])
+                .insertBefore(errorPopovers[0])
                 .popover( config.popoverOpts )
             errorPopovers.push( clone );
             return clone;
         },
 
-        positionAndShowPopover = function( popover, meta ) {
-            popoverText = meta.invalidText;
-            popover.css( {
-                top: meta.el.offset().top + ( meta.el.outerHeight( true ) / 2 ),
-                left: meta.el.offset().left + meta.el.outerWidth( true ) + config.rightOffset } ).popover('show');
-            popover.next().on( 'click', function() { popover.popover('hide'); } );
+        positionAndShowPopover = function( popover, inputModel ) {
+            var top, left;
+
+            placement = inputModel.placement,
+            popoverText = inputModel.invalidText;
+
+            if( placement === 'right' ) {
+                top = inputModel.el.offset().top + ( inputModel.el.outerHeight( true ) / 2 );
+                left = inputModel.el.offset().left + inputModel.el.outerWidth( true ) + config.rightOffset;
+            } else if( placement === 'bottom' ) {
+                top = inputModel.el.offset().top + inputModel.el.outerHeight( true ) + config.bottomOffset;
+                left = inputModel.el.offset().left + ( inputModel.el.outerWidth( true ) / 2 );
+            }
+
+            popover.css( { top: top, left: left } ).popover('show');
+
+            popover.next().addClass('invalid-input-message').on( 'click', function() { popover.popover('hide'); } );
+            inputModel.el.on( 'focus', function() { popover.popover('hide'); } );
+
+            inputModel.popoverEl = popover;
         },
-        handleInvalidField = function(meta) {
-            var unusedPopover = _.find( errorPopovers, function( el ) { return el.children().length === 0 } );
+        notifyUser = function(inputModel) {
+            var unusedPopover = _.find( errorPopovers, function( el ) { return !el.next().hasClass('popover') } );
 
             if( unusedPopover === undefined ) {
                 unusedPopover = getPopoverClone();
             }
        
-            positionAndShowPopover( unusedPopover, meta );
+            positionAndShowPopover( unusedPopover, inputModel );
         },
         validators = [
             {
@@ -42,11 +68,49 @@ $( function() {
                 event: 'click',
                 inputs: [
                     { el: $('#id_name'),
-                      isValid: function( el ) { return ( isEmpty( el.val() ) === false ) },
-                      invalidText: 'We do require a name.'
+                      invalidText: 'We do require a name.',
+                      placement: 'right',
+                      popoverEl: undefined
                     }
 
                 ]
+            },
+            {
+                triggerEl: $('#step3-next'),
+                event: 'click',
+                inputs: [
+                    { el: $('#id_sharing_prompt'),
+                      invalidText: 'A headline is required.',
+                      placement: 'bottom',
+                      popoverEl: undefined
+                    },
+                    { el: $('#id_thanks_url'),
+                      invalidText: 'A thanks URL is required.',
+                      placement: 'bottom',
+                      popoverEl: undefined
+                    },
+                    { el: $('#id_error_url'),
+                      invalidText: 'An error URL is required.',
+                      placement: 'bottom',
+                      popoverEl: undefined
+                    }
+
+                ]
+            },
+            {
+                triggerEl: $('#wizard-submit'),
+                event: 'click',
+                inputs: _.map( [
+                    { id: '#id_org_name' },
+                    { id: '#id_msg1_pre' },
+                    { id: '#id_msg1_post' },
+                    { id: '#id_msg2_pre' },
+                    { id: '#id_msg2_post' },
+                    { id: '#id_og_title' },
+                    { id: '#id_og_image' },
+                    { id: '#id_og_description' },
+                    { id: '#id_content_url' }
+                  ], makeInputModel )
             }
         ];
 
@@ -56,12 +120,42 @@ $( function() {
         
     _.each( validators, function( validator ) {
         validator.triggerEl.on( validator.event, function(e) {
-            _.each( validator.inputs, function( meta ) {
-                 if( ! meta.isValid( meta.el ) ) {
+            var atleastOneInvalid = false;
+            _.each( validator.inputs, function( inputModel ) {
+                var isValid = isElValid( inputModel.el );
+
+                 if( isValid ) {
+                     if( inputModel.popoverEl !== undefined ) {
+                         inputModel.popoverEl.popover('hide');
+                         inputModel.popoverEl = undefined;
+                     }
+                 } else {
+                     atleastOneInvalid = true;
                      e.stopImmediatePropagation();
-                     handleInvalidField(meta);
+                     if( inputModel.popoverEl === undefined ) {
+                         notifyUser(inputModel);
+                     }
                  }
             } );
+
+            if( atleastOneInvalid ) {
+
+                var indexOfFirstInvalidEl = 0;
+                
+                _.find( errorPopovers, function( el ) {
+                    if( el.next().hasClass('popover') ) {
+                        return true;
+                    }
+                    indexOfFirstInvalidEl++;
+                } );
+
+                $('html,body').animate(
+                    { 'scrollTop': validator.inputs[indexOfFirstInvalidEl].el.offset().top - 100 },
+                    { duration: 600 } );
+
+            } else if( validator.triggerEl.attr('id') === 'wizard-submit' ) {
+                $('#wizard-form').submit();
+            }
         } );
     } );
 } );
