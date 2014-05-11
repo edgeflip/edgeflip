@@ -1,48 +1,68 @@
 /*
-
-edgeflip blue #094063
-main red #98050C
+darkblue = #094163
+hoverblue = #0cf;
+gold: #ffa629
+grey: #c4c4c4;
+black: #272727;
+red: #cc3b3b;
 */
 
+body {
+    background-color: #094163;
+    font-family: futura-pt;
+}
+
 .navbar-inverse .navbar-inner {
-    background-color: #3982B1 !important;
+    background-color: #094163 !important;
     background-image: none !important;
+    border-color: white;
 }
 
 .navbar-inverse .nav > li > a,
 .navbar-inverse .brand {
-    color: #094063;
+    color: #999;
+}
+
+.navbar-inverse a.brand:hover {
+    color: #0cf;
 }
 
 .navbar-inverse .nav > li > a:hover {
-    color: white;
+    color: #0cf;
 }
 
 .navbar-inverse .nav > .active > a {
-    background-color: #032A40;
+    color: white;
+    background-color: #094163;
 }
 
 .navbar-inverse .nav > .active > a:hover {
-    background-color: #032A40;
+    color: #0cf;
+    background-color: #094163;
 }
 
 .page-header {
     text-align: center;
     margin-top: 0px;
-    margin-bottom: 10px;
-    color: #98050C;
+    margin-bottom: 20px;
+    color: #ffa629;
+    border: none;
+    font-weight: 300;
+    letter-spacing: 1px;
 }
 
 .page-header-information {
     text-align: center;
     margin: 20px 0px 40px 0px;
+    color: white;
 }
 
 .name-input-label {
     padding: 20px 0px 20px 0px;
     text-align: center;
-    color: #98050C;
+    color: #c4c4c4;
     font-size: large;
+    font-family: "Open Sans";
 }
 
 .name-input-container {
@@ -65,8 +85,8 @@ main red #98050C
 }
 
 .wizard-button-container > .btn {
-    background-color: #3982B1;
-    color: #094063;
+    background-color: #272727;
+    color: #c4c4c4;
     background-image: none;
     border: none;
     text-shadow: none;
@@ -76,12 +96,21 @@ main red #98050C
     color: white;
 }
 
-.targeting-header {
+.fb-obj-header,
+.faces-header {
     margin-bottom: 40px;
 }
 
-.targeting-header h4 {
+.fb-obj-header h4,
+.faces-header h4 {
+    color: white;
+    text-transform: uppercase;
     text-align: center;
+}
+
+.fb-obj-header p,
+.faces-header p {
+    color: #c4c4c4;
 }
 
 .page-sub-header {
@@ -90,7 +119,7 @@ main red #98050C
 }
 
 .icon-question-sign {
-    margin-left: 10px;
+    vertical-align: middle;
 }
 
 .img-helper-wrapper {
@@ -106,6 +135,7 @@ main red #98050C
     width: 80%;
     padding-bottom: 10px;
     margin-bottom: 50px;
+    color: #c4c4c4;
 }
 
 .suggested-message-container p {
@@ -121,8 +151,13 @@ main red #98050C
     width: 100%;
 }
 
+.suggested-message-container h5 {
+    color: white;
+}
+
 .suggested-message-container h4 {
     text-align: center;
+    color: white;
 }
 
 .fb-obj-group:last-child h5 {
@@ -139,8 +174,10 @@ main red #98050C
 }
 
 .fb-obj-item label {
-    color: #98050C;
+    color: #ffa629;
     font-size: medium;
+    text-transform: uppercase;
+    display: inline-block;
 }
 
 .fb-obj-item input {
@@ -177,13 +214,25 @@ main red #98050C
 }
 
 .filter-info-item > div,
-.filter-info-item > h4 {
+.filter-info-item > h5 {
     text-align: center;
+    color: white;
+    text-transform: uppercase;
+}
+
+.filter-info-item p {
+    color: #c4c4c4;
 }
 
 #available-section h3,
 #enabled-section h3 {
-    color: #98050C;
+    color: #ffa629;
+    text-transform: uppercase;
+}
+
+#enabled-section h6 {
+    color: white;
+    text-transform: uppercase;
 }
 
 #available-section button,
@@ -191,59 +240,149 @@ main red #98050C
     vertical-align: bottom;
     margin: 10px;
     background-image: none;
-    background-color: #CDB960;
+    background-color: #272727;
+    color: #c4c4c4;
+    text-shadow: none;
+    border-bottom: none;
 }
 
 #available-section button:hover,
 #enabled-section button:hover {
-    background-color: #CDB238;
+    color: white;
 }
 
 #fb-obj-input-wrapper label {
     display: inline-block;
 }
 
-.invalid-input-message:hover {
-    background-color: red;
+.popover.invalid-input-message {
+    background-color: #cc3b3b;
+    color: white;
+    font-size: x-small;
+    border-color: transparent;
+}
+
+.popover.invalid-input-message .arrow {
+    border-color: transparent !important;
+}
+
+.popover.invalid-input-message .popover-content {
+    padding: 5px 10px;
+}
+
+#location-options-container .popover {
+    font-size: small;
+    background-color: white;
+    color: #094163;
+}
+
+#location-options-container .popover.right .arrow:after {
+    border-right-color: white;
+}
+#location-options-container .popover.bottom .arrow:after {
+    border-bottom-color: white;
+}
+#location-options-container .popover.top .arrow:after {
+    border-top-color: white;
+}
+#location-options-container .popover.left .arrow:after {
+    border-left-color: white;
+}
+
+#location-options-container .popover:hover {
     cursor: pointer;
 }
 
-.invalid-input-message:hover.right .arrow:after {
-    border-right-color: red;
+.popover.invalid-input-message:hover {
+    border-color: white;
+    cursor: pointer;
 }
 
-.invalid-input-message:hover.left .arrow:after {
-    border-left-color: red;
+.popover.invalid-input-message.right .arrow:after {
+    border-right-color: #cc3b3b;
 }
 
-.invalid-input-message:hover.bottom .arrow:after {
-    border-bottom-color: red;
+.popover.invalid-input-message.bottom .arrow:after {
+    border-bottom-color: #cc3b3b;
 }
 
-.invalid-input-message:hover.top .arrow:after {
-    border-bottom-color: red;
+.popover.invalid-input-message.left .arrow:after {
+    border-left-color: #cc3b3b;
+}
+
+.popover.invalid-input-message.top .arrow:after {
+    border-top-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.right .arrow:after {
+    border-right-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.left .arrow:after {
+    border-left-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.bottom .arrow:after {
+    border-bottom-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.top .arrow:after {
+    border-top-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.right .arrow {
+    border-right-color: white;
+}
+
+.popover.invalid-input-message:hover.left .arrow {
+    border-left-color: white;
+}
+
+.popover.invalid-input-message:hover.bottom .arrow {
+    border-bottom-color: white;
+}
+
+.popover.invalid-input-message:hover.top .arrow {
+    border-top-color: white;
 }
 
 .popover {
-    color: #98050C;
+    color: white;
     font-weight: bold;
-    background-color: #CDB638;
+    background-color: #094163;
+    border-color: #0cf;
 }
 
 .popover.right .arrow:after {
-    border-right-color: #CDB638;
+    border-right-color: #094163;
 }
 
 .popover.bottom .arrow:after {
-    border-bottom-color: #CDB638;
+    border-bottom-color: #094163;
 }
 
 .popover.left .arrow:after {
-    border-left-color: #CDB638;
+    border-left-color: #094163;
 }
 
 .popover.top .arrow:after {
-    border-top-color: #CDB638;
+    border-top-color: #094163;
+}
+
+.popover.right .arrow {
+    border-right-color: #0cf;
+}
+
+.popover.bottom .arrow {
+    border-bottom-color: #0cf;
+}
+
+.popover.left .arrow {
+    border-left-color: #0cf;
+}
+
+.popover.top .arrow {
+    border-top-color: #0cf;
 }
 
 .invalid-input-popover,
@@ -291,17 +430,21 @@ main red #98050C
     margin-bottom: 30px;
 }
 
+.well {
+    background-color: #094163;
+}
+
 .draggable.ui-sortable-helper {
-    background-color: rgba(204, 95, 101, 0.3);
+    background-color: rgba(255, 166, 41, 0.3);
 }
 
 .draggable {
     font-weight: bold;
-    color: #094063;
+    color: white;
     border-width: 1px;
     border-style: solid;
     border-radius: 5px;
-    border-color: #598EB1;
+    border-color: #0cf;
     padding-left: 2px;
     padding-top: 2px;
     height: 50px;
@@ -311,7 +454,7 @@ main red #98050C
 }
 
 .draggable:hover {
-    background-color: rgba(204, 95, 101, 0.1);
+    background-color: rgba(255, 166, 41, 0.1);
 }
 
 .draggable:hover,
@@ -344,10 +487,12 @@ main red #98050C
 
 .empty-fallback label {
     display: inline-block;
+    color: #c4c4c4;
+    font-size: medium;
 }
 
 .empty-fallback input {
-    margin: 0px 5px;
+    margin: 0px 10px;
 }
 
 #age-range:hover {
@@ -387,12 +532,12 @@ main red #98050C
 }
 
 .new-filters {
-    color: #98050C;
+    color: #ffa629;
 }
 
 .modal-footer > .btn {
-    background-color: #3982B1;
-    color: #094063;
+    background-color: #272727;
+    color: #c4c4c4;
     background-image: none;
     border: none;
     text-shadow: none;

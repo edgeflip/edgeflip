@@ -42,14 +42,21 @@ $( function() {
                 top = inputModel.el.offset().top + ( inputModel.el.outerHeight( true ) / 2 );
                 left = inputModel.el.offset().left + inputModel.el.outerWidth( true ) + config.rightOffset;
             } else if( placement === 'bottom' ) {
-                top = inputModel.el.offset().top + inputModel.el.outerHeight( true ) + config.bottomOffset;
+                top = inputModel.el.offset().top + ( inputModel.el.outerHeight( true ) / 2 );
                 left = inputModel.el.offset().left + ( inputModel.el.outerWidth( true ) / 2 );
             }
 
             popover.css( { top: top, left: left } ).popover('show');
 
-            popover.next().addClass('invalid-input-message').on( 'click', function() { popover.popover('hide'); } );
-            inputModel.el.on( 'focus', function() { popover.popover('hide'); } );
+            popover.next().addClass('invalid-input-message').on( 'click', function() {
+                inputModel.popoverEl = undefined;
+                popover.popover('hide');
+            } );
+
+            inputModel.el.on( 'focus', function() {
+                inputModel.popoverEl = undefined;
+                popover.popover('hide');
+            } );
 
             inputModel.popoverEl = popover;
         },
@@ -68,7 +75,7 @@ $( function() {
                 event: 'click',
                 inputs: [
                     { el: $('#id_name'),
-                      invalidText: 'We do require a name.',
+                      invalidText: 'A name is required.',
                       placement: 'right',
                       popoverEl: undefined
                     }

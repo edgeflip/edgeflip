@@ -17,7 +17,7 @@
                 <div>Our targeted sharing application will spread your message across the web by asking your supporters to share your content with their friends.</div>
                 <div>We found that trusted friends are more likely to convince people to take some action than the same message coming from a large, non-personal organization.</div>
             </div>
-            <div class="name-input-label">Let's get started.  Please give your campaign a name</div>
+            <div class="name-input-label">Please give your campaign a name</div>
             <div class="name-input-container">{{ campaign_form.name }}</div>
             <div class="wizard-button-container">
                 <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Get Started</a>
@@ -111,7 +111,7 @@ $( function() {
 
                             if( $el.prop('tagName') === 'SECTION' ) {
 
-                                $el.find('h5').first().text( 'Layer ' + new_layer_no );
+                                $el.find('h6').first().text( 'Layer ' + new_layer_no );
 
                                 $('#id_enabled-filters-' + el_layer_no )
                                     .attr( { "id": 'id_enabled-filters-' + new_layer_no,
@@ -155,9 +155,9 @@ $( function() {
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
             '<section data-layer="' + layer_count + '">' +
-            '<div class="clearfix"><h5 class="layer-text-header pull-left">Layer ' + layer_count + '</h5>' +
-            '<h5 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
-            '<i class="icon-remove"></i></h5></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
+            '<div class="clearfix"><h6 class="layer-text-header pull-left">Layer ' + layer_count + '</h6>' +
+            '<h6 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
+            '<i class="icon-remove icon-white"></i></h6></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
             '"><div style="margin-left: 0px; min-height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
             layer_count + '">' + previous_layer_html  + '</div></div></section>'

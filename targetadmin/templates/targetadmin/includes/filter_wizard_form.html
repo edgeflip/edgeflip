@@ -3,7 +3,7 @@
         <div class="row targeting-header">
 
             <div class="filter-info-item">
-                <h4>What audience would you like to target ?</h4>
+                <h5>What audience would you like to target ?</h5>
                 <p>
                     When your supporters are asked to choose friends to share your campaign with, we will present them with a list of friend
                     suggestions based on criteria you select below.
@@ -15,23 +15,23 @@
             </div>
             
             <div class="filter-info-item">
-                <h4>How it works</h4>
+                <h5>How it works</h5>
                 <p>
-                    Multiple filters in a single layer will be chained together with "And".  For example, if you put the following four filters: `gender eq male`,
-                    `age min 22`, `age max 30`, and `state eq New York` into a layer, you will be targeting 22-30 year old men living in New York state.
+                    Multiple filters in a single layer will be chained together with "And".  For example, if you put the following four filters: 'gender eq male',
+                    'age min 22', 'age max 30', and 'state eq New York' into a layer, you will be targeting 22-30 year old men living in New York state.
                 </p>
                 <p>
                     We highly recommend adding multiple layers to your criteria.  To add a layer, click the "Add Layer" button to the right of the Enabled Filters header.
-                    Clicking that button will add a "fallback" layer into which you can have different, or more restrictive criteria to use when your supporters
-                    do not have enough friends in the layers specified above.  In our example, a Layer 2 fallback criteria might be: 22-30 year old men.  If that is
-                    still too restrictive, you can add a third layer simply targeting men.
+                    Clicking that button will add a fallback layer into which you can have different, or simply less restrictive criteria so that if the filters above
+                    omit too many friends, you can fallback to a more relaxed filter to suggest enough friends to your supporters. In our example,
+                     a Layer 2 fallback criteria might be: 22-30 year old men.  If that is still too restrictive, a third layer simply targeting men could be added.
                 </p>
                 <p>As always, feel free to contact us for assistance.</p>
             </div>
         </div>
         <div id="enabled-section" class="row">
             <h3>Enabled Filters <button id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</button></h3>
-            <h5>Top Layer</h5>
+            <h6>Top Layer</h6>
             <div class="clearfix">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
                 <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
@@ -56,7 +56,7 @@
             <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
             {{ campaign_form.include_empty_fallback }}
             {% if campaign_form.include_empty_fallback.help_text %}
-                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+                <i class="icon-question-sign icon-white" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
             {% endif %}
         </div>
         <div class="row wizard-button-container">

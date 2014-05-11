@@ -280,7 +280,7 @@ class CampaignWizardForm(forms.Form):
             'criteria. Checking this box will fill in the friend suggestions '
             'with friends that do not fit the targeting criteria but are '
             'still influenceable. You should check this box if you would '
-            'rather reach more people than people strictly in your targeting '
+            'rather reach more people than those strictly in your targeting '
             'criteria.'
         ),
         initial=True,
