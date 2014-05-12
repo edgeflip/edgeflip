@@ -1,89 +1,61 @@
-import itertools
-import logging
-import uuid
-
-import django.core.cache
 from django import template
 from django.conf import settings
-from django.core.urlresolvers import reverse
-from django.db import IntegrityError
-from django.utils.text import slugify
 
-from chapo.models import ShortenedUrl
+from chapo import utils
 
-
-LOG = logging.getLogger('crow')
-
-SHORTEN_EVENT_TYPE = 'initial_redirect'
-SHORTEN_MAX_ATTEMPTS = 100 # set to 0 to try infinitely
 
 register = template.Library()
 
 
+def server_fallback(context, server):
+    """Let the template fall back to the protocol and host of the request for
+    absolute short URLs.
+
+    """
+    if server is None:
+        try:
+            return settings.CHAPO_SERVER
+        except AttributeError:
+            request = context['request']
+            return '{protocol}//{host}'.format(
+                protocol='https:' if request.is_secure() else 'http:',
+                host=request.get_host(),
+            )
+    else:
+        return server
+
+
 @register.simple_tag(name='shorturl', takes_context=True)
-def short_url(context, obj, protocol=''):
-    """Construct the absolute, shortened URL from the given ShortenedUrl object or slug.
+def short_url(context, obj, server=None):
+    """Construct the absolute, shortened URL for the given ShortenedUrl object or slug.
 
         {% shorturl short %}
 
-    Optionally specify the protocol:
+    By default, the protocol and host of the shortened URL are copied from the request.
+    To configure a default location for the routing service, either set `CHAPO_SERVER`
+    in your Django settings file or pass the `server` argument; (the latter overrides
+    the former).
 
-        {% shorturl short protocol='https:' %}
+        {% shorturl short server='https://edgefl.ip' %}
 
     """
-    try:
-        host = settings.CHAPO_REDIRECTOR_DOMAIN
-    except AttributeError:
-        request = context['request']
-        host = request.get_host()
-
-    slug = getattr(obj, 'slug', obj)
-    path = reverse('chapo:main', args=(slug,))
-
-    return '{protocol}//{host}{path}'.format(protocol=protocol, host=host, path=path)
+    server = server_fallback(context, server)
+    return utils.short_url(obj, server)
 
 
 @register.simple_tag(takes_context=True)
-def shorten(context, long_url, prefix='', campaign=None, protocol=''):
-    """Return an absolute, shortened URL for the given absolute, long URL.
+def shorten(context, *args, **kws):
+    """Return an absolute shortened URL for the given absolute long URL.
 
         {% shorten 'http://www.english.com/alphabet/a/b/c/defghi/' %}
 
-    Optionally specify the shortened slug prefix, a campaign to associate with
-    the mapping, and an HTTP protocol for the shortened URL:
+    Optionally specify the shortened slug `prefix`, the `campaign` to associate
+    with the mapping, and the `event_type` to associate with the mapping (defaulting
+    to 'initial_redirect'). The location of the routing service, `server`, may
+    also be specified; (see `short_url` and `CHAPO_SERVER`).
 
-        {% shorten 'http://www.english.com/alphabet/a/b/c/defghi/' prefix='en' campaign=campaign protocol='https:' %}
+        {% shorten 'http://www.english.com/alphabet/a/b/c/defghi/' prefix='en' campaign=campaign server='https://edgefl.ip' %}
 
     """
-    campaign_id = getattr(campaign, 'pk', campaign)
-    cache_key = 'shorturl|{event_type}|{prefix}|{campaign_id}|{url}'.format(
-        event_type=SHORTEN_EVENT_TYPE,
-        prefix=str(slugify(unicode(prefix))) if prefix else '',
-        campaign_id=campaign_id or '',
-        url=uuid.uuid5(uuid.NAMESPACE_URL, long_url.encode('utf-8')).hex,
-    )
-    slug = django.core.cache.cache.get(cache_key)
-
-    if slug is None:
-        for count in itertools.count(1):
-            slug = ShortenedUrl.make_slug(prefix)
-            try:
-                ShortenedUrl.objects.create(
-                    slug=slug,
-                    campaign_id=campaign_id or None,
-                    event_type=SHORTEN_EVENT_TYPE,
-                    url=long_url,
-                )
-            except IntegrityError:
-                # slug was not unique, try again?
-                if count == SHORTEN_MAX_ATTEMPTS:
-                    raise
-            else:
-                if count > 1:
-                    LOG.warning("shorten required %s attempts", count)
-                break # done!
-
-        timeout = getattr(settings, 'CHAPO_CACHE_TIMEOUT', 0)
-        django.core.cache.cache.set(cache_key, slug, timeout)
-
-    return short_url(context, slug, protocol)
+    server = server_fallback(context, kws.pop('server', None))
+    return utils.shorten(*args, server=server, **kws)
