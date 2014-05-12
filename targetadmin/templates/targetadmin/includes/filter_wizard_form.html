@@ -43,8 +43,8 @@
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
                         <p>
-                            <abbr title="{{ ff.readable.feature }} {{ ff.readable.operator }} {{ ff.readable.value }}">
-                                {{ ff.readable.feature }} {{ ff.readable.operator }} {{ ff.readable.value|truncatechars:"15" }}
+                            <abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">
+                                {{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}
                             </abbr>
                         </p>
                     </div>
@@ -56,7 +56,7 @@
             <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
             {{ campaign_form.include_empty_fallback }}
             {% if campaign_form.include_empty_fallback.help_text %}
-                <i class="icon-question-sign icon-white" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
             {% endif %}
         </div>
         <div class="row wizard-button-container">

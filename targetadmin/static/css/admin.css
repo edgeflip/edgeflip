@@ -8,45 +8,13 @@ red: #cc3b3b;
 */
 
 body {
-    background-color: #094163;
     font-family: Arial;
-}
-
-.navbar-inverse .navbar-inner {
-    box-shadow: 1px 1px 10px rgba(196,196,196,0.5);
-    background-color: #094163 !important;
-    background-image: none !important;
-    border-color: white;
-}
-
-.navbar-inverse .nav > li > a,
-.navbar-inverse .brand {
-    color: #999;
-}
-
-.navbar-inverse a.brand:hover {
-    color: #0cf;
-}
-
-.navbar-inverse .nav > li > a:hover {
-    color: #0cf;
-}
-
-.navbar-inverse .nav > .active > a {
-    color: white;
-    background-color: #094163;
-}
-
-.navbar-inverse .nav > .active > a:hover {
-    color: #0cf;
-    background-color: #094163;
 }
 
 .page-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 20px;
-    color: #ffa629;
     border: none;
     font-weight: 300;
     letter-spacing: 1px;
@@ -55,14 +23,12 @@ body {
 .page-header-information {
     text-align: center;
     margin: 20px 0px 40px 0px;
-    color: white;
     font-size: medium;
 }
 
 .name-input-label {
     padding: 20px 0px 20px 0px;
     text-align: center;
-    color: #c4c4c4;
     font-size: large;
 }
 
@@ -85,18 +51,6 @@ body {
     margin-top: 50px;
 }
 
-.wizard-button-container > .btn {
-    background-color: #272727;
-    color: #c4c4c4;
-    background-image: none;
-    border: none;
-    text-shadow: none;
-}
-
-.wizard-button-container > .btn:hover {
-    color: white;
-}
-
 .fb-obj-header,
 .faces-header {
     margin-bottom: 40px;
@@ -104,14 +58,12 @@ body {
 
 .fb-obj-header h4,
 .faces-header h4 {
-    color: white;
     text-transform: uppercase;
     text-align: center;
 }
 
 .fb-obj-header p,
 .faces-header p {
-    color: #c4c4c4;
 }
 
 .page-sub-header {
@@ -136,11 +88,9 @@ body {
     width: 80%;
     padding-bottom: 10px;
     margin-bottom: 50px;
-    color: #c4c4c4;
 }
 
 .suggested-message-container p {
-    font-size: small;
     text-align: center;
 }
 
@@ -152,13 +102,8 @@ body {
     width: 100%;
 }
 
-.suggested-message-container h5 {
-    color: white;
-}
-
 .suggested-message-container h4 {
     text-align: center;
-    color: white;
 }
 
 .fb-obj-group:last-child h5 {
@@ -175,7 +120,6 @@ body {
 }
 
 .fb-obj-item label {
-    color: #ffa629;
     font-size: medium;
     text-transform: uppercase;
     display: inline-block;
@@ -217,24 +161,20 @@ body {
 .filter-info-item > div,
 .filter-info-item > h5 {
     text-align: center;
-    color: white;
     text-transform: uppercase;
     font-size: medium;
 }
 
 .filter-info-item p {
-    color: #c4c4c4;
-    font-size: large;
+    font-size: medium;
 }
 
 #available-section h3,
 #enabled-section h3 {
-    color: #ffa629;
     text-transform: uppercase;
 }
 
 #enabled-section h6 {
-    color: white;
     text-transform: uppercase;
 }
 
@@ -242,16 +182,6 @@ body {
 #enabled-section button {
     vertical-align: bottom;
     margin: 10px;
-    background-image: none;
-    background-color: #272727;
-    color: #c4c4c4;
-    text-shadow: none;
-    border-bottom: none;
-}
-
-#available-section button:hover,
-#enabled-section button:hover {
-    color: white;
 }
 
 #fb-obj-input-wrapper label {
@@ -433,20 +363,14 @@ body {
     margin-bottom: 30px;
 }
 
-.well {
-    background-color: #094163;
-}
-
 .draggable.ui-sortable-helper {
     background-color: rgba(255, 166, 41, 0.3);
 }
 
 .draggable {
-    color: white;
     border-width: 1px;
     border-style: solid;
     border-radius: 5px;
-    border-color: #0cf;
     padding-left: 2px;
     padding-top: 2px;
     height: 50px;
@@ -489,7 +413,6 @@ body {
 
 .empty-fallback label {
     display: inline-block;
-    color: #c4c4c4;
     font-size: large;
 }
 
@@ -529,12 +452,7 @@ body {
 }
 
 .modal-header h3 {
-    color: #094063;
     text-align: center;
-}
-
-.new-filters {
-    color: #ffa629;
 }
 
 .new-filters label {
@@ -544,19 +462,6 @@ body {
 
 .new-filters p {
     margin-bottom: 20px;
-}
-
-
-.modal-footer > .btn {
-    background-color: #272727;
-    color: #c4c4c4;
-    background-image: none;
-    border: none;
-    text-shadow: none;
-}
-
-.modal-footer > .btn:hover {
-    color: white;
 }
 
 #state-container,

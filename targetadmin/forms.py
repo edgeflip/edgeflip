@@ -301,10 +301,22 @@ class FBObjectWizardForm(forms.ModelForm):
     org_name = forms.CharField(
         label='Cause or Organization being supported'
     )
-    msg1_pre = forms.CharField(label='Text Before Friend Names')
-    msg1_post = forms.CharField(label='Text After Friend Names')
-    msg2_pre = forms.CharField(label='Text Before Friend Names')
-    msg2_post = forms.CharField(label='Text After Friend Names')
+    msg1_pre = forms.CharField(
+        required=False,
+        label='Text Before Friend Names (optional)'
+    )
+    msg1_post = forms.CharField(
+        required=False,
+        label='Text After Friend Names (optional)'
+    )
+    msg2_pre = forms.CharField(
+        required=False,
+        label='Text Before Friend Names (optional)'
+    )
+    msg2_post = forms.CharField(
+        required=False,
+        label='Text After Friend Names (optional)'
+    )
     sharing_prompt = forms.CharField(label="Headline")
     sharing_sub_header = forms.CharField(
         label="Sub-Header (optional)",

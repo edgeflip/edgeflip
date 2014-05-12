@@ -17,7 +17,6 @@
                 <div>Our targeted sharing application will spread your message across the web by asking your supporters to share your content with their friends.</div>
                 <div>We found that trusted friends are more likely to convince people to take some action than the same message coming from a large, non-personal organization.</div>
             </div>
-            <div class="name-input-label">Please give your campaign a name</div>
             <div class="name-input-container">{{ campaign_form.name }}</div>
             <div class="wizard-button-container">
                 <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Get Started</a>
@@ -34,6 +33,18 @@
             {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
         </div>
     </form>
+    <div id="name-modal" class="modal hide fade" tabindex="-1" role="dialog">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="filter-modal-label">Give your campaign a name</h3>
+    </div>
+    <div class="modal-body">
+        <div class="name-input-container">{{ campaign_form.name }}</div>
+    </div>
+    <div class="modal-footer">
+        <button id="step1-next" class="btn btn-primary">Continue</button>
+    </div>
+</div>
 {% endblock %} {% block extrascript %}
 <script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script src="{{ STATIC_URL }}js/inputValidator.js"></script>
@@ -157,7 +168,7 @@ $( function() {
             '<section data-layer="' + layer_count + '">' +
             '<div class="clearfix"><h6 class="layer-text-header pull-left">Layer ' + layer_count + '</h6>' +
             '<h6 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
-            '<i class="icon-remove icon-white"></i></h6></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
+            '<i class="icon-remove"></i></h6></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
             '"><div style="margin-left: 0px; min-height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
             layer_count + '">' + previous_layer_html  + '</div></div></section>'
@@ -174,6 +185,7 @@ $( function() {
 
     $( $('input:visible')[0] ).focus();
 
+    /*
     $( document ).on( 'keyup', function(e) {
         var getStartedButton;
         
@@ -186,6 +198,7 @@ $( function() {
             }
         }
     } );
+    */
 } );
 </script>
 {% endblock %}

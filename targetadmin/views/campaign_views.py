@@ -273,45 +273,10 @@ def campaign_wizard(request, client_pk):
                 client.pk, last_camp.pk, content.pk
             )
 
-    def add_readability( filter ):
-        if filter['feature'] == 'gender':
-            filter['readable'] = dict(\
-                feature = filter['feature'].capitalize(),
-                operator = 'is',
-                value = filter['value'] )
-        elif filter['feature'] == 'age':
-            filter['readable'] = dict(
-                feature = filter['feature'].capitalize(),
-                operator = ':' )
-            if filter['operator'] == 'max':
-                filter['readable']['value'] = ' '.join( [ filter['value'], 'and younger' ] )
-            else:
-                filter['readable']['value'] = ' '.join( [ filter['value'], 'and older' ] )
-        elif filter['feature'] == 'city' or filter['feature'] == 'state':
-            filter['readable'] = dict(
-                feature = 'Lives',
-                operator = 'in',
-                value = filter['value'].replace('||', ', ' )
-            )
-
-            if filter['value'].count('||') == 1:
-                filter['readable']['value'] = filter['value'].replace('||', ' or ' )
-            elif '||' in filter['value']:
-                lastComma = filter['readable']['value'].rfind(',')
-                filter['readable']['value'] = ' '.join( [
-                    filter['readable']['value'][:lastComma+1],
-                    'or',
-                    filter['readable']['value'][lastComma+2:] ] )
-            elif 'new york' in filter['value'].lower():
-                filter['readable']['value'] += ' ' + filter['feature']  
-        return filter
-
-    
-    filter_features = [\
-        add_readability(filter) for filter in relational.FilterFeature.objects.filter(
+    filter_features = relational.FilterFeature.objects.filter(
             filter__client=client, feature__isnull=False,
             operator__isnull=False, value__isnull=False)\
-                .values('feature', 'operator', 'value').distinct() ]
+                .values('feature', 'operator', 'value').distinct()
 
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,

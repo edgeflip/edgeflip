@@ -27,7 +27,8 @@ $( function() {
         getPopoverClone = function() { 
             var clone = errorPopovers[0].clone()
                 .insertBefore(errorPopovers[0])
-                .popover( config.popoverOpts )
+                .popover( config.popoverOpts );
+
             errorPopovers.push( clone );
             return clone;
         },
@@ -109,10 +110,6 @@ $( function() {
                 event: 'click',
                 inputs: _.map( [
                     { id: '#id_org_name' },
-                    { id: '#id_msg1_pre' },
-                    { id: '#id_msg1_post' },
-                    { id: '#id_msg2_pre' },
-                    { id: '#id_msg2_post' },
                     { id: '#id_og_title' },
                     { id: '#id_og_image' },
                     { id: '#id_og_description' },
