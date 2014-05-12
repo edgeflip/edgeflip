@@ -6,15 +6,15 @@ edgeflip.dashboard = (function (edgeflip, $) {
             'authorized_visits': 'Authorized Visits',
             'uniq_users_authorized': 'Users Authorized',
             'auth_fails': 'Authorization Fails',
-            'visits_generated_faces': 'Visits Generated Faces',
             'visits_shown_faces': 'Visits Shown Faces',
+            'visits_with_share_clicks': 'Visits With Share Clicks',
             'visits_with_shares': 'Visits With Shares',
             'total_shares': 'Total Shares',
             'clickbacks': 'Clickbacks',
         }
     };
 
-    self.columns = $.extend({'name': 'Campaign'}, self.metrics)
+    self.columns = $.extend({'name': 'Campaign', 'most_recent_data': 'Most Recent Data'}, self.metrics)
 
     self.init = function() {
         self.set_client_id()
@@ -96,6 +96,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
             'icons': {
                 'primary': 'ui-icon-image'
             },
+            'label': 'Show Chart',
             'text': false
         });
         $('button.charter').click(self.mkchart);
@@ -110,8 +111,9 @@ edgeflip.dashboard = (function (edgeflip, $) {
 
         $('.report').button({
             'icons': {
-                'primary': 'ui-icon-document'
+                'primary': 'ui-icon-arrowstop-1-s',
             },
+            'label': 'Download TSV',
             'text': false
         });
         $('button.report').click(function() {
@@ -125,6 +127,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
             .attr("class", "totals")
 
         totals.append("td").text("TOTALS")
+        totals.append("td")
         totals.selectAll("tr")
             .data(Object.keys(self.metrics))
             .enter()
@@ -139,7 +142,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
         // if the clientpicker is on, disable it while we're loading data to stop async races
         $('#clientpicker').attr('disabled', 'disabled');
 
-        // send a client_id if we're a superuser, else send 0 and the server will check auths 
+        // send a client_id if we're a superuser, else send 0 and the server will check auths
         $.get(edgeflip.router.reverse('reporting:client_summary', self.client_id), self.on_summary).fail(self.on_fail);
     }
 
@@ -339,3 +342,5 @@ edgeflip.dashboard = (function (edgeflip, $) {
 
     return self;
 })(edgeflip, jQuery);
+
+$(document).ready(edgeflip.dashboard.init);

@@ -4,18 +4,14 @@
 {% endblock %}
 {% block title %}Campaign Setup Wizard{% endblock %}
 {% block content %}
-    <h2>Create a New Targeted Sharing Campaign</h2>
-    <form id="wizard-form" action="" method="post">
+    <h2 class="page-header">Create a New Targeted Sharing Campaign</h2>
+    <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
         <span id="campaign-settings" class="wizard-step">
             {% include 'targetadmin/includes/campaign_wizard_form.html' %}
-            <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Next</a>
-            <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
         </span>
         <span id="filtering" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/filter_wizard_form.html' %}
-            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="fbobjects">Next</a>
-            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="campaign-settings">Previous</a>
         </span>
         <span id="fbobjects" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
@@ -24,10 +20,23 @@
         </span>
     </form>
 {% endblock %} {% block extrascript %}
+<script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script>
-    // Tracks number of layers in play on Filtering screen
+    
     var layer_count = 1,
         can_close_modal = true;
+
+    $('i.icon-question-sign').popover( { trigger: 'hover' } );
+    
+    $('div[data-helper="img"] input').on( 'focus', function() {
+        $('#' + $(this).attr('name') + '-img-helper' ).fadeIn( 400 );
+    } );
+    
+    $('div[data-helper="img"] input').on( 'blur', function() {
+        $('#' + $(this).attr('name') + '-img-helper' ).hide();
+    } );
+
+    // Tracks number of layers in play on Filtering screen
 
     // "Steps"
     $('.step-submit').click(function(e) {
@@ -46,7 +55,13 @@
         }
         $('.wizard-step').hide();
         $('#' + step).show();
-    });
+        
+        if( step === 'fbobjects' ) {
+            window.fbObjIndicator.init();
+        }
+        
+        $( $('input:visible')[0] ).focus();
+    } );
 
     // Remove Layer "X" clicked
     $('#filtering').on( 'click', '.remove-layer', function() {
@@ -145,55 +160,6 @@
         }
     });
 
-    // New FilterFeature creation
-    $('#filter-add').click(function(event) {
-        event.preventDefault()
-        var filter_values = '';
-        $('.filter-val-input').each(function(index){
-            var value = $(this).val();
-            if (value) {
-                if (filter_values === ''){
-                    filter_values = value;
-                } else {
-                    filter_values += '||' + value;
-                }
-            }
-        });
-        if (filter_values.slice(-2) === '||'){
-            filter_values = filter_values.substr(0, filter_values.length - 2);
-        }
-        $('#id_value').val(filter_values);
-        var validation_elems = [
-            [$('#id_feature'), $('#feature-error')],
-            [$('#id_operator'), $('#operator-error')],
-            [$('#id_value'), $('#value-error')]
-        ]
-        var form_errors = false;
-        for (var elem=0; elem < validation_elems.length; elem++) {
-            if (validation_elems[elem][0].val() === ""){
-                validation_elems[elem][1].show();
-                form_errors = true;
-            } else {
-                validation_elems[elem][1].hide();
-            }
-        }
-        if (!form_errors) {
-            var feature = $('#id_feature').val();
-            var operator = $('#id_operator').val();
-            var filter_values = $('#id_value').val();
-            $('#existing-filters').prepend(
-                '<div data-filter-id="set_number=' + feature + '.' + operator + 
-                '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-                feature + ' ' + operator + ' ' + filter_values + '">' + 
-                feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
-                '</abbr></p></div>'
-            );
-
-            if( can_close_modal ) {
-                $('#filter-modal').modal('toggle');
-                $('#filter-modal').removeData();
-            }
-        }
-    });
+    $( $('input:visible')[0] ).focus();
 </script>
 {% endblock %}

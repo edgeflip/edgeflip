@@ -1,6 +1,6 @@
 <div class="row">
     <div class="span12">
-        <div class="row">
+        <div class="row targeting-header">
             <h2>Define Targeting Criteria</h2>
             <p>
                 The filters below will be chained together with ANDs. For example if you put four filters:
@@ -27,7 +27,7 @@
             </div>
         </div>
         <div class="row">
-            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="something" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
+            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" role="button" class="btn btn-mini" data-toggle="modal">Create Filter</button></h3>
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
@@ -41,16 +41,20 @@
             </div>
         </div>
         <div class="row empty-fallback">
-            <p>
-                {{ campaign_form.include_empty_fallback.errors }}
-                <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
-                {{ campaign_form.include_empty_fallback }}
-                {% if campaign_form.include_empty_fallback.help_text %}<span class="help-block">{{ campaign_form.include_empty_fallback.help_text }}</span>{% endif %}
-            </p>
+            {{ campaign_form.include_empty_fallback.errors }}
+            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+            {{ campaign_form.include_empty_fallback }}
+            {% if campaign_form.include_empty_fallback.help_text %}
+                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+            {% endif %}
+        </div>
+        <div class="row filter-button-container">
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="fbobjects">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="campaign-settings">Previous</a>
         </div>
     </div>
 </div>
-<div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog" data-remote="{% url 'targetadmin:filter-add' client.pk %}">
+<div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog">
     <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
         <h3 id="filter-modal-label">Create Filter</h3>

@@ -128,8 +128,25 @@ class TestFacesViews(EdgeFlipViewTestCase):
         assert data['html']
 
     @patch('targetshare.views.faces.celery')
+    def test_faces_px4_filtering(self, celery_mock):
+        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        self.patch_ranking(celery_mock, px4_filtering=True)
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid',
+            'last_call': True,
+        })
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        gen_event = models.Event.objects.get(event_type='generated')
+        shown_event = models.Event.objects.get(event_type='shown')
+        self.assertEqual(gen_event.content, 'px3_score: 1.0, px4_score: 1.5')
+        self.assertEqual(shown_event.content, 'px4_score: 1.5')
+
+    @patch('targetshare.views.faces.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
+        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
         self.patch_ranking(celery_mock)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
@@ -141,8 +158,10 @@ class TestFacesViews(EdgeFlipViewTestCase):
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
-        assert models.Event.objects.get(event_type='generated')
-        assert models.Event.objects.get(event_type='shown')
+        generated = models.Event.objects.get(event_type='generated')
+        shown = models.Event.objects.get(event_type='shown')
+        self.assertEqual(generated.content, 'px3_score: 1.0, px4_score: 1.5')
+        self.assertEqual(shown.content, 'px4_score: 1.5')
 
     @patch('targetshare.integration.facebook.third_party.requests.get')
     @patch('targetshare.views.faces.celery')
