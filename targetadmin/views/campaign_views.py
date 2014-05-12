@@ -224,10 +224,12 @@ def campaign_wizard(request, client_pk):
 
             # Page Style
             if client.pagestyles.exists():
-                page_styles = client.pagestyles.filter(starred=True)
+                page_styles = client.pagestyles.filter(
+                    starred=True, page__code=relational.Page.FRAME_FACES)
             else:
                 page_styles = relational.PageStyle.objects.filter(
-                    client=None, starred=True)
+                    client=None, starred=True,
+                    page__code=relational.Page.FRAME_FACES)
 
             last_camp = None
             campaigns = []
@@ -252,8 +254,7 @@ def campaign_wizard(request, client_pk):
                     rand_cdf=1.0
                 )
                 page_style_set = relational.PageStyleSet.objects.create()
-                for ps in page_styles:
-                    page_style_set.page_styles.add(ps)
+                page_style_set.page_styles = page_styles
                 camp.campaignpagestylesets.create(
                     page_style_set=page_style_set,
                     rand_cdf=1.0

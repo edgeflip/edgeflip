@@ -277,7 +277,7 @@ class TestCampaignViews(TestAdminBase):
         self.assertTrue(camp.campaignpagestylesets.exists())
         self.assertEqual(
             camp.campaignpagestylesets.get().page_style_set.page_styles.count(),
-            2
+            1
         )
         self.assertEqual(
             mail.outbox[0].body,
