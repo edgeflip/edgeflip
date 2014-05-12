@@ -173,6 +173,19 @@ $( function() {
     });
 
     $( $('input:visible')[0] ).focus();
+
+    $( document ).on( 'keyup', function(e) {
+        var getStartedButton;
+        
+        if( e.keyCode === 13 ) {
+            getStartedButton = $('#step1-next');
+
+            if( getStartedButton.is(':visible') ) {
+                getStartedButton.click();
+                $('body,html').scrollTop( 0 );
+            }
+        }
+    } );
 } );
 </script>
 {% endblock %}

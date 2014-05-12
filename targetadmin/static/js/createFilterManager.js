@@ -463,19 +463,57 @@ $.extend( createFilterManager.prototype, {
     },
 
     //this function was lifted from legacy code
-    //  it creates our filter on the client side only
-    //  something needs to be doen about that ^
     createFilter: function( opts ) {
-
         var feature = ( opts && opts.feature ) ? opts.feature : this.featureDropdown.val(),
             operator = this.operatorDropdown.val(),
-            filter_values = this.valueInput.val();
+            filter_values = this.valueInput.val(),
+            lastCommaIndex,
+            readableFeature,
+            readableOperator,
+            readableValue;
+
+        if( feature === 'gender' ) {
+            readableFeature = feature.charAt(0).toUpperCase() + feature.slice(1);
+            readableOperator = 'is';
+            readableValue = filter_values;
+        } 
+        
+        else if( feature === 'age' ) {
+            readableFeature = feature.charAt(0).toUpperCase() + feature.slice(1);
+            readableOperator = ':';
+            if( operator === 'max' ) {
+                readableValue = filter_values + ' and younger';
+            } else {
+                readableValue = filter_values + ' and older';
+            }
+        }
+
+        else if( feature === 'city' || feature === 'state' ) {
+            readableFeature = 'Lives';
+            readableOperator = 'in';
+            readableValue = filter_values.replace( /\|\|/g, ', ' );
+
+            if( readableValue.match(/,/g).length === 1 ) {
+                readableValue = readableValue.replace( /,/, ' or' );
+            }
+
+            if( readableValue.indexOf(',') !== -1 ) {
+                lastCommaIndex = readableValue.lastIndexOf(',');
+                readableValue =
+                    readableValue.slice( 0, lastCommaIndex + 1 ) +
+                    ' or ' +
+                    readableValue.slice( lastCommaIndex + 2 );
+
+            } else if( readableValue.toLowerCase().indexOf('new york') !== -1 ) {
+                readableValue += ' ' + feature;
+            }
+        }
 
         $('#existing-filters').prepend(
             '<div data-filter-id="set_number=' + feature + '.' + operator + 
             '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-            feature + ' ' + operator + ' ' + filter_values + '">' + 
-            feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
+            readableFeature + ' ' + readableOperator + ' ' + readableValue + '">' + 
+            readableFeature + ' ' + ' ' + readableOperator + ' ' + readableValue.slice(0, 15) + 
             '</abbr></p></div>'
         );
 

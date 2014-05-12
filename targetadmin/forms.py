@@ -264,7 +264,9 @@ class CampaignForm(forms.Form):
 # Wizard Forms
 class CampaignWizardForm(forms.Form):
 
-    name = forms.CharField()
+    name = forms.CharField(
+        widget=forms.TextInput(attrs={'autocomplete':'off'})
+    )
 
     faces_url = forms.CharField(
         required=False,

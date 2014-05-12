@@ -17,8 +17,8 @@
             <div class="filter-info-item">
                 <h5>How it works</h5>
                 <p>
-                    Multiple filters in a single layer will be chained together with "And".  For example, if you put the following four filters: 'gender eq male',
-                    'age min 22', 'age max 30', and 'state eq New York' into a layer, you will be targeting 22-30 year old men living in New York state.
+                    Multiple filters in a single layer will be chained together with "And".  For example, if you put the following four filters: 'Gender is Male',
+                    'Age : 22 and younger', 'Age : 30 and older', and 'Lives in New York' into a layer, you will be targeting 22-30 year old men living in New York state.
                 </p>
                 <p>
                     We highly recommend adding multiple layers to your criteria.  To add a layer, click the "Add Layer" button to the right of the Enabled Filters header.
@@ -43,8 +43,8 @@
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
                         <p>
-                            <abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">
-                                {{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"25" }}
+                            <abbr title="{{ ff.readable.feature }} {{ ff.readable.operator }} {{ ff.readable.value }}">
+                                {{ ff.readable.feature }} {{ ff.readable.operator }} {{ ff.readable.value|truncatechars:"15" }}
                             </abbr>
                         </p>
                     </div>

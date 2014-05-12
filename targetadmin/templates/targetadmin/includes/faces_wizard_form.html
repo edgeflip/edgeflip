@@ -16,23 +16,23 @@
         <div id="input-popover"></div>
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>
-            <div>{{ fb_obj_form.sharing_prompt}}</div>
+            {{ fb_obj_form.sharing_prompt}}
         </div>
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>
-            <div>{{ fb_obj_form.sharing_sub_header }}</div>
+            {{ fb_obj_form.sharing_sub_header }}
         </div>
         <div class="fb-obj-item">
             <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
-            <div>{{ campaign_form.thanks_url }}</div>
+            {{ campaign_form.thanks_url }}
         </div>
         <div class="fb-obj-item">
             <label for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
-            <div>{{ campaign_form.error_url }}</div>
+            {{ campaign_form.error_url }}
         </div>
         <div class="fb-obj-item">
             <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
-            <div>{{ campaign_form.faces_url }}</div>
+            {{ campaign_form.faces_url }}
         </div>
     </div>
 
@@ -188,10 +188,12 @@
 
                         formMetaData.el.on( 'focus', function() {
                                          self.setCurrentFormField( fieldName )
+                                             .emboldenLabel()
                                              .scrollToField() } )
 
                                 .on( 'blur', function() {
-                                        self.setCurrentFormField( null )
+                                        self.weakenLabel()
+                                            .setCurrentFormField( null )
                                             .hidePopover() } );
                     } );
 
@@ -202,6 +204,16 @@
                 },
 
                 setCurrentFormField: function( fieldName ) { this.currentFormField = fieldName; return this; },
+
+                emboldenLabel: function() {
+                    this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'bold' );
+                    return this;
+                },
+                
+                weakenLabel: function() {
+                    this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'normal' );
+                    return this;
+                },
 
                 positionAndShowPopover: function() {
      
@@ -325,8 +337,14 @@
                 },
 
                 handleWindowResize: function() {
-
                     this.windowHeight = this.window.height();
+                    this.maxScroll = this.body.height() - this.windowHeight;
+                    this.imageContainerHeight =
+                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
+                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                        this.imageContainerHeight = this.inputWrapperHeight;
+                    }
+                    this.imageContainer.height( this.imageContainerHeight );
                     this.sizeAndPositionImage();
                 },
 

@@ -9,10 +9,11 @@ red: #cc3b3b;
 
 body {
     background-color: #094163;
-    font-family: futura-pt;
+    font-family: Arial;
 }
 
 .navbar-inverse .navbar-inner {
+    box-shadow: 1px 1px 10px rgba(196,196,196,0.5);
     background-color: #094163 !important;
     background-image: none !important;
     border-color: white;
@@ -55,6 +56,7 @@ body {
     text-align: center;
     margin: 20px 0px 40px 0px;
     color: white;
+    font-size: medium;
 }
 
 .name-input-label {
@@ -62,7 +64,6 @@ body {
     text-align: center;
     color: #c4c4c4;
     font-size: large;
-    font-family: "Open Sans";
 }
 
 .name-input-container {
@@ -72,7 +73,7 @@ body {
 .name-input-container input {
     padding: 10px;
     width: 400px;
-    font-size: xx-large;
+    font-size: x-large;
     text-align: center;
     color: black;
     height: 30px;
@@ -218,10 +219,12 @@ body {
     text-align: center;
     color: white;
     text-transform: uppercase;
+    font-size: medium;
 }
 
 .filter-info-item p {
     color: #c4c4c4;
+    font-size: large;
 }
 
 #available-section h3,
@@ -439,7 +442,6 @@ body {
 }
 
 .draggable {
-    font-weight: bold;
     color: white;
     border-width: 1px;
     border-style: solid;
@@ -488,7 +490,7 @@ body {
 .empty-fallback label {
     display: inline-block;
     color: #c4c4c4;
-    font-size: medium;
+    font-size: large;
 }
 
 .empty-fallback input {
@@ -534,6 +536,16 @@ body {
 .new-filters {
     color: #ffa629;
 }
+
+.new-filters label {
+    font-size: large;
+    letter-spacing: 1px;
+}
+
+.new-filters p {
+    margin-bottom: 20px;
+}
+
 
 .modal-footer > .btn {
     background-color: #272727;
