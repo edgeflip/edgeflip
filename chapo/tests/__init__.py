@@ -9,19 +9,27 @@ BYTES2 = '\x08A\x1av\xbfH\xfaK{\x1e\xd2n' # => WSTUhHUshgrt
 urandom_patch = patch('os.urandom', return_value=BYTES)
 
 
-_settings_patch = patch.multiple('django.conf.settings',
-    CACHES=pymlconf.ConfigDict({
-        'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
-    }),
-    CELERY_ALWAYS_EAGER=True,
+_settings_patches = (
+    patch.multiple(
+        'django.conf.settings',
+        CACHES=pymlconf.ConfigDict({
+            'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+        }),
+    ),
+    patch.multiple(
+        'django.conf.settings', create=True,
+        CELERY_ALWAYS_EAGER=True,
+    ),
 )
 
 
 def setup_package():
-    _settings_patch.start()
+    for patch_ in _settings_patches:
+        patch_.start()
     reload(cache)
 
 
 def teardown_package():
-    _settings_patch.stop()
+    for patch_ in _settings_patches:
+        patch_.stop()
     reload(cache)
