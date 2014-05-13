@@ -22,7 +22,7 @@ body {
 
 .page-header-information {
     text-align: center;
-    margin: 20px 0px 40px 0px;
+    margin: 20px 0px;
     font-size: medium;
 }
 
@@ -449,6 +449,42 @@ body {
 .remove-filter-item:hover {
     cursor: pointer;
     color: red;
+}
+
+#intro-carousel {
+    border: 1px solid gray;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#intro-carousel img:hover {
+    cursor: pointer;
+}
+
+#intro-carousel img {
+    height: 100%;
+    margin: 0 auto;
+}
+
+.carousel-inner {
+    height: 100%;
+}
+
+.carousel-inner > .item {
+    height: 100%;
+}
+
+.carousel-caption {
+    top: 0;
+    bottom: auto !important;
+}
+
+#campaign-name-modal .modal-footer .step-submit {
+    margin-right: 0px;
+}
+
+#campaign-name-modal .modal-footer {
+    text-align: center; 
 }
 
 .modal-header h3 {

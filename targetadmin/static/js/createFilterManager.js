@@ -471,7 +471,7 @@ $.extend( createFilterManager.prototype, {
         $('#existing-filters').prepend(
             '<div data-filter-id="set_number=' + feature + '.' + operator + 
             '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-            feature + ' ' + operator + ' ' + value + '">' + 
+            feature + ' ' + operator + ' ' + filter_values + '">' + 
             feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
             '</abbr></p></div>'
         );

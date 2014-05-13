@@ -16,11 +16,54 @@
             <div class="page-header-information">
                 <div>Our targeted sharing application will spread your message across the web by asking your supporters to share your content with their friends.</div>
                 <div>We found that trusted friends are more likely to convince people to take some action than the same message coming from a large, non-personal organization.</div>
+                <div>Click on an image below to get started</div>
             </div>
-            <div class="name-input-container">{{ campaign_form.name }}</div>
-            <div class="wizard-button-container">
-                <a href="#" id="step1-next" class="btn btn-large btn-primary step-submit campaign-step" data-step="filtering">Get Started</a>
-                <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+            <div class="row">
+                <div class="span1"></div>
+                <div id="intro-carousel" class="span10 carousel slide">
+                    <ol class="carousel-indicators">
+                        <li data-target="#intro-carousel" data-slide-to="0" class="active"></li>
+                        <li data-target="#intro-carousel" data-slide-to="1"></li>
+                        <li data-target="#intro-carousel" data-slide-to="2"></li>
+                    </ol>
+                    <div class="carousel-inner">
+                        <div class="active item">
+                            <img src="{{ STATIC_URL }}img/carousel-filter.jpg">
+                            <div class="carousel-caption">
+                                <h4>Audience Targeting</h4>
+                                <p>
+                                    First, we will ask you to choose a set of filter criteria so we can get your campaign in front of the right audience.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <img src="{{ STATIC_URL }}img/carousel-faces.jpg">
+                            <div class="carousel-caption">
+                                <h4>Utilize your supporter's social network</h4>
+                                <p>
+                                    Then, we will customize your faces page.  Send your supporters to it so they can share your campaign with their friends.
+                                    It can reside on Facebook, or on your site.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="item">
+                            <img src="{{ STATIC_URL }}img/carousel-fb-obj.jpg">
+                            <div class="carousel-caption">
+                                <h4>Facebook Post</h4>
+                                <p>
+                                    Lastly, we will build the Facebook post that your supporters share -- tagging their friends.  Clicking on this post will send users to your campaign content.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <a class="carousel-control left" href="#intro-carousel" data-slide="prev">&lsaquo;</a>
+                    <a class="carousel-control right" href="#intro-carousel" data-slide="next">&rsaquo;</a>
+                </div>
+                <div class="span1"></div>
+                <!-- <div class="wizard-button-container">
+                    <a href="#" id="get-started" class="btn btn-large btn-primary">Get Started</a>
+                    <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
+                </div> -->
             </div>
         </div>
         <div id="filtering" class="wizard-step" style="display: none;">
@@ -32,18 +75,18 @@
         <div id="fbobjects" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
         </div>
+        <div id="campaign-name-modal" class="modal hide fade" tabindex="-1" role="dialog">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+            <h3 id="filter-modal-label">Give your campaign a name</h3>
+        </div>
+        <div class="modal-body">
+            <div class="name-input-container">{{ campaign_form.name }}</div>
+        </div>
+        <div class="modal-footer">
+            <a href="#" id="step1-next" class="btn btn-primary step-submit campaign-step" data-step="filtering">Continue</a>
+        </div>
     </form>
-    <div id="name-modal" class="modal hide fade" tabindex="-1" role="dialog">
-    <div class="modal-header">
-        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-        <h3 id="filter-modal-label">Give your campaign a name</h3>
-    </div>
-    <div class="modal-body">
-        <div class="name-input-container">{{ campaign_form.name }}</div>
-    </div>
-    <div class="modal-footer">
-        <button id="step1-next" class="btn btn-primary">Continue</button>
-    </div>
 </div>
 {% endblock %} {% block extrascript %}
 <script src="{{ STATIC_URL }}js/usStates.js" async></script>
@@ -51,7 +94,16 @@
 <script>
 
 $( function() {    
-    var layer_count = 1;
+    var layer_count = 1,
+        myWindow = $(window),
+        carouselEl = $('#intro-carousel'),
+        setCarouselHeight = function() {
+            carouselEl.height(
+                myWindow.height() - carouselEl.offset().top - 10 );
+        };
+
+    setCarouselHeight();
+    $(window).on( 'resize', setCarouselHeight )
 
     $('i.icon-question-sign').popover( { trigger: 'hover' } );
     
@@ -159,6 +211,7 @@ $( function() {
 
     // Layer addition
     $('#add-layer').click(function(event){
+        console.log('clicked!');
         event.preventDefault();
         var previous_layer_html = $('#enabled-filters-' + layer_count).html()
         var hidden_elements = $('.hidden-elements')
@@ -183,22 +236,41 @@ $( function() {
         }
     });
 
-    $( $('input:visible')[0] ).focus();
+    //$( $('input:visible')[0] ).focus();
 
-    /*
-    $( document ).on( 'keyup', function(e) {
-        var getStartedButton;
+    carouselEl.carousel( { interval: 20000, pause: "" } );
+
+    $('#campaign-name-modal').on( 'hide', function() {
+        carouselEl.carousel('cycle');
+    } );
+
+    carouselEl.on( 'click', 'img', function() {
+        carouselEl.carousel('pause');
+        $('#campaign-name-modal').modal();
+    } );
+
+    $('#step1-next').on( 'click', function() {
+        $('#campaign-name-modal').modal('hide');
+    } );
+    
+    $('#step2-prev').on( 'click', function() {
+        carouselEl.carousel('cycle');
+    } );
+
+    $( document ).on( 'keydown', function(e) {
+        var nameSubmitButton;
         
         if( e.keyCode === 13 ) {
-            getStartedButton = $('#step1-next');
+            nameSubmitButton = $('#step1-next');
 
-            if( getStartedButton.is(':visible') ) {
-                getStartedButton.click();
+            if( nameSubmitButton.is(':visible') ) {
+                //prevent <button>[0] from being clicked
+                e.preventDefault();
+                nameSubmitButton.click();
                 $('body,html').scrollTop( 0 );
             }
         }
     } );
-    */
 } );
 </script>
 {% endblock %}

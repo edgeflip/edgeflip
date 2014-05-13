@@ -1,6 +1,7 @@
 $( function() {
 
     var errorPopovers = [ $('.invalid-input-popover') ],
+        maxScroll,
         config = {
             rightOffset: 5,
             bottomOffset: 5,
@@ -76,15 +77,13 @@ $( function() {
                 event: 'click',
                 inputs: [
                     { el: $('#id_name'),
-                      invalidText: 'A name is required.',
-                      placement: 'right',
-                      popoverEl: undefined
+                      doNotDisplay: true
                     }
-
                 ]
             },
             {
                 triggerEl: $('#step3-next'),
+                resetEl: $('#step3-prev'),
                 event: 'click',
                 inputs: [
                     { el: $('#id_sharing_prompt'),
@@ -107,6 +106,7 @@ $( function() {
             },
             {
                 triggerEl: $('#wizard-submit'),
+                resetEl: $('#step4-prev'),
                 event: 'click',
                 inputs: _.map( [
                     { id: '#id_org_name' },
@@ -118,12 +118,34 @@ $( function() {
             }
         ];
 
+    //we want to scroll to the top most invalid input field
+    //but if we don't need to scroll, we shouldn't
+    maxScroll = $('body').height() - $(window).height();
+    $(window).on('resize', function() {
+        maxScroll = $('body').height() - $(window).height();
+    } );
+
     //instantiate img popover
     errorPopovers[0]
         .popover( config.popoverOpts )
         
     _.each( validators, function( validator ) {
+
+        //hide invalid inputs on "previous" button click
+        if( validator.resetEl ) {
+            validator.resetEl.on( 'click', function(e) {
+                _.each( validator.inputs, function( inputModel ) {
+                    if( inputModel.popoverEl !== undefined ) {
+                         inputModel.popoverEl.popover('hide');
+                         inputModel.popoverEl = undefined;
+                     }
+                } );
+            } );
+        }
+
         validator.triggerEl.on( validator.event, function(e) {
+            //prevent scroll to top of page
+            e.preventDefault();
             var atleastOneInvalid = false;
             _.each( validator.inputs, function( inputModel ) {
                 var isValid = isElValid( inputModel.el );
@@ -134,8 +156,10 @@ $( function() {
                          inputModel.popoverEl = undefined;
                      }
                  } else {
-                     atleastOneInvalid = true;
                      e.stopImmediatePropagation();
+                     if( inputModel.doNotDisplay === true ) { return; }
+
+                     atleastOneInvalid = true;
                      if( inputModel.popoverEl === undefined ) {
                          notifyUser(inputModel);
                      }
@@ -144,18 +168,24 @@ $( function() {
 
             if( atleastOneInvalid ) {
 
-                var indexOfFirstInvalidEl = 0;
+                var indexOfFirstInvalidEl = 0,
+                    scrollTop = undefined;
                 
-                _.find( errorPopovers, function( el ) {
-                    if( el.next().hasClass('popover') ) {
+                _.find( validator.inputs, function( inputModel ) {
+                    if( inputModel.popoverEl !== undefined ) {
+                        //el.next().hasClass('popover') ) {
                         return true;
                     }
                     indexOfFirstInvalidEl++;
                 } );
 
-                $('html,body').animate(
-                    { 'scrollTop': validator.inputs[indexOfFirstInvalidEl].el.offset().top - 100 },
-                    { duration: 600 } );
+                scrollTop = validator.inputs[indexOfFirstInvalidEl].el.offset().top - 100;
+
+                if( scrollTop < maxScroll ) {
+                    $('html,body').animate(
+                        { 'scrollTop': scrollTop },
+                        { duration: 600 } );
+                }
 
             } else if( validator.triggerEl.attr('id') === 'wizard-submit' ) {
                 $('#wizard-form').submit();

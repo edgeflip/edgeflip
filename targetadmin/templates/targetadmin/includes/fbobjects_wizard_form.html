@@ -14,7 +14,7 @@
 
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>
-            <div>{{ fb_obj_form.org_name }}</div>
+            {{ fb_obj_form.org_name }}
         </div>
 
         <div class="suggested-message-container">
@@ -29,12 +29,12 @@
                 <h5><span>Message 1</span></h5>
                 <div class="fb-obj-item">
                     <label for="{{ fb_obj_form.msg1_pre.id_for_label }}">{{ fb_obj_form.msg1_pre.label}}:</label>
-                    <div>{{ fb_obj_form.msg1_pre }}</div>
+                    {{ fb_obj_form.msg1_pre }}
                 </div>
 
                 <div class="fb-obj-item">
                     <label for="{{ fb_obj_form.msg1_post.id_for_label }}">{{ fb_obj_form.msg1_post.label}}:</label>
-                    <div>{{ fb_obj_form.msg1_post }}</div>
+                    {{ fb_obj_form.msg1_post }}
                 </div>
             </div>
 
@@ -42,34 +42,34 @@
                 <h5><span>Message 2</span></h5>
                 <div class="fb-obj-item">
                     <label for="{{ fb_obj_form.msg2_pre.id_for_label }}">{{ fb_obj_form.msg2_pre.label}}:</label>
-                    <div>{{ fb_obj_form.msg2_pre }}</div>
+                    {{ fb_obj_form.msg2_pre }}
                 </div>
 
                 <div class="fb-obj-item">
                     <label for="{{ fb_obj_form.msg2_post.id_for_label }}">{{ fb_obj_form.msg2_post.label}}:</label>
-                    <div>{{ fb_obj_form.msg2_post }}</div>
+                    {{ fb_obj_form.msg2_post }}
                 </div>
             </div>
         </div>
 
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.og_title.id_for_label }}">{{ fb_obj_form.og_title.label}}:</label>
-            <div>{{ fb_obj_form.og_title }}</div>
+            {{ fb_obj_form.og_title }}
         </div>
 
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.og_image.id_for_label }}">{{ fb_obj_form.og_image.label}}:</label>
-            <div>{{ fb_obj_form.og_image }}</div>
+            {{ fb_obj_form.og_image }}
         </div>
         
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.og_description.id_for_label }}">{{ fb_obj_form.og_description.label }}:</label>
-            <div>{{ fb_obj_form.og_description}}</div>
+            {{ fb_obj_form.og_description}}
         </div>
 
         <div class="fb-obj-item">
             <label for="{{ campaign_form.content_url.id_for_label }}">{{ campaign_form.content_url.label }}:</label>
-            <div>{{ campaign_form.content_url }}</div>
+            {{ campaign_form.content_url }}
         </div>
     </div>
 
@@ -80,7 +80,7 @@
 </div>
 <div class="row wizard-button-container">
     <a href="#" type="submit" class="btn btn-large btn-primary step-submit fbobject-step" value="Submit" id="wizard-submit">Create Campaign!</a>
-    <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="faces">Previous</a>
+    <a href="#" id="step4-prev" class="btn btn-large btn-danger step-submit" data-step="faces">Previous</a>
 </div>
 
 
@@ -161,7 +161,7 @@
                         el: $('input[name="msg2_pre"]'),
                         coords: { x: 56, y: 206 },
                         placement: 'bottom',
-                        text: "Alternate text to suggest before friend names so that your user's feeds don't all look the same.",
+                        text: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same.",
                         title: ''
                     },
                     
@@ -256,18 +256,30 @@
                 $.each( this.formFields, function( fieldName, formMetaData ) {
 
                     formMetaData.el.on( 'focus', function() {
-                                     self.setCurrentFormField( fieldName )
-                                         .scrollToField() } )
+                                         self.setCurrentFormField( fieldName )
+                                             .emboldenLabel()
+                                             .scrollToField() } )
 
-                            .on( 'blur', function() {
-                                    self.setCurrentFormField( null )
-                                        .hidePopover() } );
+                                    .on( 'blur', function() {
+                                        self.weakenLabel()
+                                            .hidePopover()
+                                            .setCurrentFormField( null ) } );
                 } );
 
                 //handle window resize so our popovers and images look alright
                 this.window.resize( function() { self.handleWindowResize(); } );
                 this.window.scroll( _.debounce( function() { self.handleWindowScroll() }, 150 ) );
 
+            },
+
+            emboldenLabel: function() {
+                this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'bold' );
+                return this;
+            },
+
+            weakenLabel: function() {
+                this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'normal' );
+                return this;
             },
 
             setCurrentFormField: function( fieldName ) { this.currentFormField = fieldName; return this; },
@@ -291,7 +303,17 @@
                 return this;    
             },
 
-            hidePopover: function() { this.imagePopoverEl.popover('hide'); return this; },
+            hidePopover: function() {
+                var focusedFormMetaData = this.formFields[ this.currentFormField ];
+
+                if( focusedFormMetaData.coords ) {
+                    this.imagePopoverEl.popover('hide');
+                } else {
+                    this.inputPopoverEl.popover('hide');
+                }
+
+                return this;
+            },
 
             getPopoverText: function() { return this.formFields[ this.currentFormField ].text; },
             
@@ -320,6 +342,7 @@
                         self.imageContainerOffset = self.imageContainer.offset(); } } );
 
                 if( ( this.scrollTop >= this.maxScroll && scrollTop >= this.maxScroll ) ||
+                    ( this.scrollTop === scrollTop ) || 
                     ( this.scrollTop === 0 && scrollTop <= 0 ) ) {
                     self.positionAndShowPopover();
                 } else {
@@ -398,8 +421,14 @@
             },
 
             handleWindowResize: function() {
-
                 this.windowHeight = this.window.height();
+                this.maxScroll = this.body.height() - this.windowHeight;
+                this.imageContainerHeight =
+                    this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
+                if( this.imageContainerHeight > this.inputWrapperHeight ) {
+                    this.imageContainerHeight = this.inputWrapperHeight;
+                }
+                this.imageContainer.height( this.imageContainerHeight );
                 this.sizeAndPositionImage();
             },
 
