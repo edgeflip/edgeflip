@@ -6,7 +6,6 @@
 
 {% block title %}Campaign Setup Wizard{% endblock %}
 
-
 {% block content %}
     <h2 class="page-header">Create a Targeted Sharing Campaign</h2>
     <div class="invalid-input-popover"></div>
@@ -225,35 +224,9 @@ $( function() {
             '"><div style="margin-left: 0px; min-height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
             layer_count + '">' + previous_layer_html  + '</div></div></section>'
         );
->>>>>>> campWizAddSensicalFlow
 
-{% block content %}
-    <section class="campaign-wizard">
-        <h2 class="page-header">Create a New Targeted Sharing Campaign</h2>
-        <form id="wizard-form" action="" method="post">
-            {% csrf_token %}
-            <span id="campaign-settings" class="wizard-step">
-                {% include 'targetadmin/includes/campaign_wizard_form.html' %}
-            </span>
-            <span id="filtering" class="wizard-step" style="display: none;">
-                {% include 'targetadmin/includes/filter_wizard_form.html' %}
-            </span>
-            <span id="fbobjects" class="wizard-step" style="display: none;">
-                {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
-                <input type="submit" class="btn btn-large btn-primary step-submit fbobject-step" value="Submit" id="wizard-submit">
-                <a href="#" id="step3-prev" class="btn btn-large btn-danger step-submit" data-step="filtering">Previous</a>
-            </span>
-        </form>
-    </section>
-{% endblock %}
+    //require( [ 'campaignWizard' ] );
 
-<<<<<<< HEAD
-{% block extrascript %}
-<script>
-
-    require( [ 'campaignWizard' ] );
-
-=======
     //$( $('input:visible')[0] ).focus();
 
     carouselEl.carousel( { interval: 20000, pause: "" } );
@@ -290,6 +263,5 @@ $( function() {
         }
     } );
 } );
->>>>>>> campWizAddSensicalFlow
 </script>
 {% endblock %}
