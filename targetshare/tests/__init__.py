@@ -121,7 +121,8 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
 
     def patch_ranking(self, celery_mock,
                       px3_ready=True, px3_successful=True,
-                      px4_ready=True, px4_successful=True):
+                      px4_ready=True, px4_successful=True,
+                      px4_filtering=False):
         if px3_ready:
             px3_failed = not px3_successful
         else:
@@ -159,9 +160,23 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px4_result_mock.successful.return_value = px4_successful
         px4_result_mock.failed.return_value = px4_failed
         if px4_ready:
-            px4_result_mock.result = (
-                empty_filtering_result._replace(ranked=[self.test_edge])
-                if px4_successful else error)
+            if px4_filtering:
+                px4_result_mock.result = FilteringResult(
+                    [self.test_edge],
+                    models.datastructs.TieredEdges(
+                        edges=[self.test_edge],
+                        campaign_id=1,
+                        content_id=1,
+                    ),
+                    self.test_filter.filter_id,
+                    self.test_filter.url_slug,
+                    1,
+                    1
+                ) if px4_successful else error
+            else:
+                px4_result_mock.result = (
+                    empty_filtering_result._replace(ranked=[self.test_edge])
+                    if px4_successful else error)
         else:
             px4_result_mock.result = None
 

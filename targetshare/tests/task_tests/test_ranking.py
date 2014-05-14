@@ -140,8 +140,8 @@ class TestFiltering(RankingTestCase):
             city='Toledo',
             state='Ohio'
         )
-        test_edge1 = models.datastructs.UserNetwork.Edge(test_user1, test_user1, None, score=0.5)
-        test_edge2 = models.datastructs.UserNetwork.Edge(test_user1, test_user2, None, score=0.4)
+        test_edge1 = models.datastructs.UserNetwork.Edge(test_user1, test_user1, None, px3_score=0.5)
+        test_edge2 = models.datastructs.UserNetwork.Edge(test_user1, test_user2, None, px3_score=0.4)
         visitor = models.relational.Visitor.objects.create(fbid=1)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
@@ -218,6 +218,8 @@ class TestProximityRankFour(RankingTestCase):
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
+    @patch('targetshare.tasks.ranking.DB_FRIEND_THRESHOLD', new=90)
+    @patch('targetshare.tasks.ranking.DB_MIN_FRIEND_COUNT', new=100)
     @patch_facebook(min_friends=1, max_friends=99)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
