@@ -30,7 +30,7 @@
             </div>
         </div>
         <div id="enabled-section" class="row">
-            <h3>Enabled Filters <button id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</button></h3>
+            <h3>Enabled Filters <a href="#" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</a></h3>
             <h6>Top Layer</h6>
             <div class="clearfix">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
@@ -38,7 +38,7 @@
             </div>
         </div>
         <div id="available-section" class="row">
-            <h3>Available Filters <button data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" role="button" class="btn btn-mini" data-toggle="modal">Add Filter</button></h3>
+            <h3>Available Filters <a data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</a></h3>
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">

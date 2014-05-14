@@ -178,10 +178,11 @@ body {
     text-transform: uppercase;
 }
 
-#available-section button,
-#enabled-section button {
+#available-section a,
+#enabled-section a {
     vertical-align: bottom;
     margin: 10px;
+    text-transform: none;
 }
 
 #fb-obj-input-wrapper label {
