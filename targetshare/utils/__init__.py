@@ -226,10 +226,7 @@ partition_edges = functools.partial(partition,
 
 
 def incoming_redirect(is_secure, host, campaign_id, content_id):
-    return urllib.quote_plus('{}{}{}'.format(
-        'https://' if is_secure else 'http://',
-        host,
-        reverse('incoming-encoded', args=[
-            encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
-        ])
-    ))
+    protocol = 'https://' if is_secure else 'http://'
+    slug = encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
+    path = reverse('incoming-encoded', args=(slug,))
+    return protocol + host + path

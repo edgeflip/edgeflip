@@ -71,13 +71,36 @@ class FilterForm(forms.ModelForm):
         exclude = ('is_deleted', 'delete_dt', 'client')
 
 
-class FilterFeatureForm(forms.ModelForm):
+class WizardFilterFeatureForm(forms.ModelForm):
 
     CHOICES = (
         ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('location', 'Location'),
-        ('gender', 'Gender')
+        ('gender', 'Gender'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+
+
+class FilterFeatureForm(forms.ModelForm):
+    ''' This class should really be deprecated along with the direct editing
+    of filters view that it belongs to. Then again, maybe that serves a
+    real purpose that justifies keeping it, food for thought
+    '''
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('location', 'Location'),
+        ('gender', 'Gender'),
+        # For the direct Filter editing forms
+        ('city', 'City'),
+        ('state', 'State'),
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
@@ -347,7 +370,7 @@ class SnippetForm(forms.Form):
         queryset=relational.ClientContent.objects.none()
     )
 
-    def __init__(self, client=None, *args, **kwargs):
+    def __init__(self, client, *args, **kwargs):
         super(SnippetForm, self).__init__(*args, **kwargs)
         self.fields['campaign'].queryset = client.campaigns.exclude(
             rootcampaign_properties=None

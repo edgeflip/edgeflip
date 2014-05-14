@@ -133,7 +133,7 @@ def set_visit(request, app_id, fbid=None, start_event=None):
         # Add start event:
         db.delayed_save.delay(
             models.relational.Event(
-                visit=request.visit,
+                visit_id=request.visit.visit_id,
                 event_type='session_start',
                 **(start_event or {})
             )
