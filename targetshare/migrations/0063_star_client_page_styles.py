@@ -11,7 +11,11 @@ class Migration(DataMigration):
 
     def forwards(self, orm):
         for (code, style_names) in CLIENT_STYLE_MAPPINGS:
-            client = orm.Client.objects.get(codename=code)
+            try:
+                client = orm.Client.objects.get(codename=code)
+            except orm.Client.DoesNotExist:
+                print "Can't find client with codename: %s" % code
+                continue
             for name in style_names:
                 page_style = client.pagestyles.get(
                     name=name, starred=False, page__code='frame_faces')
@@ -20,7 +24,11 @@ class Migration(DataMigration):
 
     def backwards(self, orm):
         for (code, style_names) in CLIENT_STYLE_MAPPINGS:
-            client = orm.Client.objects.get(codename=code)
+            try:
+                client = orm.Client.objects.get(codename=code)
+            except orm.Client.DoesNotExist:
+                print "Can't find client with codename: %s" % code
+                continue
             for name in style_names:
                 page_style = client.pagestyles.get(
                     name=name, starred=True, page__code='frame_faces')
