@@ -430,3 +430,37 @@
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:44', fbid: 1357997116}
     model: targetshare.userclient
     pk: 1
+
+- model: targetshare.page
+  pk: 1
+  fields:
+     name: Button
+     code: button
+     created: '2013-10-01 17:04:53'
+     updated: '2013-10-01 17:04:53'
+- model: targetshare.page
+  pk: 2
+  fields:
+     name: Faces frame
+     code: frame_faces
+     created: '2013-10-01 17:04:53'
+     updated: '2013-10-01 17:04:53'
+
+- model: targetshare.pagestyle
+  pk: 1
+  fields:
+    name: Edgeflip defaults
+    page: 1
+    url: //assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css
+    starred: True
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
+- model: targetshare.pagestyle
+  pk: 2
+  fields:
+    name: Edgeflip defaults
+    page: 2
+    url: //assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css
+    starred: True
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
