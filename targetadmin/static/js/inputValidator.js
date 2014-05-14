@@ -1,3 +1,4 @@
+/*
 $( function() {
 
     var errorPopovers = [ $('.invalid-input-popover') ],
@@ -193,3 +194,4 @@ $( function() {
         } );
     } );
 } );
+*/

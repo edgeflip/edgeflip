@@ -13,7 +13,7 @@ require.config( {
     shim: {
 
         'vendor/backbone': {
-            deps: [ 'vendor/underscore', 'vendor/jquery' ],
+            deps: [ 'vendor/underscore', 'jquery' ],
             exports: 'Backbone'
         },
 
@@ -26,7 +26,7 @@ require.config( {
         },
         
         'vendor/bootstrap': {
-            deps: [ 'vendor/jquery' ]
+            deps: [ 'jquery' ]
         },
     },
 
