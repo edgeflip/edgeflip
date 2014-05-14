@@ -370,7 +370,7 @@ class SnippetForm(forms.Form):
         queryset=relational.ClientContent.objects.none()
     )
 
-    def __init__(self, client=None, *args, **kwargs):
+    def __init__(self, client, *args, **kwargs):
         super(SnippetForm, self).__init__(*args, **kwargs)
         self.fields['campaign'].queryset = client.campaigns.exclude(
             rootcampaign_properties=None

@@ -1,95 +1,86 @@
 {% extends "targetadmin/base.html" %}
 {% block extrahead %}
-    <script>
-        function doUpdate() {
-            var cmpg = $('#id_campaign').val();
-            var cnt = $('#id_content').val();
-            var url = "{% url 'targetadmin:snippet-update' client.pk %}";
+    <script type='text/javascript'>
+        {% include "core/includes/edgeflip.js" %}
+    </script>
+    <script src="{{ STATIC_URL }}js/router.js" async></script>
 
-            $.ajax({
-                type: "GET",
-                url: url,
-                dataType: 'json',
-                data: {
-                    campaign: cmpg,
-                    content: cnt
-                },
-                error: function(jqXHR, textStatus, errorThrown) {
-                    alert('Ruh-Roh! ' + errorThrown)
-                },
-                success: function(data, textStatus, jqXHR) {
-                    $('.cmpgslug').html(data.slug);
-                    $('#faces_url').html(data.faces_url);
-                    $('.campaign-pk').html(cmpg);
-                    $('.content-pk').html(cnt);
-                }
-            });
+    <script type='text/javascript'>
+        function doUpdate() {
+            var cmpg = $('#id_campaign').val(),
+                cnt = $('#id_content').val();
+
+            $.getJSON("{% url 'targetadmin:snippet-update' client.pk %}", {campaign: cmpg, content: cnt}, function(data) {
+                $('.campaign-pk').html(cmpg);
+                $('.content-pk').html(cnt);
+                $('.cmpgslug').html(data.slug);
+                $('.oauth-url').html(data.oauth_url);
+                $('.shortened-url').html(data.shortened_url);
+
+                $('.url').each(function () {
+                    var $this = $(this),
+                        name = $this.attr('data-url'),
+                        url = edgeflip.router.reverse(name, data.slug);
+                    $this.html(url);
+                });
+            }).fail(function(jqXHR, textStatus, errorThrown) {alert('Ruh-Roh! ' + errorThrown);});
         }
     </script>
 {% endblock %}
-{% block title %}Generate Snippets{% endblock %}
+{% block title %}Snippets &amp; URLs for {{ client.name }}{% endblock %}
 {% block content %}
-    <h2>Generate Snippets for {{ name }}</h2>
+    <h1>Snippets &amp; URLs for {{ client.name }}</h1>
 
-    <div id="snippet-form">
-        <form action="" method="get">
-            <div class="row">
-                <div class="span5">
-                    <p>{{ snippet_form.campaign.errors }}<label for="{{ snippet_form.campaign.id_for_label }}">{{ snippet_form.campaign.label }}:</label>{{ snippet_form.campaign }}</p>
-                </div>
-                <div class="span5">
-                    <p>{{ snippet_form.content.errors }}<label for="{{ snippet_form.content.id_for_label }}">{{ snippet_form.content.label }}:</label>{{ snippet_form.content }}</p>
-                </div>
+    <form method="get">
+        <div class="row">
+            <div class="span5">
+                <p>{{ snippet_form.campaign.errors }}<label for="{{ snippet_form.campaign.id_for_label }}">{{ snippet_form.campaign.label }}:</label>{{ snippet_form.campaign }}</p>
             </div>
-        </form>
-    </div>
-    <div id="button-snippet">
-        <h4>Button Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
-        <div id="button-snippet-code">
-            <pre><code>{% spaceless %}
+            <div class="span5">
+                <p>{{ snippet_form.content.errors }}<label for="{{ snippet_form.content.id_for_label }}">{{ snippet_form.content.label }}:</label>{{ snippet_form.content }}</p>
+            </div>
+        </div>
+    </form>
+
+    <h2>URLs</h2>
+    <section>
+        <h4>Initial URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
+        <p>This should be the URL shared with clients, which users click first, to be directed through OAuth.</p>
+        <pre><code>https://{{ client.subdomain }}.{{ client.domain }}<span class="shortened-url">{{ shortened_url }}</span></code></pre>
+    </section>
+    <section>
+        <h4>OAuth URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
+        <pre><code class="oauth-url">{{ oauth_url }}</code></pre>
+    </section>
+    <section>
+        <h4>Canvas URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
+        <pre><code>https://apps.facebook.com/{{ client.fb_app_name }}/<span class="cmpgslug">{{ slug }}</span>/</pre></code>
+    </section>
+
+    <h2>Snippets</h2>
+    <section>
+        <h4>Button Snippet (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
+        <pre><code>{% spaceless %}
 &lt;!-- SHARE BUTTON --&gt;
     &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
-        &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}/button/<span class="cmpgslug">{{ first_slug }}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
+        &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}<span class="url" data-url="button-encoded">{% url 'button-encoded' slug %}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
     &lt;/div&gt;
 &lt;!-- SHARE BUTTON --&gt;
-            {% endspaceless %}</code></pre>
-        </div>
-    </div>
-    <div id="faces-snippet">
-        <h4>Faces Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
-        <div id="faces-snippet-code">
-            <pre><code>{% spaceless %}
+        {% endspaceless %}</code></pre>
+    </section>
+    <section>
+        <h4>Faces Snippet (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
+        <pre><code>{% spaceless %}
 &lt;!-- SHARE FACES --&gt;
     &lt;div id="ef_frame_div" style="width: 100%; height: 930px; border: none;"&gt;
-        &lt;script src="https://{{client.subdomain}}.{{client.domain}}/static/js/create_frame.js"&gt;&lt;/script&gt;
+        &lt;script src="https://{{client.subdomain}}.{{client.domain}}{{ STATIC_URL }}js/create_frame.js"&gt;&lt;/script&gt;
 &lt;/div&gt;
 &lt;!-- SHARE FACES --&gt;
-            {% endspaceless %}</code></pre>
-        </div>
-    </div>
-    <div id="canvas-snippet">
-        <h4>Faces Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
-        <div id="canvas-snippet-code">
-            <pre><code>https://apps.facebook.com/{{ client.fb_app_name }}/<span class="cmpgslug">{{ first_slug }}</span>/</pre></code>
-        </div>
-    </div>
-    <div id="oauth-snippet">
-        <h4>OAuth Snippet (<span class="campaign-pk">{{ first_campaign.pk }}</span>/<span class="content-pk">{{ first_content.pk }}</span>)</h4>
-        <div id="oauth-snippet-code">
-        <pre><code>
-            https://www.facebook.com/dialog/oauth?client_id={{ client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=<span id="faces_url">{{ first_faces_url }}</span>
-        </code></pre>
-        </div>
-    </div>
+        {% endspaceless %}</code></pre>
+    </section>
 {% endblock %}
 {% block extrascript %}
 <script>
-    $('#id_campaign').change(function() {
-        doUpdate();
-    });
-    $('#id_content').change(function() {
-        doUpdate();
-    });
+    $('#id_campaign, #id_content').change(doUpdate);
 </script>
 {% endblock %}
-

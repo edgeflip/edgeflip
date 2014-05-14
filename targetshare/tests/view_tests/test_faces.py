@@ -223,11 +223,9 @@ class TestFacesViews(EdgeFlipViewTestCase):
         self.assertFalse(models.Assignment.objects.exists())
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
 
-        self.assertEqual(
-            page_style.url,
-            '//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css'
-        )
-        link_html = '<link rel="stylesheet" type="text/css" href="//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css" />'
+        url = '//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css'
+        self.assertEqual(page_style.url, url)
+        link_html = '<link rel="stylesheet" type="text/css" href="{}" />'.format(url)
         self.assertContains(response, link_html, count=1, html=True)
 
         assignment = models.Assignment.objects.get(feature_type='page_style_set_id')
