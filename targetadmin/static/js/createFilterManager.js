@@ -254,6 +254,16 @@ $.extend( createFilterManager.prototype, {
 
         this.locationFilterView.fadeIn();
 
+        if( ( this.stateContainer.is(':visible') ) &&
+            ( ! _.contains( usStates, val ) ) ) {
+
+            e.stopPropagation();
+
+            this.addLocationFilterButton.attr( 'data-content', 'Invalid State' ).popover('show');
+            this.delegateRemovePopover( this.addLocationFilterButton );
+            return;
+        }
+
         if( this.locationFilters.children().length ) {
 
             if( this.locationFilters.find( 'div[data-val="' + val + '"]' ).length ) {
@@ -453,10 +463,7 @@ $.extend( createFilterManager.prototype, {
     },
 
     //this function was lifted from legacy code
-    //  it creates our filter on the client side only
-    //  something needs to be doen about that ^
     createFilter: function( opts ) {
-
         var feature = ( opts && opts.feature ) ? opts.feature : this.featureDropdown.val(),
             operator = this.operatorDropdown.val(),
             filter_values = this.valueInput.val();

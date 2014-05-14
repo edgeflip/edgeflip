@@ -82,7 +82,6 @@ def campaign_create(request, client_pk):
         if form.is_valid():
             campaign = form.save()
             return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
-
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
@@ -288,14 +287,17 @@ def campaign_wizard(request, client_pk):
                 'targetadmin:campaign-wizard-finish',
                 client.pk, last_camp.pk, content.pk
             )
+
+    filter_features = relational.FilterFeature.objects.filter(
+            filter__client=client, feature__isnull=False,
+            operator__isnull=False, value__isnull=False)\
+                .values('feature', 'operator', 'value').distinct()
+
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': relational.FilterFeature.objects.filter(
-            filter__client=client, feature__isnull=False,
-            operator__isnull=False, value__isnull=False)
-        .values('feature', 'operator', 'value').distinct()
+        'filter_features': filter_features
     })
 
 
