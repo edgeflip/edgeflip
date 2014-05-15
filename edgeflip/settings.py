@@ -206,6 +206,8 @@ MIDDLEWARE_CLASSES = (
     'targetshare.middleware.P3PMiddleware',
 )
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 ROOT_URLCONF = 'edgeflip.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
