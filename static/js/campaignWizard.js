@@ -1,9 +1,114 @@
 define(
 
-    [ 'jquery', 'vendor/underscore', 'vendor/backbone', 'css!styles/campaignWizard' ],
+    [ 'jquery',
+      'vendor/underscore',
+      'ourBackbone',
+      'util',
+      'vendor/jquery-ui',
+      'css!styles/campaignWizard'
+    ],
 
-    function( $, _, Backbone ) {
+    function( $, _, Backbone, util ) {
 
+        var router = new ( Backbone.Router.extend( {
+
+            initialize: function() {
+                $( function() {
+                    Backbone.history.start( { root: "/admin/client/1/campaign/wizard/" } )
+                } );
+            },
+
+            routes: {
+                "":         "intro",
+                "intro":    "intro",
+                "audience": "audience",
+                "faces":    "faces",
+                "post":     "post"
+            },
+
+            intro: function() {
+                intro.$el.fadeIn().removeClass('hide');
+            },
+            
+            audience: function() {
+                audience.$el.fadeIn().removeClass('hide');
+            },
+            
+            faces: function() {
+                faces.$el.fadeIn().removeClass('hide');
+            },
+            
+            post: function() {
+                post.$el.fadeIn().removeClass('hide');
+            }
+
+        } ) )();
+
+        var wizardView = Backbone.View.extend( {
+
+            initialize: function() {
+                this.slurpHtml( { slurpInputs: true } );
+            }
+        } );
+
+        var intro = new ( wizardView.extend( { 
+
+            config: {
+                carousel: {
+                    interval: 20000,
+                    bottomPadding: 20,
+                }
+            },
+
+            initialize: function() {
+                var self = this;
+
+                wizardView.prototype.initialize.call(this); 
+
+                this.setCarouselHeight();
+                util.window.on( 'resize', function() { self.setCarouselHeight() } );
+                //util.window.on( 'resize', _.debounce( function() { self.setCarouselHeight() }, 300 ) );
+
+                this.templateData.carouselEl.carousel( {
+                    interval: this.config.carousel.interval, pause: "" } );
+
+                this.listenTo(
+                    this.templateData.nameModal,
+                    'hide.bs.modal',
+                    this.modalHidden );
+            },
+
+            events: {
+                'click img[data-js="carouselImage"]': 'carouselImageClick',
+                'click img[data-js="nameSubmitBtn"]': 'nameSubmitted',
+            },
+
+            setCarouselHeight: function() {
+
+                this.templateData.carouselEl.height(
+                    util.windowHeight -
+                    this.templateData.carouselEl.offset().top -
+                    this.config.carousel.bottomPadding );
+            },
+
+            carouselImageClick: function() {
+                this.templateData.carouselEl.carousel('pause');
+                this.templateData.nameModal.modal();
+            },
+
+            modalHidden: function() { this.templateData.carouselEl.carousel('cycle'); },
+
+            nameSubmitted: function() {
+                if( $.trim( this.templateData.name.val() ) !== '' ) {
+                    this.templateData.nameModal.modal('hide');
+                    this.$el.hide();
+                    router.navigate( 'audience', { trigger: true } );
+                }
+            }
+
+        } ) )( { el: '#intro' } );
+
+        /*
         var layer_count = 1,
             can_close_modal = true;
 
@@ -191,6 +296,7 @@ define(
         });
         
         $( $('input:visible')[0] ).focus();
+        */
 
     }
 );

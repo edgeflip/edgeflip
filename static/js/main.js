@@ -28,6 +28,10 @@ require.config( {
         'vendor/bootstrap': {
             deps: [ 'jquery' ]
         },
+        
+        'vendor/jquery-ui': {
+            deps: [ 'jquery' ]
+        }
     },
 
     map: {
