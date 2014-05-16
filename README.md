@@ -131,4 +131,3 @@ Running Tests With Nose
 New tests and the start of a test framework have been added to edgeflip/tests. 
 These tests can be run with `fab test`; (see `fab -d test`). These tests also include
 building an HTML summary of test coverage which can be found at `cover/index.html`
-
