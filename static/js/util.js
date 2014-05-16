@@ -1,19 +1,19 @@
 define( [ 'jquery' ], function( $ ) {
-    var ourWindow = $(window),
-        windowHeight = undefined,
-        windowWidth = undefined;
+    var util = new ( function() {
+        $.extend( this, {
+            document: $(document),
+            window: $(window),
+            windowHeight: undefined,
+            windowWidth: undefined } );
+    } )(),
         computeWindowSize = function() { 
-            windowHeight = ourWindow.outerHeight( true );
-            windowWidth = ourWindow.outerWidth( true );
+            util.windowHeight = util.window.outerHeight( true );
+            util.windowWidth = util.window.outerWidth( true );
         };
 
     computeWindowSize();
     $( computeWindowSize );
-    ourWindow.on( 'resize', computeWindowSize );
+    util.window.on( 'resize', computeWindowSize );
 
-    return {
-        window: ourWindow,
-        windowHeight: windowHeight,
-        windowWidth: windowWidth
-    }
+    return util;
 } );

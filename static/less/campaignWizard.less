@@ -1,19 +1,58 @@
 @import (reference) "theme.less";
 
-.campaign-name-input-container {
-    text-align: center;
-
-    input {
-        padding: 10px;
-        width: 400px;
-        font-size: x-large;
+#intro {
+    .campaign-name-input-container {
         text-align: center;
-        color: black;
-        height: 50px;
-        line-height: 30px;
+
+        input {
+            padding: 10px;
+            width: 400px;
+            font-size: x-large;
+            text-align: center;
+            color: black;
+            height: 50px;
+            line-height: 30px;
+        }
+    }
+
+    .campaign-name-title {
+        text-align: center;
+    }
+
+    .carousel {
+        padding-left: 0px;
+        padding-right: 0px;
+    }
+
+    .carousel-caption {
+        left: 0px;
+        right: 0px;
+        width: 100%;
+        background-color: rgba( 0, 0, 0, 0.75 );
+    }
+
+    .modal-footer {
+        text-align: center;
     }
 }
 
-.campaign-name-title {
-    text-align: center;
+#filters {
+
+    #enabled-section h6,
+    #available-section h3,
+    #enabled-section h3 {
+        text-transform: uppercase;
+    }
+
+    #available-section button,
+    #enabled-section button {
+        text-transform: none;
+        vertical-align: bottom;
+        margin-left: 10px;
+    }
+
+    .well {
+        margin-left: 0px;
+        min-height: 94px;
+    }
 }

@@ -487,15 +487,6 @@ body {
     text-align: center;
 }
 
-.new-filters label {
-    font-size: large;
-    letter-spacing: 1px;
-}
-
-.new-filters p {
-    margin-bottom: 20px;
-}
-
 #state-container,
 #city-container {
     margin-top: 20px;

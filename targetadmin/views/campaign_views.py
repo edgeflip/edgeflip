@@ -2,6 +2,7 @@ import csv
 import itertools
 
 from django.conf import settings
+from django.core import serializers
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -289,15 +290,15 @@ def campaign_wizard(request, client_pk):
             )
 
     filter_features = relational.FilterFeature.objects.filter(
-            filter__client=client, feature__isnull=False,
-            operator__isnull=False, value__isnull=False)\
-                .values('feature', 'operator', 'value').distinct()
+        filter__client=client, feature__isnull=False,
+        operator__isnull=False, value__isnull=False)
+            #.values('feature', 'operator', 'value').distinct()
 
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': filter_features
+        'filter_features': serializers.serialize( 'json', filter_features, fields=( 'feature', 'operator', 'value' ) )
     })
 
 

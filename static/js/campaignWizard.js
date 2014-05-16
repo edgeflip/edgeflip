@@ -4,11 +4,13 @@ define(
       'vendor/underscore',
       'ourBackbone',
       'util',
+      'templates/filterLayer',
       'vendor/jquery-ui',
-      'css!styles/campaignWizard'
+      'css!styles/vendor/jquery-ui',
+      'css!styles/campaignWizard',
     ],
 
-    function( $, _, Backbone, util ) {
+    function( $, _, Backbone, util, filterLayerHtml ) {
 
         var router = new ( Backbone.Router.extend( {
 
@@ -21,17 +23,19 @@ define(
             routes: {
                 "":         "intro",
                 "intro":    "intro",
-                "audience": "audience",
+                "audience": "filters",
                 "faces":    "faces",
                 "post":     "post"
             },
 
             intro: function() {
-                intro.$el.fadeIn().removeClass('hide');
+                intro.$el
+                    .fadeIn( 400, function() { intro.setCarouselHeight.call( intro ) } )
+                    .removeClass('hide');
             },
             
-            audience: function() {
-                audience.$el.fadeIn().removeClass('hide');
+            filters: function() {
+                filters.$el.fadeIn().removeClass('hide');
             },
             
             faces: function() {
@@ -65,48 +69,139 @@ define(
 
                 wizardView.prototype.initialize.call(this); 
 
-                this.setCarouselHeight();
-                util.window.on( 'resize', function() { self.setCarouselHeight() } );
-                //util.window.on( 'resize', _.debounce( function() { self.setCarouselHeight() }, 300 ) );
+                util.window.on( 'resize', _.debounce( function() { self.setCarouselHeight() }, 200 ) );
 
                 this.templateData.carouselEl.carousel( {
-                    interval: this.config.carousel.interval, pause: "" } );
-
-                this.listenTo(
-                    this.templateData.nameModal,
-                    'hide.bs.modal',
-                    this.modalHidden );
+                    interval: this.config.carousel.interval,
+                    pause: "" } );
+               
+                this.templateData.nameModal.on( 'hide.bs.modal',
+                    function() { self.modalHidden(); } );
             },
 
             events: {
                 'click img[data-js="carouselImage"]': 'carouselImageClick',
-                'click img[data-js="nameSubmitBtn"]': 'nameSubmitted',
+                'click button[data-js="nameSubmitBtn"]': 'nameSubmitted',
             },
 
-            setCarouselHeight: function() {
+            setCarouselHeight: function( opts ) {
 
-                this.templateData.carouselEl.height(
-                    util.windowHeight -
-                    this.templateData.carouselEl.offset().top -
-                    this.config.carousel.bottomPadding );
+                this.templateData.carouselEl.animate( {
+                    'height': util.windowHeight -
+                        this.templateData.carouselEl.offset().top -
+                        this.config.carousel.bottomPadding } );
             },
 
             carouselImageClick: function() {
                 this.templateData.carouselEl.carousel('pause');
                 this.templateData.nameModal.modal();
+                this.bindKeyDown();
             },
 
-            modalHidden: function() { this.templateData.carouselEl.carousel('cycle'); },
+            modalHidden: function() {
+                this.templateData.carouselEl.carousel('cycle');
+                this.unbindKeyDown();
+            },
 
             nameSubmitted: function() {
                 if( $.trim( this.templateData.name.val() ) !== '' ) {
+                    this.unbindKeyDown();
                     this.templateData.nameModal.modal('hide');
                     this.$el.hide();
                     router.navigate( 'audience', { trigger: true } );
                 }
+            },
+
+            bindKeyDown: function() {
+                var self = this;
+
+                this.handleKeyDown = function(e) {
+                    if( e.keyCode === 13 ) {
+                        //this was triggering 'Add Layer' click
+                        //on filter page in FF
+                        e.preventDefault();
+                        self.nameSubmitted();
+                    }
+                };
+
+                util.document.on( 'keydown', this.handleKeyDown );
+            },
+
+            unbindKeyDown: function() {
+                util.document.off( 'keydown', this.handleKeyDown );
             }
 
+
         } ) )( { el: '#intro' } );
+
+        var filters = new ( wizardView.extend( { 
+
+            events: {
+                'click button[data-js="addLayerBtn"]': 'addLayerClicked',
+                'click h5[data-js="removeLayerBtn"]': 'removeLayerClicked',
+            },
+
+            initialize: function() {
+                wizardView.prototype.initialize.call(this); 
+
+                this.model = new Backbone.Model( {
+                    layerCount: 1 } );
+
+                $( this.initDragDrop.bind(this) );
+            },
+
+            initDragDrop: function() {
+
+                _.each( [ 'availableFilters', 'enabledFilters' ], function( elRef ) {
+                    this.templateData[ elRef ]
+                        .sortable( { connectWith: ".target-well" } )
+                        .disableSelection()
+                }, this );
+            },
+
+            addLayerClicked: function() {
+
+                this.model.set( 'layerCount', this.model.get('layerCount') + 1 );
+
+                this.slurpHtml( {
+                    template: filterLayerHtml( { layerNumber: this.model.get('layerCount') } ),
+                    insertion: { $el: this.templateData.enabledFiltersContainer, method: 'append' } } );
+
+                this.templateData.enabledFilters.last().sortable( { connectWith: ".target-well" } );
+            
+                // Aribtrary limit, but seems about right. Subject to change
+                if( this.model.get( 'layerCount' ) >= 4 ) {
+                    this.templateData.addLayerBtn.prop( 'disabled', true );
+                }
+            },
+
+            removeLayerClicked: function( e ) {
+                var self = this;
+
+                this.model.set( 'layerCount', this.model.get('layerCount') - 1 );
+
+                $( e.target ).closest('[data-js="layerContainer"]')
+                    .fadeOut( 400, function() {
+                        $(this).empty().remove();
+                        self.updateLayerNumbers(); } );
+
+                if( this.templateData.addLayerBtn.prop( 'disabled' ) ) {
+                    this.templateData.addLayerBtn.prop( 'disabled', false );
+                }
+            },
+
+            updateLayerNumbers: function() {
+
+                this.templateData.layerHeading.each( function( i, el ) {
+                    $(el).text( 'Layer ' + ( i + 1 ) ) } );
+                
+                this.templateData.layerInput.each( function( i, el ) {
+                    $(el).attr( 'name', 'id_enabled-filters-' + ( i + 1 ) ) } );
+            }
+
+        } ) )( { el: '#filters' } );
+
+        return { };
 
         /*
         var layer_count = 1,

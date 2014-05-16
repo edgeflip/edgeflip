@@ -1,7 +1,7 @@
-.campaign-name-input-container {
+#intro .campaign-name-input-container {
   text-align: center;
 }
-.campaign-name-input-container input {
+#intro .campaign-name-input-container input {
   padding: 10px;
   width: 400px;
   font-size: x-large;
@@ -10,6 +10,34 @@
   height: 50px;
   line-height: 30px;
 }
-.campaign-name-title {
+#intro .campaign-name-title {
   text-align: center;
+}
+#intro .carousel {
+  padding-left: 0px;
+  padding-right: 0px;
+}
+#intro .carousel-caption {
+  left: 0px;
+  right: 0px;
+  width: 100%;
+  background-color: rgba(0, 0, 0, 0.75);
+}
+#intro .modal-footer {
+  text-align: center;
+}
+#filters #enabled-section h6,
+#filters #available-section h3,
+#filters #enabled-section h3 {
+  text-transform: uppercase;
+}
+#filters #available-section button,
+#filters #enabled-section button {
+  text-transform: none;
+  vertical-align: bottom;
+  margin-left: 10px;
+}
+#filters .well {
+  margin-left: 0px;
+  min-height: 94px;
 }

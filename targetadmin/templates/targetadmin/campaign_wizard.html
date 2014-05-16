@@ -12,9 +12,7 @@
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
         {% include 'targetadmin/includes/wizard_intro.html' %}
-        <div id="filtering" class="wizard-step" style="display: none;">
-            {% include 'targetadmin/includes/filter_wizard_form.html' %}
-        </div>
+        {% include 'targetadmin/includes/filter_wizard_form.html' %}
         <div id="faces" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/faces_wizard_form.html' %}
         </div>
@@ -40,7 +38,11 @@
 <script src="{{ STATIC_URL }}js/inputValidator.js"></script>
 <script>
 
-    require( [ 'campaignWizard' ] );
+    require( [ 'campaignWizard', 'collections/filter' ], function( nothing, filters ) {
+        /*
+        {{ filter_features }}
+        */
+    } );
 /*
 $( function() {    
     var layer_count = 1,

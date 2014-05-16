@@ -35,7 +35,7 @@ define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Ba
                self.slurpEl($(elToBeSlurped) ); } );
        }, this );
 
-        if( options && options.insertion ) { options.insertion.$el[ ( options.insertion.method ) ? options.insertion.method : 'append' ]( $template ); }
+        if( options && options.insertion ) { options.insertion.$el[ ( options.insertion.method ) ? options.insertion.method : 'append' ]( $html ); }
 
         return this;
     };

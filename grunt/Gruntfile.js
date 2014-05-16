@@ -13,7 +13,7 @@ module.exports = function(grunt) {
                       expand: true,
                       cwd: static(),
                       src: ['less/*.less'],
-                      rename: function( dest, src ) { console.log(static('css/') + src.replace(/^.*[\\\/]/, '')); return static('css/') + src.replace(/^.*[\\\/]/, ''); },
+                      rename: function( dest, src ) { return static('css/') + src.replace(/^.*[\\\/]/, ''); },
                       ext: '.css'
                     }
                 ]
@@ -25,7 +25,7 @@ module.exports = function(grunt) {
             compile: {
 
                 options: {
-                    amd: "handlebars",
+                    amd: "vendor/handlebars",
                     namespace: false
                 },
 

@@ -382,6 +382,8 @@ $.extend( createFilterManager.prototype, {
     //populates us states dropdown for location filter
     addStatesToDropdown: function() {
 
+        return;
+
         this.stateInput.typeahead( {
              source: usStates,
              items: 3
