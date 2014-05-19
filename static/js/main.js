@@ -31,6 +31,10 @@ require.config( {
         
         'vendor/jquery-ui': {
             deps: [ 'jquery' ]
+        },
+
+        'vendor/bootstrap3-typeahead': {
+            deps: [ 'jquery' ]
         }
     },
 

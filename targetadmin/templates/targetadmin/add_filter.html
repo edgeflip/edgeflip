@@ -21,29 +21,29 @@
                         <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label>
                         <div class="clearfix">
                             <div class="text-input-list">
-                                <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
-                                <span id="value-span"></span>
+                                <input data-js="firstValueInput" id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
+                                <span data-js="extraValues"></span>
                             </div>
-                            <div class="add-input-container">
+                            <div data-js="addValueBtn" class="add-input-container">
                                 <span class="glyphicon glyphicon-plus"></span>
                             </div>
                         </div>
-                        <select id="gender-dropdown" style="display:none;">
+                        <select data-js="genderDropdown" style="display:none;">
                             <option value="" selected="selected">--------</option>
                             <option value="Male">Male</option>
                             <option value="Female">Female</option>
                         </select>
-                        <div id="age-range-container" style="display:none;">
+                        <div data-js="ageRangeContainer" style="display:none;">
                             <div style="padding-bottom: 10px;">
                                 <span>Age range:</span>
-                                <span id="age-range-display">25 - 75</span>
+                                <span data-js="ageRangeDisplay">25 - 75</span>
                             </div>
-                            <div id="age-range"></div>
+                            <div data-js="ageRange"></div>
                         </div>
-                        <div id="location-options-container" style="display: none;">
+                        <div data-js="locationContainer" style="display: none;">
                             <div>
                                 <label for="location-type">Location Type (one per filter)</label>
-                                <select id="location-type-dropdown" data-placement="right" data-content="Please select a location type.">
+                                <select data-js="locationTypeDropdown" data-placement="right" data-content="Please select a location type.">
                                     <option value="" data-dropdown="" selected="selected">--------</option>
                                     <!--<option value="country">Country</option>-->
                                     <option value="state">State</option>
@@ -56,51 +56,27 @@
                                     <option value="us" selected="selected">United States</option>
                                 </select>
                             </div>
-                            <div id="state-container" style="display: none;">
-                                <label for="us-state-dropdown">State</label><span id="state-error" class="alert form-error">Required</span>
-                                <input type="text" id="state-input" placeholder="Enter a state" autocomplete="off"/>
+                            <div data-js="stateContainer" style="display: none;">
+                                <label for="us-state-dropdown">State</label>
+                                <input type="text" data-js="stateInput" placeholder="Enter a state" autocomplete="off"/>
                             </div>
-                            <div id="city-container" style="display: none;">
+                            <div data-js="cityContainer" style="display: none;">
                                 <label for="city-input">City</label>
-                                <input type="text" id="city-input" placeholder="Enter a city" />
+                                <input type="text" data-js="cityInput" placeholder="Enter a city" />
                             </div>
-                            <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right">Add Filter</button>
+                            <button data-js="addLocationBtn" class="btn btn-mini hide" type="button" data-placement="right">Add Filter</button>
                         </div>
                     </div>
                 </div>
             </div>
-            <div id="location-filter-view" class="filter-builder-col">
+            <div data-js="proposedLocationsContainer" class="filter-builder-col">
                 <h5 style="margin-top: 0px; border-bottom: 2px inset lightgray">Current Location Filter</h5>
-                <div id="location-filters" style="padding-left: 10px;"></div>
+                <div data-js="proposedLocations" style="padding-left: 10px;"></div>
             </div>
         </div>
     </form>
 </div>
 <div class="modal-footer">
     <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-    <button id="filter-add" class="btn btn-primary">Save changes</button>
+    <button data-js="saveFilterBtn" type="button" class="btn btn-primary">Save changes</button>
 </div>
-<script>
-    var input_count = 1;
-
-    $('.icon-plus').click(function(e){
-        var split_id = e.target.id.split('-'),
-            form_tag = split_id[0] + '-' + split_id[1],
-            iconContainer = $(this).parent();
-
-        input_count += 1;
-        var new_id = 'id_value-split-' + input_count;
-        var dest_id = '#' + e.target.id + '-span';
-        $('#value-span').append(
-            '<input id="' + new_id + '" name="' + new_id + '" type="text" class="filter-val-input">'
-        );
-
-        //10 accounts for the margin-bottom of the input element
-        //todo: rework html so we don't have to do this
-        iconContainer.css( { top:
-            ( ( iconContainer.outerHeight( true ) + 2 ) * ( input_count - 1 ) ) +
-            ( ( input_count - 1 ) * 10 )
-        } );
-    });
-</script>
-<script src="{{ STATIC_URL }}js/createFilterManager.js"></script>

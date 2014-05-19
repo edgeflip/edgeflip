@@ -39,7 +39,7 @@
                 </div>
             </div>
             <div id="available-section" class="row">
-                <h3>Available Filters <button data-target="#filter-modal" type="button" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-default btn-xs" data-toggle="modal">Add Filter</button></h3>
+                <h3>Available Filters <button data-js="addFilterBtn" data-target="#filter-modal" type="button" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-default btn-xs" data-toggle="modal">Add Filter</button></h3>
                 <div class="col-md-12 well sortable target-well" data-js="availableFilters" id="existing-filters">
                     
                 </div>
@@ -53,8 +53,8 @@
                 {% endif %}
             </div>
             <div class="row wizard-button-container">
-                <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</a>
-                <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="intro">Previous</a>
+                <button type="button" class="btn btn-large btn-primary" data-js="nextBtn" >Next</a>
+                <button type="button" class="btn btn-large btn-danger" data-js="previousBtn">Previous</a>
             </div>
         </div>
     </div>

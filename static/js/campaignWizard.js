@@ -4,13 +4,15 @@ define(
       'vendor/underscore',
       'ourBackbone',
       'util',
+      'filterCreator',
       'templates/filterLayer',
+      'templates/filter',
       'vendor/jquery-ui',
       'css!styles/vendor/jquery-ui',
       'css!styles/campaignWizard',
     ],
 
-    function( $, _, Backbone, util, filterLayerHtml ) {
+    function( $, _, Backbone, util, filterCreator, filterLayerHtml, filterHtml ) {
 
         var router = new ( Backbone.Router.extend( {
 
@@ -117,9 +119,6 @@ define(
 
                 this.handleKeyDown = function(e) {
                     if( e.keyCode === 13 ) {
-                        //this was triggering 'Add Layer' click
-                        //on filter page in FF
-                        e.preventDefault();
                         self.nameSubmitted();
                     }
                 };
@@ -138,6 +137,9 @@ define(
 
             events: {
                 'click button[data-js="addLayerBtn"]': 'addLayerClicked',
+                'click button[data-js="addFilterBtn"]': 'addFilterClicked',
+                'click button[data-js="nextBtn"]': 'nextClicked',
+                'click button[data-js="previousBtn"]': 'previousClicked',
                 'click h5[data-js="removeLayerBtn"]': 'removeLayerClicked',
             },
 
@@ -159,12 +161,33 @@ define(
                 }, this );
             },
 
+            setAvailableFilters: function( filters ) {
+
+                filters.each( function( filter ) {
+                    filter.set( 'shortValue', filter.get('value').slice(0, 15) );
+                    this.templateData.availableFilters.append( filterHtml( filter.attributes ) );
+                }, this );
+            },
+            
+            addFilterClicked: function() {
+                var self = this;
+
+                this.templateData.addFilterModal.on( 'shown.bs.modal', function() {
+                    if( self.filterCreator === undefined ) {
+                       self.filterCreator = new filterCreator( { el: '#filter-modal' } );
+                    }
+                } );
+            },
+
             addLayerClicked: function() {
 
                 this.model.set( 'layerCount', this.model.get('layerCount') + 1 );
 
                 this.slurpHtml( {
-                    template: filterLayerHtml( { layerNumber: this.model.get('layerCount') } ),
+                    template: filterLayerHtml( {
+                        layerNumber: this.model.get('layerCount'),
+                        content: this.templateData.enabledFilters.last().html()
+                    } ),
                     insertion: { $el: this.templateData.enabledFiltersContainer, method: 'append' } } );
 
                 this.templateData.enabledFilters.last().sortable( { connectWith: ".target-well" } );
@@ -197,11 +220,21 @@ define(
                 
                 this.templateData.layerInput.each( function( i, el ) {
                     $(el).attr( 'name', 'id_enabled-filters-' + ( i + 1 ) ) } );
+            },
+
+            nextClicked: function() {
+                this.$el.hide(); 
+                router.navigate( 'faces', { trigger: true } );
+            },
+
+            previousClicked: function() {
+                this.$el.hide(); 
+                router.navigate( 'intro', { trigger: true } );
             }
 
         } ) )( { el: '#filters' } );
 
-        return { };
+        return { filterSection: filters };
 
         /*
         var layer_count = 1,
@@ -392,6 +425,5 @@ define(
         
         $( $('input:visible')[0] ).focus();
         */
-
     }
 );

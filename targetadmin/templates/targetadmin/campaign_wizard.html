@@ -34,14 +34,11 @@
     </form>
 </div>
 {% endblock %} {% block extrascript %}
-<script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script src="{{ STATIC_URL }}js/inputValidator.js"></script>
 <script>
 
-    require( [ 'campaignWizard', 'collections/filter' ], function( nothing, filters ) {
-        /*
-        {{ filter_features }}
-        */
+    require( [ 'campaignWizard', 'collections/filter' ], function( campaignWizard, filters ) {
+        campaignWizard.filterSection.setAvailableFilters( new filters( {{ filter_features|safe }} ) );
     } );
 /*
 $( function() {    

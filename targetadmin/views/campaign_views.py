@@ -1,6 +1,9 @@
 import csv
 import itertools
 
+import json
+from django.core.serializers.json import DjangoJSONEncoder
+
 from django.conf import settings
 from django.core import serializers
 from django.core.mail import send_mail
@@ -291,14 +294,14 @@ def campaign_wizard(request, client_pk):
 
     filter_features = relational.FilterFeature.objects.filter(
         filter__client=client, feature__isnull=False,
-        operator__isnull=False, value__isnull=False)
-            #.values('feature', 'operator', 'value').distinct()
+        operator__isnull=False, value__isnull=False).values('feature', 'operator', 'value').distinct()
 
+    # maybe there is a better way to serialize json ?
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': serializers.serialize( 'json', filter_features, fields=( 'feature', 'operator', 'value' ) )
+        'filter_features': json.dumps( list( filter_features ), cls=DjangoJSONEncoder )
     })
 
 

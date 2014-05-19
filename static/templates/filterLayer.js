@@ -14,7 +14,11 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.layerNumber) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.layerNumber); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "\" data-js=\"layerInput\">\n        <div class=\"col-md-12 well sortable target-well\"></div>\n    </div>\n</section>\n";
+    + "\" data-js=\"layerInput\">\n        <div class=\"col-md-12 well sortable target-well\">";
+  if (helper = helpers.content) { stack1 = helper.call(depth0, {hash:{},data:data}); }
+  else { helper = (depth0 && depth0.content); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "</div>\n    </div>\n</section>\n";
   return buffer;
   })
 

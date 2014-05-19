@@ -1,3 +1,10 @@
+.wizard-button-container {
+  text-align: center;
+  margin-top: 50px;
+}
+.wizard-button-container button:first-child {
+  margin-right: 50px;
+}
 #intro .campaign-name-input-container {
   text-align: center;
 }
