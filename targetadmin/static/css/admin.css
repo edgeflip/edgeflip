@@ -117,7 +117,6 @@ body {
 .fb-obj-item label {
     font-size: medium;
     text-transform: uppercase;
-    display: inline-block;
 }
 
 .fb-obj-item input {

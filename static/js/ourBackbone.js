@@ -4,7 +4,7 @@ define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Ba
 
         var key = ( el.is('[data-js]') )
             ? el.attr('data-js')
-            : ( el.is('input,select[name]' ) )
+            : ( el.is('input,select,textarea[name]' ) )
                 ? el.attr('name')
                 : '_';
 
@@ -21,7 +21,7 @@ define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Ba
             selector = '[data-js]',
             self = this;
            
-        if( options && options.slurpInputs ) { selector += ',input,select'; }
+        if( options && options.slurpInputs ) { selector += ',input,select,textarea'; }
 
         if( this.templateData === undefined ) { this.templateData = { }; }
 

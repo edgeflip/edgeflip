@@ -5,6 +5,7 @@ define(
       'ourBackbone',
       'util',
       'filterCreator',
+      'indicator',
       'templates/filterLayer',
       'templates/filter',
       'vendor/jquery-ui',
@@ -12,7 +13,7 @@ define(
       'css!styles/campaignWizard',
     ],
 
-    function( $, _, Backbone, util, filterCreator, filterLayerHtml, filterHtml ) {
+    function( $, _, Backbone, util, filterCreator, indicator, filterLayerHtml, filterHtml ) {
 
         var router = new ( Backbone.Router.extend( {
 
@@ -41,7 +42,8 @@ define(
             },
             
             faces: function() {
-                faces.$el.fadeIn().removeClass('hide');
+                faces.$el.fadeIn( 400, function() { faces.shown(); } )
+                         .removeClass('hide');
             },
             
             post: function() {
@@ -150,6 +152,8 @@ define(
                     layerCount: 1 } );
 
                 $( this.initDragDrop.bind(this) );
+
+                this.templateData.helpText.popover( { trigger: 'hover' } );
             },
 
             initDragDrop: function() {
@@ -234,7 +238,41 @@ define(
 
         } ) )( { el: '#filters' } );
 
+        var faces = new indicator( {
+            el: '#faces',
+            fields: {
+                sharing_prompt: {
+                    coords: { x: 380, y: 134 },
+                    placement: 'bottom',
+                    text: "Your headline will go here."
+                },
+
+                sharing_sub_header: {
+                    coords: { x: 384, y: 189 },
+                    placement: 'bottom',
+                    text: "Your sub header will go here."
+                },
+
+                thanks_url: {
+                    coords: { x: 524, y: 813 },
+                    placement: 'left',
+                    text: "Where should we send your supporters after they share with their friends?"
+                },
+                
+                error_url: {
+                    text: [ "If the user does not have any friends that fit the targeting criteria ",
+                            "or if there is a sharing error, they will be sent to this URL " ].join("")
+                },
+                
+                faces_url: {
+                    text: [ "Provide the URL where this page will be embedded. ",
+                            "Leave blank if using Facebook canvas." ].join("")
+                }
+            }
+        } );
+
         return { filterSection: filters };
+
 
         /*
         var layer_count = 1,

@@ -1,8 +1,53 @@
 @import (reference) "theme.less";
 
+.style-popover( @text-color, @bg-color, @border-color ) {
+    
+    .popover {
+        color: @text-color;
+        background-color: @bg-color;
+        border-color: @border-color;
+    }
+
+    .popover.right .arrow:after {
+        border-right-color: @bg-color;
+    }
+
+    .popover.bottom .arrow:after {
+        border-bottom-color: @bg-color;
+    }
+
+    .popover.left .arrow:after {
+        border-left-color: @bg-color;
+    }
+
+    .popover.top .arrow:after {
+        border-top-color: @bg-color;
+    }
+
+    .popover.right .arrow {
+        border-right-color: @border-color;
+    }
+
+    .popover.bottom .arrow {
+        border-bottom-color: @border-color;
+    }
+
+    .popover.left .arrow {
+        border-left-color: @border-color;
+    }
+
+    .popover.top .arrow {
+        border-top-color: @border-color;
+    }
+}
+
+.popover-container {
+    position: absolute;
+}
+
 .wizard-button-container {
     text-align: center;
-    margin: 50px 0px
+    margin: 50px 0px;
 
     button {
         &:first-child {
@@ -48,7 +93,6 @@
 }
 
 #filters {
-
     #enabled-section h6,
     #available-section h3,
     #enabled-section h3 {
@@ -66,4 +110,30 @@
         margin-left: 0px;
         min-height: 94px;
     }
+
+    .glyphicon-question-sign {
+        font-size: large;
+        margin-left: 20px;
+    }
+}
+
+#faces {
+
+    .style-popover( white, #094163, #0cf );
+
+    .faces-header {
+        .make-md-column(12);
+        margin-bottom: 40px;
+        text-align: center;
+
+        h4 {
+            text-transform: uppercase;
+            text-align: center;
+        }
+    }
+
+    .indicator-image {
+        height: 100%;
+    }
+
 }

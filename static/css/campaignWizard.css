@@ -1,6 +1,9 @@
+.popover-container {
+  position: absolute;
+}
 .wizard-button-container {
   text-align: center;
-  margin-top: 50px;
+  margin: 50px 0px;
 }
 .wizard-button-container button:first-child {
   margin-right: 50px;
@@ -47,4 +50,58 @@
 #filters .well {
   margin-left: 0px;
   min-height: 94px;
+}
+#filters .glyphicon-question-sign {
+  font-size: large;
+  margin-left: 20px;
+}
+#faces .popover {
+  color: #ffffff;
+  background-color: #094163;
+  border-color: #00ccff;
+}
+#faces .popover.right .arrow:after {
+  border-right-color: #094163;
+}
+#faces .popover.bottom .arrow:after {
+  border-bottom-color: #094163;
+}
+#faces .popover.left .arrow:after {
+  border-left-color: #094163;
+}
+#faces .popover.top .arrow:after {
+  border-top-color: #094163;
+}
+#faces .popover.right .arrow {
+  border-right-color: #00ccff;
+}
+#faces .popover.bottom .arrow {
+  border-bottom-color: #00ccff;
+}
+#faces .popover.left .arrow {
+  border-left-color: #00ccff;
+}
+#faces .popover.top .arrow {
+  border-top-color: #00ccff;
+}
+#faces .faces-header {
+  position: relative;
+  min-height: 1px;
+  padding-left: 15px;
+  padding-right: 15px;
+  margin-bottom: 40px;
+  text-align: center;
+}
+@media (min-width: 992px) {
+  #faces .faces-header {
+    float: left;
+    width: 100%;
+  }
+}
+#faces .faces-header h4 {
+  text-transform: uppercase;
+  text-align: center;
+}
+#faces .indicator-image {
+  height: 100%;
 }

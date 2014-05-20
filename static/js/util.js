@@ -1,19 +1,43 @@
 define( [ 'jquery' ], function( $ ) {
-    var util = new ( function() {
+    var util = function() {
+        var self = this;
+
         $.extend( this, {
             document: $(document),
             window: $(window),
+            html: $('html'),
+            body: $('body'),
+            bodyHeight: undefined,
             windowHeight: undefined,
-            windowWidth: undefined } );
-    } )(),
-        computeWindowSize = function() { 
-            util.windowHeight = util.window.outerHeight( true );
-            util.windowWidth = util.window.outerWidth( true );
-        };
+            windowWidth: undefined,
+            navbarHeight: $('.navbar').outerHeight( true ),
+            scrollTop: undefined
+        } );
+    
+        this.window.on( 'resize', function() { self.computeSizes() } );
+        this.window.on( 'scroll', function() { self.getScrollPosition() } );
+    
+        this.computeSizes();
+        $( function() { self.computeSizes(); } );
+    };
 
-    computeWindowSize();
-    $( computeWindowSize );
-    util.window.on( 'resize', computeWindowSize );
+    $.extend( util.prototype, {
 
-    return util;
+        computeSizes: function() { 
+            $.extend( this, {
+                windowHeight: this.window.outerHeight( true ),
+                windowWidth: this.window.outerWidth( true ),
+                bodyHeight: this.body.outerHeight( true )
+            } )
+        },
+        
+        getScrollPosition: function() {
+            this.scrollTop =
+                ( this.body.scrollTop() != 0 )
+                    ? this.body.scrollTop()
+                    : this.html.scrollTop();
+        }
+    } );
+
+    return new util();
 } );
