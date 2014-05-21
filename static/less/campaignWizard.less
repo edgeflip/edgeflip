@@ -117,11 +117,13 @@
     }
 }
 
+#fb-obj,
 #faces {
+    .container();
 
     .style-popover( white, #094163, #0cf );
 
-    .faces-header {
+    .header {
         .make-md-column(12);
         margin-bottom: 40px;
         text-align: center;
@@ -134,6 +136,21 @@
 
     .indicator-image {
         height: 100%;
+        width: 100%;
     }
 
+    .input-container {
+        .make-md-column(5);
+
+        .popover {
+            width: 200px;
+        }
+    }
+
+    .image-container {
+        .make-md-column(7);
+        padding-left: 0px;
+        padding-right: 0px;
+        top: 0px;
+    }
 }

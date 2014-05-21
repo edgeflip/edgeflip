@@ -1,3 +1,79 @@
+.thumbnail > img,
+.thumbnail a > img,
+.carousel-inner > .item > img,
+.carousel-inner > .item > a > img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+.btn-group-lg > .btn {
+  padding: 10px 16px;
+  font-size: 18px;
+  line-height: 1.33;
+  border-radius: 6px;
+}
+.btn-group-sm > .btn {
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+.btn-group-xs > .btn {
+  padding: 1px 5px;
+  font-size: 12px;
+  line-height: 1.5;
+  border-radius: 3px;
+}
+.container:before,
+.container:after,
+.container-fluid:before,
+.container-fluid:after,
+.row:before,
+.row:after,
+.form-horizontal .form-group:before,
+.form-horizontal .form-group:after,
+.btn-toolbar:before,
+.btn-toolbar:after,
+.btn-group-vertical > .btn-group:before,
+.btn-group-vertical > .btn-group:after,
+.nav:before,
+.nav:after,
+.navbar:before,
+.navbar:after,
+.navbar-header:before,
+.navbar-header:after,
+.navbar-collapse:before,
+.navbar-collapse:after,
+.pager:before,
+.pager:after,
+.panel-body:before,
+.panel-body:after,
+.modal-footer:before,
+.modal-footer:after,
+#fb-obj:before,
+#fb-obj:after,
+#faces:before,
+#faces:after {
+  content: " ";
+  display: table;
+}
+.container:after,
+.container-fluid:after,
+.row:after,
+.form-horizontal .form-group:after,
+.btn-toolbar:after,
+.btn-group-vertical > .btn-group:after,
+.nav:after,
+.navbar:after,
+.navbar-header:after,
+.navbar-collapse:after,
+.pager:after,
+.panel-body:after,
+.modal-footer:after,
+#fb-obj:after,
+#faces:after {
+  clear: both;
+}
 .popover-container {
   position: absolute;
 }
@@ -55,36 +131,87 @@
   font-size: large;
   margin-left: 20px;
 }
+#fb-obj,
+#faces {
+  margin-right: auto;
+  margin-left: auto;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+@media (min-width: 768px) {
+  #fb-obj,
+  #faces {
+    width: 750px;
+  }
+}
+@media (min-width: 992px) {
+  #fb-obj,
+  #faces {
+    width: 970px;
+  }
+}
+@media (min-width: 1200px) {
+  #fb-obj,
+  #faces {
+    width: 1170px;
+  }
+}
+#fb-obj > .navbar-header,
+#faces > .navbar-header,
+#fb-obj > .navbar-collapse,
+#faces > .navbar-collapse {
+  margin-right: -15px;
+  margin-left: -15px;
+}
+@media (min-width: 768px) {
+  #fb-obj > .navbar-header,
+  #faces > .navbar-header,
+  #fb-obj > .navbar-collapse,
+  #faces > .navbar-collapse {
+    margin-right: 0;
+    margin-left: 0;
+  }
+}
+#fb-obj .popover,
 #faces .popover {
   color: #ffffff;
   background-color: #094163;
   border-color: #00ccff;
 }
+#fb-obj .popover.right .arrow:after,
 #faces .popover.right .arrow:after {
   border-right-color: #094163;
 }
+#fb-obj .popover.bottom .arrow:after,
 #faces .popover.bottom .arrow:after {
   border-bottom-color: #094163;
 }
+#fb-obj .popover.left .arrow:after,
 #faces .popover.left .arrow:after {
   border-left-color: #094163;
 }
+#fb-obj .popover.top .arrow:after,
 #faces .popover.top .arrow:after {
   border-top-color: #094163;
 }
+#fb-obj .popover.right .arrow,
 #faces .popover.right .arrow {
   border-right-color: #00ccff;
 }
+#fb-obj .popover.bottom .arrow,
 #faces .popover.bottom .arrow {
   border-bottom-color: #00ccff;
 }
+#fb-obj .popover.left .arrow,
 #faces .popover.left .arrow {
   border-left-color: #00ccff;
 }
+#fb-obj .popover.top .arrow,
 #faces .popover.top .arrow {
   border-top-color: #00ccff;
 }
-#faces .faces-header {
+#fb-obj .header,
+#faces .header {
   position: relative;
   min-height: 1px;
   padding-left: 15px;
@@ -93,15 +220,54 @@
   text-align: center;
 }
 @media (min-width: 992px) {
-  #faces .faces-header {
+  #fb-obj .header,
+  #faces .header {
     float: left;
     width: 100%;
   }
 }
-#faces .faces-header h4 {
+#fb-obj .header h4,
+#faces .header h4 {
   text-transform: uppercase;
   text-align: center;
 }
+#fb-obj .indicator-image,
 #faces .indicator-image {
   height: 100%;
+  width: 100%;
+}
+#fb-obj .input-container,
+#faces .input-container {
+  position: relative;
+  min-height: 1px;
+  padding-left: 15px;
+  padding-right: 15px;
+}
+@media (min-width: 992px) {
+  #fb-obj .input-container,
+  #faces .input-container {
+    float: left;
+    width: 41.66666667%;
+  }
+}
+#fb-obj .input-container .popover,
+#faces .input-container .popover {
+  width: 200px;
+}
+#fb-obj .image-container,
+#faces .image-container {
+  position: relative;
+  min-height: 1px;
+  padding-left: 15px;
+  padding-right: 15px;
+  padding-left: 0px;
+  padding-right: 0px;
+  top: 0px;
+}
+@media (min-width: 992px) {
+  #fb-obj .image-container,
+  #faces .image-container {
+    float: left;
+    width: 58.33333333%;
+  }
 }

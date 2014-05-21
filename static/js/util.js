@@ -11,7 +11,8 @@ define( [ 'jquery' ], function( $ ) {
             windowHeight: undefined,
             windowWidth: undefined,
             navbarHeight: $('.navbar').outerHeight( true ),
-            scrollTop: undefined
+            scrollTop: undefined,
+            maxScroll: undefined
         } );
     
         this.window.on( 'resize', function() { self.computeSizes() } );
@@ -27,7 +28,8 @@ define( [ 'jquery' ], function( $ ) {
             $.extend( this, {
                 windowHeight: this.window.outerHeight( true ),
                 windowWidth: this.window.outerWidth( true ),
-                bodyHeight: this.body.outerHeight( true )
+                bodyHeight: this.body.outerHeight( true ),
+                maxScroll: this.bodyHeight - this.windowHeight
             } )
         },
         

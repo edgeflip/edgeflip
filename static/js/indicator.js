@@ -13,6 +13,8 @@ define(
             events: {
                 'focus input,textarea': 'fieldFocused',
                 'blur input,textarea': 'fieldBlurred',
+                'click button[data-js="nextBtn"]': 'nextClicked',
+                'click button[data-js="prevBtn"]': 'prevClicked'
             },
 
             initialize: function( options ) {
@@ -76,8 +78,6 @@ define(
             shown: function() {
                 $('body,html').scrollTop( 0 );
 
-                util.computeSizes();
-
                 this.getImageDimensions();
             },
 
@@ -93,13 +93,16 @@ define(
             },
 
             afterImageLoad: function() {
+
                 this.storeElementDimensions();
 
                 this.templateData.imageContainer.height( this.model.get('imageContainerHeight') );
 
-                this.model.set( 'maxScroll', util.bodyHeight - util.windowHeight );
-
                 this.sizeAndPositionImage();
+                
+                util.computeSizes();
+                
+                this.model.set( 'maxScroll', util.bodyHeight - util.windowHeight );
             },
 
             storeElementDimensions: function() {
@@ -211,7 +214,7 @@ define(
                     this.templateData.imagePopover.popover('hide');
 
                     inputEl = this.templateData[ this.model.get('currentField') ];
-                    inputOffset = inputEl.offset();
+                    inputOffset = inputEl.position();
 
                     this.templateData.inputPopover.css( {
                         top: inputOffset.top + ( inputEl.outerHeight( true ) / 2 ),
@@ -279,10 +282,6 @@ define(
                             imageContainerTop: offset.top,
                             imageContainerLeft: offset.left } ) } } );
 
-                console.log( 'max scroll : ', this.model.get('maxScroll') );
-                console.log( 'cur scroll : ', util.scrollTop );
-                console.log( 'prop scroll : ', scrollTop );
-
                 if( ( util.scrollTop >= this.model.get('maxScroll') && scrollTop >= this.model.get('maxScroll') ) ||
                     ( util.scrollTop === scrollTop ) || 
                     ( util.scrollTop === 0 && scrollTop <= 0 ) ) {
@@ -297,7 +296,17 @@ define(
             },
 
             getPopoverText: function() { return this.fields[ this.model.get('currentField') ].text; },
-            getPopoverPlacement: function() { return this.fields[ this.model.get('currentField') ].placement; }
+            getPopoverPlacement: function() { return this.fields[ this.model.get('currentField') ].placement; },
+
+            nextClicked: function() {
+                this.$el.hide();
+                this.router.navigate( this.next, { trigger: true } );
+            },
+            
+            prevClicked: function() {
+                this.$el.hide();
+                this.router.navigate( this.prev, { trigger: true } );
+            },
             
 
         } );

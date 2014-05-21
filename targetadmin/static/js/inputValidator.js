@@ -1,3 +1,91 @@
+define(
+    [ 'jquery', 'vendor/underscore', 'ourBackbone', util ],
+
+    function( $, _, Backbone, util ) {
+
+        return new ( Backbone.View.extend( {
+
+            elements: [ ],
+
+            config: {
+
+                offsets: {
+                    right: 5,
+                    bottom: 5
+                }
+
+            },
+
+            initialize: function() {
+
+                this.elements.push(
+                    $('<div class="invalid-input-popover"></div>')
+                        .popover( this.getPopoverOptions() ) );
+
+                return this;
+            },
+
+            render: function() {
+                this.$el.append( this.elements[0] ); 
+                return this;
+            },
+
+            getPopoverOptions: function() {
+                var self = this;
+
+                return {
+                    animation: false,
+                    trigger: 'manual',
+                    content: function() { self.getPopoverText() },
+                    placement: 'bottom'
+                }
+            },
+
+            getNewPopover: function() { 
+                var clone = this.elements[0].clone()
+                    .insertBefore(this.elements[0])
+                    .popover( config.popoverOpts );
+
+                errorPopovers.push( clone );
+                return clone;
+            },
+
+            positionAndShowPopover = function() {
+                var el = this.currentModel.get('el'),
+                    offset = el.offset(),
+                    top = offset.top + ( el.outerHeight( true ) / 2 ),
+                    left = offset.left + ( el.outerWidth( true ) / 2 );
+
+                this.currentPopover.css( { top: top, left: left } ).popover('show');
+
+                this.currentPopover.next().addClass('invalid-input-message').on( 'click', function() {
+                    this.currentModel.set('popoverEl', undefined );
+                    this.currentPopover.popover('hide');
+                } );
+
+                el.on( 'focus', function() {
+                    this.currentModel.set('popoverEl', undefined );
+                    this.currentPopover.popover('hide');
+                } );
+
+                this.currentModel.set('popoverEl', popover );
+            },
+
+            notifyUser = function( model ) {
+                this.currentModel = model;
+                this.currentPopover = _.find( this.elements, function( el ) { return !el.next().hasClass('popover') } );
+
+                if( this.currentPopover === undefined ) {
+                    this.currentPopover = this.getNewPopover();
+                }
+           
+                positionAndShowPopover();
+            },
+       
+
+        } ) )( { el: 'body' } );
+    }
+);
 /*
 $( function() {
 
