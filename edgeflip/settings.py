@@ -371,8 +371,19 @@ CELERY_IMPORTS = (
 
 # jsurls settings #
 JSURLS_JS_NAMESPACE = 'edgeflip.router'
-JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
-JSURLS_URL_NAMESPACES = ('gimmick',)
+JSURLS_PROFILES = {
+    'sharing': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router.js'),
+    },
+    'gimmick': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-map.js'),
+        'URL_NAMESPACES': ('gimmick',),
+    },
+    'reporting': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-reports.js'),
+        'URL_NAMESPACES': ('reporting',),
+    },
+}
 
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes

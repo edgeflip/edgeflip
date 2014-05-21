@@ -7,8 +7,8 @@ from django.template.loader import render_to_string
 from django.utils import datastructures
 from rjsmin import jsmin
 
+from jsurls.structs import All
 
-All = object()
 
 GROUP_NAME_PATTERN = re.compile(r'\?P<[^>]+>')
 

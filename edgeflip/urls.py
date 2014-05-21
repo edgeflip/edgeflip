@@ -22,4 +22,4 @@ if settings.ENV in ('development', 'staging'):
     )
 
 if settings.ENV == 'development':
-    urlpatterns += jspatterns('js/router.js')
+    urlpatterns += jspatterns('js/router-map.js', profile='gimmick')
