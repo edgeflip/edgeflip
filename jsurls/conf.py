@@ -160,6 +160,12 @@ class Profile(AbstractProfile):
 
     DEFAULTS = PROFILE_DEFAULTS
 
+    def __repr__(self):
+        return "{}({!r}, {!r}, {!r})".format(self.__class__.__name__,
+                                             self.fallback,
+                                             self.fallback_prefix,
+                                             self.data)
+
 
 class GlobalSettings(AbstractProfile):
 
@@ -173,6 +179,9 @@ class GlobalSettings(AbstractProfile):
     @classmethod
     def read(cls, fallback, fallback_prefix='JSURLS_'):
         return cls(fallback, fallback_prefix)
+
+    def __repr__(self):
+        return "<{}.{}>".format(self.__module__, self.__class__.__name__)
 
     def clean_profiles(self, value):
         if not isinstance(value, dict):
