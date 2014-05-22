@@ -17,9 +17,9 @@ from jsurls.structs import All
 PROFILE_DEFAULTS = (
     ('INSTALL_PATH', None),
     ('JS_NAMESPACE', 'router'),
-    ('URL_INCLUDES', set),
-    ('URL_EXCLUDES', set),
-    ('URL_NAMESPACES', set),
+    ('URL_INCLUDES', ()),
+    ('URL_EXCLUDES', ()),
+    ('URL_NAMESPACES', ()),
 )
 
 GLOBAL_DEFAULTS = PROFILE_DEFAULTS + (
@@ -143,9 +143,11 @@ class AbstractProfile(object):
         set_value = self.data.get(key, ())
         values = [(value,) if isinstance(value, basestring) else value
                   for value in (fallback_value, set_value)]
+
         if any(value is All for value in values):
             return All
-        return set(itertools.chain.from_iterable(values))
+
+        return frozenset(itertools.chain.from_iterable(values))
 
     def __setattr__(self, key, value):
         if key in self.defaults:

@@ -50,7 +50,7 @@ def compile_lookup(urlconf=None, namespaces=(), includes=(), excludes=()):
     """
     resolver = urlresolvers.get_resolver(None)
 
-    if namespaces == All:
+    if namespaces is All:
         namespaces = resolver.namespace_dict.keys()
 
     includes = {re.compile(include) for include in includes}
