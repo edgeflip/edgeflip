@@ -3,10 +3,11 @@ define(
       'jquery',
       'vendor/underscore',
       'ourBackbone',
-      'util'
+      'util',
+      'inputValidator'
     ],
 
-    function( $, _, Backbone, util ) {
+    function( $, _, Backbone, util, inputValidator ) {
 
         return Backbone.View.extend( {
 
@@ -39,8 +40,7 @@ define(
                     originalImageHeight: undefined,
                     originalImageWidth: undefined,
                     multiplierY: undefined,
-                    multiplierX: undefined,
-                    maxScroll: undefined
+                    multiplierX: undefined
                 } );
                 
                 util.computeSizes();
@@ -101,8 +101,6 @@ define(
                 this.sizeAndPositionImage();
                 
                 util.computeSizes();
-                
-                this.model.set( 'maxScroll', util.bodyHeight - util.windowHeight );
             },
 
             storeElementDimensions: function() {
@@ -198,16 +196,16 @@ define(
 
             positionAndShowPopover: function() {
 
-                var currentFieldMetaData = this.fields[ this.model.get('currentField') ],
+                var currentField = this.fields[ this.model.get('currentField') ];
                     inputEl = undefined,
                     inputOffset = undefined;
-               
-                if( currentFieldMetaData.coords ) {
+
+                if( currentField.indicator.get('coords') ) {
 
                     this.templateData.inputPopover.popover('hide');
                     this.templateData.imagePopover.css( {
-                        top: currentFieldMetaData.coords.y * this.model.get('multiplierY'),
-                        left: currentFieldMetaData.coords.x * this.model.get('multiplierX') } ).popover('show');
+                        top: currentField.indicator.get('coords').y * this.model.get('multiplierY'),
+                        left: currentField.indicator.get('coords').x * this.model.get('multiplierX') } ).popover('show');
 
                 } else {
 
@@ -244,7 +242,6 @@ define(
 
             handleWindowResize: function() {
                 this.model.set( {
-                    maxScroll: util.bodyHeight - util.windowHeight,
                     imageContainerHeight: util.windowHeight - this.model.get('imageContainerTop') - this.config.verticalImagePadding } );
 
                 this.templateData.imageContainer.height( this.model.get('imageContainerHeight') );
@@ -252,7 +249,7 @@ define(
             },
 
             hidePopover: function() {
-                if( this.fields[ this.model.get('currentField') ].coords ) {
+                if( this.fields[ this.model.get('currentField') ].indicator.get('coords') ) {
                     this.templateData.imagePopover.popover('hide');
                 } else {
                     this.templateData.inputPopover.popover('hide');
@@ -282,7 +279,7 @@ define(
                             imageContainerTop: offset.top,
                             imageContainerLeft: offset.left } ) } } );
 
-                if( ( util.scrollTop >= this.model.get('maxScroll') && scrollTop >= this.model.get('maxScroll') ) ||
+                if( ( util.scrollTop >= util.maxScroll && scrollTop >= util.maxScroll ) ||
                     ( util.scrollTop === scrollTop ) || 
                     ( util.scrollTop === 0 && scrollTop <= 0 ) ) {
 
@@ -295,17 +292,44 @@ define(
                 return this;
             },
 
-            getPopoverText: function() { return this.fields[ this.model.get('currentField') ].text; },
-            getPopoverPlacement: function() { return this.fields[ this.model.get('currentField') ].placement; },
+            getPopoverText: function() { return this.fields[ this.model.get('currentField') ].indicator.get('text'); },
+            getPopoverPlacement: function() { return this.fields[ this.model.get('currentField') ].indicator.get('placement'); },
+
+            areInputsValid: function() {
+                var returnValue = true;
+
+                _.each( this.fields, function( data, key ) {
+
+                    if( data.validation &&
+                        data.validation.get('required') === true &&
+                        ! data.validation.set( 'value', this.templateData[ key ].val() ).isValid() ) {
+
+                        inputValidator.notifyUser(
+                            this.templateData[ key ],
+                            { placement: data.validation.get('placement'),
+                              content: data.validation.get('text') } );
+
+                        returnValue = false;
+                    }
+
+                }, this );
+
+                return returnValue;
+            },
 
             nextClicked: function() {
-                this.$el.hide();
-                this.router.navigate( this.next, { trigger: true } );
+                if( ! this.areInputsValid() ) {
+                    inputValidator.scrollToFirst();
+                } else {
+                    this.$el.hide();
+                    this.router[this.next]();
+                }
             },
             
             prevClicked: function() {
+                inputValidator.destroyAll();
                 this.$el.hide();
-                this.router.navigate( this.prev, { trigger: true } );
+                this.router[this.prev]();
             },
             
 

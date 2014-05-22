@@ -28,9 +28,9 @@ define( [ 'jquery' ], function( $ ) {
             $.extend( this, {
                 windowHeight: this.window.outerHeight( true ),
                 windowWidth: this.window.outerWidth( true ),
-                bodyHeight: this.body.outerHeight( true ),
-                maxScroll: this.bodyHeight - this.windowHeight
-            } )
+                bodyHeight: this.body.outerHeight( true )
+            } );
+            this.maxScroll = this.bodyHeight - this.windowHeight;
         },
         
         getScrollPosition: function() {

@@ -6,31 +6,17 @@ define(
       'util',
       'filterCreator',
       'indicator',
-      'inputValidator',
       'templates/filterLayer',
       'templates/filter',
       'vendor/jquery-ui',
+      'vendor/bootstrap',
       'css!styles/vendor/jquery-ui',
       'css!styles/campaignWizard',
     ],
 
     function( $, _, Backbone, util, filterCreator, indicator, filterLayerHtml, filterHtml ) {
 
-        var router = new ( Backbone.Router.extend( {
-
-            initialize: function() {
-                $( function() {
-                    Backbone.history.start( { root: "/admin/client/1/campaign/wizard/" } )
-                } );
-            },
-
-            routes: {
-                "":         "intro",
-                "intro":    "intro",
-                "audience": "filters",
-                "faces":    "faces",
-                "fb-post":  "fbObj"
-            },
+        var router = {
 
             intro: function() {
                 intro.$el
@@ -51,8 +37,7 @@ define(
                 fbObj.$el.fadeIn( 400, function() { fbObj.shown(); } )
                           .removeClass('hide');
             }
-
-        } ) )();
+        };
 
         var wizardView = Backbone.View.extend( {
 
@@ -114,7 +99,7 @@ define(
                     this.unbindKeyDown();
                     this.templateData.nameModal.modal('hide');
                     this.$el.hide();
-                    router.navigate( 'audience', { trigger: true } );
+                    router.filters();
                 }
             },
 
@@ -230,112 +215,176 @@ define(
 
             nextClicked: function() {
                 this.$el.hide(); 
-                router.navigate( 'faces', { trigger: true } );
+                router.faces();
             },
 
             previousClicked: function() {
                 this.$el.hide(); 
-                router.navigate( 'intro', { trigger: true } );
+                router.intro();
             }
 
         } ) )( { el: '#filters' } );
 
-        var faces = new indicator( {
-            el: '#faces',
-            next: 'fb-post',
-            prev: 'audience',
-            router: router,
-            fields: {
-                sharing_prompt: {
-                    coords: { x: 380, y: 134 },
-                    placement: 'bottom',
-                    text: "Your headline will go here."
-                },
+        var indicatorModel = Backbone.Model.extend( {
+            defaults: {
+               coords: undefined,
+               placement: 'bottom',
+               text: undefined
+            } } );
+        
+        var validationModel = Backbone.Model.extend( {
+            defaults: {
+               text: "This field is required.",
+               placement: 'bottom',
+               required: false,
+               value: undefined
+            },
 
-                sharing_sub_header: {
-                    coords: { x: 384, y: 189 },
-                    placement: 'bottom',
-                    text: "Your sub header will go here."
-                },
-
-                thanks_url: {
-                    coords: { x: 524, y: 813 },
-                    placement: 'left',
-                    text: "Where should we send your supporters after they share with their friends?"
-                },
-                
-                error_url: {
-                    text: [ "If the user does not have any friends that fit the targeting criteria ",
-                            "or if there is a sharing error, they will be sent to this URL " ].join("")
-                },
-                
-                faces_url: {
-                    text: [ "Provide the URL where this page will be embedded. ",
-                            "Leave blank if using Facebook canvas." ].join("")
-                }
+            validate: function( attrs, options ) {
+                if( $.trim( attrs.value ) === '' ) { return 'invalid'; }
             }
         } );
+
+        var facesFields = {
+
+            "sharing_prompt": {
+                indicator: new indicatorModel( { 
+                    coords: { x: 380, y: 134 },
+                    text: 'Your headline will go here.'
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+
+            "sharing_sub_header": {
+              indicator: new indicatorModel( {
+                  coords: { x: 384, y: 189 },
+                  text: "Your sub header will go here."
+              } )
+            },
+
+            "thanks_url": {
+                indicator: new indicatorModel( {
+                      coords: { x: 524, y: 813 },
+                      placement: 'left',
+                      text: "Where should we send your supporters after they share with their friends?"
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+
+            "error_url": {
+                indicator: new indicatorModel( {
+                    text: [ "If the user does not have any friends that fit the targeting criteria ",
+                          "or if there is a sharing error, they will be sent to this URL" ].join("")
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+            "faces_url": {
+                indicator: new indicatorModel( {
+                    text: [ "Provide the URL where this page will be embedded. ",
+                            "Leave blank if using Facebook canvas." ].join("")
+                } )
+            } 
+        };
+
+        var faces = new indicator( {
+            el: '#faces',
+            next: 'fbObj',
+            prev: 'filters',
+            router: router,
+            fields: facesFields
+        } );
+
+        var fbObjFields = {
+            "org_name": {
+                indicator: new indicatorModel( {
+                    coords: { x: 540, y: 80 },
+                    text: "The cause or organization you enter will replace 'Freakonomics Radio' here.",
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+
+            "msg1_pre": {
+                indicator: new indicatorModel( {
+                    coords: { x: 56, y: 206 },
+                    text: "Text to be displayed before friend names."
+                } ),
+            },
+
+            "msg1_post": {
+                indicator: new indicatorModel( {
+                    coords: { x: 519, y: 206 },
+                    text: "Text that will go after friend names."
+                } ),
+            },
+             
+            "msg2_pre": {
+                indicator: new indicatorModel( {
+                    coords: { x: 56, y: 206 },
+                    itext: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same."
+                } )
+            },
+
+            "msg2_post": {
+                indicator: new indicatorModel( {
+                    coords: { x: 519, y: 206 },
+                    text: "Alternate text for after the friend names.  We will randomly pick a suggestion."
+                } )
+            },
+
+            "og_title": {
+                indicator: new indicatorModel( {
+                    coords: { x: 386, y: 754 },
+                    text: "Your title will go here."
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+
+            "og_image": {
+                indicator: new indicatorModel( {
+                    coords: { x: 641, y: 417 },
+                    text: "Your image will go here.",
+                    placement: 'right',
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            },
+
+            "og_description": {
+                indicator: new indicatorModel( {
+                    coords: { x: 464, y: 861 },
+                    indicatorText: "Your description will go here.",
+                    validation: { required: true }
+                } )
+            },
+
+            "content_url": {
+                indicator: new indicatorModel( {
+                    indicatorText: "When someone clicks on the post, this is where we will send them.",
+                } ),
+                validation: new validationModel( {
+                    required: true
+                } )
+            } 
+        };
 
         var fbObj = new indicator( {
             el: '#fb-obj',
             prev: 'faces',
             router: router,
-            fields: {
-                org_name: {
-                    coords: { x: 540, y: 80 },
-                    placement: 'bottom',
-                    text: "The cause or organization you enter will replace 'Freakonomics Radio' here."
-                },
+            fields: fbObjFields } );
 
-                msg1_pre: {
-                    coords: { x: 56, y: 206 },
-                    placement: 'bottom',
-                    text: "Text to be displayed before friend names."
-                },
-                
-                msg1_post: {
-                    coords: { x: 519, y: 204 },
-                    placement: 'bottom',
-                    text: "Text that will go after the friend names."
-                },
-
-                msg2_pre: {
-                    coords: { x: 56, y: 206 },
-                    placement: 'bottom',
-                    text: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same."
-                },
-                
-                msg2_post: {
-                    coords: { x: 519, y: 204 },
-                    placement: 'bottom',
-                    text: "Alternate text for after the friend names.  We will randomly pick a suggestion."
-                },
-
-                og_title: {
-                    coords: { x: 386, y: 754 },
-                    placement: 'bottom',
-                    text: "Your title will go here."
-                },
-                
-                og_image: {
-                    coords: { x: 641, y: 417 },
-                    placement: 'right',
-                    text: "Your image will go here."
-                },
-                
-                og_description: {
-                    coords: { x: 464, y: 861 },
-                    placement: 'bottom',
-                    text: "Your description will go here."
-                },
-
-                content_url: {
-                    el: $('input[name="content_url"]'),
-                    text: "When someone clicks on the post, this is where we will send them."
-                }
-            }
-
-        } );
+        router.intro();
 
         return { filterSection: filters };
     }
