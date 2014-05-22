@@ -1,10 +1,10 @@
 from django.db import models
 from django.utils.functional import cached_property
 
-from .manager import base
+from core.models.manager import RepeatableReadQuerySet
 
 
-class AssignmentQuerySet(base.RepeatableReadQuerySet):
+class AssignmentQuerySet(RepeatableReadQuerySet):
 
     def create_managed(self, **kws):
         obj = self.model.make_managed(**kws)
@@ -87,8 +87,12 @@ class AssignmentModel(models.Model):
 
         if chosen_from_rows is None:
             chosen_from_rows = ''
-        elif chosen_from_rows != '':
-            chosen_from_rows = list(chosen_from_rows.values_list('pk', flat=True))
+        elif not isinstance(chosen_from_rows, (basestring, list)):
+            try:
+                values = chosen_from_rows.values_list('pk', flat=True)
+            except AttributeError:
+                values = chosen_from_rows
+            chosen_from_rows = list(values)
 
         return cls(
             feature_type=feature_type or feature_type1,

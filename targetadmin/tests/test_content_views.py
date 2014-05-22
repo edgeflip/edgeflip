@@ -6,7 +6,7 @@ from targetshare.models import relational
 
 class TestContentViews(TestAdminBase):
 
-    fixtures = ['test_data']
+    fixtures = ['admin_test_data']
 
     def test_content_list_view(self):
         ''' Test viewing a content list '''

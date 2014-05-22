@@ -1,0 +1,31 @@
+{% extends "targetadmin/base.html" %}
+{% block title %}Campaign Wizard Final Step{% endblock %}
+{% block content %}
+    <h2>Congratulations!</h2>
+    <div class="row">
+        <div class="span5">
+            <p>Your new campaign has been created. Edgeflip is validating the campaign and will notify you when it has been deployed and ready for you to use. 
+            </p>
+    {% for camp in campaigns %}
+        <div class="row" class="campaign-box">
+            <div class="span5 well">
+                <h4>{{ camp.campaign.name }}</h4> 
+                <p>Filtering Criteria:</p>
+                <ul>
+                    {% for csf in camp.campaign.choice_set.choice_set.choicesetfilters.all %}
+                        {% for ff in csf.filter.filterfeatures.all %}
+                            <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
+                        {% empty %}
+                            <li>No Filtering</li>
+                        {% endfor %}
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endfor %}
+        <div class="row">
+            <div id="buttons" style="padding-bottom: 40px;">
+                <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
+            </div>
+        </div>
+{% endblock %}

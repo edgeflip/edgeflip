@@ -1,13 +1,11 @@
 import json
 import logging
 import functools
-import os.path
 
+import django.core.cache
 from django import http
 from django.conf import settings
 from django.shortcuts import _get_queryset
-from django.template import TemplateDoesNotExist
-from django.template.loader import find_template
 
 from targetshare import models, utils
 from targetshare.tasks import db
@@ -135,7 +133,7 @@ def set_visit(request, app_id, fbid=None, start_event=None):
         # Add start event:
         db.delayed_save.delay(
             models.relational.Event(
-                visit=request.visit,
+                visit_id=request.visit.visit_id,
                 event_type='session_start',
                 **(start_event or {})
             )
@@ -277,34 +275,51 @@ def encoded_endpoint(view):
     return wrapped_view
 
 
-def locate_client_template(client, template_name):
-    """Attempt to locate a given template in the client's template path.
+def assign_page_styles(visit, page_code, campaign, content=None):
+    """Randomly assign a set of stylesheets to the page for the given campaign,
+    and record that assignment.
 
-    If none is found, the default template is returned.
-
-    """
-    try:
-        templates = find_template('targetshare/clients/%s/%s' % (
-            client.codename,
-            template_name
-        ))
-
-    except TemplateDoesNotExist:
-        # hopefully template_name is correctly set
-        return 'targetshare/%s' % template_name
-
-    else:
-        return templates[0].name
-
-
-def locate_client_css(client, css_name):
-    """Attempt to locate a given css file in the static path.
-
-    If none is found, the default is returned.
+    Database results are cached according to the `PAGE_STYLE_CACHE_TIMEOUT` setting.
 
     """
-    client_path = os.path.join('css', 'clients', client.codename, css_name)
-    if os.path.exists(os.path.join(settings.STATIC_ROOT, client_path)):
-        return os.path.join(settings.STATIC_URL, client_path)
-    else:
-        return os.path.join(settings.STATIC_URL, 'css', css_name)
+    # Look up PageStyles:
+    cache_key = 'campaignpagestylesets|{}|{}'.format(page_code, campaign.pk)
+    options = django.core.cache.cache.get(cache_key)
+    if options is None:
+        # Retrieve from DB:
+        campaign_page_style_sets = campaign.campaignpagestylesets.filter(
+            page_style_set__page_styles__page__code=page_code,
+        ).values_list('pk', 'page_style_set_id', 'rand_cdf').distinct()
+        options = tuple(campaign_page_style_sets.iterator())
+
+        # Store in cache:
+        django.core.cache.cache.set(cache_key, options, settings.PAGE_STYLE_CACHE_TIMEOUT)
+
+    # Assign PageStyles:
+    page_style_set_id = utils.random_assign(
+        (page_style_set_id, rand_cdf)
+        for (_pk, page_style_set_id, rand_cdf) in options
+    )
+
+    # Record assignment:
+    db.delayed_save.delay(
+        models.relational.Assignment.make_managed(
+            visit_id=visit.pk,
+            campaign_id=campaign.pk,
+            content_id=(content and content.pk),
+            feature_row=page_style_set_id,
+            chosen_from_rows=[pk for (pk, _page_style_set_id, _rand_cdf) in options],
+            manager=campaign.campaignpagestylesets,
+        )
+    )
+
+    cache_key = 'pagestyleset|{}'.format(page_style_set_id)
+    hrefs = django.core.cache.cache.get(cache_key)
+    if hrefs is None:
+        page_style_set = models.relational.PageStyleSet.objects.get(pk=page_style_set_id)
+        page_styles = page_style_set.page_styles.only('url')
+        hrefs = tuple(page_style.href for page_style in page_styles.iterator())
+
+        django.core.cache.cache.set(cache_key, hrefs, settings.PAGE_STYLE_CACHE_TIMEOUT)
+
+    return hrefs

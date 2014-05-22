@@ -3,8 +3,10 @@ from __future__ import absolute_import
 import logging
 import random
 import urllib2
-from datetime import timedelta
+from datetime import datetime, timedelta
+from httplib import HTTPException
 
+from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from celery.exceptions import MaxRetriesExceededError
@@ -25,27 +27,56 @@ S3_CONN = s3_feed.S3Manager(
     aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
     aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
 )
+UTCMIN = datetime.min.replace(tzinfo=epoch.UTC)
 
 
-@shared_task
-def crawl_user(token, retry_count=0, max_retries=3):
-    try:
-        fresh_token = facebook.client.extend_token(
-            token.fbid, token.appid, token.token
-        )
-    except IOError:
-        # well, we tried
-        rvn_logger.exception(
-            'Failed to extend token for {}'.format(token.fbid)
-        )
-        if retry_count <= max_retries:
-            return crawl_user(token, retry_count + 1)
-        else:
-            # Token is probably dead
-            return
+def expires_safe(token):
+    return token.get('expires', UTCMIN)
+
+
+@shared_task(max_retries=6)
+def crawl_user(fbid, retry_delay=0):
+    """Enqueue crawl tasks for the user (`fbid`) and the users of his/her network."""
+    # Find a valid token for the user #
+    tokens = models.Token.items.query(fbid__eq=fbid)
+    # Iterate over user's tokens, starting with most recent:
+    for token in sorted(tokens, key=expires_safe, reverse=True):
+        # We expect values of "expires" to be optimistic, meaning we trust dates
+        # in the past, but must confirm dates in the future.
+        # (We sometimes set field optimistically; and, user can invalidate our
+        # token, throwing its actual expires to 0.)
+
+        if not token.expires or token.expires <= epoch.utcnow():
+            return # This, and any remaining, invalid
+
+        # Confirm token expiration (and validity)
+        try:
+            debug_result = facebook.client.debug_token(token.appid, token.token)
+            debug_data = debug_result['data']
+            token_valid = debug_data['is_valid']
+            token_expires = debug_data['expires_at']
+        except (KeyError, IOError, RuntimeError) as exc:
+            # Facebook is being difficult; retry later (with increasing wait):
+            # (We would use self.request.retries rather than define
+            # retry_delay; but, we don't want to increase the countdown for
+            # *all* retries.)
+            crawl_user.retry((fbid, 2 * (retry_delay + 60)), {},
+                             countdown=retry_delay, exc=exc)
+
+        # Update token, if needed; but, restart if another process has changed
+        # the token (meaning it may now refer to new value):
+        token.expires = token_expires
+        try:
+            token.partial_save()
+        except ConditionalCheckFailedException as exc:
+            # Token has changed since we loaded it; retry:
+            crawl_user.retry((fbid, retry_delay), {}, countdown=0, exc=exc)
+
+        if token_valid and token.expires > epoch.utcnow():
+            # We have our token, no lie!
+            break
     else:
-        fresh_token.save(overwrite=True)
-        token = fresh_token
+        return # All tokens were invalid (and liars)
 
     try:
         edges = _bg_px4_crawl(token)
@@ -53,10 +84,11 @@ def crawl_user(token, retry_count=0, max_retries=3):
         if 'invalid_token' in exc.headers.get('www-authenticate', ''):
             return # dead token
         raise
+
     fb_sync_maps = _get_sync_maps(edges, token)
 
     delay = 0
-    for count, fbm in enumerate(fb_sync_maps, 1):
+    for (count, fbm) in enumerate(fb_sync_maps, 1):
         if fbm.status == models.FBSyncMap.WAITING:
             fbm.save_status(models.FBSyncMap.QUEUED)
             initial_crawl.apply_async(
@@ -96,12 +128,6 @@ def _bg_px4_crawl(token, retries=0, max_retries=3):
         require_outgoing=False,
     )
 
-    db.delayed_save.apply_async(
-        args=[token],
-        kwargs={'overwrite': True},
-        queue='bg_delayed_save',
-        routing_key='bg.delayed_save',
-    )
     db.upsert.apply_async(
         args=[user],
         kwargs={'partial_save_queue': 'bg_partial_save'},
@@ -207,7 +233,11 @@ def initial_crawl(self, primary, secondary):
             return
 
     s3_key.data['updated'] = now_epoch
-    s3_key.save_to_s3()
+    try:
+        s3_key.save_to_s3()
+    except HTTPException as exc:
+        self.retry(exc=exc)
+
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
     sync_map.save_status(models.FBSyncMap.BACK_FILL)
@@ -246,7 +276,10 @@ def back_fill_crawl(self, primary, secondary):
         # ahead in that case and kick off the comment crawl, but not mark
         # this job as back filled so that we can give it another shot at some
         # later point
-        s3_key.extend_s3_data()
+        try:
+            s3_key.extend_s3_data()
+        except HTTPException as exc:
+            self.retry(exc=exc)
         sync_map.back_filled = True
         sync_map.save()
 
@@ -265,7 +298,11 @@ def crawl_comments_and_likes(self, primary, secondary):
     logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
-    s3_key.populate_from_s3()
+    try:
+        s3_key.populate_from_s3()
+    except HTTPException as exc:
+        self.retry(exc=exc)
+
     if 'data' not in s3_key.data:
         # bogus/error'd out feed
         return
@@ -281,7 +318,11 @@ def crawl_comments_and_likes(self, primary, secondary):
             result = facebook.client.exhaust_pagination(next_url)
             item['likes']['data'].extend(result)
 
-    s3_key.save_to_s3()
+    try:
+        s3_key.save_to_s3()
+    except HTTPException as exc:
+        self.retry(exc=exc)
+
     sync_map.save_status(models.FBSyncMap.COMPLETE)
     logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
 
@@ -312,7 +353,10 @@ def incremental_crawl(self, primary, secondary):
     if 'data' in s3_key.data:
         # If we have data, let's save it. If not, let's kick this guy over
         # to crawl_comments_and_likes. We'll get that incremental data later
-        s3_key.extend_s3_data(False)
+        try:
+            s3_key.extend_s3_data(False)
+        except HTTPException as exc:
+            self.retry(exc=exc)
         sync_map.incremental_epoch = epoch.from_date(timezone.now())
         sync_map.save()
 

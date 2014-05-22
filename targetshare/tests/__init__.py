@@ -6,8 +6,10 @@ import re
 import urllib
 
 import faraday
+import pymlconf
 import us
 from django.conf import settings
+from django.core import cache
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
@@ -30,6 +32,12 @@ class EdgeFlipTestMixIn(object):
             CELERY_EAGER_PROPAGATES_EXCEPTIONS=True,
         ),
         patch.multiple(
+            settings,
+            CACHES=pymlconf.ConfigDict({
+                'default': {'BACKEND': 'django.core.cache.backends.dummy.DummyCache'}
+            }),
+        ),
+        patch.multiple(
             faraday.conf.settings,
             PREFIX='test',
             LOCAL_ENDPOINT='localhost:4444',
@@ -41,6 +49,9 @@ class EdgeFlipTestMixIn(object):
         for patch_ in cls.global_patches:
             patch_.start()
 
+        # Ensure cache backend isn't itself cached:
+        reload(cache)
+
         # In case a bad test class doesn't clean up after itself:
         faraday.db.destroy(confirm=False)
 
@@ -48,6 +59,8 @@ class EdgeFlipTestMixIn(object):
     def tearDownClass(cls):
         for patch_ in cls.global_patches:
             patch_.stop()
+
+        reload(cache)
 
     def setUp(self):
         super(EdgeFlipTestMixIn, self).setUp()
@@ -73,7 +86,6 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             'fbid': '1',
             'token': 1,
             'num_face': 9,
-            'sessionid': 'fake-session',
             'campaign': 1,
             'content': 1,
         }
@@ -109,7 +121,8 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
 
     def patch_ranking(self, celery_mock,
                       px3_ready=True, px3_successful=True,
-                      px4_ready=True, px4_successful=True):
+                      px4_ready=True, px4_successful=True,
+                      px4_filtering=False):
         if px3_ready:
             px3_failed = not px3_successful
         else:
@@ -147,9 +160,23 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px4_result_mock.successful.return_value = px4_successful
         px4_result_mock.failed.return_value = px4_failed
         if px4_ready:
-            px4_result_mock.result = (
-                empty_filtering_result._replace(ranked=[self.test_edge])
-                if px4_successful else error)
+            if px4_filtering:
+                px4_result_mock.result = FilteringResult(
+                    [self.test_edge],
+                    models.datastructs.TieredEdges(
+                        edges=[self.test_edge],
+                        campaign_id=1,
+                        content_id=1,
+                    ),
+                    self.test_filter.filter_id,
+                    self.test_filter.url_slug,
+                    1,
+                    1
+                ) if px4_successful else error
+            else:
+                px4_result_mock.result = (
+                    empty_filtering_result._replace(ranked=[self.test_edge])
+                    if px4_successful else error)
         else:
             px4_result_mock.result = None
 
@@ -299,14 +326,10 @@ def crawl_mock(min_friends, max_friends, closure=None):
 
 
 def patch_token(func=None):
-    patch_ = patch('targetshare.integration.facebook.client.extend_token', Mock(
-        return_value=models.dynamo.Token(
-            token='test-token',
-            fbid=1111111,
-            appid=471727162864364,
-            expires=timezone.now(),
-        )
-    ))
+    patch_ = patch('targetshare.integration.facebook.client.extend_token', Mock(return_value={
+        'access_token': 'test-token',
+        'expires': str(55 * 24 * 60 * 60),
+    }))
     if func is None:
         return patch_
     return patch_(func)

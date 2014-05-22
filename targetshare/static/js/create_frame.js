@@ -1,7 +1,7 @@
 (function() {
     var efDiv = document.getElementById('ef_frame_div');
 
-  // Determine approriate URL base
+    // Determine approriate URL base
     var efFrameURL = (function() {
         var child, url, host, protocol;
         var parse = (function(url) {
@@ -22,7 +22,6 @@
         }
     })();
 
-    // TODO: Use common JavaScript, e.g. in base.html
     // Collect window URL parameters
     var urlparams = {};
     window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function(m, key, value) {
@@ -34,7 +33,7 @@
     if (urlparams['efcmpgslug']) {
         efFrameURL += '/frame_faces/' + urlparams['efcmpgslug'];
     }
-    else if (urlparams['efuuid']){
+    else if (urlparams['efuuid']) {
         efFrameURL += '/faces-email/' + urlparams['efuuid'];
     } else {
         efFrameURL += '/frame_faces/' + urlparams['efcmpg'] + '/' + urlparams['efcnt'];

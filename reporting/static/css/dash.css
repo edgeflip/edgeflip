@@ -5,9 +5,14 @@ body {
 
 #bounds {
     margin: 0 auto;
-    width: 800px;
+    width: 100%;
     text-align:center;
     }
+
+#sumtable {
+    margin-top: 100px;
+    width: 85%;
+}
 
 /* something, somewhere, is overriding font-sizes */
 .ui-widget {
@@ -71,7 +76,7 @@ tr:hover {
     background: #EDF4FC;
     }
 
-button.sorter, button.charter {
+.icon {
     border: none !important;
     background: white;
     font-size: 12px;
@@ -83,7 +88,7 @@ button.sorter, button.charter {
 .ascend { border-bottom: 2px solid black;}
 .descend { border-bottom: 2px solid black;}
 
-button.charter {
+.record {
     height:21px;
     width:21px;
     margin:13px;
@@ -113,44 +118,59 @@ button.more {
 
 /* CHART MODAL STYLING */
 
+#legend_header {
+    margin-left: 20px;
+}
+
+#side_panel {
+    width: 200px;
+    padding: 0px 20px 20px 0px;
+    display: inline-block;
+    vertical-align: top;
+}
+
+#legend {
+    display: inline-block;
+    position: relative;
+}
+
 #modal {
-    text-align: center;
     padding:30px 0;
     }
 
+#chart_container {
+    position: relative;
+    display: inline-block;
+    }
+
 #graph {
-    margin: 30px auto 0;
-    width: 600px;
-    }
-
-#xAxis {
-    margin: 0 auto;
-    width: 600px;
-    }
-
-#yAxis{
-    position:absolute;
-    top: 60px;
-    left: 140px;
-    height:320px;
-    }
-
-#hourlytable {
-    margin: 30px auto;
-    }
+    display: inline-block;
+}
 
 #slider {
-    margin: 10px auto 0;
+    margin: 40px 0px 30px 0px;
     background: #F5F5F5;
     }
 
-#tsver {
-    margin: 50px auto 0;
-    }
+.ui-slider-horizontal .ui-slider-range {
+    height: 2em;
+}
 
-#xMin{ float: left; margin:8px 130px; }
-#xMax{ float: right; margin:8px 130px; }
+.ui-slider .ui-slider-handle {
+    width: 2em;
+    height: 2em;
+}
 
+#xMin{
+    float: left;
+}
+#xMax{
+    float: right;
+}
+
+#xMin, #xMax {
+    font-size: 15px;
+}
 
 /* rickshaw default overrides, primarily the legend */
 
@@ -158,12 +178,6 @@ button.more {
     color: #404040;
     background: #FFF;
     text-align: left;
-    }
-
-#legend {
-    position:absolute;
-    top: 130px;
-    left: 30px;
     }
 
 /* superuser controls */

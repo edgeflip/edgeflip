@@ -8,9 +8,10 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 
-from targetshare.integration import facebook
-# from targetshare.models import relational
-from targetshare.tasks import db, ranking
+from targetshare.tasks.integration.facebook import extend_token
+from targetshare import models
+# from targetshare.tasks import db
+from targetshare.tasks import ranking
 from targetshare.views import utils
 
 
@@ -40,13 +41,17 @@ def data(request):
         px3_task = celery.current_app.AsyncResult(px3_task_id)
     else:
         # Initial call #
+        token = models.datastructs.ShortToken(
+            fbid=info['fbid'],
+            appid=FB_APP_ID,
+            token=info['token'],
+        )
 
         # Extend & store Token:
-        token = facebook.client.extend_token(info['fbid'], FB_APP_ID, info['token'])
-        db.delayed_save(token, overwrite=True)
+        extend_token.delay(*token)
 
         # Record authorized UserClient:
-        # db.get_or_create(
+        # db.get_or_create.delay(
             # relational.UserClient,
             # client_id=client.pk, # FIXME
             # fbid=data['fbid'],
@@ -54,7 +59,7 @@ def data(request):
         # FIXME: Also a problem for record_event on "authorized"
 
         # Initiate crawl task:
-        px3_task = ranking.px3_crawl.delay(token)
+        px3_task = ranking.px3_crawl.delay(token, visit_id=request.visit.pk)
         request.session[task_key] = px3_task.id
 
     # Check status #

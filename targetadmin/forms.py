@@ -22,8 +22,14 @@ class FBObjectAttributeForm(forms.ModelForm):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
+    sharing_prompt = forms.CharField(label="Headline")
+    sharing_sub_header = forms.CharField(
+        label="Sub-Header",
+        required=False,
+        widget=forms.Textarea
+    )
     og_description = forms.CharField(
-        label='FB Object Description',
+        label='Facebook Post Description',
         required=False,
         widget=forms.Textarea
     )
@@ -58,11 +64,50 @@ class FBObjectAttributeForm(forms.ModelForm):
 
 class FilterForm(forms.ModelForm):
 
-    description = forms.CharField(required=False, widget=forms.Textarea)
+    name = forms.CharField(required=True)
 
     class Meta:
         model = relational.Filter
-        exclude = ('is_deleted', 'delete_dt')
+        exclude = ('is_deleted', 'delete_dt', 'client')
+
+
+class WizardFilterFeatureForm(forms.ModelForm):
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('location', 'Location'),
+        ('gender', 'Gender'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
+
+
+class FilterFeatureForm(forms.ModelForm):
+    ''' This class should really be deprecated along with the direct editing
+    of filters view that it belongs to. Then again, maybe that serves a
+    real purpose that justifies keeping it, food for thought
+    '''
+
+    CHOICES = (
+        ('', 'Select Filter Type'),
+        ('age', 'Age'),
+        ('location', 'Location'),
+        ('gender', 'Gender'),
+        # For the direct Filter editing forms
+        ('city', 'City'),
+        ('state', 'State'),
+    )
+
+    feature = forms.ChoiceField(choices=CHOICES)
+
+    class Meta:
+        model = relational.FilterFeature
+        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
 
 
 class ChoiceSetForm(forms.ModelForm):
@@ -111,9 +156,22 @@ class CampaignForm(forms.Form):
 
     name = forms.CharField()
     description = forms.CharField(required=False, widget=forms.Textarea)
-    faces_url = forms.CharField()
-    thanks_url = forms.CharField()
-    error_url = forms.CharField()
+    faces_url = forms.CharField(
+        label='Host URL',
+        help_text='Provide the URL where this campaign will be embedded. '
+                  'Leave blank if using Facebook canvas'
+    )
+    thanks_url = forms.CharField(
+        label='Post-Share URL',
+        help_text='This is the URL users get sent to after they share. '
+                  'This is usually a thank you page or a secondary ask.'
+    )
+    error_url = forms.CharField(
+        label='Sharing Error URL',
+        help_text='If the user does not have any friends that fit the '
+                  'targeting criteria or if there is a sharing error, '
+                  'they will be sent to this URL'
+    )
     fallback_campaign = forms.ModelChoiceField(
         queryset=relational.Campaign.objects.none(),
         required=False
@@ -229,36 +287,62 @@ class CampaignForm(forms.Form):
 # Wizard Forms
 class CampaignWizardForm(forms.Form):
 
-    name = forms.CharField()
-    faces_url = forms.CharField()
+    name = forms.CharField(
+        widget=forms.TextInput(attrs={'autocomplete':'off'})
+    )
+
+    faces_url = forms.CharField(
+        required=False,
+        label='Host url (optional)'
+    )
     error_url = forms.CharField()
     thanks_url = forms.CharField()
     content_url = forms.CharField()
 
-
-class FilterFeatureForm(forms.ModelForm):
-
-    CHOICES = (
-        ('', 'Select Filter Type'),
-        ('age', 'Age'),
-        ('city', 'City'),
-        ('state', 'State'),
-        ('full_location', 'Full Location'),
-        ('gender', 'Gender'),
+    include_empty_fallback = forms.BooleanField(
+        help_text=(
+            'Some users will not have enough friends who fit the targeting '
+            'criteria. Checking this box will fill in the friend suggestions '
+            'with friends that do not fit the targeting criteria but are '
+            'still influenceable. You should check this box if you would '
+            'rather reach more people than those strictly in your targeting '
+            'criteria.'
+        ),
+        initial=True,
+        required=False
     )
-
-    rank = forms.IntegerField()
-    feature = forms.ChoiceField(choices=CHOICES)
-
-    class Meta:
-        model = relational.FilterFeature
-        exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
-
 
 class FBObjectWizardForm(forms.ModelForm):
 
     og_description = forms.CharField(
-        label='FB Object Description',
+        label='Facebook Post Description',
+        required=False,
+        widget=forms.Textarea
+    )
+    og_title = forms.CharField(label='Facebook Post Title')
+    og_image = forms.CharField(label='Facebook Post Image URL')
+    org_name = forms.CharField(
+        label='Cause or Organization being supported'
+    )
+    msg1_pre = forms.CharField(
+        required=False,
+        label='Text Before Friend Names (optional)'
+    )
+    msg1_post = forms.CharField(
+        required=False,
+        label='Text After Friend Names (optional)'
+    )
+    msg2_pre = forms.CharField(
+        required=False,
+        label='Text Before Friend Names (optional)'
+    )
+    msg2_post = forms.CharField(
+        required=False,
+        label='Text After Friend Names (optional)'
+    )
+    sharing_prompt = forms.CharField(label="Headline")
+    sharing_sub_header = forms.CharField(
+        label="Sub-Header (optional)",
         required=False,
         widget=forms.Textarea
     )
@@ -286,7 +370,9 @@ class SnippetForm(forms.Form):
         queryset=relational.ClientContent.objects.none()
     )
 
-    def __init__(self, client=None, *args, **kwargs):
+    def __init__(self, client, *args, **kwargs):
         super(SnippetForm, self).__init__(*args, **kwargs)
-        self.fields['campaign'].queryset = client.campaigns.all()
+        self.fields['campaign'].queryset = client.campaigns.exclude(
+            rootcampaign_properties=None
+        )
         self.fields['content'].queryset = client.clientcontent.all()

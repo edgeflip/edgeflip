@@ -1,11 +1,14 @@
+import csv
+import itertools
+
+from django.conf import settings
+from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
-from django.forms.models import modelformset_factory
-from django.utils import timezone
-from django.core.urlresolvers import reverse
 
 from targetadmin import utils
 from targetadmin import forms
 from targetshare.models import relational
+from targetshare.utils import encodeDES
 from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
@@ -79,7 +82,6 @@ def campaign_create(request, client_pk):
         if form.is_valid():
             campaign = form.save()
             return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
-
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
@@ -89,36 +91,54 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    extra_forms = 5
-    ff_set = modelformset_factory(
-        relational.FilterFeature,
-        form=forms.FilterFeatureForm,
-        extra=extra_forms,
-    )
-    formset = ff_set(queryset=relational.FilterFeature.objects.none())
-    fb_obj_form = forms.FBObjectWizardForm()
+    fb_attr_inst = relational.FBObjectAttribute(
+        og_action='support', og_type='cause')
+    fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
     campaign_form = forms.CampaignWizardForm()
     if request.method == 'POST':
-        fb_obj_form = forms.FBObjectWizardForm(request.POST)
+        fb_obj_form = forms.FBObjectWizardForm(
+            request.POST, instance=fb_attr_inst)
         campaign_form = forms.CampaignWizardForm(request.POST)
-        formset = ff_set(
-            request.POST,
-            queryset=relational.FilterFeature.objects.none()
-        )
-        if formset.is_valid() and fb_obj_form.is_valid() and campaign_form.is_valid():
-            features = formset.save()
+        if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
+            filter_feature_layers = []
+            enabled_filters = (request.POST.get(
+                'enabled-filters-{}'.format(index), '') for index in range(1, 5))
+            for inputs in csv.reader(enabled_filters):
+                if not inputs:
+                    continue
+
+                layer = []
+                for feature_string in inputs:
+                    feature, operator, value = feature_string.split('.')
+                    try:
+                        # Go for an existing one
+                        ff = relational.FilterFeature.objects.filter(
+                            feature=feature, operator=operator, value=value,
+                            filter__client=client
+                        )[0]
+                        ff.pk = None
+                    except IndexError:
+                        # It'll get saved further down below
+                        ff = relational.FilterFeature(
+                            feature=feature, operator=operator, value=value
+                        )
+                    layer.append(ff)
+                filter_feature_layers.append(layer)
+
             root_filter = relational.Filter.objects.create(
-                name='{} {} {} Root Filter'.format(
+                name='{} {} Root Filter'.format(
                     client.name,
                     campaign_name,
-                    ','.join([x.feature for x in features])
                 ),
                 client=client
             )
-            for feature in features:
-                feature.filter = root_filter
-                feature.save()
+            if filter_feature_layers:
+                for feature in filter_feature_layers[0]:
+                    feature.filter = root_filter
+                    feature.save()
+
+                del filter_feature_layers[0]
 
             root_choiceset = relational.ChoiceSet.objects.create(
                 name='{} {} Root ChoiceSet'.format(
@@ -130,18 +150,16 @@ def campaign_wizard(request, client_pk):
             root_choiceset.choicesetfilters.create(
                 filter=root_filter)
 
-            choice_sets = {0: root_choiceset}
-            if len(features) > 1:
-                for data in sorted(formset.cleaned_data,
-                                   key=lambda x: x.get('rank', 100)):
-                    if not data:
-                        continue
-
-                    cs = choice_sets.get(data['rank'])
-                    if not cs:
+            choice_sets = [root_choiceset]
+            # First layer is the root_choiceset
+            for (layer_count, layer) in enumerate(filter_feature_layers, 1):
+                for feature in layer:
+                    try:
+                        cs = choice_sets[layer_count]
+                    except IndexError:
                         single_filter = relational.Filter.objects.create(
-                            name='{} {} {}'.format(
-                                client.name, campaign_name, feature.feature),
+                            name='{} {}'.format(
+                                client.name, campaign_name),
                             client=client
                         )
                         cs = relational.ChoiceSet.objects.create(
@@ -152,16 +170,13 @@ def campaign_wizard(request, client_pk):
                             filter=single_filter,
                             choice_set=cs
                         )
-                        choice_sets[data['rank']] = cs
-                    feature = relational.FilterFeature.objects.create(
-                        operator=data.get('operator'),
-                        feature=data.get('feature'),
-                        value=data.get('value'),
-                        filter=cs.choicesetfilters.get().filter,
-                    )
+                        choice_sets.append(cs)
+                    feature.pk = None
+                    feature.filter = cs.choicesetfilters.get().filter
+                    feature.save()
 
             fb_obj = relational.FBObject.objects.create(
-                name='{} {} {}'.format(client.name, campaign_name, timezone.now()),
+                name='{} {}'.format(client.name, campaign_name),
                 client=client
             )
             fb_attr = fb_obj_form.save()
@@ -188,25 +203,37 @@ def campaign_wizard(request, client_pk):
             else:
                 button_style = client.buttonstyles.create()
 
-            # final fallback campaign init
-            # Find an empty choiceset filter group
-            empty_choices = client.choicesets.filter(
-                choicesetfilters__filter__filterfeatures__isnull=True)
-            if empty_choices.exists():
-                empty_cs = empty_choices[0]
+            # Need to make sure they didn't want a filterless campaign,
+            # which would make the empty fallback irrelevant.
+            if (campaign_form.cleaned_data['include_empty_fallback'] and
+                    root_filter.filterfeatures.exists()):
+                # Find an empty choiceset filter group
+                empty_choices = client.choicesets.filter(
+                    choicesetfilters__filter__filterfeatures__isnull=True)
+                if empty_choices.exists():
+                    empty_cs = empty_choices[0]
+                else:
+                    empty_cs = client.choicesets.create(
+                        name='{} {} Empty ChoiceSet'.format(
+                            client.name, campaign_name)
+                    )
+                    # Already have a known empty filter
+                    empty_cs.choicesetfilters.create(filter=global_filter)
+                choice_sets.append(empty_cs)
+
+            # Page Style
+            if client.pagestyles.exists():
+                page_styles = client.pagestyles.filter(
+                    starred=True, page__code=relational.Page.FRAME_FACES)
             else:
-                empty_cs = client.choicesets.create(
-                    name='{} {} Empty ChoiceSet'.format(
-                        client.name, campaign_name)
-                )
-                # Already have a known empty filter
-                empty_cs.choicesetfilters.create(filter=global_filter)
-            # Find the end of the choice_sets dict
-            rank = max(choice_sets) + 1
-            choice_sets[rank] = empty_cs
+                page_styles = relational.PageStyle.objects.filter(
+                    client=None, starred=True,
+                    page__code=relational.Page.FRAME_FACES)
 
             last_camp = None
-            for rank, cs in sorted(choice_sets.iteritems(), reverse=True):
+            campaigns = []
+            for rank, cs in itertools.izip(reversed(
+                    xrange(len(choice_sets))), reversed(choice_sets)):
                 camp = relational.Campaign.objects.create(
                     client=client,
                     name='{} {}'.format(campaign_name, rank + 1),
@@ -219,21 +246,73 @@ def campaign_wizard(request, client_pk):
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                     client_error_url=campaign_form.cleaned_data['error_url'],
                     fallback_campaign=last_camp,
-                    fallback_is_cascading=True,
+                    fallback_is_cascading=bool(last_camp),
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,
                     rand_cdf=1.0
                 )
+                page_style_set = relational.PageStyleSet.objects.create()
+                page_style_set.page_styles = page_styles
+                camp.campaignpagestylesets.create(
+                    page_style_set=page_style_set,
+                    rand_cdf=1.0
+                )
+                campaigns.append(camp)
                 last_camp = camp
-            return redirect('{}?campaign_pk={}&content_pk={}'.format(
-                reverse('targetadmin:snippets', args=[client.pk]),
-                last_camp.pk,
-                content.pk
-            ))
+
+            # Check to see if we need to generate the faces_url
+            if campaign_form.cleaned_data['faces_url']:
+                faces_url = campaign_form.cleaned_data['faces_url']
+            else:
+                encoded_url = encodeDES('{}/{}'.format(
+                    last_camp.pk, content.pk))
+                faces_url = 'https://apps.facebook.com/{}/{}/'.format(
+                    client.fb_app_name, encoded_url)
+
+            for camp in campaigns:
+                properties = camp.campaignproperties.get()
+                properties.client_faces_url = faces_url
+                properties.root_campaign = last_camp
+                properties.save()
+
+            send_mail(
+                '{} Created New Campaigns'.format(client.name),
+                'Campaign PK: {} created. Please verify it and its children.'.format(last_camp.pk),
+                settings.ADMIN_FROM_ADDRESS,
+                settings.ADMIN_NOTIFICATION_LIST,
+                fail_silently=True
+            )
+            return redirect(
+                'targetadmin:campaign-wizard-finish',
+                client.pk, last_camp.pk, content.pk
+            )
+
+    filter_features = relational.FilterFeature.objects.filter(
+            filter__client=client, feature__isnull=False,
+            operator__isnull=False, value__isnull=False)\
+                .values('feature', 'operator', 'value').distinct()
+
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
-        'formset': formset,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
+        'filter_features': filter_features
+    })
+
+
+@utils.auth_client_required
+def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
+    properties = root_campaign.campaignproperties.get()
+    content = get_object_or_404(relational.ClientContent, pk=content_pk)
+    campaigns = [properties]
+    while properties.fallback_campaign:
+        properties = properties.fallback_campaign.campaignproperties.get()
+        campaigns.append(properties)
+    return render(request, 'targetadmin/campaign_wizard_finish.html', {
+        'campaigns': campaigns,
+        'content': content,
+        'client': client,
     })

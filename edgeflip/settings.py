@@ -206,6 +206,8 @@ MIDDLEWARE_CLASSES = (
     'targetshare.middleware.P3PMiddleware',
 )
 
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
 ROOT_URLCONF = 'edgeflip.urls'
 
 # Python dotted path to the WSGI application used by Django's runserver.
@@ -239,6 +241,7 @@ INSTALLED_APPS = (
     'feed_crawler',
     'reporting',
     'gimmick',
+    'chapo',
 )
 
 if ENV in ('staging', 'production'):
@@ -292,6 +295,8 @@ CELERY_QUEUES = (
     Queue('get_or_create', routing_key='get.or.create', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
+    Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
+    Queue('extend_token', routing_key='extend.token', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
     Queue('initial_crawl', routing_key='crawl.initial', queue_arguments=QUEUE_ARGS),
@@ -317,6 +322,14 @@ CELERY_ROUTES = {
     'targetshare.tasks.ranking.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
+    },
+    'targetshare.tasks.integration.facebook.store_oauth_token': {
+        'queue': 'oauth_token',
+        'routing_key': 'oauth.token'
+    },
+    'targetshare.tasks.integration.facebook.extend_token': {
+        'queue': 'extend_token',
+        'routing_key': 'extend.token'
     },
     'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',
@@ -364,8 +377,9 @@ CELERY_ROUTES = {
     },
 }
 CELERY_IMPORTS = (
-    'targetshare.tasks.ranking',
     'targetshare.tasks.db',
+    'targetshare.tasks.ranking',
+    'targetshare.tasks.integration.facebook',
     'feed_crawler.tasks',
 )
 
@@ -385,6 +399,9 @@ JSURLS_PROFILES = {
     },
 }
 
+# chapo settings #
+CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
+
 # Session Settings
 SESSION_COOKIE_AGE = 900 # 15 minutes
 SESSION_COOKIE_DOMAIN = '.edgeflip.com'
@@ -395,6 +412,7 @@ CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours
     'campaign_max_age': (3600 * 24), # 24 hours
 }
+PAGE_STYLE_CACHE_TIMEOUT = 60 * 30 # 30 minutes
 FB_PERMS_LIST = [
     'read_stream', 'user_photos', 'friends_photos',
     'email', 'user_birthday', 'friends_birthday',
@@ -410,12 +428,15 @@ VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # feedcrawler settings
-FEED_BUCKET_PREFIX = 'feed_crawler_'
+FEED_BUCKET_PREFIX = 'user_feeds_'
 FEED_MAX_BUCKETS = 5
 FEED_AGE_LIMIT = 7 # In days
 FEED_BUCKET_NAMES = [
     '{}{}'.format(FEED_BUCKET_PREFIX, x) for x in range(0, FEED_MAX_BUCKETS)
 ]
+
+# targetadmin settings
+ADMIN_FROM_ADDRESS = 'admin@edgeflip.com'
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False

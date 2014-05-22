@@ -1,9 +1,11 @@
-from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.forms.models import modelformset_factory
+from django.shortcuts import get_object_or_404, redirect, render
 
 from targetadmin import forms
 from targetadmin.utils import auth_client_required
 from targetshare.models import relational
+from targetshare.views.utils import JsonHttpResponse
 from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
@@ -53,17 +55,19 @@ def filter_edit(request, client_pk, pk):
     ff_set = modelformset_factory(
         relational.FilterFeature,
         extra=extra_forms,
-        exclude=('end_dt', 'value_type', 'feature_type')
+        exclude=('end_dt', 'value_type', 'feature_type'),
+        form=forms.FilterFeatureForm,
     )
     formset = ff_set(
         queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
-        initial=[{'filter': filter_obj} for x in range(extra_forms)]
+        initial=[{'filter': filter_obj} for x in range(extra_forms)],
     )
     if request.method == 'POST':
         filter_form = forms.FilterForm(data=request.POST, instance=filter_obj)
         formset = ff_set(
             data=request.POST,
-            queryset=relational.FilterFeature.objects.filter(filter=filter_obj)
+            queryset=relational.FilterFeature.objects.filter(filter=filter_obj),
+            initial=[{'filter': filter_obj} for x in range(extra_forms)]
         )
 
         # Filter Features are inherently nully things, but we know we should
@@ -86,4 +90,14 @@ def filter_edit(request, client_pk, pk):
         'filter_obj': filter_obj,
         'formset': formset,
         'filter_form': filter_form,
+    })
+
+
+@auth_client_required
+def add_filter(request, client_pk):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    form = forms.WizardFilterFeatureForm()
+    return render(request, 'targetadmin/add_filter.html', {
+        'client': client,
+        'form': form,
     })

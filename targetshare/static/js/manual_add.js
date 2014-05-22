@@ -3,45 +3,48 @@
 
 // Set up the autofill drop-down for manually adding friends
 function setDropdown(friends) {
-	$( "#manual_input" ).autocomplete({
-		minLength: 0,
-		source: function(request, response) {
-			var patt = new RegExp('\\b'+request.term, 'i');
-			var filteredArray = $.map(friends, function(item) {
-	        	if( patt.test(item.label) ){
-	            	return item;
-	        	} else {
-	            	return null;
-	        	}
-    		});
-    		response(filteredArray);
-		},
-		focus: function( event, ui ) {
-			$( "#manual_input" ).val( ui.item.label );
-			return false;
-		},
-		select: function( event, ui ) {
+    var renderFriend = function( ul, item ) {
+        return $( "<li>" )
+            .append( "<a>" + "<img src='http://graph.facebook.com/" +item.value+"/picture' height=25 /> " + item.label + "</a>" )
+            .appendTo( ul );
+    };
+
+    $(".manual_input").autocomplete({
+        minLength: 0,
+        source: function(request, response) {
+            var input = $.ui.autocomplete.escapeRegex(request.term);
+            var patt = new RegExp('\\b' + input, 'i');
+            var filteredArray = $.map(friends, function(item) {
+                return patt.test(item.label) ? item : null;
+            });
+            response(filteredArray);
+        },
+        focus: function( evt, ui ) {
+            $(this).val( ui.item.label );
+            return false;
+        },
+        select: function( event, ui ) {
             var fbid = parseInt(ui.item.value);
 
-            if (getRecipFbids().length >= 10) {
+            if (getRecipFbids().length >= edgeflip.faces.max_face) {
                 alert("Sorry: only ten friends can be tagged.");
             }
             else if (!isRecip(fbid)) {
-				selectFriend(fbid);
+                selectFriend(fbid);
             }
 
-            $("#manual_input").val('');
+            $(this).val('');
             return false;
-		}
-	})
-	.data( "uiAutocomplete" )._renderItem = function( ul, item ) {
-		return $( "<li>" )
-			.append( "<a>" + "<img src='http://graph.facebook.com/" +item.value+"/picture' height=25 /> " + item.label + "</a>" )
-			.appendTo( ul );
-	};
+        }
+    }).each(function() {
+        $(this).data("uiAutocomplete")._renderItem = renderFriend;
+    });
 }
 
 // Called when the user removes a manually added friend
 function removeFriend(fbid) {
-	unselectFriend(fbid);
+    unselectFriend(fbid);
 }
+
+// This line makes this file show up properly in the Chrome debugger
+//# sourceURL=manual_add.js

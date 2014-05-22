@@ -1,7 +1,6 @@
 import datetime
 import json
 import os.path
-from decimal import Decimal
 
 from django.conf import settings
 from django.core.urlresolvers import reverse
@@ -38,7 +37,6 @@ class TestFacesViews(EdgeFlipViewTestCase):
             appid=self.test_client.fb_app_id,
             token='test-token',
             expires=expires0,
-            overwrite=True,
         )
         clientuser = self.test_client.userclients.filter(fbid=fbid)
         self.assertFalse(clientuser.exists())
@@ -130,8 +128,25 @@ class TestFacesViews(EdgeFlipViewTestCase):
         assert data['html']
 
     @patch('targetshare.views.faces.celery')
+    def test_faces_px4_filtering(self, celery_mock):
+        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        self.patch_ranking(celery_mock, px4_filtering=True)
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid',
+            'last_call': True,
+        })
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertStatusCode(response, 200)
+        gen_event = models.Event.objects.get(event_type='generated')
+        shown_event = models.Event.objects.get(event_type='shown')
+        self.assertEqual(gen_event.content, 'px3_score: 1.0, px4_score: 1.5')
+        self.assertEqual(shown_event.content, 'px4_score: 1.5')
+
+    @patch('targetshare.views.faces.celery')
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
+        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
         self.patch_ranking(celery_mock)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
@@ -143,8 +158,10 @@ class TestFacesViews(EdgeFlipViewTestCase):
         data = json.loads(response.content)
         self.assertEqual(data['status'], 'success')
         assert data['html']
-        assert models.Event.objects.get(event_type='generated')
-        assert models.Event.objects.get(event_type='shown')
+        generated = models.Event.objects.get(event_type='generated')
+        shown = models.Event.objects.get(event_type='shown')
+        self.assertEqual(generated.content, 'px3_score: 1.0, px4_score: 1.5')
+        self.assertEqual(shown.content, 'px4_score: 1.5')
 
     @patch('targetshare.integration.facebook.third_party.requests.get')
     @patch('targetshare.views.faces.celery')
@@ -196,26 +213,23 @@ class TestFacesViews(EdgeFlipViewTestCase):
         self.assertIn(obj_attrs.og_image, data1['html'])
 
     def test_frame_faces_with_recs(self):
-        ''' Tests views.frame_faces '''
+        """frame_faces respects page styles"""
         campaign = models.Campaign.objects.get(pk=1)
-        client = campaign.client
-        fs = models.FacesStyle.objects.create(client=client, name='test')
-        models.FacesStyleFiles.objects.create(
-            html_template='frame_faces.html', faces_style=fs)
-        models.CampaignFacesStyle.objects.create(
-            campaign=campaign, faces_style=fs,
-            rand_cdf=Decimal('1.000000')
+        campaign_page_style_set = campaign.campaignpagestylesets.get(
+            page_style_set__page_styles__page=models.Page.objects.get_frame_faces(),
         )
-        assert not models.Assignment.objects.exists()
+        page_style = campaign_page_style_set.page_style_set.page_styles.get()
+
+        self.assertFalse(models.Assignment.objects.exists())
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
 
-        # copied from test_button_with_recs, unclear why this check means success
-        self.assertStatusCode(response, 200)
-        self.assertEqual(
-            response.context['fb_params'],
-            {'fb_app_name': 'sharing-social-good', 'fb_app_id': 471727162864364}
-        )
-        assert models.Assignment.objects.exists()
+        url = '//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css'
+        self.assertEqual(page_style.url, url)
+        link_html = '<link rel="stylesheet" type="text/css" href="{}" />'.format(url)
+        self.assertContains(response, link_html, count=1, html=True)
+
+        assignment = models.Assignment.objects.get(feature_type='page_style_set_id')
+        self.assertEqual(assignment.feature_row, campaign_page_style_set.page_style_set_id)
 
     def test_frame_faces_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''

@@ -8,16 +8,41 @@ from django.views.decorators.http import require_POST
 
 from targetshare.models import relational
 from targetshare.views import utils
-from targetshare.integration import facebook
 from targetshare.tasks import db
+from targetshare.tasks.integration.facebook import extend_token
 
 LOG = logging.getLogger('crow')
+
+SINGULAR_EVENTS = {'button_load', 'authorized'}
+UPDATED_EVENTS = {'heartbeat'}
+REPEATED_EVENTS = {
+    'button_click',
+    'auth_fail',
+    'select_all_click',
+    'share_click',
+    'share_fail',
+    'shared',
+    'clickback',
+    'suggest_message_click',
+    'selected_friend',
+    'unselected_friend',
+    'manually_selected_friend',
+    'manually_unselected_friend',
+    'faces_page_rendered',
+    'empty_share',
+    'publish_declined',
+    'publish_accepted',
+    'publish_reminder_accepted',
+    'publish_reminder_declined',
+    'publish_unknown',
+}
+ALL_EVENTS = SINGULAR_EVENTS | REPEATED_EVENTS | UPDATED_EVENTS
 
 
 @require_POST
 @utils.require_visit
 def record_event(request):
-    """Endpoint to record user events (asynchronously)."""
+    """Endpoint to record user events."""
     user_id = request.POST.get('userid')
     app_id = request.POST.get('appid')
     campaign_id = request.POST.get('campaignid')
@@ -25,63 +50,73 @@ def record_event(request):
     content = request.POST.get('content', '')
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
-    extend_token = request.POST.get('extend_token', False)
+    extend = request.POST.get('extend_token', False)
     friends = [int(fid) for fid in request.POST.getlist('friends[]')]
 
-    single_occurrence_events = {'button_load', 'authorized'}
-    multi_occurrence_events = {
-        'button_click', 'auth_fail', 'select_all_click',
-        'share_click', 'share_fail', 'shared', 'clickback',
-        'suggest_message_click', 'selected_friend', 'unselected_friend',
-        'faces_page_rendered', 'empty_share'
-    }
-    updateable_events = {'heartbeat'}
+    if campaign_id:
+        try:
+            campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
+        except (relational.Campaign.DoesNotExist, ValueError):
+            return http.HttpResponseBadRequest("No such campaign: {}".format(campaign_id))
+    else:
+        campaign = None
 
-    if event_type not in single_occurrence_events | multi_occurrence_events | updateable_events:
-        return http.HttpResponseForbidden(
-            "Ah, ah, ah. You didn't say the magic word"
-        )
+    if event_type not in ALL_EVENTS:
+        return http.HttpResponseForbidden("Ah, ah, ah. You didn't say the magic word")
 
-    logged_events = request.session.setdefault('events', {})
-    app_events = logged_events.setdefault(request.visit.app_id, set())
-    if event_type in single_occurrence_events and event_type in app_events:
-        # Already logged it
-        return http.HttpResponse()
+    # Create event(s) according to record type #
 
-    events = []
-    if friends and event_type not in updateable_events:
-        for friend in friends:
-            events.append(
-                relational.Event(
-                    visit=request.visit,
-                    campaign_id=campaign_id,
-                    client_content_id=content_id,
-                    friend_fbid=friend,
-                    content=content,
-                    activity_id=action_id,
-                    event_type=event_type,
-                )
-            )
-    elif event_type in updateable_events:
-        # This is (currently) just the 'heartbeat' event
+    if event_type in SINGULAR_EVENTS:
         with transaction.commit_on_success():
             # We have no uniqueness constraint to defend against duplicate
             # events created by competing threads, so lock get() via
             # select_for_update:
+            relational.Event.objects.select_for_update().get_or_create(
+                event_type=event_type,
+                visit=request.visit,
+                defaults={
+                    'campaign_id': campaign_id,
+                    'client_content_id': content_id,
+                    'content': content,
+                    'activity_id': action_id,
+                },
+            )
+    elif event_type in UPDATED_EVENTS:
+        # This is (currently) just the 'heartbeat' event
+        with transaction.commit_on_success():
             (event, created) = relational.Event.objects.select_for_update().get_or_create(
                 event_type=event_type,
                 visit=request.visit,
-                defaults={'content': 1}
+                defaults={
+                    'campaign_id': campaign_id,
+                    'client_content_id': content_id,
+                    'content': 1,
+                },
             )
         if not created:
-            # Maybe a count column on events would be useful? Hard to envision
-            # many other events leveraging this
+            if campaign_id and not event.campaign_id:
+                event.campaign_id = campaign_id
+            if content_id and not event.client_content_id:
+                event.client_content_id = content_id
             event.content = F('content') + 1
             event.save()
-    else:
-        events.append(
+    elif friends:
+        db.bulk_create.delay([
             relational.Event(
-                visit=request.visit,
+                visit_id=request.visit.visit_id,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                friend_fbid=friend,
+                content=content,
+                activity_id=action_id,
+                event_type=event_type,
+            )
+            for friend in friends
+        ])
+    else:
+        db.delayed_save.delay(
+            relational.Event(
+                visit_id=request.visit.visit_id,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
                 content=content,
@@ -90,13 +125,7 @@ def record_event(request):
             )
         )
 
-    if events:
-        db.bulk_create.delay(events)
-
-        if event_type in single_occurrence_events:
-            # Prevent dupe logging
-            app_events.add(event_type)
-            request.session.modified = True
+    # Additional, event_type-specific handling #
 
     if event_type == 'authorized':
         try:
@@ -104,29 +133,22 @@ def record_event(request):
             appid = int(app_id)
             token_string = request.POST['token']
         except (KeyError, ValueError, TypeError):
+            fbid = appid = token_string = None
+
+        if not all([fbid, appid, token_string, campaign]):
             msg = (
-                "Cannot write authorization for fbid {!r}, appid {!r} and token {!r}"
-                .format(user_id, app_id, request.POST.get('token'))
+                "Cannot write authorization for fbid {!r}, appid {!r} "
+                "and token {!r} under campaign {!r}"
+                .format(user_id, app_id, request.POST.get('token'), campaign_id)
             )
-            LOG.warning(msg, exc_info=True, extra={'request': request})
+            LOG.warning(msg, extra={'request': request})
             return http.HttpResponseBadRequest(msg)
 
-        try:
-            client = relational.Client.objects.get(campaigns__campaign_id=campaign_id)
-        except relational.Client.DoesNotExist:
-            LOG.exception(
-                "Failed to write authorization for fbid %r and token %r under "
-                "campaign %r for non-existent client",
-                fbid, token_string, campaign_id,
-            )
-            raise
+        campaign.client.userclients.get_or_create(fbid=fbid)
+        if extend:
+            extend_token.delay(fbid, appid, token_string)
 
-        client.userclients.get_or_create(fbid=fbid)
-        if extend_token:
-            token = facebook.client.extend_token(fbid, appid, token_string)
-            token.save(overwrite=True)
-
-    if event_type == 'shared':
+    elif event_type == 'shared':
         # If this was a share, write these friends to the exclusions table so
         # we don't show them for the same content/campaign again
         exclusions = [
@@ -142,6 +164,8 @@ def record_event(request):
         ]
         if exclusions:
             db.get_or_create.delay(relational.FaceExclusion, *exclusions)
+
+    # Additional handling #
 
     error_msg = request.POST.get('errorMsg[message]')
     if error_msg:

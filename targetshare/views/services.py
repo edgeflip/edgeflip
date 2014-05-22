@@ -10,6 +10,7 @@ from django.core.urlresolvers import reverse
 from targetshare import models
 from targetshare.integration import facebook
 from targetshare.tasks import db
+from targetshare.tasks.integration.facebook import store_oauth_token
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
@@ -61,7 +62,8 @@ def outgoing(request, app_id, url):
     # Record event:
     db.delayed_save.delay(
         models.relational.Event(
-            visit=request.visit,
+            visit_id=request.visit.visit_id,
+            campaign_id=(campaign_id or None),
             content=url[:1028],
             event_type='outgoing_redirect',
         )
@@ -75,10 +77,13 @@ def outgoing(request, app_id, url):
 def incoming(request, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     properties = campaign.campaignproperties.get()
-    faces_url = properties.faces_url(content_id)
 
-    if (request.GET.get('error', '') == 'access_denied' and
-            request.GET.get('error_reason', '') == 'user_denied'):
+    if (
+        request.GET.get('error') == 'access_denied' and
+        request.GET.get('error_reason') == 'user_denied'
+    ):
+        # OAuth denial
+        # Record auth fail and redirect to error URL:
         url = "{}?{}".format(
             reverse('outgoing', args=[
                 campaign.client.fb_app_id,
@@ -86,28 +91,63 @@ def incoming(request, campaign_id, content_id):
             ]),
             urllib.urlencode({'campaignid': campaign_id}),
         )
-        db.delayed_save.delay(
+        db.bulk_create.delay([
             models.relational.Event(
-                visit=request.visit,
+                visit_id=request.visit.visit_id,
+                content=url[:1028],
+                event_type='incoming_redirect',
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+            ),
+            models.relational.Event(
+                visit_id=request.visit.visit_id,
                 event_type='auth_fail',
                 content='oauth',
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-            )
-        )
+            ),
+        ])
         return redirect(url)
-    else:
-        # Inherit incoming query string:
-        parsed_url = urlparse.urlparse(faces_url)
-        query_params = '&'.join(part for part in [
-            parsed_url.query,
-            request.META.get('QUERY_STRING', ''),
-        ] if part)
-        url = parsed_url._replace(query=query_params).geturl()
 
+    code = request.GET.get('code')
+    if code:
+        # OAuth permission
+        # Enqueue task to retrieve token & fbid and record auth, and continue
+
+        # Rebuild OAuth redirect uri from request, removing FB junk:
+        redirect_query = request.GET.copy()
+        for key in ('code', 'error', 'error_reason', 'error_description'):
+            try:
+                del redirect_query[key]
+            except KeyError:
+                pass
+
+        if redirect_query:
+            redirect_path = "{}?{}".format(request.path, redirect_query)
+        else:
+            redirect_path = request.path
+
+        store_oauth_token.delay(
+            campaign.client_id,
+            code,
+            request.build_absolute_uri(redirect_path),
+            visit_id=request.visit.visit_id,
+            campaign_id=campaign_id,
+            content_id=content_id,
+        )
+
+    # Record event and redirect to the campaign faces URL
+    # (with inheritance of incoming query string)
+    faces_url = properties.faces_url(content_id)
+    parsed_url = urlparse.urlparse(faces_url)
+    query_params = '&'.join(part for part in [
+        parsed_url.query,
+        request.META.get('QUERY_STRING', ''),
+    ] if part)
+    url = parsed_url._replace(query=query_params).geturl()
     db.delayed_save.delay(
         models.relational.Event(
-            visit=request.visit,
+            visit_id=request.visit.visit_id,
             content=url[:1028],
             event_type='incoming_redirect',
             campaign_id=campaign_id,

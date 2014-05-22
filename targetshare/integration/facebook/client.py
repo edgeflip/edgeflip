@@ -1,6 +1,5 @@
 import sys
 import time
-import datetime
 import urllib
 import urllib2
 import urlparse
@@ -263,47 +262,16 @@ def _urlload_thread(url, query=(), results=None):
 
 
 def extend_token(fbid, appid, token):
-    """Extend lifetime of a user token from FB."""
+    """Exchange a short-lived FB user token for an extended token."""
     url = 'https://graph.facebook.com/oauth/access_token?' + urllib.urlencode({
         'grant_type': 'fb_exchange_token',
         'fb_exchange_token': token,
         'client_id': appid,
         'client_secret': settings.FACEBOOK.secrets[str(appid)],
     })
-    ts = time.time()
-
-    # Unfortunately, FB doesn't seem to allow returning JSON for new tokens,
-    # even if you try passing &format=json in the URL.
-    try:
-        with closing(urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)) as response:
-            params = urlparse.parse_qs(response.read())
-        token1 = params['access_token'][0]
-        expires = int(params['expires'][0])
-        LOG.debug("Extended access token %s expires in %s seconds", token1, expires)
-        expires1 = ts + expires
-    except (IOError, IndexError, KeyError) as exc:
-        if hasattr(exc, 'read'): # built-in hasattr won't overwrite exc_info
-            error_response = exc.read()
-        else:
-            error_response = ''
-        LOG.warning(
-            "Failed to extend token %s%s",
-            token,
-            error_response and ': %r' % error_response,
-            exc_info=True,
-        )
-        token1 = token
-        expires1 = ts
-
-    return dynamo.Token(
-        fbid=fbid,
-        appid=appid,
-        expires=timezone.make_aware(
-            datetime.datetime.utcfromtimestamp(expires1),
-            timezone.utc
-        ),
-        token=token1,
-    )
+    request = urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)
+    with closing(request) as response:
+        return dict(urlparse.parse_qsl(response.read()))
 
 
 def get_user(uid, token):
@@ -483,7 +451,7 @@ def _get_friend_edges_simple(user, token):
             fbid_target=user.fbid,
             photos_target=primary_photo_tags,
             photos_other=other_photo_tags,
-            mut_friends=rec['mutual_friend_count'],
+            mut_friends=rec['mutual_friend_count'] or 0, #FIXME: Temporary hack to get around null counts
         )
 
         friends.add(friend.fbid)
@@ -493,25 +461,26 @@ def _get_friend_edges_simple(user, token):
     return network
 
 
-def verify_oauth_code(fb_app_id, code, redirect_uri):
-    url_params = {
-        'client_id': fb_app_id,
-        'redirect_uri': redirect_uri,
-        'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
-        'code': code
-    }
-    try:
-        resp = requests.get(
-            'https://graph.facebook.com/oauth/access_token',
-            params=url_params
-        )
-    except requests.exceptions.RequestException:
-        token = None
-    else:
-        token = urlparse.parse_qs(resp.content).get('access_token')
+def get_oauth_token(fb_app_id, code, redirect_uri):
+    response = requests.get(
+        'https://graph.facebook.com/oauth/access_token',
+        params={
+            'client_id': fb_app_id,
+            'redirect_uri': redirect_uri,
+            'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
+            'code': code
+        }
+    )
+    response.raise_for_status()
+    return dict(urlparse.parse_qsl(response.content))
 
-    token = token[0] if token else None
-    return token is not None
+
+def debug_token(appid, token):
+    secret = settings.FACEBOOK.secrets[str(appid)]
+    return urlload('https://graph.facebook.com/debug_token', {
+        'access_token': "{}|{}".format(appid, secret),
+        'input_token': token,
+    })
 
 
 class Stream(list):

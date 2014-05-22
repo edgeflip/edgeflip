@@ -1,0 +1,79 @@
+<div class="row">
+    <div class="span12">
+        <div class="row targeting-header">
+
+            <div class="filter-info-item">
+                <h5>What audience would you like to target ?</h5>
+                <p>
+                    When your supporters share your campaign with their Facebook friends, we will present them with a list of friend
+                    suggestions based on criteria you select below.
+                </p>
+                <p>
+                    To add filter criteria to your campaign, simply drag one or more filters from the "Available Filters" container to
+                    one of the layers under the "Enabled Filters" heading. If you don't see the filter you want to use, click the "Add Filter" button to add a new one.
+                </p>
+            </div>
+            
+            <div class="filter-info-item">
+                <h5>How it works</h5>
+                <p>Multiple filters in a single layer will be chained together with "and". For example, if you put the following four filters -- 
+                   'gender eq Male', 'age min 22', 'age max 30', and 'state eq New York' -- into a single layer, you will be targeting
+                    <i>22-30 year-old men living in New York state</i>.
+                </p>
+                <p>We highly recommend adding multiple layers to your criteria. To add a layer, click the "Add Layer" button to the right of the Enabled Filters header.</p>
+                <p>
+                    Additional layers might target different audiences, or else they might provide a less restrictive "fallback" layer to make sure
+                    that every supporter sees some friend suggestions when they share your Facebook post. In our example from above, a Layer 2
+                    fallback criteria might be <i>22-30 year-old men</i>.  If that is still too restrictive, a third layer targeting only <i>men</i> might be added.
+                </p>
+                <p>As always, feel free to contact us for assistance.</p>
+            </div>
+        </div>
+        <div id="enabled-section" class="row">
+            <h3>Enabled Filters <a href="#" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</a></h3>
+            <h6>Top Layer</h6>
+            <div class="clearfix">
+                <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
+                <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
+            </div>
+        </div>
+        <div id="available-section" class="row">
+            <h3>Available Filters <a data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</a></h3>
+            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
+                {% for ff in filter_features %}
+                    <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
+                        <p>
+                            <abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">
+                                {{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}
+                            </abbr>
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="row empty-fallback">
+            {{ campaign_form.include_empty_fallback.errors }}
+            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+            {{ campaign_form.include_empty_fallback }}
+            {% if campaign_form.include_empty_fallback.help_text %}
+                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+            {% endif %}
+        </div>
+        <div class="row wizard-button-container">
+            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</a>
+            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="intro">Previous</a>
+        </div>
+    </div>
+</div>
+<div id="filter-modal" class="modal hide fade" tabindex="-1" role="dialog">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="filter-modal-label">Create Filter</h3>
+    </div>
+    <div class="modal-body">
+    </div>
+    <div class="modal-footer">
+        <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        <button id="filter-add" class="btn btn-primary">Save changes</button>
+    </div>
+</div>

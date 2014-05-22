@@ -73,13 +73,14 @@ def random_assign(sequence):
     raise CDFProbsError("Math must be broken if we got here...")
 
 
-def encodeDES(message):
+def encodeDES(message, quote=True):
     """Encrypt a message with DES cipher, returning a URL-safe, quoted string"""
     message = str(message)
     encrypted = cipher.encrypt(pad(message))
     b64encoded = base64.urlsafe_b64encode(encrypted)
-    encoded = urllib.quote(b64encoded)
-    return encoded
+    if quote:
+        return urllib.quote(b64encoded)
+    return b64encoded
 
 
 def decodeDES(encoded):
@@ -225,9 +226,7 @@ partition_edges = functools.partial(partition,
 
 
 def incoming_redirect(is_secure, host, campaign_id, content_id):
-    return urllib.quote_plus('{}{}{}'.format(
-        'https://' if is_secure else 'http://',
-        host,
-        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (
-            campaign_id, content_id))])
-    ))
+    protocol = 'https://' if is_secure else 'http://'
+    slug = encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
+    path = reverse('incoming-encoded', args=(slug,))
+    return protocol + host + path

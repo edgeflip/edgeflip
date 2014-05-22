@@ -1,0 +1,507 @@
+/*
+darkblue = #094163
+hoverblue = #0cf;
+gold: #ffa629
+grey: #c4c4c4;
+black: #272727;
+red: #cc3b3b;
+*/
+
+body {
+    font-family: Arial;
+}
+
+.page-header {
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 20px;
+    border: none;
+    font-weight: 300;
+    letter-spacing: 1px;
+}
+
+.page-header-information {
+    text-align: center;
+    margin: 20px 0px;
+    font-size: medium;
+}
+
+.name-input-label {
+    padding: 20px 0px 20px 0px;
+    text-align: center;
+    font-size: large;
+}
+
+.name-input-container {
+    text-align: center;
+}
+
+.name-input-container input {
+    padding: 10px;
+    width: 400px;
+    font-size: x-large;
+    text-align: center;
+    color: black;
+    height: 30px;
+    line-height: 30px;
+}
+
+.wizard-button-container {
+    text-align: center;
+    margin-top: 50px;
+}
+
+.fb-obj-header,
+.faces-header {
+    margin-bottom: 40px;
+}
+
+.fb-obj-header h4,
+.faces-header h4 {
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.fb-obj-header p,
+.faces-header p {
+}
+
+.page-sub-header {
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.icon-question-sign {
+    vertical-align: middle;
+}
+
+.img-helper-wrapper {
+    position: relative;
+    top: 0px;
+}
+
+.img-helper {
+    height: 100%;
+}
+
+.suggested-message-container {
+    width: 80%;
+    padding-bottom: 10px;
+    margin-bottom: 50px;
+}
+
+.suggested-message-container p {
+    text-align: center;
+}
+
+.suggested-message-container .fb-obj-item {
+    margin-bottom: 30px;
+}
+
+.suggested-message-container .fb-obj-item input {
+    width: 100%;
+}
+
+.suggested-message-container h4 {
+    text-align: center;
+}
+
+.fb-obj-group:last-child h5 {
+    margin-top: 30px;
+}
+
+.fb-obj-group h5 {
+    margin-top: 10px;
+    width: 80%;
+}
+
+.fb-obj-item {
+    margin-bottom: 40px;
+}
+
+.fb-obj-item label {
+    font-size: medium;
+    text-transform: uppercase;
+    display: inline-block;
+}
+
+.fb-obj-item input {
+    padding: 8px;
+    font-size: medium;
+    font-weight: bold;
+    width: 80%;
+}
+
+.fb-obj-item textarea {
+    padding: 8px;
+    font-size: medium;
+    width: 80%;
+}
+
+.fb-obj-item:last-child {
+    margin-bottom: 0px;
+ }
+
+.step-submit {
+    margin-right: 50px;
+}
+
+.fb-obj-info-item p {
+    text-align: center;
+}
+
+.filter-info-item {
+    margin-top: 40px;
+}
+
+.filter-info-item:first-child {
+    margin-top: 0px;
+}
+
+.filter-info-item > div,
+.filter-info-item > h5 {
+    text-align: center;
+    text-transform: uppercase;
+    font-size: medium;
+}
+
+.filter-info-item p {
+    font-size: medium;
+}
+
+#available-section h3,
+#enabled-section h3 {
+    text-transform: uppercase;
+}
+
+#enabled-section h6 {
+    text-transform: uppercase;
+}
+
+#available-section a,
+#enabled-section a {
+    vertical-align: bottom;
+    margin: 10px;
+    text-transform: none;
+}
+
+#fb-obj-input-wrapper label {
+    display: inline-block;
+}
+
+.popover.invalid-input-message {
+    background-color: #cc3b3b;
+    color: white;
+    font-size: x-small;
+    border-color: transparent;
+}
+
+.popover.invalid-input-message .arrow {
+    border-color: transparent !important;
+}
+
+.popover.invalid-input-message .popover-content {
+    padding: 5px 10px;
+}
+
+#location-options-container .popover {
+    font-size: small;
+    background-color: white;
+    color: #094163;
+}
+
+#location-options-container .popover.right .arrow:after {
+    border-right-color: white;
+}
+#location-options-container .popover.bottom .arrow:after {
+    border-bottom-color: white;
+}
+#location-options-container .popover.top .arrow:after {
+    border-top-color: white;
+}
+#location-options-container .popover.left .arrow:after {
+    border-left-color: white;
+}
+
+#location-options-container .popover:hover {
+    cursor: pointer;
+}
+
+.popover.invalid-input-message:hover {
+    border-color: white;
+    cursor: pointer;
+}
+
+.popover.invalid-input-message.right .arrow:after {
+    border-right-color: #cc3b3b;
+}
+
+.popover.invalid-input-message.bottom .arrow:after {
+    border-bottom-color: #cc3b3b;
+}
+
+.popover.invalid-input-message.left .arrow:after {
+    border-left-color: #cc3b3b;
+}
+
+.popover.invalid-input-message.top .arrow:after {
+    border-top-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.right .arrow:after {
+    border-right-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.left .arrow:after {
+    border-left-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.bottom .arrow:after {
+    border-bottom-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.top .arrow:after {
+    border-top-color: #cc3b3b;
+}
+
+.popover.invalid-input-message:hover.right .arrow {
+    border-right-color: white;
+}
+
+.popover.invalid-input-message:hover.left .arrow {
+    border-left-color: white;
+}
+
+.popover.invalid-input-message:hover.bottom .arrow {
+    border-bottom-color: white;
+}
+
+.popover.invalid-input-message:hover.top .arrow {
+    border-top-color: white;
+}
+
+.popover {
+    color: white;
+    font-weight: bold;
+    background-color: #094163;
+    border-color: #0cf;
+}
+
+.popover.right .arrow:after {
+    border-right-color: #094163;
+}
+
+.popover.bottom .arrow:after {
+    border-bottom-color: #094163;
+}
+
+.popover.left .arrow:after {
+    border-left-color: #094163;
+}
+
+.popover.top .arrow:after {
+    border-top-color: #094163;
+}
+
+.popover.right .arrow {
+    border-right-color: #0cf;
+}
+
+.popover.bottom .arrow {
+    border-bottom-color: #0cf;
+}
+
+.popover.left .arrow {
+    border-left-color: #0cf;
+}
+
+.popover.top .arrow {
+    border-top-color: #0cf;
+}
+
+.invalid-input-popover,
+#fb-obj-input-popover,
+#input-popover,
+#faces-img-popover,
+#fb-obj-popover {
+    position: absolute;
+}
+
+.add-filter-row {
+    margin: 0px;
+}
+
+.filter-selection-col {
+    width: 50%;
+    float: left;
+}
+
+.filter-builder-col {
+    display: none;
+    width: 50%;
+    float: left;
+}
+
+.text-input-list {
+    max-width: 230px;
+    width: 90%;
+    float: left;
+}
+
+.filter-val-input {
+    width: 90%;
+    max-width: 206px;
+}
+
+.add-input-container {
+    width: 10%;
+    float: left;
+    padding: 4px 0px;
+    position: relative;
+}
+
+#location-options-container {
+    margin-bottom: 30px;
+}
+
+.draggable.ui-sortable-helper {
+    background-color: rgba(255, 166, 41, 0.3);
+}
+
+.draggable {
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 5px;
+    padding-left: 2px;
+    padding-top: 2px;
+    height: 50px;
+    margin-left: 10px;
+    margin-top: 10px;
+    text-align: center;
+}
+
+.draggable:hover {
+    background-color: rgba(255, 166, 41, 0.1);
+}
+
+.draggable:hover,
+.draggable p:hover,
+.draggable p abbr:hover {
+    cursor: move;
+}
+
+.draggable p {
+    display: table;
+    margin 0px !important;
+    height: 100%;
+    width: 100%;
+}
+
+.draggable p abbr {
+    display: table-cell;
+    vertical-align: middle;
+    border-bottom: none;
+}
+
+.form-error {
+    display: none;
+}
+
+.empty-fallback {
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.empty-fallback label {
+    display: inline-block;
+    font-size: large;
+}
+
+.empty-fallback input {
+    margin: 0px 10px;
+}
+
+#age-range:hover {
+    cursor: pointer;
+}
+
+#add-location-filter {
+    display: inline-block;
+    text-shadow: none;
+    color: black;
+    margin-top: 20px;
+}
+
+.filter-or {
+    padding-left: 10px;
+    color: lightgray;
+}
+
+.location-filter-value {
+    float: left;
+    width: 90%;
+}
+
+.remove-filter-item {
+    float: right;
+    width: 10%;
+}
+
+.remove-filter-item:hover {
+    cursor: pointer;
+    color: red;
+}
+
+#intro-carousel {
+    border: 1px solid gray;
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#intro-carousel img:hover {
+    cursor: pointer;
+}
+
+#intro-carousel img {
+    height: 100%;
+    margin: 0 auto;
+}
+
+.carousel-inner {
+    height: 100%;
+}
+
+.carousel-inner > .item {
+    height: 100%;
+}
+
+.carousel-caption {
+    top: 0;
+    bottom: auto !important;
+}
+
+#campaign-name-modal .modal-footer .step-submit {
+    margin-right: 0px;
+}
+
+#campaign-name-modal .modal-footer {
+    text-align: center; 
+}
+
+.modal-header h3 {
+    text-align: center;
+}
+
+.new-filters label {
+    font-size: large;
+    letter-spacing: 1px;
+}
+
+.new-filters p {
+    margin-bottom: 20px;
+}
+
+#state-container,
+#city-container {
+    margin-top: 20px;
+}

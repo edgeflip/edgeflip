@@ -12,6 +12,7 @@ urlpatterns = patterns('',
     url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
     url(r'^subscriptions/', include('feed_crawler.urls', namespace='feed-crawler')),
     url(r'^reporting/', include('reporting.urls', namespace='reporting')),
+    url(r'^r/', include('chapo.urls', namespace='chapo')),
 )
 
 if settings.ENV in ('development', 'staging'):
@@ -22,4 +23,8 @@ if settings.ENV in ('development', 'staging'):
     )
 
 if settings.ENV == 'development':
-    urlpatterns += jspatterns('js/router-map.js', profile='gimmick')
+    urlpatterns += (
+        jspatterns('js/router.js', profile='sharing') +
+        jspatterns('js/router-map.js', profile='gimmick') +
+        jspatterns('js/router-reports.js', profile='reporting')
+    )

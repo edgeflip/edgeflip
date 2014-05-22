@@ -1,5 +1,5 @@
 from django.http import HttpResponse
-import json 
+import json
 
 # taken from https://docs.djangoproject.com/en/1.5/topics/db/sql/#executing-custom-sql-directly
 def dictfetchall(cursor):
@@ -7,16 +7,29 @@ def dictfetchall(cursor):
     columns = [col[0] for col in cursor.description]
     return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
-def isoformat_row(row, keys=['time',]):
-    row = dict(row)
+def isoformat_dict(dictionary, keys=['time',]):
     for key in keys:
-        row[key] = row[key].isoformat() if row[key] else None
+        dictionary[key] = dictionary[key].isoformat() if dictionary[key] else None
+    return dictionary
+
+
+def isoformat_row(row, indices):
+    for index in indices:
+        row[index] = row[index].isoformat()
     return row
 
-def run_safe_query(cursor, query, args):
+
+def run_safe_dict_query(cursor, query, args):
     try:
         cursor.execute(query, args)
         return dictfetchall(cursor)
+    finally:
+        cursor.close()
+
+def run_safe_row_query(cursor, query, args):
+    try:
+        cursor.execute(query, args)
+        return [list(row) for row in cursor.fetchall()]
     finally:
         cursor.close()
 

@@ -22,7 +22,6 @@ var faceFriends = [
     {% endfor %}
 ].slice({{ num_face }});
 
-
 function getRecipElts() {
     return $('#message_form_editable .recipient');
 }
@@ -153,8 +152,12 @@ function selectFriend() {
         // we didn't do anything
         return false;
 
-    if (edgeflip.faces.debug)
-        edgeflip.events.record('selected_friend', {friends: novelIds});
+    if (edgeflip.faces.debug) {
+        var selection_type = 'selected_friend';
+        if (novelIds.length === 1 && document.getElementById('wrapper-' + novelIds[0]) === null) 
+            selection_type = 'manually_selected_friend';
+        edgeflip.events.record(selection_type, {friends: novelIds});
+    }
 
     return true;
 }
@@ -170,7 +173,11 @@ function unselectFriend(fbid) {
         syncFriendBoxes();
         reformatRecipsList();
         if (edgeflip.faces.debug) {
-            edgeflip.events.record('unselected_friend', {friends: [fbid]});
+            var unselection_type = 'unselected_friend';
+            if (document.getElementById('wrapper-' + fbid) === null)
+                unselection_type = 'manually_unselected_friend';
+
+            edgeflip.events.record(unselection_type, {friends: [fbid]});
         }
         return true;
     } else {
@@ -354,13 +361,15 @@ function selectAll(skipRecord) {
         divs = $(".friend_box:visible"),
         count = getRecipFbids().length;
     for (var i = 0; i < divs.length; i++) {
-        if (!isRecip(fbid)) count++;
-        if (count >= 10) {
+        if (count >= edgeflip.faces.max_face) {
             alert("Sorry: only ten friends can be tagged.");
             break;
         }
         fbid = parseInt(divs[i].id.split('-')[1]);
         fbids.push(fbid);
+        if (!isRecip(fbid)) {
+            count++;
+        }
     }
     selectFriend.apply(this, fbids);
 }
@@ -485,7 +494,7 @@ function sendShare() {
                         alert("Sorry. An error occured sending your message to facebook. Please try again later.");
                         outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
                     }
-		});
+                });
             } else {
                 // thank you page redirect happens in recordShare()
                 recordShare(response.id, msg, recips);
@@ -496,7 +505,7 @@ function sendShare() {
 
 /* hits facebook API */
 // Called when someone actually shares a message
-function doShare() {
+function doShare(recursive) {
 
     if (edgeflip.faces.test_mode) {
         alert("Sharing is not allowed in test mode!");
@@ -514,27 +523,45 @@ function doShare() {
             return;
         }
     }
-    edgeflip.events.record('share_click');
-    FB.login(function(request){ 
-        sendShare();
+    if (!recursive)
+        // In case the user is indecisive about publishing, let's only record
+        // share_click once.
+        edgeflip.events.record('share_click');
+
+    FB.login(function(response) {
+        // FB.login will tell you if a user is authorized but will not tell 
+        // you which permissions they have granted us.
+        var perm_check = $.ajax({
+            url: 'https://graph.facebook.com/' + edgeflip.faces.user.fbid + '/permissions/',
+            data: {access_token: edgeflip.faces.user.token}
+        });
+        perm_check.done(function(resp) {
+            if (resp.data[0].publish_actions) {
+                edgeflip.events.record('publish_accepted'); 
+                sendShare();
+            } else {
+                edgeflip.events.record('publish_declined');
+                if (confirm("Without permission to publish, we're unable to share this message with your friends. \n\nClick OK to grant permission, or CANCEL to leave the page")) {
+                    edgeflip.events.record('publish_reminder_accepted');
+                    doShare(true);
+                } else {
+                    edgeflip.events.record('publish_reminder_declined', {
+                        complete: function() {
+                            outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
+                        }
+                    });
+                }
+            }
+        });
+        perm_check.fail(function(resp, textStatus) {
+            edgeflip.events.record('publish_unknown', {
+                content: textStatus,
+                errorMsg: textStatus
+            });
+            sendShare();
+        });
     }, {scope: "publish_actions"});
 }
-
-var outgoingRedirect = function(url) {
-    var origin, redirectUrl = url;
-    if (/^\/([^\/]|$)/.test(url)) {
-	/* The "URL" begins with a single forward slash;
-	 * treat it as a full path.
-	 * Most browsers understand what we "mean", that the top frame's
-	 * URL should be thanksURL relative to our context; but,
-	 * understandably, IE does not.
-	 */
-	// Nor does IE support location.origin:
-	origin = window.location.protocol + '//' + window.location.host;
-	redirectUrl = origin + url;
-    }
-    top.location = redirectUrl;
-};
 
 
 function recordShare(actionid, shareMsg, recips) {
@@ -635,3 +662,5 @@ $(document).ready(function() {
 }); // document ready
 
 
+// This line makes this file show up properly in the Chrome debugger
+//# sourceURL=faces_and_msg.js

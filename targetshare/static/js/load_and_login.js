@@ -13,6 +13,7 @@ edgeflip.faces = (function (edgeflip, $) {
         self.campaignid = options.campaignid;
         self.contentid = options.contentid;
         self.num_face = options.num_face || 9;
+        self.max_face = 10;
         self.test_fbid = self.test_mode ? options.test_fbid : null;
         self.test_token = self.test_mode ? options.test_token : null;
 
@@ -81,7 +82,7 @@ edgeflip.faces = (function (edgeflip, $) {
                     your_friends_div.show();
                     progress.hide();
                     clearTimeout(self.pollingTimer_);
-                    top.location = self.errorURL;
+                    outgoingRedirect(self.errorURL);
                 },
                 success: function(data, textStatus, jqXHR) {
                     self.campaignid = data.campaignid;
@@ -146,3 +147,20 @@ function displayFriendDiv(data, jqXHR) {
     $('#progress').hide();
     $('#do_share_button').show()
 }
+
+
+var outgoingRedirect = function(url) {
+    var origin, redirectUrl = url;
+    if (/^\/([^\/]|$)/.test(url)) {
+        /* The "URL" begins with a single forward slash;
+        * treat it as a full path.
+        * Most browsers understand what we "mean", that the top frame's
+        * URL should be thanksURL relative to our context; but,
+        * understandably, IE does not.
+        */
+        // Nor does IE support location.origin:
+        origin = window.location.protocol + '//' + window.location.host;
+        redirectUrl = origin + url;
+    }
+    top.location = redirectUrl;
+};
