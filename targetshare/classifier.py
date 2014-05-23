@@ -15,7 +15,15 @@ import csv
 import itertools
 import re
 
+import boto
+from django.conf import settings
+
 from targetshare.utils import atan_norm
+
+
+def _iter_strip(iterable):
+    for item in iterable:
+        yield item.strip()
 
 
 class SimpleWeights(dict):
@@ -32,7 +40,7 @@ class SimpleWeights(dict):
 
         def __new__(cls, phrase, weight, skip, pattern=None):
             if pattern is None:
-                space_optional = re.sub(r'\s+', r'\s*', phrase)
+                space_optional = re.sub(r'\s+', r'(?:-|\s+)?', phrase)
                 pattern = re.compile(r'\b{}\b'.format(space_optional), re.I)
             return super(SimpleWeights.PhraseWeight, cls).__new__(cls, phrase, weight, skip, pattern)
 
@@ -65,10 +73,10 @@ class SimpleWeights(dict):
         start = next(reader)
         if any(value != column_name for (column_name, value) in itertools.izip(cls.COLUMNS, start)):
             # No header, this looks like a data row
-            yield start
+            yield _iter_strip(start)
 
         for row in reader:
-            yield row
+            yield _iter_strip(row)
 
     @classmethod
     def load(cls, handle):
@@ -106,5 +114,29 @@ class SimpleWeights(dict):
         """
         return {topic: atan_norm(score) for (topic, score) in self.iter_topics(corpus, *topics)}
 
-SIMPLE_WEIGHTS = SimpleWeights.load(open('topics.csv')) # FIXME
+
+def s3_key_xreadlines(bucket_name='ef-techops', key_name='data/topics.csv'):
+    if not (settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY):
+        return
+
+    conn = boto.connect_s3(settings.AWS_ACCESS_KEY_ID, settings.AWS_SECRET_ACCESS_KEY)
+    bucket = conn.get_bucket(bucket_name, validate=False)
+    key = bucket.get_key(key_name) # FIXME: upgrade boto and use validate=False?
+
+    # Re-chunk by line:
+    line = ''
+    for chunk in key:
+        for byte in chunk:
+            line += byte
+            if byte == '\n':
+                yield line
+                line = ''
+
+    # Yield any remainder (for files that do not end with newline):
+    if line:
+        yield line
+
+
+SIMPLE_WEIGHTS = SimpleWeights.load(s3_key_xreadlines()) # TODO: improve process?
+
 classify = SIMPLE_WEIGHTS.classify
