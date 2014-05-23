@@ -1,9 +1,9 @@
-"""Functional RuleSet for the classification of a given corpus.
+"""Quick-and-dirty text classifier based on phrase weights in CSV.
 
 For example::
 
-    classify.apply('A pudding cup is the perfect lunch idea or '
-                   'wholesome snack for your kids.')
+    classify('A pudding cup is the perfect lunch idea or '
+             'wholesome snack for your kids.')
 
 might result in::
 
@@ -11,160 +11,100 @@ might result in::
 
 """
 import collections
-import functools
-import numbers
+import csv
+import itertools
+import re
 
 from targetshare.utils import atan_norm
-from targetshare.utils.rule import context
 
 
-def reduce_topics(results):
-    """Reduce the results of the classification rule set to a dictionary of
-    normalized weights.
+class SimpleWeights(dict):
 
-    [('topic', 0.44), ...] => {'topic': 0.012, ...}
+    __slots__ = ()
 
-    For use as the `RuleSet.resolve` postprocessor of `classify`.
+    COLUMNS = ('topic', 'phrase', 'weight', 'skip')
 
-    """
-    scores = collections.defaultdict(int)
-    for result in results:
-        for (topic, score) in result:
-            scores[topic] += score
-    return {topic: atan_norm(score) for (topic, score) in scores.iteritems()}
+    AbstractPhraseWeight = collections.namedtuple('AbstractPhraseWeight', COLUMNS[1:] + ('pattern',))
 
+    class PhraseWeight(AbstractPhraseWeight):
 
-@context(decision_required=False, multiple_decisions=True, resolve=reduce_topics)
-def classify(corpus, topic=None):
-    """Classify the given corpus, according to the RuleSet's classification
-    rules, returning the content's topics and their normalized weights.
+        __slots__ = ()
 
-        corpus: a string of content to classify
-        topic: a topic string or sequence of topic strings to which to limit
-            classification (optional)
+        def __new__(cls, phrase, weight, skip, pattern=None):
+            if pattern is None:
+                space_optional = re.sub(r'\s+', r'\s*', phrase)
+                pattern = re.compile(r'\b{}\b'.format(space_optional), re.I)
+            return super(SimpleWeights.PhraseWeight, cls).__new__(cls, phrase, weight, skip, pattern)
 
-    Returns a dict of topics and their normalized weights.
+        def __repr__(self):
+            return '<{}: {!r} [{}]>'.format(
+                self.__class__.__name__,
+                self.phrase,
+                'SKIP' if self.skip else self.weight,
+            )
 
-    For example::
+        def get_phrase_weight(self, corpus):
+            count = 0
 
-        classify.apply('fiber')
+            for match in self.pattern.finditer(corpus):
+                if self.skip:
+                    raise SimpleWeights.SkipPhrase(self.phrase, match)
 
-    might result in::
+                count += self.weight
 
-        {'health': 0.125}
+            return count
 
-    """
-    # Return a mapping for use in initializing the RuleSet/context
-    if isinstance(topic, basestring):
-        topics = {topic}
-    elif topic is None or isinstance(topic, set):
-        topics = topic
-    else:
-        topics = set(topic)
+    class SkipPhrase(Exception):
+        pass
 
-    return {'corpus': corpus, 'topics': topics}
+    @classmethod
+    def _read(cls, handle):
+        reader = csv.reader(handle)
 
+        # Check for header row:
+        start = next(reader)
+        if any(value != column_name for (column_name, value) in itertools.izip(cls.COLUMNS, start)):
+            # No header, this looks like a data row
+            yield start
 
-All = object()
+        for row in reader:
+            yield row
 
-WEIGHT_TYPES = (numbers.Number, basestring)
+    @classmethod
+    def load(cls, handle):
+        self = cls()
 
+        for (topic, phrase, weight, skip) in cls._read(handle):
+            weight = float(weight) if weight else None
+            skip = bool(int(skip))
+            phrase_list = self.setdefault(topic, [])
+            phrase_list.append(cls.PhraseWeight(phrase, weight, skip))
 
-def classifier(func=None, topics=None):
-    """Decorator (factory) for classification rules.
+        return self
 
-    Extends `classify.rule` to skip classifiers for deselected topics and
-    ensure the structure of their results.
+    def iter_topics(self, corpus, *topics):
+        for topic in (topics or self.iterkeys()):
+            weight = 0
+            for phrase_info in self.get(topic, ()):
+                try:
+                    weight += phrase_info.get_phrase_weight(corpus)
+                except self.SkipPhrase:
+                    yield (topic, 0)
+                    break
+            else:
+                yield (topic, weight)
 
-    Rules specify the topics they identify with the `topics` argument, which may
-    be `All`. If unspecified, `topics` is the name of the rule.
+    def classify(self, corpus, *topics):
+        """Classify `corpus` based on number of occurrences of words and phrases, and their
+        weights, in the SimpleWeights dictionary.
 
-    Rules named after the topic they identify may merely return the corpus's
-    weight in that topic. Otherwise, rules must return the pair `(TOPIC, WEIGHT)`,
-    or a stream of such pairs.
+        By default, `corpus` is classified for all topics for which there are weights.
+        Alternatively, topics may be specified as arbitrary arguments:
 
-    """
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapped(context):
-            name = func.__name__
-            if (
-                context.topics is None or
-                topics is All or
-                (topics is None and name in context.topics) or
-                (topics and context.topics.intersection(topics))
-            ):
-                result = func(context)
-                if not result:
-                    return ()
-                elif isinstance(result, WEIGHT_TYPES):
-                    return [(name, result)]
-                elif (
-                    isinstance(result, (tuple, list)) and
-                    len(result) == 2 and
-                    isinstance(result[1], WEIGHT_TYPES)
-                ):
-                    return [result]
-                else:
-                    return result
+            SIMPLE_WEIGHTS.classify(corpus, 'healthcare', 'cooking', ...)
 
-        return classify.rule(wrapped)
+        """
+        return {topic: atan_norm(score) for (topic, score) in self.iter_topics(corpus, *topics)}
 
-    if func:
-        return decorator(func)
-    return decorator
-
-
-# TODO: map dumb csv to:
-SIMPLE_WEIGHTS = {
-    'health': {
-        'weights': {'fiber': 0.4, 'calories': 0.4, 'breast cancer': 0.1},
-        'skip': (),
-    },
-    'lgbt': {
-        'weights': {'gay pride': 0.8},
-        'skip': ('chicago bears',),
-    }
-}
-
-
-@classifier(topics=All)
-def simple_map(context):
-    """Classify corpus based on number of occurrences of words and phrases, and their
-    weights, in the SIMPLE_WEIGHTS dictionary.
-
-    """
-    topics = SIMPLE_WEIGHTS.iterkeys() if context.topics is None else context.topics
-    for topic in topics:
-        try:
-            topic_weights = SIMPLE_WEIGHTS[topic]
-        except KeyError:
-            continue
-
-        skip = topic_weights.get('skip', ())
-        if any(phrase in context.corpus for phrase in skip):
-            continue
-
-        count = 0
-        weights = topic_weights.get('weights', {})
-        for (phrase, weight) in weights.iteritems():
-            count += context.corpus.count(phrase) * weight
-
-        if count:
-            yield (topic, count)
-
-
-# Fake/example rules #
-
-# @classifier
-# def sports(context):
-#     if 'football' in context.corpus.lower():
-#         return '1.0'
-
-
-# @classifier
-# def health(context):
-#     if 'calories' in context.corpus.lower():
-#         return '1.0'
-#     if 'fiber' in context.corpus.lower():
-#         return '0.5'
+SIMPLE_WEIGHTS = SimpleWeights.load(open('topics.csv')) # FIXME
+classify = SIMPLE_WEIGHTS.classify
