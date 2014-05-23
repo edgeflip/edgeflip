@@ -10,7 +10,7 @@ define( [ 'jquery' ], function( $ ) {
             bodyHeight: undefined,
             windowHeight: undefined,
             windowWidth: undefined,
-            navbarHeight: $('.navbar').outerHeight( true ),
+            navbarHeight: undefined,
             scrollTop: undefined,
             maxScroll: undefined
         } );
@@ -19,7 +19,10 @@ define( [ 'jquery' ], function( $ ) {
         this.window.on( 'scroll', function() { self.getScrollPosition() } );
     
         this.computeSizes();
-        $( function() { self.computeSizes(); } );
+
+        $( function() {
+            self.computeSizes();
+            self.navbarHeight = $('.navbar-nav').outerHeight( true ) } );
     };
 
     $.extend( util.prototype, {

@@ -112,6 +112,35 @@
 #intro .modal-footer {
   text-align: center;
 }
+#filters .popover {
+  color: #ffffff;
+  background-color: #094163;
+  border-color: #00ccff;
+}
+#filters .popover.right .arrow:after {
+  border-right-color: #094163;
+}
+#filters .popover.bottom .arrow:after {
+  border-bottom-color: #094163;
+}
+#filters .popover.left .arrow:after {
+  border-left-color: #094163;
+}
+#filters .popover.top .arrow:after {
+  border-top-color: #094163;
+}
+#filters .popover.right .arrow {
+  border-right-color: #00ccff;
+}
+#filters .popover.bottom .arrow {
+  border-bottom-color: #00ccff;
+}
+#filters .popover.left .arrow {
+  border-left-color: #00ccff;
+}
+#filters .popover.top .arrow {
+  border-top-color: #00ccff;
+}
 #filters #enabled-section h6,
 #filters #available-section h3,
 #filters #enabled-section h3 {

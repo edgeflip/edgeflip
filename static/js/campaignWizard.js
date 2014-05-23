@@ -328,7 +328,7 @@ define(
             "msg2_pre": {
                 indicator: new indicatorModel( {
                     coords: { x: 56, y: 206 },
-                    itext: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same."
+                    text: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same."
                 } )
             },
 
@@ -363,14 +363,16 @@ define(
             "og_description": {
                 indicator: new indicatorModel( {
                     coords: { x: 464, y: 861 },
-                    indicatorText: "Your description will go here.",
-                    validation: { required: true }
+                    text: "Your description will go here."
+                } ),
+                validation: new validationModel( {
+                    required: true
                 } )
             },
 
             "content_url": {
                 indicator: new indicatorModel( {
-                    indicatorText: "When someone clicks on the post, this is where we will send them.",
+                    text: "When someone clicks on the post, this is where we will send them.",
                 } ),
                 validation: new validationModel( {
                     required: true

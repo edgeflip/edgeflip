@@ -237,7 +237,7 @@ define(
 
                 //handle window resize so our popovers and images look alright
                 util.window.resize( function() { self.handleWindowResize(); } );
-                util.window.scroll( _.debounce( function() { self.sizeAndPositionImage() }, 150 ) );
+                util.window.scroll( _.debounce( function() { self.sizeAndPositionImage() }, 300 ) );
             },
 
             handleWindowResize: function() {
