@@ -8,7 +8,10 @@
 
 
 {% block content %}
-    <h2 class="page-header">Create a Targeted Sharing Campaign</h2>
+    <h2 class="intro-header">Create a Targeted Sharing Campaign</h2>
+    <div class="campaign-name hide">
+        <span>Create a Targeted Sharing Campaign</span>
+    </div>
     <div class="invalid-input-popover"></div>
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
@@ -16,7 +19,7 @@
             <div class="page-header-information">
                 <div>Our targeted sharing application will spread your message across the web by asking your supporters to share your content with their friends.</div>
                 <div>We found that individuals are much more likely to take some action when they are asked to do so by a trusted friend rather than by a large organization.</div>
-                <div>Click on an image below to get started</div>
+                <button type="button" class="get-started-btn btn btn-primary">Get Started</button>
             </div>
             <div class="row">
                 <div class="span1"></div>
@@ -78,7 +81,7 @@
         <div id="campaign-name-modal" class="modal hide fade" tabindex="-1" role="dialog">
         <div class="modal-header">
             <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
-            <h3 id="filter-modal-label">Give your campaign a name</h3>
+            <h3 id="filter-modal-label">Name your campaign</h3>
         </div>
         <div class="modal-body">
             <div class="name-input-container">{{ campaign_form.name }}</div>
@@ -133,6 +136,18 @@ $( function() {
 
         if( step === 'fbobjects' && (! window.fbObjIndicator.isInitialized ) ) {
             window.fbObjIndicator.init();
+        }
+
+        if( step === 'intro' ) {
+            $('h2.intro-header').fadeIn();    
+            $('.campaign-name').addClass('hide');
+        } else {
+            $('h2.intro-header').fadeOut();    
+            $('.campaign-name').removeClass('hide');
+        }
+
+        if( $(this).attr('id') === 'step1-next' ) {
+            $('.campaign-name span').text( $('#id_name').val() );
         }
         
         $( $('input:visible')[0] ).focus();
@@ -198,13 +213,21 @@ $( function() {
         
     } );
 
+    droppedInExistingFilters: function() {
+    },
+    
+    droppedInEnabledFilter: function() {
+    },
+
     // Sortables - Drag and Drop stuff
     $(function() {
         $('#existing-filters').sortable({
-            connectWith: ".target-well"
+            connectWith: ".target-well",
+            receive: droppedInExistingFilters
         });
         $('#enabled-filters-1').sortable({
-            connectWith: ".target-well"
+            connectWith: ".target-well",
+            receive: droppedInEnabledFilter
         });
         $( ".sortable" ).disableSelection();
     });
@@ -227,7 +250,8 @@ $( function() {
         );
 
         $('#enabled-filters-' + layer_count).sortable({
-            connectWith: '.target-well'
+            connectWith: '.target-well',
+            receive: droppedInEnabledFilter
         });
         // Aribtrary limit, but seems about right. Subject to change
         if (layer_count >= 4) {
@@ -243,10 +267,14 @@ $( function() {
         carouselEl.carousel('cycle');
     } );
 
-    carouselEl.on( 'click', 'img', function() {
+    var showNameModal = function() {
         carouselEl.carousel('pause');
         $('#campaign-name-modal').modal();
-    } );
+    }
+
+    $('.get-started-btn').on( 'click', showNameModal );
+
+    carouselEl.on( 'click', 'img', showNameModal );
 
     $('#step1-next').on( 'click', function() {
         $('#campaign-name-modal').modal('hide');

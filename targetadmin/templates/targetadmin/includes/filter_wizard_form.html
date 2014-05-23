@@ -20,7 +20,7 @@
                    'gender eq Male', 'age min 22', 'age max 30', and 'state eq New York' -- into a single layer, you will be targeting
                     <i>22-30 year-old men living in New York state</i>.
                 </p>
-                <p>We highly recommend adding multiple layers to your criteria. To add a layer, click the "Add Layer" button to the right of the Enabled Filters header.</p>
+                <p>We highly recommend adding multiple layers to your criteria. To add a layer, click the "Add Fallback Audience" button to the right of the Enabled Filters header.</p>
                 <p>
                     Additional layers might target different audiences, or else they might provide a less restrictive "fallback" layer to make sure
                     that every supporter sees some friend suggestions when they share your Facebook post. In our example from above, a Layer 2
@@ -30,8 +30,8 @@
             </div>
         </div>
         <div id="enabled-section" class="row">
-            <h3>Enabled Filters <a href="#" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</a></h3>
-            <h6>Top Layer</h6>
+            <h3>Enabled Filters <button type="button" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Fallback Audience</a></h3>
+            <h6>Target Audience</h6>
             <div class="clearfix">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
                 <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
@@ -77,3 +77,77 @@
         <button id="filter-add" class="btn btn-primary">Save changes</button>
     </div>
 </div>
+<script type="text/javascript">
+
+( function( $ ) {
+
+    window.filterCleaner = {
+    
+        clean: {
+
+            gender: function( filter ) {
+                if( filter.data('filter-id').indexOf('Male') > -1 ) {
+                    filter.find('abbr').attr( 'title', 'Males' ).text('Males')
+                } else {
+                    filter.find('abbr').attr( 'title', 'Females' ).text('Females')
+                }
+            },
+
+            age: function( filter ) {
+                var abbr = filter.find('abbr'),
+                    title = abbr.attr('title'),
+                    regExp = /(\d+)/,
+                    match = regExp.exec(title),
+                    age = match[1];
+                 
+                if( abbr.attr( 'title' ).indexOf('max') > -1 ) {
+                    abbr.attr( 'title', 'age: ' + age + ' and younger' );
+                    abbr.text( 'age: ' + age + ' and younger' );
+                } else {
+                    abbr.attr( 'title', 'age: ' + age + ' and older' );
+                    abbr.text( 'age: ' + age + ' and older' );
+                }
+            },
+
+            location: function( filter ) {
+                var abbr = filter.find('abbr'),
+                    title = abbr.attr('title');
+
+                abbr.attr( 'title',
+                    title.replace(/eq/,'in')
+                         .replace(/state|city/i,'Lives')
+                         .replace(/\|\|/g,', ') );
+
+                abbr.text(
+                    abbr.text().replace(/eq/,'in')
+                               .replace(/state|city/i,'Lives')
+                               .replace(/\|\|/g,', ')
+                               .replace(/\|/g,'') );
+            },
+
+            locationReplacer: function( text ) {
+                return text.replace(/eq/,'in')
+                           .replace(/state|city/i,'Lives')
+                           .replace(/\|\|/g,', ')
+            }
+        },
+
+        cleanFilter: function( filter ) {
+            
+            var filter = $(filter);
+
+            window.filterCleaner.clean[ ( filter.data('filter-id').indexOf('gender') > -1 )
+                ? 'gender'
+                : ( filter.data('filter-id').indexOf('age') > -1 )
+                    ? 'age'
+                    : 'location' ]( filter );
+
+            return filter;
+        }
+    };
+
+
+    _.each( $('#existing-filters').children(), window.filterCleaner.cleanFilter );
+        
+} )(jQuery);
+</script>

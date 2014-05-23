@@ -1,6 +1,7 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}Log in to your account{% endblock %}
 {% block content %}
+<h2 style="text-align:center; margin-bottom: 20px;">Log in</h2>
 <form method="post" action="">
 	{% csrf_token %}
 	{{ form.as_p }}

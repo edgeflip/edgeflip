@@ -11,7 +11,7 @@ body {
     font-family: Arial;
 }
 
-.page-header {
+.intro-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 20px;
@@ -456,6 +456,7 @@ body {
     border: 1px solid gray;
     border-radius: 5px;
     overflow: hidden;
+    max-height: 550px;
 }
 
 #intro-carousel img:hover {
@@ -480,12 +481,23 @@ body {
     bottom: auto !important;
 }
 
+.get-started-btn {
+    margin: 20px;
+}
+
 #campaign-name-modal .modal-footer .step-submit {
     margin-right: 0px;
 }
 
 #campaign-name-modal .modal-footer {
     text-align: center; 
+}
+
+.campaign-name {
+    position: absolute;
+    top: 60px;
+    left: 60px;
+    font-size: large;
 }
 
 .modal-header h3 {

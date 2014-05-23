@@ -76,8 +76,8 @@ class WizardFilterFeatureForm(forms.ModelForm):
     CHOICES = (
         ('', 'Select Filter Type'),
         ('age', 'Age'),
-        ('location', 'Location'),
         ('gender', 'Gender'),
+        ('location', 'Location')
     )
 
     feature = forms.ChoiceField(choices=CHOICES)
