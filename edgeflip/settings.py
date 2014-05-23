@@ -385,8 +385,19 @@ CELERY_IMPORTS = (
 
 # jsurls settings #
 JSURLS_JS_NAMESPACE = 'edgeflip.router'
-JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
-JSURLS_URL_NAMESPACES = ('gimmick', 'reporting',)
+JSURLS_PROFILES = {
+    'sharing': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router.js'),
+    },
+    'gimmick': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-map.js'),
+        'URL_NAMESPACES': ('gimmick',),
+    },
+    'reporting': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-reports.js'),
+        'URL_NAMESPACES': ('reporting',),
+    },
+}
 
 # chapo settings #
 CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
