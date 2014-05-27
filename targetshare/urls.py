@@ -49,4 +49,6 @@ urlpatterns = patterns('targetshare.views',
         'services.incoming', name='incoming'),
     url(r'^record_event/$', 'events.record_event', name='record-event'),
     url(r'^health_check/$', 'services.health_check', name='health-check'),
+    url(r'^health_check/faces/$', 'services.faces_health_check',
+        name='faces-health-check'),
 )

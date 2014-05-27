@@ -7,7 +7,7 @@ from mock import patch
 from targetshare import models
 from targetshare.utils import encodeDES
 
-from .. import EdgeFlipViewTestCase
+from .. import EdgeFlipViewTestCase, patch_facebook
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
@@ -32,6 +32,20 @@ class TestServicesViews(EdgeFlipViewTestCase):
         response = self.client.get(reverse('health-check'), {'elb': True})
         self.assertStatusCode(response, 200)
         self.assertEqual(response.content, "It's Alive!")
+
+    @patch_facebook(min_friends=1, max_friends=25)
+    def test_health_check_faces(self):
+        ''' Test Faces health-check view '''
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'num_face': 9,
+            'campaign': 1,
+            'content': 1
+        })
+        self.assertEqual(response.status_code, 200)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['status'], 'SUCCESS')
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'

@@ -1,17 +1,20 @@
 import logging
 import urllib
 import urlparse
+import time
 
 from django import http
+from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
 from django.core.urlresolvers import reverse
 
-from targetshare import models
+from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db
 from targetshare.tasks.integration.facebook import store_oauth_token
 from targetshare.views import utils
+from targetshare.tasks import ranking
 
 LOG = logging.getLogger(__name__)
 
@@ -184,3 +187,59 @@ def health_check(request):
         'dynamo': dynamo_up,
         'facebook': facebook_up,
     })
+
+
+@utils.require_visit
+def faces_health_check(request):
+    form = forms.FacesForm(request.GET)
+    if not form.is_valid():
+        return utils.JsonHttpResponse({
+            'status': 'FAILURE'
+        })
+
+    data = form.cleaned_data
+    campaign = data['campaign']
+    content = data['content']
+    fbid = data['fbid']
+    token = data['token']
+    num_face = data['num_face']
+    client = campaign.client
+
+    token = models.datastructs.ShortToken(
+        fbid=fbid,
+        appid=client.fb_app_id,
+        token=token,
+    )
+    px3_task = ranking.proximity_rank_three(
+        token=token,
+        visit_id=request.visit.pk,
+        campaign_id=campaign.pk,
+        content_id=content.pk,
+        num_faces=num_face,
+    )
+    px4_task = ranking.proximity_rank_four.delay(
+        token=token,
+        visit_id=request.visit.pk,
+        campaign_id=campaign.pk,
+        content_id=content.pk,
+        num_faces=num_face,
+        px3_task_id=px3_task.id,
+    )
+    start_time = time.time()
+    px3_result = px4_result = None
+    while time.time() - start_time < 30:
+        transaction.commit_unless_managed()
+        px3_result = px3_task.result
+        px4_result = px4_task.result
+        if px3_result and px4_result:
+            break
+
+    if all([bool(px3_result), bool(px4_result), px3_task.status == 'SUCCESS',
+           px4_task.status == 'SUCCESS']):
+        return utils.JsonHttpResponse({
+            'status': 'SUCCESS',
+        })
+    else:
+        return utils.JsonHttpResponse({
+            'status': 'FAILURE'
+        })
