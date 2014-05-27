@@ -316,3 +316,8 @@ def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
         'content': content,
         'client': client,
     })
+
+@utils.auth_client_required
+def how_it_works(request, client_pk):
+    return render( request, 'targetadmin/how_it_works.html', { } )
+

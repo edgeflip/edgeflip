@@ -22,7 +22,7 @@ body {
 
 .page-header-information {
     text-align: center;
-    margin: 20px 0px;
+    margin-top: 20px;
     font-size: medium;
 }
 
@@ -178,10 +178,10 @@ body {
     text-transform: uppercase;
 }
 
-#available-section a,
-#enabled-section a {
+#available-section button,
+#enabled-section button {
     vertical-align: bottom;
-    margin: 10px;
+    margin: 0px 10px;
     text-transform: none;
 }
 
@@ -516,4 +516,12 @@ body {
 #state-container,
 #city-container {
     margin-top: 20px;
+}
+
+.filter-help p {
+    padding: 5px;
+}
+
+.filter-help .begin {
+    font-weight: bold;
 }
