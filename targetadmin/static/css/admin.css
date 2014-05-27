@@ -57,7 +57,7 @@ body {
 }
 
 .fb-obj-header h4,
-.faces-header h4 {
+.faces-header h3 {
     text-transform: uppercase;
     text-align: center;
 }
@@ -81,7 +81,7 @@ body {
 }
 
 .img-helper {
-    height: 100%;
+    width: 100%;
 }
 
 .suggested-message-container {
@@ -121,7 +121,6 @@ body {
 
 .fb-obj-item label {
     font-size: medium;
-    text-transform: uppercase;
     display: inline-block;
 }
 
@@ -130,6 +129,7 @@ body {
     font-size: medium;
     font-weight: bold;
     width: 80%;
+    display: block;
 }
 
 .fb-obj-item textarea {

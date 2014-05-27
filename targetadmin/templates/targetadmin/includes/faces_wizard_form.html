@@ -1,6 +1,6 @@
 <div class="row">
     <div class="span12 faces-header">
-        <h4>Your Faces Page</h4>
+        <h3>Customize Your Friend Suggestion Page</h3>
         <p>Below to the right is an example of a Faces page.  This the interface your supporters will use to share with their friends.</p>
         <p>Take note of the "Suggest A Message" button.  We will configure suggested messages on the next page.</p>
         <p>Let's customize your faces page now.</p>
@@ -8,6 +8,7 @@
 </div>
 
 <div class="row-fluid">
+    <div class="span1"></div>
     <div class="span5" id="input-wrapper">
         <div id="input-popover"></div>
         <div class="fb-obj-item">
@@ -32,10 +33,11 @@
         </div>
     </div>
 
-    <div id="img-helper-container" class="span7 img-helper-wrapper">
+    <div id="img-helper-container" class="span5 img-helper-wrapper">
         <div id="faces-img-popover"></div>
         <img id="faces-img" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
     </div>
+    <div class="span1"></div>
 </div>
 <div class="row wizard-button-container">
     <a href="#" id="step3-next" class="btn btn-large btn-primary step-submit filter-step" data-step="fbobjects">Next</a>
@@ -146,12 +148,13 @@
                     if( this.imageContainerHeight > this.inputWrapperHeight ) {
                         this.imageContainerHeight = this.inputWrapperHeight;
                     }
-                    this.imageContainer.height( this.imageContainerHeight );
+                    //this.imageContainer.height( this.imageContainerHeight );
                     $('body,html').scrollTop( 0 );
                     this.maxScroll = this.body.height() - this.windowHeight;
-                    this.sizeAndPositionImage();
+                    //this.sizeAndPositionImage();
                     this.initPopovers();
                     this.delegateEvents();
+                    this.setImageMetaData();
                     this.isInitialized = true;
                 },
 
@@ -214,7 +217,7 @@
                 positionAndShowPopover: function() {
      
                     var focusedFormMetaData = this.formFields[ this.currentFormField ];
-                
+
                     if( focusedFormMetaData.coords ) {
                         this.inputPopoverEl.popover('hide');
                         this.imagePopoverEl.css( {
@@ -251,7 +254,7 @@
                 scrollToField: function() {
 
                     var difference,
-                        maxDifference = this.inputWrapperHeight - this.imageContainerHeight,
+                        maxDifference = this.inputWrapperHeight - $('#faces-img').outerHeight(true),
                         formElTop = this.formFields[ this.currentFormField ].el.offset().top,
                         self = this,
                         scrollTop = ( formElTop - ( this.window.height() / 2 ) );
@@ -273,7 +276,10 @@
                         ( this.scrollTop === 0 && scrollTop <= 0 ) ) {
                         self.positionAndShowPopover();
                     } else {
-                        $('body,html').animate( { 'scrollTop' : scrollTop } );
+                        $('body,html').animate(
+                            { 'scrollTop' : scrollTop },
+                            { complete: function() { self.positionAndShowPopover(); } }
+                        );
                     }
 
                     return this;
@@ -285,7 +291,7 @@
                         ? this.body.scrollTop()
                         : this.html.scrollTop();
 
-                    this.sizeAndPositionImage();
+                    //this.sizeAndPositionImage();
                 },
 
                 sizeAndPositionImage: function() {
@@ -313,7 +319,6 @@
                     } else if( ( this.scrollTop + this.windowHeight ) <
                                ( this.inputWrapperHeight + this.inputWrapperOffset.top ) ) {
                         
-
                         this.imageContainerHeight = this.windowHeight -
                             this.navbarHeight -
                             ( this.verticalImagePadding * 2 );
@@ -333,7 +338,8 @@
                     }
 
                     this.imageContainer.animate(
-                        { top: top, height: this.imageContainerHeight },
+                        { top: top },
+                        //{ top: top, height: this.imageContainerHeight },
                         { duration: 200,
                           complete: function() {
                             self.setImageMetaData();
@@ -351,8 +357,9 @@
                     if( this.imageContainerHeight > this.inputWrapperHeight ) {
                         this.imageContainerHeight = this.inputWrapperHeight;
                     }
-                    this.imageContainer.height( this.imageContainerHeight );
-                    this.sizeAndPositionImage();
+                    this.setImageMetaData();
+                    //this.imageContainer.height( this.imageContainerHeight );
+                    //this.sizeAndPositionImage();
                 },
 
                 storeElementDimensions: function() {
