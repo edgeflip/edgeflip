@@ -62,7 +62,7 @@ class Command(BaseCommand):
 
         # Do one thread per primary for now:
         self.queue = Queue()
-        for (count, token) in enumerate(tokens, 1):
+        for (count, token) in enumerate(tokens.iterable, 1):
             thread = Thread(target=self.worker)
             thread.setDaemon(True)
             thread.start()
@@ -114,5 +114,6 @@ class Command(BaseCommand):
             response.raise_for_status()
             message = response.json()
 
+        t1 = time.time() - t0
         self.pout("Completed ({})".format(fbid), 2)
-        return time.time() - t0
+        return t1
