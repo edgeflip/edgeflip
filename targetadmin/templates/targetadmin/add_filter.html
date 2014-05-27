@@ -4,12 +4,15 @@
         <div class="filter-selection-col">
             <div id="new-form-1" class="new-filters">
                 <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
-                <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
+                <p style="display: none">
+                    {{ form.operator.errors }}
+                    {{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}
+                </p>
                 <p style="display: none;">{{ form.value }}</p>
                 <div class="value-container">
                     {{ form.value.errors }}
-                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
-                    <div class="clearfix">
+                    <label style="display: none; "for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
+                    <div style="display: none;" class="clearfix">
                         <div class="text-input-list">
                             <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
                             <span id="value-span"></span>
@@ -20,7 +23,6 @@
                     </div>
                     <select id="gender-dropdown" style="display:none;">
                         <option value="" selected="selected">--------</option>
-                        <option value="All">All</option>
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>

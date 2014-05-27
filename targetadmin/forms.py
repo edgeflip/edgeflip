@@ -80,7 +80,9 @@ class WizardFilterFeatureForm(forms.ModelForm):
         ('location', 'Location')
     )
 
-    feature = forms.ChoiceField(choices=CHOICES)
+    feature = forms.ChoiceField(\
+        label='Filter Type',
+        choices=CHOICES )
 
     class Meta:
         model = relational.FilterFeature

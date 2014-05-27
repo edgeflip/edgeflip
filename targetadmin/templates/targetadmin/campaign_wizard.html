@@ -122,7 +122,9 @@ $( function() {
                     {attribute: 'data-filter-id'});
                 values = [];
                 for (v = 0; v < filters.length; v++) {
-                    values.push('"' + filters[v].split('=')[1] + '"');
+                    if( filters[v] ) {
+                        values.push('"' + filters[v].split('=')[1] + '"');
+                    }
                 }
                 $('#id_enabled-filters-' + layer).val(values);
             }
@@ -213,24 +215,45 @@ $( function() {
         
     } );
 
-    droppedInExistingFilters: function() {
-    },
+    filterReceived = function( event, ui ) {
+        var dataLink = ui.item.attr('data-link');
+        if( dataLink ) {
+            ui.sender.find('[data-link="' + dataLink + '"]').appendTo( $(event.target) );
+        }
+    }
     
-    droppedInEnabledFilter: function() {
-    },
-
     // Sortables - Drag and Drop stuff
     $(function() {
         $('#existing-filters').sortable({
             connectWith: ".target-well",
-            receive: droppedInExistingFilters
+            receive: filterReceived
         });
         $('#enabled-filters-1').sortable({
             connectWith: ".target-well",
-            receive: droppedInEnabledFilter
+            receive: filterReceived
         });
         $( ".sortable" ).disableSelection();
     });
+
+    $('#filtering').on( 'dblclick', '.draggable', function() {
+        var clickedEl = $(this),
+            dataLink = clickedEl.attr('data-link'),
+            lastEnabled = $('#enabled-section').find('.target-well').last(),
+            availableFilters = $('#existing-filters');
+
+        if( clickedEl.parent().attr('id') === 'existing-filters' ) {
+            if( dataLink ) {
+                clickedEl.siblings('[data-link="' + dataLink + '"]').appendTo( lastEnabled );
+            }
+            lastEnabled.append( clickedEl );
+        } else {
+            if( dataLink ) {
+                clickedEl.siblings('[data-link="' + dataLink + '"]').appendTo( availableFilters );
+            }
+            clickedEl.appendTo( availableFilters );
+        }
+    } );
+
 
     // Layer addition
     $('#add-layer').click(function(event){
@@ -251,15 +274,13 @@ $( function() {
 
         $('#enabled-filters-' + layer_count).sortable({
             connectWith: '.target-well',
-            receive: droppedInEnabledFilter
+            receive: filterReceived
         });
         // Aribtrary limit, but seems about right. Subject to change
         if (layer_count >= 4) {
             $('#add-layer').prop('disabled', true);
         }
     });
-
-    //$( $('input:visible')[0] ).focus();
 
     carouselEl.carousel( { interval: 20000, pause: "" } );
 
@@ -270,10 +291,11 @@ $( function() {
     var showNameModal = function() {
         carouselEl.carousel('pause');
         $('#campaign-name-modal').modal();
+        $('#campaign-name-modal').on( 'shown', function() {
+            $('#id_name').focus() } );
     }
 
     $('.get-started-btn').on( 'click', showNameModal );
-
     carouselEl.on( 'click', 'img', showNameModal );
 
     $('#step1-next').on( 'click', function() {

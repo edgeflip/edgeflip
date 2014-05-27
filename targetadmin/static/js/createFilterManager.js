@@ -126,9 +126,14 @@ $.extend( createFilterManager.prototype, {
             }
 
             if( filters.length === 0 ) {
+                this.addLocationFilterButton.click();
+                filters = this.locationFilters.children();
+            }
+
+            if( filters.length === 0 ) {
+                return;
                 this.addLocationFilterButton.attr( 'data-content', 'Please add a filter.' ).popover('show');
                 this.delegateRemovePopover( this.addLocationFilterButton );
-                return;
             }
 
             filters.each( function( i, filterEl ) {
@@ -351,8 +356,8 @@ $.extend( createFilterManager.prototype, {
             window.input_count = 1;
             this.firstValueInput.val('');
             this.operatorDropdown.val('').removeAttr( 'disabled' );
-            this.toggleOperatorElements( 'fadeIn' );
-            this.toggleGenericValueInputs( 'fadeIn', [ 'valueLabel' ] );
+            this.toggleOperatorElements( 'hide' );
+            this.toggleGenericValueInputs( 'hide', [ 'valueLabel' ] );
         },
 
         location: function() {
@@ -488,7 +493,7 @@ $.extend( createFilterManager.prototype, {
         $('#existing-filters').prepend( window.filterCleaner.cleanFilter(filterEl) );
 
         if( opts && opts.hide ) { filterEl.hide(); }
-        if( opts && opts.link ) { filterEl.data('link',opts.link); }
+        if( opts && opts.link ) { filterEl.attr('data-link',opts.link); }
 
         return this;
     },
@@ -500,7 +505,7 @@ $.extend( createFilterManager.prototype, {
                 $('<div class="span2 draggable"><p><abbr title="' + text + '">' +
                 text + '</abbr></p></div>');
 
-        filterEl.data('link',link);
+        filterEl.attr('data-link',link);
 
         this.operatorDropdown.val('min');
         this.valueInput.val( min );
