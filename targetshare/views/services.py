@@ -4,6 +4,7 @@ import urlparse
 import time
 
 from django import http
+from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
@@ -191,11 +192,11 @@ def health_check(request):
 
 @utils.require_visit
 def faces_health_check(request):
+    request.visit.user_agent = 'NEW RELIC'
+    request.visit.save()
     form = forms.FacesForm(request.GET)
     if not form.is_valid():
-        return utils.JsonHttpResponse({
-            'status': 'FAILURE'
-        })
+        return utils.JsonHttpResponse(forms.errors, status=400)
 
     data = form.cleaned_data
     campaign = data['campaign']
@@ -228,18 +229,20 @@ def faces_health_check(request):
     start_time = time.time()
     px3_result = px4_result = None
     while time.time() - start_time < 30:
-        transaction.commit_unless_managed()
+        if settings.ENV == 'development':
+            transaction.commit_unless_managed()
         px3_result = px3_task.result
         px4_result = px4_task.result
         if px3_result and px4_result:
-            break
+            if px3_task.status == 'SUCCESS' and px4_task.status == 'SUCCESS':
+                return utils.JsonHttpResponse({
+                    'status': 'SUCCESS',
+                })
+            else:
+                break
+        else:
+            time.sleep(2)
 
-    if all([bool(px3_result), bool(px4_result), px3_task.status == 'SUCCESS',
-           px4_task.status == 'SUCCESS']):
-        return utils.JsonHttpResponse({
-            'status': 'SUCCESS',
-        })
-    else:
-        return utils.JsonHttpResponse({
-            'status': 'FAILURE'
-        })
+    return utils.JsonHttpResponse({
+        'status': 'FAILURE'
+    })

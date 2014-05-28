@@ -2,7 +2,7 @@ import json
 import urllib
 
 from django.core.urlresolvers import reverse
-from mock import patch
+from mock import Mock, patch
 
 from targetshare import models
 from targetshare.utils import encodeDES
@@ -46,6 +46,31 @@ class TestServicesViews(EdgeFlipViewTestCase):
         self.assertEqual(response.status_code, 200)
         resp = json.loads(response.content)
         self.assertEqual(resp['status'], 'SUCCESS')
+
+    def test_health_check_faces_bad_request(self):
+        ''' Test Faces health-check view with bad request '''
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'num_face': 9,
+        })
+        self.assertEqual(response.status_code, 400)
+
+    @patch('targetshare.tasks.ranking.proximity_rank_three')
+    @patch('targetshare.tasks.ranking.proximity_rank_four')
+    def test_health_check_faces_failure(self, px3_mock, px4_mock):
+        px3_mock.delay.return_value = Mock(status='FAILURE')
+        px4_mock.delay.return_value = Mock(status='FAILURE')
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'num_face': 9,
+            'campaign': 1,
+            'content': 1
+        })
+        self.assertEqual(response.status_code, 200)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['status'], 'FAILURE')
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'
