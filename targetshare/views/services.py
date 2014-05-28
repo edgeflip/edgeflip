@@ -244,5 +244,7 @@ def faces_health_check(request):
             time.sleep(2)
 
     return utils.JsonHttpResponse({
-        'status': 'FAILURE'
+        'status': 'FAILURE',
+        'px3_status': px3_task.status,
+        'px4_status': px4_task.status,
     })

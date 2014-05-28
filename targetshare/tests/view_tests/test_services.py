@@ -56,10 +56,10 @@ class TestServicesViews(EdgeFlipViewTestCase):
         })
         self.assertEqual(response.status_code, 400)
 
-    @patch('targetshare.tasks.ranking.proximity_rank_three')
     @patch('targetshare.tasks.ranking.proximity_rank_four')
+    @patch('targetshare.tasks.ranking.proximity_rank_three')
     def test_health_check_faces_failure(self, px3_mock, px4_mock):
-        px3_mock.delay.return_value = Mock(status='FAILURE')
+        px3_mock.return_value = Mock(status='FAILURE')
         px4_mock.delay.return_value = Mock(status='FAILURE')
         response = self.client.get(reverse('faces-health-check'), {
             'fbid': 1,
@@ -71,6 +71,8 @@ class TestServicesViews(EdgeFlipViewTestCase):
         self.assertEqual(response.status_code, 200)
         resp = json.loads(response.content)
         self.assertEqual(resp['status'], 'FAILURE')
+        self.assertEqual(resp['px3_status'], 'FAILURE')
+        self.assertEqual(resp['px4_status'], 'FAILURE')
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'
