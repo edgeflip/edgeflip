@@ -8,9 +8,9 @@
 
 
 {% block content %}
-    <h2 class="intro-header">Create a Targeted Sharing Campaign</h2>
+    <h2 id="intro-header" class="wizard-header">Create a Targeted Sharing Campaign</h2>
     <div class="campaign-name hide">
-        <span>Create a Targeted Sharing Campaign</span>
+        <span></span>
     </div>
     <div class="invalid-input-popover"></div>
     <form id="wizard-form" action="" method="post" class="form-horizontal">
@@ -20,7 +20,7 @@
                 <div>A targeted sharing campaign turns your supporters into influencers by asking them to share your content with friends</div>
                 <div>
                     <span>who are likely to support your organization.</span>
-                    <a href="{% url 'targetadmin:how-it-works' client.pk %}" target="_blank">Learn more about Targeted Sharing.</a>
+                    <a href="{% url 'targetadmin:how-it-works' %}" target="_blank">Learn more about Targeted Sharing.</a>
                 </div>
             </div>
             <div style="text-align:center;">
@@ -67,10 +67,6 @@
                     <a class="carousel-control right" href="#intro-carousel" data-slide="next">&rsaquo;</a>
                 </div>
                 <div class="span2"></div>
-                <!-- <div class="wizard-button-container">
-                    <a href="#" id="get-started" class="btn btn-large btn-primary">Get Started</a>
-                    <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-large btn-danger">Cancel</a>
-                </div> -->
             </div>
         </div>
         <div id="filtering" class="wizard-step" style="display: none;">
@@ -146,10 +142,10 @@ $( function() {
         }
 
         if( step === 'intro' ) {
-            $('h2.intro-header').fadeIn();    
+            $('#intro-header').fadeIn();    
             $('.campaign-name').addClass('hide');
         } else {
-            $('h2.intro-header').fadeOut();    
+            $('#intro-header').fadeOut();    
             $('.campaign-name').removeClass('hide');
         }
 
@@ -183,7 +179,22 @@ $( function() {
                 } );
 
                 $layer_section.fadeOut( 400, function() {
+                    var found = false;
+     
+                    if( $(this).find('#add-layer').length ) { 
+                        $('#add-layer').hide().appendTo($('body'));
+                        found = true;
+                    }
+
                     $(this).empty().remove();
+
+                    if( found ) {
+                        if( $('#enabled-section').children('section').length ) {
+                            $('#enabled-section').children('section').last().find('h6').first().append( $('#add-layer').show() );
+                        } else {
+                            $('#enabled-section').children('h6').first().append( $('#add-layer').show() );
+                        }
+                    }
 
                     $.each( $('*[data-layer]'), function( k, el ) {
                         var $el = $(el),
@@ -196,7 +207,7 @@ $( function() {
 
                             if( $el.prop('tagName') === 'SECTION' ) {
 
-                                $el.find('h6').first().text( 'Fallback Audience ' + new_layer_no );
+                                $el.find('h6 span').first().text( 'Fallback Audience ' + ( new_layer_no - 1 ) );
 
                                 $('#id_enabled-filters-' + el_layer_no )
                                     .attr( { "id": 'id_enabled-filters-' + new_layer_no,
@@ -269,7 +280,7 @@ $( function() {
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
             '<section data-layer="' + layer_count + '">' +
-            '<div class="clearfix"><h6 class="layer-text-header pull-left">Fallback Audience ' + (layer_count - 1) + '</h6>' +
+            '<div class="clearfix"><h6 class="layer-text-header pull-left"><span>Fallback Audience ' + (layer_count - 1) + '</span></h6>' +
             '<h6 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
             '<i class="icon-remove"></i></h6></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
@@ -298,7 +309,7 @@ $( function() {
     var showNameModal = function() {
         carouselEl.carousel('pause');
         $('#campaign-name-modal').modal();
-        $('#campaign-name-modal').on( 'shown', function() {
+        $('#campaign-name-modal').on( 'shown', function() { 
             $('#id_name').focus() } );
     }
 

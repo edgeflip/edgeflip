@@ -1,9 +1,8 @@
 <div class="row">
     <div class="span12">
         <div class="row targeting-header">
-
-            <div class="filter-info-item">
-                <h5>Select a target audience</h5>
+            <div class="header-container">
+                <h2 class="wizard-header">Select a target audience</h2>
                 <p>
                     Define a Target Audience for your campaign by dragging one or more filters from the Available Filters container to the Enabled Filters container.
                 </p>
@@ -20,14 +19,17 @@
 
         <div id="enabled-section" class="row">
             <h3>Enabled Filters</h3>
-            <h6>Target Audience <button type="button" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Fallback Audience</button></h6>
+            <h6>
+                <span>Target Audience</span>
+                <button type="button" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Fallback Audience</button>
+            </h6>
             <div class="clearfix">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
                 <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
             </div>
         </div>
         <div id="available-section" class="row">
-            <h3>Available Filters <a data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</a></h3>
+            <h3>Available Filters <button type="button" data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</button></h3>
             <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
                 {% for ff in filter_features %}
                     <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
@@ -45,7 +47,7 @@
             <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
             {{ campaign_form.include_empty_fallback }}
             {% if campaign_form.include_empty_fallback.help_text %}
-                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
+                <i class="icon-question-sign hide" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
             {% endif %}
         </div>
        

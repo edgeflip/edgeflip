@@ -11,7 +11,7 @@ body {
     font-family: Arial;
 }
 
-.intro-header {
+.wizard-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 20px;
@@ -150,23 +150,8 @@ body {
     text-align: center;
 }
 
-.filter-info-item {
-    margin-top: 40px;
-}
-
-.filter-info-item:first-child {
-    margin-top: 0px;
-}
-
-.filter-info-item > div,
-.filter-info-item > h5 {
-    text-align: center;
-    text-transform: uppercase;
-    font-size: medium;
-}
-
-.filter-info-item p {
-    font-size: medium;
+.header-container {
+    margin-bottom: 40px;
 }
 
 #available-section h3,
@@ -285,6 +270,7 @@ body {
     font-weight: bold;
     background-color: #094163;
     border-color: #0cf;
+    font-size: medium;
 }
 
 .popover.right .arrow:after {
@@ -482,7 +468,7 @@ body {
 }
 
 .get-started-btn {
-    margin: 20px;
+    margin: 30px;
 }
 
 #campaign-name-modal .modal-footer .step-submit {

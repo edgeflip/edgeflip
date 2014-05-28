@@ -84,8 +84,10 @@ urlpatterns += patterns('targetadmin.views',
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/finish/$',
         'campaign_views.campaign_wizard_finish',
         name='campaign-wizard-finish'),
-    url(r'^client/(?P<client_pk>\d+)/campaign/how-it-works/$', 'campaign_views.how_it_works',
+    url(r'^campaign/(?P<client_pk>\d+)/how-it-works/$', 'campaign_views.how_it_works',
         name='how-it-works'),
+    url(r'^campaign/how-it-works/$', 'campaign_views.how_it_works',
+        name='how-it-works')
 )
 
 urlpatterns += patterns('targetadmin.views',
