@@ -85,8 +85,13 @@ class SimpleWeights(dict):
         for (topic, phrase, weight, skip) in cls._read(handle):
             weight = float(weight) if weight else None
             skip = bool(int(skip))
+            phrase_weight = cls.PhraseWeight(phrase, weight, skip)
             phrase_list = self.setdefault(topic, [])
-            phrase_list.append(cls.PhraseWeight(phrase, weight, skip))
+            if skip:
+                # Insert skips at beginning, so classify() checks these first:
+                phrase_list.insert(0, phrase_weight)
+            else:
+                phrase_list.append(phrase_weight)
 
         return self
 
