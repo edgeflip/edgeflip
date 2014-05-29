@@ -1,3 +1,4 @@
+import sys
 import time
 from itertools import chain
 from optparse import make_option
@@ -9,23 +10,26 @@ from django.core.urlresolvers import reverse
 from django.core.management.base import CommandError, BaseCommand
 from faraday.utils import epoch
 
+from targetshare.integration import facebook
 from targetshare.models import dynamo, relational
 
 
 class Command(BaseCommand):
 
     args = '<server>'
+    help = 'Poll the faces endpoint for multiple users with concurrent requests'
     option_list = BaseCommand.option_list + (
         make_option('--campaign', dest='campaign_id', help='Campaign to query'),
         make_option('--content', dest='client_content_id', help='Client content to query'),
-        make_option('--fbidfile', help='Path to file containing fbids to query'),
-        make_option('--limit', default=100, type=int, help='Number of queries to make (if fbids not specified)'),
+        make_option('--fbidfile', help='Path to file containing fbids to query (use - for stdin)'),
+        make_option('--limit', type=int, help='Number of concurrent users (if fbids not specified)'),
+        make_option('--timeout', type=int, default=30, help='Number of seconds to wait for a response'),
+        make_option('--debug', action='store_true', help='Skip tokens that fail a Facebook debugging test'),
     )
 
     def __init__(self):
         super(Command, self).__init__()
-        self.uri = self.campaign = self.client_content = self.queue = self.verbosity = None
-        self.results = []
+        self.uri = self.campaign = self.client_content = self.verbosity = self.timeout = None
 
     def pout(self, msg, verbosity=0):
         if self.verbosity >= verbosity:
@@ -35,13 +39,8 @@ class Command(BaseCommand):
         if self.verbosity >= verbosity:
             self.stderr.write(msg)
 
-    def handle(self, server, campaign_id, client_content_id, fbidfile, limit, **options):
-        self.uri = server + reverse('faces')
-        if not self.uri.startswith('http'):
-            self.uri = 'https://' + self.uri
-
-        self.verbosity = int(options['verbosity'])
-
+    def handle(self, server, campaign_id, client_content_id, fbidfile, limit, debug, **options):
+        # Init and validate:
         if fbidfile and limit:
             raise CommandError("options --fbidfile and --limit are mutually exclusive")
 
@@ -52,48 +51,100 @@ class Command(BaseCommand):
         if client != self.client_content.client:
             raise CommandError("Mismatched campaign and client content")
 
+        self.uri = server + reverse('faces')
+        if not self.uri.startswith('http'):
+            self.uri = 'https://' + self.uri
+
+        self.timeout = options['timeout']
+        self.verbosity = int(options['verbosity'])
+
         if fbidfile:
+            fh = sys.stdin if fbidfile == '-' else open(fbidfile)
             # Grab fbids separated by any space (newline, space, tab):
-            fbids = chain.from_iterable(line.split() for line in open(fbidfile).xreadlines())
+            fbids = chain.from_iterable(line.split() for line in fh.xreadlines())
             keys = tuple({'fbid': int(fbid), 'appid': fb_app_id} for fbid in fbids)
             tokens = dynamo.Token.items.batch_get(keys)
+            limit = len(keys)
         else:
-            tokens = dynamo.Token.items.scan(appid__eq=fb_app_id, expires__gt=epoch.utcnow(), limit=limit)
+            if limit is None:
+                limit = 100
+            tokens = dynamo.Token.items.filter(appid__eq=fb_app_id, expires__gt=epoch.utcnow())
+            if debug:
+                tokens = tokens.scan()
+            else:
+                tokens = tokens.scan(limit=limit)
+
+        tokens = tokens.iterable
+
+        if debug:
+            debug_tokens = []
+            queue = Queue()
+            num = 100 if limit > 100 else limit
+            for _count in xrange(num):
+                thread = Thread(target=self.do_debug, args=(queue, debug_tokens))
+                thread.setDaemon(True)
+                thread.start()
+
+            while len(debug_tokens) < limit:
+                count = 0
+                for (count, token) in enumerate(tokens, 1):
+                    queue.put(token)
+                    if count == num:
+                        break
+
+                queue.join()
+                if count == 0:
+                    # We're just out of tokens
+                    break
+
+            queue.put(None) # relieve debugging threads
+            tokens = debug_tokens[:limit]
 
         # Do one thread per primary for now:
-        self.queue = Queue()
-        for (count, token) in enumerate(tokens.iterable, 1):
-            thread = Thread(target=self.worker)
+        queue = Queue()
+        results = []
+        for (count, token) in enumerate(tokens, 1):
+            thread = Thread(target=self.do_poll, args=(queue, results))
             thread.setDaemon(True)
             thread.start()
-            self.queue.put((token.fbid, token.token))
+            queue.put(token)
 
-        self.queue.join()
-        if len(self.results) < count:
+        queue.join()
+        if len(results) < count:
             self.perr("Completed polling of {} / {} tokens"
-                      .format(len(self.results), count), 1)
+                      .format(len(results), count), 1)
 
-        for result in self.results:
-            self.stdout.write("{:.1f}".format(result), ending=' ')
-        self.stdout.flush()
+        for (fbid, result_time) in results:
+            self.stdout.write("{}: {:.1f}".format(fbid, result_time))
 
-    def worker(self):
+    def do_debug(self, queue, results):
         while True:
-            (fbid, token) = self.queue.get()
-            try:
-                completed_in = self.poll_faces(fbid, token)
-            except requests.exceptions.HTTPError:
-                self.perr("Error ({})".format(fbid), 1)
-            else:
-                self.results.append(completed_in)
-            self.queue.task_done()
+            token = queue.get()
+            if token is None:
+                break
+            result = facebook.client.debug_token(token.appid, token.token)
+            data = result['data']
+            if data['is_valid'] and data['expires_at'] > time.time():
+                results.append(token)
+            queue.task_done()
 
-    def poll_faces(self, fbid, token):
-        self.pout("Starting ({})".format(fbid), 2)
+    def do_poll(self, queue, results):
+        while True:
+            token = queue.get()
+            try:
+                completed_in = self.poll_faces(token)
+            except requests.exceptions.HTTPError as exc:
+                self.perr("Error ({}): {!r}".format(token.fbid, exc), 1)
+            else:
+                results.append((token.fbid, completed_in))
+            queue.task_done()
+
+    def poll_faces(self, token):
+        self.pout("Starting ({})".format(token.fbid), 2)
         t0 = time.time()
         query = {
-            'fbid': fbid,
-            'token': token,
+            'fbid': token.fbid,
+            'token': token.token,
             'num_face': 9,
             'content': self.client_content.pk,
             'campaign': self.campaign.pk,
@@ -108,12 +159,12 @@ class Command(BaseCommand):
         )
         while message['status'] == 'waiting':
             time.sleep(0.5)
-            if (time.time() - t0) > 30:
+            if (time.time() - t0) >= self.timeout:
                 query['last_call'] = '1'
             response = session.post(self.uri, query)
             response.raise_for_status()
             message = response.json()
 
-        t1 = time.time() - t0
-        self.pout("Completed ({})".format(fbid), 2)
-        return t1
+        t1 = time.time()
+        self.pout("Completed ({})".format(token.fbid), 2)
+        return t1 - t0
