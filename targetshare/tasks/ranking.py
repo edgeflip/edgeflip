@@ -518,7 +518,7 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
                     models.dynamo.PostTopics.classify(
                         post.post_id,
                         post.message,
-                        topics_features,
+                        *topics_features
                     )
                     for post in stream
                     if post.message and post.post_id in missing_posts
