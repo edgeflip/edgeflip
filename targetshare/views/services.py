@@ -196,7 +196,7 @@ def faces_health_check(request):
     request.visit.save()
     form = forms.FacesForm(request.GET)
     if not form.is_valid():
-        return utils.JsonHttpResponse(forms.errors, status=400)
+        return utils.JsonHttpResponse(form.errors, status=400)
 
     data = form.cleaned_data
     campaign = data['campaign']

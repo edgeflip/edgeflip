@@ -52,9 +52,12 @@ class TestServicesViews(EdgeFlipViewTestCase):
         response = self.client.get(reverse('faces-health-check'), {
             'fbid': 1,
             'token': 'token_str',
-            'num_face': 9,
+            'campaign': 1,
+            'content': 1
         })
         self.assertEqual(response.status_code, 400)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['num_face'][0], 'This field is required.')
 
     @patch('targetshare.tasks.ranking.proximity_rank_four')
     @patch('targetshare.tasks.ranking.proximity_rank_three')
