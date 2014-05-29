@@ -97,7 +97,8 @@ class Command(BaseCommand):
                     # We're just out of tokens
                     break
 
-            queue.put(None) # relieve debugging threads
+            for _count in xrange(num):
+                queue.put(None) # relieve debugging threads
             tokens = debug_tokens[:limit]
 
         # Do one thread per primary for now:
