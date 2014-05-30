@@ -25,6 +25,7 @@ class Command(BaseCommand):
         make_option('--limit', type=int, help='Number of concurrent users (if fbids not specified)'),
         make_option('--timeout', type=int, default=30, help='Number of seconds to wait for a response'),
         make_option('--debug', action='store_true', help='Skip tokens that fail a Facebook debugging test'),
+        make_option('--random', action='store_true', help='Select tokens randomly'),
     )
 
     def __init__(self):
@@ -41,8 +42,8 @@ class Command(BaseCommand):
 
     def handle(self, server, campaign_id, client_content_id, fbidfile, limit, debug, **options):
         # Init and validate:
-        if fbidfile and limit:
-            raise CommandError("options --fbidfile and --limit are mutually exclusive")
+        if fbidfile and (limit or options['random']):
+            raise CommandError("option --fbidfile incompatible with options --limit and --random")
 
         self.campaign = relational.Campaign.objects.get(pk=campaign_id)
         self.client_content = relational.ClientContent.objects.get(pk=client_content_id)
@@ -68,38 +69,28 @@ class Command(BaseCommand):
         else:
             if limit is None:
                 limit = 100
-            tokens = dynamo.Token.items.filter(appid__eq=fb_app_id, expires__gt=epoch.utcnow())
-            if debug:
-                tokens = tokens.scan()
+
+            if options['random']:
+                app_users = relational.UserClient.objects.filter(client___fb_app_id=fb_app_id)
+                random_fbids = app_users.values_list('fbid', flat=True).distinct().order_by('?')
+                # A lot of these might be no good when debugged, so get 10x
+                # TODO: Use scan and filter by expires?
+                # It'd be nice if boto allowed you to specify an (infinite)
+                # iterator of keys....
+                num_fbids = (limit * 10) if debug else limit
+                tokens = dynamo.Token.items.batch_get([{'fbid': fbid, 'appid': fb_app_id}
+                                                       for fbid in random_fbids[:num_fbids].iterator()])
             else:
-                tokens = tokens.scan(limit=limit)
+                tokens = dynamo.Token.items.filter(appid__eq=fb_app_id, expires__gt=epoch.utcnow())
+                if debug:
+                    tokens = tokens.scan()
+                else:
+                    tokens = tokens.scan(limit=limit)
 
         tokens = tokens.iterable
 
         if debug:
-            debug_tokens = []
-            queue = Queue()
-            num = 100 if limit > 100 else limit
-            for _count in xrange(num):
-                thread = Thread(target=self.do_debug, args=(queue, debug_tokens))
-                thread.setDaemon(True)
-                thread.start()
-
-            while len(debug_tokens) < limit:
-                count = 0
-                for (count, token) in enumerate(tokens, 1):
-                    queue.put(token)
-                    if count == num:
-                        break
-
-                queue.join()
-                if count == 0:
-                    # We're just out of tokens
-                    break
-
-            for _count in xrange(num):
-                queue.put(None) # relieve debugging threads
-            tokens = debug_tokens[:limit]
+            tokens = self.debug_tokens(tokens, limit)
 
         # Do one thread per primary for now:
         queue = Queue()
@@ -118,15 +109,44 @@ class Command(BaseCommand):
         for (fbid, result_time) in results:
             self.stdout.write("{}: {:.1f}".format(fbid, result_time))
 
+    def debug_tokens(self, tokens, limit):
+        debugged = []
+        queue = Queue()
+        num = 100 if limit > 100 else limit
+        for _count in xrange(num):
+            thread = Thread(target=self.do_debug, args=(queue, debugged))
+            thread.setDaemon(True)
+            thread.start()
+
+        while len(debugged) < limit:
+            count = 0
+            for (count, token) in enumerate(tokens, 1):
+                queue.put(token)
+                if count == num:
+                    break
+
+            queue.join()
+            if count == 0:
+                break # we're just out of tokens
+
+        for _count in xrange(num):
+            queue.put(None) # relieve debugging threads
+
+        return debugged[:limit]
+
     def do_debug(self, queue, results):
         while True:
             token = queue.get()
+
             if token is None:
+                # Term sentinel; we're done.
                 break
+
             result = facebook.client.debug_token(token.appid, token.token)
             data = result['data']
             if data['is_valid'] and data['expires_at'] > time.time():
                 results.append(token)
+
             queue.task_done()
 
     def do_poll(self, queue, results):
