@@ -2,12 +2,12 @@ import json
 import urllib
 
 from django.core.urlresolvers import reverse
-from mock import patch
+from mock import Mock, patch
 
 from targetshare import models
 from targetshare.utils import encodeDES
 
-from .. import EdgeFlipViewTestCase
+from .. import EdgeFlipViewTestCase, patch_facebook
 
 
 @patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
@@ -32,6 +32,50 @@ class TestServicesViews(EdgeFlipViewTestCase):
         response = self.client.get(reverse('health-check'), {'elb': True})
         self.assertStatusCode(response, 200)
         self.assertEqual(response.content, "It's Alive!")
+
+    @patch_facebook(min_friends=1, max_friends=25)
+    def test_health_check_faces(self):
+        ''' Test Faces health-check view '''
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'num_face': 9,
+            'campaign': 1,
+            'content': 1
+        })
+        self.assertEqual(response.status_code, 200)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['status'], 'SUCCESS')
+
+    def test_health_check_faces_bad_request(self):
+        ''' Test Faces health-check view with bad request '''
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'campaign': 1,
+            'content': 1
+        })
+        self.assertEqual(response.status_code, 400)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['num_face'][0], 'This field is required.')
+
+    @patch('targetshare.tasks.ranking.proximity_rank_four')
+    @patch('targetshare.tasks.ranking.proximity_rank_three')
+    def test_health_check_faces_failure(self, px3_mock, px4_mock):
+        px3_mock.return_value = Mock(status='FAILURE')
+        px4_mock.delay.return_value = Mock(status='FAILURE')
+        response = self.client.get(reverse('faces-health-check'), {
+            'fbid': 1,
+            'token': 'token_str',
+            'num_face': 9,
+            'campaign': 1,
+            'content': 1
+        })
+        self.assertEqual(response.status_code, 200)
+        resp = json.loads(response.content)
+        self.assertEqual(resp['status'], 'FAILURE')
+        self.assertEqual(resp['px3_status'], 'FAILURE')
+        self.assertEqual(resp['px4_status'], 'FAILURE')
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'
