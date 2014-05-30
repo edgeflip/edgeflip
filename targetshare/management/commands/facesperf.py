@@ -71,13 +71,13 @@ class Command(BaseCommand):
                 limit = 100
 
             if options['random']:
-                num_fbids = (limit * 10) if debug else limit
                 app_users = relational.UserClient.objects.filter(client___fb_app_id=fb_app_id)
                 random_fbids = app_users.values_list('fbid', flat=True).distinct().order_by('?')
                 # A lot of these might be no good when debugged, so get 10x
                 # TODO: Use scan and filter by expires?
                 # It'd be nice if boto allowed you to specify an (infinite)
                 # iterator of keys....
+                num_fbids = (limit * 10) if debug else limit
                 tokens = dynamo.Token.items.batch_get([{'fbid': fbid, 'appid': fb_app_id}
                                                        for fbid in random_fbids[:num_fbids].iterator()])
             else:
