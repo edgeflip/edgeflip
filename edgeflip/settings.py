@@ -273,6 +273,7 @@ BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
 BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
+CELERYD_MAX_TASKS_PER_CHILD = 50
 CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
