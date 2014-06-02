@@ -4,7 +4,6 @@ import urlparse
 import time
 
 from django import http
-from django.conf import settings
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
@@ -226,25 +225,29 @@ def faces_health_check(request):
         num_faces=num_face,
         px3_task_id=px3_task.id,
     )
-    start_time = time.time()
+    ids = {'px3': px3_task.id, 'px4': px4_task.id}
     px3_result = px4_result = None
+    start_time = time.time()
     while time.time() - start_time < 30:
-        if settings.ENV == 'development':
-            transaction.commit_unless_managed()
+        # As long as we're using the MySQL result backend with the
+        # repeatable read isolation level:
+        transaction.commit_unless_managed()
         px3_result = px3_task.result
         px4_result = px4_task.result
         if px3_result and px4_result:
             if px3_task.status == 'SUCCESS' and px4_task.status == 'SUCCESS':
                 return utils.JsonHttpResponse({
                     'status': 'SUCCESS',
+                    'id': ids,
                 })
             else:
                 break
         else:
-            time.sleep(2)
+            time.sleep(1)
 
     return utils.JsonHttpResponse({
         'status': 'FAILURE',
         'px3_status': px3_task.status,
         'px4_status': px4_task.status,
+        'id': ids,
     })
