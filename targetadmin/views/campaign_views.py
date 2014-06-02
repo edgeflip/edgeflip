@@ -1,9 +1,12 @@
 import csv
 import itertools
+import json
 
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.serializers.json import DjangoJSONEncoder
+
 
 from targetadmin import utils
 from targetadmin import forms
@@ -307,15 +310,27 @@ def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
     root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     properties = root_campaign.campaignproperties.get()
     content = get_object_or_404(relational.ClientContent, pk=content_pk)
-    campaigns = [properties]
+    fb_obj_attributes = get_object_or_404( relational.FBObjectAttribute, fb_object=root_campaign.fb_object().fb_object_id)
+
+    def get_filters( properties ):
+        return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
+            [ choise_set.filter.filterfeatures.all() for choise_set in properties.campaign.choice_set().choice_set.choicesetfilters.all() ] ]
+
+    campaigns = [ properties ]
+    filters = [ get_filters(properties) ]
     while properties.fallback_campaign:
         properties = properties.fallback_campaign.campaignproperties.get()
-        campaigns.append(properties)
+        campaigns.append( properties )
+        filters.append( get_filters(properties) )
     return render(request, 'targetadmin/campaign_wizard_finish.html', {
         'campaigns': campaigns,
         'content': content,
         'client': client,
-    })
+        'root_campaign': root_campaign,
+        'filters': json.dumps( filters, cls=DjangoJSONEncoder ),
+        'campaign_properties': properties,
+        'fb_obj_attributes': fb_obj_attributes
+    } )
 
 def how_it_works(request,client_pk=None):
     return render( request, 'targetadmin/how_it_works.html' )

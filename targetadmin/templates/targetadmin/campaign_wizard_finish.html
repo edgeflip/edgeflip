@@ -1,31 +1,175 @@
 {% extends "targetadmin/base.html" %}
+
 {% block title %}Campaign Wizard Final Step{% endblock %}
+
+{% block extrahead %}
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/wizard_finish.css">
+{% endblock %}
+
 {% block content %}
-    <h2>Congratulations!</h2>
     <div class="row">
-        <div class="span5">
-            <p>Your new campaign has been created. Edgeflip is validating the campaign and will notify you when it has been deployed and ready for you to use. 
-            </p>
-    {% for camp in campaigns %}
-        <div class="row" class="campaign-box">
-            <div class="span5 well">
-                <h4>{{ camp.campaign.name }}</h4> 
-                <p>Filtering Criteria:</p>
-                <ul>
-                    {% for csf in camp.campaign.choice_set.choice_set.choicesetfilters.all %}
-                        {% for ff in csf.filter.filterfeatures.all %}
-                            <li>{{ ff.feature_type.name }} {{ ff.operator }} {{ ff.value }}</li>
-                        {% empty %}
-                            <li>No Filtering</li>
-                        {% endfor %}
-                    {% endfor %}
-                </ul>
-            </div>
+        <h2 class="page-header">Congratulations!</h2>
+    </div>
+    <div class="row">
+        <div class="span3">
         </div>
-    {% endfor %}
-        <div class="row">
-            <div id="buttons" style="padding-bottom: 40px;">
-                <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
+        <div class="span6 campaign-box">
+            <div class="row">
+                <p>
+                    Your new campaign has been created. Edgeflip is validating the campaign and will notify you when it has been deployed and ready for you to use.
+                </p>
             </div>
+
+            <div class="row well">
+               <h4 class="campaign-name">{{ root_campaign.name|slice:":-2" }}</h4>
+               <div id="filter-criteria"></div>
+               <div>
+                   <h5 class="sub-header">Friend Suggestion Page Info</h5>
+                   <div>Headline : {{fb_obj_attributes.sharing_prompt}}</div>
+                   <div>Sub-header : {{fb_obj_attributes.sharing_sub_header}}</div>
+                   <div>Thanks URL : {{campaign_properties.client_thanks_url}}</div>
+                   <div>Error URL : {{campaign_properties.client_error_url}}</div>
+                   <div>Host URL : {{campaign_properties.client_faces_url}}</div>
+               </div>
+               <div>
+                   <h5 class="sub-header">Facebook Post</h5>
+                   <div>Cause or Organization : {{fb_obj_attributes.org_name}}</div>
+                   {% if fb_obj_attributes.msg1_pre or fb_obj_attributes.msg1_post or fb_obj_attributes.msg2_pre or fb_obj_attributes.msg2_post %}
+                       <div class="suggested-messages">
+                           <h6 class="suggested-messages-header">Suggested Messages</h6>
+                           <div>Message 1 : {{fb_obj_attributes.msg1_pre}} [Friend Names] {{fb_obj_attributes.msg1_post}}</div>
+                           <div>Message 2 : {{fb_obj_attributes.msg2_pre}} [Friend Names] {{fb_obj_attributes.msg2_post}}</div>
+                       </div>
+                   {% endif %}
+                   <div>Title : {{fb_obj_attributes.og_title}}</div>
+                   <div>Image URL : {{fb_obj_attributes.og_image}}</div>
+                   <div>Description : {{fb_obj_attributes.og_description}}</div>
+                   <div>Content URL : {{content.url}}</div>
+               </div>
+            </div>
+
+            <div class="row">
+                <div id="buttons" style="padding-bottom: 40px; text-align:center;">
+                    <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
+                </div>
+            </div>
+        
         </div>
+
+        <div class="span3"></div>
+    </div>
+    
+    
+
+    <script type="text/javascript">
+        ( function($) {
+
+            var genderFilter = Backbone.Model.extend( {
+
+                defaults: {
+                    gender: undefined
+                },
+
+                parse: function( attrs ) {
+                    return { gender: attrs.value };
+                },
+
+                getReadable: function() { return this.get('gender') + 's'; }
+
+            } );
+            
+            var ageFilter = Backbone.Model.extend( {
+                defaults: {
+                    min: undefined,
+                    max: undefined
+                },
+
+                parse: function( attrs ) {
+                    var rv = { };
+                    rv[ attrs.operator ] = attrs.value;
+                    return rv;
+                },
+
+                getReadable: function() {
+                    return this.has('min')
+                        ? this.get('min') + ' and older'
+                        : this.get('max') + ' and younger';
+                }
+
+            } );
+            
+            var locationFilter = Backbone.Model.extend( {
+                defaults: {
+                    type: undefined,
+                    values: [ ]
+                },
+
+                parse: function( attrs ) {
+                    return {
+                        type: attrs.feature,
+                        values: attrs.value.split('||')
+                    }
+                },
+
+                getReadable: function() {
+
+                    return 'Lives in ' + ( ( this.get('values').length < 2 )
+                        ? this.get('values')
+                        : this.get('values').join(', ') );
+                }
+            } );
+
+            var filters = Backbone.Collection.extend( {
+                model: function( attrs, options ) {
+                    return ( attrs.feature === 'gender' )
+                        ? new genderFilter( attrs, { parse: true } )
+                        : ( attrs.feature === 'age' )
+                            ? new ageFilter( attrs, { parse: true } )
+                            : new locationFilter( attrs, { parse: true } )
+                }
+            } );
+            
+            var filterLayers = _.map( {{ filters|safe }}, function( filter ) {
+               return new filters( filter[0] ); 
+            } );
+
+            var filterView = function( options ) {
+                this.el = options.el;
+                this.filters = filterLayers;
+                this.initialize();
+            }
+
+            $.extend( filterView.prototype, {
+
+                initialize: function() {
+
+                    _.each( this.filters, function( filterLayer, i ) {
+                        this.addLayer( {
+                            layer: filterLayer,
+                            label: ( i === 0 )
+                                ? 'Target Audience'
+                                : 'Fallback Audience ' + ( i + 1 ) } );
+                    }, this );
+                },
+
+                addLayer: function( options ) {
+
+                    var listItems = options.layer.reduce( function( memo, filter ) {
+                        return memo += '<li>' + filter.getReadable() + '</li>';
+                    }, '' );
+
+                    if( ! listItems ) { listItems = '<li>No Filtering</li>'; }
+
+                    this.el.append( '<div class="filter-layer">' +
+                        '<div class="audience-label">' + options.label + '</div>' +
+                        '<ul>' + listItems + '</ul></div>' );
+                }
+
+            } );
+
+            new filterView( { el: $('#filter-criteria') } );
+
+          }
+        )(jQuery);
+    </script>
 {% endblock %}
