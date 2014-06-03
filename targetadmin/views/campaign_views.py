@@ -305,32 +305,54 @@ def campaign_wizard(request, client_pk):
 
 
 @utils.auth_client_required
+def campaign_summary(request, client_pk, campaign_pk):
+    return render(\
+        request,
+        'targetadmin/campaign_summary_page.html',
+        get_campaign_summary_data( client_pk, campaign_pk )
+    )
+
+@utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
+    return render(\
+        request,
+        'targetadmin/campaign_wizard_finish.html',
+        get_campaign_summary_data( client_pk, campaign_pk, content_pk )
+    )
+
+def get_campaign_summary_data( client_pk, campaign_pk, content_pk = None ):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     properties = root_campaign.campaignproperties.get()
-    content = get_object_or_404(relational.ClientContent, pk=content_pk)
+
+    if content_pk:
+        content = get_object_or_404( relational.ClientContent, pk=content_pk )
+    else:
+        content = relational.ClientContent.objects.filter(name='{} {}'.format(client.name, root_campaign.name[:-2]))
+        if content.count() == 1:
+            content = get_object_or_404( content )
+        else:
+            content = list(content[:1])[0]
+
     fb_obj_attributes = get_object_or_404( relational.FBObjectAttribute, fb_object=root_campaign.fb_object().fb_object_id)
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
             [ choise_set.filter.filterfeatures.all() for choise_set in properties.campaign.choice_set().choice_set.choicesetfilters.all() ] ]
 
-    campaigns = [ properties ]
     filters = [ get_filters(properties) ]
     while properties.fallback_campaign:
         properties = properties.fallback_campaign.campaignproperties.get()
-        campaigns.append( properties )
         filters.append( get_filters(properties) )
-    return render(request, 'targetadmin/campaign_wizard_finish.html', {
-        'campaigns': campaigns,
+
+    return {
         'content': content,
         'client': client,
         'root_campaign': root_campaign,
         'filters': json.dumps( filters, cls=DjangoJSONEncoder ),
         'campaign_properties': properties,
         'fb_obj_attributes': fb_obj_attributes
-    } )
+    }
 
 def how_it_works(request,client_pk=None):
     return render( request, 'targetadmin/how_it_works.html' )

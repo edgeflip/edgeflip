@@ -1,79 +1,20 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}{{ client.name }}{% endblock %}
 {% block content %}
-    <h2>{{ client.name }}</h2>
+    <h2 style="text-align:center;">{{ client.name }}</h2>
     <div class="span9">
-        <h4>Create New Elements</h4>
-        <ul>
-            <li><a href="{% url 'targetadmin:campaign-wizard' client.pk %}">Campaign Wizard</a></li>
-            <li><a href="{% url 'targetadmin:content-new' client.pk %}">Create Content</a></li>
-            <li><a href="{% url 'targetadmin:fb-obj-new' client.pk %}">Create FaceBook Objects</a></li>
-            <li><a href="{% url 'targetadmin:filter-new' client.pk %}">Create Filter</a></li>
-            <li><a href="{% url 'targetadmin:cs-new' client.pk %}">Create Choice Set</a></li>
-            <li><a href="{% url 'targetadmin:button-new' client.pk %}">Create Button Style</a></li>
-            <li><a href="{% url 'targetadmin:campaign-new' client.pk %}">Create Campaign</a></li>
-            <li><a href="{% url 'targetadmin:snippets' client.pk %}">Generate Snippet</a></li>
-        </ul>
+        <div><a href="{% url 'targetadmin:campaign-wizard' client.pk %}">Campaign Wizard</a></div>
+        <div><a href="{% url 'reporting:client_summary' client.pk %}">Reporting Dashboard</a></div>
     </div>
-    <div class="span9"><h4>Existing Elements</h4></div>
     <div class="span9">
         <div class="span4">
             <h4>Campaigns</h4>
             <ul>
-                {% for campaign in client.campaigns.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:campaign-detail' client.pk campaign.pk %}">{{ campaign }}</a></li>
+                {% for campaign in root_campaigns.all %}
+                    <li><a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a></li>
                 {% endfor %}
             </ul>
-            <a href="{% url 'targetadmin:campaign-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
-        </div>
-        <div class="span4">
-            <h4>Content Objects</h4>
-            <ul>
-                {% for content in client.clientcontent.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:content-detail' client.pk content.pk %}">{{ content.name }}</a></li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'targetadmin:content-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
         </div>
     </div>
-    <div class="span9">
-        <div class="span4">
-            <h4>Choice Set</h4>
-            <ul>
-                {% for cs in client.choicesets.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:cs-detail' client.pk cs.pk %}">{{ cs.name }}</a></li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'targetadmin:cs-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
-        </div>
-        <div class="span4">
-            <h4>Filters</h4>
-            <ul>
-                {% for filter in client.filters.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:filter-detail' client.pk filter.pk %}">{{ filter.name }}</a></li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'targetadmin:filter-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
-        </div>
-    </div>
-    <div class="span9">
-        <div class="span4">
-            <h4>FaceBook Objects</h4>
-            <ul>
-                {% for fbo in client.fbobjects.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:fb-obj-detail' client.pk fbo.pk %}">{{ fbo.name }}</a></li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'targetadmin:fb-obj-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
-        </div>
-        <div class="span4">
-            <h4>Button Styles</h4>
-            <ul>
-                {% for button in client.buttonstyles.all|slice:"5" %}
-                    <li><a href="{% url 'targetadmin:button-detail' client.pk button.pk %}">{{ button.name }}</a></li>
-                {% endfor %}
-            </ul>
-            <a href="{% url 'targetadmin:button-list' client.pk %}" class='btn btn-small btn-inverse'>View All</a>
-        </div>
-    </div>
+
 {% endblock %}

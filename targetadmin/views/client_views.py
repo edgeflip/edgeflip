@@ -1,5 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
+from django.shortcuts import redirect
 
 from targetadmin import forms, utils
 from targetshare.models import relational
@@ -10,6 +11,12 @@ class ClientListView(ListView):
     model = relational.Client,
     template_name = 'targetadmin/home.html'
     queryset = relational.Client.objects.all()
+
+    def render_to_response(self,context,**response_kwargs):
+        if len( context['client_list'] ) == 1: 
+            return redirect( 'targetadmin:client-detail', context['client_list'][0].pk )
+        else:
+            return ListView.render_to_response( self, context, **response_kwargs) 
 
     def get_queryset(self):
         queryset = super(ClientListView, self).get_queryset()
@@ -23,8 +30,16 @@ class ClientListView(ListView):
 
 class ClientDetailView(DetailView):
     model = relational.Client
-    template_name = 'targetadmin/client_home.html'
     pk_url_kwarg = 'client_pk'
+  
+    def get_template_names(self):
+        return [ 'targetadmin/superuser_home.html' ] if self.request.user.is_superuser\
+             else [ 'targetadmin/client_home.html' ]
+
+    def get_context_data(self,**kwargs):
+        context = super(ClientDetailView, self).get_context_data(**kwargs)
+        context['root_campaigns'] = context['client'].campaigns.exclude(rootcampaign_properties=None)
+        return context
 
 
 class ClientFormView(CRUDView):

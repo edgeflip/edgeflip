@@ -124,14 +124,16 @@
                             el: $('input[name="error_url"]'),
                             text: [ "If the user does not have any friends that fit the targeting criteria ",
                                     "or if there is a sharing error, they will be sent to this URL " ].join(""),
-                            title: ''
+                            title: '',
+                            placement: 'bottom'
                         },
                         
                         faces_url: {
                             el: $('input[name="faces_url"]'),
                             text: [ "Provide the URL where this page will be embedded. ",
                                     "Leave blank if using Facebook canvas." ].join(""),
-                            title: ''
+                            title: '',
+                            placement: 'bottom'
                         }
                     }
 
@@ -178,7 +180,7 @@
                         animation: false,
                         trigger: 'manual',
                         content: function() { return self.getPopoverText(); },
-                        placement: 'right'
+                        placement: function() { return self.getPopoverPlacement(); }
                     } );
                 },
 
@@ -229,8 +231,8 @@
                     } else {
                         this.imagePopoverEl.popover('hide');
                         this.inputPopoverEl.css( {
-                            top: focusedFormMetaData.el.offset().top + ( focusedFormMetaData.el.outerHeight( true ) / 2 ),
-                            left: focusedFormMetaData.el.offset().left + focusedFormMetaData.el.outerWidth( true ) + 5 } ).popover('show');
+                            top: focusedFormMetaData.el.offset().top + focusedFormMetaData.el.outerHeight( true ) + 5,
+                            left: focusedFormMetaData.el.offset().left + ( focusedFormMetaData.el.outerWidth( true ) / 2 ) } ).popover('show');
                     }
 
                     return this;    

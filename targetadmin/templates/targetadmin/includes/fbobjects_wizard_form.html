@@ -206,7 +206,8 @@
                     content_url: {
                         el: $('input[name="content_url"]'),
                         text: "When someone clicks on the post, this is where we will send them.",
-                        title: ''
+                        title: '',
+                        placement: 'bottom'
                     }
                 }
                 
@@ -252,7 +253,7 @@
                     animation: false,
                     trigger: 'manual',
                     content: function() { return self.getPopoverText(); },
-                    placement: 'right'
+                    placement: function() { return self.getPopoverPlacement(); }
                 } );
             },
 
@@ -303,8 +304,8 @@
                 } else {
                     this.imagePopoverEl.popover('hide');
                     this.inputPopoverEl.css( {
-                        top: focusedFormMetaData.el.offset().top + ( focusedFormMetaData.el.outerHeight( true ) / 2 ),
-                        left: focusedFormMetaData.el.offset().left + focusedFormMetaData.el.outerWidth( true ) + 5 } ).popover('show');
+                        top: focusedFormMetaData.el.offset().top + ( focusedFormMetaData.el.outerHeight( true ) + 5 ),
+                        left: focusedFormMetaData.el.offset().left + ( focusedFormMetaData.el.outerWidth( true ) / 2 ) } ).popover('show');
                 }
 
                 return this;    
