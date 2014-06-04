@@ -95,6 +95,8 @@
 {% endblock %} {% block extrascript %}
 <script src="{{ STATIC_URL }}js/usStates.js" async></script>
 <script src="{{ STATIC_URL }}js/inputValidator.js"></script>
+<script src="{{ STATIC_URL }}js/imageCompanion.js"></script>
+
 <script>
 
 $( function() {    
@@ -133,8 +135,8 @@ $( function() {
         $('.wizard-step').hide();
         $('#' + step).show();
         
-        if( step === 'faces' && (! window.facesIndicator.isInitialized ) ) {
-            window.facesIndicator.init();
+        if( step === 'faces' && (! window.facesImageCompanion.hasStarted ) ) {
+            window.facesImageCompanion.start();
         }
 
         if( step === 'fbobjects' && (! window.fbObjIndicator.isInitialized ) ) {

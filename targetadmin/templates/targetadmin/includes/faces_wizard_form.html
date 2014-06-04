@@ -8,10 +8,10 @@
     <div class="span1"></div>
 </div>
 
-<div class="row-fluid">
+<div id="imageCompanion" class="row-fluid">
     <div class="span1"></div>
-    <div class="span5" id="input-wrapper">
-        <div id="input-popover"></div>
+    <div class="span5" data-js="inputContainer">
+        <div data-js="inputPopover" class="companion-popover"></div>
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>
             {{ fb_obj_form.sharing_prompt}}
@@ -34,9 +34,9 @@
         </div>
     </div>
 
-    <div id="img-helper-container" class="span5 img-helper-wrapper">
-        <div id="faces-img-popover"></div>
-        <img id="faces-img" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
+    <div data-js="imageContainer" class="span5 img-helper-wrapper">
+        <div data-js="imagePopover" class="companion-popover"></div>
+        <img data-js="image" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
     </div>
     <div class="span1"></div>
 </div>
@@ -46,10 +46,61 @@
     <button type="button" id="step3-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</button>
 </div>
 
+<link href="{{ STATIC_URL }}css/imageCompanion.css" rel="stylesheet">
+
     <script>
 
         // call on document ready
         $( function() {
+
+            var defaultFieldData = {
+                placement: 'bottom'
+            };
+
+            var imageCompanionFieldData = {
+
+                "sharing_prompt": {
+                    type: 'image',
+                    coords: { x: 380, y: 134 },
+                    text: 'Your headline will go here.'
+                },
+
+                "sharing_sub_header": {
+                    type: "image",
+                    coords: { x: 384, y: 189 },
+                    text: "Your sub header will go here."
+                },
+
+                "thanks_url": {
+                    type: "image",
+                    coords: { x: 524, y: 813 },
+                    placement: 'left',
+                    text: "Where should we send your supporters after they share with their friends?"
+                },
+
+                "error_url": {
+                    type: "input",
+                    text: [ "If the user does not have any friends that fit the targeting criteria ",
+                          "or if there is a sharing error, they will be sent to this URL" ].join("")
+                },
+
+                "faces_url": {
+                    type: "input",
+                    text: [ "Provide the URL where this page will be embedded. ",
+                            "Leave blank if using Facebook canvas." ].join("")
+                } 
+            };
+
+            _.each( imageCompanionFieldData, function( meta, key ) {
+                 _.defaults( meta, defaultFieldData );
+            } );
+
+            window.facesImageCompanion = new window.imageCompanion( {
+                el: '#imageCompanion',
+                fields: imageCompanionFieldData
+            } );
+
+            return;
 
             //constructor
             var facesIndicator = function() {
