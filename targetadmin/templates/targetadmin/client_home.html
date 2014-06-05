@@ -2,16 +2,26 @@
 {% block title %}{{ client.name }}{% endblock %}
 {% block content %}
     <h2 style="text-align:center;">{{ client.name }}</h2>
-    <div class="span9">
-        <div><a href="{% url 'targetadmin:campaign-wizard' client.pk %}">Campaign Wizard</a></div>
-        <div><a href="{% url 'reporting:main' %}">Reporting Dashboard</a></div>
+    <div class="row">
+        <div class="span6 offset3">
+            <div style="margin-top: 2em; margin-bottom: 4em; text-align: center;" class="row">
+                <div class="span3">
+                    <a class="btn btn-primary" href="{% url 'targetadmin:campaign-wizard' client.pk %}">Create New Campaign</a>
+                </div>
+                <div class="span3">
+                    <a class="btn btn-primary" href="{% url 'reporting:main' %}">Reporting Dashboard</a>
+                </div>
+            </div>
+        </div>
     </div>
-    <div class="span9">
-        <div class="span4">
-            <h4>Campaigns</h4>
-            <ul>
+    <div style="text-align: center;" class="row">
+        <div class="span6 offset3">
+            <h4 style="margin-bottom: 1em;">Campaigns</h4>
+            <ul class="row">
                 {% for campaign in root_campaigns.all %}
-                    <li><a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a></li>
+                    <li class="span3" style="margin-bottom: .5em; list-style-type: none;">
+                        <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a>
+                    </li>
                 {% endfor %}
             </ul>
         </div>
