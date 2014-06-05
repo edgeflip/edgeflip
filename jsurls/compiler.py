@@ -7,8 +7,8 @@ from django.template.loader import render_to_string
 from django.utils import datastructures
 from rjsmin import jsmin
 
+from jsurls.structs import All
 
-All = object()
 
 GROUP_NAME_PATTERN = re.compile(r'\?P<[^>]+>')
 
@@ -50,7 +50,7 @@ def compile_lookup(urlconf=None, namespaces=(), includes=(), excludes=()):
     """
     resolver = urlresolvers.get_resolver(None)
 
-    if namespaces == All:
+    if namespaces is All:
         namespaces = resolver.namespace_dict.keys()
 
     includes = {re.compile(include) for include in includes}

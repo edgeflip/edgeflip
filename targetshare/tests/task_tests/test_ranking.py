@@ -12,12 +12,12 @@ from targetshare.integration import facebook
 from .. import EdgeFlipTestCase, patch_facebook
 
 
-def classify_fake(context):
+def classify_fake(corpus, *topics):
     """Fake classifier that will serially classify a corpus as weight 0 or 1."""
-    topic = next(iter(context.topics)) if context.topics else 'classifiers'
+    topic = topics[0] if topics else 'classifiers'
     weight = classify_fake.switch
     classify_fake.switch ^= 1
-    return [(topic, weight)] if weight else ()
+    return {topic: weight}
 
 classify_fake.switch = 0
 
@@ -273,7 +273,7 @@ class TestProximityRankFour(RankingTestCase):
         self.assertEqual(facebook.client.urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=15, max_friends=30)
-    @patch('targetshare.classify.simple_map.func', side_effect=classify_fake)
+    @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
     def test_px4_filtering(self, _classifier_mock):
         (stream, ranked_edges) = ranking.px4_crawl(self.token)
         self.assertTrue(stream)

@@ -21,14 +21,15 @@ def client_summary(request, client_pk):
         connections['redshift'].cursor(),
         """
         SELECT
-            clientstats.campaign_id as root_id,
+            campaignstats.campaign_id as root_id,
             campaigns.name,
-            to_char(max(clientstats.hour), 'YYYY-MM-DD') as most_recent_data,
+            max(most_recent_data) as most_recent_data,
             {}
-        FROM clientstats
+        FROM campaignstats
         JOIN campaigns using (campaign_id)
+        JOIN (select campaign_id, to_char(max(hour), 'YYYY-MM-DD') as most_recent_data from clientstats group by campaign_id) as timelookup using (campaign_id)
         WHERE campaigns.client_id = %s
-        GROUP BY clientstats.campaign_id, campaigns.name
+        GROUP BY campaignstats.campaign_id, campaigns.name
         """.format(metric_where_fragment()),
          (client.client_id,)
     )

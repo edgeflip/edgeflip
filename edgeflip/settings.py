@@ -273,6 +273,7 @@ BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
 BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
+CELERYD_MAX_TASKS_PER_CHILD = 50
 CELERY_TASK_RESULT_EXPIRES = 3600
 CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
 CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
@@ -385,8 +386,19 @@ CELERY_IMPORTS = (
 
 # jsurls settings #
 JSURLS_JS_NAMESPACE = 'edgeflip.router'
-JSURLS_INSTALL_PATH = os.path.join(STATIC_ROOT, 'js', 'router.js')
-JSURLS_URL_NAMESPACES = ('gimmick', 'reporting',)
+JSURLS_PROFILES = {
+    'sharing': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router.js'),
+    },
+    'gimmick': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-map.js'),
+        'URL_NAMESPACES': ('gimmick',),
+    },
+    'reporting': {
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-reports.js'),
+        'URL_NAMESPACES': ('reporting',),
+    },
+}
 
 # chapo settings #
 CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
