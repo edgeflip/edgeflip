@@ -1,16 +1,13 @@
 <div class="row">
-    <div class="span1"></div>
-    <div class="span10 header-container">
+    <div class="span10 offset1 header-container">
         <h2 class="wizard-header">Friend Suggestion Page</h2>
         <p>The Friend Suggestion Page is what your supporters will see when they authorize the Targeted Sharing application to access their Facebook information. It can reside either on Facebook or on your site.</p>
         <p>Configure your Friend Suggestion Page by filling in the form below.</p>
     </div>
-    <div class="span1"></div>
 </div>
 
-<div id="imageCompanion" class="row-fluid">
-    <div class="span1"></div>
-    <div class="span5" data-js="inputContainer">
+<div id="facesImageCompanion" class="row-fluid">
+    <div class="span5 offset1" data-js="inputContainer">
         <div data-js="inputPopover" class="companion-popover"></div>
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>
@@ -38,7 +35,6 @@
         <div data-js="imagePopover" class="companion-popover"></div>
         <img data-js="image" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
     </div>
-    <div class="span1"></div>
 </div>
 
 <div class="row wizard-button-container">
@@ -46,404 +42,60 @@
     <button type="button" id="step3-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</button>
 </div>
 
-<link href="{{ STATIC_URL }}css/imageCompanion.css" rel="stylesheet">
-
-    <script>
-
-        // call on document ready
-        $( function() {
-
-            var defaultFieldData = {
-                placement: 'bottom'
-            };
-
-            var imageCompanionFieldData = {
-
-                "sharing_prompt": {
-                    type: 'image',
-                    coords: { x: 380, y: 134 },
-                    text: 'Your headline will go here.'
-                },
-
-                "sharing_sub_header": {
-                    type: "image",
-                    coords: { x: 384, y: 189 },
-                    text: "Your sub header will go here."
-                },
-
-                "thanks_url": {
-                    type: "image",
-                    coords: { x: 524, y: 813 },
-                    placement: 'left',
-                    text: "Where should we send your supporters after they share with their friends?"
-                },
-
-                "error_url": {
-                    type: "input",
-                    text: [ "If the user does not have any friends that fit the targeting criteria ",
-                          "or if there is a sharing error, they will be sent to this URL" ].join("")
-                },
-
-                "faces_url": {
-                    type: "input",
-                    text: [ "Provide the URL where this page will be embedded. ",
-                            "Leave blank if using Facebook canvas." ].join("")
-                } 
-            };
-
-            _.each( imageCompanionFieldData, function( meta, key ) {
-                 _.defaults( meta, defaultFieldData );
-            } );
-
-            window.facesImageCompanion = new window.imageCompanion( {
-                el: '#imageCompanion',
-                fields: imageCompanionFieldData
-            } );
-
-            return;
-
-            //constructor
-            var facesIndicator = function() {
-
-                //add properties to our instance
-                $.extend( this, {
-
-                    //store $ stuff
-                    window: $(window),
-                    html: $('html'),
-                    body: $('body'),
-                    imageContainer: $('#img-helper-container'),
-                    imagePopoverEl: $('#faces-img-popover'),
-                    inputPopoverEl: $('#input-popover'),
-                    inputWrapper: $('#input-wrapper'),
-
-                    //store calculations
-                    imageContainerOffset: { top: undefined, left: undefined },
-                    inputWrapperHeight: 0,
-                    scrollTop: 0,
-                    imageContainerHeight: undefined,
-
-                    //store "models"
-                    isInitialized: false,
-                    currentFormField: undefined,
-                    verticalImagePadding: 10,
-
-
-                    //TODO: should be passed into constructor for reuse
-                    imageMetaData: {
-                        el: $('#faces-img'),
-                        originalDims: { x: 753, y: 854 },
-                        multiplier: { x: undefined, y: undefined },
-                        currentDims: { x: undefined, y: undefined }
-                    }
-                } );
-
-
-                //add more properties, these rely on things extended above
-                //this is why another extend is called
-                $.extend( this, {
-                  
-                    //data about form fields and their relation to images 
-                    //TODO: should be passed into constructor for reuse 
-                    formFields: {
-
-                        sharing_prompt: {
-                            el: $('input[name="sharing_prompt"]'),
-                            coords: { x: 380, y: 134 },
-                            placement: 'bottom',
-                            text: "Your headline will go here.",
-                            title: ''
-                        },
-
-                        sharing_sub_header: {
-                            el: $('textarea[name="sharing_sub_header"]'),
-                            coords: { x: 384, y: 189 },
-                            placement: 'bottom',
-                            text: "Your sub header will go here.",
-                            title: ''
-                        },
-
-                        thanks_url: {
-                            el: $('input[name="thanks_url"]'),
-                            coords: { x: 524, y: 813 },
-                            placement: 'left',
-                            text: "Where should we send your supporters after they share with their friends?",
-                            title: ''
-                        },
-                        
-                        error_url: {
-                            el: $('input[name="error_url"]'),
-                            text: [ "If the user does not have any friends that fit the targeting criteria ",
-                                    "or if there is a sharing error, they will be sent to this URL " ].join(""),
-                            title: '',
-                            placement: 'bottom'
-                        },
-                        
-                        faces_url: {
-                            el: $('input[name="faces_url"]'),
-                            text: [ "Provide the URL where this page will be embedded. ",
-                                    "Leave blank if using Facebook canvas." ].join(""),
-                            title: '',
-                            placement: 'bottom'
-                        }
-                    }
-
-                    
-                } );
-                    
-                return this;
-            }
-
-            //add methods to our object
-            $.extend( facesIndicator.prototype, {
-
-                init: function() {
-                    this.storeElementDimensions();
-                    this.imageContainerHeight =
-                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
-                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                        this.imageContainerHeight = this.inputWrapperHeight;
-                    }
-                    //this.imageContainer.height( this.imageContainerHeight );
-                    $('body,html').scrollTop( 0 );
-                    this.maxScroll = this.body.height() - this.windowHeight;
-                    //this.sizeAndPositionImage();
-                    this.initPopovers();
-                    this.delegateEvents();
-                    this.setImageMetaData();
-                    this.isInitialized = true;
-                },
-
-                initPopovers: function() {
-                    var self = this;
-
-                    //instantiate img popover
-                    this.imagePopoverEl.popover( {
-                        animation: false,
-                        trigger: 'manual',
-                        title: function() { return self.getPopoverTitle(); },
-                        content: function() { return self.getPopoverText(); },
-                        placement: function() { return self.getPopoverPlacement(); }
-                    } );
-
-                    //instantiate img popover
-                    this.inputPopoverEl.popover( {
-                        animation: false,
-                        trigger: 'manual',
-                        content: function() { return self.getPopoverText(); },
-                        placement: function() { return self.getPopoverPlacement(); }
-                    } );
-                },
-
-                delegateEvents: function() {
-                    var self = this;
-
-                    //binds form focus / blur events
-                    $.each( this.formFields, function( fieldName, formMetaData ) {
-
-                        formMetaData.el.on( 'focus', function() {
-                                         self.setCurrentFormField( fieldName )
-                                             .emboldenLabel()
-                                             .scrollToField() } )
-
-                                .on( 'blur', function() {
-                                        self.weakenLabel()
-                                            .hidePopover()
-                                            .setCurrentFormField( null ) } );
-                    } );
-
-                    //handle window resize so our popovers and images look alright
-                    this.window.resize( function() { self.handleWindowResize(); } );
-                    this.window.scroll( _.debounce( function() { self.handleWindowScroll() }, 150 ) );
-
-                },
-
-                setCurrentFormField: function( fieldName ) { this.currentFormField = fieldName; return this; },
-
-                emboldenLabel: function() {
-                    this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'bold' );
-                    return this;
-                },
-                
-                weakenLabel: function() {
-                    this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'normal' );
-                    return this;
-                },
-
-                positionAndShowPopover: function() {
-     
-                    var focusedFormMetaData = this.formFields[ this.currentFormField ];
-
-                    if( focusedFormMetaData.coords ) {
-                        this.inputPopoverEl.popover('hide');
-                        this.imagePopoverEl.css( {
-                            top: ( focusedFormMetaData.coords.y * this.imageMetaData.multiplier.y ),
-                            left: ( focusedFormMetaData.coords.x * this.imageMetaData.multiplier.x ) } ).popover('show');
-                    } else {
-                        this.imagePopoverEl.popover('hide');
-                        this.inputPopoverEl.css( {
-                            top: focusedFormMetaData.el.offset().top + focusedFormMetaData.el.outerHeight( true ) + 5,
-                            left: focusedFormMetaData.el.offset().left + ( focusedFormMetaData.el.outerWidth( true ) / 2 ) } ).popover('show');
-                    }
-
-                    return this;    
-                },
-
-                hidePopover: function() {
-                    var focusedFormMetaData = this.formFields[ this.currentFormField ];
-
-                    if( focusedFormMetaData.coords ) {
-                        this.imagePopoverEl.popover('hide');
-                    } else {
-                        this.inputPopoverEl.popover('hide');
-                    }
-
-                    return this;
-                },
-
-                getPopoverText: function() { return this.formFields[ this.currentFormField ].text; },
-                
-                getPopoverTitle: function() { return this.formFields[ this.currentFormField ].title; },
-
-                getPopoverPlacement: function() { return this.formFields[ this.currentFormField ].placement; },
-
-                scrollToField: function() {
-
-                    var difference,
-                        maxDifference = this.inputWrapperHeight - $('#faces-img').outerHeight(true),
-                        formElTop = this.formFields[ this.currentFormField ].el.offset().top,
-                        self = this,
-                        scrollTop = ( formElTop - ( this.window.height() / 2 ) );
-
-                    difference =
-                        ( formElTop ) -
-                        ( ( this.imageContainerOffset.top - parseFloat( this.imageContainer.css('top' ) ) ) + ( this.imageMetaData.currentDims.y / 2 ) );
-
-                    if( difference < 0 ) { difference = 0; }
-                    else if( difference > maxDifference ) { difference = maxDifference; }
-
-                    this.imageContainer.animate(
-                        { 'top': difference },
-                        { complete: function() {
-                            self.imageContainerOffset = self.imageContainer.offset(); } } );
-
-                    if( ( this.scrollTop >= this.maxScroll && scrollTop >= this.maxScroll ) ||
-                        ( this.scrollTop === scrollTop ) || 
-                        ( this.scrollTop === 0 && scrollTop <= 0 ) ) {
-                        self.positionAndShowPopover();
-                    } else {
-                        $('body,html').animate(
-                            { 'scrollTop' : scrollTop },
-                            { complete: function() { self.positionAndShowPopover(); } }
-                        );
-                    }
-
-                    return this;
-                },
-
-                handleWindowScroll: function() {
-
-                    this.scrollTop = ( this.body.scrollTop() != 0 )
-                        ? this.body.scrollTop()
-                        : this.html.scrollTop();
-
-                    //this.sizeAndPositionImage();
-                },
-
-                sizeAndPositionImage: function() {
-
-                    var diff = this.inputWrapperOffset.top - this.scrollTop,
-                        top = 0,
-                        stickyHeaderBump = 0,
-                        self = this;
-
-                    //if the viewport contains the top of the input wrapper
-                    if( diff > 0 ) {
-
-                        if( diff < 60 ) {
-                            stickyHeaderBump = 60 - diff;
-                        } 
-                        this.imageContainerHeight = this.windowHeight - diff - this.verticalImagePadding - stickyHeaderBump;
-                    
-                        if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                            this.imageContainerHeight = this.inputWrapperHeight;
-                        }
-                            
-                        top = stickyHeaderBump;
-
-                    //if the viewport contains only our form fields and our image
-                    } else if( ( this.scrollTop + this.windowHeight ) <
-                               ( this.inputWrapperHeight + this.inputWrapperOffset.top ) ) {
-                        
-                        this.imageContainerHeight = this.windowHeight -
-                            this.navbarHeight -
-                            ( this.verticalImagePadding * 2 );
-
-                        top = ( this.scrollTop - this.inputWrapperOffset.top ) +
-                              this.navbarHeight + this.verticalImagePadding;
-                    
-                    //if the viewport contains the bottom of the input wrapper
-                    } else {
-
-                        this.imageContainerHeight = 
-                            ( this.inputWrapperHeight + this.inputWrapperOffset.top - this.scrollTop ) -
-                            ( this.navbarHeight + this.verticalImagePadding );
-
-                        top = this.scrollTop - this.inputWrapperOffset.top +
-                              this.navbarHeight + this.verticalImagePadding;
-                    }
-
-                    this.imageContainer.animate(
-                        { top: top },
-                        //{ top: top, height: this.imageContainerHeight },
-                        { duration: 200,
-                          complete: function() {
-                            self.setImageMetaData();
-                            if( self.currentFormField ) { self.positionAndShowPopover(); }
-                          } } );
-            
-                    return;
-                },
-
-                handleWindowResize: function() {
-                    this.windowHeight = this.window.height();
-                    this.maxScroll = this.body.height() - this.windowHeight;
-                    this.imageContainerHeight =
-                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
-                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                        this.imageContainerHeight = this.inputWrapperHeight;
-                    }
-                    this.setImageMetaData();
-                    //this.imageContainer.height( this.imageContainerHeight );
-                    //this.sizeAndPositionImage();
-                },
-
-                storeElementDimensions: function() {
-                    this.imageContainerOffset = this.imageContainer.offset();
-                    this.inputWrapperOffset = this.inputWrapper.offset();
-                    this.inputWrapperHeight = this.inputWrapper.outerHeight( true );
-                    this.windowHeight = this.window.height();
-                    this.navbarHeight = $('.navbar').outerHeight( true );
-                },
-
-
-                setImageMetaData: function() {
-
-                    this.imageMetaData.currentDims = {
-                        x: this.imageMetaData.el.outerWidth(true),
-                        y: this.imageMetaData.el.outerHeight(true)
-                    };    
-
-                    this.imageMetaData.multiplier = {
-                        x: this.imageMetaData.currentDims.x / this.imageMetaData.originalDims.x,
-                        y: this.imageMetaData.currentDims.y / this.imageMetaData.originalDims.y
-                    }
-                }
-
-            } );
-
-            window.facesIndicator = new facesIndicator();
-
+<script type="text/javascript">
+    // call on document ready
+    $( function() {
+
+        var defaultFieldData = {
+            placement: 'bottom'
+        };
+
+        var imageCompanionFieldData = {
+
+            "sharing_prompt": {
+                type: 'image',
+                coords: { x: 380, y: 134 },
+                text: 'Your headline will go here.',
+                index: 0
+            },
+
+            "sharing_sub_header": {
+                type: "image",
+                coords: { x: 384, y: 189 },
+                text: "Your sub header will go here.",
+                index: 1
+            },
+
+            "thanks_url": {
+                type: "image",
+                coords: { x: 524, y: 813 },
+                placement: 'left',
+                text: "Where should we send your supporters after they share with their friends?",
+                index: 2
+            },
+
+            "error_url": {
+                type: "input",
+                text: [ "If the user does not have any friends that fit the targeting criteria ",
+                      "or if there is a sharing error, they will be sent to this URL" ].join(""),
+                index: 3
+            },
+
+            "faces_url": {
+                type: "input",
+                text: [ "Provide the URL where this page will be embedded. ",
+                        "Leave blank if using Facebook canvas." ].join(""),
+                index: 4
+            } 
+        };
+
+        _.each( imageCompanionFieldData, function( meta, key ) {
+             _.defaults( meta, defaultFieldData );
         } );
 
+        window.facesImageCompanion = new window.imageCompanion( {
+            el: '#facesImageCompanion',
+            fields: imageCompanionFieldData
+        } );
+    } );
 </script>

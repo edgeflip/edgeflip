@@ -16,8 +16,8 @@
             maxScroll: undefined
         } );
     
-        this.window.on( 'resize', function() { self.computeSizes() } );
-        this.window.on( 'scroll', function() { self.getScrollPosition() } );
+        this.window.on( 'resize', this.computeSizes.bind(this) );
+        this.window.on( 'scroll', this.getScrollPosition.bind(this) );
     
         $( function() {
             self.computeSizes();
@@ -32,6 +32,7 @@
                 windowWidth: this.window.outerWidth( true ),
                 bodyHeight: this.body.outerHeight( true )
             } );
+
             this.maxScroll = this.bodyHeight - this.windowHeight;
             return this;
         },

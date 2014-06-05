@@ -1,23 +1,17 @@
 <div class="row">
-    <div class="span1"></div>
-    <div class="span10 header-container">
+    <div class="span10 offset1 header-container">
         <h2 class="wizard-header">Facebook Post</h2>
         <p>
             Once your supporters have selected which friends to share with, the Targeted Sharing application will generate a Facebook post that your target audience will see. Clicking on this post will send users to your campaign content. <a href="{% url 'targetadmin:how-it-works' client.pk %}" target="_blank">Learn more.</a>
         </p>
-        <p>
-            Create your Facebook post by filling in the form below.
-        </p>
-
+        <p>Create your Facebook post by filling in the form below.</p>
     </div>
-    <div class="span1"></div>
 </div>
 
-<div class="row">
-    <div class="span1"></div>
-    <div class="span5" id="fb-obj-input-wrapper">
-        <div id="fb-obj-input-popover"></div>
 
+<div id="fbObjImageCompanion" class="row-fluid">
+    <div class="span5 offset1" data-js="inputContainer">
+        <div data-js="inputPopover" class="companion-popover"></div>
         <div class="fb-obj-item">
             <label for="{{ fb_obj_form.org_name.id_for_label }}">{{ fb_obj_form.org_name.label}}:</label>
             {{ fb_obj_form.org_name }}
@@ -77,11 +71,11 @@
         </div>
     </div>
 
-    <div id="fb-obj-img-container" class="span5 img-helper-wrapper">
-        <div id="fb-obj-popover"></div>
-        <img id="fb-obj-img" class="img-helper" src="{{ STATIC_URL }}img/fb-obj-example.png">
+    <div data-js="imageContainer" class="span5 img-helper-wrapper">
+        <div data-js="imagePopover" class="companion-popover"></div>
+        <img data-js="image" class="img-helper" src="{{ STATIC_URL }}img/fb-obj-example.png">
     </div>
-    <div class="span1"></div>
+
 </div>
 
 <div class="row wizard-button-container">
@@ -90,386 +84,81 @@
 </div>
 
 
-<script>
+<script type="text/javascript">
 
     // call on document ready
     $( function() {
 
-        //constructor
-        var fbObjIndicator = function() {
+        var defaultFieldData = {
+            placement: 'bottom'
+        };
 
-            //add properties to our instance
-            $.extend( this, {
+        var imageCompanionFieldData = {
 
-                //store $ stuff
-                window: $(window),
-                html: $('html'),
-                body: $('body'),
-                imageContainer: $('#fb-obj-img-container'),
-                imagePopoverEl: $('#fb-obj-popover'),
-                inputPopoverEl: $('#fb-obj-input-popover'),
-                inputWrapper: $('#fb-obj-input-wrapper'),
-
-                //store calculations
-                imageContainerOffset: { top: undefined, left: undefined },
-                inputWrapperHeight: 0,
-                imageContainerHeight: undefined,
-
-                //store "models"
-                isInitialized: false,
-                currentFormField: undefined,
-                verticalImagePadding: 10,
-
-
-                imageMetaData: {
-                    el: $('#fb-obj-img'),
-                    originalDims: { x: 960, y: 1076 },
-                    multiplier: { x: undefined, y: undefined },
-                    currentDims: { x: undefined, y: undefined }
-                }
-
-            } );
-
-
-            //add more properties, these rely on things extended above
-            //this is why another extend is called
-            $.extend( this, {
-              
-                //data about form fields and their relation to images 
-                //TODO: should be passed into constructor for reuse 
-                formFields: {
-
-                    org_name: {
-                        el: $('input[name="org_name"]'),
-                        coords: { x: 540, y: 80 },
-                        placement: 'bottom',
-                        text: "The cause or organization you enter will replace 'Freakonomics Radio' here.",
-                        title: ''
-                    },
-
-                    msg1_pre: {
-                        el: $('input[name="msg1_pre"]'),
-                        coords: { x: 56, y: 206 },
-                        placement: 'bottom',
-                        text: "Text to be displayed before friend names.",
-                        title: ''
-                    },
-                    
-                    msg1_post: {
-                        el: $('input[name="msg1_post"]'),
-                        coords: { x: 519, y: 204 },
-                        placement: 'bottom',
-                        text: "Text that will go after the friend names.",
-                        title: ''
-                    },
-
-                    msg2_pre: {
-                        el: $('input[name="msg2_pre"]'),
-                        coords: { x: 56, y: 206 },
-                        placement: 'bottom',
-                        text: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same.",
-                        title: ''
-                    },
-                    
-                    msg2_post: {
-                        el: $('input[name="msg2_post"]'),
-                        coords: { x: 519, y: 204 },
-                        placement: 'bottom',
-                        text: "Alternate text for after the friend names.  We will randomly pick a suggestion.",
-                        title: ''
-                    },
-
-                    og_title: {
-                        el: $('input[name="og_title"]'),
-                        coords: { x: 386, y: 754 },
-                        placement: 'bottom',
-                        text: "Your title will go here.",
-                        title: ''
-                    },
-                    
-                    og_image: {
-                        el: $('input[name="og_image"]'),
-                        coords: { x: 641, y: 417 },
-                        placement: 'right',
-                        text: "Your image will go here.",
-                        title: ''
-                    },
-                    
-                    og_description: {
-                        el: $('textarea[name="og_description"]'),
-                        coords: { x: 464, y: 861 },
-                        placement: 'bottom',
-                        text: "Your description will go here.",
-                        title: ''
-                    },
-
-                    content_url: {
-                        el: $('input[name="content_url"]'),
-                        text: "When someone clicks on the post, this is where we will send them.",
-                        title: '',
-                        placement: 'bottom'
-                    }
-                }
-                
-            } );
-                
-            return this;
-        }
-
-        //add methods to our object
-        $.extend( fbObjIndicator.prototype, {
-
-            init: function() {
-                this.storeElementDimensions();
-                this.imageContainerHeight =
-                        this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
-                if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                    this.imageContainerHeight = this.inputWrapperHeight;
-                }
-                //this.imageContainer.height( this.imageContainerHeight );
-                $('body,html').scrollTop( 0 );
-                this.maxScroll = this.body.height() - this.windowHeight;
-                //this.sizeAndPositionImage();
-                this.initPopovers();
-                this.delegateEvents();
-                this.setImageMetaData();
-                this.isInitialized = true;
+            org_name: {
+                type: 'image',
+                coords: { x: 540, y: 80 },
+                text: "The cause or organization you enter will replace 'Freakonomics Radio' here.",
+                index: 0
             },
 
-            initPopovers: function() {
-                var self = this;
-
-                //instantiate img popover
-                this.imagePopoverEl.popover( {
-                    animation: false,
-                    trigger: 'manual',
-                    title: function() { return self.getPopoverTitle(); },
-                    content: function() { return self.getPopoverText(); },
-                    placement: function() { return self.getPopoverPlacement(); }
-                } );
-
-                //instantiate img popover
-                this.inputPopoverEl.popover( {
-                    animation: false,
-                    trigger: 'manual',
-                    content: function() { return self.getPopoverText(); },
-                    placement: function() { return self.getPopoverPlacement(); }
-                } );
+            msg1_pre: {
+                type: 'image',
+                coords: { x: 56, y: 206 },
+                text: "Text to be displayed before friend names."
             },
 
-            delegateEvents: function() {
-                var self = this;
-
-                //binds form focus / blur events
-                $.each( this.formFields, function( fieldName, formMetaData ) {
-
-                    formMetaData.el.on( 'focus', function() {
-                                         self.setCurrentFormField( fieldName )
-                                             .emboldenLabel()
-                                             .scrollToField() } )
-
-                                    .on( 'blur', function() {
-                                        self.weakenLabel()
-                                            .hidePopover()
-                                            .setCurrentFormField( null ) } );
-                } );
-
-                //handle window resize so our popovers and images look alright
-                this.window.resize( function() { self.handleWindowResize(); } );
-                this.window.scroll( _.debounce( function() { self.handleWindowScroll() }, 150 ) );
-
+            msg1_post: {
+                type: 'image',
+                coords: { x: 519, y: 204 },
+                text: "Text that will go after the friend names."
             },
 
-            emboldenLabel: function() {
-                this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'bold' );
-                return this;
+            msg2_pre: {
+                type: 'image',
+                coords: { x: 56, y: 206 },
+                text: "Alternate text to suggest before friend names so that your supporters's feeds don't all look the same."
             },
 
-            weakenLabel: function() {
-                this.formFields[ this.currentFormField ].el.prev().css( 'font-weight', 'normal' );
-                return this;
+            msg2_post: {
+                type: 'image',
+                coords: { x: 519, y: 204 },
+                text: "Alternate text for after the friend names.  We will randomly pick a suggestion."
             },
 
-            setCurrentFormField: function( fieldName ) { this.currentFormField = fieldName; return this; },
-
-            positionAndShowPopover: function() {
- 
-                var focusedFormMetaData = this.formFields[ this.currentFormField ];
-            
-                if( focusedFormMetaData.coords ) {
-                    this.inputPopoverEl.popover('hide');
-                    this.imagePopoverEl.css( {
-                        top: ( focusedFormMetaData.coords.y * this.imageMetaData.multiplier.y ),
-                        left: ( focusedFormMetaData.coords.x * this.imageMetaData.multiplier.x ) } ).popover('show');
-                } else {
-                    this.imagePopoverEl.popover('hide');
-                    this.inputPopoverEl.css( {
-                        top: focusedFormMetaData.el.offset().top + ( focusedFormMetaData.el.outerHeight( true ) + 5 ),
-                        left: focusedFormMetaData.el.offset().left + ( focusedFormMetaData.el.outerWidth( true ) / 2 ) } ).popover('show');
-                }
-
-                return this;    
+            og_title: {
+                type: 'image',
+                coords: { x: 386, y: 754 },
+                text: "Your title will go here."
             },
 
-            hidePopover: function() {
-                var focusedFormMetaData = this.formFields[ this.currentFormField ];
-
-                if( focusedFormMetaData.coords ) {
-                    this.imagePopoverEl.popover('hide');
-                } else {
-                    this.inputPopoverEl.popover('hide');
-                }
-
-                return this;
+            og_image: {
+                type: 'image',
+                coords: { x: 641, y: 417 },
+                placement: 'right',
+                text: "Your image will go here."
             },
 
-            getPopoverText: function() { return this.formFields[ this.currentFormField ].text; },
-            
-            getPopoverTitle: function() { return this.formFields[ this.currentFormField ].title; },
-
-            getPopoverPlacement: function() { return this.formFields[ this.currentFormField ].placement; },
-
-            scrollToField: function() {
-
-                var difference,
-                    maxDifference = this.inputWrapperHeight - $('#fb-obj-img').outerHeight(true),
-                    formElTop = this.formFields[ this.currentFormField ].el.offset().top,
-                    self = this,
-                    scrollTop = ( formElTop - ( this.window.height() / 2 ) );
-
-                difference =
-                    ( formElTop ) -
-                    ( ( this.imageContainerOffset.top - parseFloat( this.imageContainer.css('top' ) ) ) + ( this.imageMetaData.currentDims.y / 2 ) );
-
-                if( difference < 0 ) { difference = 0; }
-                else if( difference > maxDifference ) { difference = maxDifference; }
-
-                this.imageContainer.animate(
-                    { 'top': difference },
-                    { complete: function() {
-                        self.imageContainerOffset = self.imageContainer.offset(); } } );
-
-                if( ( this.scrollTop >= this.maxScroll && scrollTop >= this.maxScroll ) ||
-                    ( this.scrollTop === scrollTop ) || 
-                    ( this.scrollTop === 0 && scrollTop <= 0 ) ) {
-                    self.positionAndShowPopover();
-                } else {
-                    $('body,html').animate(
-                        { 'scrollTop' : scrollTop },
-                        { complete: function() { self.positionAndShowPopover(); } }
-                    );
-                }
-
-                return this;
+            og_description: {
+                type: 'image',
+                coords: { x: 464, y: 861 },
+                text: "Your description will go here."
             },
 
-            handleWindowScroll: function() {
-
-                this.scrollTop = ( this.body.scrollTop() != 0 )
-                    ? this.body.scrollTop()
-                    : this.html.scrollTop();
-
-                this.setImageMetaData();
-                //this.sizeAndPositionImage();
-            },
-
-            sizeAndPositionImage: function() {
-
-                var diff = this.inputWrapperOffset.top - this.scrollTop,
-                    top = 0,
-                    stickyHeaderBump = 0,
-                    self = this;
-
-                //if the viewport contains the top of the input wrapper
-                if( diff > 0 ) {
-
-                    if( diff < 60 ) {
-                        stickyHeaderBump = 60 - diff;
-                    } 
-
-                    this.imageContainerHeight = this.windowHeight - diff - this.verticalImagePadding - stickyHeaderBump;
-
-                    if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                        this.imageContainerHeight = this.inputWrapperHeight;
-                    }
-
-                    top = stickyHeaderBump;
-
-                //if the viewport contains only our form fields and our image
-                } else if( ( this.scrollTop + this.windowHeight ) <
-                           ( this.inputWrapperHeight + this.inputWrapperOffset.top ) ) {
-
-                    this.imageContainerHeight = this.windowHeight -
-                        this.navbarHeight -
-                        ( this.verticalImagePadding * 2 );
-
-                    top = ( this.scrollTop - this.inputWrapperOffset.top ) +
-                          this.navbarHeight + this.verticalImagePadding;
-                
-                //if the viewport contains the bottom of the input wrapper
-                } else {
-
-                    this.imageContainerHeight = 
-                        ( this.inputWrapperHeight + this.inputWrapperOffset.top - this.scrollTop ) -
-                        ( this.navbarHeight + this.verticalImagePadding );
-
-                    top = this.scrollTop - this.inputWrapperOffset.top +
-                          this.navbarHeight + this.verticalImagePadding;
-                }
-
-                this.imageContainer.animate(
-                    { top: top, height: this.imageContainerHeight },
-                    { duration: 200,
-                      complete: function() {
-                        self.setImageMetaData();
-                        if( self.currentFormField ) { self.positionAndShowPopover(); }
-                      } } );
-        
-                return;
-                this.imageContainer.css( 'top', top );
-                this.imageContainer.height( this.imageContainerHeight );
-                self.setImageMetaData();
-                if( self.currentFormField ) { self.positionAndShowPopover(); }
-            },
-
-            handleWindowResize: function() {
-                this.windowHeight = this.window.height();
-                this.maxScroll = this.body.height() - this.windowHeight;
-                //this.imageContainerHeight =
-                    this.windowHeight - this.imageContainerOffset.top - this.verticalImagePadding;
-                //if( this.imageContainerHeight > this.inputWrapperHeight ) {
-                    //this.imageContainerHeight = this.inputWrapperHeight;
-                //}
-                //this.imageContainer.height( this.imageContainerHeight );
-                //this.sizeAndPositionImage();
-            },
-
-            storeElementDimensions: function() {
-                this.imageContainerOffset = this.imageContainer.offset();
-                this.inputWrapperOffset = this.inputWrapper.offset();
-                this.inputWrapperHeight = this.inputWrapper.outerHeight( true );
-                this.windowHeight = this.window.height();
-                this.navbarHeight = $('.navbar').outerHeight( true );
-            },
-
-
-            setImageMetaData: function() {
-
-                this.imageMetaData.currentDims = {
-                    x: this.imageMetaData.el.outerWidth(true),
-                    y: this.imageMetaData.el.outerHeight(true)
-                };    
-
-                this.imageMetaData.multiplier = {
-                    x: this.imageMetaData.currentDims.x / this.imageMetaData.originalDims.x,
-                    y: this.imageMetaData.currentDims.y / this.imageMetaData.originalDims.y
-                }
+            content_url: {
+                type: 'input',
+                text: "When someone clicks on the post, this is where we will send them."
             }
+        };
 
+        _.each( imageCompanionFieldData, function( meta, key ) {
+             _.defaults( meta, defaultFieldData );
         } );
 
-        window.fbObjIndicator = new fbObjIndicator();
-
+        window.fbObjImageCompanion = new window.imageCompanion( {
+            el: '#fbObjImageCompanion',
+            fields: imageCompanionFieldData
+        } );
     } );
 
 </script>

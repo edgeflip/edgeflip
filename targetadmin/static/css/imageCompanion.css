@@ -10,3 +10,7 @@ img {
 .companion-popover {
     position: absolute;
 }
+
+.white-text {
+    color: white !important;
+}

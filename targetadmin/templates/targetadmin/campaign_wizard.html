@@ -2,6 +2,7 @@
 
 {% block extrahead %}
     <link rel="stylesheet" href="{{ STATIC_URL }}css/admin.css">
+    <link href="{{ STATIC_URL }}css/imageCompanion.css" rel="stylesheet">
 {% endblock %}
 
 {% block title %}Campaign Setup Wizard{% endblock %}
@@ -135,12 +136,12 @@ $( function() {
         $('.wizard-step').hide();
         $('#' + step).show();
         
-        if( step === 'faces' && (! window.facesImageCompanion.hasStarted ) ) {
+        if( step === 'faces' && (! window.facesImageCompanion.model.get('hasStarted') ) ) {
             window.facesImageCompanion.start();
         }
-
-        if( step === 'fbobjects' && (! window.fbObjIndicator.isInitialized ) ) {
-            window.fbObjIndicator.init();
+        
+        if( step === 'fbobjects' && (! window.fbObjImageCompanion.model.get('hasStarted') ) ) {
+            window.fbObjImageCompanion.start();
         }
 
         if( step === 'intro' ) {

@@ -8,13 +8,10 @@
 
         initialize: function( options ) {
 
-            this.slurpHtml( { slurpInputs: true } );
-
-            this.$el.find( 'input' ).attr( 'autocomplete', 'off' );
-
             $.extend( this, options );
 
             this.model = new Backbone.Model( {
+                fieldCycleIndex: 0, 
                 hasStarted: false,
                 currentField: undefined,
                 imageContainerTop: undefined,
@@ -29,6 +26,16 @@
                 multiplierY: undefined,
                 multiplierX: undefined
             } );
+
+            this.slurpHtml( { slurpInputs: true } );
+
+            this.inputEls = _.map(
+                _.sortBy( _.keys( this.fields ), function( elReference ) {
+                    return this.fields[ elReference ].index;
+                }, this ),
+                function( elReference ) { 
+                    return this.templateData[ elReference ].attr( 'autocomplete', 'off' );
+            }, this );
 
             this.util = window.util.computeSizes();
 
@@ -53,7 +60,7 @@
                 this.templateData.image.on( 'load', this.imageLoaded.bind( this ) );
             }
             
-            this.hasStarted = true;
+            this.model.set('hasStarted', true );
         },
 
         fieldFocused: function(e) {
@@ -91,7 +98,7 @@
             var offset = this.templateData.imageContainer.offset();
 
             this.model.set( {
-                imageContainerTop: offset.top,
+                imageContainerTop: offset.top - parseFloat( this.templateData.imageContainer.css('top') ),
                 imageContainerLeft: offset.left
             } );
         },
@@ -106,10 +113,8 @@
             if( difference < 0 ) { difference = 0; }
             else if( difference > maxDifference ) { difference = maxDifference; }
 
-            this.templateData.imageContainer.animate(
-                { 'top': difference },
-                { complete: this.setImageContainerBBox.bind(this) } );
-                    
+            this.templateData.imageContainer.animate( { 'top': difference } );
+        
             if( ( this.util.scrollTop >= this.util.maxScroll && scrollTop >= this.util.maxScroll ) ||
                 ( this.util.scrollTop === scrollTop ) || 
                 ( this.util.scrollTop === 0 && scrollTop <= 0 ) ) {
@@ -129,10 +134,14 @@
 
         showPopover: function() {
 
-            return this[
-                'show' +
-                this.fields[ this.model.get('currentField') ].type.capitalize() +
-                'Popover' ]();
+            if( this.model.has('currentField') ) {
+                this[
+                    'show' +
+                    this.fields[ this.model.get('currentField') ].type.capitalize() +
+                    'Popover' ]();
+            }
+
+            return this;
         },
 
         showImagePopover: function() {
@@ -181,8 +190,12 @@
 
             this.setImageDimensions()
                 .setMultiplier()
-                .hidePopover()
-                .showPopover();
+                .setBoundingBoxData();
+
+            if( this.model.has('currentField') ) {
+                this.hidePopover()
+                    .showPopover();
+            }
         },
 
         setMultiplier: function() {
@@ -211,6 +224,8 @@
 
             this.templateData.image.addClass( 'companion-image' );
 
+            this.util.computeSizes();
+
             this.setImageDimensions()
                 .setMultiplier()
                 .setBoundingBoxData();
@@ -221,17 +236,52 @@
         },
 
         beginFieldCycle: function() {
+            
+            _.each( this.inputEls, function( $el ) {
+                $el.addClass('white-text');
+            } );
 
-            this.fieldCycleIndex = 0;
-            this.maxIndex = this.$el.find('input,textarea').length;
             this.cycleFields();
+
+            this.inputClickedPtr = this.inputClickedDuringCycle.bind(this);
+            this.keydownPtr = this.keydownDuringCycle.bind( this );
+
+            this.$el.on( 'click', 'input,textarea', this.inputClickedPtr )
+                    .on( 'keydown', 'input,textarea', this.keydownPtr );
+        },
+
+
+        stopCycling: function() {
+            clearTimeout( this.cycleTimer );
+            
+            _.each( this.inputEls, function( $el ) {
+                $el.removeClass('white-text');
+            } );
+            
+            this.$el.off( 'click', 'input,textarea', this.inputClickedPtr )
+                    .off( 'keydown', 'input,textarea', this.keydownPtr );
+
+            _.each( [ 'inputClickedPtr', 'keydownPtr' ], function( attr ) { this.attr = undefined; }, this );
+        },
+
+        inputClickedDuringCycle: function( e ) {
+            this.stopCycling();
+        },
+
+        keydownDuringCycle: function( e ) {
+            if( e.keyCode === 27 || e.keyCode === 9 ) { this.stopCycling(); }
+            if( e.keyCode === 27 ) {
+                this.templateData[ this.model.get('currentField') ].blur();
+            }
+
+            return false;
         },
 
         cycleFields: function() {
-            this.$el.find('input,textarea')[ this.fieldCycleIndex ].focus();
-            this.fieldCycleIndex += 1;
-            if( this.animationIndex == this.maxIndex ) { this.animationIndex = 0; }
-            _.delay( this.cycleFields.bind(this), 2000 );
+            this.inputEls[ this.model.get('fieldCycleIndex') ].focus();
+            this.model.set('fieldCycleIndex', this.model.get('fieldCycleIndex') + 1 );
+            if( this.model.get('fieldCycleIndex') == this.inputEls.length ) { this.model.set('fieldCycleIndex', 0); }
+            this.cycleTimer = _.delay( this.cycleFields.bind(this), 3000 );
         },
 
         setBoundingBoxData: function() {
