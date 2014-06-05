@@ -145,20 +145,15 @@
                 abbr.attr( 'title',
                     title.replace(/eq/,'in')
                          .replace(/state|city/i,'Lives')
-                         .replace(/\|\|/g,', ') );
+                         .replace(/\|\|/g,' or ') );
 
                 abbr.text(
                     abbr.text().replace(/eq/,'in')
                                .replace(/state|city/i,'Lives')
-                               .replace(/\|\|/g,', ')
+                               .replace(/\|\|/g,' or ')
                                .replace(/\|/g,'') );
-            },
-
-            locationReplacer: function( text ) {
-                return text.replace(/eq/,'in')
-                           .replace(/state|city/i,'Lives')
-                           .replace(/\|\|/g,', ')
             }
+
         },
 
         cleanFilter: function( filter ) {
