@@ -71,8 +71,12 @@ body {
     margin-bottom: 50px;
 }
 
-.icon-question-sign {
+.icon-question-sign.suggested-message-header {
     vertical-align: middle;
+}
+    
+.icon-question-sign.empty-fallback-question {
+    vertical-align: text-bottom;
 }
 
 .img-helper-wrapper {
@@ -159,8 +163,7 @@ body {
     text-transform: uppercase;
 }
 
-#available-section button,
-#enabled-section button {
+.add-fallback-btn {
     vertical-align: bottom;
     margin: 0px 10px;
     text-transform: none;
@@ -360,6 +363,7 @@ body {
     margin-left: 10px;
     margin-top: 10px;
     text-align: center;
+    overflow: hidden;
 }
 
 .draggable:hover {
@@ -367,22 +371,17 @@ body {
 }
 
 .draggable:hover,
-.draggable p:hover,
-.draggable p abbr:hover {
+.draggable span:hover {
     cursor: move;
 }
 
-.draggable p {
-    display: table;
+.draggable span {
+    display: table-cell;
     margin 0px !important;
     height: 100%;
     width: 100%;
-}
-
-.draggable p abbr {
-    display: table-cell;
     vertical-align: middle;
-    border-bottom: none;
+    line-height: 25px;
 }
 
 .form-error {
@@ -391,7 +390,7 @@ body {
 
 .empty-fallback {
     margin-top: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 100px;
 }
 
 .empty-fallback label {
@@ -401,6 +400,7 @@ body {
 
 .empty-fallback input {
     margin: 0px 10px;
+    vertical-align: text-bottom;
 }
 
 #age-range:hover {
@@ -506,4 +506,50 @@ body {
 
 .filter-help .begin {
     font-weight: bold;
+}
+
+.filter-well {
+    min-height:54px;
+}
+
+.add-filter-btn {
+    line-height: 28px;
+    vertical-align: text-bottom; 
+}
+
+.targeting-header {
+    text-align: center;
+}
+
+.filter-content-container {
+    display: table;
+    height: 100%;
+    width: 100%;
+}
+
+@media (min-width: 768px) and (max-width: 979px) {
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: small !important;
+    }
+}
+
+@media (max-width: 767px) {
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: small !important;
+    }
+}
+ 
+@media (max-width: 480px) {
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: x-small !important;
+    }
 }

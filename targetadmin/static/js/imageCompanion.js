@@ -12,7 +12,8 @@
 
             this.model = new Backbone.Model( {
                 fieldCycleIndex: 0, 
-                hasStarted: false,
+                hasRendered: false,
+                isCycling: false,
                 currentField: undefined,
                 imageContainerTop: undefined,
                 imageContainerLeft: undefined,
@@ -53,14 +54,14 @@
             return this;
         },
 
-        start: function() {
+        afterRender: function() {
             if( this.templateData.image.height() ) {
                 this.imageLoaded();
             } else {
                 this.templateData.image.on( 'load', this.imageLoaded.bind( this ) );
             }
             
-            this.model.set('hasStarted', true );
+            this.model.set('hasRendered', true );
         },
 
         fieldFocused: function(e) {
@@ -236,6 +237,8 @@
         },
 
         beginFieldCycle: function() {
+
+            this.model.set( 'isCycling', true );
             
             _.each( this.inputEls, function( $el ) {
                 $el.addClass('white-text');
@@ -243,45 +246,46 @@
 
             this.cycleFields();
 
-            this.inputClickedPtr = this.inputClickedDuringCycle.bind(this);
+            this.clickPtr = this.clickDuringCycle.bind(this);
             this.keydownPtr = this.keydownDuringCycle.bind( this );
+            this.windowBlurPtr = this.windowBlurDuringCycle.bind( this );
 
-            this.$el.on( 'click', 'input,textarea', this.inputClickedPtr )
-                    .on( 'keydown', 'input,textarea', this.keydownPtr );
+            this.$el.on( 'keydown', 'input,textarea', this.keydownPtr )
+                    .on( 'click', this.clickPtr );
+
+            this.util.window.on( 'blur', this.windowBlurPtr );
         },
 
+        windowBlurDuringCycle: function() {
+            this.stopCycling();
+        },
 
         stopCycling: function() {
             clearTimeout( this.cycleTimer );
+
+            this.model.set( 'isCycling', false );
             
             _.each( this.inputEls, function( $el ) {
                 $el.removeClass('white-text');
             } );
             
-            this.$el.off( 'click', 'input,textarea', this.inputClickedPtr )
-                    .off( 'keydown', 'input,textarea', this.keydownPtr );
+            this.$el.off( 'keydown', 'input,textarea', this.keydownPtr )
+                    .off( 'click', this.clickPtr );
 
-            _.each( [ 'inputClickedPtr', 'keydownPtr' ], function( attr ) { this.attr = undefined; }, this );
+            this.util.window.off( 'blur', this.windowBlurPtr );
+
+            _.each( [ 'clickPtr', 'keydownPtr', 'windowBlurPtr' ], function( attr ) { this.attr = undefined; }, this );
         },
 
-        inputClickedDuringCycle: function( e ) {
-            this.stopCycling();
-        },
+        clickDuringCycle: function() { this.stopCycling(); },
 
-        keydownDuringCycle: function( e ) {
-            if( e.keyCode === 27 || e.keyCode === 9 ) { this.stopCycling(); }
-            if( e.keyCode === 27 ) {
-                this.templateData[ this.model.get('currentField') ].blur();
-            }
-
-            return false;
-        },
+        keydownDuringCycle: function() { this.stopCycling(); },
 
         cycleFields: function() {
             this.inputEls[ this.model.get('fieldCycleIndex') ].focus();
             this.model.set('fieldCycleIndex', this.model.get('fieldCycleIndex') + 1 );
             if( this.model.get('fieldCycleIndex') == this.inputEls.length ) { this.model.set('fieldCycleIndex', 0); }
-            this.cycleTimer = _.delay( this.cycleFields.bind(this), 3000 );
+            this.cycleTimer = _.delay( this.cycleFields.bind(this), 5000 );
         },
 
         setBoundingBoxData: function() {

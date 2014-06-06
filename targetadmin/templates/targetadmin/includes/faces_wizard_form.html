@@ -97,5 +97,12 @@
             el: '#facesImageCompanion',
             fields: imageCompanionFieldData
         } );
+
+        $('#step3-prev,#step3-next').on( 'click', function() {
+            if( window.facesImageCompanion.model.get('isCycling') ) {
+                window.facesImageCompanion.stopCycling();
+            }
+        } );
+
     } );
 </script>

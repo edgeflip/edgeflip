@@ -484,11 +484,10 @@ $.extend( createFilterManager.prototype, {
             operator = this.operatorDropdown.val(),
             filter_values = this.valueInput.val(),
             filterEl =
-                $('<div data-filter-id="set_number=' + feature + '.' + operator + 
-                '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-                feature + ' ' + operator + ' ' + filter_values + '">' + 
-                feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
-                '</abbr></p></div>');
+                $('<div title="' + feature + ' ' + operator + ' ' + filter_values + '" data-filter-id="set_number=' + feature + '.' + operator + 
+                '.' + filter_values + '" class="span2 draggable"><div class="filter-content-container"><span class="filter">' +
+                feature + ' ' + ' ' + operator + ' ' + filter_values + 
+                '</span></div></div>');
 
         $('#existing-filters').prepend( window.filterCleaner.cleanFilter(filterEl) );
 
@@ -502,8 +501,8 @@ $.extend( createFilterManager.prototype, {
         var text = "age: between " + min + " and " + max,
             link = min + '-' + max,
             filterEl =
-                $('<div class="span2 draggable"><p><abbr title="' + text + '">' +
-                text + '</abbr></p></div>');
+                $('<div title="' + text + '" class="span2 draggable"><div class="filter-content-container"><span class="filter">' +
+                text + '</span></div></div>');
 
         filterEl.attr('data-link',link);
 

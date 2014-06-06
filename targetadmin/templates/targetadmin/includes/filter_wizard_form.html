@@ -1,7 +1,7 @@
 <div class="row">
     <div class="span12">
         <div class="row targeting-header">
-            <div class="header-container">
+            <div class="span12 header-container">
                 <h2 class="wizard-header">Select a target audience</h2>
                 <p>
                     Define a Target Audience for your campaign by dragging one or more filters from the Available Filters container to the Enabled Filters container.
@@ -18,37 +18,44 @@
         </div>
 
         <div id="enabled-section" class="row">
-            <h3>Enabled Filters</h3>
-            <h6>
+            <h3 class="span12">Enabled Filters</h3>
+            <h6 class="span12">
                 <span>Target Audience</span>
-                <button type="button" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Fallback Audience</button>
+                <button type="button" id="add-layer" class="btn btn-mini add-fallback-btn" data-layer-count="1">Add Fallback Audience</button>
             </h6>
-            <div class="clearfix">
+            <div class="span12">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
-                <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
+                <div class="well sortable target-well filter-well" id="enabled-filters-1"></div>
             </div>
         </div>
         <div id="available-section" class="row">
-            <h3>Available Filters <button type="button" data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</button></h3>
-            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
+            <h3 class="span12">
+                <span>Available Filters</span>
+                <button type="button"
+                        data-target="#filter-modal"
+                        href="{% url 'targetadmin:filter-add' client.pk %}"
+                        id="create-filter-btn"
+                        class="btn btn-mini add-filter-btn"
+                        data-toggle="modal">Add Filter</button>
+            </h3>
+            <div class="span12 well sortable target-well filter-well" id="existing-filters">
                 {% for ff in filter_features %}
-                    <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
-                        <p>
-                            <abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">
-                                {{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}
-                            </abbr>
-                        </p>
+                    <div title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}"
+                         data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
+                         <div class="filter-content-container">
+                             <span class="filter">{{ ff.feature }} {{ ff.operator }} {{ ff.value }}</span>
+                         </div>
                     </div>
                 {% endfor %}
             </div>
         </div>
         <div class="row empty-fallback">
-            {{ campaign_form.include_empty_fallback.errors }}
-            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
-            {{ campaign_form.include_empty_fallback }}
-            {% if campaign_form.include_empty_fallback.help_text %}
-                <i class="icon-question-sign hide" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
-            {% endif %}
+            <div class="span12">
+                {{ campaign_form.include_empty_fallback.errors }}
+                <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+                {{ campaign_form.include_empty_fallback }}
+                <i id="empty-fallack-help-icon" class="icon-question-sign empty-fallback-question" data-placement="right" data-content=""></i>
+            </div>
         </div>
        
         <div class="row wizard-button-container">
@@ -91,11 +98,8 @@
             living in North Carolina, South Carolina, and Virginia</i>. A third Fallback Audience might simply target <i>men</i>.
             To add a Fallback Audience, just click "Add Fallback Audience." 
         </p>
-        <p>
-            <i class="begin">Empty Fallback : </i> We recommend selecting the 'empty fallback' feature in case some of your supporters
-            have few friends in your Target and Fallback Audiences. When the empty fallback feature is selected,
-            the Targeted Sharing application will still suggest the friends most likely to support your organization,
-            even though no filters are enabled. The 'empty fallback' feature is selected by default for new campaigns.
+        <p id="empty-fallback-paragraph">
+            <i class="begin">Empty Fallback : </i> 
         </p>
         <p>
             <i class="begin">More questions?</i> Please <a href="mailto:help@edgeflip.com" target="_blank">contact us</a> and we'll be happy to walk you through it.
@@ -106,9 +110,15 @@
 
 ( function( $ ) {
 
+    var emptyFallbackHelpText = "We recommend selecting the 'empty fallback' feature in case some of your supporters have few friends in your Target and Fallback Audiences. When the empty fallback feature is selected, the Targeted Sharing application will still suggest the friends most likely to support your organization, even though no filters are enabled. The 'empty fallback' feature is selected by default for new campaigns.";
+
     $('#learn-more-btn').click( function() {
         $('#target-audience-help-modal').modal();
     } );
+
+    $('#empty-fallback-paragraph').append( emptyFallbackHelpText );
+
+    $('#empty-fallack-help-icon').data( 'content', emptyFallbackHelpText );
 
     window.filterCleaner = {
     
@@ -116,39 +126,41 @@
 
             gender: function( filter ) {
                 if( filter.data('filter-id').indexOf('Male') > -1 ) {
-                    filter.find('abbr').attr( 'title', 'Males' ).text('Males')
+                    filter.attr( 'title', 'Males' )
+                          .find('span').text('Males');
                 } else {
-                    filter.find('abbr').attr( 'title', 'Females' ).text('Females')
+                    filter.attr( 'title', 'Females' )
+                          .find('span').text('Females');
                 }
             },
 
             age: function( filter ) {
-                var abbr = filter.find('abbr'),
-                    title = abbr.attr('title'),
+                var span = filter.find('span'),
+                    title = filter.attr('title'),
                     regExp = /(\d+)/,
                     match = regExp.exec(title),
                     age = match[1];
                  
-                if( abbr.attr( 'title' ).indexOf('max') > -1 ) {
-                    abbr.attr( 'title', 'age: ' + age + ' and younger' );
-                    abbr.text( 'age: ' + age + ' and younger' );
+                if( filter.attr( 'title' ).indexOf('max') > -1 ) {
+                    filter.attr( 'title', 'age: ' + age + ' and younger' );
+                    span.text( 'age: ' + age + ' and younger' );
                 } else {
-                    abbr.attr( 'title', 'age: ' + age + ' and older' );
-                    abbr.text( 'age: ' + age + ' and older' );
+                    filter.attr( 'title', 'age: ' + age + ' and older' );
+                    span.text( 'age: ' + age + ' and older' );
                 }
             },
 
             location: function( filter ) {
-                var abbr = filter.find('abbr'),
-                    title = abbr.attr('title');
+                var span = filter.find('span'),
+                    title = filter.attr('title');
 
-                abbr.attr( 'title',
+                filter.attr( 'title',
                     title.replace(/eq/,'in')
                          .replace(/state|city/i,'Lives')
                          .replace(/\|\|/g,' or ') );
 
-                abbr.text(
-                    abbr.text().replace(/eq/,'in')
+                span.text(
+                    span.text().replace(/eq/,'in')
                                .replace(/state|city/i,'Lives')
                                .replace(/\|\|/g,' or ')
                                .replace(/\|/g,'') );

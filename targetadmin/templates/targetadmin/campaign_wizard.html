@@ -136,12 +136,12 @@ $( function() {
         $('.wizard-step').hide();
         $('#' + step).show();
         
-        if( step === 'faces' && (! window.facesImageCompanion.model.get('hasStarted') ) ) {
-            window.facesImageCompanion.start();
+        if( step === 'faces' && (! window.facesImageCompanion.model.get('hasRendered') ) ) {
+            window.facesImageCompanion.afterRender();
         }
         
-        if( step === 'fbobjects' && (! window.fbObjImageCompanion.model.get('hasStarted') ) ) {
-            window.fbObjImageCompanion.start();
+        if( step === 'fbobjects' && (! window.fbObjImageCompanion.model.get('hasRendered') ) ) {
+            window.fbObjImageCompanion.afterRender();
         }
 
         if( step === 'intro' ) {
@@ -282,13 +282,13 @@ $( function() {
         layer_count = $('#add-layer').data('layer-count') + 1;
         $('#add-layer').data('layer-count', layer_count);
         $('#enabled-section').append(
-            '<section data-layer="' + layer_count + '">' +
-            '<div class="clearfix"><h6 class="layer-text-header pull-left"><span>Fallback Audience ' + (layer_count - 1) + '</span></h6>' +
-            '<h6 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
-            '<i class="icon-remove"></i></h6></div><div class="clearfix"><input type="hidden" id="id_enabled-filters-' + 
+            '<section class="span12" data-layer="' + layer_count + '">' +
+            '<div class="row"><div class="span11"><h6 class="layer-text-header pull-left"><span>Fallback Audience ' + (layer_count - 1) + '</span></h6></div>' +
+            '<div class="span1"><h6 data-layer="' + layer_count + '" class="btn btn-link pull-right remove-layer">' +
+            '<i class="icon-remove"></i></h6></div></div><input type="hidden" id="id_enabled-filters-' + 
             layer_count + '" name="enabled-filters-' + layer_count + 
-            '"><div style="margin-left: 0px; min-height:54px;" class="span12 well sortable target-well" id="enabled-filters-' + 
-            layer_count + '">' + previous_layer_html  + '</div></div></section>'
+            '"><div class="well sortable target-well filter-well" id="enabled-filters-' + 
+            layer_count + '">' + previous_layer_html  + '</div></section>'
         );
 
         $('#enabled-section').children('section').last().find('h6').first().append( $('#add-layer') );

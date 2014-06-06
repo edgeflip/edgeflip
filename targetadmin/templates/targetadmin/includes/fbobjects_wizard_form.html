@@ -20,7 +20,7 @@
         <div class="suggested-message-container">
             <h4>
                 <span>Suggested Messages</span>
-                <i class="icon-question-sign" data-placement="right" data-content="When your supporters share your campaign with their friends, they'll be able to customize the Facebook post that their friends see. You can also provide your supporters with up to two suggested messages to help them craft the perfect Facebook post."></i>
+                <i class="icon-question-sign suggested-message-header" data-placement="right" data-content="When your supporters share your campaign with their friends, they'll be able to customize the Facebook post that their friends see. You can also provide your supporters with up to two suggested messages to help them craft the perfect Facebook post."></i>
             </h4>
 
             <div class="fb-obj-group">
@@ -158,6 +158,12 @@
         window.fbObjImageCompanion = new window.imageCompanion( {
             el: '#fbObjImageCompanion',
             fields: imageCompanionFieldData
+        } );
+
+        $('#step3-prev,#wizard-submit').on( 'click', function() {
+            if( window.fbObjImageCompanion.model.get('isCycling') ) {
+                window.fbObjImageCompanion.stopCycling();
+            }
         } );
     } );
 

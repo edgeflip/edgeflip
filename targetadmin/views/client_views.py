@@ -40,7 +40,7 @@ class ClientDetailView(DetailView):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
         context['root_campaigns'] = context['client'].campaigns\
             .exclude(rootcampaign_properties=None)\
-            .order_by( 'create_dt' )
+            .order_by( '-create_dt' )
         return context
 
 
