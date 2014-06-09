@@ -43,6 +43,10 @@
                     ? this.body.scrollTop()
                     : this.html.scrollTop();
             return this;
+        },
+
+        scrollTop: function( top ) {
+            $('body,html').scrollTop(top);
         }
     } );
 

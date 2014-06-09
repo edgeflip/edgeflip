@@ -1,0 +1,59 @@
+<div id="intro" class="wizard-step">
+    <h2 id="intro-header" class="wizard-header">Create a Targeted Sharing Campaign</h2>
+    <div class="page-header-information">
+        <div>A targeted sharing campaign turns your supporters into influencers by asking them to share your content with friends</div>
+        <div>
+            <span>who are likely to support your organization.</span>
+            <a href="{% url 'targetadmin:how-it-works' %}" target="_blank">Learn more about Targeted Sharing.</a>
+        </div>
+    </div>
+    <div style="text-align:center;">
+        <button data-js="getStartedBtn" type="button" class="get-started-btn btn btn-primary">Get Started</button>
+    </div>
+    <div class="row">
+        <div class="span2"></div>
+        <div data-js="carousel" id="intro-carousel" class="span8 carousel slide">
+            <ol class="carousel-indicators">
+                <li data-target="#intro-carousel" data-slide-to="0" class="active"></li>
+                <li data-target="#intro-carousel" data-slide-to="1"></li>
+                <li data-target="#intro-carousel" data-slide-to="2"></li>
+            </ol>
+            <div class="carousel-inner">
+                <div class="active item">
+                    <img src="{{ STATIC_URL }}img/carousel-filter.jpg">
+                    <div class="carousel-caption">
+                        <h4>Audience Targeting</h4>
+                        <p>
+                            First, you'll select the audience for your campaign by choosing a set of filters.
+                        </p>
+                    </div>
+                </div>
+                <div class="item">
+                    <img src="{{ STATIC_URL }}img/carousel-faces.jpg">
+                    <div class="carousel-caption">
+                        <h4>Engage your supporters' social network</h4>
+                        <p>
+                            Then, you'll configure the "Friend Suggestion Page" your supporters will use to share your campaign with their friends.
+                        </p>
+                    </div>
+                </div>
+                <div class="item">
+                    <img src="{{ STATIC_URL }}img/carousel-fb-obj.jpg">
+                    <div class="carousel-caption">
+                        <h4>Facebook Post</h4>
+                        <p>
+                            Finally, you'll create the Facebook post that your target audience will see. Clicking on this post will send users to your campaign content.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <a class="carousel-control left" href="#intro-carousel" data-slide="prev">&lsaquo;</a>
+            <a class="carousel-control right" href="#intro-carousel" data-slide="next">&rsaquo;</a>
+        </div>
+        <div class="span2"></div>
+    </div>
+</div>
+
+{% include 'targetadmin/includes/campaign_wizard_name_modal.html' %}
+
+<script src="{{ STATIC_URL }}js/campaignWizardIntro.js"></script>

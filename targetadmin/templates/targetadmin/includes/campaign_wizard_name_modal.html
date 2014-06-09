@@ -1,0 +1,14 @@
+<div id="campaign-name-modal" class="modal hide fade" tabindex="-1" role="dialog">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="filter-modal-label">Name your campaign</h3>
+    </div>
+    <div class="modal-body">
+        <div class="name-input-container">{{ campaign_form.name }}</div>
+    </div>
+    <div class="modal-footer">
+        <a data-js="continueBtn" href="#" id="step1-next" class="btn btn-primary step-submit campaign-step" data-step="filtering">Continue</a>
+    </div>
+</div>
+
+<script src="{{ STATIC_URL }}js/campaignWizardNameModal.js"></script>

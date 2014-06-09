@@ -31,9 +31,11 @@
     <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
     <script src="//code.jquery.com/jquery-1.9.1.js"></script>
     <script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
+    <script src="{{ STATIC_URL }}js/util.js"></script>
     <script src="{{ STATIC_URL }}js/underscore.js"></script>
     <script src="{{ STATIC_URL }}js/backbone.js"></script>
     <script src="{{ STATIC_URL }}js/extendBackbone.js"></script>
+    <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
     {% block extrahead %}
     {% endblock %}
   </head>
@@ -70,8 +72,6 @@
     <!-- Le javascript
     ================================================== -->
     <!-- Placed at the end of the document so the pages load faster -->
-    <script src="{{ STATIC_URL }}js/bootstrap.js"></script>
-    <script src="{{ STATIC_URL }}js/util.js"></script>
     {% block extrascript %}
     {% endblock %}
   </body>

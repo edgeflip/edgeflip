@@ -38,4 +38,6 @@ Backbone.View.prototype.slurpHtml = function( options ) {
     return this;
 };
 
+Backbone.View.prototype.util = window.util;
+
 String.prototype.capitalize = function() { return this.charAt(0).toUpperCase() + this.slice(1); }
