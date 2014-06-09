@@ -24,18 +24,19 @@
         handleKeydown: function(e) {
            
             if( e.keyCode === 13 ) {
+                e.preventDefault();
                 this.templateData.continueBtn.click();
-                this.util.scrollTop( 0 );
+                this.util.scrollPage( 0 );
                 this.util.document.off('keydown', this.keydownReference );
                 this.keydownReference = undefined;
             }
         },
 
-        continueClicked: function() {
+        continueClicked: function(e) {
             //currently, inputValidation.js validates the input
             //TODO: bring validator logic here
             this.$el.modal('hide');
         }
                 
     } ) )( { el:'#campaign-name-modal' } );
-} )();
+} )(jQuery);

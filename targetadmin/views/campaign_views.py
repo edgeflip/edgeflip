@@ -300,9 +300,8 @@ def campaign_wizard(request, client_pk):
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': filter_features
+        'filter_features': json.dumps( list( filter_features ), cls=DjangoJSONEncoder )
     })
-
 
 @utils.auth_client_required
 def campaign_summary(request, client_pk, campaign_pk):

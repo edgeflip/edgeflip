@@ -45,7 +45,7 @@
             return this;
         },
 
-        scrollTop: function( top ) {
+        scrollPage: function( top ) {
             $('body,html').scrollTop(top);
         }
     } );

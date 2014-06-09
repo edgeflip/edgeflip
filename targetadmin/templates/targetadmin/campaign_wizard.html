@@ -14,11 +14,8 @@
         </div>
         <div class="invalid-input-popover"></div>
         {% csrf_token %}
-        <div id="intro" class="wizard-step">
         {% include 'targetadmin/includes/campaign_wizard_intro.html' %}
-        <div id="filtering" class="wizard-step" style="display: none;">
-            {% include 'targetadmin/includes/filter_wizard_form.html' %}
-        </div>
+        {% include 'targetadmin/includes/filter_wizard_form.html' %}
         <div id="faces" class="wizard-step" style="display: none;">
             {% include 'targetadmin/includes/faces_wizard_form.html' %}
         </div>

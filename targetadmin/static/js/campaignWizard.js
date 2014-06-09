@@ -32,6 +32,7 @@ $( function() {
             }
         }
         $('.wizard-step').hide();
+
         $('#' + step).show();
         
         if( step === 'faces' && (! window.facesImageCompanion.model.get('hasRendered') ) ) {
@@ -53,7 +54,7 @@ $( function() {
         if( $(this).attr('id') === 'step1-next' ) {
             $('.campaign-name span').text( $('#id_name').val() );
         }
-       
+
         $('body,html').scrollTop( 0 );
     } );
 
@@ -174,6 +175,7 @@ $( function() {
 
     // Layer addition
     $('#add-layer').click(function(event){
+        return;
         event.preventDefault();
         var previous_layer_html = $('#enabled-filters-' + layer_count).html()
         var hidden_elements = $('.hidden-elements')
