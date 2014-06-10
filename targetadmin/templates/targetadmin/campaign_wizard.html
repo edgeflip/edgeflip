@@ -16,12 +16,8 @@
         {% csrf_token %}
         {% include 'targetadmin/includes/campaign_wizard_intro.html' %}
         {% include 'targetadmin/includes/filter_wizard_form.html' %}
-        <div id="faces" class="wizard-step" style="display: none;">
-            {% include 'targetadmin/includes/faces_wizard_form.html' %}
-        </div>
-        <div id="fbobjects" class="wizard-step" style="display: none;">
-            {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
-        </div>
+        {% include 'targetadmin/includes/faces_wizard_form.html' %}
+        {% include 'targetadmin/includes/fbobjects_wizard_form.html' %}
     </form>
 {% endblock %}
 

@@ -1,45 +1,47 @@
-<div class="row">
-    <div class="span10 offset1 header-container">
-        <h2 class="wizard-header">Friend Suggestion Page</h2>
-        <p>The Friend Suggestion Page is what your supporters will see when they authorize the Targeted Sharing application to access their Facebook information. It can reside either on Facebook or on your site.</p>
-        <p>Configure your Friend Suggestion Page by filling in the form below.</p>
-    </div>
-</div>
-
-<div id="facesImageCompanion" class="row-fluid">
-    <div class="span5 offset1" data-js="inputContainer">
-        <div data-js="inputPopover" class="companion-popover"></div>
-        <div class="fb-obj-item">
-            <label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>
-            {{ fb_obj_form.sharing_prompt}}
-        </div>
-        <div class="fb-obj-item">
-            <label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>
-            {{ fb_obj_form.sharing_sub_header }}
-        </div>
-        <div class="fb-obj-item">
-            <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
-            {{ campaign_form.thanks_url }}
-        </div>
-        <div class="fb-obj-item">
-            <label for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
-            {{ campaign_form.error_url }}
-        </div>
-        <div class="fb-obj-item">
-            <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
-            {{ campaign_form.faces_url }}
+<div id="faces" class="wizard-step" style="display: none;">
+    <div class="row">
+        <div class="span10 offset1 header-container">
+            <h2 class="wizard-header">Friend Suggestion Page</h2>
+            <p>The Friend Suggestion Page is what your supporters will see when they authorize the Targeted Sharing application to access their Facebook information. It can reside either on Facebook or on your site.</p>
+            <p>Configure your Friend Suggestion Page by filling in the form below.</p>
         </div>
     </div>
 
-    <div data-js="imageContainer" class="span5 img-helper-wrapper">
-        <div data-js="imagePopover" class="companion-popover"></div>
-        <img data-js="image" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
-    </div>
-</div>
+    <div id="facesImageCompanion" class="row-fluid">
+        <div class="span5 offset1" data-js="inputContainer">
+            <div data-js="inputPopover" class="companion-popover"></div>
+            <div class="fb-obj-item">
+                <label for="{{ fb_obj_form.sharing_prompt.id_for_label }}">{{ fb_obj_form.sharing_prompt.label}}:</label>
+                {{ fb_obj_form.sharing_prompt}}
+            </div>
+            <div class="fb-obj-item">
+                <label for="{{ fb_obj_form.sharing_sub_header.id_for_label }}">{{ fb_obj_form.sharing_sub_header.label }}:</label>
+                {{ fb_obj_form.sharing_sub_header }}
+            </div>
+            <div class="fb-obj-item">
+                <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
+                {{ campaign_form.thanks_url }}
+            </div>
+            <div class="fb-obj-item">
+                <label for="{{ campaign_form.error_url.id_for_label }}">{{ campaign_form.error_url.label }}:</label>
+                {{ campaign_form.error_url }}
+            </div>
+            <div class="fb-obj-item">
+                <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
+                {{ campaign_form.faces_url }}
+            </div>
+        </div>
 
-<div class="row wizard-button-container">
-    <button type="button" id="step3-prev" class="btn btn-link step-submit pull-left" data-step="filtering">Previous</button>
-    <button type="button" id="step3-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</button>
+        <div data-js="imageContainer" class="span5 img-helper-wrapper">
+            <div data-js="imagePopover" class="companion-popover"></div>
+            <img data-js="image" class="img-helper" src="{{ STATIC_URL }}img/faces-example.png">
+        </div>
+    </div>
+
+    <div class="row wizard-button-container">
+        <button type="button" id="step3-prev" class="btn btn-link step-submit pull-left" data-step="filtering">Previous</button>
+        <button type="button" id="step3-next" class="btn btn-large btn-primary step-submit" data-step="fbobjects">Next</button>
+    </div>
 </div>
 
 <script type="text/javascript">
