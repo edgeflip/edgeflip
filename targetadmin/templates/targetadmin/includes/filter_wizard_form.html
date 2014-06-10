@@ -20,14 +20,16 @@
 
             <div data-js="enabledFiltersContainer" id="enabled-section" class="row">
                 <h3 class="span12">Enabled Filters</h3>
-                <h6 class="span12">
-                    <span>Target Audience</span>
-                    <button type="button" data-js="addLayerBtn" class="btn btn-mini add-fallback-btn" data-layer-count="1">Add Fallback Audience</button>
-                </h6>
-                <div class="span12">
-                    <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
-                    <div data-js="enabledFilters" class="clearfix well sortable target-well filter-well" id="enabled-filters-1"></div>
-                </div>
+                <section data-js="layerContainer" class="clearfix">
+                    <h6 class="span12">
+                        <span>Target Audience</span>
+                        <button type="button" data-js="addLayerBtn" class="btn btn-mini add-fallback-btn" data-layer-count="1">Add Fallback Audience</button>
+                    </h6>
+                    <div class="span12">
+                        <input data-js="layerInput" type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
+                        <div data-js="enabledFilters" class="clearfix well sortable target-well filter-well" id="enabled-filters-1"></div>
+                    </div>
+                </section>
             </div>
             <div id="available-section" class="row">
                 <h3 class="span12">
@@ -51,8 +53,8 @@
             </div>
            
             <div class="row wizard-button-container">
-                <button type="button" id="step2-prev" class="btn btn-link step-submit filter-step pull-left" data-step="intro">Previous</button>
-                <button type="button" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</button>
+                <button type="button" id="step2-prev" data-js="previousBtn" class="btn btn-link step-submit pull-left" data-step="intro">Previous</button>
+                <button type="button" id="step2-next" data-js="nextBtn" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</button>
             </div>
         </div>
     </div>
