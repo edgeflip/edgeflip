@@ -355,6 +355,11 @@ class FBObjectWizardForm(forms.ModelForm):
         widget=forms.Textarea
     )
 
+    loading_image = forms.FileField(
+        label='Loading Image',
+        required=False
+    )
+
     class Meta:
         model = relational.FBObjectAttribute
         exclude = (

@@ -17,6 +17,7 @@
 .ropeproject
 *.idea
 
+/edgeflip/media/*
 /edgeflip/logs/*
 /edgeflip/static
 

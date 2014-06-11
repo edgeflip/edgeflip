@@ -30,6 +30,10 @@
                 <label for="{{ campaign_form.faces_url.id_for_label }}">{{ campaign_form.faces_url.label }}:</label>
                 {{ campaign_form.faces_url }}
             </div>
+            <div class="fb-obj-item">
+                <label for="{{ fb_obj_form.loading_image.id_for_label }}">{{ fb_obj_form.loading_image.label }}:</label>
+                {{ fb_obj_form.loading_image }}
+            </div>
         </div>
 
         <div data-js="imageContainer" class="span5 img-helper-wrapper">
@@ -88,7 +92,7 @@
                 text: [ "Provide the URL where this page will be embedded. ",
                         "Leave blank if using Facebook canvas." ].join(""),
                 index: 4
-            } 
+            }
         };
 
         _.each( imageCompanionFieldData, function( meta, key ) {

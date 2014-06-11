@@ -99,6 +99,7 @@ def campaign_wizard(request, client_pk):
     fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
     campaign_form = forms.CampaignWizardForm()
     if request.method == 'POST':
+        fb_attr_inst.loading_image = request.FILES['loading_image']
         fb_obj_form = forms.FBObjectWizardForm(
             request.POST, instance=fb_attr_inst)
         campaign_form = forms.CampaignWizardForm(request.POST)
