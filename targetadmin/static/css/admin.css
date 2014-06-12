@@ -154,6 +154,10 @@ body {
     margin-bottom: 40px;
 }
 
+#available-section .well {
+    padding: 19px 0px;
+}
+
 #available-section h3,
 #enabled-section h3 {
     text-transform: uppercase;
@@ -478,7 +482,7 @@ body {
 .campaign-name {
     position: absolute;
     top: 60px;
-    left: 60px;
+    left: 3%;
     font-size: large;
 }
 
@@ -528,28 +532,43 @@ body {
 }
 
 @media (min-width: 768px) and (max-width: 979px) {
+    .campaign-name,
     label,
     .header-container,
     .page-header-information,
     .draggable span {
         font-size: small !important;
+    }
+
+    .wizard-header {
+        font-size: x-large;
     }
 }
 
 @media (max-width: 767px) {
+    .campaign-name,
     label,
     .header-container,
     .page-header-information,
     .draggable span {
         font-size: small !important;
     }
+    
+    .wizard-header {
+        font-size: large;
+    }
 }
  
 @media (max-width: 480px) {
+    .campaign-name,
     label,
     .header-container,
     .page-header-information,
     .draggable span {
         font-size: x-small !important;
+    }
+    
+    .wizard-header {
+        font-size: medium;
     }
 }
