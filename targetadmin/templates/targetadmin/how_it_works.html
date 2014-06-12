@@ -1,9 +1,10 @@
 {% extends "targetadmin/base.html" %}
 {% block title %}How It Works{% endblock %}
 {% block content %}
-    <img src="{{ STATIC_URL }}img/how-it-works.jpg">
-    <div style="text-align: center; margin: 2em 0em; font-size: large;">
+    <img class="how-it-works-img" src="{{ STATIC_URL }}img/how-it-works.jpg">
+    <div class="how-it-works-contact">
         <span>If you have more questions, feel free to </span>
         <a href="mailto:help@edgeflip.com" target="_blank">contact us</a>
     </div>
 {% endblock %}
+
