@@ -30,11 +30,10 @@ this is the message div and the faces themselves
     <div class="subheader">{{ msg_params.sharing_sub_header|safe }}</div>
     <div class="header-end"></div>
 
-    {% block faces_prompt %}
-        <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
-    {% endblock faces_prompt %}
-
-    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
+    <div class="step-one-row">
+        <span class="text_instructions">Step 1. Click on the friends you want to share with:</span>
+        <span id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</span>
+    </div>
 
     <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table">
         <tr>
