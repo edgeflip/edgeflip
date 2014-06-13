@@ -77,6 +77,8 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-list'),
     url(r'^client/(?P<client_pk>\d+)/campaign/(?P<pk>\d+)/$', 'campaign_views.campaign_detail',
         name='campaign-detail'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/summary/$', 'campaign_views.campaign_summary',
+        name='campaign-summary'),
     url(r'^client/(?P<client_pk>\d+)/campaign/new/$', 'campaign_views.campaign_create',
         name='campaign-new'),
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
@@ -84,6 +86,10 @@ urlpatterns += patterns('targetadmin.views',
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/finish/$',
         'campaign_views.campaign_wizard_finish',
         name='campaign-wizard-finish'),
+    url(r'^campaign/(?P<client_pk>\d+)/how-it-works/$', 'campaign_views.how_it_works',
+        name='how-it-works'),
+    url(r'^campaign/how-it-works/$', 'campaign_views.how_it_works',
+        name='how-it-works')
 )
 
 urlpatterns += patterns('targetadmin.views',
@@ -97,4 +103,5 @@ urlpatterns += patterns('targetadmin.views',
 
 urlpatterns += patterns('',
     url(r'login/$', 'django.contrib.auth.views.login', name='login'),
+    url(r'logout/$', 'django.contrib.auth.views.logout', {'next_page': '/admin/'}, name='logout'),
 )

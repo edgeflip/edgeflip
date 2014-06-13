@@ -29,7 +29,7 @@ class FBObjectAttributeForm(forms.ModelForm):
         widget=forms.Textarea
     )
     og_description = forms.CharField(
-        label='Facebook Post Description',
+        label='Facebook post Description',
         required=False,
         widget=forms.Textarea
     )
@@ -76,11 +76,13 @@ class WizardFilterFeatureForm(forms.ModelForm):
     CHOICES = (
         ('', 'Select Filter Type'),
         ('age', 'Age'),
-        ('location', 'Location'),
         ('gender', 'Gender'),
+        ('location', 'Location')
     )
 
-    feature = forms.ChoiceField(choices=CHOICES)
+    feature = forms.ChoiceField(\
+        label='Filter Type',
+        choices=CHOICES )
 
     class Meta:
         model = relational.FilterFeature
@@ -293,11 +295,17 @@ class CampaignWizardForm(forms.Form):
 
     faces_url = forms.CharField(
         required=False,
-        label='Host url (optional)'
+        label='Host URL (optional)'
     )
-    error_url = forms.CharField()
-    thanks_url = forms.CharField()
-    content_url = forms.CharField()
+    error_url = forms.CharField(
+        label='Error URL'
+    )
+    thanks_url = forms.CharField(
+        label='Thanks URL'
+    )
+    content_url = forms.CharField(
+        label='Content URL'
+    )
 
     include_empty_fallback = forms.BooleanField(
         help_text=(
@@ -315,22 +323,22 @@ class CampaignWizardForm(forms.Form):
 class FBObjectWizardForm(forms.ModelForm):
 
     og_description = forms.CharField(
-        label='Facebook Post Description',
+        label='Facebook post description',
         required=False,
         widget=forms.Textarea
     )
-    og_title = forms.CharField(label='Facebook Post Title')
-    og_image = forms.CharField(label='Facebook Post Image URL')
+    og_title = forms.CharField(label='Facebook post title')
+    og_image = forms.CharField(label='Facebook post image URL')
     org_name = forms.CharField(
-        label='Cause or Organization being supported'
+        label='Cause or organization being supported'
     )
     msg1_pre = forms.CharField(
         required=False,
-        label='Text Before Friend Names (optional)'
+        label='Text before friend names (optional)'
     )
     msg1_post = forms.CharField(
         required=False,
-        label='Text After Friend Names (optional)'
+        label='Text after friend names (optional)'
     )
     msg2_pre = forms.CharField(
         required=False,
@@ -342,7 +350,7 @@ class FBObjectWizardForm(forms.ModelForm):
     )
     sharing_prompt = forms.CharField(label="Headline")
     sharing_sub_header = forms.CharField(
-        label="Sub-Header (optional)",
+        label="Sub-header (optional)",
         required=False,
         widget=forms.Textarea
     )

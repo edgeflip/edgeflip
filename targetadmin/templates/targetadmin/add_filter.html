@@ -4,12 +4,15 @@
         <div class="filter-selection-col">
             <div id="new-form-1" class="new-filters">
                 <p>{{ form.feature.errors }}{{ form.feature.label_tag }} <span id="feature-error" class="alert form-error">Required</span> {{ form.feature }}</p>
-                <p>{{ form.operator.errors }}{{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}</p>
+                <p style="display: none">
+                    {{ form.operator.errors }}
+                    {{ form.operator.label_tag }} <span id="operator-error" class="alert form-error">Required</span> {{ form.operator }}
+                </p>
                 <p style="display: none;">{{ form.value }}</p>
                 <div class="value-container">
                     {{ form.value.errors }}
-                    <label for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
-                    <div class="clearfix">
+                    <label style="display: none; "for="{{ form.value.id_for_label }}">{{ form.value.label }}</label><span id="value-error" class="alert form-error">Required</span>
+                    <div style="display: none;" class="clearfix">
                         <div class="text-input-list">
                             <input id="{{ form.value.id_for_label }}-split-1" name="value-split-1" type="text" class="filter-val-input">
                             <span id="value-span"></span>
@@ -52,7 +55,7 @@
                         </div>
                         <div id="city-container" style="display: none;">
                             <label for="city-input">City</label>
-                            <input type="text" id="city-input" placeholder="Enter a city" />
+                            <input type="text" id="city-input" placeholder="Enter a city" autocomplete="off"/>
                         </div>
                         <button id="add-location-filter" class="btn btn-mini" style="display:none;" data-placement="right">Add Filter</button>
                     </div>
