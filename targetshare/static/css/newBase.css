@@ -1,6 +1,9 @@
 body {
         font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-
+    background-image: url('../img/facesBackground.jpg');
+    background-repeat: no-repeat;
+    background-width: 100%;
+    margin: 0;
 }
 
 .h2_container {
@@ -21,12 +24,10 @@ body {
 /* div around the entire form */
 #faces_form_container {
     width: 700px;
-    /*display: table;*/
-    /*overflow-x: hidden;*/
     vertical-align: top;
     white-space: normal;
     background-color: #f7f7f7;
-    border: 2px solid lightgrey;
+    border: none;
     border-radius: 10px;
     padding: 25px;
     margin: 20px auto;
@@ -52,8 +53,20 @@ body {
     text-align: center;
 }
 
-.step-one-row {
-    width: 100%;
+.clearfix {
+    display: block;
+}
+
+.clearfix:after {
+    clear: both;
+    content: ".";
+    display: block;
+    height: 0;
+    visibility: hidden;
+}
+
+.step-row {
+    line-height: 30px;
 }
 
 .text_instructions {
@@ -61,12 +74,15 @@ body {
     text-align: left;
     color: #07304e;
     font-weight: 200;
-    padding: 0px;
+    padding: 0px 0px 0px 10px;
     float: left;
 }
 
 #button_select_all {
     display: inline-block;
+    margin-right: 10px;
+    font-size: 24px;
+    font-weight: 100;
 }
 
 .button_big, .button_small {
@@ -91,7 +107,8 @@ body {
 }
 .button_small {
     width: 140px;
-    height: 20px;
+    height: 30px;
+    line-height: 30px;
     padding: 3px;
     font-size: 14px;
     font-weight: 200;
@@ -99,19 +116,17 @@ body {
     border-radius: 5px;
     -moz-border-radius: 5px;
 }
+
 .button_active {
     background-color: orangered;
-    border: thin solid maroon;
+    /* border: thin solid maroon; */
 }
 .button_active:hover {
-    background-color: #CC0000;
+    box-shadow: inset 0 0 3px #000000;
 }
 .button_inactive {
     background-color: #0270A0;
     border: thin solid gray;
-}
-.button_inactive:hover {
-    background-color: #094163;
 }
 
 .dojoxEllipsis,
@@ -411,29 +426,15 @@ body {
     letter-spacing: 1.5px;
     line-height: 30px;
 }
-.button_small {
-    width: 140px;
-    height: 20px;
-    padding: 3px;
-    font-size: 14px;
-    font-weight: 200;
-    letter-spacing: 1px;
-}
+
 .button_active {
     background-color: orangered;
     border: thin solid maroon;
-}
-.button_active:hover {
-    background-color: #CC0000;
 }
 .button_inactive {
     background-color: #0270A0;
     border: thin solid gray;
 }
-.button_inactive:hover {
-    background-color: #094163;
-}
-
 
 /***************************************************
  Styling for friend picker buttons (new_face.html)
