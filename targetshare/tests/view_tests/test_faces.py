@@ -127,6 +127,21 @@ class TestFacesViews(EdgeFlipViewTestCase):
         self.assertEqual(data['status'], 'success')
         assert data['html']
 
+    @patch('targetshare.views.faces.LOG_RVN')
+    @patch('targetshare.views.faces.celery')
+    def test_faces_px3_fail_last_call(self, celery_mock, logger_mock):
+        """If the last call comes and neither call returned, return an error distinguishable from No Friends"""
+        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=False)
+        self.params.update({
+            'px3_task_id': 'dummypx3taskid',
+            'px4_task_id': 'dummypx4taskid',
+            'last_call': True,
+        })
+        response = self.client.post(reverse('faces'), data=self.params)
+        self.assertContains(response, 'Response has taken too long, giving up',
+                            status_code=503)
+        self.assertIn('Last call', logger_mock.error.call_args[0][0])
+
     @patch('targetshare.views.faces.celery')
     def test_faces_px4_filtering(self, celery_mock):
         self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)

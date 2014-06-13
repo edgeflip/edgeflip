@@ -19,6 +19,7 @@ from targetshare.tasks.integration.facebook import extend_token
 from targetshare.views import utils
 
 LOG = logging.getLogger(__name__)
+LOG_RVN = logging.getLogger('crow')
 
 
 @csrf_exempt # FB posts directly to this view
@@ -129,7 +130,13 @@ def faces(request):
                 content = models.relational.ClientContent.objects.get(pk=edges_result.content_id)
 
             if not edges_result.ranked or not edges_result.filtered:
-                return http.HttpResponseServerError('No friends were identified for you.')
+                if data['last_call']:
+                    LOG_RVN.error("Last call reached but no results available. task ids (px3/4): %s/%s",
+                        data['px3_task_id'], data['px4_task_id']
+                    )
+                    return http.HttpResponseServerError('Response has taken too long, giving up', status=503)
+                else:
+                    return http.HttpResponseServerError('No friends were identified for you.')
 
         else:
             return utils.JsonHttpResponse({
