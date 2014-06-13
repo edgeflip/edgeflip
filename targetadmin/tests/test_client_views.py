@@ -17,8 +17,7 @@ class TestClientViews(TestAdminBase):
     def test_client_list(self):
         """ Test client listing """
         response = self.client.get(reverse('targetadmin:client-list'))
-        self.assertStatusCode(response, 200)
-        assert response.context['client_list']
+        self.assertStatusCode(response, 302)
 
     def test_client_detail(self):
         """ Test client detail view """
