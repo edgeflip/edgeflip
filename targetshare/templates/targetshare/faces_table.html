@@ -31,8 +31,8 @@ this is the message div and the faces themselves
     <div class="header-end"></div>
 
     <div class="clearfix step-row">
-        <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
-        <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All</div>
+        <div class="text_instructions">Step 1. Click on the friends you want to share with, or </div>
+        <div id="button_select_all" class="select-all-btn" onClick="selectAll();">select all shown below</div>
     </div>
 
     <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table">
@@ -44,8 +44,6 @@ this is the message div and the faces themselves
                             x
                         </div>
                         <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
-                            <div class="checkmark">&nbsp;</div>
-
                             <div class="friend_pic">
                                 <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
                             </div>
@@ -87,10 +85,9 @@ this is the message div and the faces themselves
 
     <div class="clearfix step-row">
     {% block msg_prompt %}
-        <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
+        <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook, or</div>
     {% endblock msg_prompt %}
-
-        <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div>
+        <div id="button_sugg_msg" class="suggested-message-btn button_inactive" onClick="useSuggested(suggested_messages);">use a suggested message</div>
     </div>
 
     <div id="message_container">
@@ -134,7 +131,7 @@ this is the message div and the faces themselves
 
     {% block button %}
         <div id="button_share_container">
-            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
+            <div id="button_do_share" class="show-support-btn button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
         </div>
     {% endblock button %}
 

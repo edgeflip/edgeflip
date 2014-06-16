@@ -2,7 +2,7 @@ body {
         font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
     background-image: url('../img/facesBackground.jpg');
     background-repeat: no-repeat;
-    background-width: 100%;
+    background-size: cover;
     margin: 0;
 }
 
@@ -14,7 +14,7 @@ body {
        background-color: #f7f7f7;
        border-radius: 5px;
        -moz-border-radius: 5px;
-       box-shadow: 2px 2px 5px black;
+       box-shadow: 0px 0px 5px black;
 }
 
 #your-friends-here {
@@ -26,9 +26,9 @@ body {
     width: 700px;
     vertical-align: top;
     white-space: normal;
-    background-color: #f7f7f7;
+    background-color: #f8f9f9;
     border: none;
-    border-radius: 10px;
+    border-radius: 2px;
     padding: 25px;
     margin: 20px auto;
 }
@@ -48,8 +48,7 @@ body {
 
 .text_title_prompt {
     padding: 10px;
-    color: #07304e;
-    font-size: 26px;
+    font-size: 36px;
     text-align: center;
 }
 
@@ -67,34 +66,30 @@ body {
 
 .step-row {
     line-height: 30px;
+    font-size: 16px;
+    color: #dd4b39;
 }
 
 .text_instructions {
-    font-size: 14px;
     text-align: left;
-    color: #07304e;
     font-weight: 200;
-    padding: 0px 0px 0px 10px;
+    padding-left: 6px;
     float: left;
 }
 
-#button_select_all {
-    display: inline-block;
-    margin-right: 10px;
-    font-size: 24px;
-    font-weight: 100;
+.suggested-message-btn,
+.select-all-btn {
+    float: left;
+    font-weight: bold;
+    margin-left: 0.25em;
 }
 
-.button_big, .button_small {
-    float: right;
+.select-all-btn:hover {
     cursor: pointer;
-    color: white;
-    white-space: nowrap;
-    text-align: center;
-    vertical-align: middle;
+    text-decoration: underline;
 }
 
-.button_big {
+.show-support-btn {
     width: 250px;
     height: 30px;
     padding: 4px;
@@ -103,30 +98,12 @@ body {
     letter-spacing: 1.5px;
     line-height: 30px;
     border-radius: 7px;
-    -moz-border-radius: 7px;
-}
-.button_small {
-    width: 140px;
-    height: 30px;
-    line-height: 30px;
-    padding: 3px;
-    font-size: 14px;
-    font-weight: 200;
-    letter-spacing: 1px;
-    border-radius: 5px;
-    -moz-border-radius: 5px;
-}
-
-.button_active {
-    background-color: orangered;
-    /* border: thin solid maroon; */
-}
-.button_active:hover {
-    box-shadow: inset 0 0 3px #000000;
-}
-.button_inactive {
-    background-color: #0270A0;
-    border: thin solid gray;
+    float: right;
+    display: inline-block;
+    background-color: #dd4b39;
+    text-align: center;
+    margin-right: 6px;
+    color: white;
 }
 
 .dojoxEllipsis,
@@ -177,8 +154,6 @@ body {
     width: 12px;
     height: 12px;
     line-height: 11px;
-    border: thin solid white;
-    border-radius: 6px;
     font-size: 10px;
     font-weight: bold;
     text-align: center;
@@ -186,8 +161,8 @@ body {
     font-family: arial,sans-serif;
     cursor: pointer;
     position: absolute;
-    top: -4px;
-    right: -4px;
+    top: 0px;
+    right: -1px;
     z-index: 10;
 }
 .xout:hover {
@@ -200,10 +175,9 @@ body {
 }
 .friend_box img {
     width: 50px;
-    border-radius: 4px;
-    -moz-border-radius: 4px;
     margin-top: 5px;
     margin-left: 5px;
+    border-radius: 2px;
 }
 
 /* wrapper div around first, last names */
@@ -301,14 +275,15 @@ body {
     clear: both;
     overflow-x: auto;
     overflow-y: visible;
-    padding-bottom: 3px;
-    border: solid thin gray;
-    border-radius: 5px;
-    background-color: white;
-    /*margin: 0px 75px;*/
-    width: 550px;
     margin: 0px auto;
+    background-color: #fff;
+    padding: 18px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.14);
+    border: 1px solid black;
+    margin: 0px 6px 0px 6px;
+    border-radius: 2px;
 }
+
 
 #message_form_editable {
     display: block;
@@ -317,10 +292,6 @@ body {
     line-height: 25px;
     border-bottom: dashed thin gray;
     outline: 0;
-}
-
-#message_helper_txt:empty:before {
-    content:"Click the button above to use a suggested message, or write your own here.";
 }
 
 #message_preview {
@@ -362,7 +333,6 @@ body {
     -moz-border-radius: 4px;
     vertical-align: middle;
     white-space: nowrap;
-
 }
 
 .message_x {
@@ -397,43 +367,22 @@ body {
     text-decoration: none;
 }
 
-/* div around the entire form */
-#faces_form_container {
-    background-color: #f7f7f7;
-    border: 2px solid #7C889B;
-    border-radius: 10px;
-    padding: 25px;
-    margin: 20px auto;
+.button_active:hover {
+    cursor: pointer;
+    text-decoration: underline;
 }
 
-.text_title_prompt {
-    color: #07304e;
-    font-size: 26px;
-}
-
-
-
-.button_big, .button_small {
-    color: white;
-}
-
-.button_big {
-    width: 250px;
-    height: 30px;
-    padding: 4px;
-    font-size: 20px;
-    font-weight:200;
-    letter-spacing: 1.5px;
-    line-height: 30px;
-}
-
-.button_active {
-    background-color: orangered;
-    border: thin solid maroon;
-}
 .button_inactive {
-    background-color: #0270A0;
-    border: thin solid gray;
+    color: rgba( 0, 0, 0, 0.5 );
+}
+
+.button_inactive:hover {
+    cursor: default;
+    text-decoration: none;
+}
+
+.show-support-btn.button_inactive {
+    color: rgba( 255, 255, 255, 0.5 );
 }
 
 /***************************************************
@@ -443,11 +392,11 @@ body {
 /* styles the boxes with friend names and pictures */
 .friend_box {
     border: thin solid gray;
-    border-radius: 10px;
-    -moz-border-radius: 10px;
     width: 100%;
     position: relative;
     cursor: pointer;
+    border-radius: 2px;
+    background-color: white;
 }
 
 .friend_box:hover {
@@ -461,43 +410,7 @@ body {
 }
 
 .friend_box_unselected {
-    background-color: #E6F2FF;
     color: black;
-}
-
-/* styles the check mark image that appears on select */
-.checkmark {
-    display: none !important;
-}
-
-/***************************************************
- Manual add box
-*/
-.added_friend {
-    font-size: smaller;
-    color: #f0f0f8;
-    border: thin solid gray;
-    background-color: #003F77;
-}
-
-/***************************************************
- Styling for message input box
-*/
-
-#message_form {
-    padding-bottom: 3px;
-    border: solid thin gray;
-    background-color: white;
-}
-
-#message_helper_txt:empty:before {
-    content:"Click the button above to use a suggested message, or write your own here.";
-}
-
-.message_friend_name {
-    color: black;
-    border: thin solid #89A8BD;
-    background-color: #E6F2FF;
 }
 
 #progress-text {
@@ -537,6 +450,6 @@ body {
  * nice border between the subheader and faces */
 .header-end {
     padding-bottom: 15px;
-    margin-bottom: 30px;
-    border-bottom: 2px solid #a7a9a8;
+    margin: 0px 6px 30px 6px;
+    border-bottom: thin solid black;
 }
