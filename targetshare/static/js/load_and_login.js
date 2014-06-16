@@ -146,6 +146,7 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
+    $('.text_title_prompt').fitText();
 }
 
 
