@@ -41,15 +41,17 @@ this is the message div and the faces themselves
         <tr>
             {% for face_friend in show_faces %}
                 <td>
-                    <div style="position: relative; width: 100%;" id="wrapper-{{ face_friend.fbid }}">
-                        <div class="xout" onClick="doReplace({{ face_friend.fbid }});">x</div>
+                    <div id="wrapper-{{ face_friend.fbid }}">
                         <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
                             <div class="friend_pic">
                                 <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
                             </div>
                             <div class="friend_txt">
-                                <div class="friend_name dojoxEllipsis">{{ face_friend.fname }}</div>
-                                <div class="friend_name dojoxEllipsis">{{ face_friend.lname }}</div>
+                                <div class="xout" data-id="{{face_friend.fbid}}">x</div>
+                                <span class="friend_name_container">
+                                    <div class="friend_name"><span>{{ face_friend.fname }}</span></div>
+                                    <div class="friend_name"><span>{{ face_friend.lname }}</span></div>
+                                </span>
                             </div>
                         </div>
                     </div>

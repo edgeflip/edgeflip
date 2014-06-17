@@ -1,20 +1,18 @@
 
 <!-- DOC: jinja macro for a face widget -->
-<div style="position: relative" id="wrapper-{{fbid}}">
-    <div class="xout" onClick="doReplace({{fbid}});">
-        x
-    </div>
+{% spaceless %}
+<div id="wrapper-{{fbid}}">
     <div class="friend_box friend_box_unselected" id="friend-{{fbid}}" onClick="toggleFriend({{fbid}});">
         <div class="friend_pic">
             <img src="https://graph.facebook.com/{{fbid}}/picture" border=0 />
         </div>
         <div class="friend_txt">
-            <div class="friend_name dojoxEllipsis">
-                {{firstname}}
-            </div>
-            <div class="friend_name dojoxEllipsis">
-                {{lastname}}
+            <div class="xout" data-id="{{fbid}}">x</div>
+            <span class="friend_name_container">
+                <div class="friend_name"><span>{{firstname}}</span></div>
+                <div class="friend_name"><span>{{lastname}}</span></div>
             </div>
         </div>
     </div>
 </div>
+{% endspaceless %}

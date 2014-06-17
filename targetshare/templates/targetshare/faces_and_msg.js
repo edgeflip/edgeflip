@@ -415,6 +415,8 @@ function doReplace(old_fbid) {
         friendHTML(old_fbid, '', '', '', div_id);
         // $(div_id).remove();
     }
+
+    return false;
 }
 
 
@@ -446,7 +448,9 @@ function friendHTML(oldid, id, fname, lname, div_id) {
             if (id) {
                 new_html = data;
                 $(div_id).replaceWith(new_html);
-                $(div_id).show();
+                $('#wrapper-' + id + ' .friend_name').textfill(14);
+                $('#wrapper-' + id + ' .xout').click(
+                    function(e) { e.stopImmediatePropagation(); doReplace( $(this).data('id') ); } );
             } else {
                 // We hid it above, but still need to actually remove it if there's
                 // no new friend coming in (otherwise, a select all will still add this friend...)
