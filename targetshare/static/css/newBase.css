@@ -138,10 +138,20 @@ body {
     margin: 0px;
     clear: both;
     width: 100%;
+    table-layout: fixed;
 }
 
 #friends_table td {
+    border: thin solid gray;
+    border-radius: 2px;
+}
+
+#friends_table.by3 td {
     width: 33%;
+}
+
+#friends_table.by5 td {
+    width: 20%;
 }
 
 /* styles the boxes with friend names and pictures */
@@ -170,20 +180,37 @@ body {
 }
 
 /* fb portrait of friends */
+.by5 .friend_pic {
+    width: 35%;
+}
+
+.by3 .friend_pic {
+    width: 25%;
+}
+
 .friend_pic {
     display: inline-block;
+    height: 100%;
 }
 .friend_box img {
-    width: 50px;
-    margin-top: 5px;
-    margin-left: 5px;
+    padding: 3%;
+    margin: 0;
+    height: 94%;
+    width: 94%;
     border-radius: 2px;
 }
 
 /* wrapper div around first, last names */
+.by5 .friend_txt {
+    width: 65%;
+}
+
+.by3 .friend_txt {
+    width: 75%;
+}
+
 .friend_txt {
     /* Have to specify width here to make ellipsis work */
-    width: 165px;
     text-align: left;
     display: inline-block;
 }
@@ -197,7 +224,7 @@ body {
     text-overflow: ellipsis;
     -o-text-overflow: ellipsis;
     -webkit-text-overflow: ellipsis;
-    line-height: 25px;
+    line-height: 20px;
 }
 
 /***************************************************
@@ -391,11 +418,10 @@ body {
 
 /* styles the boxes with friend names and pictures */
 .friend_box {
-    border: thin solid gray;
     width: 100%;
+    height: 50px;
     position: relative;
     cursor: pointer;
-    border-radius: 2px;
     background-color: white;
 }
 
