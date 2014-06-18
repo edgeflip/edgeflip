@@ -225,6 +225,8 @@ def initial_crawl(self, primary, secondary):
         s3_key.retrieve_fb_feed(
             sync_map.fbid_secondary, sync_map.token, past_epoch, now_epoch
         )
+        if not s3_key.data:
+            raise ValueError('Data not retrieved from Facebook')
     except (ValueError, IOError):
         try:
             self.retry()
