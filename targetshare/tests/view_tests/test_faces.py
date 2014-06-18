@@ -131,7 +131,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.faces.celery')
     def test_faces_px3_fail_last_call(self, celery_mock, logger_mock):
         """If the last call comes and neither call returned, return an error distinguishable from No Friends"""
-        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=False)
+        self.patch_ranking(celery_mock, px3_ready=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',

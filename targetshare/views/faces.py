@@ -96,7 +96,8 @@ def faces(request):
         # Check status of active ranking tasks:
         px3_result = celery.current_app.AsyncResult(data['px3_task_id'])
         px4_result = celery.current_app.AsyncResult(data['px4_task_id'])
-        if (px3_result.ready() and px4_result.ready()) or data['last_call'] or px3_result.failed():
+        px3_ready = px3_result.ready()
+        if (px3_ready and px4_result.ready()) or data['last_call'] or px3_result.failed():
             (px3_edges_result, px4_edges_result) = (
                 result.result if result.successful() else ranking.empty_filtering_result
                 for result in (px3_result, px4_result)
@@ -130,11 +131,11 @@ def faces(request):
                 content = models.relational.ClientContent.objects.get(pk=edges_result.content_id)
 
             if not edges_result.ranked or not edges_result.filtered:
-                if data['last_call']:
+                if not px3_ready:
                     LOG_RVN.error("Last call reached but no results available. task ids (px3/4): %s/%s",
                         data['px3_task_id'], data['px4_task_id']
                     )
-                    return http.HttpResponseServerError('Response has taken too long, giving up', status=503)
+                    return http.HttpResponse('Response has taken too long, giving up', status=503)
                 else:
                     return http.HttpResponseServerError('No friends were identified for you.')
 
