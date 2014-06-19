@@ -70,12 +70,11 @@ this is the message div and the faces themselves
     </table>
     {% endspaceless %}
 
-    <div id="manual_add">
+    <div id="manual_add" class="clearfix">
         <div id="manual_add_text">
             {# Only one input will be displayed by CSS #}
             {% with text="You can add extra friends by typing their names here" %}
-            <label for="manual_input">{{ text }}:&nbsp;</label>
-            <input id="manual_input" class="manual_input" />
+            <input id="manual_input" class="manual_input" autocomplete="off" placeholder="{{ text }}"/>
             <input id="manual_input_placeholder" class="manual_input" placeholder="{{ text }}" />
             {% endwith %}
         </div>

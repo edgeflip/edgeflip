@@ -137,8 +137,7 @@ body {
 }
 
 #friends_table td {
-    border: thin solid gray;
-    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
 }
 
 #friends_table.by3 td {
@@ -179,7 +178,7 @@ body {
 }
 
 .by3 .friend_pic {
-    width: 25%;
+    width: 30%;
 }
 
 .friend_pic {
@@ -187,10 +186,10 @@ body {
     height: 100%;
 }
 .friend_box img {
-    padding: 3%;
+    padding: 5%;
     margin: 0;
-    height: 94%;
-    width: 94%;
+    height: 90%;
+    width: 90%;
     border-radius: 2px;
 }
 
@@ -200,7 +199,7 @@ body {
 }
 
 .by3 .friend_txt {
-    width: 75%;
+    width: 70%;
 }
 
 .friend_txt {
@@ -215,7 +214,8 @@ body {
 
 .friend_name_container {
     display: inline-block;
-    width: 100%;
+    width: 95%;
+    padding-left: 5%;
 }
 
 /***************************************************
@@ -226,18 +226,26 @@ body {
     font-size: 11px;
 }
 
+#manual_add_text {
+    width: 50%;
+    float: left;
+}
+
 #manual_add {
-    width: 500px;
+    width: 100%;
     padding-top: 5px;
-    text-align: left;
-    margin: 0px auto 30px auto;
-    display: table;
-    position: relative;
+    padding-left: 6px;
+    margin-bottom: 30px;
 }
 
 #manual_input, #manual_input_placeholder {
-    width: 180px;
     vertical-align: middle;
+    font-size: 8px;
+    border: 1px solid #e7e7e7;
+    width: 255px;
+    padding: 3px 8px 4px;
+    box-shadow: inset 0 0 1px rgba(0,0,0,0.11);
+    line-height: 20px;
 }
 
 #manual_input_placeholder {
@@ -245,7 +253,9 @@ body {
 }
 
 #picked_friends_container {
-    vertical-align: bottom;
+    float: right;
+    width: 40%;
+    margin-right: 12px;
 }
 
 .ui-autocomplete {
@@ -410,7 +420,7 @@ body {
 /* styles the boxes with friend names and pictures */
 .friend_box {
     width: 100%;
-    height: 50px;
+    height: 64px;
     cursor: pointer;
     background-color: white;
 }
