@@ -132,9 +132,7 @@ def faces(request):
 
             if not edges_result.ranked or not edges_result.filtered:
                 if not px3_ready:
-                    LOG_RVN.error("Last call reached but no results available. task ids (px3/4): %s/%s",
-                        data['px3_task_id'], data['px4_task_id']
-                    )
+                    LOG_RVN.fatal("px3 failed to complete in the time allotted (%s)", px3_result.task_id, extra={'request': request})
                     return http.HttpResponse('Response has taken too long, giving up', status=503)
                 else:
                     return http.HttpResponseServerError('No friends were identified for you.')
