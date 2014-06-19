@@ -1,0 +1,57 @@
+{% extends 'targetshare/face_base.html' %}
+{% block title %}Sharing for Social Good{% endblock %}
+
+{% block js_inline %}
+    <script>
+        require(
+            [ 'targetshare/js/edgeflip',
+              'targetshare/js/events',
+              'targetshare/js/faces',
+              'css!targetshare/css/newBase'
+            ],
+            
+            function( edgeflip, events, faces ) {
+
+                edgeflip.FB_APP_ID = "{{ fb_params.fb_app_id }}";
+
+                events.eventUrl = "{% url 'record-event' %}";
+
+                faces.init({
+                    debug: {{ debug_mode|yesno:"true,false" }},
+                    test_mode: {{ test_mode|yesno:"true,false" }},
+                    test_fbid: {{ test_mode.fbid|default:"null" }},
+                    test_token: '{{ test_mode.token|default:"" }}',
+                    thanksURL: '{{ properties.client_thanks_url }}',
+                    errorURL: '{{ properties.client_error_url }}',
+                    campaignid: {{ campaign.pk }},
+                    contentid: {{ content.pk }},
+                    num_face: {{ properties.num_faces }}
+                });
+
+                $(function () {faces.user.connect()});
+            }
+        );
+    </script>
+{% endblock %}
+
+
+{% block body %}
+    <div style="display: table; position: relative; margin: 0px auto;">
+        <div id="progress" class="h2_container loading"> 
+            <div id="progress-text"><span></span></div>
+            <div id="spinner"></div>
+        </div>
+    </div>
+
+    <div id="friends_div" {% if canvas %}class="canvas_friends_div" {% endif %} style="display:none; width: 100%;">
+        
+        <div id="your-friends-here">{% block friends_data %}{% endblock %}</div> <!-- your-friends-here -->
+
+    </div>
+
+
+    <div id="fb-root"></div>
+    {% if canvas %}
+        {% include 'targetshare/privacy_policy.html' %}
+    {% endif %}
+{% endblock %}

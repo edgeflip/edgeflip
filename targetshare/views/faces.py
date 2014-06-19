@@ -62,7 +62,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             urllib.urlencode({'campaignid': campaign_id}),
         )
 
-    return render(request, 'targetshare/frame_faces.html', {
+    return render(request, 'targetshare/frame_faces2.html', {
         'fb_params': {
             'fb_app_name': client.fb_app_name,
             'fb_app_id': client.fb_app_id,

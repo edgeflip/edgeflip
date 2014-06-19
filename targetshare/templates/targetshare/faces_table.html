@@ -2,24 +2,46 @@
 
 this is the message div and the faces themselves
  -->
-<script src="{{ STATIC_URL }}js/manual_add.js"></script>
-<script>{% include 'targetshare/faces_and_msg.js' %}</script>
-
 
 <script>
+    require(
+        [
+            'targetshare/js/edgeflip',
+            'targetshare/js/facesAndMsg'
+        ],
+        
+        function( edgeflip, facesAndMsg ) {
+            
+            edgeflip.FB_APP_ID = '{{ fb_params.fb_app_id }}';
+            edgeflip.FB_APP_NAME = '{{ fb_params.fb_app_name }}';
+            edgeflip.FB_ACTION_TYPE = '{{ fb_params.fb_action_type }}';
+            edgeflip.FB_OBJ_TYPE = '{{ fb_params.fb_object_type }}';
+            edgeflip.FB_OBJ_URL = '{{ fb_params.fb_object_url | safe }}';
 
-    if ({{ face_friends | length }} === 0) {
-        // Should never, ever get here unless something went very wrong in Flask land
-        // Even so, let's be sure to send the user somewhere reasonable rather than 
-        // land them on a page with nothing to do...
-        alert("Sorry. An error was encountered while communicating with Facebook.");
-        outgoingRedirect(edgeflip.faces.errorURL);
-    }
+            var friendFromFbid = {
+                {% for friend in all_friends %}
+                    {{friend.fbid}}: {"fbid": {{friend.fbid}}, "name": "{{friend.name}}", "fname": "{{friend.fname}}", "lname": "{{friend.lname}}"}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            };
 
-    // suggested messages
-    var suggested_messages = [];
-    suggested_messages.push(['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}']);
-    suggested_messages.push(['{{ msg_params.msg2_pre }}', '{{ msg_params.msg2_post }}']);
+            // on deck circle for friends who will get slotted in, we shift them off as we go
+            var faceFriends = [
+                {% for friend in face_friends %}
+                    {{friend.fbid}},
+                {% endfor %}
+            ].slice({{ num_face }});
+
+            var suggested_messages = [];
+            suggested_messages.push(['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}']);
+            suggested_messages.push(['{{ msg_params.msg2_pre }}', '{{ msg_params.msg2_post }}']);
+
+            new facesAndMsg( {
+                friendFromFbid: friendFromFbid,
+                faceFriends: faceFriends,
+                suggested_messages: suggested_messages
+            } );
+        }
+    );
 
 </script>
 
@@ -32,7 +54,7 @@ this is the message div and the faces themselves
 
     <div class="clearfix step-row">
         <div class="text_instructions">Step 1. Click on the friends you want to share with, or </div>
-        <div id="button_select_all" class="select-all-btn" onClick="selectAll();">select all shown below</div>
+        <div id="button_select_all" class="select-all-btn">select all shown below</div>
     </div>
 
     {% spaceless %}
@@ -42,7 +64,7 @@ this is the message div and the faces themselves
             {% for face_friend in show_faces %}
                 <td>
                     <div id="wrapper-{{ face_friend.fbid }}">
-                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
+                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" data-id="{{face_friend.fbid}}">
                             <div class="friend_pic">
                                 <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
                             </div>
@@ -85,7 +107,7 @@ this is the message div and the faces themselves
     {% block msg_prompt %}
         <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook, or</div>
     {% endblock msg_prompt %}
-        <div id="button_sugg_msg" class="suggested-message-btn button_inactive" onClick="useSuggested(suggested_messages);">use a suggested message</div>
+        <div id="button_sugg_msg" class="suggested-message-btn button_inactive">use a suggested message</div>
     </div>
 
     <div id="message_container">
