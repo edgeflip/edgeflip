@@ -140,7 +140,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertContains(response, 'Response has taken too long, giving up',
                             status_code=503)
-        self.assertIn('Last call', logger_mock.error.call_args[0][0])
+        self.assertIn('px3 failed', logger_mock.fatal.call_args[0][0])
 
     @patch('targetshare.views.faces.celery')
     def test_faces_px4_filtering(self, celery_mock):
