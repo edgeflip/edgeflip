@@ -24,11 +24,11 @@ this is the message div and the faces themselves
 </script>
 
 
-<div id="faces_form_container">
+<div id="faces_form_container" class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
 
     <div class="text_title_prompt"><span>{{ msg_params.sharing_prompt }}</span></div>
     <div class="subheader">{{ msg_params.sharing_sub_header|safe }}</div>
-    <div class="header-end"></div>
+    <div class="header_end"></div>
 
     <div class="clearfix step-row">
         <div class="text_instructions">Step 1. Click on the friends you want to share with, or </div>
@@ -36,38 +36,33 @@ this is the message div and the faces themselves
     </div>
 
     {% spaceless %}
-    <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table"
-           class="{% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}">
-        <tr>
-            {% for face_friend in show_faces %}
-                <td>
-                    <div id="wrapper-{{ face_friend.fbid }}">
-                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
-                            <div class="friend_pic">
-                                <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
-                            </div>
-                            <div class="friend_txt">
-                                <div class="xout" data-id="{{face_friend.fbid}}">x</div>
-                                <span class="friend_name_container">
-                                    <div class="friend_name"><span>{{ face_friend.fname }}</span></div>
-                                    <div class="friend_name"><span>{{ face_friend.lname }}</span></div>
-                                </span>
-                            </div>
+    <div id="friends_table" class="{% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}">
+        {% for face_friend in show_faces %}
+                <div class="friend_box_wrapper" id="wrapper-{{ face_friend.fbid }}">
+                    <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
+                        <div class="friend_pic">
+                            <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
+                        </div>
+                        <div class="friend_txt">
+                            <div class="xout" data-id="{{face_friend.fbid}}">x</div>
+                            <span class="friend_name_container">
+                                <div class="friend_name"><span>{{ face_friend.fname }}</span></div>
+                                <div class="friend_name"><span>{{ face_friend.lname }}</span></div>
+                            </span>
                         </div>
                     </div>
-                </td>
-                {% if num_face|divisibleby:"3" %}
-                    {% if forloop.counter|divisibleby:"3" and num_face > forloop.counter %}
-                        </tr><tr>
-                    {% endif %}
-                {% elif num_face|divisibleby:"5" %}
-                    {% if forloop.counter|divisibleby:"5" and num_face > forloop.counter %}
-                        </tr><tr>
-                    {% endif %}
+                </div>
+            {% if num_face|divisibleby:"3" %}
+                {% if forloop.counter|divisibleby:"3" and num_face > forloop.counter %}
+                    </tr><tr>
                 {% endif %}
-            {% endfor %}
-        </tr>
-    </table>
+            {% elif num_face|divisibleby:"5" %}
+                {% if forloop.counter|divisibleby:"5" and num_face > forloop.counter %}
+                    </tr><tr>
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    </div>
     {% endspaceless %}
 
     <div id="manual_add" class="clearfix">

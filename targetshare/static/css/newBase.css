@@ -1,3 +1,153 @@
+/* div around the entire form */
+#faces_form_container {
+    background-color: #f8f9f9;
+    border-radius: 2px;
+    padding: 25px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.text_title_prompt span {
+    white-space: nowrap;
+}
+
+/* If the subheader is used, the header-end div can be used to make a simple,
+ * nice border between the subheader and faces */
+.header_end {
+    padding-bottom: 15px;
+    margin-bottom:  30px;
+    border-bottom: thin solid black;
+}
+
+.text_instructions {
+    font-weight: 200;
+    float: left;
+}
+
+#friends_table {
+    clear: both;
+}
+
+.friend_box_wrapper {
+    float: left;
+}
+
+#friends_table.by3 .friend_box_wrapper {
+    width: 33%;
+}
+
+.friend_box {
+    height: 64px;
+    cursor: pointer;
+    background-color: white;
+    box-shadow: 0 0 8px rgba(0,0,0,0.14);
+    margin: 0px 10px 10px 0px;
+}
+
+.friend_box img {
+    padding: 5%;
+    height: 100%;
+    width: 100%;
+    border-radius: 2px;
+}
+
+.friend_box:hover {
+    color: #999;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3)
+}
+
+.friend_box_selected {
+    background-color: #07304E;
+    color: white;
+}
+
+.friend_box_unselected {
+    color: black;
+}
+
+@media(max-width:500px){
+    .step-row {
+        font-size: 8px !important;
+    }
+}
+
+@media(max-width:599px){
+
+    .step-row {
+        font-size: 10px;
+    }
+    
+    #friends_table.by5 .friend_box_wrapper {
+        width: 50%;
+    }
+
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+    }
+}
+
+@media(min-width:600px){
+
+    .step-row {
+        font-size: 12px;
+    }
+    
+    #friends_table.by5 .friend_box_wrapper {
+        width: 20%;
+    }
+
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+    }
+}
+
+@media(min-width:992px){
+
+    .step-row {
+        font-size: 16px;
+    }
+    
+    #friends_table.by5 .friend_box_wrapper {
+        width: 20%;
+    }
+    
+    .by5 .friend_pic {
+        width: 35%;
+    }
+    
+    .by5 .friend_txt {
+        width: 65%;
+    }
+}
+
+@media(min-width:1200px){
+
+    .step-row {
+        font-size: 18px;
+    }
+
+    #friends_table.by5 .friend_box_wrapper {
+        width: 20%;
+    }
+
+    .by5 .friend_pic {
+        width: 35%;
+    }
+
+    .by5 .friend_txt {
+        width: 65%;
+    }
+}
+
+/* pre bootstrap */
 body {
         font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
     background-image: url('../img/facesBackground.jpg');
@@ -17,21 +167,7 @@ body {
        box-shadow: 0px 0px 5px black;
 }
 
-#your-friends-here {
-    width: 100%;
-}
 
-/* div around the entire form */
-#faces_form_container {
-    width: 700px;
-    vertical-align: top;
-    white-space: normal;
-    background-color: #f8f9f9;
-    border: none;
-    border-radius: 2px;
-    padding: 25px;
-    margin: 20px auto;
-}
 
 .canvas_friends_div {
     margin-top: 30px;
@@ -65,16 +201,8 @@ body {
 }
 
 .step-row {
-    line-height: 30px;
-    font-size: 16px;
     color: #dd4b39;
-}
-
-.text_instructions {
-    text-align: left;
-    font-weight: 200;
-    padding-left: 6px;
-    float: left;
+    margin-bottom: 5px;
 }
 
 .suggested-message-btn,
@@ -96,13 +224,12 @@ body {
     font-size: 20px;
     font-weight:200;
     letter-spacing: 1.5px;
-    line-height: 30px;
+    line-height: 20px;
     border-radius: 7px;
     float: right;
     display: inline-block;
     background-color: #dd4b39;
     text-align: center;
-    margin-right: 6px;
     color: white;
 }
 
@@ -138,24 +265,9 @@ body {
  Styling for friend picker buttons (new_face.html)
 */
 
-#friends_table {
-    margin: 0px;
-    clear: both;
-    width: 100%;
-    table-layout: fixed;
-}
 
-#friends_table td {
-    box-shadow: 0 0 8px rgba(0,0,0,0.3);
-}
 
-#friends_table.by3 td {
-    width: 33%;
-}
 
-#friends_table.by5 td {
-    width: 20%;
-}
 
 /* styles the boxes with friend names and pictures */
 
@@ -182,9 +294,7 @@ body {
 }
 
 /* fb portrait of friends */
-.by5 .friend_pic {
-    width: 35%;
-}
+
 
 .by3 .friend_pic {
     width: 30%;
@@ -194,18 +304,7 @@ body {
     display: inline-block;
     height: 100%;
 }
-.friend_box img {
-    padding: 5%;
-    margin: 0;
-    height: 90%;
-    width: 90%;
-    border-radius: 2px;
-}
 
-/* wrapper div around first, last names */
-.by5 .friend_txt {
-    width: 65%;
-}
 
 .by3 .friend_txt {
     width: 70%;
@@ -216,9 +315,10 @@ body {
     height: 100%;
     float: right;
 }
+
 .friend_name {
-    white-space: nowrap;
     overflow: hidden;
+    line-height: 16px;
 }
 
 .friend_name_container {
@@ -242,8 +342,7 @@ body {
 
 #manual_add {
     width: 100%;
-    padding-top: 5px;
-    padding-left: 6px;
+    margin-top: 10px;
     margin-bottom: 30px;
 }
 
@@ -264,7 +363,6 @@ body {
 #picked_friends_container {
     float: right;
     width: 40%;
-    margin-right: 12px;
 }
 
 .ui-autocomplete {
@@ -317,7 +415,6 @@ body {
     padding: 18px;
     box-shadow: 0 0 8px rgba(0,0,0,0.14);
     border: 1px solid black;
-    margin: 0px 6px 0px 6px;
     border-radius: 2px;
 }
 
@@ -410,7 +507,7 @@ body {
 }
 
 .button_inactive {
-    color: rgba( 0, 0, 0, 0.5 );
+    color: rgba( 0, 0, 0, 0.3 );
 }
 
 .button_inactive:hover {
@@ -427,26 +524,7 @@ body {
 */
 
 /* styles the boxes with friend names and pictures */
-.friend_box {
-    width: 100%;
-    height: 64px;
-    cursor: pointer;
-    background-color: white;
-}
 
-.friend_box:hover {
-    color: #999;
-    box-shadow: 0 0 8px rgba(0,0,0,0.3)
-}
-
-.friend_box_selected {
-    background-color: #07304E;
-    color: white;
-}
-
-.friend_box_unselected {
-    color: black;
-}
 
 #progress-text {
     margin-bottom: 10px;
@@ -481,10 +559,4 @@ body {
     text-align: center;
 }
 
-/* If the subheader is used, the header-end div can be used to make a simple,
- * nice border between the subheader and faces */
-.header-end {
-    padding-bottom: 15px;
-    margin: 0px 6px 30px 6px;
-    border-bottom: thin solid black;
-}
+
