@@ -383,6 +383,10 @@ body {
     color: #0270A0;
 }
 
+#message_helper_txt:empty:before {
+    content: "Click the text above to use a suggested message, or write your own here.";
+}
+
 
 
 
