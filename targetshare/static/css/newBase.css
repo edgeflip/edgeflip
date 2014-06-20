@@ -109,12 +109,21 @@ body {
 #reconnect_button {
     width: 250px; 
     margin: 0px auto;
-    background-color: #0f2446;
+    background-color: #dd4b39;
     float: none;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+    letter-spacing: 1.5px;
+    line-height: 30px;
+    font-weight:200;
+    height: 30px;
+    padding: 4px;
+    font-size: 20px;
 }
 
 #reconnect_button:hover {
-    background-color: #094163;
+    text-decoration: underline;
 }
 
 #reconnect_text {
