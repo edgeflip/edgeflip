@@ -13,7 +13,7 @@ class FeedKey(key.Key):
 
     def __init__(self, *args, **kwargs):
         super(FeedKey, self).__init__(*args, **kwargs)
-        self.data = {}
+        self.data = None
 
     def retrieve_fb_feed(self, fbid, token, since, until):
         ''' Seeds to FeedKey.data element from FB '''
