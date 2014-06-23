@@ -193,13 +193,11 @@ function syncFriendBoxes() {
         if (isRecip(fbid)) {
             $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
             $('#wrapper-'+fbid+' .xout').hide();
-            $('#wrapper-'+fbid+' .checkmark').show();
           }
         else {
             $('#added-'+fbid).remove();                  // remove the manually added friend (if it exists)
             $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
             $('#wrapper-'+fbid+' .xout').show();
-            $('#wrapper-'+fbid+' .checkmark').hide();
         }
     }
 
