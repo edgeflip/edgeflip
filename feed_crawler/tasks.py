@@ -345,8 +345,8 @@ def incremental_crawl(self, primary, secondary):
             self.retry()
         except MaxRetriesExceededError:
             # We'll get `em next time, boss.
-            sync_map.save_status(models.FBSyncMap.COMPLETE)
-            return
+            rvn_logger.info(
+                'Failed incremental crawl of {}'.format(sync_map.s3_key_name))
     else:
         s3_key.crawl_pagination()
 
@@ -359,10 +359,10 @@ def incremental_crawl(self, primary, secondary):
                 self.retry(exc=exc)
             sync_map.incremental_epoch = epoch.from_date(timezone.now())
             sync_map.save()
+            crawl_comments_and_likes.apply_async(
+                args=[sync_map.fbid_primary, sync_map.fbid_secondary],
+                countdown=DELAY_INCREMENT
+            )
 
     sync_map.save_status(models.FBSyncMap.COMPLETE)
-    crawl_comments_and_likes.apply_async(
-        args=[sync_map.fbid_primary, sync_map.fbid_secondary],
-        countdown=DELAY_INCREMENT
-    )
     logger.info('Completed incremental crawl of {}'.format(sync_map.s3_key_name))
