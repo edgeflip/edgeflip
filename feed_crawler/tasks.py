@@ -269,19 +269,19 @@ def back_fill_crawl(self, primary, secondary):
             # feed
             rvn_logger.info(
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
-
-    s3_key.crawl_pagination()
-    if 'data' in s3_key.data:
-        # If we don't have any data, the back fill likely failed. We'll go
-        # ahead in that case and kick off the comment crawl, but not mark
-        # this job as back filled so that we can give it another shot at some
-        # later point
-        try:
-            s3_key.extend_s3_data()
-        except HTTPException as exc:
-            self.retry(exc=exc)
-        sync_map.back_filled = True
-        sync_map.save()
+    else:
+        s3_key.crawl_pagination()
+        if 'data' in s3_key.data:
+            # If we don't have any data, the back fill likely failed. We'll go
+            # ahead in that case and kick off the comment crawl, but not mark
+            # this job as back filled so that we can give it another shot at some
+            # later point
+            try:
+                s3_key.extend_s3_data()
+            except HTTPException as exc:
+                self.retry(exc=exc)
+            sync_map.back_filled = True
+            sync_map.save()
 
     sync_map.save_status(models.FBSyncMap.COMMENT_CRAWL)
     crawl_comments_and_likes.apply_async(
@@ -345,24 +345,24 @@ def incremental_crawl(self, primary, secondary):
             self.retry()
         except MaxRetriesExceededError:
             # We'll get `em next time, boss.
-            sync_map.save_status(models.FBSyncMap.COMPLETE)
-            return
+            rvn_logger.info(
+                'Failed incremental crawl of {}'.format(sync_map.s3_key_name))
+    else:
+        s3_key.crawl_pagination()
 
-    s3_key.crawl_pagination()
-
-    if 'data' in s3_key.data:
-        # If we have data, let's save it. If not, let's kick this guy over
-        # to crawl_comments_and_likes. We'll get that incremental data later
-        try:
-            s3_key.extend_s3_data(False)
-        except HTTPException as exc:
-            self.retry(exc=exc)
-        sync_map.incremental_epoch = epoch.from_date(timezone.now())
-        sync_map.save()
+        if 'data' in s3_key.data:
+            # If we have data, let's save it. If not, let's kick this guy over
+            # to crawl_comments_and_likes. We'll get that incremental data later
+            try:
+                s3_key.extend_s3_data(False)
+            except HTTPException as exc:
+                self.retry(exc=exc)
+            sync_map.incremental_epoch = epoch.from_date(timezone.now())
+            sync_map.save()
+            crawl_comments_and_likes.apply_async(
+                args=[sync_map.fbid_primary, sync_map.fbid_secondary],
+                countdown=DELAY_INCREMENT
+            )
 
     sync_map.save_status(models.FBSyncMap.COMPLETE)
-    crawl_comments_and_likes.apply_async(
-        args=[sync_map.fbid_primary, sync_map.fbid_secondary],
-        countdown=DELAY_INCREMENT
-    )
     logger.info('Completed incremental crawl of {}'.format(sync_map.s3_key_name))
