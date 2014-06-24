@@ -89,9 +89,7 @@ function activateButton(buttons, requestIdx) {
     return activateIdx;
 }
 var buttons = [ null, $('#button_select_all'), $('#button_sugg_msg'), $('#button_do_share') ];
-//function activateSelectButton() {
-//    return activateButton(buttons, 1);
-//}
+
 function activateSuggestButton() {
     return activateButton(buttons, 2);
 }

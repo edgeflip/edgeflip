@@ -88,7 +88,7 @@ body {
 
 /* If the subheader is used, the header-end div can be used to make a simple,
  * nice border between the subheader and faces */
-.header_end {
+.header-end {
     padding-bottom: 15px;
     margin-bottom:  30px;
     border-bottom: thin solid black;
@@ -99,7 +99,7 @@ body {
 /*** Instruction Rows ( Step 1, 2 ) ***/
 .step-row {
     color: #dd4b39;
-    margin-bottom: 5px;
+    margin-bottom: 10px;
 }
 
 .text_instructions {
@@ -111,7 +111,12 @@ body {
 .select_all_btn {
     display: inline-block;
     font-weight: bold;
-    margin-left: 0.25em;
+    padding: 3px;
+    font-size: 16px;
+    background-color: #dd4b39;
+    color: white;
+    border-radius: 3px;
+    vertical-align: bottom;
 }
 
 .select_all_btn:hover {
@@ -137,11 +142,9 @@ body {
     margin: 0px 10px 10px 0px;
 }
 
-.friend_box img {
-    padding: 5%;
-    height: 100%;
-    width: 100%;
+.friend_pic img {
     border-radius: 2px;
+    display: block;
 }
 
 .friend_box:hover {
@@ -376,18 +379,15 @@ body {
     color: white;
 }
 
-.show_support_btn.button_active {
-    text-decoration: none;
-}
-
 .show_support_btn.button_active:hover {
     text-decoration: underline;
     cursor: pointer;
 }
 
 .show_support_btn.button_inactive {
-    color: rgba( 255, 255, 255, 0.5 );
+    background-color: #dd4b39;
 }
+
 /*** Show Support Button ( submission ) ***/
 
 
@@ -433,11 +433,12 @@ body {
 /*** 'Button' styles ***/
 .button_active {
     cursor: pointer;
-    text-decoration: underline;
 }
 
 .button_inactive {
     color: rgba( 0, 0, 0, 0.3 );
+    background-color: transparent;
+    vertical-align: inherit;
 }
 
 .button_inactive:hover {
@@ -464,12 +465,24 @@ body {
         width: 55%;
     }
 
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
     .by3 .friend_pic {
         width: 50%;
     }
     
     .by3 .friend_txt {
         width: 50%;
+    }
+    
+    .by3 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
     }
 
     .show-support-btn {
@@ -503,6 +516,12 @@ body {
     .by5 .friend_txt {
         width: 55%;
     }
+    
+    .by5 .friend_pic img {
+        height: 30px;
+        width: 30px;
+        margin: 17px auto;
+    }
 
     .by3 .friend_pic {
         width: 35%;
@@ -511,6 +530,13 @@ body {
     .by3 .friend_txt {
         width: 65%;
     }
+    
+    .by3 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+    
 
     .manual_input {
         font-size: 8px;
@@ -528,8 +554,15 @@ body {
 }
 
 @media(min-width:675px){
+
     .manual_input {
         font-size: 10px;
+    }
+    
+    .by5 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
     }
 }
 
@@ -544,11 +577,11 @@ body {
     }
     
     .by5 .friend_pic {
-        width: 35%;
+        width: 40%;
     }
     
     .by5 .friend_txt {
-        width: 65%;
+        width: 60%;
     }
 
     .by3 .friend_pic {
@@ -557,6 +590,12 @@ body {
     
     .by3 .friend_txt {
         width: 70%;
+    }
+    
+    .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
     }
     
     .manual_input {
@@ -585,11 +624,11 @@ body {
     }
 
     .by5 .friend_pic {
-        width: 35%;
+        width: 40%;
     }
 
     .by5 .friend_txt {
-        width: 65%;
+        width: 60%;
     }
 
     .by3 .friend_pic {
@@ -598,6 +637,12 @@ body {
     
     .by3 .friend_txt {
         width: 70%;
+    }
+
+    .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
     }
 
     .manual_input {

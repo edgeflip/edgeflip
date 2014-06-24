@@ -131,7 +131,7 @@ function authFailure() {
         '<p id="reconnect_text">Please authorize the application in order to proceed.</p><div id="reconnect_button" class="button_big button_active" onclick="edgeflip.faces.user.login();">Connect</div>'
     );
     $('#progress').hide();
-    $('#friends_div').removeClass('hide');
+    $('#friends_div').css('display', 'table');
     edgeflip.events.record('auth_fail');
     $('#reconnect_button').click(function(){
         $('#progress').show();
@@ -143,13 +143,11 @@ function authFailure() {
 function displayFriendDiv(data, jqXHR) {
     $('#your-friends-here').html(data);
     $('#your-friends-here').show();
-    $('#friends_div').removeClass('hide');
+    $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show()
-    $('.text_title_prompt').textfill();
-    $('.friend_name').textfill(14);
-    $('.xout').click( function(e) { e.stopImmediatePropagation(); doReplace( $(this).data('id') ); } );
 }
+
 
 var outgoingRedirect = function(url) {
     var origin, redirectUrl = url;
@@ -166,38 +164,3 @@ var outgoingRedirect = function(url) {
     }
     top.location = redirectUrl;
 };
-
-(function($) {
-    var resizeTimeout,
-        resizeFun = function() {
-            $('.text_title_prompt').textfill();
-            $('.friend_name').textfill(14); };
-
-    $.fn.textfill = function(maxFontSize) {
-        maxFontSize = parseInt(maxFontSize, 10);
-        return this.each(function(){
-            var ourText = $("span", this),
-                parent = ourText.parent(),
-                maxHeight = parent.height(),
-                maxWidth = parent.width(),
-                fontSize = parseInt(ourText.css("fontSize"), 10),
-                multiplier = maxWidth/ourText.width(),
-                newSize = (fontSize*(multiplier-0.1))
-                size = (maxFontSize > 0 && newSize > maxFontSize)
-                    ? maxFontSize : newSize
-                update = { "fontSize": size };
-
-            if( parent.hasClass('friend_name') ) {
-                update["line-height"] = size + "px";
-            }
-
-            ourText.css( update );
-        });
-    };
-
-    $(window).on('resize orientationChanged', function(){
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeFun, 300);
-    });
-    
-})(jQuery);

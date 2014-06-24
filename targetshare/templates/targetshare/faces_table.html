@@ -24,69 +24,73 @@ this is the message div and the faces themselves
 </script>
 
 
-<div id="faces_form_container" class="col-lg-8 col-lg-offset-2 col-md-8 col-md-offset-2 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
+<div id="faces_form_container" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
 
-    <div class="text_title_prompt"><span>{{ msg_params.sharing_prompt }}</span></div>
+    <div class="text_title_prompt">{{ msg_params.sharing_prompt }}</div>
     <div class="subheader">{{ msg_params.sharing_sub_header|safe }}</div>
-    <div class="header_end"></div>
+    <div class="header-end"></div>
 
-    <div class="clearfix step-row">
-        <div class="text_instructions">Step 1. Click on the friends you want to share with, or </div>
-        <div id="button_select_all" class="select_all_btn button_active" onClick="selectAll();">select all shown below</div>
-    </div>
+    {% block faces_prompt %}
+        <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
+    {% endblock faces_prompt %}
 
+    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
+    
     {% spaceless %}
-    <div id="friends_table" class="clearfix {% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}">
-        {% for face_friend in show_faces %}
-                <div class="friend_box_wrapper" id="wrapper-{{ face_friend.fbid }}">
-                    <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
-                        <div class="friend_pic">
-                            <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
-                        </div>
-                        <div class="friend_txt">
-                            <div class="xout" data-id="{{face_friend.fbid}}">x</div>
-                            <span class="friend_name_container">
-                                <div class="friend_name"><span>{{ face_friend.fname }}</span></div>
-                                <div class="friend_name"><span>{{ face_friend.lname }}</span></div>
-                            </span>
+    <table align=center border=0 cellpadding=0 cellspacing=7 id="friends_table" class='{% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}'>
+        <tr>
+            {% for face_friend in show_faces %}
+                <td>
+                    <div style="position: relative" id="wrapper-{{ face_friend.fbid }}">
+                        <div class="xout" onClick="doReplace({{ face_friend.fbid }});">x</div>
+                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
+                            <div class="checkmark">&nbsp;</div>
+                            <div class="friend_pic">
+                                <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
+                            </div>
+                            <div class="friend_txt">
+                                <div class="friend_name dojoxEllipsis">{{ face_friend.fname }}</div>
+                                <div class="friend_name dojoxEllipsis">{{ face_friend.lname }}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-            {% if num_face|divisibleby:"3" %}
-                {% if forloop.counter|divisibleby:"3" and num_face > forloop.counter %}
-                    </tr><tr>
+                </td>
+                {% if num_face|divisibleby:"3" %}
+                    {% if forloop.counter|divisibleby:"3" and num_face > forloop.counter %}
+                        </tr><tr>
+                    {% endif %}
+                {% elif num_face|divisibleby:"5" %}
+                    {% if forloop.counter|divisibleby:"5" and num_face > forloop.counter %}
+                        </tr><tr>
+                    {% endif %}
                 {% endif %}
-            {% elif num_face|divisibleby:"5" %}
-                {% if forloop.counter|divisibleby:"5" and num_face > forloop.counter %}
-                    </tr><tr>
-                {% endif %}
-            {% endif %}
-        {% endfor %}
-    </div>
+            {% endfor %}
+        </tr>
+    </table>
     {% endspaceless %}
 
     <div id="manual_add" class="clearfix">
         <div id="manual_add_text">
             {# Only one input will be displayed by CSS #}
             {% with text="You can add extra friends by typing their names here" %}
-            <input id="manual_input" class="manual_input" autocomplete="off" placeholder="{{ text }}"/>
+            <label for="manual_input">{{ text }}:&nbsp;</label>
+            <input id="manual_input" class="manual_input" />
             <input id="manual_input_placeholder" class="manual_input" placeholder="{{ text }}" />
             {% endwith %}
         </div>
         <div id="picked_friends_container"></div>
     </div> <!-- manual_add -->
 
-    <div class="clearfix step-row">
     {% block msg_prompt %}
-        <div class="text_instructions">Step 2. Write a message to post on Facebook, or</div>
+        <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
-        <div id="button_sugg_msg" class="suggested_message_btn button_inactive" onClick="useSuggested(suggested_messages);">use a suggested message</div>
-    </div>
+
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div>
 
     <div id="message_container">
         <div id="message_form">
             <div id="message_form_editable" contentEditable="True">
-                <span id='message_helper_txt'></span>
+                <span id='message_helper_txt' style='color: gray;'></span>
             </div>
 
             <!-- New, better way of doing things. Nixxed in favor of maintaining current look/feel -->
@@ -124,7 +128,7 @@ this is the message div and the faces themselves
 
     {% block button %}
         <div id="button_share_container">
-            <div id="button_do_share" class="show_support_btn button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
+            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
         </div>
     {% endblock button %}
 
