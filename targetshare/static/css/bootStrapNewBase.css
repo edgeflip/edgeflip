@@ -5785,7 +5785,7 @@ button.close {
 /*# sourceMappingURL=bootstrap.css.map */
 body {
         font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-    background-image: url('../img/facesBackground.jpg');
+    background-image: url('../i/faces-background-0.jpg');
     background-repeat: no-repeat;
     background-size: cover;
     margin: 0;
@@ -5825,7 +5825,7 @@ body {
 }
 
 .loading #spinner {
-    background-image: url('../i/hampton-edgeflip-loading-whitebg.gif');
+    background-image: url('../i/edgeflip-aniprogress-1.gif');
     background-repeat: no-repeat;
     width: 100%;
     height: 48px;
@@ -5833,7 +5833,7 @@ body {
 }
 
 .sending #spinner {
-    background-image: url('../i/hampton-edgeflip-loading-whitebg.gif');
+    background-image: url('../i/edgeflip-aniprogress-1.gif');
     background-repeat: no-repeat;
     width: 100%;
     height: 48px;
