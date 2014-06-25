@@ -41,6 +41,23 @@ edgeflip.faces = (function (edgeflip, $) {
         }
     };
 
+    self.updateProgressBar = function( percent ) {
+
+        var bgColor = ( percent < 5 )
+            ? '#f63a0f'
+            : ( percent < 25 )
+                ? '#f27011'
+                : ( percent < 50 )
+                    ? '#f2b01e'
+                    : ( percent < 75 )
+                        ? '#f2d31b'
+                        : '#86e01e';
+
+        $('.progress-bar')
+            .css( 'background-color', bgColor )
+            .width( percent + '%' );
+    };
+
     self.poll = function (fbid, accessToken, response, px3_task_id, px4_task_id, last_call) {
         /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
         if (response.authResponse) {
@@ -88,6 +105,7 @@ edgeflip.faces = (function (edgeflip, $) {
                     self.campaignid = data.campaignid;
                     self.contentid = data.contentid;
                     if (data.status === 'waiting') {
+                        self.updateProgressBar( Math.floor( 2.5 * self.pollingCount_ ) );
                         if (self.pollingTimer_) {
                             if (self.pollingCount_ > 40) {
                                 clearTimeout(self.pollingTimer_);
@@ -104,7 +122,8 @@ edgeflip.faces = (function (edgeflip, $) {
                             }, 500);
                         }
                     } else {
-                        displayFriendDiv(data.html, jqXHR);
+                        self.updateProgressBar(100);
+                        setTimeout( function() { displayFriendDiv(data.html, jqXHR); }, 500 );
                         clearTimeout(self.pollingTimer_);
                         if (self.debug) {
                             edgeflip.events.record('faces_page_rendered');
