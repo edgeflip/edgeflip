@@ -126,9 +126,14 @@ $.extend( createFilterManager.prototype, {
             }
 
             if( filters.length === 0 ) {
+                this.addLocationFilterButton.click();
+                filters = this.locationFilters.children();
+            }
+
+            if( filters.length === 0 ) {
+                return;
                 this.addLocationFilterButton.attr( 'data-content', 'Please add a filter.' ).popover('show');
                 this.delegateRemovePopover( this.addLocationFilterButton );
-                return;
             }
 
             filters.each( function( i, filterEl ) {
@@ -153,13 +158,23 @@ $.extend( createFilterManager.prototype, {
 
             var values = $( '#age-range' ).slider( 'values' );
 
-            this.operatorDropdown.val('min');
-            this.valueInput.val( values[0] );
-            this.createFilter();
+            if( values[0] !== 0 &&
+                values[1] !== 100 ) {
 
-            this.operatorDropdown.val('max');
-            this.valueInput.val( values[1] );
-            this.createFilter();
+                this.createAgeFilter( values[0], values[1] );
+
+            } else {
+
+                if( values[0] == 0 ) {
+                    this.operatorDropdown.val('max');
+                    this.valueInput.val( values[1] );
+                    this.createFilter();
+                } else {
+                    this.operatorDropdown.val('min');
+                    this.valueInput.val( values[0] );
+                    this.createFilter();
+                }
+            }
 
             return this.close();
         },
@@ -326,6 +341,7 @@ $.extend( createFilterManager.prototype, {
         gender: function() {
             this.showUI.default.call(this);
             this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.toggleOperatorElements( 'hide' );
             this.toggleGenericValueInputs( 'hide' );  
             this.genderDropdown.fadeIn();
         }
@@ -340,8 +356,8 @@ $.extend( createFilterManager.prototype, {
             window.input_count = 1;
             this.firstValueInput.val('');
             this.operatorDropdown.val('').removeAttr( 'disabled' );
-            this.toggleOperatorElements( 'fadeIn' );
-            this.toggleGenericValueInputs( 'fadeIn', [ 'valueLabel' ] );
+            this.toggleOperatorElements( 'hide' );
+            this.toggleGenericValueInputs( 'hide', [ 'valueLabel' ] );
         },
 
         location: function() {
@@ -466,17 +482,39 @@ $.extend( createFilterManager.prototype, {
     createFilter: function( opts ) {
         var feature = ( opts && opts.feature ) ? opts.feature : this.featureDropdown.val(),
             operator = this.operatorDropdown.val(),
-            filter_values = this.valueInput.val();
+            filter_values = this.valueInput.val(),
+            filterEl =
+                $('<div title="' + feature + ' ' + operator + ' ' + filter_values + '" data-filter-id="set_number=' + feature + '.' + operator + 
+                '.' + filter_values + '" class="span2 draggable"><div class="filter-content-container"><span class="filter">' +
+                feature + ' ' + ' ' + operator + ' ' + filter_values + 
+                '</span></div></div>');
 
-        $('#existing-filters').prepend(
-            '<div data-filter-id="set_number=' + feature + '.' + operator + 
-            '.' + filter_values + '" class="span2 draggable"><p><abbr title="' + 
-            feature + ' ' + operator + ' ' + filter_values + '">' + 
-            feature + ' ' + ' ' + operator + ' ' + filter_values.slice(0, 15) + 
-            '</abbr></p></div>'
-        );
+        $('#existing-filters').prepend( window.filterCleaner.cleanFilter(filterEl) );
+
+        if( opts && opts.hide ) { filterEl.hide(); }
+        if( opts && opts.link ) { filterEl.attr('data-link',opts.link); }
 
         return this;
+    },
+
+    createAgeFilter: function( min, max ) {
+        var text = "age: between " + min + " and " + max,
+            link = min + '-' + max,
+            filterEl =
+                $('<div title="' + text + '" class="span2 draggable"><div class="filter-content-container"><span class="filter">' +
+                text + '</span></div></div>');
+
+        filterEl.attr('data-link',link);
+
+        this.operatorDropdown.val('min');
+        this.valueInput.val( min );
+        this.createFilter( { hide: true, link: link } );
+
+        this.operatorDropdown.val('max');
+        this.valueInput.val( max );
+        this.createFilter( { hide: true, link: link } );
+        
+        $('#existing-filters').prepend( filterEl );
     },
 
     //closes modal window

@@ -1,67 +1,66 @@
 <div class="row">
     <div class="span12">
         <div class="row targeting-header">
-
-            <div class="filter-info-item">
-                <h5>What audience would you like to target ?</h5>
+            <div class="span12 header-container">
+                <h2 class="wizard-header">Select a target audience</h2>
                 <p>
-                    When your supporters share your campaign with their Facebook friends, we will present them with a list of friend
-                    suggestions based on criteria you select below.
+                    Define a Target Audience for your campaign by dragging one or more filters from the Available Filters container to the Enabled Filters container.
                 </p>
                 <p>
-                    To add filter criteria to your campaign, simply drag one or more filters from the "Available Filters" container to
-                    one of the layers under the "Enabled Filters" heading. If you don't see the filter you want to use, click the "Add Filter" button to add a new one.
+                    To create a new filter, just click "Add Filter," select the filter type and filtering criteria, and click "Save changes."
+                </p>
+                <p>
+                    <span>You can also add up to four Fallback Audiences with fewer filters enabled.</span>
+                    <button id="learn-more-btn" type="button" class="btn btn-link">Learn more</button>
                 </p>
             </div>
             
-            <div class="filter-info-item">
-                <h5>How it works</h5>
-                <p>Multiple filters in a single layer will be chained together with "and". For example, if you put the following four filters -- 
-                   'gender eq Male', 'age min 22', 'age max 30', and 'state eq New York' -- into a single layer, you will be targeting
-                    <i>22-30 year-old men living in New York state</i>.
-                </p>
-                <p>We highly recommend adding multiple layers to your criteria. To add a layer, click the "Add Layer" button to the right of the Enabled Filters header.</p>
-                <p>
-                    Additional layers might target different audiences, or else they might provide a less restrictive "fallback" layer to make sure
-                    that every supporter sees some friend suggestions when they share your Facebook post. In our example from above, a Layer 2
-                    fallback criteria might be <i>22-30 year-old men</i>.  If that is still too restrictive, a third layer targeting only <i>men</i> might be added.
-                </p>
-                <p>As always, feel free to contact us for assistance.</p>
-            </div>
         </div>
+
         <div id="enabled-section" class="row">
-            <h3>Enabled Filters <a href="#" id="add-layer" class="btn btn-mini" data-layer-count="1">Add Layer</a></h3>
-            <h6>Top Layer</h6>
-            <div class="clearfix">
+            <h3 class="span12">Enabled Filters</h3>
+            <h6 class="span12">
+                <span>Target Audience</span>
+                <button type="button" id="add-layer" class="btn btn-mini add-fallback-btn" data-layer-count="1">Add Fallback Audience</button>
+            </h6>
+            <div class="span12">
                 <input type="hidden" id="id_enabled-filters-1" name="enabled-filters-1">
-                <div class="span12 well sortable target-well" id="enabled-filters-1" style="margin-left: 0px; min-height:54px;"></div>
+                <div class="clearfix well sortable target-well filter-well" id="enabled-filters-1"></div>
             </div>
         </div>
         <div id="available-section" class="row">
-            <h3>Available Filters <a data-target="#filter-modal" href="{% url 'targetadmin:filter-add' client.pk %}" id="create-filter-btn" class="btn btn-mini" data-toggle="modal">Add Filter</a></h3>
-            <div class="span12 well sortable target-well" id="existing-filters" style="margin-left: 0px; min-height:54px;">
+            <h3 class="span12">
+                <span>Available Filters</span>
+                <button type="button"
+                        data-target="#filter-modal"
+                        href="{% url 'targetadmin:filter-add' client.pk %}"
+                        id="create-filter-btn"
+                        class="btn btn-mini add-filter-btn"
+                        data-toggle="modal">Add Filter</button>
+            </h3>
+            <div class="span12 well sortable target-well filter-well" id="existing-filters">
                 {% for ff in filter_features %}
-                    <div data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
-                        <p>
-                            <abbr title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}">
-                                {{ ff.feature }} {{ ff.operator }} {{ ff.value|truncatechars:"15" }}
-                            </abbr>
-                        </p>
+                    <div title="{{ ff.feature }} {{ ff.operator }} {{ ff.value }}"
+                         data-filter-id="set_number={{ ff.feature }}.{{ ff.operator }}.{{ ff.value }}" class="span2 draggable">
+                         <div class="filter-content-container">
+                             <span class="filter">{{ ff.feature }} {{ ff.operator }} {{ ff.value }}</span>
+                         </div>
                     </div>
                 {% endfor %}
             </div>
         </div>
         <div class="row empty-fallback">
-            {{ campaign_form.include_empty_fallback.errors }}
-            <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
-            {{ campaign_form.include_empty_fallback }}
-            {% if campaign_form.include_empty_fallback.help_text %}
-                <i class="icon-question-sign" data-placement="right" data-content="{{ campaign_form.include_empty_fallback.help_text }}"></i>
-            {% endif %}
+            <div class="span12">
+                {{ campaign_form.include_empty_fallback.errors }}
+                <label for="{{ campaign_form.include_empty_fallback.id_for_label }}">{{ campaign_form.include_empty_fallback.label }}:</label>
+                {{ campaign_form.include_empty_fallback }}
+                <i id="empty-fallack-help-icon" class="icon-question-sign empty-fallback-question" data-placement="right" data-content=""></i>
+            </div>
         </div>
+       
         <div class="row wizard-button-container">
-            <a href="#" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</a>
-            <a href="#" id="step2-prev" class="btn btn-large btn-danger step-submit filter-step" data-step="intro">Previous</a>
+            <button type="button" id="step2-prev" class="btn btn-link step-submit filter-step pull-left" data-step="intro">Previous</button>
+            <button type="button" id="step2-next" class="btn btn-large btn-primary step-submit filter-step" data-step="faces">Next</button>
         </div>
     </div>
 </div>
@@ -77,3 +76,114 @@
         <button id="filter-add" class="btn btn-primary">Save changes</button>
     </div>
 </div>
+<div id="target-audience-help-modal" class="modal hide fade" tabindex="-1" role="dialog">
+    <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+        <h3 id="filter-modal-label">Targeted Sharing Audience</h3>
+    </div>
+    <div class="modal-body filter-help">
+        <p>
+            <i class="begin">Target Audience : </i> When your supporters share your campaign with their Facebook friends, we will present
+            them with a list of friend suggestions based on the target audience you define using a set of filters. You can
+            enable multiple filters; your target audience will consist of friends who meet all of these criteria.
+            For example, if your target audience is <i>24 - 30 year-old men living in North Carolina</i>, then you would
+            enable three filters -- 'Males', 'Between 24 and 30', and 'Lives in North Carolina.'
+        </p>
+        <p>
+            <i class="begin">Fallback Audiences : </i> Some of your supporters may not have any friends in your Target Audience.
+            For this reason, we recommend adding one or more Fallback Audiences with fewer (or less restrictive)
+            filters enabled. For example, if your Target Audience is <i>24 - 30 year-old men living in North Carolina</i>,
+            your first Fallback Audience might expand the age filter: <i>18 - 50 year-old men living in North Carolina</i>.
+            You might also select a second Fallback Audience with an expanded location filter: <i>24 - 30 year-old men
+            living in North Carolina, South Carolina, and Virginia</i>. A third Fallback Audience might simply target <i>men</i>.
+            To add a Fallback Audience, just click "Add Fallback Audience." 
+        </p>
+        <p id="empty-fallback-paragraph">
+            <i class="begin">Empty Fallback : </i> 
+        </p>
+        <p>
+            <i class="begin">More questions?</i> Please <a href="mailto:help@edgeflip.com" target="_blank">contact us</a> and we'll be happy to walk you through it.
+        </p>
+    </div>
+</div>
+<script type="text/javascript">
+
+( function( $ ) {
+
+    var emptyFallbackHelpText = "We recommend selecting the 'empty fallback' feature in case some of your supporters have few friends in your Target and Fallback Audiences. When the empty fallback feature is selected, the Targeted Sharing application will still suggest the friends most likely to support your organization, even though no filters are enabled. The 'empty fallback' feature is selected by default for new campaigns.";
+
+    $('#learn-more-btn').click( function() {
+        $('#target-audience-help-modal').modal();
+    } );
+
+    $('#empty-fallback-paragraph').append( emptyFallbackHelpText );
+
+    $('#empty-fallack-help-icon').data( 'content', emptyFallbackHelpText );
+
+    window.filterCleaner = {
+    
+        clean: {
+
+            gender: function( filter ) {
+                if( filter.data('filter-id').indexOf('Male') > -1 ) {
+                    filter.attr( 'title', 'Males' )
+                          .find('span').text('Males');
+                } else {
+                    filter.attr( 'title', 'Females' )
+                          .find('span').text('Females');
+                }
+            },
+
+            age: function( filter ) {
+                var span = filter.find('span'),
+                    title = filter.attr('title'),
+                    regExp = /(\d+)/,
+                    match = regExp.exec(title),
+                    age = match[1];
+                 
+                if( filter.attr( 'title' ).indexOf('max') > -1 ) {
+                    filter.attr( 'title', 'age: ' + age + ' and younger' );
+                    span.text( 'age: ' + age + ' and younger' );
+                } else {
+                    filter.attr( 'title', 'age: ' + age + ' and older' );
+                    span.text( 'age: ' + age + ' and older' );
+                }
+            },
+
+            location: function( filter ) {
+                var span = filter.find('span'),
+                    title = filter.attr('title');
+
+                filter.attr( 'title',
+                    title.replace(/eq/,'in')
+                         .replace(/state|city/i,'Lives')
+                         .replace(/\|\|/g,' or ') );
+
+                span.text(
+                    span.text().replace(/eq/,'in')
+                               .replace(/state|city/i,'Lives')
+                               .replace(/\|\|/g,' or ')
+                               .replace(/\|/g,'') );
+            }
+
+        },
+
+        cleanFilter: function( filter ) {
+            
+            var filter = $(filter);
+
+            window.filterCleaner.clean[ ( filter.data('filter-id').indexOf('gender') > -1 )
+                ? 'gender'
+                : ( filter.data('filter-id').indexOf('age') > -1 )
+                    ? 'age'
+                    : 'location' ]( filter );
+
+            return filter;
+        }
+    };
+
+
+    _.each( $('#existing-filters').children(), window.filterCleaner.cleanFilter );
+        
+} )(jQuery);
+</script>

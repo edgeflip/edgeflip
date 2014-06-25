@@ -11,7 +11,7 @@ body {
     font-family: Arial;
 }
 
-.page-header {
+.wizard-header {
     text-align: center;
     margin-top: 0px;
     margin-bottom: 20px;
@@ -22,7 +22,7 @@ body {
 
 .page-header-information {
     text-align: center;
-    margin: 20px 0px;
+    margin-top: 20px;
     font-size: medium;
 }
 
@@ -57,7 +57,7 @@ body {
 }
 
 .fb-obj-header h4,
-.faces-header h4 {
+.faces-header h3 {
     text-transform: uppercase;
     text-align: center;
 }
@@ -71,17 +71,17 @@ body {
     margin-bottom: 50px;
 }
 
-.icon-question-sign {
+.icon-question-sign.suggested-message-header {
     vertical-align: middle;
+}
+    
+.icon-question-sign.empty-fallback-question {
+    vertical-align: text-bottom;
 }
 
 .img-helper-wrapper {
     position: relative;
     top: 0px;
-}
-
-.img-helper {
-    height: 100%;
 }
 
 .suggested-message-container {
@@ -121,7 +121,6 @@ body {
 
 .fb-obj-item label {
     font-size: medium;
-    text-transform: uppercase;
     display: inline-block;
 }
 
@@ -130,6 +129,7 @@ body {
     font-size: medium;
     font-weight: bold;
     width: 80%;
+    display: block;
 }
 
 .fb-obj-item textarea {
@@ -150,23 +150,12 @@ body {
     text-align: center;
 }
 
-.filter-info-item {
-    margin-top: 40px;
+.header-container {
+    margin-bottom: 40px;
 }
 
-.filter-info-item:first-child {
-    margin-top: 0px;
-}
-
-.filter-info-item > div,
-.filter-info-item > h5 {
-    text-align: center;
-    text-transform: uppercase;
-    font-size: medium;
-}
-
-.filter-info-item p {
-    font-size: medium;
+#available-section .well {
+    padding: 19px 0px;
 }
 
 #available-section h3,
@@ -178,10 +167,9 @@ body {
     text-transform: uppercase;
 }
 
-#available-section a,
-#enabled-section a {
+.add-fallback-btn {
     vertical-align: bottom;
-    margin: 10px;
+    margin: 0px 10px;
     text-transform: none;
 }
 
@@ -285,6 +273,7 @@ body {
     font-weight: bold;
     background-color: #094163;
     border-color: #0cf;
+    font-size: medium;
 }
 
 .popover.right .arrow:after {
@@ -378,6 +367,7 @@ body {
     margin-left: 10px;
     margin-top: 10px;
     text-align: center;
+    overflow: hidden;
 }
 
 .draggable:hover {
@@ -385,22 +375,17 @@ body {
 }
 
 .draggable:hover,
-.draggable p:hover,
-.draggable p abbr:hover {
+.draggable span:hover {
     cursor: move;
 }
 
-.draggable p {
-    display: table;
+.draggable span {
+    display: table-cell;
     margin 0px !important;
     height: 100%;
     width: 100%;
-}
-
-.draggable p abbr {
-    display: table-cell;
     vertical-align: middle;
-    border-bottom: none;
+    line-height: 25px;
 }
 
 .form-error {
@@ -409,7 +394,7 @@ body {
 
 .empty-fallback {
     margin-top: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 100px;
 }
 
 .empty-fallback label {
@@ -419,6 +404,7 @@ body {
 
 .empty-fallback input {
     margin: 0px 10px;
+    vertical-align: text-bottom;
 }
 
 #age-range:hover {
@@ -456,6 +442,7 @@ body {
     border: 1px solid gray;
     border-radius: 5px;
     overflow: hidden;
+    max-height: 550px;
 }
 
 #intro-carousel img:hover {
@@ -480,12 +467,23 @@ body {
     bottom: auto !important;
 }
 
+.get-started-btn {
+    margin: 30px;
+}
+
 #campaign-name-modal .modal-footer .step-submit {
     margin-right: 0px;
 }
 
 #campaign-name-modal .modal-footer {
     text-align: center; 
+}
+
+.campaign-name {
+    position: absolute;
+    top: 60px;
+    left: 3%;
+    font-size: large;
 }
 
 .modal-header h3 {
@@ -504,4 +502,84 @@ body {
 #state-container,
 #city-container {
     margin-top: 20px;
+}
+
+.filter-help p {
+    padding: 5px;
+}
+
+.filter-help .begin {
+    font-weight: bold;
+}
+
+.filter-well {
+    min-height:54px;
+}
+
+.add-filter-btn {
+    line-height: 28px;
+    vertical-align: text-bottom; 
+}
+
+.targeting-header {
+    text-align: center;
+}
+
+.filter-content-container {
+    display: table;
+    height: 100%;
+    width: 100%;
+}
+
+@media (min-width: 768px) and (max-width: 979px) {
+    .campaign-name,
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: small !important;
+    }
+
+    .wizard-header {
+        font-size: x-large;
+    }
+}
+
+@media (max-width: 767px) {
+    .campaign-name,
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: small !important;
+    }
+    
+    .wizard-header {
+        font-size: large;
+    }
+}
+ 
+@media (max-width: 480px) {
+    .campaign-name,
+    label,
+    .header-container,
+    .page-header-information,
+    .draggable span {
+        font-size: x-small !important;
+    }
+    
+    .wizard-header {
+        font-size: medium;
+    }
+}
+
+.how-it-works-img {
+    display: block;
+    margin: auto;
+}
+
+.how-it-works-contact {
+    text-align: center;
+    margin: 2em 0em;
+    font-size: large;
 }
