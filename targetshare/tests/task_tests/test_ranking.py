@@ -1,3 +1,4 @@
+import random
 import types
 
 import celery
@@ -10,6 +11,9 @@ from targetshare.tasks import ranking
 from targetshare.integration import facebook
 
 from .. import EdgeFlipTestCase, patch_facebook
+
+
+DB_MIN_FRIEND_COUNT = ranking.DB_MIN_FRIEND_COUNT
 
 
 def classify_fake(corpus, *topics):
@@ -164,13 +168,6 @@ class TestProximityRankFour(RankingTestCase):
 
     fixtures = ['test_data']
 
-    @staticmethod
-    def get_post_topics(network):
-        link = models.dynamo.PostInteractions.post_topics
-        post_topics_cache = (link.cache_get(interactions)
-                             for interactions in network.iter_interactions())
-        return {cached for cached in post_topics_cache if cached}
-
     def setUp(self):
         super(TestProximityRankFour, self).setUp()
 
@@ -245,38 +242,148 @@ class TestProximityRankFour(RankingTestCase):
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
-    @patch_facebook(min_friends=100, max_friends=100)
+    @patch_facebook(min_friends=DB_MIN_FRIEND_COUNT, max_friends=DB_MIN_FRIEND_COUNT)
     @patch('targetshare.tasks.ranking.LOG')
     def test_proximity_rank_four_uses_dynamo(self, logger_mock):
-        self.assertFalse(models.dynamo.IncomingEdge.items.scan())
-        for x in range(0, 100):
-            models.IncomingEdge.items.create(fbid_source=x, fbid_target=1, post_likes=x)
+        self.assertEqual(models.dynamo.IncomingEdge.items.count(), 0)
+        for x in xrange(2, DB_MIN_FRIEND_COUNT + 2):
             models.User.items.create(fbid=x)
+            models.IncomingEdge.items.create(fbid_source=x, fbid_target=1, post_likes=(x % 20))
 
-        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
-                                             content_id=None, visit_id=self.visit.pk,
-                                             num_faces=None)
+        result = ranking.proximity_rank_four(
+            self.token,
+            campaign_id=self.campaign.pk,
+            visit_id=self.visit.pk,
+            content_id=None,
+            num_faces=None,
+        )
+
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
-        events = models.relational.Event.objects.filter(visit=self.visit)
+
+        events = self.visit.events.all()
         self.assertEqual(events.filter(event_type='px4_started').count(), 1)
         self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
-        self.assertTrue(models.dynamo.IncomingEdge.items.scan(limit=1))
-        self.assertIn(
-            'using Dynamo data.',
-            logger_mock.info.call_args[0][0]
-        )
+        self.assertGreater(models.dynamo.IncomingEdge.items.count(), 0)
+
+        self.assertIn('using Dynamo data.', logger_mock.info.call_args[0][0])
         # One call to get the user, the other to get the friend count
         self.assertEqual(facebook.client.urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=15, max_friends=30)
     @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
-    def test_px4_filtering(self, _classifier_mock):
+    def test_px4_filtering(self, classifier_mock):
+        """px4 can filter by topic-interest"""
         (stream, ranked_edges) = ranking.px4_crawl(self.token)
         self.assertTrue(stream)
+        # Ensure "closest" friend has low ranking:
+        ranked_edges[0].interactions.clear()
+
+        # Configure ranking key:
+        ranking_key = self.client.rankingkeys.create()
+        ranking_key.campaignrankingkeys.create(campaign=self.campaign)
+        ranking_key.rankingkeyfeatures.create(
+            feature='topics[Weather]',
+            feature_type=models.relational.RankingFeatureType.objects.get_topics(),
+            reverse=True,
+        )
+
+        # Prevent TooFewFriendsError
+        self.campaign.campaignproperties.update(min_friends=1)
+
+        # Configure filter:
+        client_filter = self.client.filters.create()
+        client_filter.filterfeatures.create(
+            feature_type=models.relational.FilterFeatureType.objects.get_topics(),
+            feature='topics[Weather]',
+            operator=models.FilterFeature.Operator.MIN,
+            value=0.1,
+        )
+        self.campaign.campaignglobalfilters.create(filter=client_filter, rand_cdf=1)
+
+        self.assertEqual(models.dynamo.PostTopics.items.count(), 0)
+
+        visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
+        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+
+        filtering_result = ranking.px4_filter(
+            stream,
+            ranked_edges,
+            fbid=self.token.fbid,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            visit_id=visit.pk,
+            num_faces=1,
+        )
+        result = ranking.px4_rank(filtering_result)
+
+        self.assertTrue(all(result))
+        self.assertTrue(classifier_mock.called)
+
+        self.assertNotEqual(result.ranked, ranked_edges)
+
+        self.assertLess(len(result.filtered), len(result.ranked))
+        mismatch = [user for user in result.filtered.secondaries
+                    if user.topics['Weather'] < 0.1]
+        self.assertFalse(mismatch)
+
+        self.assertGreater(ranked_edges[0].score, ranked_edges[14].score)
+        self.assertNotEqual(result.ranked[0].secondary, ranked_edges[0].secondary)
+        self.assertGreater(result.ranked[0].secondary.topics['Weather'],
+                           result.ranked[14].secondary.topics.get('Weather', 0))
+        self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
+                           result.filtered.secondaries[-1].topics['Weather'])
+
+        self.assertGreater(models.dynamo.PostTopics.items.count(), 0)
+
+    @patch_facebook(min_friends=DB_MIN_FRIEND_COUNT, max_friends=DB_MIN_FRIEND_COUNT)
+    @patch('targetshare.models.dynamo.post_topics.classify')
+    def test_px4_filtering_dynamo(self, classifier_mock):
+        """px4 can filter by topic-interest, read from DDB"""
+        # Set up data in DynamoDB:
+        self.assertEqual(models.dynamo.IncomingEdge.items.count(), 0)
+        self.assertEqual(models.dynamo.PostTopics.items.count(), 0)
+        self.assertEqual(models.dynamo.PostInteractions.items.count(), 0)
+
+        postids = set()
+        for fbid in xrange(2, DB_MIN_FRIEND_COUNT + 2):
+            models.User.items.create(fbid=fbid)
+
+            post_likes = random.randint(0, 20)
+            models.IncomingEdge.items.create(
+                fbid_source=fbid,
+                fbid_target=1,
+                post_likes=post_likes,
+            )
+            interacted_posts = map(str, random.sample(xrange(1, 21), post_likes))
+            postids.update(interacted_posts)
+            if interacted_posts: # batch_get_through doesn't like empty set field (#11)
+                models.PostInteractionsSet.items.create(
+                    fbid=fbid,
+                    postids=interacted_posts,
+                )
+            for postid in interacted_posts:
+                models.PostInteractions.items.create(fbid=fbid, postid=postid, post_likes=1)
+
+        self.assertTrue(postids)
+        for (count, postid) in enumerate(postids):
+            if count == 0:
+                # Skip one to test missing post classifications
+                continue
+
+            topics = classify_fake("Words, words, words.", 'Weather')
+            models.PostTopics.items.create(
+                postid=postid,
+                classifier=models.PostTopics.QD_CLASSIFIER,
+                **topics
+            )
+
+        (stream, ranked_edges) = ranking.px4_crawl(self.token)
+        self.assertIsNone(stream) # No FB stream
+
         # Ensure "closest" friend has low ranking:
         ranked_edges[0].interactions.clear()
 
@@ -317,12 +424,9 @@ class TestProximityRankFour(RankingTestCase):
         result = ranking.px4_rank(filtering_result)
 
         self.assertTrue(all(result))
+        self.assertFalse(classifier_mock.called)
 
         self.assertNotEqual(result.ranked, ranked_edges)
-
-        post_topics = self.get_post_topics(result.ranked)
-        self.assertTrue(post_topics)
-        self.assertEqual({type(pt) for pt in post_topics}, {models.PostTopics})
 
         self.assertLess(len(result.filtered), len(result.ranked))
         mismatch = [user for user in result.filtered.secondaries
@@ -338,17 +442,16 @@ class TestProximityRankFour(RankingTestCase):
 
     @patch('targetshare.tasks.ranking.facebook')
     def test_proximity_rank_four_failure(self, fb_mock):
-        ''' Test that asserts px4 failure results in a px4_failed event '''
+        """px4 failure records px4_failed event"""
         # 4 exceptions: 3 retries, 1 initial call
-        fb_mock.client.get_user.side_effect = [IOError, IOError, IOError, IOError]
+        fb_mock.client.get_user.side_effect = [IOError] * 4
         with self.assertRaises(IOError):
             ranking.proximity_rank_four.delay(
-                self.token, campaign_id=self.campaign.pk,
-                content_id=None, visit_id=self.visit.pk,
+                self.token,
+                campaign_id=self.campaign.pk,
+                content_id=None,
+                visit_id=self.visit.pk,
                 num_faces=None
             )
-        self.assertEqual(
-            models.relational.Event.objects.filter(
-                visit=self.visit, event_type='px4_failed').count(),
-            1
-        )
+        events = self.visit.events.filter(event_type='px4_failed')
+        self.assertEqual(events.count(), 1)

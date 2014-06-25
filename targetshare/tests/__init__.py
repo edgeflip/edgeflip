@@ -3,6 +3,7 @@ import json
 import os.path
 import random
 import re
+import threading
 import urllib
 
 import faraday
@@ -233,6 +234,21 @@ def fake_user(fbid, friend=False, num_friends=0):
     return fake
 
 
+def synchronized(func):
+    """Decorator disallowing overlapping calls by concurrent threads, via a
+    thread lock.
+
+    """
+    @functools.wraps(func)
+    def wrapped(*args, **kws):
+        with wrapped.lock:
+            return func(*args, **kws)
+
+    wrapped.lock = threading.Lock()
+
+    return wrapped
+
+
 def crawl_mock(min_friends, max_friends, closure=None):
     fake_fbids = tuple({100000000000 + random.randint(1, 10000000)
                         for _ in xrandrange(min_friends, max_friends)})
@@ -244,6 +260,7 @@ def crawl_mock(min_friends, max_friends, closure=None):
     corpus = open(os.path.join(os.path.dirname(app_dir), 'README.md')).read()
     words = re.split(r'\s+', corpus)
 
+    @synchronized # don't allow threaded requests to overlap (last_stream_postid)
     def urlopen_mock(url):
         # First two calls are synchronous, should just return these:
         try:
@@ -264,7 +281,8 @@ def crawl_mock(min_friends, max_friends, closure=None):
                 'wall_comms': [],
                 'tags': [],
             }
-            for post_id0 in xrandrange(2, 20, 1):
+            offset = urlopen_mock.last_stream_postid # don't dupe post IDs
+            for post_id0 in xrandrange(offset + 2, offset + 20, offset + 1):
                 post_id = '1_{}'.format(post_id0)
                 start = random.randint(0, len(words))
                 end = random.randint(start, len(words))
@@ -285,6 +303,7 @@ def crawl_mock(min_friends, max_friends, closure=None):
                         column_data['actor_id'] = column_data['tagged_ids'] = \
                         user_ids
                     data[column].append(column_data)
+            urlopen_mock.last_stream_postid = post_id0
             return {'data': [
                 {'name': entry_type, 'fql_result_set': result_set}
                 for (entry_type, result_set) in data.items()
@@ -318,6 +337,8 @@ def crawl_mock(min_friends, max_friends, closure=None):
             return closure(url)
         else:
             raise RuntimeError("No mock for URL: {}".format(url))
+
+    urlopen_mock.last_stream_postid = 0
 
     # mock to be patched on urllib2.urlopen:
     return Mock(side_effect=lambda url, timeout=None:

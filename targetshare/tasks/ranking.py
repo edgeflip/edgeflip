@@ -502,27 +502,24 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
         )
     }
     if topics_features:
-        interacted_posts = {
+        (post_topics, missing_posts) = models.dynamo.PostTopics.items.batch_get_best(
             post_interactions.postid
             for post_interactions in edges_ranked.iter_interactions()
-        }
-        # Retrieve existing (Hi-Fi background-computed) PostTopics:
-        post_topics = list(models.dynamo.PostTopics.items.batch_get([
-            {'postid': postid} for postid in interacted_posts
-        ]))
-        if stream is not None:
+        )
+        if missing_posts and stream is not None:
             # Attempt to fill in missing PostTopics from Stream Posts:
-            missing_posts = interacted_posts.difference(pt.postid for pt in post_topics)
-            if missing_posts:
-                post_topics.extend(
-                    models.dynamo.PostTopics.classify(
-                        post.post_id,
-                        post.message,
-                        *topics_features
-                    )
-                    for post in stream
-                    if post.message and post.post_id in missing_posts
+            new_post_topics = tuple(
+                models.dynamo.PostTopics.classify(
+                    post.post_id,
+                    post.message,
+                    *topics_features
                 )
+                for post in stream
+                if post.message and post.post_id in missing_posts
+            )
+            db.bulk_create.delay(new_post_topics)
+            post_topics.extend(new_post_topics)
+
         # Pre-cache User.topics:
         # NOTE: If network was read from FB, calculations will be limited to
         # contents of primary's posts (currently).

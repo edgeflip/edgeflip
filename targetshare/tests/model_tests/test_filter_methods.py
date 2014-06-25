@@ -92,22 +92,21 @@ class TestFilters(EdgeFlipTestCase):
         topics_type = models.FilterFeatureType.TOPICS
         self.assertEqual(self.user.topics, {})
         self.assertNotFilter('topics[Sports]', self.operators.MAX, '0.99', topics_type)
-        del vars(self.user)['topics'] # Clear cache
+        delattr(self.user, 'topics') # Clear cache
 
-        post_topics = models.PostTopics(
+        models.PostTopics.items.create(
             postid='1_1',
+            classifier=models.PostTopics.QD_CLASSIFIER,
             Health=Decimal('1.2'),
             Sports=Decimal('5.0'),
         )
-        post_topics.save()
-        post_interactions = models.PostInteractions(
+        models.PostInteractions.items.create(
             user=self.user,
-            post_topics=post_topics,
+            postid='1_1',
             post_likes=1,
             post_comms=2,
             tags=1,
         )
-        post_interactions.save()
         self.assertEqual(self.user.topics, {
             # Normalized values:
             'Health': 0.7486681672439952,
