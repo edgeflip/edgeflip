@@ -22,7 +22,7 @@ urlpatterns = patterns('',
     url(r'^ofa_share/$',
         TemplateView.as_view(template_name='targetmock/ofa_faces_wrapper.html'),
          name='ofa-share'),
-    url(r'^baron/$',
+    url(r'^local-faces/$',
         TemplateView.as_view(template_name='targetmock/faces_wrapper.html'),
          name='default'),
 )

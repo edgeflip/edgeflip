@@ -6,9 +6,8 @@
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- Campaign stylesheets -->
-    <link rel="stylesheet" type="text/css" href="/static/css/facesBase.css"/>
     {% for css_link in campaign_css %} 
-        <!-- <link rel="stylesheet" type="text/css" href="{{ css_link }}"/> -->
+        <link rel="stylesheet" type="text/css" href="{{ css_link }}"/>
     {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
@@ -89,9 +88,9 @@
 
     </div>
 
-    <div id="friends_div" class="container {% if canvas %}canvas_friends_div{% endif %}" style="display:none; width: 100%;">
+    <div id="friends_div" {% if canvas %}class="canvas_friends_div"{% endif %} style="display:none; width: 100%;">
         
-        <div class="row" id="your-friends-here">{% block friends_data %}{% endblock %}</div> <!-- your-friends-here -->
+        <div id="your-friends-here">{% block friends_data %}{% endblock %}</div> <!-- your-friends-here -->
 
     </div> <!-- friends_div -->
 
