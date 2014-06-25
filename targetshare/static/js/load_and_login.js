@@ -145,7 +145,9 @@ function displayFriendDiv(data, jqXHR) {
     $('#your-friends-here').show();
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
-    $('#do_share_button').show()
+    $('#do_share_button').show();
+    $('.text_title_prompt').textfill();
+    $('.friend_name').textfill(14);
 }
 
 
@@ -164,3 +166,38 @@ var outgoingRedirect = function(url) {
     }
     top.location = redirectUrl;
 };
+
+(function($) {
+    var resizeTimeout,
+        resizeFun = function() {
+            $('.text_title_prompt').textfill();
+            $('.friend_name').textfill(14); };
+
+    $.fn.textfill = function(maxFontSize) {
+        maxFontSize = parseInt(maxFontSize, 10);
+        return this.each(function(){
+            var ourText = $("span", this),
+                parent = ourText.parent(),
+                maxHeight = parent.height(),
+                maxWidth = parent.width(),
+                fontSize = parseInt(ourText.css("fontSize"), 10),
+                multiplier = maxWidth/ourText.width(),
+                newSize = (fontSize*(multiplier-0.1))
+                size = (maxFontSize > 0 && newSize > maxFontSize)
+                    ? maxFontSize : newSize
+                update = { "fontSize": size };
+
+            if( parent.hasClass('friend_name') ) {
+                update["line-height"] = size + "px";
+            }
+
+            ourText.css( update );
+        });
+    };
+
+    $(window).on('resize orientationChanged', function(){
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(resizeFun, 300);
+    });
+    
+})(jQuery);

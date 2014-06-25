@@ -1,4 +1,4 @@
-/*!
+*!
  * Bootstrap v3.1.1 (http://getbootstrap.com)
  * Copyright 2011-2014 Twitter, Inc.
  * Licensed under MIT (https://github.com/twbs/bootstrap/blob/master/LICENSE)
@@ -5887,6 +5887,12 @@ body {
     display: inline-block;
     color: #dd4b39;
     margin-bottom: 10px;
+    height: 30px;
+    line-height: 30px;
+}
+
+#button_select_all {
+    margin-right: 10px;
 }
 
 #button_sugg_msg,
@@ -5978,20 +5984,20 @@ body {
 }
 
 .friend_pic {
-    display: inline-block;
+    float: left;
     height: 100%;
 }
 
 .friend_txt {
-    display: inline-block;
     height: 100%;
     float: right;
-    padding-top: 12px;
+    padding-left: 5px;
 }
 
 .friend_name {
     overflow: hidden;
     line-height: 16px;
+    white-space: normal !important;
 }
 
 .friend_name_container {
@@ -6007,13 +6013,17 @@ body {
     font-size: 11px;
 }
 
+#manual_add_text label {
+    display: none;
+}
+
 #manual_add {
     width: 100%;
     margin-top: 10px;
     margin-bottom: 30px;
 }
 
-#manual_input, #manual_input_placeholder {
+#manual_input_placeholder {
     vertical-align: middle;
     border: 1px solid #e7e7e7;
     width: 100%;
@@ -6022,7 +6032,7 @@ body {
     line-height: 20px;
 }
 
-#manual_input_placeholder {
+#manual_input {
 	display: none;
 }
 
@@ -6156,13 +6166,10 @@ body {
 }
 
 #button_do_share {
-    width: 250px;
-    height: 30px;
-    padding: 4px;
-    font-size: 20px;
+    padding: 6px;
+    font-size: 24px;
     font-weight:200;
     letter-spacing: 1.5px;
-    line-height: 20px;
     border-radius: 7px;
     float: right;
     background-color: #dd4b39;
@@ -6225,8 +6232,10 @@ body {
 
 @media(max-width:599px){
 
+    #button_sugg_msg,
+    #button_select_all,
     .text_instructions {
-        text-align: center;
+        font-size: 10px;
     }
     
     #friends_table.by5 td {
@@ -6238,7 +6247,7 @@ body {
     }
     
     .by5 .friend_txt {
-        width: 54%;
+        width: 55%;
     }
 
     .by5 .friend_pic img {
@@ -6252,7 +6261,7 @@ body {
     }
     
     .by3 .friend_txt {
-        width: 49%;
+        width: 50%;
     }
     
     .by3 .friend_pic img {
@@ -6277,12 +6286,10 @@ body {
 
 @media(min-width:600px){
     
-    #friends_div {
-        width: 970px !important;
-    }
-
-    .text_intstructions {
-        font-size: 12px;
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 14px;
     }
     
     #friends_table.by5 td {
@@ -6294,7 +6301,7 @@ body {
     }
     
     .by5 .friend_txt {
-        width: 54%;
+        width: 55%;
     }
     
     .by5 .friend_pic img {
@@ -6308,7 +6315,7 @@ body {
     }
     
     .by3 .friend_txt {
-        width: 64%;
+        width: 65%;
     }
     
     .by3 .friend_pic img {
@@ -6316,20 +6323,22 @@ body {
         width: 50px;
         margin: 7px auto;
     }
-    
 
-    .manual_input {
-        font-size: 8px;
-    }
-
-    #manual_add_text {
-        width: 50%;
-        float: left;
+    .manual_add {
+        padding-right: 14px;
     }
 
     #picked_friends_container {
-        float: right;
-        width: 40%;
+        margin-top: 5px;
+    }
+}
+
+@media(min-width:675px) {
+
+    .by5 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
     }
 }
 
@@ -6340,27 +6349,16 @@ body {
     }
 }
 
-@media(min-width:675px) {
-
-    .manual_input {
-        font-size: 10px;
-    }
-    
-    .by5 .friend_pic img {
-        height: 40px;
-        width: 40px;
-        margin: 12px auto;
-    }
-}
-
 @media(min-width:992px){
     
     #friends_div {
         width: 970px !important;
     }
 
+    #button_sugg_msg,
+    #button_select_all,
     .text_instructions {
-        font-size: 16px;
+        font-size: 18px;
     }
     
     #friends_table.by5 td {
@@ -6372,7 +6370,7 @@ body {
     }
     
     .by5 .friend_txt {
-        width: 59%;
+        width: 60%;
     }
 
     .by3 .friend_pic {
@@ -6380,7 +6378,7 @@ body {
     }
     
     .by3 .friend_txt {
-        width: 69%;
+        width: 70%;
     }
     
     .friend_pic img {
@@ -6410,8 +6408,10 @@ body {
         width: 1170px !important;
     }
 
+    #button_sugg_msg,
+    #button_select_all,
     .text_instructions {
-        font-size: 18px;
+        font-size: 20px;
     }
 
     #friends_table.by5 td {
@@ -6423,7 +6423,7 @@ body {
     }
 
     .by5 .friend_txt {
-        width: 59%;
+        width: 60%;
     }
 
     .by3 .friend_pic {
@@ -6431,7 +6431,7 @@ body {
     }
     
     .by3 .friend_txt {
-        width: 69%;
+        width: 70%;
     }
 
     .friend_pic img {
