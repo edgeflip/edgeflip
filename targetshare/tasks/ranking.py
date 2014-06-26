@@ -13,8 +13,9 @@ from django.conf import settings
 from django.db.models.loading import get_model
 from django.db.models import Q
 
-from targetshare import models, utils
+from targetshare import utils
 from targetshare.integration import facebook
+from targetshare.models import datastructs, dynamo, relational
 from targetshare.tasks import db
 
 
@@ -119,13 +120,13 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
-    client_content = models.relational.ClientContent.objects.get(content_id=content_id)
-    campaign = models.relational.Campaign.objects.get(campaign_id=campaign_id)
+    client_content = relational.ClientContent.objects.get(content_id=content_id)
+    campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
     client = campaign.client
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
-    already_picked = already_picked or models.datastructs.TieredEdges()
+    already_picked = already_picked or datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
         LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
@@ -141,17 +142,16 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     # use the min_friends parameter as the threshold for errors.
     min_friends = 1 if fallback_cascading else properties.min_friends
 
-    # Check if any friends should be excluded for this campaign/content combination
-    exclude_friends = set(models.relational.FaceExclusion.objects.filter(
+    # Check if any friends should be excluded for this campaign & content:
+    face_exclusions = relational.FaceExclusion.objects.filter(
         fbid=fbid,
         campaign=campaign,
         content=client_content,
-    ).values_list('friend_fbid', flat=True))
-    # avoid re-adding if already picked:
-    exclude_friends = exclude_friends.union(already_picked.secondary_ids)
-    edges_eligible = [
-        edge for edge in edges_ranked if edge.secondary.fbid not in exclude_friends
-    ]
+    )
+    exclude_friends = set(face_exclusions.values_list('friend_fbid', flat=True).iterator())
+    exclude_friends.update(already_picked.secondary_ids) # don't re-add those already picked
+    edges_eligible = [edge for edge in edges_ranked
+                      if edge.secondary.fbid not in exclude_friends]
 
     # Assign filter experiments (and record) #
 
@@ -198,11 +198,11 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             min_friends=min_friends,
             cache_match=cache_match,
         )
-    except models.relational.ChoiceSetFilter.TooFewFriendsError:
+    except relational.ChoiceSetFilter.TooFewFriendsError:
         LOG_RVN.info("Too few friends found for user %s with campaign %s. "
                      "(Will check for fallback.)", fbid, campaign_id)
     else:
-        already_picked += models.datastructs.TieredEdges(
+        already_picked += datastructs.TieredEdges(
             edges=best_csf_edges,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -378,7 +378,7 @@ def px4_crawl(token):
 
     friend_count = facebook.client.get_friend_count(token.fbid, token.token)
     if friend_count >= DB_MIN_FRIEND_COUNT:
-        edges_unranked = models.datastructs.UserNetwork.get_friend_edges(
+        edges_unranked = datastructs.UserNetwork.get_friend_edges(
             user,
             require_incoming=True,
             require_outgoing=False,
@@ -425,7 +425,7 @@ def px4_crawl(token):
         db.bulk_create.delay(tuple(edges_ranked.iter_interactions()))
         db.upsert.delay(
             tuple(
-                models.dynamo.PostInteractionsSet(
+                dynamo.PostInteractionsSet(
                     fbid=edge.secondary.fbid,
                     postids=[post_interactions.postid
                              for post_interactions in edge.interactions],
@@ -446,7 +446,7 @@ def _fallback_campaign(campaign_id):
     (if any) of the campaign with the given primary key (`campaign_id`).
 
     """
-    return (models.relational.CampaignProperties.objects
+    return (relational.CampaignProperties.objects
         .values_list('fallback_campaign', flat=True)
         .get(campaign_id=campaign_id))
 
@@ -477,23 +477,23 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
     campaign_global = Q(filter__campaignglobalfilters__campaign__in=campaigns)
     campaign_choiceset = Q(
         filter__choicesetfilters__choice_set__campaignchoicesets__campaign__in=campaigns)
-    px4_filter_features = models.relational.FilterFeature.objects.for_datetime().filter(
+    px4_filter_features = relational.FilterFeature.objects.for_datetime().filter(
         (campaign_global | campaign_choiceset),
         feature_type__px_rank__gte=4,
     )
     # ..and ranking features:
-    ranking_features = models.relational.RankingKeyFeature.objects.filter(
+    ranking_features = relational.RankingKeyFeature.objects.filter(
         ranking_key__campaignrankingkeys__campaign__in=campaigns,
     ).for_datetime()
 
     # Eagerly retrieve and/or compute relevant PostTopics:
     topics_filter_features = px4_filter_features.filter(
-        feature_type__code=models.relational.FilterFeatureType.TOPICS,
+        feature_type__code=relational.FilterFeatureType.TOPICS,
     ).values_list('feature', flat=True).distinct()
     topics_ranking_features = ranking_features.filter(
-        feature_type__code=models.relational.RankingFeatureType.TOPICS,
+        feature_type__code=relational.RankingFeatureType.TOPICS,
     ).values_list('feature', flat=True).distinct()
-    topic_parser = models.relational.FilterFeature.Expression.ALL['topics']
+    topic_parser = relational.FilterFeature.Expression.ALL['topics']
     topics_features = {
         topic_parser.search(feature).group(1)
         for feature in itertools.chain(
@@ -502,14 +502,14 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
         )
     }
     if topics_features:
-        (post_topics, missing_posts) = models.dynamo.PostTopics.items.batch_get_best(
+        (post_topics, missing_posts) = dynamo.PostTopics.items.batch_get_best(
             post_interactions.postid
             for post_interactions in edges_ranked.iter_interactions()
         )
         if missing_posts and stream is not None:
             # Attempt to fill in missing PostTopics from Stream Posts:
             new_post_topics = tuple(
-                models.dynamo.PostTopics.classify(
+                dynamo.PostTopics.classify(
                     post.post_id,
                     post.message,
                     *topics_features
@@ -584,12 +584,12 @@ def px4_rank(filtering_result):
     (edges, filtered, campaign_id) = args
 
     try:
-        campaign_ranking_key = (models.relational.CampaignRankingKey.objects
+        campaign_ranking_key = (relational.CampaignRankingKey.objects
                                 .for_datetime().get(campaign_id=campaign_id))
-    except models.relational.CampaignRankingKey.DoesNotExist:
+    except relational.CampaignRankingKey.DoesNotExist:
         # No active rank refinements to apply
         return filtering_result
-    except models.relational.CampaignRankingKey.MultipleObjectsReturned:
+    except relational.CampaignRankingKey.MultipleObjectsReturned:
         # Multiple ranking keys not currently supported.
         # (Could use rand_cdf/random_assign in the future.)
         # (Note, to apply multiple sorting keys, a RankingKey may have multiple
@@ -611,7 +611,7 @@ def px4_rank(filtering_result):
         keys.sorted_edges(partition)
         for (_lower_bound, partition) in edges_partitioned
     )
-    edges_ranked = models.datastructs.UserNetwork(
+    edges_ranked = datastructs.UserNetwork(
         itertools.chain(edges_reranked, edges_tail)
     )
 
