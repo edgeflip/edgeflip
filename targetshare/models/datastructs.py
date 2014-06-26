@@ -208,33 +208,19 @@ class UserNetwork(list):
             for post_interactions in edge.interactions:
                 yield post_interactions
 
-    def precache_topics_feature(self, post_topics=None):
+    def precache_topics_feature(self, post_topics):
         """Populate secondaries' "topics" feature from the network's
-        PostInteractions and PostTopics.
+        set of PostInteractions and the given set of PostTopics.
 
-        User.topics is an auto-caching property, but which operates by talking to
+        User.topics is an auto-caching property, but which self-populates by talking to
         the database. For performance, these caches may be prepopulated from the
         in-memory UserNetwork.
 
-        Note: If the network's PostInteractions have not themselves cached their
-        field links to PostTopics, invoking this method may be database-intensive
-        itself. To precache these links, an iterable of PostTopics may be specified
-        (`post_topics`).
-
         """
-        if post_topics is not None:
-            # Ensure precaching of PostInteractions.post_topics
-            post_topics = {pt.postid: pt for pt in post_topics}
-            link = dynamo.PostInteractions.post_topics
-            for post_interactions in self.iter_interactions():
-                if link.cache_get(post_interactions) is None:
-                    pt = post_topics.get(post_interactions.postid)
-                    if pt is not None:
-                        link.cache_set(post_interactions, pt)
-
+        topics_catalog = {pt.postid: pt for pt in post_topics}
         for edge in self:
             user = edge.secondary
-            user.topics = user.get_topics(edge.interactions)
+            user.topics = user.get_topics(edge.interactions, topics_catalog)
 
     def scored(self, require_incoming=False, require_outgoing=False):
         """Construct a new UserNetwork with scored Edges."""
