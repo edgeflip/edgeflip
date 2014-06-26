@@ -423,17 +423,15 @@ def px4_crawl(token):
 
         # PostInteractions:
         db.bulk_create.delay(tuple(edges_ranked.iter_interactions()))
-        db.upsert.delay(
-            tuple(
-                dynamo.PostInteractionsSet(
-                    fbid=edge.secondary.fbid,
-                    postids=[post_interactions.postid
-                             for post_interactions in edge.interactions],
-                )
-                for edge in edges_ranked
-                if edge.interactions
+        db.upsert.delay([
+            dynamo.PostInteractionsSet(
+                fbid=edge.secondary.fbid,
+                postids=[post_interactions.postid
+                         for post_interactions in edge.interactions],
             )
-        )
+            for edge in edges_ranked
+            if edge.interactions
+        ])
 
         # Edges:
         db.update_edges.delay(edges_ranked)
@@ -502,13 +500,16 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
         )
     }
     if topics_features:
+        # Bulk-retrieve topics of all posts with which network has interacted:
         (post_topics, missing_posts) = dynamo.PostTopics.items.batch_get_best(
-            post_interactions.postid
-            for post_interactions in edges_ranked.iter_interactions()
+            (post_interactions.postid for post_interactions in edges_ranked.iter_interactions()),
+            # If we have no stream, settle for existing quick-dirty classifications;
+            # (otherwise, we'll ensure appropriate quick-dirty classification of posts below):
+            dynamo.PostTopics.CLASSIFIERS if stream is None else (dynamo.PostTopics.BG_CLASSIFIER,)
         )
         if missing_posts and stream is not None:
             # Attempt to fill in missing PostTopics from Stream Posts:
-            new_post_topics = tuple(
+            qd_post_topics = [
                 dynamo.PostTopics.classify(
                     post.post_id,
                     post.message,
@@ -516,13 +517,13 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
                 )
                 for post in stream
                 if post.message and post.post_id in missing_posts
-            )
-            db.bulk_create.delay(new_post_topics)
-            post_topics.extend(new_post_topics)
+            ]
+            db.upsert.delay(qd_post_topics)
+            post_topics += qd_post_topics
 
-        # Pre-cache User.topics:
+        # Pre-cache User.topics
         # NOTE: If network was read from FB, calculations will be limited to
-        # contents of primary's posts (currently).
+        # contents of primary's posts (currently)
         edges_ranked.precache_topics_feature(post_topics)
 
     ## px4 filtering ##
