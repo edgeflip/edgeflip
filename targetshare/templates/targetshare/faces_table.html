@@ -23,8 +23,7 @@ this is the message div and the faces themselves
 
 </script>
 
-
-<div id="faces_form_container" class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1 col-sm-10 col-sm-offset-1 col-xs-10 col-xs-offset-1">
+<div id="faces_form_container">
 
     <div class="text_title_prompt"><span>{{ msg_params.sharing_prompt }}</span></div>
     <div class="subheader">{{ msg_params.sharing_sub_header|safe }}</div>
@@ -43,7 +42,7 @@ this is the message div and the faces themselves
                 <td>
                     <div style="position: relative" id="wrapper-{{ face_friend.fbid }}">
                         <div class="xout" onClick="doReplace({{ face_friend.fbid }});">x</div>
-                        <div class="friend_box friend_box_unselected clearfix" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
+                        <div class="friend_box friend_box_unselected" id="friend-{{ face_friend.fbid }}" onClick="toggleFriend({{ face_friend.fbid }});">
                             <div class="checkmark">&nbsp;</div>
                             <div class="friend_pic">
                                 <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
@@ -69,7 +68,7 @@ this is the message div and the faces themselves
     </table>
     {% endspaceless %}
 
-    <div id="manual_add" class="clearfix">
+    <div id="manual_add">
         <div id="manual_add_text">
             {# Only one input will be displayed by CSS #}
             {% with text="You can add extra friends by typing their names here" %}
