@@ -7,6 +7,7 @@ from south.v2 import DataMigration
 from django.db import models
 from django.conf import settings
 
+#copy pasta'd from 0061_populate_page_styles.py, perhaps this should go into settings ?
 css_url_context = {
     'base_url': '//assets-edgeflip.s3.amazonaws.com/',
 }

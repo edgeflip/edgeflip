@@ -461,6 +461,20 @@ function sendShare() {
     $('#friends_div').hide();
     $('#progress').show();
     $('#progress').removeClass('loading').addClass('sending');
+    
+
+    var progressBar = false,
+        progress = 10,
+        intervalId;
+
+    if( $('#spinner').css('background-image') === 'none' ) {
+        progressBar = true;
+        updateProgressBar(progress);
+        intervalId = setInterval(
+            function() { progress += 10;
+                         updateProgressBar(progress); },
+            500 );
+    }
 
     var recips = getRecipFbids();
     for (var i=0; i < recips.length; i++) {
@@ -497,6 +511,10 @@ function sendShare() {
                 });
             } else {
                 // thank you page redirect happens in recordShare()
+                if( progressBar ) {
+                    clearInterval(intervalId);
+                    if( progress < 70 ) { updateProgressBar(70); }
+                }
                 recordShare(response.id, msg, recips);
             }
         }
@@ -571,7 +589,9 @@ function recordShare(actionid, shareMsg, recips) {
         friends: recips,
         shareMsg: shareMsg,
         complete: function() {
-            outgoingRedirect(edgeflip.faces.thanksURL); // set in frame_faces.html
+            updateProgressBar(100);
+            // thanksURL set in frame_faces.html
+            setTimeout( function() { outgoingRedirect(edgeflip.faces.thanksURL); }, 500 );
         }
     });
 }

@@ -6,9 +6,8 @@
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- Campaign stylesheets -->
-    <link rel="stylesheet" type="text/css" href="/static/css/facesBase.css"/>
     {% for css_link in campaign_css %} 
-        <!-- <link rel="stylesheet" type="text/css" href="{{ css_link }}"/> -->
+        <link rel="stylesheet" type="text/css" href="{{ css_link }}"/>
     {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
@@ -81,9 +80,6 @@
             <div id="progress" class="h2_container loading"> 
                 <div id="progress-text"><span></span></div>
                 <div id="spinner"></div>
-                <div class="progress-bar-container">
-                    <div class="progress-bar"></div>
-                </div>
             </div>
         {% endblock %}
 

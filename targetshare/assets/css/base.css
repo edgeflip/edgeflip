@@ -16,9 +16,16 @@
           box-sizing: border-box;
 }
 
-
 html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+body {
+        font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+    background-image: url('../i/faces-background-0.jpg');
+    background-repeat: no-repeat;
+    background-size: cover;
+    margin: 0;
 }
 
 table {
@@ -30,16 +37,13 @@ td,
 th {
   padding: 0;
 }
+
+/* No more checkmark */
+.checkmark {
+    display: none !important;
+}
 /*** base styling ***/
 
-
-body {
-        font-family: 'Gotham SSm 4r','Gotham SSm A','Gotham SSm B',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
-    background-image: url('../i/faces-background-0.jpg');
-    background-repeat: no-repeat;
-    background-size: cover;
-    margin: 0;
-}
 
 /*** Loading Dialog ***/
 #progress {
@@ -52,46 +56,81 @@ body {
 }
 
 .h2_container {
-       border: none;
-       white-space: normal; 
-       text-align: center;
-       padding: 10px;
-       background-color: #f7f7f7;
-       border-radius: 5px;
-       -moz-border-radius: 5px;
-       box-shadow: 0px 0px 5px black;
+    border: none;
+    white-space: normal; 
+    text-align: center;
+    padding: 10px;
+    background-color: #f7f7f7;
+    border-radius: 5px;
+    box-shadow: 0px 0px 8px 1px black;
 }
 
 #progress-text {
-    margin-bottom: 10px;
+    margin: 20px auto 0px auto;
+    width: 400px;
+    padding: 4px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 6px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px rgba(255, 255, 255, 0.08);
+    height: 24px;
 }
 
-.loading #progress-text :after {
-    content: "L o a d i n g . . .";
+#progress-text span {
+    display: block;
+    position: relative;
+    height: 16px;
+    border-radius: 4px;
+    -webkit-transition: 0.4s linear;
+    -moz-transition: 0.4s linear;
+    -o-transition: 0.4s linear;
+    transition: 0.4s linear;
+    -webkit-transition-property: width, background-color;
+    -moz-transition-property: width, background-color;
+    -o-transition-property: width, background-color;
+    transition-property: width, background-color;
+    -webkit-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
+    box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
 }
 
-.sending #progress-text :after {
-    content: "S e n d i n g . . .";
+#progress-text span:before, #progress-text span:after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
 }
 
-.loading #spinner {
-    background-image: url('../i/edgeflip-aniprogress-1.gif');
-    background-repeat: no-repeat;
-    width: 100%;
-    height: 48px;
-    background-position: center center;
+#progress-text span:before {
+    bottom: 0;
+    background: url("../i/stripes.png") 0 0 repeat;
+    border-radius: 4px 4px 0 0;
 }
 
-.sending #spinner {
-    background-image: url('../i/edgeflip-aniprogress-1.gif');
-    background-repeat: no-repeat;
-    width: 100%;
-    height: 48px;
-    background-position: center center;
+#progress-text span:after {
+    z-index: 2;
+    bottom: 45%;
+    border-radius: 4px;
+    background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+    background-image: -moz-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+    background-image: -o-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+    background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
+}
+
+#spinner:before {
+    font-size: 16px;
+}
+
+.loading #spinner:before {
+    content: 'Please wait while we find friends for you to share with.';
+}
+
+.sending #spinner:before {
+    content: 'Sending . . .';
 }
 /*** Loading Dialog ***/
 
 
+/*** Top Level DOM elements ***/
 /* Used when on facebook's canvas, contains everything but the loading dialog */
 .canvas_friends_div {
     margin-top: 30px;
@@ -142,6 +181,8 @@ body {
     padding-right: 15px;
     padding-left: 15px;
 }
+/*** Top Level DOM elements ***/
+
 
 /*** heading ***/
 .text_title_prompt {
@@ -459,8 +500,8 @@ body {
 }
 /*** Message input box ***/
 
-/*** Show Support Button ( submission ) ***/
 
+/*** Show Support Button ( submission ) ***/
 #button_share_container {
     margin-top: 20px;
     overflow: auto;
@@ -512,6 +553,7 @@ body {
 }
 /*** Reconnect Button ***/
 
+
 /* Privacy Policy */
 #priv-policy {
     font-size: 0.75em;
@@ -527,57 +569,8 @@ body {
 }
 /*** 'Button' styles ***/
 
-.checkmark {
-    display: none !important;
-}
 
-.progress-bar-container {
-  margin: 20px auto 0px auto;
-  width: 400px;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.25);
-  border-radius: 6px;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px rgba(255, 255, 255, 0.08);
-  height: 24px;
-}
-
-.progress-bar {
-  position: relative;
-  height: 16px;
-  border-radius: 4px;
-  -webkit-transition: 0.4s linear;
-  -moz-transition: 0.4s linear;
-  -o-transition: 0.4s linear;
-  transition: 0.4s linear;
-  -webkit-transition-property: width, background-color;
-  -moz-transition-property: width, background-color;
-  -o-transition-property: width, background-color;
-  transition-property: width, background-color;
-  -webkit-box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
-  box-shadow: 0 0 1px 1px rgba(0, 0, 0, 0.25), inset 0 1px rgba(255, 255, 255, 0.1);
-}
-.progress-bar:before, .progress-bar:after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-}
-.progress-bar:before {
-  bottom: 0;
-  background: url("../i/stripes.png") 0 0 repeat;
-  border-radius: 4px 4px 0 0;
-}
-.progress-bar:after {
-  z-index: 2;
-  bottom: 45%;
-  border-radius: 4px;
-  background-image: -webkit-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-  background-image: -moz-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-  background-image: -o-linear-gradient(top, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-  background-image: linear-gradient(to bottom, rgba(255, 255, 255, 0.3), rgba(255, 255, 255, 0.05));
-}
-
+/*** Responsive styles ***/
 @media(max-width:599px){
 
     #button_sugg_msg,
@@ -817,4 +810,5 @@ body {
         width: 40%;
     }
 }
+/*** Responsive styles ***/
 
