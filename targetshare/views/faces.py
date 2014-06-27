@@ -14,7 +14,7 @@ from faraday.structs import LazyList
 
 from targetshare import forms, models
 from targetshare.integration import facebook
-from targetshare.tasks import db, ranking
+from targetshare.tasks import db, targeting
 from targetshare.tasks.integration.facebook import extend_token
 from targetshare.views import utils
 
@@ -93,13 +93,13 @@ def faces(request):
     client = campaign.client
 
     if data['px3_task_id'] and data['px4_task_id']:
-        # Check status of active ranking tasks:
+        # Check status of active targeting tasks:
         px3_result = celery.current_app.AsyncResult(data['px3_task_id'])
         px4_result = celery.current_app.AsyncResult(data['px4_task_id'])
         px3_ready = px3_result.ready()
         if (px3_ready and px4_result.ready()) or data['last_call'] or px3_result.failed():
             (px3_edges_result, px4_edges_result) = (
-                result.result if result.successful() else ranking.empty_filtering_result
+                result.result if result.successful() else targeting.empty_filtering_result
                 for result in (px3_result, px4_result)
             )
             if px4_edges_result.filtered is None:
@@ -162,15 +162,15 @@ def faces(request):
             fbid=data['fbid'],
         )
 
-        # Initiate ranking tasks:
-        px3_task = ranking.proximity_rank_three(
+        # Initiate targeting tasks:
+        px3_task = targeting.proximity_rank_three(
             token=token,
             visit_id=request.visit.pk,
             campaign_id=campaign.pk,
             content_id=content.pk,
             num_faces=data['num_face'],
         )
-        px4_task = ranking.proximity_rank_four.delay(
+        px4_task = targeting.proximity_rank_four.delay(
             token=token,
             visit_id=request.visit.pk,
             campaign_id=campaign.pk,

@@ -127,10 +127,10 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.assertEqual(os.remove.call_count, 2)
 
     @patch('targetshare.management.commands.faces_email.build_csv')
-    @patch('targetshare.management.commands.faces_email.ranking')
-    def test_crawl_and_filter(self, ranking_mock, build_csv_mock):
+    @patch('targetshare.management.commands.faces_email.targeting')
+    def test_crawl_and_filter(self, targeting_mock, build_csv_mock):
         ''' Test the crawl_and_filter method '''
-        ranking_mock.px4_crawl.return_value = (None, Mock())
+        targeting_mock.px4_crawl.return_value = (None, Mock())
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         error_dict = defaultdict(int)
         for x in range(0, 3):
@@ -153,10 +153,10 @@ class TestFacesEmail(EdgeFlipTestCase):
         self.assertEqual(error_dict.keys(), [])
 
     @patch('targetshare.management.commands.faces_email.build_csv')
-    @patch('targetshare.management.commands.faces_email.ranking')
-    def test_crawl_and_filter_error(self, ranking_mock, build_csv_mock):
+    @patch('targetshare.management.commands.faces_email.targeting')
+    def test_crawl_and_filter_error(self, targeting_mock, build_csv_mock):
         ''' Test the crawl_and_filter method error handling abilities '''
-        ranking_mock.px4_crawl.side_effect = KeyError('foo')
+        targeting_mock.px4_crawl.side_effect = KeyError('foo')
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         error_dict = defaultdict(int)
         for x in range(0, 3):

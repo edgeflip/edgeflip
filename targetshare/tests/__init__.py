@@ -17,7 +17,7 @@ from django.utils import timezone
 from mock import Mock, patch
 
 from targetshare import models
-from targetshare.tasks.ranking import FilteringResult, empty_filtering_result
+from targetshare.tasks.targeting import FilteringResult, empty_filtering_result
 
 
 DATA_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data')
@@ -120,10 +120,10 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
                                          urllib.quote_plus(redirect_url)])
         return url + qs
 
-    def patch_ranking(self, celery_mock,
-                      px3_ready=True, px3_successful=True,
-                      px4_ready=True, px4_successful=True,
-                      px4_filtering=False):
+    def patch_targeting(self, celery_mock,
+                        px3_ready=True, px3_successful=True,
+                        px4_ready=True, px4_successful=True,
+                        px4_filtering=False):
         if px3_ready:
             px3_failed = not px3_successful
         else:

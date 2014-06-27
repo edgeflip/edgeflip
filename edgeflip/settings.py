@@ -312,15 +312,15 @@ CELERY_QUEUES = (
     Queue('crawl_comments_and_likes', routing_key='crawl.comments.and.likes', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
-    'targetshare.tasks.ranking.px3_crawl': {
+    'targetshare.tasks.targeting.px3_crawl': {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
-    'targetshare.tasks.ranking.perform_filtering': {
+    'targetshare.tasks.targeting.perform_filtering': {
         'queue': 'px3_filter',
         'routing_key': 'px3.filter'
     },
-    'targetshare.tasks.ranking.proximity_rank_four': {
+    'targetshare.tasks.targeting.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
     },
@@ -379,7 +379,7 @@ CELERY_ROUTES = {
 }
 CELERY_IMPORTS = (
     'targetshare.tasks.db',
-    'targetshare.tasks.ranking',
+    'targetshare.tasks.targeting',
     'targetshare.tasks.integration.facebook',
     'feed_crawler.tasks',
 )

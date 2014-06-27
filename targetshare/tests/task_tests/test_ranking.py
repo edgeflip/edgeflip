@@ -7,13 +7,13 @@ from freezegun import freeze_time
 from mock import patch
 
 from targetshare import models
-from targetshare.tasks import ranking
+from targetshare.tasks import targeting
 from targetshare.integration import facebook
 
 from .. import EdgeFlipTestCase, patch_facebook
 
 
-DB_MIN_FRIEND_COUNT = ranking.DB_MIN_FRIEND_COUNT
+DB_MIN_FRIEND_COUNT = targeting.DB_MIN_FRIEND_COUNT
 
 
 def classify_fake(corpus, *topics):
@@ -36,7 +36,7 @@ class RankingTestCase(EdgeFlipTestCase):
 class TestProximityRankThree(RankingTestCase):
 
     @patch_facebook
-    @patch.object(ranking, 'perform_filtering')
+    @patch.object(targeting, 'perform_filtering')
     def test_proximity_rank_three(self, perform_filtering):
         ''' Test that calls tasks.proximity_rank_three with dummy args. This
         method is simply supposed to create a celery Task chain, and return the
@@ -46,7 +46,7 @@ class TestProximityRankThree(RankingTestCase):
         '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        task_id = ranking.proximity_rank_three(self.token, visit_id=visit.pk)
+        task_id = targeting.proximity_rank_three(self.token, visit_id=visit.pk)
         assert task_id
         assert celery.current_app.AsyncResult(task_id)
         perform_filtering.s.assert_called_once_with(fbid=1, visit_id=visit.pk)
@@ -62,13 +62,13 @@ class TestProximityRankThree(RankingTestCase):
         '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        ranked_edges = ranking.px3_crawl(self.token, visit_id=visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token, visit_id=visit.pk)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         events = models.relational.Event.objects.filter(visit=visit)
         self.assertEqual(events.filter(event_type='px3_started').count(), 1)
         self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
-    @patch('targetshare.tasks.ranking.facebook')
+    @patch('targetshare.tasks.targeting.facebook')
     def test_px3_crawl_fail(self, fb_mock):
         ''' Test that asserts we create a px3_failed event when px3 fails '''
         # 4 exceptions: 3 retries, 1 initial call
@@ -76,7 +76,7 @@ class TestProximityRankThree(RankingTestCase):
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
         with self.assertRaises(IOError):
-            ranking.px3_crawl.delay(self.token, visit_id=visit.pk)
+            targeting.px3_crawl.delay(self.token, visit_id=visit.pk)
         self.assertEqual(
             models.relational.Event.objects.filter(
                 visit=visit, event_type='px3_failed').count(),
@@ -94,7 +94,7 @@ class TestFiltering(RankingTestCase):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        ranked_edges = ranking.px3_crawl(self.token, visit_id=visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token, visit_id=visit.pk)
         # Ensure at least one edge passes filter:
         # (NOTE: May have to fiddle with campaign properties as well.)
         ranked_edges[0].secondary.state = 'Illinois'
@@ -105,7 +105,7 @@ class TestFiltering(RankingTestCase):
             cs_slug,
             campaign_id,
             content_id,
-        ) = ranking.perform_filtering(
+        ) = targeting.perform_filtering(
             ranked_edges,
             campaign_id=1,
             content_id=1,
@@ -150,7 +150,7 @@ class TestFiltering(RankingTestCase):
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
         ranked_edges = [test_edge2, test_edge1]
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = ranking.perform_filtering(
+        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = targeting.perform_filtering(
             ranked_edges,
             campaign_id=5,
             content_id=1,
@@ -187,13 +187,13 @@ class TestProximityRankFour(RankingTestCase):
             session_id='123456', app_id=123, ip='127.0.0.1')
 
     @patch_facebook(min_friends=101, max_friends=120)
-    @patch('targetshare.tasks.ranking.LOG')
+    @patch('targetshare.tasks.targeting.LOG')
     def test_proximity_rank_four_from_fb(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
-        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
-                                             content_id=None, visit_id=self.visit.pk,
-                                             num_faces=None)
+        result = targeting.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
+                                               content_id=None, visit_id=self.visit.pk,
+                                               num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         events = models.relational.Event.objects.filter(visit=self.visit)
@@ -215,14 +215,14 @@ class TestProximityRankFour(RankingTestCase):
         # very least. However, hitting FB should spawn many more hits to FB
         self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
-    @patch('targetshare.tasks.ranking.DB_FRIEND_THRESHOLD', new=90)
-    @patch('targetshare.tasks.ranking.DB_MIN_FRIEND_COUNT', new=100)
+    @patch('targetshare.tasks.targeting.DB_FRIEND_THRESHOLD', new=90)
+    @patch('targetshare.tasks.targeting.DB_MIN_FRIEND_COUNT', new=100)
     @patch_facebook(min_friends=1, max_friends=99)
-    @patch('targetshare.tasks.ranking.LOG')
+    @patch('targetshare.tasks.targeting.LOG')
     def test_proximity_rank_four_less_than_100_friends(self, logger_mock):
         self.assertFalse(models.dynamo.IncomingEdge.items.scan())
 
-        result = ranking.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
+        result = targeting.proximity_rank_four(self.token, campaign_id=self.campaign.pk,
                                              content_id=None, visit_id=self.visit.pk,
                                              num_faces=None)
         ranked_edges = result[0]
@@ -243,14 +243,14 @@ class TestProximityRankFour(RankingTestCase):
         self.assertGreater(facebook.client.urllib2.urlopen.call_count, 2)
 
     @patch_facebook(min_friends=DB_MIN_FRIEND_COUNT, max_friends=DB_MIN_FRIEND_COUNT)
-    @patch('targetshare.tasks.ranking.LOG')
+    @patch('targetshare.tasks.targeting.LOG')
     def test_proximity_rank_four_uses_dynamo(self, logger_mock):
         self.assertEqual(models.dynamo.IncomingEdge.items.count(), 0)
         for x in xrange(2, DB_MIN_FRIEND_COUNT + 2):
             models.User.items.create(fbid=x)
             models.IncomingEdge.items.create(fbid_source=x, fbid_target=1, post_likes=(x % 20))
 
-        result = ranking.proximity_rank_four(
+        result = targeting.proximity_rank_four(
             self.token,
             campaign_id=self.campaign.pk,
             visit_id=self.visit.pk,
@@ -277,7 +277,7 @@ class TestProximityRankFour(RankingTestCase):
     @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
     def test_px4_filtering(self, classifier_mock):
         """px4 can filter by topic-interest"""
-        (stream, ranked_edges) = ranking.px4_crawl(self.token)
+        (stream, ranked_edges) = targeting.px4_crawl(self.token)
         self.assertTrue(stream)
         # Ensure "closest" friend has low ranking:
         ranked_edges[0].interactions.clear()
@@ -309,7 +309,7 @@ class TestProximityRankFour(RankingTestCase):
         visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
-        filtering_result = ranking.px4_filter(
+        filtering_result = targeting.px4_filter(
             stream,
             ranked_edges,
             fbid=self.token.fbid,
@@ -318,7 +318,7 @@ class TestProximityRankFour(RankingTestCase):
             visit_id=visit.pk,
             num_faces=1,
         )
-        result = ranking.px4_rank(filtering_result)
+        result = targeting.px4_rank(filtering_result)
 
         self.assertTrue(all(result))
         self.assertTrue(classifier_mock.called)
@@ -381,7 +381,7 @@ class TestProximityRankFour(RankingTestCase):
                 **topics
             )
 
-        (stream, ranked_edges) = ranking.px4_crawl(self.token)
+        (stream, ranked_edges) = targeting.px4_crawl(self.token)
         self.assertIsNone(stream) # No FB stream
 
         # Ensure "closest" friend has low ranking:
@@ -412,7 +412,7 @@ class TestProximityRankFour(RankingTestCase):
         visitor = models.relational.Visitor.objects.create(fbid=self.token.fbid)
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
-        filtering_result = ranking.px4_filter(
+        filtering_result = targeting.px4_filter(
             stream,
             ranked_edges,
             fbid=self.token.fbid,
@@ -421,7 +421,7 @@ class TestProximityRankFour(RankingTestCase):
             visit_id=visit.pk,
             num_faces=1,
         )
-        result = ranking.px4_rank(filtering_result)
+        result = targeting.px4_rank(filtering_result)
 
         self.assertTrue(all(result))
         self.assertFalse(classifier_mock.called)
@@ -440,13 +440,13 @@ class TestProximityRankFour(RankingTestCase):
         self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
                            result.filtered.secondaries[-1].topics['Weather'])
 
-    @patch('targetshare.tasks.ranking.facebook')
+    @patch('targetshare.tasks.targeting.facebook')
     def test_proximity_rank_four_failure(self, fb_mock):
         """px4 failure records px4_failed event"""
         # 4 exceptions: 3 retries, 1 initial call
         fb_mock.client.get_user.side_effect = [IOError] * 4
         with self.assertRaises(IOError):
-            ranking.proximity_rank_four.delay(
+            targeting.proximity_rank_four.delay(
                 self.token,
                 campaign_id=self.campaign.pk,
                 content_id=None,

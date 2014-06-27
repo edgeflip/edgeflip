@@ -59,7 +59,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         ''' Tests that we receive a JSON status of "waiting" when our px3
         task isn't yet complete
         '''
-        self.patch_ranking(celery_mock, px3_ready=False, px4_ready=False)
+        self.patch_targeting(celery_mock, px3_ready=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -74,7 +74,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         ''' Test that even if px3 is done, we'll wait on px4 if we're not
         ready to give up on it yet
         '''
-        self.patch_ranking(celery_mock, px4_ready=False)
+        self.patch_targeting(celery_mock, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -89,7 +89,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         ''' Test that if px3 fails, we'll return an error even if we're
         still waiting on px4 and not on the last call
         '''
-        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=False)
+        self.patch_targeting(celery_mock, px3_successful=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -100,8 +100,8 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
     @patch('targetshare.views.faces.celery')
     def test_faces_px3_fail_px4_success(self, celery_mock):
-        """If px3 fails but px4 ranking succeeds, we return an error"""
-        self.patch_ranking(celery_mock, px3_successful=False, px4_ready=True)
+        """If px3 fails but px4 targeting succeeds, we return an error"""
+        self.patch_targeting(celery_mock, px3_successful=False, px4_ready=True)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid'
@@ -115,7 +115,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
         ''' Test that gives up on waiting for the px4 result, and serves the
         px3 results
         '''
-        self.patch_ranking(celery_mock, px4_ready=False)
+        self.patch_targeting(celery_mock, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -131,7 +131,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.faces.celery')
     def test_faces_px3_fail_last_call(self, celery_mock, logger_mock):
         """If the last call comes and neither call returned, return an error distinguishable from No Friends"""
-        self.patch_ranking(celery_mock, px3_ready=False, px4_ready=False)
+        self.patch_targeting(celery_mock, px3_ready=False, px4_ready=False)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -145,7 +145,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.faces.celery')
     def test_faces_px4_filtering(self, celery_mock):
         self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
-        self.patch_ranking(celery_mock, px4_filtering=True)
+        self.patch_targeting(celery_mock, px4_filtering=True)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -162,7 +162,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     def test_faces_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
         self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
-        self.patch_ranking(celery_mock)
+        self.patch_targeting(celery_mock)
         self.params.update({
             'px3_task_id': 'dummypx3taskid',
             'px4_task_id': 'dummypx4taskid',
@@ -181,7 +181,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
     @patch('targetshare.integration.facebook.third_party.requests.get')
     @patch('targetshare.views.faces.celery')
     def test_faces_client_fbobject(self, celery_mock, get_mock):
-        self.patch_ranking(celery_mock)
+        self.patch_targeting(celery_mock)
         with open(os.path.join(DATA_PATH, 'gg.html')) as rh:
             get_mock.return_value = Mock(text=rh.read())
 
@@ -201,7 +201,7 @@ class TestFacesViews(EdgeFlipViewTestCase):
 
         # Check second request doesn't hit client site:
         self.assertEqual(get_mock.call_count, 1)
-        self.patch_ranking(celery_mock)
+        self.patch_targeting(celery_mock)
         response = self.client.post(reverse('faces'), data=self.params)
         self.assertStatusCode(response, 200)
         data1 = json.loads(response.content)
