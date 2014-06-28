@@ -49,13 +49,11 @@ campaign_detail = CampaignDetailView.as_view()
 @utils.auth_client_required
 def campaign_create(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    if request.GET.get('clone_pk'):
-        clone = get_object_or_404(
-            relational.Campaign,
-            pk=request.GET.get('clone_pk'),
-            client=client
-        )
+    clone_pk = request.GET.get('clone_pk')
+    if clone_pk:
+        clone = get_object_or_404(relational.Campaign, pk=clone_pk, client=client)
         clone_props = clone.campaignproperties.get()
+        campaign_choice_set = clone.campaign_choice_set()
         initial = {
             'faces_url': clone_props.client_faces_url,
             'thanks_url': clone_props.client_thanks_url,
@@ -64,27 +62,25 @@ def campaign_create(request, client_pk):
             'fallback_content': clone_props.fallback_content,
             'cascading_fallback': clone_props.fallback_is_cascading,
             'min_friends_to_show': clone_props.min_friends,
-            'global_filter': clone.global_filter().filter if clone.global_filter() else None,
-            'button_style': clone.button_style().button_style if clone.button_style() else None,
-            'choice_set': clone.choice_set().choice_set if clone.choice_set() else None,
-            'allow_generic': clone.choice_set().allow_generic if clone.choice_set() else False,
-            'generic_url_slug': clone.choice_set().generic_url_slug if clone.choice_set() else None,
-            'generic_fb_object': clone.generic_fb_object().fb_object if clone.generic_fb_object() else None,
-            'fb_object': clone.fb_object().fb_object,
+            'global_filter': clone.global_filter(),
+            'button_style': clone.button_style(),
+            'choice_set': campaign_choice_set and campaign_choice_set.choice_set,
+            'allow_generic': campaign_choice_set.allow_generic if campaign_choice_set else False,
+            'generic_url_slug': campaign_choice_set and campaign_choice_set.generic_url_slug,
+            'generic_fb_object': clone.generic_fb_object(),
+            'fb_object': clone.fb_object(),
         }
     else:
         initial = {'min_friends_to_show': 1}
 
-    form = forms.CampaignForm(
-        client=client,
-        initial=initial,
-    )
     if request.method == 'POST':
-        form = forms.CampaignForm(
-            client=client, data=request.POST)
+        form = forms.CampaignForm(client=client, data=request.POST)
         if form.is_valid():
             campaign = form.save()
             return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
+    else:
+        form = forms.CampaignForm(client=client, initial=initial)
+
     return render(request, 'targetadmin/campaign_edit.html', {
         'client': client,
         'form': form
@@ -292,9 +288,11 @@ def campaign_wizard(request, client_pk):
             )
 
     filter_features = relational.FilterFeature.objects.filter(
-            filter__client=client, feature__isnull=False,
-            operator__isnull=False, value__isnull=False)\
-                .values('feature', 'operator', 'value').distinct()
+        filter__client=client,
+        feature__isnull=False,
+        operator__isnull=False,
+        value__isnull=False,
+    ).values('feature', 'operator', 'value').distinct()
 
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
@@ -306,21 +304,23 @@ def campaign_wizard(request, client_pk):
 
 @utils.auth_client_required
 def campaign_summary(request, client_pk, campaign_pk):
-    return render(\
+    return render(
         request,
         'targetadmin/campaign_summary_page.html',
-        get_campaign_summary_data( client_pk, campaign_pk )
+        get_campaign_summary_data(client_pk, campaign_pk)
     )
+
 
 @utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
-    return render(\
+    return render(
         request,
         'targetadmin/campaign_wizard_finish.html',
-        get_campaign_summary_data( client_pk, campaign_pk, content_pk )
+        get_campaign_summary_data(client_pk, campaign_pk, content_pk)
     )
 
-def get_campaign_summary_data( client_pk, campaign_pk, content_pk = None ):
+
+def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
     properties = root_campaign.campaignproperties.get()
@@ -338,7 +338,7 @@ def get_campaign_summary_data( client_pk, campaign_pk, content_pk = None ):
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
-            [ choise_set.filter.filterfeatures.all() for choise_set in properties.campaign.choice_set().choice_set.choicesetfilters.all() ] ]
+            [ choise_set.filter.filterfeatures.all() for choise_set in properties.campaign.choice_set().choicesetfilters.all() ] ]
 
     filters = [ get_filters(properties) ]
     while properties.fallback_campaign:
@@ -356,4 +356,3 @@ def get_campaign_summary_data( client_pk, campaign_pk, content_pk = None ):
 
 def how_it_works(request,client_pk=None):
     return render( request, 'targetadmin/how_it_works.html' )
-
