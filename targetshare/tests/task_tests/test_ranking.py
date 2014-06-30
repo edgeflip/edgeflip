@@ -433,10 +433,10 @@ class TestProximityRankFour(RankingTestCase):
                     if user.topics['Weather'] < 0.1]
         self.assertFalse(mismatch)
 
-        self.assertGreater(ranked_edges[0].score, ranked_edges[14].score)
+        self.assertGreater(ranked_edges[0].score, ranked_edges[-1].score)
         self.assertNotEqual(result.ranked[0].secondary, ranked_edges[0].secondary)
         self.assertGreater(result.ranked[0].secondary.topics['Weather'],
-                           result.ranked[14].secondary.topics.get('Weather', 0))
+                           result.ranked[-1].secondary.topics.get('Weather', 0))
         self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
                            result.filtered.secondaries[-1].topics['Weather'])
 
