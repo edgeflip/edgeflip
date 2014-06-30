@@ -18,6 +18,10 @@
             {{ fb_obj_form.sharing_sub_header }}
         </div>
         <div class="fb-obj-item">
+            <label for="{{ fb_obj_form.sharing_button.id_for_label }}">{{ fb_obj_form.sharing_button.label }}:</label>
+            {{ fb_obj_form.sharing_button }}
+        </div>
+        <div class="fb-obj-item">
             <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
             {{ campaign_form.thanks_url }}
         </div>
@@ -66,28 +70,38 @@
                 index: 1
             },
 
+            "sharing_button": {
+                type: "image",
+                coords: { x: 524, y: 813 },
+                placement: 'left',
+                text: "What should the text on the sharing button be?",
+                index: 3
+            },
+
             "thanks_url": {
                 type: "image",
                 coords: { x: 524, y: 813 },
                 placement: 'left',
                 text: "Where should we send your supporters after they share with their friends?",
-                index: 2
+                index: 3
             },
 
             "error_url": {
                 type: "input",
                 text: [ "If the user does not have any friends that fit the targeting criteria ",
                       "or if there is a sharing error, they will be sent to this URL" ].join(""),
-                index: 3
+                index: 4
             },
 
             "faces_url": {
                 type: "input",
                 text: [ "Provide the URL where this page will be embedded. ",
                         "Leave blank if using Facebook canvas." ].join(""),
-                index: 4
+                index: 5
             } 
         };
+
+        $('#id_sharing_button').val('');
 
         _.each( imageCompanionFieldData, function( meta, key ) {
              _.defaults( meta, defaultFieldData );
