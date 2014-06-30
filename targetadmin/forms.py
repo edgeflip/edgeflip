@@ -319,6 +319,7 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
+    num_faces = forms.IntegerField(label="Number of Friends")
 
 class FBObjectWizardForm(forms.ModelForm):
 

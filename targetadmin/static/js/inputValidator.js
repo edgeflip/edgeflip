@@ -91,6 +91,18 @@ $( function() {
                       placement: 'bottom',
                       popoverEl: undefined
                     },
+                    { el: $('#id_num_faces'),
+                      invalidText: 'Must be a number less than or equal to 10.',
+                      placement: 'bottom',
+                      popoverEl: undefined,
+                      isValid: function(val) {
+                          if( $.trim( val ).match(/^[0-9]+$/) ) {
+                              if( parseInt(val) > 10 ) { return false; }
+                          } else { return false; }
+
+                          return true;
+                      }
+                    },
                     { el: $('#id_thanks_url'),
                       invalidText: 'A thanks URL is required.',
                       placement: 'bottom',
@@ -148,9 +160,15 @@ $( function() {
             e.preventDefault();
             var atleastOneInvalid = false;
             _.each( validator.inputs, function( inputModel ) {
-                var isValid = isElValid( inputModel.el );
+                var isValid;
+                
+                if( inputModel.isValid ) {
+                    isValid = inputModel.isValid( inputModel.el.val() );
+                } else {
+                     isValid = isElValid( inputModel.el );
+                }
 
-                 if( isValid ) {
+                if( isValid ) {
                      if( inputModel.popoverEl !== undefined ) {
                          inputModel.popoverEl.popover('hide');
                          inputModel.popoverEl = undefined;

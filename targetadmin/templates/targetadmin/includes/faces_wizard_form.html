@@ -18,6 +18,10 @@
             {{ fb_obj_form.sharing_sub_header }}
         </div>
         <div class="fb-obj-item">
+            <label for="{{ campaign_form.num_faces.id_for_label }}">{{ campaign_form.num_faces.label }}:</label>
+            {{ campaign_form.num_faces }}
+        </div>
+        <div class="fb-obj-item">
             <label for="{{ campaign_form.thanks_url.id_for_label }}">{{ campaign_form.thanks_url.label }}:</label>
             {{ campaign_form.thanks_url }}
         </div>
@@ -66,26 +70,33 @@
                 index: 1
             },
 
+            "num_faces": {
+                type: "image",
+                coords: { x: 379, y: 451 },
+                text: "The number of friends to display ( maximum: 10 ).",
+                index: 2
+            },
+
             "thanks_url": {
                 type: "image",
                 coords: { x: 524, y: 813 },
                 placement: 'left',
                 text: "Where should we send your supporters after they share with their friends?",
-                index: 2
+                index: 3
             },
 
             "error_url": {
                 type: "input",
                 text: [ "If the user does not have any friends that fit the targeting criteria ",
                       "or if there is a sharing error, they will be sent to this URL" ].join(""),
-                index: 3
+                index: 4
             },
 
             "faces_url": {
                 type: "input",
                 text: [ "Provide the URL where this page will be embedded. ",
                         "Leave blank if using Facebook canvas." ].join(""),
-                index: 4
+                index: 5
             } 
         };
 
