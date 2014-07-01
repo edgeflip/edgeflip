@@ -26,5 +26,5 @@ class TestClassify(EdgeFlipTestCase):
 
     @patch_classify(cartoons=0.31, cereal=0.295167235301)
     def test_inexact_float(self, _classify_mock):
-        """PostTopics.classify() stores inexact floats"""
-        self._testTopics(cartoons=Decimal('0.31'), cereal=Decimal('0.295167235301'))
+        """PostTopics.classify() stores inexact floats to 3 digits"""
+        self._testTopics(cartoons=Decimal('0.310'), cereal=Decimal('0.295'))

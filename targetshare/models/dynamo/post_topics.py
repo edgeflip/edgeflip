@@ -1,12 +1,22 @@
-from targetshare.classifier import classify
+import decimal
 
+from boto.dynamodb.types import DYNAMODB_CONTEXT
 from faraday import Item, ItemManager, HashKeyField, RangeKeyField, NUMBER, STRING
+
+from targetshare.classifier import classify
 
 
 BG_CLASSIFIER = 'background'
 QD_CLASSIFIER = 'quick-dirty'
 
 CLASSIFIERS = (BG_CLASSIFIER, QD_CLASSIFIER)
+
+CLASSIFY_CONTEXT = DYNAMODB_CONTEXT.copy()
+CLASSIFY_CONTEXT.prec = 3
+CLASSIFY_CONTEXT.traps.update({
+    decimal.Inexact: False,
+    decimal.Rounded: False,
+})
 
 
 class PostTopicsManager(ItemManager):
@@ -58,6 +68,8 @@ class PostTopics(Item):
 
         """
         classifications = classify(text, *topics)
-        # DDB/Decimals are exact; first convert to str to avoid error:
-        prepared = {topic: str(score) for (topic, score) in classifications.iteritems()}
+        # DDB/Decimals are exact; eagerly convert to Decimal with
+        # appropriate Context to avoid error:
+        prepared = {topic: CLASSIFY_CONTEXT.create_decimal(score)
+                    for (topic, score) in classifications.iteritems()}
         return cls(postid=postid, classifier=cls.QD_CLASSIFIER, **prepared)
