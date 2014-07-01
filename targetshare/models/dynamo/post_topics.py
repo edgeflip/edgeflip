@@ -53,9 +53,11 @@ class PostTopics(Item):
 
     @classmethod
     def classify(cls, postid, text, *topics):
-        """Classify the given `text` using the quick-and-dirty pseudo-classifier
-        and instantiate a new PostTopics instance.
+        """Classify the given `text` using the quick-and-dirty classifier and
+        instantiate a new PostTopics instance.
 
         """
         classifications = classify(text, *topics)
-        return cls(postid=postid, classifier=cls.QD_CLASSIFIER, **classifications)
+        # DDB/Decimals are exact; first convert to str to avoid error:
+        prepared = {topic: str(score) for (topic, score) in classifications.iteritems()}
+        return cls(postid=postid, classifier=cls.QD_CLASSIFIER, **prepared)
