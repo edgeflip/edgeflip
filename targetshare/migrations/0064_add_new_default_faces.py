@@ -52,10 +52,10 @@ class Migration(DataMigration):
         # and orm['appname.ModelName'] for models in other applications.
         page = orm.Page.objects.get(code=FRAME_FACES)
 
-        old_default = page.pagestyles.get(starred=True)
+        old_default = page.pagestyles.get(starred=True, client=None, url=OLD_DEFAULT_CSS_URL)
         old_default.starred=False
         old_default.save()
-        self.puts("Unstarred {} default page style", OLD_DEFAULT_CSS_URL)
+        self.puts("Unstarred frame faces default page style for `{}`", old_default.url)
 
         page.pagestyles.create(
             name="Edgeflip default faces style v1",
@@ -70,8 +70,11 @@ class Migration(DataMigration):
     def backwards(self, orm):
         "Write your backwards methods here."
         page = orm.Page.objects.get(code=FRAME_FACES)
-        page.pagestyles.get(starred=True).delete()
-        old_default = page.pagestyles.get(starred=False)
+        
+        new_default = page.pagestyles.get(starred=True, client=None, url=DEFAULT_CSS_URL)
+        new_default.delete()
+        
+        old_default = page.pagestyles.get(starred=False, client=None, url=OLD_DEFAULT_CSS_URL)
         old_default.starred=True
         old_default.save()
 
