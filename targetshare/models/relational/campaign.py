@@ -12,39 +12,53 @@ class Campaign(models.Model):
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True, blank=True)
 
+    class Meta(object):
+        app_label = 'targetshare'
+        db_table = 'campaigns'
+
+    def __unicode__(self):
+        return u'%s' % self.name
+
+    # Helpers assuming a basic configuration #
+
     def global_filter(self, dt=None):
         try:
-            return self.campaignglobalfilters.for_datetime(datetime=dt).get()
+            campaign_global_filter = self.campaignglobalfilters.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
+        else:
+            return campaign_global_filter.filter
 
-    def choice_set(self, dt=None):
+    def campaign_choice_set(self, dt=None):
         try:
             return self.campaignchoicesets.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
 
+    def choice_set(self, dt=None):
+        campaign_choice_set = self.campaign_choice_set(dt)
+        return campaign_choice_set and campaign_choice_set.choice_set
+
     def button_style(self, dt=None):
         try:
-            return self.campaignbuttonstyles.for_datetime(datetime=dt).get()
+            campaign_button_style = self.campaignbuttonstyles.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
+        else:
+            return campaign_button_style.button_style
 
     def generic_fb_object(self, dt=None):
         try:
-            return self.campaigngenericfbobjects.for_datetime(datetime=dt).get()
+            campaign_generic_fb_object = self.campaigngenericfbobjects.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
+        else:
+            return campaign_generic_fb_object.fb_object
 
     def fb_object(self, dt=None):
         try:
-            return self.campaignfbobjects.for_datetime(datetime=dt).get()
+            campaign_fb_object = self.campaignfbobjects.for_datetime(datetime=dt).get()
         except ObjectDoesNotExist:
             return None
-
-    def __unicode__(self):
-        return u'%s' % self.name
-
-    class Meta(object):
-        app_label = 'targetshare'
-        db_table = 'campaigns'
+        else:
+            return campaign_fb_object.fb_object
