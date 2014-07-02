@@ -91,8 +91,6 @@ def faces(request):
     content = data['content']
     client = campaign.client
 
-
-
     if data['px3_task_id'] and data['px4_task_id']:
         # Check status of active ranking tasks:
         px3_result = celery.current_app.AsyncResult(data['px3_task_id'])
