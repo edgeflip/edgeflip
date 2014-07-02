@@ -26,14 +26,16 @@ def classify_fake(corpus, *topics):
 classify_fake.switch = 0
 
 
-class RankingTestCase(EdgeFlipTestCase):
+class TargetingTestCase(EdgeFlipTestCase):
 
     def setUp(self):
-        super(RankingTestCase, self).setUp()
+        super(TargetingTestCase, self).setUp()
         self.token = models.datastructs.ShortToken(fbid=1, appid='1', token='1Z')
 
 
-class TestProximityRankThree(RankingTestCase):
+## PX3-only tests ##
+
+class TestProximityRankThree(TargetingTestCase):
 
     @patch_facebook
     @patch.object(targeting, 'perform_filtering')
@@ -85,7 +87,7 @@ class TestProximityRankThree(RankingTestCase):
 
 
 @freeze_time('2013-01-01')
-class TestFiltering(RankingTestCase):
+class TestFiltering(TargetingTestCase):
 
     fixtures = ['test_data']
 
@@ -164,12 +166,14 @@ class TestFiltering(RankingTestCase):
         self.assertEquals(edges_filtered[1]['campaign_id'], 4)
 
 
-class TestProximityRankFour(RankingTestCase):
+## PX4 tests ##
+
+class Px4TargetingTestCase(TargetingTestCase):
 
     fixtures = ['test_data']
 
     def setUp(self):
-        super(TestProximityRankFour, self).setUp()
+        super(Px4TargetingTestCase, self).setUp()
 
         # Set up new campaign:
         self.client = models.Client.objects.create()
@@ -185,6 +189,9 @@ class TestProximityRankFour(RankingTestCase):
         visitor = models.relational.Visitor.objects.create()
         self.visit = visitor.visits.create(
             session_id='123456', app_id=123, ip='127.0.0.1')
+
+
+class TestProximityRankFour(Px4TargetingTestCase):
 
     @patch_facebook(min_friends=101, max_friends=120)
     @patch('targetshare.tasks.targeting.LOG')
@@ -272,6 +279,25 @@ class TestProximityRankFour(RankingTestCase):
         self.assertIn('using Dynamo data.', logger_mock.info.call_args[0][0])
         # One call to get the user, the other to get the friend count
         self.assertEqual(facebook.client.urllib2.urlopen.call_count, 2)
+
+    @patch('targetshare.tasks.targeting.facebook')
+    def test_proximity_rank_four_failure(self, fb_mock):
+        """px4 failure records px4_failed event"""
+        # 4 exceptions: 3 retries, 1 initial call
+        fb_mock.client.get_user.side_effect = [IOError] * 4
+        with self.assertRaises(IOError):
+            targeting.proximity_rank_four.delay(
+                self.token,
+                campaign_id=self.campaign.pk,
+                content_id=None,
+                visit_id=self.visit.pk,
+                num_faces=None
+            )
+        events = self.visit.events.filter(event_type='px4_failed')
+        self.assertEqual(events.count(), 1)
+
+
+class TestFilteringProximityRankFour(Px4TargetingTestCase):
 
     @patch_facebook(min_friends=15, max_friends=30)
     @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
@@ -439,19 +465,3 @@ class TestProximityRankFour(RankingTestCase):
                            result.ranked[-1].secondary.topics.get('Weather', 0))
         self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
                            result.filtered.secondaries[-1].topics['Weather'])
-
-    @patch('targetshare.tasks.targeting.facebook')
-    def test_proximity_rank_four_failure(self, fb_mock):
-        """px4 failure records px4_failed event"""
-        # 4 exceptions: 3 retries, 1 initial call
-        fb_mock.client.get_user.side_effect = [IOError] * 4
-        with self.assertRaises(IOError):
-            targeting.proximity_rank_four.delay(
-                self.token,
-                campaign_id=self.campaign.pk,
-                content_id=None,
-                visit_id=self.visit.pk,
-                num_faces=None
-            )
-        events = self.visit.events.filter(event_type='px4_failed')
-        self.assertEqual(events.count(), 1)
