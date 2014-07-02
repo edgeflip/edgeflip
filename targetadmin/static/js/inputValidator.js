@@ -91,11 +91,7 @@ $( function() {
                       placement: 'bottom',
                     },
                     { el: $('#id_sharing_button'),
-                      isValid: function( val ) {
-                          if( isEmpty( val ) ) { return false; }
-                          return val.length < 25;
-                      },
-                      invalidText: 'Must be between 1 and 24 characters long.',
+                      invalidText: 'Must be 1 to 24 characters long.',
                       placement: 'bottom',
                     },
                     { el: $('#id_thanks_url'),
