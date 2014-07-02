@@ -19,7 +19,7 @@ class FBObjectAttribute(models.Model):
     sharing_prompt = models.CharField('Headline', max_length=2096, blank=True)
     sharing_sub_header = models.CharField('Sub-Header',
                                           max_length=2096, blank=True)
-    sharing_button = models.CharField(max_length=25, blank=False, default="Show Your Support")
+    sharing_button = models.CharField(max_length=25, blank=True, default="Show Your Support")
     msg1_pre = models.CharField('Message 1 Pre', max_length=1024, blank=True)
     msg1_post = models.CharField('Message 1 Post', max_length=1024, blank=True)
     msg2_pre = models.CharField('Message 2 Pre', max_length=1024, blank=True)

@@ -88,21 +88,20 @@ $( function() {
                 inputs: [
                     { el: $('#id_sharing_prompt'),
                       invalidText: 'A headline is required.',
-                      placement: 'bottom',
+                      placement: 'bottom'
                     },
                     { el: $('#id_sharing_button'),
                       invalidText: 'Must be 1 to 24 characters long.',
-                      placement: 'bottom',
+                      placement: 'bottom'
                     },
                     { el: $('#id_thanks_url'),
                       invalidText: 'A thanks URL is required.',
-                      placement: 'bottom',
+                      placement: 'bottom'
                     },
                     { el: $('#id_error_url'),
                       invalidText: 'An error URL is required.',
-                      placement: 'bottom',
+                      placement: 'bottom'
                     }
-
                 ]
             },
             {
