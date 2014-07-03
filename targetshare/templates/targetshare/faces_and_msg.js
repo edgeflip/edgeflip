@@ -444,7 +444,6 @@ function friendHTML(oldid, id, fname, lname, div_id) {
             if (id) {
                 new_html = data;
                 $(div_id).replaceWith(new_html);
-                $('#wrapper-' + id + ' .friend_name').textfill(14);
                 $('#wrapper-' + id + ' .xout').click(
                     function(e) { e.stopImmediatePropagation(); doReplace( $(this).data('id') ); } );
             } else {

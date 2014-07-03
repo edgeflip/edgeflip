@@ -177,7 +177,6 @@ function displayFriendDiv(data, jqXHR) {
     $('#progress').hide();
     $('#do_share_button').show();
     $('.text_title_prompt').textfill();
-    $('.friend_name').textfill(14);
 }
 
 
@@ -199,9 +198,7 @@ var outgoingRedirect = function(url) {
 
 (function($) {
     var resizeTimeout,
-        resizeFun = function() {
-            $('.text_title_prompt').textfill();
-            $('.friend_name').textfill(14); };
+        resizeFun = function() { $('.text_title_prompt').textfill(); };
 
     $.fn.textfill = function(maxFontSize) {
         maxFontSize = parseInt(maxFontSize, 10);
@@ -212,16 +209,11 @@ var outgoingRedirect = function(url) {
                 maxWidth = parent.width(),
                 fontSize = parseInt(ourText.css("fontSize"), 10),
                 multiplier = maxWidth/ourText.width(),
-                newSize = (fontSize*(multiplier-0.1))
+                newSize = (fontSize*(multiplier-0.1)),
                 size = (maxFontSize > 0 && newSize > maxFontSize)
-                    ? maxFontSize : newSize
-                update = { "fontSize": size };
+                    ? maxFontSize : newSize;
 
-            if( parent.hasClass('friend_name') ) {
-                update["line-height"] = ( size + 1 ) + "px";
-            }
-
-            ourText.css( update );
+            ourText.css( "fontSize", size );
         });
     };
 
