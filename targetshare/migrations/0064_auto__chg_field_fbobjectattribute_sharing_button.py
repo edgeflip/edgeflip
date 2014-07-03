@@ -398,7 +398,7 @@ class Migration(SchemaMigration):
             'og_type': ('django.db.models.fields.CharField', [], {'max_length': '64', 'blank': 'True'}),
             'org_name': ('django.db.models.fields.CharField', [], {'max_length': '1024', 'blank': 'True'}),
             'page_title': ('django.db.models.fields.CharField', [], {'max_length': '256', 'blank': 'True'}),
-            'sharing_button': ('django.db.models.fields.CharField', [], {'default': "'Show Your Support'", 'max_length': '25', 'blank': 'True'}),
+            'sharing_button': ('django.db.models.fields.CharField', [], {'default': "'Show Your Support'", 'max_length': '25'}),
             'sharing_prompt': ('django.db.models.fields.CharField', [], {'max_length': '2096', 'blank': 'True'}),
             'sharing_sub_header': ('django.db.models.fields.CharField', [], {'max_length': '2096', 'blank': 'True'}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
