@@ -465,3 +465,145 @@ class TestFilteringProximityRankFour(Px4TargetingTestCase):
                            result.ranked[-1].secondary.topics.get('Weather', 0))
         self.assertGreater(result.filtered.secondaries[0].topics['Weather'],
                            result.filtered.secondaries[-1].topics['Weather'])
+
+
+class TestPx4OnlyFilterTargeting(TargetingTestCase):
+
+    def setUp(self):
+        super(TestPx4OnlyFilterTargeting, self).setUp()
+
+        # Set up new campaign:
+        self.client = models.Client.objects.create()
+        self.campaign = self.client.campaigns.create()
+        self.content = self.client.clientcontent.create()
+        self.properties = self.campaign.campaignproperties.create()
+
+        # ...and default (no-op) filtering:
+        self.default_filter = self.client.filters.create()
+
+        # ...and topics filter feature type
+        models.FilterFeatureType.objects.create(
+            name="Topics", code='topics', px_rank=4, sort_order=6)
+
+        visitor = models.relational.Visitor.objects.create()
+        self.visit = visitor.visits.create(session_id='123456', app_id=123, ip='127.0.0.1')
+
+    @patch_facebook(min_friends=20, max_friends=30)
+    @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
+    def test_px4_global_filter(self, classifier_mock):
+        # Configure global filter:
+        global_filter = self.client.filters.create()
+        global_filter.filterfeatures.create(
+            feature_type=models.relational.FilterFeatureType.objects.get_topics(),
+            feature='topics[Weather]',
+            operator=models.FilterFeature.Operator.MIN,
+            value=0.1,
+        )
+        self.campaign.campaignglobalfilters.create(filter=global_filter, rand_cdf=1)
+
+        # Configure null choiceset:
+        choice_set = self.client.choicesets.create()
+        choice_set.choicesetfilters.create(filter=self.default_filter)
+        self.campaign.campaignchoicesets.create(choice_set=choice_set, rand_cdf=1)
+
+        # px3
+        ranked_edges = targeting.px3_crawl(self.token, visit_id=self.visit.pk)
+        result = targeting.perform_filtering(
+            ranked_edges,
+            fbid=self.token.fbid,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            visit_id=self.visit.pk,
+            num_faces=1,
+        )
+        self.assertTrue(result.ranked)
+        self.assertTrue(result.filtered)
+        self.assertEqual(len(result.filtered), len(result.ranked)) # no filtering
+
+        # px4
+        (stream, ranked_edges) = targeting.px4_crawl(self.token)
+        self.assertTrue(stream)
+
+        self.assertEqual(models.dynamo.PostTopics.items.count(), 0)
+
+        filtering_result = targeting.px4_filter(
+            stream,
+            ranked_edges,
+            fbid=self.token.fbid,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            visit_id=self.visit.pk,
+            num_faces=1,
+        )
+        result = targeting.px4_rank(filtering_result)
+
+        self.assertTrue(result.ranked)
+        self.assertTrue(result.filtered)
+        self.assertTrue(classifier_mock.called)
+
+        self.assertGreater(models.dynamo.PostTopics.items.count(), 0)
+
+        self.assertLess(len(result.filtered), len(result.ranked))
+        mismatch = [user for user in result.filtered.secondaries
+                    if user.topics['Weather'] < 0.1]
+        self.assertFalse(mismatch)
+
+    @patch_facebook(min_friends=20, max_friends=30)
+    @patch('targetshare.models.dynamo.post_topics.classify', side_effect=classify_fake)
+    def test_px4_choiceset_filter(self, classifier_mock):
+        # Configure null global filter:
+        self.campaign.campaignglobalfilters.create(filter=self.default_filter, rand_cdf=1)
+
+        # Configure choiceset:
+        topics_filter = self.client.filters.create()
+        topics_filter.filterfeatures.create(
+            feature_type=models.relational.FilterFeatureType.objects.get_topics(),
+            feature='topics[Weather]',
+            operator=models.FilterFeature.Operator.MIN,
+            value=0.1,
+        )
+        choice_set = self.client.choicesets.create()
+        choice_set.choicesetfilters.create(filter=topics_filter)
+        self.campaign.campaignchoicesets.create(choice_set=choice_set, rand_cdf=1)
+
+        # px3
+        ranked_edges = targeting.px3_crawl(self.token, visit_id=self.visit.pk)
+        result = targeting.perform_filtering(
+            ranked_edges,
+            fbid=self.token.fbid,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            visit_id=self.visit.pk,
+            num_faces=1,
+        )
+        self.assertTrue(result.ranked)
+        self.assertTrue(result.filtered)
+        self.assertEqual(len(result.filtered), len(result.ranked)) # no filtering
+
+        # px4
+        (stream, ranked_edges) = targeting.px4_crawl(self.token)
+        self.assertTrue(stream)
+
+        self.assertEqual(models.dynamo.PostTopics.items.count(), 0)
+
+        filtering_result = targeting.px4_filter(
+            stream,
+            ranked_edges,
+            fbid=self.token.fbid,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            visit_id=self.visit.pk,
+            num_faces=1,
+        )
+        result = targeting.px4_rank(filtering_result)
+
+        self.assertTrue(result.ranked)
+        self.assertTrue(result.filtered)
+        self.assertTrue(classifier_mock.called)
+
+        self.assertGreater(models.dynamo.PostTopics.items.count(), 0)
+
+        self.assertLess(len(result.filtered), len(result.ranked))
+        mismatch = [user for user in result.filtered.secondaries
+                    if user.topics['Weather'] < 0.1]
+        self.assertFalse(mismatch)
