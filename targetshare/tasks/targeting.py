@@ -216,8 +216,10 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
         )
         if best_csf is None:
-            LOG.debug("No ChoiceSetFilter applied (none or used generic) "
-                      "for %s with campaign %s.", fbid, campaign_id)
+            template = "No ChoiceSetFilter applied ({}) for %s with campaign %s.".format(
+                "used generic" if choice_set_filters else "none at rank"
+            )
+            LOG.debug(template, fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
