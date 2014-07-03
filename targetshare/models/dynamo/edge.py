@@ -29,8 +29,8 @@ class IncomingEdge(Item):
     photos_other = ItemField(data_type=NUMBER)
     mut_friends = ItemField(data_type=NUMBER)
 
-    primary = ItemLinkField('User', db_key=fbid_target)
-    secondary = ItemLinkField('User', db_key=fbid_source, linked_name=None)
+    target = ItemLinkField('User', db_key='fbid_target', linked_name='incomingedges')
+    source = ItemLinkField('User', db_key='fbid_source', linked_name=None)
 
     class Meta(object):
         table_name = 'edges_incoming'
