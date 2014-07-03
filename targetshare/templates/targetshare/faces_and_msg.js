@@ -31,7 +31,9 @@ function getRecipFbids() {
     var recipElts = getRecipElts();
     for (var i=0; i<recipElts.length; i++) {
         var fbid = parseInt(recipElts[i].id.split('-')[1]);
-        fbids.push(fbid);
+        if(fbid) {
+            fbids.push(fbid);
+        }
     }
     return fbids;
 }
