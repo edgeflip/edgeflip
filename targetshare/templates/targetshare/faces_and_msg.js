@@ -357,11 +357,8 @@ function selectAll(skipRecord) {
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call
     var fbid,
-        divs = $(".friend_box:visible"),
-        unselected_friend_boxes = $('.friend_box:not(.friend_box_selected)'),
+        unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
         count = getRecipFbids().length;
-
-    if( unselected_friend_boxes.length === 0 ) { return; }
 
     //we want to alert only if there are unselected friend boxes
     //and the count is already at max_face
@@ -379,7 +376,7 @@ function selectAll(skipRecord) {
 }
 
 /* Tell the user max_face have already been selected */
-function alertTooMany() { alert("Sorry: only ten friends can be tagged."); }
+function alertTooMany() { alert("Sorry: only " + edgeflip.faces.max_face + " friends can be tagged."); }
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
