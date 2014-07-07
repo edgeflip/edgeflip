@@ -215,6 +215,7 @@ body {
     padding-bottom: 15px;
     margin-bottom:  30px;
     border-bottom: thin solid black;
+    margin-right: 16px;
 }
 /*** heading ***/
 
@@ -236,21 +237,18 @@ body {
     line-height: 30px;
 }
 
-#button_select_all {
-    margin-right: 16px;
-}
-
 #button_sugg_msg,
 #button_select_all {
-    font-weight: bold;
     padding: 3px 10px;
     background-color: #3561a1;
     border: 1px solid #3561a1;
     color: white;
-    border-radius: 3px;
+    border-radius: 1px;
     vertical-align: bottom;
     margin-bottom: 10px;
+    margin-right: 16px;
     float: right;
+    text-align: center;
 }
 
 #button_select_all {
@@ -299,6 +297,10 @@ body {
 #manual_add:after,
 .friend_box:after {
   clear: both;
+}
+    
+#picked_friends_container {
+    margin-right: 16px;
 }
 
 .friend_pic img {
@@ -383,7 +385,6 @@ body {
 }
 
 #manual_input_placeholder {
-    vertical-align: middle;
     border: 1px solid #e7e7e7;
     width: 100%;
     padding: 3px 8px 4px;
@@ -406,7 +407,6 @@ body {
 }                         /* forces the menu to always be this tall */
 
 .added_friend {
-    font-size: smaller;
     color: #f0f0f8;
     border: thin solid gray;
     border-radius: 5px;
@@ -432,6 +432,10 @@ body {
 /*** Manual add box ***/
 
 /*** Message input box ***/
+#message_container {
+    margin-right: 16px;
+}
+
 #message_form {
     clear: both;
     overflow-x: auto;
@@ -489,7 +493,6 @@ body {
     display: inline-block;
     font-family: sans-serif;
     font-weight: 200;
-    font-size: 12px;
     line-height: 18px;
     color: black;
     border: thin solid #89A8BD;
@@ -526,9 +529,10 @@ body {
 
 #button_do_share {
     padding: 6px 20px;
+    margin-right: 16px;
     font-weight:200;
     letter-spacing: 1.5px;
-    border-radius: 3px;
+    border-radius: 1px;
     float: right;
     background-color: #3561a1;
     border: 1px solid #3561a1;
@@ -681,17 +685,22 @@ body {
 
     #button_do_share {
         float: none !important;
-        margin: 0 auto !important;
+        margin-right: 16px;
     }
 
     .manual_add {
         padding-right: 14px;
     }
 
+    #manual_add_text {
+        margin-right: 16px;
+    }
+
     #picked_friends_container {
         margin-top: 5px;
     }
     
+    #message_friend_name,
     #message_form_editable {
         font-size: 10px;
     }
@@ -763,10 +772,20 @@ body {
         padding-right: 14px;
     }
 
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #manual_add_text {
+        margin-right: 16px;
+    }
+
     #picked_friends_container {
         margin-top: 5px;
     }
     
+    #message_friend_name,
     #message_form_editable {
         font-size: 10px;
     }
@@ -829,11 +848,21 @@ body {
     .manual_add {
         padding-right: 14px;
     }
+    
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #manual_add_text {
+        margin-right: 16px;
+    }
 
     #picked_friends_container {
         margin-top: 5px;
     }
     
+    #message_friend_name,
     #message_form_editable {
         font-size: 12px;
     }
@@ -854,7 +883,17 @@ body {
     .by5 .friend_box_selected .friend_txt {
         padding-top: 17px;
     }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #manual_add_text {
+        margin-right: 16px;
+    }
     
+    #message_friend_name,
     #message_form_editable {
         font-size: 14px;
     }
@@ -869,6 +908,15 @@ body {
     #faces_form_container {
         width: 83.33333333%;
         margin-left: 8.33333333%;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #manual_add_text {
+        margin-right: 16px;
     }
 }
 
@@ -922,8 +970,9 @@ body {
         margin: 7px auto;
     }
     
+    .added_friend,
     .manual_input {
-        font-size: 12px !important;
+        font-size: 12px;
     }
 
     #manual_add_text {
@@ -936,6 +985,7 @@ body {
         width: 40%;
     }
     
+    #message_friend_name,
     #message_form_editable {
         font-size: 16px;
     }
@@ -991,8 +1041,9 @@ body {
         margin: 7px auto;
     }
 
+    .added_friend,
     .manual_input {
-        font-size: 12px !important;
+        font-size: 12px;
     }
 
     #manual_add_text {
@@ -1005,6 +1056,7 @@ body {
         width: 40%;
     }
 
+    #message_friend_name,
     #message_form_editable {
         font-size: 16px;
     }
