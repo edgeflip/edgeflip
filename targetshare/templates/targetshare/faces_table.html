@@ -30,13 +30,13 @@ this is the message div and the faces themselves
     <div class="header-end"></div>
 
     {% block faces_prompt %}
-        <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
+        <div class="text_instructions step_one">Step 1. Click on the friends you want to share with:</div>
     {% endblock faces_prompt %}
 
-    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All &gt;&gt;</div>
+    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All</div><div class="clearfix"></div>
     
     {% spaceless %}
-    <div id="friends_table" class='{% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}'>
+    <div id="friends_table" class='clearfix {% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}'>
         {% for face_friend in show_faces %}
                 <div class="friend_wrapper" style="position: relative" id="wrapper-{{ face_friend.fbid }}">
                     <div class="xout" onClick="doReplace({{ face_friend.fbid }});">x</div>
@@ -68,10 +68,10 @@ this is the message div and the faces themselves
     </div> <!-- manual_add -->
 
     {% block msg_prompt %}
-        <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
+        <div class="text_instructions step_two" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
-    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div>
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div><div class="clearfix"></div>
 
     <div id="message_container">
         <div id="message_form">

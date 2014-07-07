@@ -70,8 +70,14 @@ edgeflip.faces = (function (edgeflip, $) {
                 px4_task_id: px4_task_id,
                 last_call: last_call
             };
-            if (edgeflip.Url.window.query.efobjsrc)
+           
+            if( !self.pollingTimer_ ) { 
+                updateProgressBar(5);
+            }
+
+            if (edgeflip.Url.window.query.efobjsrc) {
                 params.efobjsrc = edgeflip.Url.window.query.efobjsrc;
+            }
 
             $.ajax({
                 type: "POST",
@@ -88,18 +94,19 @@ edgeflip.faces = (function (edgeflip, $) {
                     self.campaignid = data.campaignid;
                     self.contentid = data.contentid;
                     if (data.status === 'waiting') {
-                        updateProgressBar( Math.floor( 2.5 * self.pollingCount_ ) );
                         if (self.pollingTimer_) {
                             if (self.pollingCount_ > 40) {
                                 clearTimeout(self.pollingTimer_);
                                 self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                             } else {
                                 self.pollingCount_ += 1;
+                                updateProgressBar( Math.floor( ( 2 * self.pollingCount_ ) + 10 ) );
                                 self.pollingTimer_ = setTimeout(function() {
                                     self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
                                 }, 500);
                             }
                         } else {
+                            updateProgressBar(10);
                             self.pollingTimer_ = setTimeout(function() {
                                 self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
                             }, 500);
@@ -176,7 +183,7 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show();
-    $('.text_title_prompt').textfill();
+    $('.text_title_prompt').textfill(50);
 }
 
 
@@ -198,7 +205,7 @@ var outgoingRedirect = function(url) {
 
 (function($) {
     var resizeTimeout,
-        resizeFun = function() { $('.text_title_prompt').textfill(); };
+        resizeFun = function() { $('.text_title_prompt').textfill(50); };
 
     $.fn.textfill = function(maxFontSize) {
         maxFontSize = parseInt(maxFontSize, 10);

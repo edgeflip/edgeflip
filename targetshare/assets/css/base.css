@@ -40,6 +40,17 @@ body {
 .checkmark {
     display: none !important;
 }
+
+/* helper */
+.clearfix:after,
+.clearfix:before {
+    content: " ";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+}
 /*** base styling ***/
 
 
@@ -209,25 +220,30 @@ body {
 
 
 /*** Instruction Rows ( Step 1, 2 ) ***/
+.step_one {
+    margin-bottom: 20px;
+}
+
+.step_two {
+    margin-bottom: 10px;
+}
+
 .text_instructions {
     font-weight: 200;
-    display: inline-block;
+    float: left;
     color: #3561a1;
-    margin-bottom: 10px;
     height: 30px;
     line-height: 30px;
 }
 
 #button_select_all {
-    margin-right: 10px;
+    margin-right: 16px;
 }
 
 #button_sugg_msg,
 #button_select_all {
-    display: inline-block;
     font-weight: bold;
     padding: 3px 10px;
-    font-size: 16px;
     background-color: #3561a1;
     border: 1px solid #3561a1;
     color: white;
@@ -510,7 +526,6 @@ body {
 
 #button_do_share {
     padding: 6px 20px;
-    font-size: 24px;
     font-weight:200;
     letter-spacing: 1.5px;
     border-radius: 3px;
@@ -573,12 +588,133 @@ body {
 
 
 /*** Responsive styles ***/
-@media(max-width:599px){
+@media(max-width:474px){
+    
+    #spinner,
+    #progress-text {
+        width: 75%;
+        line-height: 14px;
+    }
+    
+    #spinner:before {
+        font-size: 12px;
+    }
+
+    #spinner {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .text_instructions {
+        float: none !important;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    #button_sugg_msg,
+    #button_select_all {
+        margin-left: auto;
+        margin-right: auto;
+        display: block;
+        float: none;
+    }
 
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
         font-size: 10px;
+    }
+
+    #button_sugg_msg {
+        width: 123px;
+    }
+    
+    #button_select_all {
+        width: 72px;
+    }
+
+    #button_do_share {
+        font-size: 14px;
+    }
+
+    .by3 .friend_pic {
+        width: 50%;
+    }
+    
+    .by3 .friend_txt {
+        width: 50%;
+        font-size: 10px;
+    }
+
+    .by3 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
+    }
+
+    #friends_table.by5 .friend_wrapper {
+        width: 50%;
+    }
+    
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+        font-size: 8px;
+    }
+
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
+    .by5 .friend_txt {
+        padding-top: 0px;
+    }
+
+    .by5 .friend_box_selected .friend_txt {
+        padding-top: 12px;
+    }
+
+    #button_do_share {
+        float: none !important;
+        margin: 0 auto !important;
+    }
+
+    .manual_add {
+        padding-right: 14px;
+    }
+
+    #picked_friends_container {
+        margin-top: 5px;
+    }
+    
+    #message_form_editable {
+        font-size: 10px;
+    }
+
+    #message_form table {
+        width: 100%;
+    }
+    
+    #message_form table td {
+        width: 50% !important;
+    }
+}
+
+@media(min-width:475px){
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 10px;
+    }
+    
+    #button_do_share {
+        font-size: 14px;
     }
     
     #friends_table.by5 .friend_wrapper {
@@ -623,17 +759,16 @@ body {
         margin: 12px auto;
     }
 
-    #button_do_share {
-        float: none !important;
-        margin: 0 auto !important;
-    }
-
     .manual_add {
         padding-right: 14px;
     }
 
     #picked_friends_container {
         margin-top: 5px;
+    }
+    
+    #message_form_editable {
+        font-size: 10px;
     }
 }
 
@@ -643,6 +778,10 @@ body {
     #button_select_all,
     .text_instructions {
         font-size: 14px;
+    }
+    
+    #button_do_share {
+        font-size: 18px;
     }
     
     #friends_table.by5 .friend_wrapper {
@@ -694,6 +833,10 @@ body {
     #picked_friends_container {
         margin-top: 5px;
     }
+    
+    #message_form_editable {
+        font-size: 12px;
+    }
 }
 
 @media(min-width:675px) {
@@ -711,7 +854,10 @@ body {
     .by5 .friend_box_selected .friend_txt {
         padding-top: 17px;
     }
-
+    
+    #message_form_editable {
+        font-size: 14px;
+    }
 }
 
 @media(min-width:768px) {
@@ -741,6 +887,10 @@ body {
     #button_select_all,
     .text_instructions {
         font-size: 18px;
+    }
+    
+    #button_do_share {
+        font-size: 22px;
     }
     
     #friends_table.by5 .friend_wrapper {
@@ -785,6 +935,10 @@ body {
         float: right;
         width: 40%;
     }
+    
+    #message_form_editable {
+        font-size: 16px;
+    }
 }
 
 @media(min-width:1200px){
@@ -802,6 +956,10 @@ body {
     #button_select_all,
     .text_instructions {
         font-size: 20px;
+    }
+    
+    #button_do_share {
+        font-size: 24px;
     }
 
     #friends_table.by5 .friend_wrapper {
@@ -845,6 +1003,10 @@ body {
     #picked_friends_container {
         float: right;
         width: 40%;
+    }
+
+    #message_form_editable {
+        font-size: 16px;
     }
 }
 /*** Responsive styles ***/
