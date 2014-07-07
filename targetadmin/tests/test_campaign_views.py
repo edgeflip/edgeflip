@@ -248,6 +248,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support',
                 'og_description': 'Description of FB stuff'
             }
         )
@@ -318,6 +319,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support',
                 'og_description': 'Description of FB stuff'
             }
         )
@@ -392,6 +394,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support',
                 'og_description': 'Description of FB stuff'
             }
         )
@@ -461,6 +464,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support',
                 'og_description': 'Description of FB stuff'
             }
         )
@@ -524,6 +528,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support',
                 'og_description': 'Description of FB stuff'
             }
         )
@@ -565,6 +570,7 @@ class TestCampaignViews(TestAdminBase):
                 'msg2_post': ' How goes it 2?',
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support!',
                 'og_description': 'Description of FB stuff'
             }
         )
