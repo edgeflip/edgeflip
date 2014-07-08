@@ -191,17 +191,23 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     choice_set_filters = choice_set.choicesetfilters.exclude(
         filter__filterfeatures__feature_type__px_rank__gt=px_rank
     )
-    try:
-        (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
-            edges_filtered,
-            use_generic=allow_generic,
-            min_friends=min_friends,
-            cache_match=cache_match,
-        )
-    except relational.ChoiceSetFilter.TooFewFriendsError:
-        LOG_RVN.info("Too few friends found for user %s with campaign %s. "
-                     "(Will check for fallback.)", fbid, campaign_id)
+    if choice_set_filters:
+        try:
+            (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
+                edges_filtered,
+                use_generic=allow_generic,
+                min_friends=min_friends,
+                cache_match=cache_match,
+            )
+        except relational.ChoiceSetFilter.TooFewFriendsError:
+            LOG_RVN.debug("Too few friends found for user %s with campaign %s. "
+                          "(Will check for fallback.)", fbid, campaign_id)
+            best_csf_edges = None
     else:
+        # No ChoiceSetFilters, on this ChoiceSet, (at this rank); skip filtering:
+        (best_csf, best_csf_edges) = (None, edges_filtered)
+
+    if best_csf_edges is not None:
         already_picked += datastructs.TieredEdges(
             edges=best_csf_edges,
             campaign_id=campaign_id,
@@ -210,8 +216,10 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
         )
         if best_csf is None:
-            # We got generic:
-            LOG.debug("Generic returned for %s with campaign %s.", fbid, campaign_id)
+            template = "No ChoiceSetFilter applied ({}) for %s with campaign %s.".format(
+                "used generic" if choice_set_filters else "none at rank"
+            )
+            LOG.debug(template, fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
