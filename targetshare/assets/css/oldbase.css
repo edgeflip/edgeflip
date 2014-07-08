@@ -1,0 +1,589 @@
+body {
+    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+}
+
+.h2_container {
+       border: none;
+       white-space: normal; 
+       text-align: center;
+       padding: 10px;
+       background-color: #f7f7f7;
+       border-radius: 5px;
+       -moz-border-radius: 5px;
+       box-shadow: 2px 2px 5px black;
+}
+
+#your-friends-here {
+    width: 100%;
+}
+
+/* div around the entire form */
+#faces_form_container {
+    width: 700px;
+    /*display: table;*/
+    /*overflow-x: hidden;*/
+    vertical-align: top;
+    white-space: normal;
+    background-color: #f7f7f7;
+    border: 2px solid lightgrey;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 20px auto;
+}
+
+.canvas_friends_div {
+    margin-top: 30px;
+}
+
+#progress {
+    /*width: 250px;*/
+    background-color: white;
+    margin: 50px auto;
+    /*margin-top: 50px;*/
+    /*display: block;*/
+    border: none;
+    white-space: normal;
+    text-align: center;
+    /*padding: 5px;*/
+    /*border-radius: 5px;*/
+    /*-moz-border-radius: 5px;*/
+    /*box-shadow: 2px 2px 5px black;*/
+    font-size: 2.0em;
+}
+
+.text_title_prompt {
+    padding: 20px;
+    color: #07304e;
+    font-size: 26px;
+    text-align: center;
+}
+
+.text_instructions {
+    font-size: 22px;
+    text-align: left;
+    color: #07304e;
+    font-weight: 200;
+    padding: 0px;
+    float: left;
+}
+
+.button_big, .button_small {
+    float: right;
+    cursor: pointer;
+    color: white;
+    white-space: nowrap;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.button_big {
+    width: 250px;
+    height: 30px;
+    padding: 4px;
+    font-size: 20px;
+    font-weight:200;
+    letter-spacing: 1.5px;
+    line-height: 30px;
+    border-radius: 7px;
+    -moz-border-radius: 7px;
+}
+.button_small {
+    width: 140px;
+    height: 20px;
+    padding: 3px;
+    font-size: 14px;
+    font-weight: 200;
+    letter-spacing: 1px;
+    border-radius: 5px;
+    -moz-border-radius: 5px;
+}
+.button_active {
+    background-color: orangered;
+    border: thin solid maroon;
+}
+.button_active:hover {
+    background-color: #CC0000;
+}
+.button_inactive {
+    background-color: #0270A0;
+    border: thin solid gray;
+}
+.button_inactive:hover {
+    background-color: #094163;
+}
+
+.dojoxEllipsis,
+.dojoxEllipsisShown {
+    color: inherit;
+}
+
+#reconnect_button {
+    width: 250px; 
+    margin: 0px auto;
+    background-color: #0f2446;
+    float: none;
+}
+
+#reconnect_button:hover {
+    background-color: #094163;
+}
+
+#reconnect_text {
+    font-size: 18px;
+    font-family: arial,sans-serif;
+    margin: 0px auto;
+    display: table;
+    padding-bottom: 5px;
+}
+
+/***************************************************
+ Styling for friend picker buttons (new_face.html)
+*/
+
+#friends_table {
+    margin: 0px auto;
+    clear: both;
+}
+
+.friend_wrapper {
+    float: left;
+    margin-bottom: 10px;
+}
+
+.by3 .friend_wrapper {
+    width: 33.33333333%;
+}
+
+.by5 .friend_wrapper {
+    width: 20%;
+}
+
+/* styles the boxes with friend names and pictures */
+.friend_box {
+    padding: 7px 3px 3px 7px;
+    border: thin solid gray;
+    border-radius: 10px;
+    -moz-border-radius: 10px;
+    width: 90%;
+    position: relative;
+    cursor: pointer;
+}
+.friend_box:hover {
+    /*border: thin #96C2F0 solid ;*/
+    /*color: #96C2F0;*/
+    border: thin #0270A0 solid;
+    color: #0270A0;
+}
+.friend_box_selected {
+    background-color: #07304E;
+    color: white;
+}
+.friend_box_unselected {
+    background-color: #E6F2FF;
+    color: black;
+}
+
+/* styles the little x button to cross off friends */
+.xout {
+    background-color: black;
+    color: white;
+    width: 12px;
+    height: 12px;
+    line-height: 11px;
+    border: thin solid white;
+    border-radius: 6px;
+    font-size: 10px;
+    font-weight: bold;
+    text-align: center;
+    vertical-align: middle;
+    font-family: arial,sans-serif;
+    cursor: pointer;
+    position: absolute;
+    top: -4px;
+    right: 4%;
+    z-index: 10;
+}
+.xout:hover {
+    background-color: #CC0000;
+}
+
+/* styles the check mark image that appears on select */
+.checkmark {
+    display: none;
+    background-image: url('../i/edgeflip-checkmarksm-0.png');
+    background-repeat: no-repeat;
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    bottom: 2px;
+    right: 6px;
+    z-index: 10;
+}
+
+/* fb portrait of friends */
+.friend_pic {
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+}
+.friend_box img {
+    width: 40px;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+}
+
+/* wrapper div around first, last names */
+.friend_txt {
+    /* Have to specify width here to make ellipsis work */
+    width: 110px;
+    text-align: left;
+    vertical-align: top;
+    display: inline-block;
+    padding-left: 5px;
+}
+.friend_name {
+    /* Have to specify width 100% here to make ellipsis work */
+    color: inherit;
+    text-decoration: none;
+    width: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    -o-text-overflow: ellipsis;
+    -webkit-text-overflow: ellipsis;
+}
+
+/***************************************************
+ Manual add box
+*/
+
+#manual_add, .ui-autocomplete, .ui-menu, .ui-menu-item {
+    font-size: 11px;
+}
+
+#manual_add {
+    width: 500px;
+    padding-top: 5px;
+    text-align: left;
+    margin: 0px auto 30px auto;
+    display: table;
+    position: relative;
+}
+
+#manual_input, #manual_input_placeholder {
+    width: 180px;
+    vertical-align: middle;
+}
+
+#manual_input_placeholder {
+	display: none;
+}
+
+#picked_friends_container {
+    vertical-align: bottom;
+}
+
+.ui-autocomplete {
+    max-height: 100px;
+    overflow-y: auto;
+    /* prevent horizontal scrollbar */
+    overflow-x: hidden;
+}
+* html .ui-autocomplete { /* IE 6 doesn't support max-height        */
+    height: 100px;        /* we use height instead, but this        */
+}                         /* forces the menu to always be this tall */
+
+.added_friend {
+    font-size: smaller;
+    color: #f0f0f8;
+    border: thin solid gray;
+    border-radius: 5px;
+    padding: 2px;
+    margin: 2px;
+    background-color: #003F77;
+    display: inline-block;
+    white-space: nowrap;
+}
+
+.added_x {
+    border-left: thin solid #f0f0f8;
+    margin-left: 3px;
+    padding-left: 2px;
+    padding-right: 1px;
+    display:inline-block;
+    cursor: pointer;
+    font-weight: bold;
+}
+.added_x:hover {
+    color: #00A3DD;
+}
+
+
+
+/***************************************************
+ Styling for message input box
+*/
+
+#message_form {
+    clear: both;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding-bottom: 3px;
+    border: solid thin gray;
+    border-radius: 5px;
+    background-color: white;
+    /*margin: 0px 75px;*/
+    width: 550px;
+    margin: 0px auto;
+}
+
+#message_form_editable {
+    display: block;
+    padding: 5px;
+    min-height: 90px;
+    line-height: 25px;
+    border-bottom: dashed thin gray;
+    outline: 0;
+}
+
+#message_helper_txt:empty:before {
+    content:"Click the button above to use a suggested message, or write your own here.";
+}
+
+#message_preview {
+    width: 321px;
+    height: 60px;
+    padding: 10px;
+    font-family: "lucida grande", tahoma, verdana, arial, sans-serif;
+    float: left;
+}
+#message_preview img {
+    float: left;
+    margin-right: 7px;
+    height: 60px;
+}
+#message_preview_title {
+    color: #3B5998;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 11px;
+    padding-top: 5px;
+}
+#message_preview_desc {
+    font-size: 9px;
+    color: gray;
+    font-weight: normal;
+}
+
+.message_friend_name {
+    display: inline-block;
+    font-family: sans-serif;
+    font-weight: 200;
+    font-size: 12px;
+    line-height: 18px;
+    color: black;
+    border: thin solid #89A8BD;
+    padding: 1px 2px 1px 2px;
+    background-color: #E6F2FF;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    vertical-align: middle;
+    white-space: nowrap;
+
+}
+
+.message_x {
+    font-weight: 900;
+    color: #89A8BD;
+    margin-left: 3px;
+    cursor: pointer;
+}
+
+.message_x:hover {
+    color: #0270A0;
+}
+
+
+
+
+/***************************************************
+ Share button
+*/
+
+#button_share_container {
+    margin-top: 20px;
+    overflow: auto;
+}
+
+/* Privacy Policy */
+#priv-policy {
+    font-size: 0.75em;
+    margin: 50px auto 0px;
+    width: 300px;
+    color: #666666;
+    text-decoration: none;
+}
+body {
+    font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+}
+
+/* div around the entire form */
+#faces_form_container {
+    background-color: #f7f7f7;
+    border: 2px solid #7C889B;
+    border-radius: 10px;
+    padding: 25px;
+    margin: 20px auto;
+}
+
+.text_title_prompt {
+    color: #07304e;
+    font-size: 26px;
+}
+
+.text_instructions {
+    font-size: 22px;
+    color: #07304e;
+}
+
+.step_one,
+#button_select_all {
+    margin-bottom: 10px;
+}
+
+#button_select_all,
+#button_sugg_msg {
+    margin-right: 10px;
+}
+
+.button_big, .button_small {
+    color: white;
+}
+
+.button_big {
+    width: 250px;
+    height: 30px;
+    padding: 4px;
+    font-size: 20px;
+    font-weight:200;
+    letter-spacing: 1.5px;
+    line-height: 30px;
+}
+.button_small {
+    width: 140px;
+    height: 20px;
+    padding: 3px;
+    font-size: 14px;
+    font-weight: 200;
+    letter-spacing: 1px;
+}
+.button_active {
+    background-color: orangered;
+    border: thin solid maroon;
+}
+.button_active:hover {
+    background-color: #CC0000;
+}
+.button_inactive {
+    background-color: #0270A0;
+    border: thin solid gray;
+}
+.button_inactive:hover {
+    background-color: #094163;
+}
+
+
+/***************************************************
+ Styling for friend picker buttons (new_face.html)
+*/
+
+/* styles the boxes with friend names and pictures */
+.friend_box {
+    border: thin solid gray;
+}
+.friend_box:hover {
+    border: thin #0270A0 solid;
+    color: #0270A0;
+}
+.friend_box_selected {
+    background-color: #07304E;
+    color: white;
+}
+.friend_box_unselected {
+    background-color: #E6F2FF;
+    color: black;
+}
+
+/* styles the check mark image that appears on select */
+.checkmark {
+    display: none;
+}
+
+/***************************************************
+ Manual add box
+*/
+.added_friend {
+    font-size: smaller;
+    color: #f0f0f8;
+    border: thin solid gray;
+    background-color: #003F77;
+}
+
+/***************************************************
+ Styling for message input box
+*/
+
+#message_form {
+    padding-bottom: 3px;
+    border: solid thin gray;
+    background-color: white;
+}
+
+#message_helper_txt:empty:before {
+    content:"Click the button above to use a suggested message, or write your own here.";
+}
+
+.message_friend_name {
+    color: black;
+    border: thin solid #89A8BD;
+    background-color: #E6F2FF;
+}
+
+#progress-text {
+    margin-bottom: 10px;
+}
+
+.loading #progress-text :after {
+    content: "L o a d i n g . . .";
+}
+
+.sending #progress-text :after {
+    content: "S e n d i n g . . .";
+}
+
+.loading #spinner {
+    background-image: url('../i/edgeflip-aniprogress-0.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}
+
+.sending #spinner {
+    background-image: url('../i/edgeflip-aniprogress-0.gif');
+    background-repeat: no-repeat;
+    width: 100%;
+    height: 48px;
+    background-position: center center;
+}
+
+/* Optional for sub header styling */
+.subheader {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+/* If the subheader is used, the header-end div can be used to make a simple,
+ * nice border between the subheader and faces */
+.header-end {
+}
