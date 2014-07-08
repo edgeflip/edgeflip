@@ -1,0 +1,25 @@
+.text_title_prompt span {
+    font-size: inherit !important;
+}
+
+#friends_table {
+    width: 655px;
+}
+
+.friend_wrapper {
+    float: left;
+}
+
+.xout {
+    right: 10px;
+}
+
+.clearfix:after,
+.clearfix:before {
+    content: " ";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
+}
