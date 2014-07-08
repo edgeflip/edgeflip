@@ -139,6 +139,497 @@ body {
 /*** Loading Dialog ***/
 
 
+/*** Responsive styles ***/
+@media(max-width:474px){
+    
+    #spinner,
+    #progress-text {
+        width: 75%;
+        line-height: 14px;
+    }
+    
+    #spinner:before {
+        font-size: 12px;
+    }
+
+    #spinner {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .text_instructions {
+        float: none;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+
+    #button_sugg_msg,
+    #button_select_all {
+        margin-left: auto;
+        margin-right: auto;
+        float: none;
+    }
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 10px;
+    }
+
+    #button_sugg_msg {
+        width: 123px;
+    }
+    
+    #button_select_all {
+        width: 72px;
+    }
+
+    #button_do_share {
+        font-size: 14px;
+    }
+
+    .by3 .friend_pic {
+        width: 50%;
+    }
+    
+    .by3 .friend_txt {
+        width: 50%;
+        font-size: 8px;
+    }
+
+    .by3 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
+    }
+
+    #friends_table.by5 .friend_wrapper {
+        width: 50%;
+    }
+
+    .by5 .friend_wrapper:nth-child(2n+2) .friend_box {
+        margin: 0px 0px 10px 0px;
+    }
+    
+    .by5 .friend_wrapper:nth-child(2n+2) .xout {
+        right: 0px;
+    }
+    
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+        font-size: 12px;
+    }
+
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
+    .by5 .friend_txt {
+        padding-top: 0px;
+    }
+
+    .by5 .friend_box_selected .friend_txt {
+        padding-top: 12px;
+    }
+
+    #button_do_share {
+        float: none !important;
+    }
+
+    .manual_add {
+        padding-right: 14px;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #picked_friends_container {
+        margin-top: 5px;
+    }
+    
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 10px;
+    }
+
+    #message_form table {
+        width: 100%;
+    }
+    
+    #message_form table td {
+        width: 50% !important;
+    }
+}
+
+@media(min-width:475px){
+
+    .text_instructions {
+        float: left;
+    }
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 10px;
+    }
+
+    #button_sugg_msg,
+    #button_select_all {
+        margin-left: 0px;
+        margin-right: 0px;
+        float: right;
+    }
+    
+    #button_do_share {
+        font-size: 14px;
+    }
+    
+    #friends_table.by5 .friend_wrapper {
+        width: 50%;
+    }
+
+    .by5 .friend_wrapper:nth-child(2n+2) .friend_box {
+        margin: 0px 0px 10px 0px;
+    }
+    
+    .by5 .friend_wrapper:nth-child(2n+2) .xout {
+        right: 0px;
+    }
+    
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+        font-size: 12px;
+    }
+
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
+    .by5 .friend_txt {
+        padding-top: 0px;
+    }
+
+    .by5 .friend_box_selected .friend_txt {
+        padding-top: 12px;
+    }
+
+    .by3 .friend_pic {
+        width: 50%;
+    }
+    
+    .by3 .friend_txt {
+        width: 50%;
+        font-size: 10px;
+    }
+    
+    .by3 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
+    }
+
+    .manual_add {
+        padding-right: 14px;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #picked_friends_container {
+        margin-top: 5px;
+    }
+    
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 10px;
+    }
+}
+
+@media(min-width:600px){
+    
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 14px;
+    }
+    
+    #button_do_share {
+        font-size: 18px;
+    }
+    
+    #friends_table.by5 .friend_wrapper {
+        width: 20%;
+    }
+
+    .by5 .friend_wrapper:nth-child(2n+2) .friend_box {
+        margin: 0px 10px 10px 0px;
+    }
+    
+    .by5 .friend_wrapper:nth-child(2n+2) .xout {
+        right: 10px;
+    }
+
+    .by5 .friend_wrapper:nth-child(5n+5) .friend_box {
+        margin: 0px 0px 10px 0px;
+    }
+
+    .by5 .friend_wrapper:nth-child(5n+5) .xout {
+        right: 0px;
+    }
+
+    .by5 .friend_pic {
+        width: 45%;
+    }
+    
+    .by5 .friend_txt {
+        width: 55%;
+        font-size: 10px;
+    }
+    
+    .by5 .friend_pic img {
+        height: 30px;
+        width: 30px;
+        margin: 17px auto;
+    }
+    
+    .by5 .friend_txt {
+        padding-top: 10px;
+    }
+
+    .by5 .friend_box_selected .friend_txt {
+        padding-top: 22px;
+    }
+
+    .by3 .friend_pic {
+        width: 35%;
+    }
+    
+    .by3 .friend_txt {
+        width: 65%;
+        font-size: 12px;
+    }
+    
+    .by3 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
+    .manual_add {
+        padding-right: 14px;
+    }
+    
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #picked_friends_container {
+        margin-top: 5px;
+    }
+    
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 12px;
+    }
+}
+
+@media(min-width:675px) {
+
+    .by5 .friend_pic img {
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
+    }
+
+    .by5 .friend_txt {
+        padding-top: 5px;
+    }
+    
+    .by5 .friend_box_selected .friend_txt {
+        padding-top: 17px;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 14px;
+    }
+}
+
+@media(min-width:768px) {
+
+    #friends_div {
+        width: 750px !important;
+    }
+
+    #faces_form_container {
+        width: 83.33333333%;
+        margin-left: 8.33333333%;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 10px;
+    }
+}
+
+@media(min-width:992px){
+    
+    #friends_div {
+        width: 970px !important;
+    }
+
+    #faces_form_container {
+        width: 83.33333333%;
+        margin-left: 8.33333333%;
+    }
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 18px;
+    }
+    
+    #button_do_share {
+        font-size: 22px;
+    }
+    
+    .by5 .friend_pic {
+        width: 40%;
+    }
+    
+    .by5 .friend_txt {
+        width: 60%;
+        font-size: 12px;
+    }
+
+    .by3 .friend_pic {
+        width: 30%;
+    }
+    
+    .by3 .friend_txt {
+        width: 70%;
+        font-size: 14px;
+    }
+    
+    .by3 .friend_pic img,
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+    
+    .added_friend,
+    .manual_input {
+        font-size: 12px;
+    }
+
+    #manual_add_text {
+        width: 50%;
+        float: left;
+    }
+
+    #picked_friends_container {
+        float: right;
+        width: 40%;
+    }
+    
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 16px;
+    }
+}
+
+@media(min-width:1200px){
+
+    #friends_div {
+        width: 1170px !important;
+    }
+
+    #faces_form_container { 
+        width: 66.66666667%;
+        margin-left: 16.66666667%;
+    }
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 20px;
+    }
+    
+    #button_do_share {
+        font-size: 24px;
+    }
+
+    .by5 .friend_pic {
+        width: 40%;
+    }
+
+    .by5 .friend_txt {
+        width: 60%;
+        font-size: 14px;
+    }
+
+    .by3 .friend_pic {
+        width: 30%;
+    }
+    
+    .by3 .friend_txt {
+        width: 70%;
+        font-size: 16px;
+    }
+
+    .by3 .friend_pic img,
+    .by5 .friend_pic img {
+        height: 50px;
+        width: 50px;
+        margin: 7px auto;
+    }
+
+    .added_friend,
+    .manual_input {
+        font-size: 12px;
+    }
+
+    #manual_add_text {
+        width: 50%;
+        float: left;
+    }
+
+    #picked_friends_container {
+        float: right;
+        width: 40%;
+    }
+
+    #message_friend_name,
+    #message_form_editable {
+        font-size: 16px;
+    }
+}
+/*** Responsive styles ***/
+
+
 /*** Top Level DOM elements ***/
 /* Used when on facebook's canvas, contains everything but the loading dialog */
 .canvas_friends_div {
@@ -215,7 +706,6 @@ body {
     padding-bottom: 15px;
     margin-bottom:  30px;
     border-bottom: thin solid black;
-    margin-right: 16px;
 }
 /*** heading ***/
 
@@ -231,7 +721,6 @@ body {
 
 .text_instructions {
     font-weight: 200;
-    float: left;
     color: #3561a1;
     height: 30px;
     line-height: 30px;
@@ -246,8 +735,6 @@ body {
     border-radius: 1px;
     vertical-align: bottom;
     margin-bottom: 10px;
-    margin-right: 16px;
-    float: right;
     text-align: center;
 }
 
@@ -275,7 +762,7 @@ body {
 }
 
 #friends_table.by3 .friend_wrapper {
-    width: 33%;
+    width: 33.33333333%;
 }
 
 .friend_box {
@@ -284,6 +771,14 @@ body {
     background-color: white;
     box-shadow: 0 0 8px rgba(0,0,0,0.14);
     margin: 0px 10px 10px 0px;
+}
+
+.by3 .friend_wrapper:nth-child(3n+3) .friend_box {
+    margin: 0px 0px 10px 0px;
+}
+
+.by3 .friend_wrapper:nth-child(3n+3) .xout {
+    right: 0px;
 }
 
 #manual_add:before,
@@ -299,10 +794,6 @@ body {
   clear: both;
 }
     
-#picked_friends_container {
-    margin-right: 16px;
-}
-
 .friend_pic img {
     border-radius: 2px;
     display: block;
@@ -432,9 +923,6 @@ body {
 /*** Manual add box ***/
 
 /*** Message input box ***/
-#message_container {
-    margin-right: 16px;
-}
 
 #message_form {
     clear: both;
@@ -529,7 +1017,6 @@ body {
 
 #button_do_share {
     padding: 6px 20px;
-    margin-right: 16px;
     font-weight:200;
     letter-spacing: 1.5px;
     border-radius: 1px;
@@ -591,475 +1078,5 @@ body {
 /*** 'Button' styles ***/
 
 
-/*** Responsive styles ***/
-@media(max-width:474px){
-    
-    #spinner,
-    #progress-text {
-        width: 75%;
-        line-height: 14px;
-    }
-    
-    #spinner:before {
-        font-size: 12px;
-    }
 
-    #spinner {
-        margin-left: auto;
-        margin-right: auto;
-    }
-
-    .text_instructions {
-        float: none !important;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-
-    #button_sugg_msg,
-    #button_select_all {
-        margin-left: auto;
-        margin-right: auto;
-        display: block;
-        float: none;
-    }
-
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 10px;
-    }
-
-    #button_sugg_msg {
-        width: 123px;
-    }
-    
-    #button_select_all {
-        width: 72px;
-    }
-
-    #button_do_share {
-        font-size: 14px;
-    }
-
-    .by3 .friend_pic {
-        width: 50%;
-    }
-    
-    .by3 .friend_txt {
-        width: 50%;
-        font-size: 10px;
-    }
-
-    .by3 .friend_pic img {
-        height: 40px;
-        width: 40px;
-        margin: 12px auto;
-    }
-
-    #friends_table.by5 .friend_wrapper {
-        width: 50%;
-    }
-    
-    .by5 .friend_pic {
-        width: 45%;
-    }
-    
-    .by5 .friend_txt {
-        width: 55%;
-        font-size: 8px;
-    }
-
-    .by5 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
-    }
-
-    .by5 .friend_txt {
-        padding-top: 0px;
-    }
-
-    .by5 .friend_box_selected .friend_txt {
-        padding-top: 12px;
-    }
-
-    #button_do_share {
-        float: none !important;
-        margin-right: 16px;
-    }
-
-    .manual_add {
-        padding-right: 14px;
-    }
-
-    #manual_add_text {
-        margin-right: 16px;
-    }
-
-    #picked_friends_container {
-        margin-top: 5px;
-    }
-    
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 10px;
-    }
-
-    #message_form table {
-        width: 100%;
-    }
-    
-    #message_form table td {
-        width: 50% !important;
-    }
-}
-
-@media(min-width:475px){
-
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 10px;
-    }
-    
-    #button_do_share {
-        font-size: 14px;
-    }
-    
-    #friends_table.by5 .friend_wrapper {
-        width: 50%;
-    }
-    
-    .by5 .friend_pic {
-        width: 45%;
-    }
-    
-    .by5 .friend_txt {
-        width: 55%;
-        font-size: 8px;
-    }
-
-    .by5 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
-    }
-
-    .by5 .friend_txt {
-        padding-top: 0px;
-    }
-
-    .by5 .friend_box_selected .friend_txt {
-        padding-top: 12px;
-    }
-
-    .by3 .friend_pic {
-        width: 50%;
-    }
-    
-    .by3 .friend_txt {
-        width: 50%;
-        font-size: 10px;
-    }
-    
-    .by3 .friend_pic img {
-        height: 40px;
-        width: 40px;
-        margin: 12px auto;
-    }
-
-    .manual_add {
-        padding-right: 14px;
-    }
-
-    .added_friend,
-    .manual_input {
-        font-size: 10px;
-    }
-
-    #manual_add_text {
-        margin-right: 16px;
-    }
-
-    #picked_friends_container {
-        margin-top: 5px;
-    }
-    
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 10px;
-    }
-}
-
-@media(min-width:600px){
-    
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 14px;
-    }
-    
-    #button_do_share {
-        font-size: 18px;
-    }
-    
-    #friends_table.by5 .friend_wrapper {
-        width: 20%;
-    }
-
-    .by5 .friend_pic {
-        width: 45%;
-    }
-    
-    .by5 .friend_txt {
-        width: 55%;
-        font-size: 10px;
-    }
-    
-    .by5 .friend_pic img {
-        height: 30px;
-        width: 30px;
-        margin: 17px auto;
-    }
-    
-    .by5 .friend_txt {
-        padding-top: 10px;
-    }
-
-    .by5 .friend_box_selected .friend_txt {
-        padding-top: 22px;
-    }
-
-    .by3 .friend_pic {
-        width: 35%;
-    }
-    
-    .by3 .friend_txt {
-        width: 65%;
-        font-size: 12px;
-    }
-    
-    .by3 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
-    }
-
-    .manual_add {
-        padding-right: 14px;
-    }
-    
-    .added_friend,
-    .manual_input {
-        font-size: 10px;
-    }
-
-    #manual_add_text {
-        margin-right: 16px;
-    }
-
-    #picked_friends_container {
-        margin-top: 5px;
-    }
-    
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 12px;
-    }
-}
-
-@media(min-width:675px) {
-
-    .by5 .friend_pic img {
-        height: 40px;
-        width: 40px;
-        margin: 12px auto;
-    }
-
-    .by5 .friend_txt {
-        padding-top: 5px;
-    }
-    
-    .by5 .friend_box_selected .friend_txt {
-        padding-top: 17px;
-    }
-
-    .added_friend,
-    .manual_input {
-        font-size: 10px;
-    }
-
-    #manual_add_text {
-        margin-right: 16px;
-    }
-    
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 14px;
-    }
-}
-
-@media(min-width:768px) {
-
-    #friends_div {
-        width: 750px !important;
-    }
-
-    #faces_form_container {
-        width: 83.33333333%;
-        margin-left: 8.33333333%;
-    }
-
-    .added_friend,
-    .manual_input {
-        font-size: 10px;
-    }
-
-    #manual_add_text {
-        margin-right: 16px;
-    }
-}
-
-@media(min-width:992px){
-    
-    #friends_div {
-        width: 970px !important;
-    }
-
-    #faces_form_container {
-        width: 83.33333333%;
-        margin-left: 8.33333333%;
-    }
-
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 18px;
-    }
-    
-    #button_do_share {
-        font-size: 22px;
-    }
-    
-    #friends_table.by5 .friend_wrapper {
-        width: 20%;
-    }
-    
-    .by5 .friend_pic {
-        width: 40%;
-    }
-    
-    .by5 .friend_txt {
-        width: 60%;
-        font-size: 12px;
-    }
-
-    .by3 .friend_pic {
-        width: 30%;
-    }
-    
-    .by3 .friend_txt {
-        width: 70%;
-        font-size: 14px;
-    }
-    
-    .by3 .friend_pic img,
-    .by5 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
-    }
-    
-    .added_friend,
-    .manual_input {
-        font-size: 12px;
-    }
-
-    #manual_add_text {
-        width: 50%;
-        float: left;
-    }
-
-    #picked_friends_container {
-        float: right;
-        width: 40%;
-    }
-    
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 16px;
-    }
-}
-
-@media(min-width:1200px){
-
-    #friends_div {
-        width: 1170px !important;
-    }
-
-    #faces_form_container { 
-        width: 66.66666667%;
-        margin-left: 16.66666667%;
-    }
-
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 20px;
-    }
-    
-    #button_do_share {
-        font-size: 24px;
-    }
-
-    #friends_table.by5 .friend_wrapper {
-        width: 20%;
-    }
-
-    .by5 .friend_pic {
-        width: 40%;
-    }
-
-    .by5 .friend_txt {
-        width: 60%;
-        font-size: 14px;
-    }
-
-    .by3 .friend_pic {
-        width: 30%;
-    }
-    
-    .by3 .friend_txt {
-        width: 70%;
-        font-size: 16px;
-    }
-
-    .by3 .friend_pic img,
-    .by5 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
-    }
-
-    .added_friend,
-    .manual_input {
-        font-size: 12px;
-    }
-
-    #manual_add_text {
-        width: 50%;
-        float: left;
-    }
-
-    #picked_friends_container {
-        float: right;
-        width: 40%;
-    }
-
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 16px;
-    }
-}
-/*** Responsive styles ***/
 
