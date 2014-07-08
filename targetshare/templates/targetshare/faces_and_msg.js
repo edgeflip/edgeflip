@@ -359,30 +359,37 @@ function selectAll(skipRecord) {
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call
     var fbid,
-        fbids = [],
-        divs = $(".friend_box:visible"),
+        unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
         count = getRecipFbids().length;
-    for (var i = 0; i < divs.length; i++) {
-        if (count >= edgeflip.faces.max_face) {
-            alert("Sorry: only ten friends can be tagged.");
-            break;
+
+    //we want to alert only if there are unselected friend boxes
+    //and the count is already at max_face
+    unselected_friend_boxes.each( function() {
+        if(count === edgeflip.faces.max_face ) {
+            alertTooMany();
+            return false;
         }
-        fbid = parseInt(divs[i].id.split('-')[1]);
-        fbids.push(fbid);
+        fbid = parseInt(this.id.split('-')[1]);
         if (!isRecip(fbid)) {
             count++;
+            selectFriend(fbid);
         }
-    }
-    selectFriend.apply(this, fbids);
+    } );
 }
+
+/* Tell the user max_face have already been selected */
+function alertTooMany() { alert("Sorry: only " + edgeflip.faces.max_face + " friends can be tagged."); }
 
 // Toggle the recipient state of a friend upon checking or unchecking
 function toggleFriend(fbid) {
+    var count;
+
     if (isRecip(fbid)) {
           unselectFriend(fbid);
-    }
-    else {
-          selectFriend(fbid);
+    } else if( getRecipFbids().length === edgeflip.faces.max_face ) {
+        alertTooMany();
+    } else {
+        selectFriend(fbid);
     }
 }
 
