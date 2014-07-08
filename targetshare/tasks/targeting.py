@@ -122,15 +122,14 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     client_content = relational.ClientContent.objects.get(content_id=content_id)
     campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
-    client = campaign.client
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
     already_picked = already_picked or datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
-        LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                      campaign_id)
+        LOG_RVN.warn("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                     campaign_id)
         fallback_cascading = None
 
     # If fallback content_id IS NULL, defer to current content_id:
@@ -282,17 +281,17 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            LOG_RVN.error("No fallback for %s with campaign %s. (Will return error to user.)",
-                          fbid, campaign_id)
-            event_content = '{}:button /frame_faces/{}/{}'.format(
-                client.fb_app_name,
-                campaign_id,
-                content_id,
-            )
+            if px_rank == 3:
+                LOG_RVN.fatal("No fallback for %s with campaign %s. "
+                              "(Will return error to user.)",
+                              fbid, campaign_id)
+            else:
+                LOG_RVN.error("No fallback for %s with campaign %s.", fbid, campaign_id)
+
             interaction.events.create(
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                content=event_content,
+                content=px_rank,
                 event_type='no_friends_error'
             )
             return empty_filtering_result._replace(campaign_id=campaign_id,
@@ -340,9 +339,6 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     else:
         # We're done cascading and have enough friends, so time to return!
-
-        # Might have cascaded beyond the point of having new friends to add,
-        # so pick up various return values from the last tier with friends.
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
         return FilteringResult(edges_ranked, already_picked, **last_tier)
