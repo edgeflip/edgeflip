@@ -134,25 +134,31 @@ def upsert(*items, **kws):
             anonymous arguments.
 
     """
-    # Support single-argument sequence interface:
     partial_save_queue = kws.get('partial_save_queue', 'partial_save')
+
+    # Support single-argument sequence interface:
     if len(items) == 1 and isinstance(items[0], (list, tuple)):
         (items,) = items
 
-    items_data = {item.pk: item for item in items}
-    if not items_data:
+    if len(items) == 0:
+        # Nothing to upsert
         return
 
-    (cls,) = set(type(item) for item in items)
-    keys = [item.get_keys() for item in items_data.values()]
+    try:
+        (kls,) = {type(item) for item in items}
+    except ValueError:
+        raise TypeError("upsert cannot receive items of disparate type")
+
+    unprocessed = {item.pk: item for item in items}
 
     # Update existing items:
-    for existing in cls.items.batch_get(keys=keys):
-        item = items_data.pop(existing.pk)
+    keys = [item.get_keys() for item in unprocessed.itervalues()]
+    for existing in kls.items.batch_get(keys):
+        item = unprocessed.pop(existing.pk)
 
-        # update the existing item:
-        for key, value in item.items():
-            field = cls._meta.fields.get(key)
+        # Update the existing item:
+        for (key, value) in item.items():
+            field = kls._meta.fields.get(key)
             strategy = field.upsert_strategy if field else UpsertStrategy.overwrite
             strategy(existing, key, value)
 
@@ -163,7 +169,7 @@ def upsert(*items, **kws):
         )
 
     # Remaining items are new. Save them:
-    for item in items_data.values():
+    for item in unprocessed.itervalues():
         partial_save.apply_async(
             args=[item],
             queue=partial_save_queue,

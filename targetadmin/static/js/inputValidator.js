@@ -88,20 +88,20 @@ $( function() {
                 inputs: [
                     { el: $('#id_sharing_prompt'),
                       invalidText: 'A headline is required.',
-                      placement: 'bottom',
-                      popoverEl: undefined
+                      placement: 'bottom'
+                    },
+                    { el: $('#id_sharing_button'),
+                      invalidText: 'Must be 1 to 24 characters long.',
+                      placement: 'bottom'
                     },
                     { el: $('#id_thanks_url'),
                       invalidText: 'A thanks URL is required.',
-                      placement: 'bottom',
-                      popoverEl: undefined
+                      placement: 'bottom'
                     },
                     { el: $('#id_error_url'),
                       invalidText: 'An error URL is required.',
-                      placement: 'bottom',
-                      popoverEl: undefined
+                      placement: 'bottom'
                     }
-
                 ]
             },
             {
@@ -148,21 +148,27 @@ $( function() {
             e.preventDefault();
             var atleastOneInvalid = false;
             _.each( validator.inputs, function( inputModel ) {
-                var isValid = isElValid( inputModel.el );
+                var isValid;
+                
+                if( inputModel.isValid ) {
+                    isValid = inputModel.isValid( inputModel.el.val() );
+                } else {
+                    isValid = isElValid( inputModel.el );
+                }
 
-                 if( isValid ) {
-                     if( inputModel.popoverEl !== undefined ) {
-                         inputModel.popoverEl.popover('hide');
-                         inputModel.popoverEl = undefined;
-                     }
-                 } else {
-                     e.stopImmediatePropagation();
-                     if( inputModel.doNotDisplay === true ) { return; }
+                if( isValid ) {
+                    if( inputModel.popoverEl !== undefined ) {
+                        inputModel.popoverEl.popover('hide');
+                        inputModel.popoverEl = undefined;
+                    }
+                } else {
+                    e.stopImmediatePropagation();
+                    if( inputModel.doNotDisplay === true ) { return; }
 
-                     atleastOneInvalid = true;
-                     if( inputModel.popoverEl === undefined ) {
-                         notifyUser(inputModel);
-                     }
+                    atleastOneInvalid = true;
+                    if( inputModel.popoverEl === undefined ) {
+                        notifyUser(inputModel);
+                    }
                  }
             } );
 

@@ -35,7 +35,7 @@ class TestDataView(EdgeFlipTestCase):
         self.assertFalse(response.content)
 
     @patch_token
-    @mock.patch('targetshare.tasks.ranking.px3_crawl')
+    @mock.patch('targetshare.tasks.targeting.px3_crawl')
     def test_post_initial(self, px3_crawl):
         px3_crawl.delay.return_value = mock.Mock(**{
             'id': 'boo',

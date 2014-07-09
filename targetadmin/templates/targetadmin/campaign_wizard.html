@@ -17,10 +17,9 @@
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
         <div id="intro" class="wizard-step">
-            <div class="page-header-information">
-                <div>A targeted sharing campaign turns your supporters into influencers by asking them to share your content with friends</div>
-                <div>
-                    <span>who are likely to support your organization.</span>
+            <div class="page-header-information row">
+                <div class="span8 offset2">
+                    <span>A targeted sharing campaign turns your supporters into influencers by asking them to share your content with friends who are likely to support your organization.</span>
                     <a href="{% url 'targetadmin:how-it-works' %}" target="_blank">Learn more about Targeted Sharing.</a>
                 </div>
             </div>
@@ -28,8 +27,7 @@
                 <button type="button" class="get-started-btn btn btn-primary">Get Started</button>
             </div>
             <div class="row">
-                <div class="span2"></div>
-                <div id="intro-carousel" class="span8 carousel slide">
+                <div id="intro-carousel" class="offset2 span8 carousel slide">
                     <ol class="carousel-indicators">
                         <li data-target="#intro-carousel" data-slide-to="0" class="active"></li>
                         <li data-target="#intro-carousel" data-slide-to="1"></li>
@@ -67,7 +65,6 @@
                     <a class="carousel-control left" href="#intro-carousel" data-slide="prev">&lsaquo;</a>
                     <a class="carousel-control right" href="#intro-carousel" data-slide="next">&rsaquo;</a>
                 </div>
-                <div class="span2"></div>
             </div>
         </div>
         <div id="filtering" class="wizard-step" style="display: none;">

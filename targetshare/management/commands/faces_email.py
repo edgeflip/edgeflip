@@ -15,7 +15,7 @@ from django.db import connection, transaction
 from django.utils import timezone
 
 from targetshare.models import dynamo, relational
-from targetshare.tasks import db, ranking
+from targetshare.tasks import db, targeting
 from targetshare.templatetags.string_format import lexical_list
 
 
@@ -124,14 +124,14 @@ def crawl_and_filter(campaign, content, notification, offset,
             uuid=hash_, fbid=ut.fbid)
 
         try:
-            (stream, edges) = ranking.px4_crawl(ut)
+            (stream, edges) = targeting.px4_crawl(ut)
         except Exception as exc:
             LOG.exception('Failed to crawl %s', ut.fbid)
             failed_fbids.append(ut.fbid)
             error_dict[exc.__class__.__name__] += 1
             continue
 
-        filtered_result = ranking.px4_filter(
+        filtered_result = targeting.px4_filter(
             stream,
             edges,
             campaign.pk,
@@ -143,7 +143,7 @@ def crawl_and_filter(campaign, content, notification, offset,
             cache_match=cache,
             force=True,
         )
-        reranked_result = ranking.px4_rank(filtered_result)
+        reranked_result = targeting.px4_rank(filtered_result)
         targeted_edges = reranked_result.filtered and reranked_result.filtered.edges
 
         if targeted_edges:

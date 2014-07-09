@@ -13,18 +13,6 @@ class TestTopics(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestTopics, self).setUp()
-        self.posttopics_set = [
-            models.dynamo.PostTopics(
-                postid='1_1',
-                Health=Decimal('1.0'),
-                Sports=Decimal('0.1'),
-            ),
-            models.dynamo.PostTopics(
-                postid='1_2',
-                Health=Decimal('0.2'),
-                Sports=Decimal('0.5'),
-            ),
-        ]
         self.user = models.User(
             fbid=1,
             birthday=datetime(1984, 1, 1),
@@ -35,30 +23,44 @@ class TestTopics(EdgeFlipTestCase):
             state='Illinois',
             country='United States'
         )
+        self.posttopics_set = [
+            models.dynamo.PostTopics(
+                postid='1_1',
+                classifier=models.dynamo.PostTopics.QD_CLASSIFIER,
+                Health=Decimal('1.0'),
+                Sports=Decimal('0.1'),
+            ),
+            models.dynamo.PostTopics(
+                postid='1_2',
+                classifier=models.dynamo.PostTopics.QD_CLASSIFIER,
+                Health=Decimal('0.2'),
+                Sports=Decimal('0.5'),
+            ),
+        ]
+        self.posttopics_catalog = {pt.postid: pt for pt in self.posttopics_set}
         self.postinteractions_set = [
             models.dynamo.PostInteractions(
                 user=self.user,
-                post_topics=self.posttopics_set[0],
+                postid=self.posttopics_set[0].postid,
                 post_likes=1,
                 post_comms=2,
                 tags=1,
             ),
             models.dynamo.PostInteractions(
                 user=self.user,
-                post_topics=self.posttopics_set[1],
+                postid=self.posttopics_set[1].postid,
                 post_likes=2,
                 post_comms=0,
                 tags=1,
             ),
         ]
-        for post_interactions in self.postinteractions_set:
-            post_interactions.post_topics.save()
-            post_interactions.save()
+        for item in self.postinteractions_set + self.posttopics_set:
+            item.save()
 
-    @staticmethod
-    def _interactions_weights(post_interactions):
+    def _interactions_weights(self, post_interactions):
         interactions_count = sum(post_interactions.document.values())
-        for (topic, score) in post_interactions.post_topics.document.items():
+        post_topics = self.posttopics_catalog[post_interactions.postid]
+        for (topic, score) in post_topics.document.items():
             yield (topic, score * interactions_count)
 
     def test_topics(self):
@@ -90,7 +92,7 @@ class TestTopics(EdgeFlipTestCase):
     def test_topics_precache(self):
         for post_interactions in self.postinteractions_set:
             post_interactions.delete()
-        topics = models.dynamo.User.get_topics(self.postinteractions_set)
+        topics = models.dynamo.User.get_topics(self.postinteractions_set, self.posttopics_catalog)
         self.assertTrue(topics)
         self.assertFalse(self.user.topics)
         self.user.topics = topics

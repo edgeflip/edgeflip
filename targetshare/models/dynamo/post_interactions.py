@@ -24,7 +24,6 @@ class PostInteractions(Item):
     wall_comms = ItemField(data_type=NUMBER)
     tags = ItemField(data_type=NUMBER)
 
-    post_topics = ItemLinkField('PostTopics', db_key=postid)
     user = ItemLinkField('User', db_key=fbid)
 
 

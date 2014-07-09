@@ -13,8 +13,9 @@ from django.conf import settings
 from django.db.models.loading import get_model
 from django.db.models import Q
 
-from targetshare import models, utils
+from targetshare import utils
 from targetshare.integration import facebook
+from targetshare.models import datastructs, dynamo, relational
 from targetshare.tasks import db
 
 
@@ -119,17 +120,16 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     app, model_name = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
-    client_content = models.relational.ClientContent.objects.get(content_id=content_id)
-    campaign = models.relational.Campaign.objects.get(campaign_id=campaign_id)
-    client = campaign.client
+    client_content = relational.ClientContent.objects.get(content_id=content_id)
+    campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
-    already_picked = already_picked or models.datastructs.TieredEdges()
+    already_picked = already_picked or datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
-        LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                      campaign_id)
+        LOG_RVN.warn("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                     campaign_id)
         fallback_cascading = None
 
     # If fallback content_id IS NULL, defer to current content_id:
@@ -141,17 +141,16 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     # use the min_friends parameter as the threshold for errors.
     min_friends = 1 if fallback_cascading else properties.min_friends
 
-    # Check if any friends should be excluded for this campaign/content combination
-    exclude_friends = set(models.relational.FaceExclusion.objects.filter(
+    # Check if any friends should be excluded for this campaign & content:
+    face_exclusions = relational.FaceExclusion.objects.filter(
         fbid=fbid,
         campaign=campaign,
         content=client_content,
-    ).values_list('friend_fbid', flat=True))
-    # avoid re-adding if already picked:
-    exclude_friends = exclude_friends.union(already_picked.secondary_ids)
-    edges_eligible = [
-        edge for edge in edges_ranked if edge.secondary.fbid not in exclude_friends
-    ]
+    )
+    exclude_friends = set(face_exclusions.values_list('friend_fbid', flat=True).iterator())
+    exclude_friends.update(already_picked.secondary_ids) # don't re-add those already picked
+    edges_eligible = [edge for edge in edges_ranked
+                      if edge.secondary.fbid not in exclude_friends]
 
     # Assign filter experiments (and record) #
 
@@ -191,18 +190,24 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     choice_set_filters = choice_set.choicesetfilters.exclude(
         filter__filterfeatures__feature_type__px_rank__gt=px_rank
     )
-    try:
-        (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
-            edges_filtered,
-            use_generic=allow_generic,
-            min_friends=min_friends,
-            cache_match=cache_match,
-        )
-    except models.relational.ChoiceSetFilter.TooFewFriendsError:
-        LOG_RVN.info("Too few friends found for user %s with campaign %s. "
-                     "(Will check for fallback.)", fbid, campaign_id)
+    if choice_set_filters:
+        try:
+            (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
+                edges_filtered,
+                use_generic=allow_generic,
+                min_friends=min_friends,
+                cache_match=cache_match,
+            )
+        except relational.ChoiceSetFilter.TooFewFriendsError:
+            LOG_RVN.debug("Too few friends found for user %s with campaign %s. "
+                          "(Will check for fallback.)", fbid, campaign_id)
+            best_csf_edges = None
     else:
-        already_picked += models.datastructs.TieredEdges(
+        # No ChoiceSetFilters, on this ChoiceSet, (at this rank); skip filtering:
+        (best_csf, best_csf_edges) = (None, edges_filtered)
+
+    if best_csf_edges is not None:
+        already_picked += datastructs.TieredEdges(
             edges=best_csf_edges,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -210,8 +215,10 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
         )
         if best_csf is None:
-            # We got generic:
-            LOG.debug("Generic returned for %s with campaign %s.", fbid, campaign_id)
+            template = "No ChoiceSetFilter applied ({}) for %s with campaign %s.".format(
+                "used generic" if choice_set_filters else "none at rank"
+            )
+            LOG.debug(template, fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
@@ -274,17 +281,17 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            LOG_RVN.error("No fallback for %s with campaign %s. (Will return error to user.)",
-                          fbid, campaign_id)
-            event_content = '{}:button /frame_faces/{}/{}'.format(
-                client.fb_app_name,
-                campaign_id,
-                content_id,
-            )
+            if px_rank == 3:
+                LOG_RVN.fatal("No fallback for %s with campaign %s. "
+                              "(Will return error to user.)",
+                              fbid, campaign_id)
+            else:
+                LOG_RVN.error("No fallback for %s with campaign %s.", fbid, campaign_id)
+
             interaction.events.create(
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                content=event_content,
+                content=px_rank,
                 event_type='no_friends_error'
             )
             return empty_filtering_result._replace(campaign_id=campaign_id,
@@ -332,9 +339,6 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     else:
         # We're done cascading and have enough friends, so time to return!
-
-        # Might have cascaded beyond the point of having new friends to add,
-        # so pick up various return values from the last tier with friends.
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
         return FilteringResult(edges_ranked, already_picked, **last_tier)
@@ -378,7 +382,7 @@ def px4_crawl(token):
 
     friend_count = facebook.client.get_friend_count(token.fbid, token.token)
     if friend_count >= DB_MIN_FRIEND_COUNT:
-        edges_unranked = models.datastructs.UserNetwork.get_friend_edges(
+        edges_unranked = datastructs.UserNetwork.get_friend_edges(
             user,
             require_incoming=True,
             require_outgoing=False,
@@ -423,17 +427,15 @@ def px4_crawl(token):
 
         # PostInteractions:
         db.bulk_create.delay(tuple(edges_ranked.iter_interactions()))
-        db.upsert.delay(
-            tuple(
-                models.dynamo.PostInteractionsSet(
-                    fbid=edge.secondary.fbid,
-                    postids=[post_interactions.postid
-                             for post_interactions in edge.interactions],
-                )
-                for edge in edges_ranked
-                if edge.interactions
+        db.upsert.delay([
+            dynamo.PostInteractionsSet(
+                fbid=edge.secondary.fbid,
+                postids=[post_interactions.postid
+                         for post_interactions in edge.interactions],
             )
-        )
+            for edge in edges_ranked
+            if edge.interactions
+        ])
 
         # Edges:
         db.update_edges.delay(edges_ranked)
@@ -446,7 +448,7 @@ def _fallback_campaign(campaign_id):
     (if any) of the campaign with the given primary key (`campaign_id`).
 
     """
-    return (models.relational.CampaignProperties.objects
+    return (relational.CampaignProperties.objects
         .values_list('fallback_campaign', flat=True)
         .get(campaign_id=campaign_id))
 
@@ -477,23 +479,23 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
     campaign_global = Q(filter__campaignglobalfilters__campaign__in=campaigns)
     campaign_choiceset = Q(
         filter__choicesetfilters__choice_set__campaignchoicesets__campaign__in=campaigns)
-    px4_filter_features = models.relational.FilterFeature.objects.for_datetime().filter(
+    px4_filter_features = relational.FilterFeature.objects.for_datetime().filter(
         (campaign_global | campaign_choiceset),
         feature_type__px_rank__gte=4,
     )
     # ..and ranking features:
-    ranking_features = models.relational.RankingKeyFeature.objects.filter(
+    ranking_features = relational.RankingKeyFeature.objects.filter(
         ranking_key__campaignrankingkeys__campaign__in=campaigns,
     ).for_datetime()
 
     # Eagerly retrieve and/or compute relevant PostTopics:
     topics_filter_features = px4_filter_features.filter(
-        feature_type__code=models.relational.FilterFeatureType.TOPICS,
+        feature_type__code=relational.FilterFeatureType.TOPICS,
     ).values_list('feature', flat=True).distinct()
     topics_ranking_features = ranking_features.filter(
-        feature_type__code=models.relational.RankingFeatureType.TOPICS,
+        feature_type__code=relational.RankingFeatureType.TOPICS,
     ).values_list('feature', flat=True).distinct()
-    topic_parser = models.relational.FilterFeature.Expression.ALL['topics']
+    topic_parser = relational.FilterFeature.Expression.ALL['topics']
     topics_features = {
         topic_parser.search(feature).group(1)
         for feature in itertools.chain(
@@ -502,30 +504,30 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
         )
     }
     if topics_features:
-        interacted_posts = {
-            post_interactions.postid
-            for post_interactions in edges_ranked.iter_interactions()
-        }
-        # Retrieve existing (Hi-Fi background-computed) PostTopics:
-        post_topics = list(models.dynamo.PostTopics.items.batch_get([
-            {'postid': postid} for postid in interacted_posts
-        ]))
-        if stream is not None:
+        # Bulk-retrieve topics of all posts with which network has interacted:
+        (post_topics, missing_posts) = dynamo.PostTopics.items.batch_get_best(
+            (post_interactions.postid for post_interactions in edges_ranked.iter_interactions()),
+            # If we have no stream, settle for existing quick-dirty classifications;
+            # (otherwise, we'll ensure appropriate quick-dirty classification of posts below):
+            dynamo.PostTopics.CLASSIFIERS if stream is None else (dynamo.PostTopics.BG_CLASSIFIER,)
+        )
+        if missing_posts and stream is not None:
             # Attempt to fill in missing PostTopics from Stream Posts:
-            missing_posts = interacted_posts.difference(pt.postid for pt in post_topics)
-            if missing_posts:
-                post_topics.extend(
-                    models.dynamo.PostTopics.classify(
-                        post.post_id,
-                        post.message,
-                        *topics_features
-                    )
-                    for post in stream
-                    if post.message and post.post_id in missing_posts
+            qd_post_topics = [
+                dynamo.PostTopics.classify(
+                    post.post_id,
+                    post.message,
+                    *topics_features
                 )
-        # Pre-cache User.topics:
+                for post in stream
+                if post.message and post.post_id in missing_posts
+            ]
+            db.upsert.delay(qd_post_topics)
+            post_topics += qd_post_topics
+
+        # Pre-cache User.topics
         # NOTE: If network was read from FB, calculations will be limited to
-        # contents of primary's posts (currently).
+        # contents of primary's posts (currently)
         edges_ranked.precache_topics_feature(post_topics)
 
     ## px4 filtering ##
@@ -587,12 +589,12 @@ def px4_rank(filtering_result):
     (edges, filtered, campaign_id) = args
 
     try:
-        campaign_ranking_key = (models.relational.CampaignRankingKey.objects
+        campaign_ranking_key = (relational.CampaignRankingKey.objects
                                 .for_datetime().get(campaign_id=campaign_id))
-    except models.relational.CampaignRankingKey.DoesNotExist:
+    except relational.CampaignRankingKey.DoesNotExist:
         # No active rank refinements to apply
         return filtering_result
-    except models.relational.CampaignRankingKey.MultipleObjectsReturned:
+    except relational.CampaignRankingKey.MultipleObjectsReturned:
         # Multiple ranking keys not currently supported.
         # (Could use rand_cdf/random_assign in the future.)
         # (Note, to apply multiple sorting keys, a RankingKey may have multiple
@@ -614,7 +616,7 @@ def px4_rank(filtering_result):
         keys.sorted_edges(partition)
         for (_lower_bound, partition) in edges_partitioned
     )
-    edges_ranked = models.datastructs.UserNetwork(
+    edges_ranked = datastructs.UserNetwork(
         itertools.chain(edges_reranked, edges_tail)
     )
 

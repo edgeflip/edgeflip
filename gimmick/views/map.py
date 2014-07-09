@@ -11,7 +11,7 @@ from django.views.decorators.http import require_http_methods, require_POST
 from targetshare.tasks.integration.facebook import extend_token
 from targetshare import models
 # from targetshare.tasks import db
-from targetshare.tasks import ranking
+from targetshare.tasks import targeting
 from targetshare.views import utils
 
 
@@ -59,7 +59,7 @@ def data(request):
         # FIXME: Also a problem for record_event on "authorized"
 
         # Initiate crawl task:
-        px3_task = ranking.px3_crawl.delay(token, visit_id=request.visit.pk)
+        px3_task = targeting.px3_crawl.delay(token, visit_id=request.visit.pk)
         request.session[task_key] = px3_task.id
 
     # Check status #

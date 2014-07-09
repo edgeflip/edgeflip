@@ -14,7 +14,7 @@ from targetshare.integration import facebook
 from targetshare.tasks import db
 from targetshare.tasks.integration.facebook import store_oauth_token
 from targetshare.views import utils
-from targetshare.tasks import ranking
+from targetshare.tasks import targeting
 
 LOG = logging.getLogger(__name__)
 
@@ -210,14 +210,14 @@ def faces_health_check(request):
         appid=client.fb_app_id,
         token=token,
     )
-    px3_task = ranking.proximity_rank_three(
+    px3_task = targeting.proximity_rank_three(
         token=token,
         visit_id=request.visit.pk,
         campaign_id=campaign.pk,
         content_id=content.pk,
         num_faces=num_face,
     )
-    px4_task = ranking.proximity_rank_four.delay(
+    px4_task = targeting.proximity_rank_four.delay(
         token=token,
         visit_id=request.visit.pk,
         campaign_id=campaign.pk,

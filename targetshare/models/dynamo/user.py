@@ -16,7 +16,7 @@ from faraday import (
 
 from targetshare.utils import atan_norm
 
-from . import PostInteractions
+from . import PostTopics
 
 
 LOG = logging.getLogger('crow')
@@ -84,35 +84,35 @@ class User(Item):
     def full_location(self):
         return u'{}, {} {}'.format(self.city, self.state, self.country)
 
-    @classmethod
-    def get_topics(cls, interactions, warn=True):
-        """Return a User's interests scored by topic, given an iterable of
-        PostInteractions.
-
-        This method makes use of the PostInteractions's PostTopics link; for best
-        performance, these should be pre-populated.
+    @staticmethod
+    def get_topics(post_interactions, post_topics):
+        """Return a User's interests scored by topic, given an iterable of the user's
+        PostInteractions and a catalog of PostTopics.
 
         """
-        uncached = 0
         scores = collections.defaultdict(int)
-        for interaction in interactions:
-            if warn and PostInteractions.post_topics.cache_get(interaction) is None:
-                uncached += 1
-            post_topics = interaction.post_topics.document
-            for (topic, value) in post_topics.items():
+        for interaction in post_interactions:
+            try:
+                catalogued = post_topics[interaction.postid]
+            except KeyError:
+                topics = {}
+            else:
+                topics = catalogued.document
+
+            for (topic, value) in topics.items():
                 # For now, all interactions weighted the same:
                 for (_interaction_type, count) in interaction.document.items():
                     scores[topic] += value * count
 
-        if uncached:
-            LOG.warn("User topics calculation performed without precaching "
-                     "of %i PostTopics items", uncached)
-
         # Normalize topic scores to 1:
-        return {topic: atan_norm(value)
-                for (topic, value) in scores.items()}
+        return {topic: atan_norm(value) for (topic, value) in scores.items()}
 
     @utils.cached_property
     def topics(self):
         """Aggregate topics scores of posts in which user has interacted."""
-        return self.get_topics(self.postinteractions_set.prefetch('post_topics'))
+        post_interactions_set = self.postinteractions_set.all()
+        (post_topics_set, _missing) = PostTopics.items.batch_get_best(
+            post_interactions.postid for post_interactions in post_interactions_set
+        )
+        post_topics_catalog = {post_topics.postid: post_topics for post_topics in post_topics_set}
+        return self.get_topics(post_interactions_set, post_topics_catalog)
