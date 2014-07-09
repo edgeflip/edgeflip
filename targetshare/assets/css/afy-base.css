@@ -2,6 +2,12 @@ body {
     font-family: "Gill Sans", "Trebuchet MS", Helvetica, sans-serif
 }
 
+ol {
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+
 .h2_container {
     border: none;
     white-space: normal;

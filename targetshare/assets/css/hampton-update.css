@@ -1,5 +1,17 @@
-.text_title_prompt span {
-    font-size: inherit !important;
+ol {
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+
+.clearfix:after,
+.clearfix:before {
+    content: " ";
+    display: table;
+}
+
+.clearfix:after {
+    clear: both;
 }
 
 #friends_table {
@@ -12,14 +24,4 @@
 
 .xout {
     right: 10px;
-}
-
-.clearfix:after,
-.clearfix:before {
-    content: " ";
-    display: table;
-}
-
-.clearfix:after {
-    clear: both;
 }
