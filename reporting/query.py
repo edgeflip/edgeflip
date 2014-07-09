@@ -1,13 +1,12 @@
 METRICS = [
-    ('visits', 'Visits', '# of unique visits'),
-    ('authorized_visits', 'Authorized Visits', '# of visits that authorized'),
-    ('uniq_users_authorized', 'Users Authorized', '# of unique users who authorized'),
-    ('auth_fails', 'Authorization Fails', '# of failed authorizations (either via decline or error)'),
-    ('visits_shown_faces', 'Visits Shown Faces', '# of visits that had friend suggestions shown to them'),
-    ('visits_with_share_clicks', 'Visits With Share Clicks', '# of visits with clicks on the share button'),
-    ('visits_with_shares', 'Visits With Shares', '# of visits that had at least one share'),
-    ('total_shares', 'Total Shares', '# of total shares'),
-    ('clickbacks', 'Clickbacks', '# of total clickbacks'),
+    ('incoming_redirects', 'Clicks', '# of visitors who were presented with the authorization page'),
+    ('authorized_visits', 'Authorized Visits', '# of visits with successful authorizations, either via new or previous authorization of the app'),
+    ('failed_visits', 'Failed Visits', '# of visits that resulted in either the authorization being refused or the visit being abandoned (e.g., the browser window was closed)'),
+    ('uniq_users_authorized', 'Unique Authorized Visitors', '# of unique visitors with one or more authorized visits'),
+    ('visits_shown_faces', 'Visits Shown Suggestions', '# of visits that resulted in a user being show friend suggestions'),
+    ('visits_with_shares', 'Visits Permitting Share', '# of visits that clicked to share with at least one friend and additionally authorized the app to post the message to their walls'),
+    ('total_shares', 'Audience Reached', 'the total audience reached as a result of each authorized share reaching one or more friends'),
+    ('clickbacks', 'Clickbacks', '# of clicks on the shared content by the audience reached'),
 ]
 
 def metric_expressions():
