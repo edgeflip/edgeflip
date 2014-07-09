@@ -1,6 +1,13 @@
 /*** base styling ***/
 
 @font-face {
+    font-family: 'Franklin Gothic Book';
+    font-style: normal;
+    font-weight: normal;
+    src: local('Franklin Gothic Book'), url('../f/FRABK.woff') format('woff');
+}
+
+@font-face {
     font-family: 'LatoLatin';
     src: url('../f/LatoLatin-Regular.eot'); /* IE9 Compat Modes */
     src: url('../f/LatoLatin-Regular.eot?#iefix') format('embedded-opentype'), /* IE6-IE8 */
@@ -27,12 +34,18 @@
           box-sizing: border-box;
 }
 
+ol {
+    list-style: none;
+    padding: 0px;
+    margin: 0px;
+}
+
 html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
 body {
-    font-family: 'LatoLatin',"Helvetica Neue",Helvetica,Segoe,"Segoe UI","Segoe WP",Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+    font-family: 'Franklin Gothic Book', 'LatoLatin',"Helvetica Neue",Helvetica,Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
     background-color: gray !important;
 }
 
@@ -87,6 +100,8 @@ body {
 #progress-text span {
     display: block;
     position: relative;
+    background-color: #86e01e;
+    width: 0px;
     height: 16px;
     border-radius: 4px;
     -webkit-transition: 0.4s linear;
@@ -130,7 +145,7 @@ body {
 }
 
 .loading #spinner:before {
-    content: 'Please wait while we find friends for you to share with.';
+    content: 'Finding friends for you to share with.';
 }
 
 .sending #spinner:before {
@@ -140,7 +155,7 @@ body {
 
 
 /*** Responsive styles ***/
-@media(max-width:474px){
+@media(max-width:499px){
     
     #spinner,
     #progress-text {
@@ -160,7 +175,6 @@ body {
     .text_instructions {
         float: none;
         text-align: center;
-        margin-bottom: 10px;
     }
 
     #button_sugg_msg,
@@ -168,6 +182,7 @@ body {
         margin-left: auto;
         margin-right: auto;
         float: none;
+        padding: 8px 10px;
     }
 
     #button_sugg_msg,
@@ -184,9 +199,6 @@ body {
         width: 72px;
     }
 
-    #button_do_share {
-        font-size: 14px;
-    }
 
     .by3 .friend_pic {
         width: 50%;
@@ -240,6 +252,8 @@ body {
 
     #button_do_share {
         float: none !important;
+        font-size: 14px;
+        padding: 10px 20px;
     }
 
     .manual_add {
@@ -260,19 +274,13 @@ body {
         font-size: 10px;
     }
 
-    #message_form table {
-        width: 100%;
-    }
-    
-    #message_form table td {
-        width: 50% !important;
-    }
 }
 
-@media(min-width:475px){
+@media(min-width:500px){
 
     .text_instructions {
         float: left;
+        margin-bottom: 20px !important;
     }
 
     #button_sugg_msg,
@@ -286,6 +294,14 @@ body {
         margin-left: 0px;
         margin-right: 0px;
         float: right;
+    }
+    
+    #button_select_all {
+        padding: 3px 10px;
+    }
+    
+    #button_sugg_msg {
+        padding: 3px 10px 6px 10px;
     }
     
     #button_do_share {
@@ -366,7 +382,7 @@ body {
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
-        font-size: 14px;
+        font-size: 12px;
     }
     
     #button_do_share {
@@ -552,7 +568,7 @@ body {
 
     #picked_friends_container {
         float: right;
-        width: 40%;
+        width: 48%;
     }
     
     #message_friend_name,
@@ -615,11 +631,6 @@ body {
     #manual_add_text {
         width: 50%;
         float: left;
-    }
-
-    #picked_friends_container {
-        float: right;
-        width: 40%;
     }
 
     #message_friend_name,
@@ -687,12 +698,7 @@ body {
 /*** heading ***/
 .text_title_prompt {
     padding: 10px;
-    font-size: 36px;
     text-align: center;
-}
-
-.text_title_prompt span {
-    white-space: nowrap;
 }
 
 /* Optional for sub header styling */
@@ -711,34 +717,24 @@ body {
 
 
 /*** Instruction Rows ( Step 1, 2 ) ***/
-.step_one {
-    margin-bottom: 20px;
-}
-
-.step_two {
-    margin-bottom: 10px;
-}
 
 .text_instructions {
     font-weight: 200;
     color: #3561a1;
     height: 30px;
     line-height: 30px;
+    text-transform: uppercase;
+    letter-spacing: 0.001px;
 }
 
 #button_sugg_msg,
 #button_select_all {
-    padding: 3px 10px;
     background-color: #3561a1;
     border: 1px solid #3561a1;
     color: white;
     border-radius: 1px;
     vertical-align: bottom;
-    margin-bottom: 10px;
     text-align: center;
-}
-
-#button_select_all {
     margin-bottom: 20px;
 }
 
@@ -935,6 +931,10 @@ body {
     border: 1px solid black;
     border-radius: 2px;
 }
+    
+#message_form table {
+    width: 100% !important;
+}
 
 
 #message_form_editable {
@@ -1004,7 +1004,7 @@ body {
 }
 
 #message_helper_txt:empty:before {
-    content: "Click the text above to use a suggested message, or write your own here.";
+    content: "Click the button above to use a suggested message, or write your own here.";
 }
 /*** Message input box ***/
 

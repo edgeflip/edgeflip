@@ -138,6 +138,7 @@ function updateProgressBar( percent ) {
 
     if( percent > 100 ) { percent = 100; }
 
+    /*
     var bgColor = ( percent < 5 )
         ? '#f63a0f'
         : ( percent < 25 )
@@ -147,10 +148,9 @@ function updateProgressBar( percent ) {
                 : ( percent < 75 )
                     ? '#f2d31b'
                     : '#86e01e';
+    */
 
-    $('#progress-text span')
-        .css( 'background-color', bgColor )
-        .width( percent + '%' );
+    $('#progress-text span').width( percent + '%' );
 };
 
 
@@ -183,7 +183,6 @@ function displayFriendDiv(data, jqXHR) {
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
     $('#do_share_button').show();
-    $('.text_title_prompt').textfill(50);
 }
 
 
@@ -202,31 +201,3 @@ var outgoingRedirect = function(url) {
     }
     top.location = redirectUrl;
 };
-
-(function($) {
-    var resizeTimeout,
-        resizeFun = function() { $('.text_title_prompt').textfill(50); };
-
-    $.fn.textfill = function(maxFontSize) {
-        maxFontSize = parseInt(maxFontSize, 10);
-        return this.each(function(){
-            var ourText = $("span", this),
-                parent = ourText.parent(),
-                maxHeight = parent.height(),
-                maxWidth = parent.width(),
-                fontSize = parseInt(ourText.css("fontSize"), 10),
-                multiplier = maxWidth/ourText.width(),
-                newSize = (fontSize*(multiplier-0.1)),
-                size = (maxFontSize > 0 && newSize > maxFontSize)
-                    ? maxFontSize : newSize;
-
-            ourText.css( "fontSize", size );
-        });
-    };
-
-    $(window).on('resize orientationChanged', function(){
-        clearTimeout(resizeTimeout);
-        resizeTimeout = setTimeout(resizeFun, 300);
-    });
-    
-})(jQuery);
