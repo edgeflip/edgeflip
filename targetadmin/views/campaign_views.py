@@ -246,6 +246,7 @@ def campaign_wizard(request, client_pk):
                     client_error_url=campaign_form.cleaned_data['error_url'],
                     fallback_campaign=last_camp,
                     fallback_is_cascading=bool(last_camp),
+                    status=relational.CampaignProperties.STATUS['DRAFT']
                 )
                 camp.campaignfbobjects.create(
                     fb_object=fb_obj,
