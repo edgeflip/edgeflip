@@ -92,6 +92,7 @@ urlpatterns += patterns('targetadmin.views',
         name='how-it-works'),
 )
 
+
 urlpatterns += patterns('targetadmin.views',
     # Snippet URLs
     url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
