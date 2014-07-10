@@ -22,6 +22,7 @@
                     <li style="margin-bottom: 1em; list-style-type: none;">
                         <span style="margin-right: 1em;">{{ campaign.create_dt.year }}.{{ campaign.create_dt.month }}.{{ campaign.create_dt.day }}</span>
                         <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a>
+                        <a href="{% url 'targetadmin:campaign-wizard' client.pk campaign.pk %}"><i class="icon-edit"></i></a>
                     </li>
                 {% endfor %}
             </ul>
