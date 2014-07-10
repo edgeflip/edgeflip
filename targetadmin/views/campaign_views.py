@@ -335,7 +335,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = get_object_or_404( relational.FBObjectAttribute, fb_object=root_campaign.fb_object().fb_object_id)
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
@@ -354,6 +354,3 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         'campaign_properties': properties,
         'fb_obj_attributes': fb_obj_attributes
     }
-
-def how_it_works(request,client_pk=None):
-    return render( request, 'targetadmin/how_it_works.html' )

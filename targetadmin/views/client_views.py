@@ -12,11 +12,16 @@ class ClientListView(ListView):
     template_name = 'targetadmin/home.html'
     queryset = relational.Client.objects.all()
 
-    def render_to_response(self,context,**response_kwargs):
-        if len( context['client_list'] ) == 1: 
-            return redirect( 'targetadmin:client-detail', context['client_list'][0].pk )
+    def get(self, request):
+        # Check for only one client
+        try:
+            client_id = self.get_queryset().values_list('pk', flat=True).get()
+        except (relational.Client.DoesNotExist, relational.Client.MultipleObjectsReturned):
+            pass
         else:
-            return ListView.render_to_response( self, context, **response_kwargs) 
+            return redirect('targetadmin:client-detail', client_id)
+
+        return super(ClientListView, self).get(request)
 
     def get_queryset(self):
         queryset = super(ClientListView, self).get_queryset()
@@ -31,10 +36,11 @@ class ClientListView(ListView):
 class ClientDetailView(DetailView):
     model = relational.Client
     pk_url_kwarg = 'client_pk'
+
   
     def get_template_names(self):
-        return [ 'targetadmin/superuser_home.html' ] if self.request.user.is_superuser\
-             else [ 'targetadmin/client_home.html' ]
+        return ['targetadmin/{}'.format(
+            'superuser_home.html' if self.request.user.is_superuser else 'client_home.html')]
 
     def get_context_data(self,**kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)

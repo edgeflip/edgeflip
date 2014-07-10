@@ -80,7 +80,7 @@ class WizardFilterFeatureForm(forms.ModelForm):
         ('location', 'Location')
     )
 
-    feature = forms.ChoiceField(\
+    feature = forms.ChoiceField(
         label='Filter Type',
         choices=CHOICES )
 
