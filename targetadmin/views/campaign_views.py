@@ -354,6 +354,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
                         fallback_is_cascading=bool(last_camp),
+                        status=relational.CampaignProperties.STATUS['DRAFT']
                     )
 
                     for page_styles in page_style_sets:
