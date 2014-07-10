@@ -86,14 +86,40 @@ def campaign_create(request, client_pk):
         'form': form
     })
 
-
 @utils.auth_client_required
-def campaign_wizard(request, client_pk):
+def campaign_wizard(request, client_pk, campaign_pk):
+    from pprint import pprint
     client = get_object_or_404(relational.Client, pk=client_pk)
-    fb_attr_inst = relational.FBObjectAttribute(
-        og_action='support', og_type='cause')
+    if campaign_pk:
+        campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
+        fb_attr_inst = campaign.fb_object()
+        campaign_properties = campaign.campaignproperties.get()
+        empty_fallback = False
+        fallback_campaign = campaign_properties.fallback_campaign
+        while fallback_campaign:
+            pprint(dir(fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.get()))
+            empty_choice_set = fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.get().filter(
+                choicesetfilters__filter__filterfeatures__isnull=True)
+            empty_choice_set = fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.filter(
+                choicesetfilters__filter__filterfeatures__isnull=True)
+            if empty_choice_set.exists():
+                empty_fallback = True
+                break
+            else:
+                fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+        campaign_form = forms.CampaignWizardForm(
+            name=campaign.name,
+            faces_url=campaign_properties.get().client_faces_url,
+            error_url=campaign_properties.get().client_error_url,
+            thanks_url=campaign_properties.get().client_thanks_url,
+            content_url=campaign_properties.get().client_thanks_url,
+            include_empty_fallback=empty_fallback
+        )
+    else:
+        fb_attr_inst = relational.FBObjectAttribute(
+            og_action='support', og_type='cause')
+        campaign_form = forms.CampaignWizardForm()
     fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-    campaign_form = forms.CampaignWizardForm()
     if request.method == 'POST':
         fb_obj_form = forms.FBObjectWizardForm(
             request.POST, instance=fb_attr_inst)
@@ -339,7 +365,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
-            [ choise_set.filter.filterfeatures.all() for choise_set in properties.campaign.choice_set().choicesetfilters.all() ] ]
+            [ choice_set.filter.filterfeatures.all() for choice_set in properties.campaign.choice_set().choicesetfilters.all() ] ]
 
     filters = [ get_filters(properties) ]
     while properties.fallback_campaign:
