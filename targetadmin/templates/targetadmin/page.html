@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <script data-main="{{ STATIC_URL }}/js/main.js" src="{{ STATIC_URL }}vendor/js/require.js"></script>
+  </head>
+
+  <body>
+    <section class="container">
+        <div id="content-container" class="row"></div>
+    </section>
+    {% block require %}{% endblock %}
+  </body>
+</html>
