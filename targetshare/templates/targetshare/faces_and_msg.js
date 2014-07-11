@@ -343,20 +343,25 @@ function useSuggested(msgs) {
 
     activateShareButton();
     msgFocusEnd();
+
+    $('html,body').animate(
+        { scrollTop: $('#button_do_share').offset().top - 50 },
+        { duration: 1000 }
+    );
 }
 
 /* selects all friends */
 function selectAll(skipRecord) {
-    if (!skipRecord) {
-        edgeflip.events.record('select_all_click');
-    }
-    activateSuggestButton();
-
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call
     var fbid,
+        fbids = [],
         unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
         count = getRecipFbids().length;
+
+    if (!skipRecord) {
+        edgeflip.events.record('select_all_click');
+    }
 
     //we want to alert only if there are unselected friend boxes
     //and the count is already at max_face
@@ -368,9 +373,18 @@ function selectAll(skipRecord) {
         fbid = parseInt(this.id.split('-')[1]);
         if (!isRecip(fbid)) {
             count++;
-            selectFriend(fbid);
+            fbids.push(fbid);
         }
     } );
+
+    $('html,body').animate(
+        { scrollTop: $('#button_sugg_msg').offset().top - 50 },
+        { duration: 1000,
+          complete: function() {
+              if( fbids.length ) { selectFriend.apply(this, fbids); }
+              activateSuggestButton();
+          }
+        } );
 }
 
 /* Tell the user max_face have already been selected */
