@@ -95,11 +95,9 @@ def install_deps():
     l('sudo apt-get install -y -q {}'.format(
         ' '.join(dep.strip() for dep in deps)))
 
-    # Install fake dynamo:
-    if 'dev' in roles:
-        gems = l('gem list --local --no-versions', capture=True)
-        if 'fake_dynamo' not in gems.split():
-            l('sudo gem install fake_dynamo --version 0.2.3')
+    # Install local DynamoDB mock:
+    if 'dev' in roles and not os.path.exists(os.path.join(BASEDIR, '.dynamodb')):
+        manage('faraday', ('local', 'install'))
 
 
 @fab.task(name='virtualenv')
