@@ -45,7 +45,8 @@ html {
 }
 
 body {
-    font-family: 'Franklin Gothic Book', 'LatoLatin',"Helvetica Neue",Helvetica,Calibri,Arial,clean,sans-serif, "Gill Sans", "Trebuchet MS", Helvetica, sans-serif;
+    font-family: "franklin-gothic-ext-comp-urw","Franklin Gothic Book","Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
+    font-size: 110%;
     background-color: gray !important;
 }
 
@@ -142,6 +143,7 @@ body {
 
 #spinner:before {
     font-size: 16px;
+    font-family: "Franklin Gothic Book";
 }
 
 .loading #spinner:before {
@@ -156,6 +158,10 @@ body {
 
 /*** Responsive styles ***/
 @media(max-width:499px){
+
+    .progress_container {
+        width: 75%;
+    }
     
     #spinner,
     #progress-text {
@@ -175,6 +181,7 @@ body {
     .text_instructions {
         float: none;
         text-align: center;
+        margin-bottom: 10px;
     }
 
     #button_sugg_msg,
@@ -188,7 +195,7 @@ body {
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
-        font-size: 10px;
+        font-size: 16px;
     }
 
     #button_sugg_msg {
@@ -199,6 +206,9 @@ body {
         width: 72px;
     }
 
+    .friend_txt {
+        padding-top: 10px !important;
+    }
 
     .by3 .friend_pic {
         width: 50%;
@@ -269,9 +279,12 @@ body {
         margin-top: 5px;
     }
     
-    #message_friend_name,
-    #message_form_editable {
+    .message_friend_name {
         font-size: 10px;
+    }
+    
+    #message_form_editable {
+        font-size: 18px;
     }
 
 }
@@ -286,7 +299,11 @@ body {
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
-        font-size: 10px;
+        font-size: 14px;
+    }
+    
+    .text_instructions {
+        line-height: 26px;
     }
 
     #button_sugg_msg,
@@ -297,11 +314,11 @@ body {
     }
     
     #button_select_all {
-        padding: 3px 10px;
+        padding: 3px 20px;
     }
     
     #button_sugg_msg {
-        padding: 3px 10px 6px 10px;
+        padding: 3px 20px 6px 20px;
     }
     
     #button_do_share {
@@ -350,6 +367,7 @@ body {
     .by3 .friend_txt {
         width: 50%;
         font-size: 10px;
+        padding-top: 8px;
     }
     
     .by3 .friend_pic img {
@@ -371,9 +389,12 @@ body {
         margin-top: 5px;
     }
     
-    #message_friend_name,
-    #message_form_editable {
+    .message_friend_name {
         font-size: 10px;
+    }
+    
+    #message_form_editable {
+        font-size: 18px;
     }
 }
 
@@ -382,7 +403,11 @@ body {
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
-        font-size: 12px;
+        font-size: 18px;
+    }
+    
+    .text_instructions {
+        line-height: 31px;
     }
     
     #button_do_share {
@@ -442,9 +467,9 @@ body {
     }
     
     .by3 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
     }
 
     .manual_add {
@@ -460,13 +485,26 @@ body {
         margin-top: 5px;
     }
     
-    #message_friend_name,
-    #message_form_editable {
+    .message_friend_name {
         font-size: 12px;
+    }
+    
+    #message_form_editable {
+        font-size: 20px;
     }
 }
 
 @media(min-width:675px) {
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 20px;
+    }
+    
+    .text_instructions {
+        line-height: 33px;
+    }
 
     .by5 .friend_pic img {
         height: 40px;
@@ -487,9 +525,12 @@ body {
         font-size: 10px;
     }
 
-    #message_friend_name,
-    #message_form_editable {
+    .message_friend_name {
         font-size: 14px;
+    }
+    
+    #message_form_editable {
+        font-size: 22px;
     }
 }
 
@@ -508,6 +549,16 @@ body {
     .manual_input {
         font-size: 10px;
     }
+
+    #button_sugg_msg,
+    #button_select_all,
+    .text_instructions {
+        font-size: 24px;
+    }
+
+    .text_instructions {
+        line-height: 38px;
+    }
 }
 
 @media(min-width:992px){
@@ -524,7 +575,11 @@ body {
     #button_sugg_msg,
     #button_select_all,
     .text_instructions {
-        font-size: 18px;
+        font-size: 32px;
+    }
+
+    .text_instructions {
+        line-height: 48px;
     }
     
     #button_do_share {
@@ -571,9 +626,12 @@ body {
         width: 48%;
     }
     
-    #message_friend_name,
-    #message_form_editable {
+    .message_friend_name {
         font-size: 16px;
+    }
+
+    #message_form_editable {
+        font-size: 24px;
     }
 }
 
@@ -588,12 +646,6 @@ body {
         margin-left: 16.66666667%;
     }
 
-    #button_sugg_msg,
-    #button_select_all,
-    .text_instructions {
-        font-size: 20px;
-    }
-    
     #button_do_share {
         font-size: 24px;
     }
@@ -631,11 +683,6 @@ body {
     #manual_add_text {
         width: 50%;
         float: left;
-    }
-
-    #message_friend_name,
-    #message_form_editable {
-        font-size: 16px;
     }
 }
 /*** Responsive styles ***/
@@ -697,11 +744,13 @@ body {
 .text_title_prompt {
     padding: 10px;
     text-align: center;
-    font-size: 4em;
+    font-size: 6em;
+    margin: 0px;
 }
 
 /* Optional for sub header styling */
 .subheader {
+    font-size: 24px;
     text-align: center;
 }
 
@@ -718,12 +767,9 @@ body {
 /*** Instruction Rows ( Step 1, 2 ) ***/
 
 .text_instructions {
-    font-weight: 200;
+    font-weight: bold;
     color: #3561a1;
-    height: 30px;
-    line-height: 30px;
     text-transform: uppercase;
-    letter-spacing: 0.001px;
 }
 
 #button_sugg_msg,
@@ -732,7 +778,6 @@ body {
     border: 1px solid #3561a1;
     color: white;
     border-radius: 1px;
-    vertical-align: bottom;
     text-align: center;
     margin-bottom: 20px;
 }
@@ -847,11 +892,12 @@ body {
 }
 
 .friend_txt {
+    font-family: "Franklin Gothic Book";
     height: 52px;
     float: right;
     padding-left: 5px;
     padding-top: 0px;
-    padding-right: 12px;
+    padding-right: 5px;
 }
 
 .friend_box_selected .friend_txt {
@@ -903,6 +949,7 @@ body {
 }                         /* forces the menu to always be this tall */
 
 .added_friend {
+    font-family: "Franklin Gothic Book";
     color: #f0f0f8;
     border: thin solid gray;
     border-radius: 5px;
@@ -945,6 +992,9 @@ body {
     width: 100% !important;
 }
 
+#message_form table img {
+    width: 100%;
+}
 
 #message_form_editable {
     display: block;
@@ -957,33 +1007,6 @@ body {
 
 #message_helper_text {
     color: gray;
-}
-
-#message_preview {
-    width: 321px;
-    height: 60px;
-    padding: 10px;
-    font-family: "lucida grande", tahoma, verdana, arial, sans-serif;
-    float: left;
-}
-
-#message_preview img {
-    float: left;
-    margin-right: 7px;
-    height: 60px;
-}
-
-#message_preview_title {
-    color: #3B5998;
-    font-size: 11px;
-    font-weight: bold;
-    line-height: 11px;
-    padding-top: 5px;
-}
-#message_preview_desc {
-    font-size: 9px;
-    color: gray;
-    font-weight: normal;
 }
 
 .message_friend_name {
@@ -1025,8 +1048,8 @@ body {
 }
 
 #button_do_share {
-    padding: 6px 20px;
-    font-weight:200;
+    font-size: 40px;
+    padding: 6px 30px;
     letter-spacing: 1.5px;
     border-radius: 1px;
     float: right;
