@@ -1,5 +1,5 @@
 METRICS = [
-    ('incoming_redirects', 'Clicks', '# of visitors who were presented with the authorization page'),
+    ('initial_redirects', 'Clicks', '# of visits that were presented with the authorization page'),
     ('authorized_visits', 'Authorized Visits', '# of visits with successful authorizations, either via new or previous authorization of the app'),
     ('failed_visits', 'Failed Visits', '# of visits that resulted in either the authorization being refused or the visit being abandoned (e.g., the browser window was closed)'),
     ('uniq_users_authorized', 'Unique Authorized Visitors', '# of unique visitors with one or more authorized visits'),

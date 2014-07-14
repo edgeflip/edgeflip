@@ -2,9 +2,9 @@ edgeflip.dashboard = (function (edgeflip, $) {
     var self = {
         client_id: null,
         metrics: {
-            'incoming_redirects': 'Clicks',
+            'initial_redirects': 'Clicks',
             'authorized_visits': 'Authorized Visits',
-            'failed_visits': 'Failed Visits'
+            'failed_visits': 'Failed Visits',
             'uniq_users_authorized': 'Unique Authorized Visitors',
             'visits_shown_faces': 'Visits Shown Suggestions',
             'visits_with_shares': 'Visits Permitting Share',
@@ -13,7 +13,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
         }
     };
 
-    self.columns = $.extend({'name': 'Campaign', 'most_recent_data': 'Latest Activity'}, self.metrics)
+    self.columns = $.extend({'name': 'Campaign', 'first_activity': 'First Activity', 'latest_activity': 'Latest Activity'}, self.metrics)
 
     self.init = function() {
         self.set_client_id()
@@ -126,6 +126,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
             .attr("class", "totals")
 
         totals.append("td").text("TOTALS")
+        totals.append("td")
         totals.append("td")
         totals.selectAll("tr")
             .data(Object.keys(self.metrics))
