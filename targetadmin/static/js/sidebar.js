@@ -8,7 +8,7 @@ define(
     ],
     function( $, _, Backbone, template ) {
 
-        return new ( Backbone.View.extend( {
+        return Backbone.View.extend( {
             
             model: new Backbone.Model( { state: '' } ),
 
@@ -16,9 +16,9 @@ define(
                 'click li[data-js="btn"]': 'navItemClicked'
             },
 
-            initialize: function() {
+            initialize: function( options ) {
 
-                this.parentEl = $("#content-container");
+                _.extend( this, options ); 
 
                 return this.render();
             },
@@ -26,14 +26,11 @@ define(
             render: function() {
 
                 this.slurpHtml( {
-                    template: template( {
-                        logoSrc:
-                        clientName:
-                    } ),
-                    insertion: { $el: this.parentEl } );
+                    template: template( this.templateOptions ),
+                    insertion: { $el: this.parentEl } } );
 
                 return this;
             }
-
-    } ) )();
+        } );
+    }
 );

@@ -7,13 +7,13 @@
     <meta name="description" content="">
     <meta name="author" content="">
 
-    <script data-main="{{ STATIC_URL }}/js/main.js" src="{{ STATIC_URL }}vendor/js/require.js"></script>
+    <script data-main="{{ STATIC_URL }}js/main.js" src="{{ STATIC_URL }}js/vendor/require.js"></script>
   </head>
 
   <body>
-    <section class="container">
+    <section class="container-fluid">
         <div id="content-container" class="row"></div>
     </section>
-    {% block require %}{% endblock %}
+    <script>{% block require %}{% endblock %}</script>
   </body>
 </html>

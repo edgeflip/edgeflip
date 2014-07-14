@@ -1,0 +1,19 @@
+ol {
+  font-size: 18px;
+  background-color: #f2f2f2;
+}
+ol .glyphicon {
+  padding: 20px 10px;
+}
+ol li:hover {
+  cursor: pointer;
+  text-decoration: underline;
+}
+.logo {
+  width: 100%;
+  background-color: #2d4c6b;
+}
+.logo img {
+  width: 100%;
+  padding: 20%;
+}

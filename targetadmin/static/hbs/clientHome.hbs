@@ -1,0 +1,41 @@
+<section class="col-sm-10 client-home">
+    <div class="row">
+        <div class="col-sm-9">
+            <h1 class="header">Campaigns</h1>
+        </div>
+        <div class="col-sm-3">
+            <button type="button">Create Campaign</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-sm-12">
+            {{#each campaign}}
+                <div class="row">
+                    <div class="col-sm-5">
+                        <div class="name">{{name}}</div>
+                        <div class="created">Created on {{created}}</div>
+                    </div>
+                    <div class="col-sm-4">
+                    {{#if stats}}
+                    {{/if}}
+                    </div>
+                    <div class="col-sm-3">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-danger">Action</button>
+                            <button type="button" class="btn btn-danger dropdown-toggle" data-toggle="dropdown">
+                                <span class="caret"></span>
+                                <span class="sr-only">Toggle Dropdown</span>
+                            </button>
+                        <ul class="dropdown-menu" role="menu">
+                            <li><a href="#">Edit</a></li>
+                            <li><a href="#">Clone</a></li>
+                            <li><a href="#">Reports</a></li>
+                            <li><a href="#">Faces Page</a></li>
+                            <li><a href="#">Facebook Post</a></li>
+                        </ul>
+                    </div>
+                </div>
+            {{/each}}
+        </div>
+    </div>
+</section>

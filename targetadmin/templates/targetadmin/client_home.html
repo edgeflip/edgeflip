@@ -2,16 +2,26 @@
 {% block title %}{{ client.name }}{% endblock %}
 
 {% block require %}
-    require(['app','clientHome'],function(app,clientHome) { } );
+    require( ['app', 'sidebar', 'clientHome'], function(app, Sidebar, ClientHome) {
+
+            new Sidebar( {
+                parentEl: $("#content-container"),
+                templateOptions: {
+                    logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                    clientName: "{{ client.name }}"
+                }
+            } );
+        }
+    );
 
 
-<!--
+/*
     <h2 style="text-align:center;">{{ client.name }}</h2>
     <div class="row">
         <div class="span6 offset3">
             <div style="margin-top: 2em; margin-bottom: 4em; text-align: center;" class="row">
                 <div class="span3">
-                    <a class="btn btn-primary" href="{% url 'targetadmin:campaign-wizard' client.pk %}">Create New Campaign</a>
+                    <a class="btn btn-primary" href="{#% url 'targetadmin:campaign-wizard' client.pk %#}">Create New Campaign</a>
                 </div>
                 <div class="span3">
                     <a class="btn btn-primary" href="{% url 'reporting:main' %}">Reporting Dashboard</a>
@@ -26,12 +36,12 @@
                 {% for campaign in root_campaigns.all %}
                     <li style="margin-bottom: 1em; list-style-type: none;">
                         <span style="margin-right: 1em;">{{ campaign.create_dt.year }}.{{ campaign.create_dt.month }}.{{ campaign.create_dt.day }}</span>
-                        <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a>
-                        <a href="{% url 'targetadmin:campaign-wizard' client.pk campaign.pk %}"><i class="icon-edit"></i></a>
+                        <a href="{#% url 'targetadmin:campaign-summary' client.pk campaign.pk %#}">{{ campaign.name|slice:":-2" }}</a>
+                        <a href="{#% url 'targetadmin:campaign-wizard' client.pk campaign.pk %#}"><i class="icon-edit"></i></a>
                     </li>
                 {% endfor %}
             </ul>
         </div>
     </div>
--->
+*/
 {% endblock %}
