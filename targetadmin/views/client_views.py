@@ -1,6 +1,9 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
 from django.shortcuts import redirect
+from django.core.serializers.json import DjangoJSONEncoder
 
 from targetadmin import forms, utils
 from targetshare.models import relational
@@ -37,18 +40,28 @@ class ClientDetailView(DetailView):
     model = relational.Client
     pk_url_kwarg = 'client_pk'
 
-  
     def get_template_names(self):
         return ['targetadmin/{}'.format(
             'superuser_home.html' if self.request.user.is_superuser else 'client_home.html')]
 
-    def get_context_data(self,**kwargs):
+    def get_context_data(self, **kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
         context['root_campaigns'] = context['client'].campaigns\
             .exclude(rootcampaign_properties=None)\
-            .order_by( '-create_dt' )
-        return context
+            .order_by( '-create_dt' )\
+            .values('pk', 'name', 'create_dt')
+        return dict(campaigns=list(context['root_campaigns']),
+                    client=dict(pk=context['client'].pk,
+                                name=context['client'].name))
 
+    def render_to_response(self, context, **response_kwargs):
+        #response_kwargs['content_type'] = 'application/json'
+        return self.response_class(
+            request=self.request,
+            template=self.get_template_names(),
+            context=json.dumps(context, cls=DjangoJSONEncoder),
+            **response_kwargs
+        ) 
 
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'
