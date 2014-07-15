@@ -6,10 +6,18 @@
 
             new Sidebar( {
                 parentEl: $("#content-container"),
+                model: new Backbone.Model( { state: 'home' } ),
                 templateOptions: {
                     logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
-                    clientName: "{{ client.name }}"
-                }
+                    clientName: "{{ client.name }}",
+                },
+                reportingDashboardURL: "{% url 'reporting:main' %}"
+            } );
+            
+            new ClientHome( {
+                parentEl: $("#content-container"),
+                campaigns: {{ campaigns|safe }},
+                createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}"
             } );
         }
     );

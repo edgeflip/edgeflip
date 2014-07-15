@@ -24,6 +24,14 @@ require.config( {
         'vendor/handlebars': {
             exports: 'Handlebars'
         },
+
+        'vendor/handlebars': {
+            exports: 'Handlebars'
+        },
+        
+        'vendor/bootstrap.min': {
+            deps: [ 'jquery' ]
+        }
     },
 
     map: {

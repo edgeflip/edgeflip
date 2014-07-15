@@ -1,0 +1,27 @@
+.client-home h1 {
+  color: #2d4c6b;
+}
+.client-home .header {
+  padding-top: 20px;
+}
+.client-home .create-campaign-btn {
+  float: right;
+  margin-right: 25px;
+  color: white;
+  background-color: #737373;
+}
+.client-home .create-campaign-btn:hover {
+  color: white;
+  text-decoration: underline;
+}
+.client-home .campaign-row {
+  border-top: 1px solid #f2f2f2;
+  margin-right: 10px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.client-home .campaign-row .name {
+  color: #2d4c6b;
+  font-size: 18px;
+  font-weight: 700;
+}
