@@ -10,10 +10,8 @@ define(
 
         return Backbone.View.extend( {
             
-            model: new Backbone.Model( { state: '' } ),
-
             events: {
-                'click li[data-js="btn"]': 'navItemClicked'
+                'click li[data-nav="reports"]': 'reportsClicked'
             },
 
             initialize: function( options ) {
@@ -27,9 +25,25 @@ define(
 
                 this.slurpHtml( {
                     template: template( this.templateOptions ),
-                    insertion: { $el: this.parentEl } } );
+                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
+
+                this.postRender();
 
                 return this;
+            },
+
+            postRender: function() {
+                this.renderState();
+            },
+
+            renderState: function() {
+                this.templateData.btn
+                    .removeClass('selected')
+                    .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
+            },
+
+            reportsClicked: function() {
+                window.location = this.reportingDashboardURL;
             }
         } );
     }

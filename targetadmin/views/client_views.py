@@ -50,16 +50,15 @@ class ClientDetailView(DetailView):
             .exclude(rootcampaign_properties=None)\
             .order_by( '-create_dt' )\
             .values('pk', 'name', 'create_dt')
-        return dict(campaigns=list(context['root_campaigns']),
-                    client=dict(pk=context['client'].pk,
-                                name=context['client'].name))
+        return context
 
     def render_to_response(self, context, **response_kwargs):
-        #response_kwargs['content_type'] = 'application/json'
         return self.response_class(
             request=self.request,
             template=self.get_template_names(),
-            context=json.dumps(context, cls=DjangoJSONEncoder),
+            context=dict(
+                campaigns=json.dumps(list(context['root_campaigns']), cls=DjangoJSONEncoder),
+                client=context['client']),
             **response_kwargs
         ) 
 

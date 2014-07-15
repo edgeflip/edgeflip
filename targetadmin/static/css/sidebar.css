@@ -5,7 +5,10 @@ ol {
 ol .glyphicon {
   padding: 20px 10px;
 }
-ol li:hover {
+ol li.selected {
+  background-color: white;
+}
+ol li.button:hover {
   cursor: pointer;
   text-decoration: underline;
 }

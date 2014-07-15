@@ -1,0 +1,38 @@
+@import "colors.less";
+
+.client-home {
+    h1 {
+        color: @darkBlue;
+    }
+
+    .header {
+        padding-top: 20px;
+    }
+
+    .create-campaign-btn {
+        float: right;
+        margin-right: 25px;
+        color: white;
+        background-color: @darkGray;
+
+        &:hover {
+            color: white;
+            text-decoration: underline;
+        }
+            
+    }
+
+    .campaign-row {
+        border-top: 1px solid @lightGray;
+        margin-right: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        .name {
+            color: @darkBlue;
+            font-size: 18px;
+            font-weight: 700;
+        }
+    }
+
+}

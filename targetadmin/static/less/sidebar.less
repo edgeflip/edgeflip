@@ -10,9 +10,15 @@ ol {
 
     li {
 
-        &:hover {
-            cursor: pointer;
-            text-decoration: underline;
+        &.selected {
+            background-color: white;
+        }
+
+        &.button {
+            &:hover {
+                cursor: pointer;
+                text-decoration: underline;
+            }
         }
     }
 }
