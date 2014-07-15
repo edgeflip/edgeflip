@@ -1,5 +1,6 @@
 import json
 from django.core.urlresolvers import reverse
+from mock import patch
 
 from . import TestReportingBase
 
@@ -21,6 +22,21 @@ class TestReportingViews(TestReportingBase):
         self.assertEqual(len(response.context['clients']), 1)
         self.assertEqual(response.context['clients'][0], (1, 'reportingclient'))
 
+
+    fake_metrics = [
+        (metric, '...', '...') for metric in
+            'visits',
+            'authorized_visits',
+            'uniq_users_authorized',
+            'auth_fails',
+            'visits_shown_faces',
+            'visits_with_share_clicks',
+            'visits_with_shares',
+            'total_shares',
+            'clickbacks',
+    ]
+
+    @patch('reporting.query.METRICS', fake_metrics)
     def test_client_summary(self):
         self.login_clientuser()
         response = self.client.get(reverse('reporting:client_summary', args=[1]))
@@ -37,7 +53,8 @@ class TestReportingViews(TestReportingBase):
             'clickbacks': 2,
             'name': 'Specific Campaign',
             'root_id': 2,
-            'most_recent_data': '2013-12-01',
+            'first_activity': '2013-12-01',
+            'latest_activity': '2013-12-01',
         }
 
         expected_rollup_data = {
@@ -60,6 +77,7 @@ class TestReportingViews(TestReportingBase):
         response = self.client.get(reverse('reporting:client_summary', args=[2]))
         self.assertStatusCode(response, 403)
 
+    @patch('reporting.query.METRICS', fake_metrics)
     def test_campaign_hourly(self):
         self.login_clientuser()
         response = self.client.get(reverse('reporting:campaign_hourly', args=[1,2]))
