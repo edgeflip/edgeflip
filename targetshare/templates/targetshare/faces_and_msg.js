@@ -326,27 +326,43 @@ function elementContainsSelection(el) {
 function useSuggested(msgs) {
     edgeflip.events.record('suggest_message_click');
 
+    // grab the pre and post off the front of the queue and stick 'em back on the end
+    var msgPair = msgs.shift(),
+        msgPre = msgPair[0],
+        msgPost = msgPair[1],
+        msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>",
+        recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+    
+    msgs.push(msgPair);
+
     // If they don't have anyone checked, using the suggested message adds everyone
     if (getRecipFbids().length == 0) {
         selectAll(true);
     }
 
-    // grab the pre and post off the front of the queue and stick 'em back on the end
-    var msgPair = msgs.shift();
-    msgs.push(msgPair);
-    var msgPre = msgPair[0];
-    var msgPost = msgPair[1];
-    var msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>";
-    var recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+    if( msgPre.charAt(msgPre.length - 1) !== '' ) {
+        msgPre += ' ';
+    }
+    
+    if( msgPost.charAt(0) !== '' ) {
+        msgPost = ' ' + msgPost;
+    }
+
+
     $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
 
-    activateShareButton();
-    msgFocusEnd();
-
-    $('html,body').animate(
-        { scrollTop: $('#button_do_share').offset().top - 50 },
-        { duration: 1000 }
+    //This looks bad, but both the iframe and its parent need scrolling
+    //There is a FB Canvas scroll, but its impossible to test in a local env
+    $('html,body').scrollTop($('#button_do_share').offset().top);
+    $('html,body',window.parent.document).animate(
+        { scrollTop: $('#button_do_share').offset().top + 30 },
+        { duration: 1000,
+          complete: function() {
+              activateShareButton();
+              msgFocusEnd();
+          }
+        }
     );
 }
 
@@ -357,7 +373,8 @@ function selectAll(skipRecord) {
     var fbid,
         fbids = [],
         unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
-        count = getRecipFbids().length;
+        count = getRecipFbids().length,
+        parentDoc = $(window.parent.parent.document);
 
     if (!skipRecord) {
         edgeflip.events.record('select_all_click');
@@ -377,8 +394,11 @@ function selectAll(skipRecord) {
         }
     } );
 
-    $('html,body').animate(
-        { scrollTop: $('#button_sugg_msg').offset().top - 50 },
+    //This looks bad, but both the iframe and its parent need scrolling
+    //There is a FB Canvas scroll, but its impossible to test in a local env
+    $('html,body').scrollTop($('#button_sugg_msg').offset().top);
+    $('html,body',window.parent.document).animate(
+        { scrollTop: $('#button_sugg_msg', document).offset().top + 30 },
         { duration: 1000,
           complete: function() {
               if( fbids.length ) { selectFriend.apply(this, fbids); }

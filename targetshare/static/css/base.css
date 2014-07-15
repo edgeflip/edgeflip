@@ -214,9 +214,13 @@ body {
         width: 50%;
     }
     
+    .by3 .added_friend,
+    .by3 .friend_txt {
+        font-size: 8px;
+    }
+    
     .by3 .friend_txt {
         width: 50%;
-        font-size: 8px;
     }
 
     .by3 .friend_pic img {
@@ -241,9 +245,13 @@ body {
         width: 45%;
     }
     
+    .by5 .added_friend,
+    .by5 .friend_txt {
+        font-size: 12px;
+    }
+    
     .by5 .friend_txt {
         width: 55%;
-        font-size: 12px;
     }
 
     .by5 .friend_pic img {
@@ -270,23 +278,18 @@ body {
         padding-right: 14px;
     }
 
-    .added_friend,
     .manual_input {
-        font-size: 10px;
+        font-size: 8px;
     }
 
     #picked_friends_container {
         margin-top: 5px;
     }
     
+    #message_form_editable,
     .message_friend_name {
         font-size: 10px;
     }
-    
-    #message_form_editable {
-        font-size: 18px;
-    }
-
 }
 
 @media(min-width:500px){
@@ -341,9 +344,13 @@ body {
         width: 45%;
     }
     
+    .by5 .added_friend,
+    .by5 .friend_txt {
+        font-size: 12px;
+    }
+    
     .by5 .friend_txt {
         width: 55%;
-        font-size: 12px;
     }
 
     .by5 .friend_pic img {
@@ -366,8 +373,12 @@ body {
     
     .by3 .friend_txt {
         width: 50%;
-        font-size: 10px;
         padding-top: 8px;
+    }
+    
+    .by3 .added_friend,
+    .by3 .friend_txt {
+        font-size: 10px;
     }
     
     .by3 .friend_pic img {
@@ -380,7 +391,6 @@ body {
         padding-right: 14px;
     }
 
-    .added_friend,
     .manual_input {
         font-size: 10px;
     }
@@ -389,12 +399,9 @@ body {
         margin-top: 5px;
     }
     
+    #message_form_editable,
     .message_friend_name {
         font-size: 10px;
-    }
-    
-    #message_form_editable {
-        font-size: 18px;
     }
 }
 
@@ -438,9 +445,13 @@ body {
         width: 45%;
     }
     
+    .by5 .added_friend,
+    .by5 .friend_txt {
+        font-size: 10px;
+    }
+    
     .by5 .friend_txt {
         width: 55%;
-        font-size: 10px;
     }
     
     .by5 .friend_pic img {
@@ -461,9 +472,13 @@ body {
         width: 35%;
     }
     
+    .by3 .added_friend,
+    .by3 .friend_txt {
+        font-size: 12px;
+    }
+    
     .by3 .friend_txt {
         width: 65%;
-        font-size: 12px;
     }
     
     .by3 .friend_pic img {
@@ -476,7 +491,6 @@ body {
         padding-right: 14px;
     }
     
-    .added_friend,
     .manual_input {
         font-size: 10px;
     }
@@ -485,12 +499,9 @@ body {
         margin-top: 5px;
     }
     
+    #message_form_editable,
     .message_friend_name {
         font-size: 12px;
-    }
-    
-    #message_form_editable {
-        font-size: 20px;
     }
 }
 
@@ -520,17 +531,13 @@ body {
         padding-top: 17px;
     }
 
-    .added_friend,
     .manual_input {
         font-size: 10px;
     }
 
+    #message_form_editable,
     .message_friend_name {
         font-size: 14px;
-    }
-    
-    #message_form_editable {
-        font-size: 22px;
     }
 }
 
@@ -545,7 +552,6 @@ body {
         margin-left: 8.33333333%;
     }
 
-    .added_friend,
     .manual_input {
         font-size: 10px;
     }
@@ -590,18 +596,26 @@ body {
         width: 40%;
     }
     
+    .by5 .added_friend,
+    .by5 .friend_txt {
+        font-size: 12px;
+    }
+    
     .by5 .friend_txt {
         width: 60%;
-        font-size: 12px;
     }
 
     .by3 .friend_pic {
         width: 30%;
     }
     
+    .by3 .added_friend,
+    .by3 .friend_txt {
+        font-size: 14px;
+    }
+    
     .by3 .friend_txt {
         width: 70%;
-        font-size: 14px;
     }
     
     .by3 .friend_pic img,
@@ -611,7 +625,6 @@ body {
         margin: 7px auto;
     }
     
-    .added_friend,
     .manual_input {
         font-size: 12px;
     }
@@ -626,12 +639,9 @@ body {
         width: 48%;
     }
     
+    #message_form_editable,
     .message_friend_name {
         font-size: 16px;
-    }
-
-    #message_form_editable {
-        font-size: 24px;
     }
 }
 
@@ -654,18 +664,26 @@ body {
         width: 40%;
     }
 
+    .by5 .added_friend,
+    .by5 .friend_txt {
+        font-size: 14px;
+    }
+    
     .by5 .friend_txt {
         width: 60%;
-        font-size: 14px;
     }
 
     .by3 .friend_pic {
         width: 30%;
     }
     
+    .by3 .added_friend,
+    .by3 .friend_txt {
+        font-size: 16px;
+    }
+    
     .by3 .friend_txt {
         width: 70%;
-        font-size: 16px;
     }
 
     .by3 .friend_pic img,
@@ -675,7 +693,6 @@ body {
         margin: 7px auto;
     }
 
-    .added_friend,
     .manual_input {
         font-size: 12px;
     }
@@ -986,6 +1003,7 @@ body {
     box-shadow: 0 0 8px rgba(0,0,0,0.14);
     border: 1px solid black;
     border-radius: 2px;
+    font-family: 'Franklin Gothic Book';
 }
     
 #message_form table {
@@ -993,7 +1011,9 @@ body {
 }
 
 #message_form table img {
-    width: 100%;
+    width: 90px;
+    height: 90px !important;
+    margin-right: 10px;
 }
 
 #message_form_editable {
@@ -1011,7 +1031,6 @@ body {
 
 .message_friend_name {
     display: inline-block;
-    font-family: sans-serif;
     font-weight: 200;
     line-height: 18px;
     color: black;

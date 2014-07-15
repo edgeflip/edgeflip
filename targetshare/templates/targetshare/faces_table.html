@@ -64,7 +64,7 @@ this is the message div and the faces themselves
             <input id="manual_input_placeholder" class="manual_input" placeholder="{{ text }}" />
             {% endwith %}
         </div>
-        <div id="picked_friends_container"></div>
+        <div id="picked_friends_container" class="{% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}"></div>
     </div> <!-- manual_add -->
 
     {% block msg_prompt %}
@@ -78,31 +78,17 @@ this is the message div and the faces themselves
             <div id="message_form_editable" contentEditable="True">
                 <span id='message_helper_txt' style='color: gray;'></span>
             </div>
-
-            <!-- New, better way of doing things. Nixxed in favor of maintaining current look/feel -->
-            <!--
-            <div id='message_preview' valign='middle'>
-                <img src='{{ fb_params.fb_object_image }}'>
-                <div id='message_preview_title'>
-                    {{ fb_params.fb_object_title }}
-                </div>
-                <div id='message_preview_desc'>
-                    {{ fb_params.fb_object_description }}
-                </div>
-            </div>
-            -->
-            <!-- To my future self, I am so sorry. Below maintains current look/feel -->
-            <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: 'nimbus-sans-condensed-n7','nimbus-sans-condensed', Helvetica, sans-serif;">
+            <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: Helvetica, Arial, 'lucida grande',tahoma,verdana,arial,sans-serif;">
                 <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
                     <tr>
                         <td>
                             <img src='{{ fb_params.fb_object_image }}' style='margin-right: 7px; height: 60px'>
                         </td>
                         <td>
-                            <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 11px; margin-bottom: 3px;'>
+                            <div style='color: #3B5998; font-size: 11px; font-weight: bold; line-height: 1.28; margin-bottom: 3px;'>
                                 {{ fb_params.fb_object_title }}
                             </div>
-                            <div style='font-size: 9px; color: gray; font-weight: normal'>
+                            <div style='font-size: 12px; color: gray; line-height: 1.28;'>
                                 {{ fb_params.fb_object_description }}
                             </div>
                         </td>
