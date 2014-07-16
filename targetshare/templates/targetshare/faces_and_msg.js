@@ -159,6 +159,8 @@ function selectFriend() {
         edgeflip.events.record(selection_type, {friends: novelIds});
     }
 
+    $("body").trigger('friendsSelected');
+
     return true;
 }
 
@@ -225,10 +227,10 @@ function syncFriendBoxes() {
 // grabbed from stackoverflow:
 // http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
 function msgFocusEnd() {
-    $('#message_form_editable').focus();
+    var contentEditableElement = document.getElementById('message_form_editable'),
+        range,
+        selection;
 
-    var contentEditableElement = document.getElementById('message_form_editable');
-    var range,selection;
     if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
     {
         range = document.createRange();//Create a range (a range is a like the selection but invisible)
@@ -245,7 +247,6 @@ function msgFocusEnd() {
         range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
         range.select();//Select the range (make it the visible selection
     }
-
 }
 
 /* if cursor in editable div, & user selects a friend, at add insertion point */
@@ -351,18 +352,16 @@ function useSuggested(msgs) {
 
     $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
+   
+    activateShareButton();
+    msgFocusEnd();
 
     //This looks bad, but both the iframe and its parent need scrolling
     //There is a FB Canvas scroll, but its impossible to test in a local env
     $('html,body').scrollTop($('#button_do_share').offset().top);
     $('html,body',window.parent.document).animate(
         { scrollTop: $('#button_do_share').offset().top + 30 },
-        { duration: 1000,
-          complete: function() {
-              activateShareButton();
-              msgFocusEnd();
-          }
-        }
+        { duration: 1000 }
     );
 }
 
@@ -394,17 +393,18 @@ function selectAll(skipRecord) {
         }
     } );
 
-    //This looks bad, but both the iframe and its parent need scrolling
-    //There is a FB Canvas scroll, but its impossible to test in a local env
-    $('html,body').scrollTop($('#button_sugg_msg').offset().top);
-    $('html,body',window.parent.document).animate(
-        { scrollTop: $('#button_sugg_msg', document).offset().top + 30 },
-        { duration: 1000,
-          complete: function() {
-              if( fbids.length ) { selectFriend.apply(this, fbids); }
-              activateSuggestButton();
-          }
-        } );
+    $("body").one('friendsSelected', function() {
+        console.log('asdasd');
+        //This looks bad, but both the iframe and its parent need scrolling
+        //There is a FB Canvas scroll, but its impossible to test in a local env
+        $('html,body').scrollTop($('#button_sugg_msg').offset().top);
+        $('html,body',window.parent.document).animate(
+            { scrollTop: $('#button_sugg_msg', document).offset().top + 30 },
+            { duration: 1000 } );
+    } );
+    
+    if( fbids.length ) { selectFriend.apply(this, fbids); }
+    activateSuggestButton();
 }
 
 /* Tell the user max_face have already been selected */
