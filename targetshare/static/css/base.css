@@ -255,9 +255,9 @@ body {
     }
 
     .by5 .friend_pic img {
-        height: 50px;
-        width: 50px;
-        margin: 7px auto;
+        height: 40px;
+        width: 40px;
+        margin: 12px auto;
     }
 
     .by5 .friend_txt {
@@ -791,8 +791,8 @@ body {
 
 #button_sugg_msg,
 #button_select_all {
-    background-color: #3561a1;
-    border: 1px solid #3561a1;
+    background-color: #d14836;
+    border: 1px solid #d14836;
     color: white;
     border-radius: 1px;
     text-align: center;
@@ -803,12 +803,14 @@ body {
 #button_sugg_msg:hover,
 #button_select_all:hover {
     cursor: pointer;
-    border: 1px solid #3561a1;
-    background-image: -webkit-linear-gradient(top, #3561a1, #3674d2); /* Chrome 10-25, iOS 5+, Safari 5.1+ */
-    background-image: linear-gradient(to bottom, #3561a1, #3674d2); /* Chrome 26, Firefox 16+, IE 10+, Opera */
+    border: 1px solid #d14836;
+    background-image: -webkit-linear-gradient(top, #dd4b39, #d14836); /* Chrome 10-25, iOS 5+, Safari 5.1+ */
+    background-image: linear-gradient(to bottom, #dd4b39, #d14836); /* Chrome 26, Firefox 16+, IE 10+, Opera */
 }
 
 .button_inactive {
+    background-color: #3561a1 !important;
+    border: 1px solid #3561a1 !important;
     color: rgba( 255, 255, 255, .65 );
     opacity: .65;
 }
@@ -1072,8 +1074,8 @@ body {
     letter-spacing: 1.5px;
     border-radius: 1px;
     float: right;
-    background-color: #3561a1;
-    border: 1px solid #3561a1;
+    background-color: #d14836;
+    border: 1px solid #d14836;
     text-align: center;
     color: white;
 }
