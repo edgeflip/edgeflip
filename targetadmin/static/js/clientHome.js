@@ -2,7 +2,7 @@ define(
     [
       'jquery',
       'vendor/underscore',
-      'ourBackbone',
+      'vendor/backbone',
       'models/campaign',
       'templates/clientHome',
       'css!styles/clientHome'

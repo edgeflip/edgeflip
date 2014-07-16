@@ -1,0 +1,10 @@
+.help img {
+  display: block;
+  margin: auto;
+  width: 100%;
+}
+.help .contact {
+  text-align: center;
+  margin: 2em 0em;
+  font-size: large;
+}

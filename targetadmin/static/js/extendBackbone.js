@@ -1,41 +1,69 @@
-Backbone.View.prototype.slurpEl = function( el ) {
+define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Backbone ) {
 
-    var key = ( el.is('[data-js]') )
-        ? el.attr('data-js')
-        : ( el.is('input,select,textarea[name]' ) )
-            ? el.attr('name')
-            : '_';
+    Backbone.View.prototype.slurpEl = function( el ) {
 
-    this.templateData[ key ] = ( this.templateData.hasOwnProperty(key) )
-        ? this.templateData[ key ].add( el )
-        : el;
+        var key = ( el.is('[data-js]') )
+            ? el.attr('data-js')
+            : ( el.is('input,select,textarea[name]' ) )
+                ? el.attr('name')
+                : '_';
 
-    return this;
-}
+        this.templateData[ key ] = ( this.templateData.hasOwnProperty(key) )
+            ? this.templateData[ key ].add( el )
+            : el;
 
-Backbone.View.prototype.slurpHtml = function( options ) {
-   
-    var $html = ( options && options.template ) ? $( options.template ) : this.$el,
-        selector = '[data-js]',
-        self = this;
+        return this;
+    }
+
+    Backbone.View.prototype.slurpHtml = function( options ) {
        
-    if( options && options.slurpInputs ) { selector += ',input,select,textarea'; }
+        var $html = ( options && options.template ) ? $( options.template ) : this.$el,
+            selector = '[data-js]',
+            self = this;
+           
+        if( options && options.slurpInputs ) { selector += ',input,select,textarea'; }
 
-    if( this.templateData === undefined ) { this.templateData = { }; }
+        if( this.templateData === undefined ) { this.templateData = { }; }
 
-    _.each( $html, function( el ) {
-        var $el = $(el);
-        if( $el.is( selector ) ) { this.slurpEl( $el ); }
-    }, this );
+        _.each( $html, function( el ) {
+            var $el = $(el);
+            if( $el.is( selector ) ) { this.slurpEl( $el ); }
+        }, this );
 
-   _.each( $html.get(), function( el ) {
-       $( el ).find( selector ).each( function( i, elToBeSlurped ) {
-           self.slurpEl($(elToBeSlurped) ); } );
-   }, this );
+       _.each( $html.get(), function( el ) {
+           $( el ).find( selector ).each( function( i, elToBeSlurped ) {
+               self.slurpEl($(elToBeSlurped) ); } );
+       }, this );
 
-    if( options && options.insertion ) { options.insertion.$el[ ( options.insertion.method ) ? options.insertion.method : 'append' ]( $html ); }
+        if( options && options.insertion ) { options.insertion.$el[ ( options.insertion.method ) ? options.insertion.method : 'append' ]( $html ); }
 
-    return this;
-};
+        return this;
+    };
 
-String.prototype.capitalize = function() { return this.charAt(0).toUpperCase() + this.slice(1); }
+    Backbone.View.prototype.isMouseOnEl = function( event, el ) {
+
+        var elOffset = el.offset();
+        var elHeight = el.outerHeight( true );
+        var elWidth = el.outerWidth( true );
+
+        if( ( event.pageX < elOffset.left ) ||
+            ( event.pageX > ( elOffset.left + elWidth ) ) ||
+            ( event.pageY < elOffset.top ) ||
+            ( event.pageY > ( elOffset.top + elHeight ) ) ) {
+
+            return false;
+        }
+
+        return true;
+    }
+
+    return {
+        view: function( extension ) {
+            _.each( extension, function( value, key ) {
+                var obj = { }; obj[ key ] = value;
+                _.extend( Backbone.View.prototype, obj );
+            } );
+        }
+    }
+
+} );

@@ -1,4 +1,4 @@
-define( [ 'jquery', 'vendor/underscore', 'ourBackbone' ], function( $, _, Backbone ) {
+define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Backbone ) {
     return Backbone.Model.extend( {
         defaults: {
             pk: undefined,

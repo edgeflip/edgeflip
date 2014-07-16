@@ -14,7 +14,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.clientName) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.clientName); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</span>\n        </li>\n        <li class=\"campaign-btn button\" data-js=\"btn\" data-nav=\"home\">\n            <span class=\"glyphicon glyphicon-share\"></span>\n            <span class=\"client-name\">Campaigns</span>\n        </li>\n        <li class=\"report-btn button\" data-js=\"btn\" data-nav=\"reports\">\n            <span class=\"glyphicon glyphicon-stats\"></span>\n            <span class=\"client-name\">Reports</span>\n        </li>\n        <li class=\"help-btn button\" data-js=\"btn\" data-nav=\"help\">\n            <span class=\"glyphicon glyphicon-info-sign\"></span>\n            <span class=\"client-name\">Help</span>\n        </li>\n    </ol>\n</nav>\n";
+    + "</span>\n        </li>\n        <li class=\"campaign-btn button\" data-js=\"btn\" data-nav=\"campaigns\">\n            <span class=\"glyphicon glyphicon-share\"></span>\n            <span class=\"client-name\">Campaigns</span>\n        </li>\n        <li class=\"report-btn button\" data-js=\"btn\" data-nav=\"reports\">\n            <span class=\"glyphicon glyphicon-stats\"></span>\n            <span class=\"client-name\">Reports</span>\n        </li>\n        <li class=\"help-btn button\" data-js=\"btn\" data-nav=\"help\">\n            <span class=\"glyphicon glyphicon-info-sign\"></span>\n            <span class=\"client-name\">Help</span>\n        </li>\n    </ol>\n</nav>\n";
   return buffer;
   })
 
