@@ -1,4 +1,7 @@
 from django.conf.urls import patterns, url
+from django.views.generic import TemplateView
+
+
 
 
 # Client URLS
@@ -81,14 +84,12 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-summary'),
     url(r'^client/(?P<client_pk>\d+)/campaign/new/$', 'campaign_views.campaign_create',
         name='campaign-new'),
-    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/(?P<campaign_pk>\d+)?$', 'campaign_views.campaign_wizard',
         name='campaign-wizard'),
     url(r'^client/(?P<client_pk>\d+)/campaign/wizard/(?P<campaign_pk>\d+)/(?P<content_pk>\d+)/finish/$',
         'campaign_views.campaign_wizard_finish',
         name='campaign-wizard-finish'),
-    url(r'^campaign/(?P<client_pk>\d+)/how-it-works/$', 'campaign_views.how_it_works',
-        name='how-it-works'),
-    url(r'^campaign/how-it-works/$', 'campaign_views.how_it_works',
+    url(r'^campaign/how-it-works/$', TemplateView.as_view(template_name='targetadmin/how_it_works.html'),
         name='how-it-works')
 )
 

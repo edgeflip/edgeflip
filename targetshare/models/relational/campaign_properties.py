@@ -9,6 +9,12 @@ LOG = logging.getLogger('crow')
 
 class CampaignProperties(models.Model):
 
+    STATUS=dict(
+        DRAFT='draft',
+        PUBLISHED='published',
+        INACTIVE='inactive'
+    )
+
     campaign_property_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign', null=True,
                                  related_name='campaignproperties')
@@ -31,6 +37,7 @@ class CampaignProperties(models.Model):
         related_name='rootcampaign_properties',
         null=True,
     )
+    status = models.CharField(max_length=32, null=True)
 
     objects = manager.TransitoryObjectManager.make()
 
