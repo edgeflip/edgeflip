@@ -637,6 +637,7 @@ body {
     #picked_friends_container {
         float: right;
         width: 48%;
+        margin-top: 0px;
     }
     
     #message_form_editable,
@@ -973,10 +974,11 @@ body {
     border: thin solid gray;
     border-radius: 5px;
     padding: 2px;
-    margin: 2px;
+    margin: 5px 2px 3px 2px;
     background-color: #003F77;
     display: inline-block;
     white-space: nowrap;
+    line-height: 16px;
 }
 
 .added_x {
