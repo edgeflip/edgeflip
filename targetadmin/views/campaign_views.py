@@ -89,26 +89,27 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    if campaign_pk:
+    if campaign_pk and request.method == 'GET':
         campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
-        fb_attr_inst = campaign.fb_object()
+        fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
         campaign_properties = campaign.campaignproperties.get()
-        campaign_filters=[campaign
+        campaign_filters=[ list(campaign
             .campaignchoicesets.get()
             .choice_set.choicesetfilters.get()
             .filter.filterfeatures.values(
                 'feature', 'value', 'operator'
-            )
+            ))
+        original_name = campaign.campaign_name
         ]
         empty_fallback = False
         fallback_campaign = campaign_properties.fallback_campaign
         while fallback_campaign:
-            campaign_filters.append(fallback_campaign
+            campaign_filters.append( list(fallback_campaign
                 .campaignchoicesets.get()
                 .choice_set.choicesetfilters.get()
                 .filter.filterfeatures.values(
                     'feature', 'value', 'operator'
-                )
+                ))
              )
             empty_choice_set = fallback_campaign.campaignchoicesets.filter(
                 choice_set__choicesetfilters__filter__filterfeatures__isnull=True)
@@ -136,6 +137,37 @@ def campaign_wizard(request, client_pk, campaign_pk):
         campaign_form = forms.CampaignWizardForm(request.POST)
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
+            original_name = request.POST.get('original_name')
+
+            if campaign_pk:
+                old_filter = relational.Filter.objects.filter(
+                    name='{} {} Root Filter'.format(
+                        client.name,
+                        original_name,
+                    ),
+                    client=client
+                )[0]
+
+                for feature in relational.FilterFeature.objects.filter(filter=old_filter):
+                    feature.filter=None
+                    feature.save()
+
+                old_filter.delete()
+
+                old_root_choiceset = relational.ChoiceSet.objects.filter(
+                    name='{} {} Root ChoiceSet'.format(
+                        client.name,
+                        original_name
+                    ),
+                    client=client
+                )[0]
+
+                for filter in old_root_choiceset.choicesetfilters:
+                    filter.delete()
+
+                old_root_choiceset.delete()
+
+
             filter_feature_layers = []
             enabled_filters = (request.POST.get(
                 'enabled-filters-{}'.format(index), '') for index in range(1, 5))
@@ -168,6 +200,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 ),
                 client=client
             )
+
             if filter_feature_layers:
                 for feature in filter_feature_layers[0]:
                     feature.filter = root_filter
@@ -335,10 +368,10 @@ def campaign_wizard(request, client_pk, campaign_pk):
         'client': client,
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
-        'filter_features': filter_features,
-        'campaign_filters': campaign_filters
+        'filter_features': json.dumps( list( filter_features ), cls=DjangoJSONEncoder ),
+        'campaign_filters': json.dumps( campaign_filters, cls=DjangoJSONEncoder ),
+        'original_name': original_name
     })
-
 
 @utils.auth_client_required
 def campaign_summary(request, client_pk, campaign_pk):
