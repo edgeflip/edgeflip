@@ -62,15 +62,21 @@ class UserNetwork(list):
                          require_incoming=False,
                          require_outgoing=False,
                          max_age=None):
-        newer_than_date = max_age and (timezone.now() - max_age)
-        edge_filters = {'fbid_target__eq': primary['fbid']}
-        if newer_than_date:
-            edge_filters.update(
-                index='updated',
-                updated__gt=newer_than_date,
-            )
+        if max_age:
+            updated_filters = {
+                'index': 'updated',
+                'updated__gt': (timezone.now() - max_age),
+            }
+        else:
+            updated_filters = {}
 
-        incoming_edges = dynamo.IncomingEdge.items.query(**edge_filters)
+        incoming_filters = updated_filters.copy()
+        if incoming_filters:
+            # (Until we project all attributes into the index), we have to make
+            # an additional request to the table for non-index keys, or ask DDB
+            # to do this for us (via `attributes`):
+            incoming_filters['attributes'] = dynamo.IncomingEdge._meta.keys.keys()
+        incoming_edges = primary.incomingedges.query(**incoming_filters)
         edges_in = {edge.fbid_source: edge for edge in incoming_edges
                     if not require_incoming or edge.post_likes is not None}
 
@@ -100,7 +106,10 @@ class UserNetwork(list):
         # (2nd's ID, 2nd's User, incoming edge, outgoing edge, 2nd's interactions)
         if require_outgoing:
             # ...fetching outgoing edges too:
-            outgoing_edges = dynamo.OutgoingEdge.incoming_edges.query(**edge_filters)
+            outgoing_edges = dynamo.OutgoingEdge.incoming_edges.query(
+                fbid_source__eq=primary.fbid,
+                **updated_filters
+            )
             edge_args = (
                 (edge.fbid_target,
                  secondaries.get(edge.fbid_target),

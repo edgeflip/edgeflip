@@ -122,15 +122,14 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     client_content = relational.ClientContent.objects.get(content_id=content_id)
     campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
-    client = campaign.client
     properties = campaign.campaignproperties.get()
     fallback_cascading = properties.fallback_is_cascading
     fallback_content_id = properties.fallback_content_id
     already_picked = already_picked or datastructs.TieredEdges()
 
     if properties.fallback_is_cascading and properties.fallback_campaign is None:
-        LOG_RVN.error("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
-                      campaign_id)
+        LOG_RVN.warn("Campaign %s expects cascading fallback, but fails to specify fallback campaign.",
+                     campaign_id)
         fallback_cascading = None
 
     # If fallback content_id IS NULL, defer to current content_id:
@@ -191,17 +190,23 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     choice_set_filters = choice_set.choicesetfilters.exclude(
         filter__filterfeatures__feature_type__px_rank__gt=px_rank
     )
-    try:
-        (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
-            edges_filtered,
-            use_generic=allow_generic,
-            min_friends=min_friends,
-            cache_match=cache_match,
-        )
-    except relational.ChoiceSetFilter.TooFewFriendsError:
-        LOG_RVN.info("Too few friends found for user %s with campaign %s. "
-                     "(Will check for fallback.)", fbid, campaign_id)
+    if choice_set_filters:
+        try:
+            (best_csf, best_csf_edges) = choice_set_filters.choose_best_filter(
+                edges_filtered,
+                use_generic=allow_generic,
+                min_friends=min_friends,
+                cache_match=cache_match,
+            )
+        except relational.ChoiceSetFilter.TooFewFriendsError:
+            LOG_RVN.debug("Too few friends found for user %s with campaign %s. "
+                          "(Will check for fallback.)", fbid, campaign_id)
+            best_csf_edges = None
     else:
+        # No ChoiceSetFilters, on this ChoiceSet, (at this rank); skip filtering:
+        (best_csf, best_csf_edges) = (None, edges_filtered)
+
+    if best_csf_edges is not None:
         already_picked += datastructs.TieredEdges(
             edges=best_csf_edges,
             campaign_id=campaign_id,
@@ -210,8 +215,10 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             choice_set_slug=(best_csf.url_slug if best_csf else generic_slug),
         )
         if best_csf is None:
-            # We got generic:
-            LOG.debug("Generic returned for %s with campaign %s.", fbid, campaign_id)
+            template = "No ChoiceSetFilter applied ({}) for %s with campaign %s.".format(
+                "used generic" if choice_set_filters else "none at rank"
+            )
+            LOG.debug(template, fbid, campaign_id)
             interaction.assignments.create_managed(
                 campaign=campaign,
                 content=client_content,
@@ -274,17 +281,17 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
         # if fallback campaign_id IS NULL, nothing we can do, so just return an error.
         if properties.fallback_campaign is None:
-            LOG_RVN.error("No fallback for %s with campaign %s. (Will return error to user.)",
-                          fbid, campaign_id)
-            event_content = '{}:button /frame_faces/{}/{}'.format(
-                client.fb_app_name,
-                campaign_id,
-                content_id,
-            )
+            if px_rank == 3:
+                LOG_RVN.fatal("No fallback for %s with campaign %s. "
+                              "(Will return error to user.)",
+                              fbid, campaign_id)
+            else:
+                LOG_RVN.error("No fallback for %s with campaign %s.", fbid, campaign_id)
+
             interaction.events.create(
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                content=event_content,
+                content=px_rank,
                 event_type='no_friends_error'
             )
             return empty_filtering_result._replace(campaign_id=campaign_id,
@@ -332,9 +339,6 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     else:
         # We're done cascading and have enough friends, so time to return!
-
-        # Might have cascaded beyond the point of having new friends to add,
-        # so pick up various return values from the last tier with friends.
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
         return FilteringResult(edges_ranked, already_picked, **last_tier)

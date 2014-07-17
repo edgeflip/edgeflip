@@ -2,19 +2,18 @@ edgeflip.dashboard = (function (edgeflip, $) {
     var self = {
         client_id: null,
         metrics: {
-            'visits': 'Visits',
+            'initial_redirects': 'Clicks',
             'authorized_visits': 'Authorized Visits',
-            'uniq_users_authorized': 'Users Authorized',
-            'auth_fails': 'Authorization Fails',
-            'visits_shown_faces': 'Visits Shown Faces',
-            'visits_with_share_clicks': 'Visits With Share Clicks',
-            'visits_with_shares': 'Visits With Shares',
-            'total_shares': 'Total Shares',
+            'failed_visits': 'Failed Visits',
+            'uniq_users_authorized': 'Unique Authorized Visitors',
+            'visits_shown_faces': 'Visits Shown Suggestions',
+            'visits_with_shares': 'Visits Permitting Share',
+            'total_shares': 'Audience Reached',
             'clickbacks': 'Clickbacks',
         }
     };
 
-    self.columns = $.extend({'name': 'Campaign', 'most_recent_data': 'Most Recent Data'}, self.metrics)
+    self.columns = $.extend({'name': 'Campaign', 'first_activity': 'First Activity', 'latest_activity': 'Latest Activity'}, self.metrics)
 
     self.init = function() {
         self.set_client_id()
@@ -127,6 +126,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
             .attr("class", "totals")
 
         totals.append("td").text("TOTALS")
+        totals.append("td")
         totals.append("td")
         totals.selectAll("tr")
             .data(Object.keys(self.metrics))

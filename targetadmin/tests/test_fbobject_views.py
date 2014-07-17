@@ -36,6 +36,7 @@ class TestFBObjectViews(TestAdminBase):
                 'name': 'Test Object',
                 'og_title': 'Test Title',
                 'sharing_prompt': 'Test Prompt',
+                'sharing_button': 'Test Sharing Button',
             }
         )
         fb_obj_attr = relational.FBObjectAttribute.objects.get(
@@ -57,6 +58,7 @@ class TestFBObjectViews(TestAdminBase):
                 'name': 'Edit Test Edited',
                 'og_title': 'Test Title Edited',
                 'sharing_prompt': 'Test Prompt',
+                'sharing_button': 'Test Sharing Button',
             }
         )
         fb_obj = relational.FBObject.objects.get(pk=self.fb_obj.pk)

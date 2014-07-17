@@ -56,6 +56,7 @@ def build_all(deps='1', env=None):
     # db
     fab.execute(setup_db)
     fab.execute(setup_redshift)
+    fab.execute(setup_dynamodb)
 
     # static files
     fab.execute(collect_static, noinput='true')
@@ -95,11 +96,9 @@ def install_deps():
     l('sudo apt-get install -y -q {}'.format(
         ' '.join(dep.strip() for dep in deps)))
 
-    # Install fake dynamo:
-    if 'dev' in roles:
-        gems = l('gem list --local --no-versions', capture=True)
-        if 'fake_dynamo' not in gems.split():
-            l('sudo gem install fake_dynamo --version 0.2.3')
+    # Install local DynamoDB mock:
+    if 'dev' in roles and not os.path.exists(os.path.join(BASEDIR, '.dynamodb')):
+        manage('faraday', ('local', 'install'))
 
 
 @fab.task(name='virtualenv')
@@ -284,6 +283,53 @@ def setup_redshift(env=None, force='0', testdata='1'):
             manage('loaddata', ['redshift_testdata'], env=env, keyed={
                 'database': sql_context['DATABASE'],
             })
+
+
+@fab.task(name='dynamo')
+def setup_dynamodb(env=None, force='0'):
+    """Initialize DynamoDB Local database
+
+    Requires that a virtual environment has been created, and is either
+    already activated, or specified, e.g.:
+
+        dynamo:MY-ENV
+
+    To force initialization during development, by tearing down any existing
+    database, specify "force":
+
+        dynamo:force=[1|true|yes|y]
+
+    """
+    if fab.env.roles and 'dev' not in fab.env.roles:
+        return # this isn't a dev build
+
+    # Ensure dev server running #
+    with fab.settings(fab.hide('running', 'warnings'), warn_only=True):
+        status = manage('faraday', ('local', 'status'), env=env, capture=True)
+
+    start_server = status.failed
+    if start_server:
+        with fab.settings(fab.hide('running', 'stdout')):
+            manage('faraday', ('local', 'start'), env=env)
+
+    # Teardown existing database (if forced) #
+    if true(force):
+        manage('faraday', ['db', 'destroy'], ['force'], env=env)
+
+    # Check for existing database #
+    with fab.settings(fab.hide('running')):
+        status = manage('faraday', ('db', 'status'), env=env, capture=True)
+    if 'ACTIVE' in status:
+        fab.warn('DynamoDB tables already exist (specify "force" to overwrite)')
+        return # bail
+
+    # Build database #
+    manage('faraday', ('db', 'build'), env=env)
+
+    # Stop dev server (if we started it) #
+    if start_server:
+        with fab.settings(fab.hide('running', 'stdout')):
+            manage('faraday', ('local', 'stop'), env=env)
 
 
 @fab.task
