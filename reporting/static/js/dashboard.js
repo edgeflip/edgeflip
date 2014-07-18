@@ -4,7 +4,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
         metrics: {
             'initial_redirects': 'Clicks',
             'authorized_visits': 'Authorized Visits',
-            'failed_visits': 'Failed Visits',
+            'failed_visits': 'Abandoned Visits',
             'uniq_users_authorized': 'Unique Authorized Visitors',
             'visits_shown_faces': 'Visits Shown Suggestions',
             'visits_with_shares': 'Visits Permitting Share',
