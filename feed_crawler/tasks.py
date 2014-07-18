@@ -240,12 +240,38 @@ def initial_crawl(self, primary, secondary):
 
     sync_map.back_fill_epoch = past_epoch
     sync_map.incremental_epoch = now_epoch
+    sync_map.save_status(models.FBSyncMap.PAGE_LIKES)
+    retrieve_page_likes.apply_async(
+        args=[sync_map.fbid_primary, sync_map.fbid_secondary],
+        countdown=DELAY_INCREMENT
+    )
+    logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
+
+
+@shared_task(bind=True, max_retries=5)
+def retrieve_page_likes(self, primary, secondary):
+    sync_map = models.FBSyncMap.items.get_item(
+        fbid_primary=primary, fbid_secondary=secondary
+    )
+    logger.info('Starting page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
+    bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
+    s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
+    try:
+        s3_key.retrieve_page_likes(sync_map.fbid_secondary, sync_map.token)
+    except (IOError):
+        try:
+            self.retry()
+        except MaxRetriesExceededError:
+            rvn_logger.info('Failed page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
+    else:
+        s3_key.set_s3_likes()
+
     sync_map.save_status(models.FBSyncMap.BACK_FILL)
     back_fill_crawl.apply_async(
         args=[sync_map.fbid_primary, sync_map.fbid_secondary],
         countdown=DELAY_INCREMENT
     )
-    logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Completed page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
 
 
 @shared_task(bind=True, default_retry_delay=3600, max_retries=5)
