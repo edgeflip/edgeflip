@@ -309,7 +309,7 @@ def get_page_likes(fbid, token):
         'access_token': token,
     })
 
-    return (row['page_id'] for row in page_likes_response['data'])
+    return tuple(row['page_id'] for row in page_likes_response['data'])
 
 
 def get_friend_count(fbid, token):

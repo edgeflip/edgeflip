@@ -82,3 +82,17 @@ class TestFeedKey(unittest.TestCase):
         self.key.data = {}
         self.key.populate_from_s3()
         self.assertEqual(len(self.key.data['data']), 1)
+
+
+    @patch('feed_crawler.s3_feed.facebook.client.urlload')
+    def test_retrieve_page_likes(self, fb_mock):
+        fb_data = {'data': [
+            {'unrelated': 'some_data', 'page_id': 1},
+            {'unrelated': 'some_data', 'page_id': 2},
+        ]}
+        fb_mock.return_value = fb_data
+        self.key.retrieve_page_likes('fbid_mocked_out', 'token_too')
+        self.assertEqual(
+            self.key.likes,
+            (1, 2)
+        )
