@@ -23,11 +23,18 @@ def client_summary(request, client_pk):
         SELECT
             campaignstats.campaign_id as root_id,
             campaigns.name,
-            max(most_recent_data) as most_recent_data,
+            max(latest_activity) as latest_activity,
+            min(first_activity) as first_activity,
             {}
         FROM campaignstats
         JOIN campaigns using (campaign_id)
-        JOIN (select campaign_id, to_char(max(hour), 'YYYY-MM-DD') as most_recent_data from clientstats group by campaign_id) as timelookup using (campaign_id)
+        JOIN (
+            select
+                campaign_id,
+                to_char(max(hour), 'YYYY-MM-DD') as latest_activity,
+                to_char(min(hour), 'YYYY-MM-DD') as first_activity
+                from clientstats group by campaign_id
+            ) as timelookup using (campaign_id)
         WHERE campaigns.client_id = %s
         GROUP BY campaignstats.campaign_id, campaigns.name
         """.format(metric_where_fragment()),

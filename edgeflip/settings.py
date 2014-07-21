@@ -228,6 +228,7 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
     'django.contrib.admin',
     # External apps:
+    'faraday.integration.django',
     'south',
     'djcelery',
     'django_nose',

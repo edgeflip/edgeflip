@@ -5,8 +5,7 @@
 *.pickle
 *.swp
 
-/fake_dynamo.fdb
-/.fake_dynamo.pid
+/.dynamodb
 
 .dynamodb/
 

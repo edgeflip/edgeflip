@@ -44,7 +44,8 @@
         <thead>
             <tr>
             <th id="name"><button class="icon sorter">Campaign</button></th>
-            <th id="most_recent_data"><button class="icon sorter">Most Recent Data</button></th>
+            <th id="first_activity"><button class="icon sorter">First Activity</button></th>
+            <th id="latest_activity"><button class="icon sorter">Latest Activity</button></th>
             {% for slug, display_name, description in columns %}
             <th id="{{slug}}" title="{{description}}"><button class="icon sorter">{{display_name}}</button></th>
             {% endfor %}

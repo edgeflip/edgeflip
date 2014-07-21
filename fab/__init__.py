@@ -11,18 +11,19 @@ BASEDIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 l = fab.local
 
 
-def manage(command, args=(), flags=(), keyed=None, env=None):
+def manage(command, args=(), flags=(), keyed=None, env=None, capture=False):
     """Run a Django management command"""
     keyed = keyed or {}
+    full_command = 'python manage.py {command} {args} {flags} {keyed}'.format(
+        command=command,
+        args=' '.join(args),
+        flags=' '.join('--' + flag for flag in flags),
+        keyed=' '.join('--{}={}'.format(key, value)
+                        for key, value in keyed.items()),
+    )
     with workon(env):
         with fab.lcd(BASEDIR):
-            l('python manage.py {command} {args} {flags} {keyed}'.format(
-                command=command,
-                args=' '.join(args),
-                flags=' '.join('--' + flag for flag in flags),
-                keyed=' '.join('--{}={}'.format(key, value)
-                               for key, value in keyed.items()),
-            ))
+            return l(full_command, capture)
 
 
 def true(inp):
