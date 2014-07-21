@@ -253,7 +253,7 @@ def retrieve_page_likes(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary
     )
-    logger.info('Starting page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
+    logger.info('Starting page like retrieval of %s', sync_map.s3_key_name)
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
@@ -271,7 +271,7 @@ def retrieve_page_likes(self, primary, secondary):
         args=[sync_map.fbid_primary, sync_map.fbid_secondary],
         countdown=DELAY_INCREMENT
     )
-    logger.info('Completed page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
+    logger.info('Completed page like retrieval of %s', sync_map.s3_key_name)
 
 
 @shared_task(bind=True, default_retry_delay=3600, max_retries=5)
