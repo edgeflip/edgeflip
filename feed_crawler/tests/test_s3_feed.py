@@ -91,8 +91,8 @@ class TestFeedKey(unittest.TestCase):
             {'unrelated': 'some_data', 'page_id': 2},
         ]}
         fb_mock.return_value = fb_data
-        self.key.retrieve_page_likes('fbid_mocked_out', 'token_too')
+        likes = self.key.retrieve_page_likes('fbid_mocked_out', 'token_too')
         self.assertEqual(
-            self.key.likes,
+            likes,
             (1, 2)
         )

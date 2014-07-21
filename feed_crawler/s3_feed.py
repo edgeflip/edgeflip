@@ -75,12 +75,12 @@ class FeedKey(key.Key):
 
     def retrieve_page_likes(self, fbid, token):
         '''Populates the page like data from Facebook'''
-        self.likes = facebook.client.get_page_likes(fbid, token)
+        return facebook.client.get_page_likes(fbid, token)
 
-    def set_s3_likes(self):
+    def set_s3_likes(self, likes):
         '''Saves previously retrieved likes data to s3'''
         self.populate_from_s3()
-        self.data['likes'] = self.likes
+        self.data['likes'] = likes
         self.save_to_s3()
 
 

@@ -257,14 +257,14 @@ def retrieve_page_likes(self, primary, secondary):
     bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
     s3_key, created = bucket.get_or_create_key(sync_map.s3_key_name)
     try:
-        s3_key.retrieve_page_likes(sync_map.fbid_secondary, sync_map.token)
+        likes = s3_key.retrieve_page_likes(sync_map.fbid_secondary, sync_map.token)
     except (IOError):
         try:
             self.retry()
         except MaxRetriesExceededError:
             rvn_logger.info('Failed page like retrieval of %s', sync_map.s3_key_name, exc_info=True)
     else:
-        s3_key.set_s3_likes()
+        s3_key.set_s3_likes(likes)
 
     sync_map.save_status(models.FBSyncMap.BACK_FILL)
     back_fill_crawl.apply_async(
