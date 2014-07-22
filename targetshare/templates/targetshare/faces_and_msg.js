@@ -328,13 +328,22 @@ function useSuggested(msgs) {
    
     activateShareButton();
 
-    //safari iOS doesn't have a solution yet
+    //we don't want to mess with whatever the safari iOS is looking at
+    //they could be at any number of zoom levels
     if( window.navigator.userAgent.match(/(iPad|iPhone)/i) ) {
     } else {
-        $('html,body',window.parent.document).animate(
-            { scrollTop: $('#button_do_share').offset().top - 30 },
-            { duration: 1000 }
-        );
+        var shareButton = $('#button_do_share', document);
+            offset = shareButton.offset(),
+            difference = ( offset.top + shareButton.outerHeight(true) ) -
+                         ( $('html,body').scrollTop() + $(window).height() );
+
+        //only scroll if share button is below the viewport
+        if( difference > 0 ) {
+            $('html,body',document).animate(
+                { scrollTop: '+=' + difference },
+                { duration: 1000 }
+            );
+        }
     }
 }
 
@@ -345,8 +354,7 @@ function selectAll(skipRecord) {
     var fbid,
         fbids = [],
         unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
-        count = getRecipFbids().length,
-        parentDoc = $(window.parent.parent.document);
+        count = getRecipFbids().length;
 
     if (!skipRecord) {
         edgeflip.events.record('select_all_click');
@@ -367,10 +375,11 @@ function selectAll(skipRecord) {
     } );
 
     $("body").one('friendsSelected', function() {
-        //safari iOS doesn't have a solution yet
+        //we don't want to mess with whatever the safari iOS is looking at
+        //they could be at any number of zoom levels
         if( window.navigator.userAgent.match(/(iPad|iPhone)/i) ) {
         } else {
-            $('html,body',window.parent.document).animate(
+            $('html,body',document).animate(
                 { scrollTop: $('#button_sugg_msg', document).offset().top - 30 },
                 { duration: 1000 } );
         }
