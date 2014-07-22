@@ -26,6 +26,12 @@
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
                     </select>
+                    <select id="interest-dropdown" style="display:none;">
+                        <option value="" selected="selected">--------</option>
+                        {% for topic in form.TOPICS %}
+                        <option value="{{ topic }}">{{ topic }}</option>
+                        {% endfor %}
+                    </select>
                     <div id="age-range-container" style="display:none;">
                         <div style="padding-bottom: 10px;">
                             <span>Age range:</span>
