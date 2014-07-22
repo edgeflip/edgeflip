@@ -48,6 +48,10 @@ def fql_stream_chunk(uid, min_time, max_time):
             .format(uid, min_time, max_time))
 
 
+def fql_page_likes(fbid):
+    return ("SELECT page_id from page_fan WHERE uid = {}".format(fbid))
+
+
 def fql_post_comms(stream):
     return ("SELECT fromid, post_id FROM comment "
             "WHERE post_id IN ("
@@ -296,6 +300,16 @@ def get_user(uid, token):
         state=location.get('state'),
         country=location.get('country'),
     )
+
+
+def get_page_likes(fbid, token):
+    page_likes_response = urlload('https://graph.facebook.com/fql', {
+        'q': fql_page_likes(fbid),
+        'format': 'json',
+        'access_token': token,
+    })
+
+    return tuple(row['page_id'] for row in page_likes_response['data'])
 
 
 def get_friend_count(fbid, token):

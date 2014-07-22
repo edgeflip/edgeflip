@@ -9,6 +9,7 @@ class FBSyncMap(Item):
     WAITING = 'waiting'
     QUEUED = 'queued'
     INITIAL_CRAWL = 'initial_crawl'
+    PAGE_LIKES = 'page_likes'
     BACK_FILL = 'back_fill'
     INCREMENTAL = 'incremental'
     COMMENT_CRAWL = 'comment_crawl'
