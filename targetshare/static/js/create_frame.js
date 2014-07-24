@@ -58,7 +58,7 @@
     })();
 
     // Construct frame HTML
-    var efFrameStyle = 'style="width: 100%; height: 900px; border: none; margin-top: 30px;"';
+    var efFrameStyle = 'style="width: 100%; border: none; margin-top: 30px;"';
     var efFrameHTML = '<iframe src="' + efFrameURL + '" id="faces_frame" ALLOWTRANSPARENCY="true" ' + efFrameStyle + '></iframe>';
     var efTempDiv = document.createElement('div');
     efTempDiv.innerHTML = efFrameHTML;

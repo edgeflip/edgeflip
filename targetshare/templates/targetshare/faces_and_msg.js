@@ -91,9 +91,7 @@ function activateButton(buttons, requestIdx) {
     return activateIdx;
 }
 var buttons = [ null, $('#button_select_all'), $('#button_sugg_msg'), $('#button_do_share') ];
-//function activateSelectButton() {
-//    return activateButton(buttons, 1);
-//}
+
 function activateSuggestButton() {
     return activateButton(buttons, 2);
 }
@@ -161,6 +159,8 @@ function selectFriend() {
         edgeflip.events.record(selection_type, {friends: novelIds});
     }
 
+    $("body").trigger('friendsSelected');
+
     return true;
 }
 
@@ -195,13 +195,11 @@ function syncFriendBoxes() {
         if (isRecip(fbid)) {
             $('#friend-'+fbid).removeClass('friend_box_unselected').addClass('friend_box_selected');
             $('#wrapper-'+fbid+' .xout').hide();
-            $('#wrapper-'+fbid+' .checkmark').show();
           }
         else {
             $('#added-'+fbid).remove();                  // remove the manually added friend (if it exists)
             $('#friend-'+fbid).removeClass('friend_box_selected').addClass('friend_box_unselected');
             $('#wrapper-'+fbid+' .xout').show();
-            $('#wrapper-'+fbid+' .checkmark').hide();
         }
     }
 
@@ -249,7 +247,6 @@ function msgFocusEnd() {
         range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
         range.select();//Select the range (make it the visible selection
     }
-
 }
 
 /* if cursor in editable div, & user selects a friend, at add insertion point */
@@ -292,7 +289,6 @@ function insertRecipAtCursor(html) {
 
     } else {
         $('#message_form_editable').append(html);
-        msgFocusEnd();
     }
 }
 
@@ -330,37 +326,65 @@ function elementContainsSelection(el) {
 function useSuggested(msgs) {
     edgeflip.events.record('suggest_message_click');
 
+    // grab the pre and post off the front of the queue and stick 'em back on the end
+    var msgPair = msgs.shift(),
+        msgPre = msgPair[0],
+        msgPost = msgPair[1],
+        msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>",
+        recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+    
+    msgs.push(msgPair);
+
     // If they don't have anyone checked, using the suggested message adds everyone
     if (getRecipFbids().length == 0) {
         selectAll(true);
     }
 
-    // grab the pre and post off the front of the queue and stick 'em back on the end
-    var msgPair = msgs.shift();
-    msgs.push(msgPair);
-    var msgPre = msgPair[0];
-    var msgPost = msgPair[1];
-    var msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>";
-    var recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+    if( msgPre.charAt(msgPre.length - 1) !== '' ) {
+        msgPre += ' ';
+    }
+    
+    if( msgPost.charAt(0) !== '' ) {
+        msgPost = ' ' + msgPost;
+    }
+
+
     $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
-
+   
     activateShareButton();
-    msgFocusEnd();
+
+    //we don't want to mess with whatever the safari iOS is looking at
+    //they could be at any number of zoom levels
+    if( window.navigator.userAgent.match(/(iPad|iPhone)/i) ) {
+    } else {
+        var shareButton = $('#button_do_share', document);
+            offset = shareButton.offset(),
+            difference = ( offset.top + shareButton.outerHeight(true) ) -
+                         ( $('html,body').scrollTop() + $(window).height() );
+
+        //only scroll if share button is below the viewport
+        if( difference > 0 ) {
+            $('html,body',document).animate(
+                { scrollTop: '+=' + difference },
+                { duration: 1000 }
+            );
+        }
+    }
 }
 
 /* selects all friends */
 function selectAll(skipRecord) {
-    if (!skipRecord) {
-        edgeflip.events.record('select_all_click');
-    }
-    activateSuggestButton();
-
     // Have to filter for visible because a friend div might be hidden
     // while awaiting response of an ajax suppression call
     var fbid,
+        fbids = [],
         unselected_friend_boxes = $(".friend_box:visible").not(".friend_box_selected"),
         count = getRecipFbids().length;
+
+    if (!skipRecord) {
+        edgeflip.events.record('select_all_click');
+    }
 
     //we want to alert only if there are unselected friend boxes
     //and the count is already at max_face
@@ -372,9 +396,23 @@ function selectAll(skipRecord) {
         fbid = parseInt(this.id.split('-')[1]);
         if (!isRecip(fbid)) {
             count++;
-            selectFriend(fbid);
+            fbids.push(fbid);
         }
     } );
+
+    $("body").one('friendsSelected', function() {
+        //we don't want to mess with whatever the safari iOS is looking at
+        //they could be at any number of zoom levels
+        if( window.navigator.userAgent.match(/(iPad|iPhone)/i) ) {
+        } else {
+            $('html,body',document).animate(
+                { scrollTop: $('#button_sugg_msg', document).offset().top - 30 },
+                { duration: 1000 } );
+        }
+    } );
+    
+    if( fbids.length ) { selectFriend.apply(this, fbids); }
+    activateSuggestButton();
 }
 
 /* Tell the user max_face have already been selected */
@@ -424,6 +462,8 @@ function doReplace(old_fbid) {
         friendHTML(old_fbid, '', '', '', div_id);
         // $(div_id).remove();
     }
+
+    return false;
 }
 
 
@@ -455,7 +495,8 @@ function friendHTML(oldid, id, fname, lname, div_id) {
             if (id) {
                 new_html = data;
                 $(div_id).replaceWith(new_html);
-                $(div_id).show();
+                $('#wrapper-' + id + ' .xout').click(
+                    function(e) { e.stopImmediatePropagation(); doReplace( $(this).data('id') ); } );
             } else {
                 // We hid it above, but still need to actually remove it if there's
                 // no new friend coming in (otherwise, a select all will still add this friend...)
@@ -470,6 +511,20 @@ function sendShare() {
     $('#friends_div').hide();
     $('#progress').show();
     $('#progress').removeClass('loading').addClass('sending');
+    
+
+    var progressBar = false,
+        progress = 10,
+        intervalId;
+
+    if( $('#spinner').css('background-image') === 'none' ) {
+        progressBar = true;
+        updateProgressBar(progress);
+        intervalId = setInterval(
+            function() { progress += 10;
+                         updateProgressBar(progress); },
+            500 );
+    }
 
     var recips = getRecipFbids();
     for (var i=0; i < recips.length; i++) {
@@ -506,6 +561,10 @@ function sendShare() {
                 });
             } else {
                 // thank you page redirect happens in recordShare()
+                if( progressBar ) {
+                    clearInterval(intervalId);
+                    if( progress < 70 ) { updateProgressBar(70); }
+                }
                 recordShare(response.id, msg, recips);
             }
         }
@@ -580,7 +639,9 @@ function recordShare(actionid, shareMsg, recips) {
         friends: recips,
         shareMsg: shareMsg,
         complete: function() {
-            outgoingRedirect(edgeflip.faces.thanksURL); // set in frame_faces.html
+            updateProgressBar(100);
+            // thanksURL set in frame_faces.html
+            setTimeout( function() { outgoingRedirect(edgeflip.faces.thanksURL); }, 500 );
         }
     });
 }

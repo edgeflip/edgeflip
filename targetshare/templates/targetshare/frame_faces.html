@@ -6,7 +6,8 @@
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- Campaign stylesheets -->
-    {% for css_link in campaign_css %} <link rel="stylesheet" type="text/css" href="{{ css_link }}" />
+    {% for css_link in campaign_css %} 
+        <link rel="stylesheet" type="text/css" href="{{ css_link }}"/>
     {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
@@ -68,12 +69,24 @@
         {% endblock %}
 
         $(function () {edgeflip.faces.user.connect()});
+
+    </script>
+
+    <script type="text/javascript">
+        //typkit font
+        (function(d) {
+        var config = {
+          kitId: 'ixj6alt',
+          scriptTimeout: 3000
+        },
+        h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/\bwf-loading\b/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='//use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
+        })(document);
     </script>
     <!-- edgeflip javascript -->
 {% endblock %}
 
 {% block body %}
-    <div style="display: table; position: relative; margin: 0px auto;">
+    <div class="progress_container" style="display: table; position: relative; margin: 0px auto;">
 
         {% block progress_box %}
             <div id="progress" class="h2_container loading"> 
@@ -84,7 +97,7 @@
 
     </div>
 
-    <div id="friends_div" {% if canvas %}class="canvas_friends_div" {% endif %} style="display:none; width: 100%;">
+    <div id="friends_div" {% if canvas %}class="canvas_friends_div"{% endif %} style="display:none; width: 100%;">
         
         <div id="your-friends-here">{% block friends_data %}{% endblock %}</div> <!-- your-friends-here -->
 
