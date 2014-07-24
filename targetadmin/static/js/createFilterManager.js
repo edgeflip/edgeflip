@@ -60,6 +60,8 @@ $.extend( createFilterManager.prototype, {
 
         this.genderDropdown = $('#gender-dropdown');
 
+        this.interestDropdown = $('#interest-dropdown');
+
         this.ageRangeContainer = $('#age-range-container');
 
         return this;
@@ -72,6 +74,7 @@ $.extend( createFilterManager.prototype, {
 
         this.featureDropdown.on( 'change', function() { self.handleFeatureChange() } );
         this.genderDropdown.on( 'change', function() { self.handleGenderChange() } );
+        this.interestDropdown.on( 'change', function() { self.handleInterestChange() } );
 
         this.locationTypeDropdown
             .on( 'change', function() { self.handleLocationTypeChange() } )
@@ -344,6 +347,14 @@ $.extend( createFilterManager.prototype, {
             this.toggleOperatorElements( 'hide' );
             this.toggleGenericValueInputs( 'hide' );  
             this.genderDropdown.fadeIn();
+        },
+
+        interest: function() {
+            this.showUI.default.call(this);
+            this.operatorDropdown.val('eq').attr( 'disabled', true );
+            this.toggleOperatorElements( 'hide' );
+            this.toggleGenericValueInputs( 'hide' );
+            this.interestDropdown.fadeIn();
         }
     },
 
@@ -383,6 +394,11 @@ $.extend( createFilterManager.prototype, {
         gender: function() {
             this.cleanupUI.default.call(this);
             this.genderDropdown.val('').hide();
+        },
+
+        interest: function() {
+            this.cleanupUI.default.call(this);
+            this.interestDropdown.val('').hide();
         }
     },
 
@@ -392,6 +408,11 @@ $.extend( createFilterManager.prototype, {
 
         this.firstValueInput.val( this.genderDropdown.val() );
 
+        return this;
+    },
+
+    handleInterestChange: function() {
+        this.firstValueInput.val(this.interestDropdown.val());
         return this;
     },
 

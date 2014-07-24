@@ -1,5 +1,4 @@
 import csv
-import itertools
 import json
 
 from django.conf import settings
@@ -101,100 +100,133 @@ def campaign_wizard(request, client_pk):
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
             filter_feature_layers = []
-            enabled_filters = (request.POST.get(
-                'enabled-filters-{}'.format(index), '') for index in range(1, 5))
+            ranking_feature_layers = []
+            enabled_filters = (request.POST.get('enabled-filters-{}'.format(index), '')
+                               for index in xrange(1, 5))
             for inputs in csv.reader(enabled_filters):
                 if not inputs:
                     continue
 
-                layer = []
+                filter_feature_layer = []
+                ranking_feature_layer = []
                 for feature_string in inputs:
-                    feature, operator, value = feature_string.split('.')
+                    (feature, operator, value) = feature_string.split('.')
+                    if feature == 'interest':
+                        feature = 'topics[{}]'.format(value)
+                        operator = relational.FilterFeature.Operator.MIN
+                        value = settings.ADMIN_TOPICS_FILTER_THRESHOLD
+
+                        # topics filters also get a ranking:
+                        try:
+                            ranking_key_feature = relational.RankingKeyFeature.objects.filter(
+                                feature=feature,
+                                reverse=True,
+                                ranking_key__client=client,
+                            )[0]
+                        except IndexError:
+                            ranking_key_feature = relational.RankingKeyFeature(
+                                feature=feature,
+                                feature_type=relational.RankingFeatureType.objects.get_topics(),
+                                reverse=True,
+                            )
+                        else:
+                            ranking_key_feature.pk = None
+
+                        ranking_feature_layer.append(ranking_key_feature)
+
                     try:
                         # Go for an existing one
                         ff = relational.FilterFeature.objects.filter(
-                            feature=feature, operator=operator, value=value,
-                            filter__client=client
+                            feature=feature,
+                            operator=operator,
+                            value=value,
+                            filter__client=client,
                         )[0]
-                        ff.pk = None
                     except IndexError:
                         # It'll get saved further down below
                         ff = relational.FilterFeature(
-                            feature=feature, operator=operator, value=value
+                            feature=feature,
+                            operator=operator,
+                            value=value,
                         )
-                    layer.append(ff)
-                filter_feature_layers.append(layer)
+                    else:
+                        ff.pk = None
 
-            root_filter = relational.Filter.objects.create(
-                name='{} {} Root Filter'.format(
-                    client.name,
-                    campaign_name,
-                ),
-                client=client
+                    filter_feature_layer.append(ff)
+
+                filter_feature_layers.append(filter_feature_layer)
+                ranking_feature_layers.append(ranking_feature_layer)
+
+            # Create root filter whether we have filter features or not:
+            root_filter = client.filters.create(
+                name='{} {} Root Filter'.format(client.name, campaign_name),
             )
-            if filter_feature_layers:
-                for feature in filter_feature_layers[0]:
-                    feature.filter = root_filter
-                    feature.save()
-
-                del filter_feature_layers[0]
-
-            root_choiceset = relational.ChoiceSet.objects.create(
-                name='{} {} Root ChoiceSet'.format(
-                    client.name,
-                    campaign_name
-                ),
-                client=client
+            root_choiceset = client.choicesets.create(
+                name='{} {} Root ChoiceSet'.format(client.name, campaign_name),
             )
-            root_choiceset.choicesetfilters.create(
-                filter=root_filter)
-
+            root_choiceset.choicesetfilters.create(filter=root_filter)
             choice_sets = [root_choiceset]
-            # First layer is the root_choiceset
-            for (layer_count, layer) in enumerate(filter_feature_layers, 1):
-                for feature in layer:
-                    try:
-                        cs = choice_sets[layer_count]
-                    except IndexError:
-                        single_filter = relational.Filter.objects.create(
-                            name='{} {}'.format(
-                                client.name, campaign_name),
-                            client=client
-                        )
-                        cs = relational.ChoiceSet.objects.create(
-                            client=client,
-                            name=campaign_name
-                        )
-                        relational.ChoiceSetFilter.objects.create(
-                            filter=single_filter,
-                            choice_set=cs
-                        )
-                        choice_sets.append(cs)
+
+            # Assign filter features:
+            for (layer_count, filter_feature_layer) in enumerate(filter_feature_layers):
+                try:
+                    cs = choice_sets[layer_count]
+                except IndexError:
+                    choice_set_filter = client.filters.create(
+                        name='{} {}'.format(client.name, campaign_name),
+                    )
+                    cs = client.choicesets.create(name=campaign_name)
+                    cs.choicesetfilters.create(filter=choice_set_filter)
+                    choice_sets.append(cs)
+                else:
+                    choice_set_filter = cs.choicesetfilters.get().filter
+
+                for feature in filter_feature_layer:
                     feature.pk = None
-                    feature.filter = cs.choicesetfilters.get().filter
+                    feature.filter = choice_set_filter
                     feature.save()
 
-            fb_obj = relational.FBObject.objects.create(
+            if ranking_feature_layers:
+                ranking_keys = []
+                for ranking_feature_layer in ranking_feature_layers:
+                    if ranking_feature_layer:
+                        ranking_key = client.rankingkeys.create(
+                            name='{} {}'.format(client.name, campaign_name),
+                        )
+                        for (feature_index, ranking_key_feature) in enumerate(ranking_feature_layer):
+                            ranking_key_feature.pk = None
+                            ranking_key_feature.ranking_key = ranking_key
+                            ranking_key_feature.ordinal_position = feature_index
+                            ranking_key_feature.save()
+                    else:
+                        ranking_key = None
+
+                    ranking_keys.append(ranking_key)
+            else:
+                # Campaign defines no filtering at all;
+                # but we'll still have a root filter in `choice_sets` to match:
+                ranking_keys = [None]
+
+            fb_obj = client.fbobjects.create(
                 name='{} {}'.format(client.name, campaign_name),
-                client=client
             )
             fb_attr = fb_obj_form.save()
             fb_attr.fb_object = fb_obj
             fb_attr.save()
 
-            content = relational.ClientContent.objects.create(
+            content = client.clientcontent.create(
+                name='{} {}'.format(client.name, campaign_name),
                 url=campaign_form.cleaned_data.get('content_url'),
-                client=client,
-                name='{} {}'.format(client.name, campaign_name)
             )
 
             # Global Filter
-            empty_filters = client.filters.filter(filterfeatures__isnull=True)
+            empty_filters = client.filters.filter(filterfeatures=None)
             if empty_filters.exists():
                 global_filter = empty_filters[0]
             else:
                 global_filter = client.filters.create(
-                    name='{} empty global filter'.format(client.name))
+                    name='{} empty global filter'.format(client.name)
+                )
 
             # Button Style
             if client.buttonstyles.exists():
@@ -205,41 +237,47 @@ def campaign_wizard(request, client_pk):
             # Need to make sure they didn't want a filterless campaign,
             # which would make the empty fallback irrelevant.
             if (campaign_form.cleaned_data['include_empty_fallback'] and
-                    root_filter.filterfeatures.exists()):
+               root_filter.filterfeatures.exists()):
                 # Find an empty choiceset filter group
                 empty_choices = client.choicesets.filter(
-                    choicesetfilters__filter__filterfeatures__isnull=True)
+                    choicesetfilters__filter__filterfeatures=None,
+                )
                 if empty_choices.exists():
                     empty_cs = empty_choices[0]
                 else:
                     empty_cs = client.choicesets.create(
-                        name='{} {} Empty ChoiceSet'.format(
-                            client.name, campaign_name)
+                        name='{} {} Empty ChoiceSet'.format(client.name, campaign_name)
                     )
                     # Already have a known empty filter
                     empty_cs.choicesetfilters.create(filter=global_filter)
                 choice_sets.append(empty_cs)
+                ranking_keys.append(None)
 
             # Page Style
             if client.pagestyles.exists():
                 page_styles = client.pagestyles.filter(
-                    starred=True, page__code=relational.Page.FRAME_FACES)
+                    starred=True,
+                    page__code=relational.Page.FRAME_FACES,
+                )
             else:
                 page_styles = relational.PageStyle.objects.filter(
-                    client=None, starred=True,
-                    page__code=relational.Page.FRAME_FACES)
+                    client=None,
+                    starred=True,
+                    page__code=relational.Page.FRAME_FACES,
+                )
 
             last_camp = None
             campaigns = []
-            for rank, cs in itertools.izip(reversed(
-                    xrange(len(choice_sets))), reversed(choice_sets)):
-                camp = relational.Campaign.objects.create(
-                    client=client,
-                    name='{} {}'.format(campaign_name, rank + 1),
-                )
+            for (rank, cs, ranking_key) in reversed(zip(range(len(choice_sets)),
+                                                        choice_sets,
+                                                        ranking_keys)):
+                camp = client.campaigns.create(name='{} {}'.format(campaign_name, rank + 1))
                 camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                 camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
                 camp.campaignchoicesets.create(choice_set=cs, rand_cdf=1.0)
+                if ranking_key:
+                    camp.campaignrankingkeys.create(ranking_key=ranking_key)
+
                 camp.campaignproperties.create(
                     client_faces_url=campaign_form.cleaned_data['faces_url'],
                     client_thanks_url=campaign_form.cleaned_data['thanks_url'],
@@ -247,15 +285,12 @@ def campaign_wizard(request, client_pk):
                     fallback_campaign=last_camp,
                     fallback_is_cascading=bool(last_camp),
                 )
-                camp.campaignfbobjects.create(
-                    fb_object=fb_obj,
-                    rand_cdf=1.0
-                )
+                camp.campaignfbobjects.create(fb_object=fb_obj, rand_cdf=1.0)
                 page_style_set = relational.PageStyleSet.objects.create()
                 page_style_set.page_styles = page_styles
                 camp.campaignpagestylesets.create(
                     page_style_set=page_style_set,
-                    rand_cdf=1.0
+                    rand_cdf=1.0,
                 )
                 campaigns.append(camp)
                 last_camp = camp
@@ -264,10 +299,8 @@ def campaign_wizard(request, client_pk):
             if campaign_form.cleaned_data['faces_url']:
                 faces_url = campaign_form.cleaned_data['faces_url']
             else:
-                encoded_url = encodeDES('{}/{}'.format(
-                    last_camp.pk, content.pk))
-                faces_url = 'https://apps.facebook.com/{}/{}/'.format(
-                    client.fb_app_name, encoded_url)
+                encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
+                faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
 
             for camp in campaigns:
                 properties = camp.campaignproperties.get()
