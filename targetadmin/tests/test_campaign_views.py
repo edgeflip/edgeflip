@@ -443,14 +443,6 @@ class TestCampaignViews(TestAdminBase):
             _fb_app_name='testing',
             _fb_app_id=1
         )
-        self.assertFalse(new_client.filters.exists())
-        self.assertFalse(new_client.fbobjects.exists())
-        self.assertFalse(new_client.choicesets.exists())
-        self.assertFalse(new_client.buttonstyles.exists())
-        self.assertFalse(new_client.campaigns.exists())
-        self.assertFalse(relational.FilterFeature.objects.filter(
-            filter__client=new_client
-        ).exists())
         response = self.client.post(
             reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
                 # Campaign Details
@@ -459,6 +451,7 @@ class TestCampaignViews(TestAdminBase):
                 'thanks_url': 'http://www.thanks.com',
                 'content_url': 'http://www.content.com',
                 'include_empty_fallback': 1,
+                # Topics interest feature
                 'enabled-filters-1': '"interest.eq.Cycling","interest.eq.Health"',
                 # FB Object
                 'og_title': 'Test Title',
@@ -470,46 +463,25 @@ class TestCampaignViews(TestAdminBase):
                 'og_image': 'http://imgur.com/VsiPr',
                 'sharing_prompt': 'SHARE IT',
                 'sharing_button': 'Show Your Support',
-                'og_description': 'Description of FB stuff'
+                'og_description': 'Description of FB stuff',
             }
         )
         self.assertStatusCode(response, 302)
+
         camp = new_client.campaigns.latest('pk')
         content = new_client.clientcontent.latest('pk')
-        cs = camp.campaignchoicesets.get().choice_set
-        fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
+        cs = camp.choice_set()
         self.assertRedirects(response, reverse(
             'targetadmin:campaign-wizard-finish',
             args=[new_client.pk, camp.pk, content.pk]
         ))
+
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
-        self.assertTrue(new_client.filters.exists())
-        self.assertTrue(new_client.fbobjects.exists())
-        self.assertTrue(new_client.choicesets.exists())
-        self.assertTrue(new_client.buttonstyles.exists())
-        self.assertTrue(new_client.campaigns.exists())
         self.assertEqual(new_client.campaigns.count(), 2)
         # 1 empty, 1 new
         self.assertEqual(new_client.filters.count(), 2)
         self.assertEqual(new_client.choicesets.count(), 2)
-        self.assertEqual(
-            relational.FilterFeature.objects.filter(filter__client=new_client).count(),
-            2
-        )
-        self.assertEqual(fb_attr.og_action, 'support')
-        self.assertEqual(fb_attr.og_type, 'cause')
-        self.assertEqual(
-            mail.outbox[0].body,
-            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
-        )
-        self.assertEqual(
-            camp.campaignproperties.get().client_faces_url,
-            'https://apps.facebook.com/{}/{}/'.format(
-                new_client.fb_app_name,
-                encodeDES('{}/{}'.format(camp.pk, content.pk))
-            )
-        )
 
         filters = cs.choicesetfilters.get().filter.filterfeatures.order_by('feature')
         self.assertEqual([ff.feature for ff in filters], ['topics[Cycling]', 'topics[Health]'])
@@ -520,7 +492,7 @@ class TestCampaignViews(TestAdminBase):
                          {settings.ADMIN_TOPICS_FILTER_THRESHOLD})
 
         ranking_key = camp.campaignrankingkeys.get().ranking_key
-        self.assertEqual(ranking_key.name, "{} Test Campaign".format(new_client.name))
+        self.assertEqual(ranking_key.name, "Test Client Test Campaign")
 
         key_features = ranking_key.rankingkeyfeatures.order_by('ordinal_position')
         self.assertEqual([key.feature for key in key_features], ['topics[Cycling]', 'topics[Health]'])
