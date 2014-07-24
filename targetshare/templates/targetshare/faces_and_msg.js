@@ -223,6 +223,32 @@ function syncFriendBoxes() {
     }
 }
 
+/* focuses & moves cursor to end of content-editable div */
+// grabbed from stackoverflow:
+// http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
+function msgFocusEnd() {
+    $('#message_form_editable').focus();
+
+    var contentEditableElement = document.getElementById('message_form_editable');
+    var range,selection;
+    if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
+    {
+        range = document.createRange();//Create a range (a range is a like the selection but invisible)
+        range.selectNodeContents(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        selection = window.getSelection();//get the selection object (allows you to change selection)
+        selection.removeAllRanges();//remove any selections already made
+        selection.addRange(range);//make the range you have just created the visible selection
+    }
+    else if(document.selection)//IE 8 and lower
+    { 
+        range = document.body.createTextRange();//Create a range (a range is a like the selection but invisible)
+        range.moveToElementText(contentEditableElement);//Select the entire contents of the element with the range
+        range.collapse(false);//collapse the range to the end point. false means collapse to end rather than the start
+        range.select();//Select the range (make it the visible selection
+    }
+}
+
 /* if cursor in editable div, & user selects a friend, at add insertion point */
 // Thank you stackoverflow!
 // http://stackoverflow.com/questions/6690752/insert-html-at-cursor-in-a-contenteditable-div
