@@ -87,13 +87,35 @@
             }
         } );
 
+        var interestFilter = Backbone.Model.extend({
+            defaults: {
+                topic: undefined
+            },
+            _expr: /topics\[(.+)\]/,
+            parse: function (attrs) {
+                var groups = attrs.feature.match(this._expr);
+                return {
+                    topic: groups[1]
+                };
+            },
+            getReadable: function() {
+                return 'Interest in ' + this.get('topic');
+            }
+        });
+
         var filters = Backbone.Collection.extend( {
             model: function( attrs, options ) {
-                return ( attrs.feature === 'gender' )
-                    ? new genderFilter( attrs, { parse: true } )
-                    : ( attrs.feature === 'age' )
-                        ? new ageFilter( attrs, { parse: true } )
-                        : new locationFilter( attrs, { parse: true } )
+                switch (attrs.feature_type__code) {
+                    case 'gender':
+                        return new genderFilter( attrs, { parse: true } );
+                    case 'age':
+                        return new ageFilter( attrs, { parse: true } );
+                    case 'full_location':
+                        return new locationFilter( attrs, { parse: true } );
+                    case 'topics':
+                        return new interestFilter(attrs, {parse: true});
+                }
+                throw "unrecognized feature type: " + attrs.feature_type__code;
             }
         } );
         
