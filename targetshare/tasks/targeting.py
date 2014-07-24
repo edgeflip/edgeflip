@@ -565,7 +565,7 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
             if px3_result and px3_result.filtered:
                 filtering_result = px3_result._replace(
                     ranked=edges_ranked,
-                    filtered=px3_result.filtered.reranked(edges_ranked), # FIXME: do we want to grab the campaign too?
+                    filtered=px3_result.filtered.reranked(edges_ranked),
                 )
 
     if filtering_result and filtering_result.filtered:
