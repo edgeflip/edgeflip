@@ -291,12 +291,21 @@ def campaign_wizard(request, client_pk, campaign_pk):
                             rand_cdf=1.0)
 
                         #let keep the db clean
-                        if camp.choice_set().choicesetfilters.count():
+                        try:
                             campaign_choice_set_filters = camp.choice_set().choicesetfilters.get()
-                            campaign_choice_set_filters.filter.filterfeatures.update(
-                                filter=None )
+                            campaign_choice_set_filters.filter.filterfeatures.update(filter=None)
                             campaign_choice_set_filters.filter.delete()
                             campaign_choice_set_filters.delete()
+                        except relational.ChoiceSetFilter.DoesNotExist:
+                            pass
+                            
+                        camp.campaignchoicesets.update(choice_set=None)
+                        relational.ChoiceSet.objects.filter(
+                            campaignchoicesets__pk=camp.campaign_choice_set().pk
+                        ).delete()
+
+                        faces_url = campaign_form.cleaned_data['faces_url'] and \
+                                    camp.campaignproperties.get().client_faces_url
 
                         camp.campaignchoicesets.update(choice_set=cs, rand_cdf=1.0)
                         camp.campaignproperties.update(

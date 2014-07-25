@@ -98,7 +98,7 @@
 
 <script>
 
-$( function() {    
+$( function() {
     var myWindow = $(window),
         carouselEl = $('#intro-carousel'),
         setCarouselHeight = function() {
@@ -194,6 +194,15 @@ $( function() {
             }
         }
     } );
+
+    if( $('input[name="original_name"]').val() ) {
+
+        $('.get-started-btn').click();
+
+        if( $('#id_faces_url').val().indexOf('https://apps.facebook') >= 0 ) {
+            $('#id_faces_url').val('');
+        }
+    }
 } );
 </script>
 {% endblock %}
