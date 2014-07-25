@@ -227,7 +227,7 @@ function syncFriendBoxes() {
 // grabbed from stackoverflow:
 // http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
 function msgFocusEnd() {
-    var contentEditableElement = document.getElementById('message_form_editable');
+    var contentEditableElement = document.getElementById('message_form_editable'),
         range,
         selection;
     
