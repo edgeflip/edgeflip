@@ -227,10 +227,12 @@ function syncFriendBoxes() {
 // grabbed from stackoverflow:
 // http://stackoverflow.com/questions/1125292/how-to-move-cursor-to-end-of-contenteditable-entity
 function msgFocusEnd() {
+    var contentEditableElement = document.getElementById('message_form_editable'),
+        range,
+        selection;
+    
     $('#message_form_editable').focus();
 
-    var contentEditableElement = document.getElementById('message_form_editable');
-    var range,selection;
     if(document.createRange)//Firefox, Chrome, Opera, Safari, IE 9+
     {
         range = document.createRange();//Create a range (a range is a like the selection but invisible)
@@ -331,7 +333,7 @@ function useSuggested(msgs) {
         msgPre = msgPair[0],
         msgPost = msgPair[1],
         msgNamesContHtml = "<span id='" + RECIPS_LIST_CONTAINER + "'></span>",
-        recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
+        recipsHtml;
     
     msgs.push(msgPair);
 
@@ -347,7 +349,8 @@ function useSuggested(msgs) {
     if( msgPost.charAt(0) !== '' ) {
         msgPost = ' ' + msgPost;
     }
-
+        
+    recipsHtml = htmlRecipsList();  // these are going to get blown away, so capture them now
 
     $('#message_form_editable').empty().append(msgPre, msgNamesContHtml, msgPost);
     $('#'+RECIPS_LIST_CONTAINER).append(recipsHtml);
@@ -410,7 +413,7 @@ function selectAll(skipRecord) {
                 { duration: 1000 } );
         }
     } );
-    
+
     if( fbids.length ) { selectFriend.apply(this, fbids); }
     activateSuggestButton();
 }
