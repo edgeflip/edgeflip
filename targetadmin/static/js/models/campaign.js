@@ -5,13 +5,14 @@ define( [ 'jquery', 'vendor/underscore', 'vendor/backbone' ], function( $, _, Ba
             name: undefined,
             create_dt: undefined
         },
-        parse: function(response,options) {
-            if( response.name.endsWith(" 1") ) {
-                response.name = response.name.substr(0, response.name.length-2);
+        parse: function(attrs,options) {
+            console.log(attrs);
+            if( attrs.name && attrs.name.endsWith(" 1") ) {
+                attrs.name = attrs.name.substr(0, attrs.name.length-2);
             }
 
-            response.create_dt = new Date(response.create_dt).toDateString();
-            return response;
+            attrs.create_dt = new Date(attrs.create_dt).toDateString();
+            return attrs;
         }
     } );
 } );

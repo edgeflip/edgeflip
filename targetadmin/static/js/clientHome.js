@@ -16,7 +16,8 @@ define(
             model: new Backbone.Model( { } ),
 
             events: {
-                'click button[data-js="createCampaignBtn"]': 'createCampaign'
+                'click button[data-js="createCampaignBtn"]': 'createCampaign',
+                'click div[data-js="campaignName"]': 'navToCampaignSummary'
             },
 
             initialize: function( options ) {
@@ -47,6 +48,10 @@ define(
 
             createCampaign: function() {
                 window.location = this.createCampaignURL;
+            },
+
+            navToCampaignSummary: function(e) {
+               window.location = this.campaignSummaryURL.replace("0", $(e.currentTarget).data('id') );
             }
 
         } );

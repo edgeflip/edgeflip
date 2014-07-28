@@ -552,7 +552,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\

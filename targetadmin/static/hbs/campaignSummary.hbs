@@ -1,0 +1,21 @@
+<section id="campaign-summary" class="col-md-8 col-md-offset2">
+    <h2 class="page-header">Campaign Summary</h2>
+    <h4 class="campaign-name">{{name}}</h4>
+    <div class="well">
+        <h6>Audience</h6>
+        {{#each filter}}
+            <div class="audience-label">{{label}}</div>
+            <ul>
+                {{#each feature}}
+                    <li>{{this}}</li>
+                {{/each}}
+            </ul>
+        {{/each}}
+    </div>
+    <div class="well">
+        <section id="faces-example"></section>
+    </div>
+    <div class="well">
+        <section id="fb-obj-example"></section>
+    </div>
+</section>
