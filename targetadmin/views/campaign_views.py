@@ -330,7 +330,8 @@ def campaign_wizard(request, client_pk, campaign_pk):
                             button_style=button_style,
                             rand_cdf=1.0)
 
-                        #let keep the db clean, remove previous filters
+                        #let keep the db clean, remove previous filters,
+                        #rankingkeys, choicesets before creating new ones
                         try:
                             campaign_choice_set_filters = camp.choice_set().choicesetfilters.get()
                             campaign_choice_set_filters.filter.filterfeatures.update(filter=None)
