@@ -97,6 +97,8 @@ var filterCollection;
                 case 'age':
                     return new ageFilter( attrs, { parse: true } );
                 case 'full_location':
+                case 'state':
+                case 'city':
                     return new locationFilter( attrs, { parse: true } );
                 case 'topics':
                     return new interestFilter(attrs, {parse: true});

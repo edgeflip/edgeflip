@@ -97,7 +97,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
         campaign_filters=[ list(campaign
             .choice_set().choicesetfilters.get()
             .filter.filterfeatures.values(
-                'feature', 'value', 'operator'
+                'feature', 'value', 'operator', 'feature_type__code'
             ))
         ]
         original_name = campaign.name[:-2]
@@ -108,7 +108,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 campaign_filters.append( list(fallback_campaign
                     .choice_set().choicesetfilters.get()
                     .filter.filterfeatures.values(
-                        'feature', 'value', 'operator'
+                        'feature', 'value', 'operator', 'feature_type__code'
                     ))
                 )
             empty_choice_set = fallback_campaign.campaignchoicesets.filter(
@@ -314,54 +314,55 @@ def campaign_wizard(request, client_pk, campaign_pk):
             for (rank, cs, ranking_key) in reversed(zip(range(len(choice_sets)),
                                                         choice_sets,
                                                         ranking_keys)):
-
+                camp = None
                 if campaign_pk:
-                    camp = relational.Campaign.objects.filter(
-                        client=client,
-                        name='{} {}'.format(original_name, rank + 1)
-                    )[0]
-                    camp.name='{} {}'.format(campaign_name, rank + 1)
-                    camp.save()
-                    camp.campaignbuttonstyles.update(
-                        button_style=button_style,
-                        rand_cdf=1.0)
-
-                    #let keep the db clean, remove previous filters
                     try:
-                        campaign_choice_set_filters = camp.choice_set().choicesetfilters.get()
-                        campaign_choice_set_filters.filter.filterfeatures.update(filter=None)
-                        campaign_choice_set_filters.filter.delete()
-                        campaign_choice_set_filters.delete()
-                    except relational.ChoiceSetFilter.DoesNotExist:
+                        camp = relational.Campaign.objects.filter(
+                            client=client,
+                            name='{} {}'.format(original_name, rank + 1)
+                        )[0]
+                    except IndexError:
                         pass
+                    else:
+                        camp.name='{} {}'.format(campaign_name, rank + 1)
+                        camp.save()
+                        camp.campaignbuttonstyles.update(
+                            button_style=button_style,
+                            rand_cdf=1.0)
 
-                    try:
-                        camp.campaignrankingkeys.delete()
-                    except relational.CampaignRankingKey.DoesNotExist:
-                        pass
-                            
-                    camp.campaignchoicesets.update(choice_set=None)
-                    relational.ChoiceSet.objects.filter(
-                        campaignchoicesets__pk=camp.campaign_choice_set().pk
-                    ).delete()
+                        #let keep the db clean, remove previous filters
+                        try:
+                            campaign_choice_set_filters = camp.choice_set().choicesetfilters.get()
+                            campaign_choice_set_filters.filter.filterfeatures.update(filter=None)
+                            campaign_choice_set_filters.filter.delete()
+                            campaign_choice_set_filters.delete()
+                        except relational.ChoiceSetFilter.DoesNotExist:
+                            pass
 
-                    faces_url = campaign_form.cleaned_data['faces_url'] or\
-                                camp.campaignproperties.get().client_faces_url
+                        camp.campaignrankingkeys.all().delete()
 
-                    camp.campaignchoicesets.update(choice_set=cs, rand_cdf=1.0)
-                    camp.campaignproperties.update(
-                        client_faces_url=faces_url,
-                        client_thanks_url=campaign_form.cleaned_data['thanks_url'],
-                        client_error_url=campaign_form.cleaned_data['error_url'],
-                        fallback_campaign=last_camp,
-                        fallback_is_cascading=bool(last_camp),
-                        status=relational.CampaignProperties.STATUS['DRAFT'])
-                    camp.campaignfbobjects.update(fb_object=fb_obj, rand_cdf=1.0)
-                    
-                    if ranking_key:
-                        camp.campaignrankingkeys.create(ranking_key=ranking_key)
+                        camp.campaignchoicesets.update(choice_set=None)
+                        relational.ChoiceSet.objects.filter(
+                            campaignchoicesets__pk=camp.campaign_choice_set().pk
+                        ).delete()
 
-                else: 
+                        faces_url = campaign_form.cleaned_data['faces_url'] or\
+                                    camp.campaignproperties.get().client_faces_url
+
+                        camp.campaignchoicesets.update(choice_set=cs, rand_cdf=1.0)
+                        camp.campaignproperties.update(
+                            client_faces_url=faces_url,
+                            client_thanks_url=campaign_form.cleaned_data['thanks_url'],
+                            client_error_url=campaign_form.cleaned_data['error_url'],
+                            fallback_campaign=last_camp,
+                            fallback_is_cascading=bool(last_camp),
+                            status=relational.CampaignProperties.STATUS['DRAFT'])
+                        camp.campaignfbobjects.update(fb_object=fb_obj, rand_cdf=1.0)
+                        
+                        if ranking_key:
+                            camp.campaignrankingkeys.create(ranking_key=ranking_key)
+
+                if camp is None: 
                     camp = client.campaigns.create(name='{} {}'.format(campaign_name, rank + 1))
                     camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                     camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
@@ -385,15 +386,15 @@ def campaign_wizard(request, client_pk, campaign_pk):
                         rand_cdf=1.0,
                     )
                     
-                    # Check to see if we need to generate the faces_url
-                    if campaign_form.cleaned_data['faces_url']:
-                        faces_url = campaign_form.cleaned_data['faces_url']
-                    else:
-                        encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
-                        faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
-
                 campaigns.append(camp)
                 last_camp = camp
+
+                # Check to see if we need to generate the faces_url
+                if campaign_form.cleaned_data['faces_url']:
+                    faces_url = campaign_form.cleaned_data['faces_url']
+                else:
+                    encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
+                    faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
 
             for camp in campaigns:
                 properties = camp.campaignproperties.get()
@@ -418,7 +419,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
         feature__isnull=False,
         operator__isnull=False,
         value__isnull=False,
-    ).values('feature', 'operator', 'value').distinct()
+    ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,

@@ -105,7 +105,6 @@ var layer_count = 1;
 
 ( function( $ ) {
 
-
     // Remove Layer "X" clicked
     $('#filtering').on( 'click', '.remove-layer', function() {
 
@@ -272,9 +271,13 @@ var layer_count = 1;
 
     _.each( campaignFilters, function( layer, i ) {
         layer.forEach( function( model ) {
-            $('#existing-filters').find(
-                'div[data-filter-id="set_number=' + model.get('feature') + '.' + model.get('operator') + '.' + model.get('value') + '"]'
-             ).dblclick();
+            var selector = 'div[data-filter-id="set_number=' + model.get('feature') + '.' + model.get('operator') + '.' + model.get('value') + '"]',
+                fromAvailable = $('#existing-filters').find( selector );
+
+            if( fromAvailable.length ) { fromAvailable.dblclick(); }
+            else {
+                $('#enabled-section').find( selector ).clone(true).first().appendTo('#existing-filters').dblclick();
+            }
         } );
         if( campaignFilters.length - 1 != i &&
             campaignFilters[i+1].length != 0 ) {
