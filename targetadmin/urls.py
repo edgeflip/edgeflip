@@ -1,9 +1,6 @@
 from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
-
-
-
 # Client URLS
 urlpatterns = patterns('targetadmin.views',
     url(r'^$', 'client_views.client_list_view', name='client-list'),
@@ -90,7 +87,7 @@ urlpatterns += patterns('targetadmin.views',
         'campaign_views.campaign_wizard_finish',
         name='campaign-wizard-finish'),
     url(r'^campaign/how-it-works/$', TemplateView.as_view(template_name='targetadmin/how_it_works.html'),
-        name='how-it-works')
+        name='how-it-works'),
 )
 
 urlpatterns += patterns('targetadmin.views',

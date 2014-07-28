@@ -302,6 +302,7 @@ CELERY_QUEUES = (
     # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
     Queue('initial_crawl', routing_key='crawl.initial', queue_arguments=QUEUE_ARGS),
+    Queue('page_likes', routing_key='crawl.page_likes', queue_arguments=QUEUE_ARGS),
     Queue('back_fill_crawl', routing_key='crawl.back_fill', queue_arguments=QUEUE_ARGS),
     Queue('incremental_crawl', routing_key='crawl.incremental', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Background Queues
@@ -364,6 +365,10 @@ CELERY_ROUTES = {
     'feed_crawler.tasks.initial_crawl': {
         'queue': 'initial_crawl',
         'routing_key': 'crawl.initial',
+    },
+    'feed_crawler.tasks.retrieve_page_likes': {
+        'queue': 'page_likes',
+        'routing_key': 'crawl.page_likes',
     },
     'feed_crawler.tasks.back_fill_crawl': {
         'queue': 'back_fill_crawl',

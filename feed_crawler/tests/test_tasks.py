@@ -95,7 +95,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
                                         fbid_secondary=self.fbid)
         self.assertGreater(models.FBSyncMap.items.count(), 1)
 
-    @patch('feed_crawler.tasks.back_fill_crawl')
+    @patch('feed_crawler.tasks.retrieve_page_likes')
     @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
     @patch('feed_crawler.s3_feed.BucketManager.get_key')
     @patch('feed_crawler.s3_feed.BucketManager.new_key')
@@ -113,10 +113,29 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         tasks.initial_crawl(fbm.fbid_primary, fbm.fbid_secondary)
         fbm = models.FBSyncMap.items.get_item(
             fbid_primary=self.fbid, fbid_secondary=self.fbid)
-        self.assertEqual(fbm.status, fbm.BACK_FILL)
+        self.assertEqual(fbm.status, fbm.PAGE_LIKES)
         assert fbm.back_fill_epoch
         assert fbm.incremental_epoch
         self.assertTrue(new_key.save_to_s3.called)
+
+    @patch('feed_crawler.tasks.back_fill_crawl')
+    @patch('feed_crawler.s3_feed.S3Manager.get_bucket')
+    @patch('feed_crawler.s3_feed.BucketManager.get_key')
+    def test_retrieve_page_likes(self, bucket_mock, conn_mock, crawl_mock):
+        fbm = models.FBSyncMap.items.create(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid, token=self.token.token,
+            back_filled=False, back_fill_epoch=0, incremental_epoch=0,
+            status=models.FBSyncMap.BACK_FILL, bucket='test_bucket_0'
+        )
+        existing_key = Mock()
+        existing_key.data = {"updated": 1, "data": [{"test": "testing"}]}
+        bucket_mock.return_value = existing_key
+        conn_mock.return_value = s3_feed.BucketManager()
+        tasks.retrieve_page_likes(fbm.fbid_primary, fbm.fbid_secondary)
+        fbm = models.FBSyncMap.items.get_item(
+            fbid_primary=self.fbid, fbid_secondary=self.fbid)
+        self.assertTrue(existing_key.set_s3_likes.called)
+        self.assertEqual(fbm.status, fbm.BACK_FILL)
 
     @patch('feed_crawler.tasks.crawl_comments_and_likes')
     @patch('feed_crawler.s3_feed.S3Manager.get_bucket')

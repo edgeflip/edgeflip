@@ -29,7 +29,7 @@ class CampaignProperties(models.Model):
     fallback_content = models.ForeignKey('ClientContent', null=True)
     fallback_is_cascading = models.NullBooleanField()
     min_friends = models.IntegerField(default=1)
-    num_faces = models.PositiveIntegerField(default=9)
+    num_faces = models.PositiveIntegerField(default=10)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
     root_campaign = models.ForeignKey(

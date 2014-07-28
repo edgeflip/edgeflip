@@ -22,6 +22,7 @@ CELERY_QUEUES = (
     'update_edges',
     'user_feeds',
     'initial_crawl',
+    'page_likes',
     'back_fill_crawl',
     'incremental_crawl',
     'crawl_comments_and_likes',

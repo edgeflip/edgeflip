@@ -70,8 +70,14 @@ edgeflip.faces = (function (edgeflip, $) {
                 px4_task_id: px4_task_id,
                 last_call: last_call
             };
-            if (edgeflip.Url.window.query.efobjsrc)
+           
+            if( !self.pollingTimer_ ) { 
+                updateProgressBar(5);
+            }
+
+            if (edgeflip.Url.window.query.efobjsrc) {
                 params.efobjsrc = edgeflip.Url.window.query.efobjsrc;
+            }
 
             $.ajax({
                 type: "POST",
@@ -94,17 +100,25 @@ edgeflip.faces = (function (edgeflip, $) {
                                 self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
                             } else {
                                 self.pollingCount_ += 1;
+                                updateProgressBar( Math.floor( ( 2 * self.pollingCount_ ) + 10 ) );
                                 self.pollingTimer_ = setTimeout(function() {
                                     self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
                                 }, 500);
                             }
                         } else {
+                            updateProgressBar(10);
                             self.pollingTimer_ = setTimeout(function() {
                                 self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
                             }, 500);
                         }
                     } else {
-                        displayFriendDiv(data.html, jqXHR);
+                        updateProgressBar(100);
+                        setTimeout(
+                            function() {
+                                displayFriendDiv(data.html, jqXHR);
+                                updateProgressBar(0);
+                            },
+                            500 );
                         clearTimeout(self.pollingTimer_);
                         if (self.debug) {
                             edgeflip.events.record('faces_page_rendered');
@@ -117,6 +131,29 @@ edgeflip.faces = (function (edgeflip, $) {
 
     return self;
 })(edgeflip, jQuery);
+
+function updateProgressBar( percent ) {
+
+    if( $('#spinner').css('background-image') != 'none' ) { return; }
+
+    if( percent > 100 ) { percent = 100; }
+
+    /*
+    var bgColor = ( percent < 5 )
+        ? '#f63a0f'
+        : ( percent < 25 )
+            ? '#f27011'
+            : ( percent < 50 )
+                ? '#f2b01e'
+                : ( percent < 75 )
+                    ? '#f2d31b'
+                    : '#86e01e';
+    */
+
+    $('#progress-text span').width( percent + '%' );
+};
+
+
 
 function preload(arrayOfImages) {
 /* loads a bunch of images
@@ -145,7 +182,7 @@ function displayFriendDiv(data, jqXHR) {
     $('#your-friends-here').show();
     $('#friends_div').css('display', 'table');
     $('#progress').hide();
-    $('#do_share_button').show()
+    $('#do_share_button').show();
 }
 
 
