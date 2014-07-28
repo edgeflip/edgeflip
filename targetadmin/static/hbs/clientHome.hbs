@@ -12,7 +12,7 @@
             {{#each campaigns}}
                 <div class="row campaign-row">
                     <div class="col-sm-5">
-                        <div class="name">{{name}}</div>
+                        <div data-id="{{pk}}" data-js="campaignName" class="name">{{name}}</div>
                         <div class="created">
                             <strong>Created</strong>
                             <span>on {{create_dt}}</span>

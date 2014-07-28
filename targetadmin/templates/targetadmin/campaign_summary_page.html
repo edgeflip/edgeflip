@@ -1,12 +1,36 @@
-{% extends "targetadmin/base.html" %}
-
+{% extends "targetadmin/page.html" %}
 {% block title %}Campaign Summary{% endblock %}
 
-{% block extrahead %}
-    <!--<link rel="stylesheet" href="{{ STATIC_URL }}css/wizard_finish.css">-->
-{% endblock %}
+{% block require %}
+    require( ['app', 'models/campaign', 'views/campaignSummary'], function(app, campaignModel, CampaignSummary) {
 
-{% block content %}
+        var campaignModel = new campaignModel(
+            _.extend( { },
+                { filters: {{filters|safe}} },
+                { campaignProperties: {{campaign_properties|safe}} },
+                { fbObjAttributes: {{fb_obj_attributes|safe}} }
+            ),
+            { parse: true }
+        );
+           
+        /* 
+        new CampaignSummary( {
+            parentEl: $("#content-container"),
+            model: campaignModel
+        } );
+        */
+    } );
+
+/*
+return {
+        'contentURL': content.url,
+        'clientPK': clientpk,
+        'name': root_campaign.name[:-2],
+        'filters': json.dumps(filters),
+        'campaign_properties': json.dumps(properties),
+        'fb_obj_attributes': json.dumps(fb_obj_attributes)
+    }
+
     <div class="row">
         <h2 class="page-header" style="text-align: center;">Campaign Summary</h2>
     </div>
@@ -15,11 +39,11 @@
         </div>
         <div class="span6 campaign-box">
 
-            {% include 'targetadmin/includes/campaign_summary.html' %}
+            {#% include 'targetadmin/includes/campaign_summary.html' %#}
 
             <div class="row">
                 <div id="buttons" style="padding-bottom: 40px; text-align:center;">
-                    <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
+                    <a href="{#% url 'targetadmin:client-detail' client.pk %#}" class="btn btn-primary">Return Home</a>
                 </div>
             </div>
         
@@ -27,5 +51,5 @@
 
         <div class="span3"></div>
     </div>
-
+*/
 {% endblock %}

@@ -361,7 +361,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
@@ -373,10 +373,10 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         filters.append( get_filters(properties) )
 
     return {
-        'content': content,
-        'client': client,
-        'root_campaign': root_campaign,
-        'filters': json.dumps( filters, cls=DjangoJSONEncoder ),
-        'campaign_properties': properties,
-        'fb_obj_attributes': fb_obj_attributes
+        'contentURL': content.url,
+        'clientPK': client.pk,
+        'name': root_campaign.name[:-2],
+        'filters': json.dumps(filters),
+        'campaign_properties': json.dumps(list(root_campaign.campaignproperties.values()), cls=DjangoJSONEncoder),
+        'fb_obj_attributes': json.dumps(list(fb_obj_attributes.values()), cls=DjangoJSONEncoder)
     }
