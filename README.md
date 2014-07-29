@@ -38,16 +38,20 @@ A local mysql database is automatically set up by the build task; (see `fab -d b
     * If you have an existing database, you can run the following command from the root of the `edgeflip` repo: `python manage.py loaddata targetshare/fixtures/test_data.yaml`
 
 
-Dynamo
-------
-The config option `dynamo.engine` may be set to either `mock` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `dynamo.prefix` to a unique value to avoid stepping on existing tables!
+DynamoDB
+--------
 
-To run a local mock dynamo server, [FakeDynamo](https://github.com/ananthakumaran/fake_dynamo) must be installed; (note, this is handled automatically by the build task in development mode &mdash; see `fab -d build.dependencies`).
+The config option `faraday.ENGINE` may be set to either `local` (default) or `aws`. The latter requires AWS keys to be set up. *If you are testing against AWS*, set the `faraday.PREFIX` to a unique value to avoid stepping on existing tables!
 
-1. With FakeDynamo installed, the server may be invoked and managed via `fab serve.dynamo`; (see `fab -d serve.dynamo`).
-2. Set up and create tables &mdash; (note, this can be quite slow on live AWS):
-    * If necessary, drop tables with `python manage.py dynamo destroy`
-    * Create tables with `python manage.py dynamo create`
+To run a mock DynamoDB server locally, DynamoDB Local must be installed. Note, this is handled automatically by the build task in development mode; (see `fab -d build.dependencies`). Alternatively, you may install it via faraday: `python manage.py faraday local install`.
+
+With DynamoDB Local installed, the local server may be invoked and managed via Fabric: `fab serve.dynamo` (see `fab -d serve.dynamo`), or more directly via faraday: `python manage.py faraday local ...`.
+
+DynamoDB Local tables are set up automatically by the build task; (see `fab -d build.dynamo`).
+
+* To set up the tables ad-hoc, run `fab build.dynamo`.
+* To force-reload the tables, provide the "force" option: `fab build.dynamo:force=1`.
+* For more database management options, see `python manage.py faraday db --help`.
 
 
 RabbitMQ

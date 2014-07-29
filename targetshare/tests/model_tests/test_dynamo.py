@@ -463,6 +463,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             fbid_target__eq=200,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
+            attributes=dynamo.IncomingEdge._meta.keys.keys(),
         )
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])
@@ -497,6 +498,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
             fbid_source__eq=100,
             index='updated',
             updated__gt=datetime.datetime(2013, 1, 5, tzinfo=timezone.utc),
+            # No need for `attributes` via OutgoingEdge.incoming_edges
         )
         self.assertItemsEqual([(x['fbid_source'], x['fbid_target']) for x in results],
                               [(100, 200)])

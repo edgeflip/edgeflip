@@ -20,7 +20,8 @@ function setDropdown(friends) {
             response(filteredArray);
         },
         focus: function( evt, ui ) {
-            $(this).val( ui.item.label );
+            var escapeHtml = $('<div/>').html(ui.item.label).text()
+            $(this).val( escapeHtml );
             return false;
         },
         select: function( event, ui ) {

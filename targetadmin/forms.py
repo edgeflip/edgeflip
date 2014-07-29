@@ -1,5 +1,6 @@
 from django import forms
 
+from targetshare import classifier
 from targetshare.models import relational
 
 
@@ -77,14 +78,15 @@ class WizardFilterFeatureForm(forms.ModelForm):
         ('', 'Select Filter Type'),
         ('age', 'Age'),
         ('gender', 'Gender'),
-        ('location', 'Location')
+        ('location', 'Location'),
+        ('interest', 'Interest'),
     )
 
-    feature = forms.ChoiceField(
-        label='Filter Type',
-        choices=CHOICES )
+    TOPICS = sorted(classifier.SIMPLE_WEIGHTS)
 
-    class Meta:
+    feature = forms.ChoiceField(label='Filter Type', choices=CHOICES)
+
+    class Meta(object):
         model = relational.FilterFeature
         exclude = ('end_dt', 'value_type', 'feature_type', 'filter')
 
@@ -290,7 +292,7 @@ class CampaignForm(forms.Form):
 class CampaignWizardForm(forms.Form):
 
     name = forms.CharField(
-        widget=forms.TextInput(attrs={'autocomplete':'off'})
+        widget=forms.TextInput(attrs={'autocomplete': 'off'})
     )
 
     faces_url = forms.CharField(
@@ -319,6 +321,7 @@ class CampaignWizardForm(forms.Form):
         initial=True,
         required=False
     )
+
 
 class FBObjectWizardForm(forms.ModelForm):
 

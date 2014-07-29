@@ -54,7 +54,7 @@ class EdgeFlipTestMixIn(object):
         reload(cache)
 
         # In case a bad test class doesn't clean up after itself:
-        faraday.db.destroy(confirm=False)
+        faraday.db.destroy()
 
     @classmethod
     def tearDownClass(cls):
@@ -68,7 +68,7 @@ class EdgeFlipTestMixIn(object):
         faraday.db.build()
 
     def tearDown(self):
-        faraday.db.destroy(confirm=False)
+        faraday.db.destroy()
         super(EdgeFlipTestMixIn, self).tearDown()
 
     def assertStatusCode(self, response, status=200):

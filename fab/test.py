@@ -56,27 +56,18 @@ def test(path='', *args, **kws):
     key_args = dict(DEFAULT_KEY_ARGS)
     key_args.update(kws)
 
-    # Ensure fake dynamo is running #
+    # Ensure local dynamo is running #
     dynamo_dir = tempfile.mkdtemp()
     pid_path = os.path.join(dynamo_dir, 'pid')
-    try:
-        serve.dynamo_pid(pid_path)
-    except serve.DynamoNotRunning:
-        db_path = os.path.join(dynamo_dir, 'db')
-        fab.execute(serve.dynamo,
-                    command='start',
-                    db_path=db_path,
-                    pid_path=pid_path,
-                    port='4444')
+    ddb_args = {'pid-path': pid_path}
+    fab.execute(serve.dynamo, 'start', 'memory', port='4444', **ddb_args)
 
     # Test #
     try:
         manage('test', [path], flags, key_args)
     finally:
-        # Terminate fake dynamo:
-        fab.execute(serve.dynamo,
-                    command='stop',
-                    pid_path=pid_path)
+        # Terminate local dynamo:
+        fab.execute(serve.dynamo, 'stop', **ddb_args)
         shutil.rmtree(dynamo_dir)
 
 
