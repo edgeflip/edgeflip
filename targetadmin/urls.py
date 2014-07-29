@@ -1,7 +1,6 @@
 from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
-
 # Client URLS
 urlpatterns = patterns('targetadmin.views',
     url(r'^$', 'client_views.client_list_view', name='client-list'),
