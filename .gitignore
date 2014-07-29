@@ -8,6 +8,8 @@
 /fake_dynamo.fdb
 /.fake_dynamo.pid
 
+.dynamodb
+
 /doc/_build/*
 /doc/snakefood.svg
 
