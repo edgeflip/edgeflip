@@ -1,13 +1,19 @@
 {% extends 'targetshare/base.html' %}
 {% block title %}Sharing for Social Good{% endblock %}
 
+{% block extrahead %}
+    <script type="text/javascript" src="//use.typekit.net/ixj6alt.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
+{% endblock %}
+
 {% block style_includes %}
     <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- Campaign stylesheets -->
+    <link rel="stylesheet" type="text/css" href="/static/css/base.css"/>
     {% for css_link in campaign_css %} 
-        <link rel="stylesheet" type="text/css" href="{{ css_link }}"/>
+        <!-- <link rel="stylesheet" type="text/css" href="{{ css_link }}"/> -->
     {% endfor %} <!-- Campaign stylesheets -->
 {% endblock %}
 
@@ -71,17 +77,6 @@
         $(function () {edgeflip.faces.user.connect()});
 
     </script>
-
-    <script type="text/javascript">
-        //typkit font
-        (function(d) {
-        var config = {
-          kitId: 'ixj6alt',
-          scriptTimeout: 3000
-        },
-        h=d.documentElement,t=setTimeout(function(){h.className=h.className.replace(/\bwf-loading\b/g,"")+" wf-inactive";},config.scriptTimeout),tk=d.createElement("script"),f=false,s=d.getElementsByTagName("script")[0],a;h.className+=" wf-loading";tk.src='//use.typekit.net/'+config.kitId+'.js';tk.async=true;tk.onload=tk.onreadystatechange=function(){a=this.readyState;if(f||a&&a!="complete"&&a!="loaded")return;f=true;clearTimeout(t);try{Typekit.load(config)}catch(e){}};s.parentNode.insertBefore(tk,s)
-        })(document);
-    </script>
     <!-- edgeflip javascript -->
 {% endblock %}
 
@@ -90,6 +85,7 @@
 
         {% block progress_box %}
             <div id="progress" class="h2_container loading"> 
+                <div style="display: none;" class="one-moment">One Moment...</div>
                 <div id="progress-text"><span></span></div>
                 <div id="spinner"></div>
             </div>
