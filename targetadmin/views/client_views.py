@@ -46,10 +46,40 @@ class ClientDetailView(DetailView):
 
     def get_context_data(self, **kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
-        context['root_campaigns'] = context['client'].campaigns\
+        root_campaigns = context['client'].campaigns\
             .exclude(rootcampaign_properties=None)\
-            .order_by( '-create_dt' )\
-            .values('pk', 'name', 'create_dt')
+            .order_by( '-create_dt' )
+        campaigns = [ item for item in root_campaigns.values('pk', 'create_dt', 'name') ]
+        for i, campaign in enumerate(root_campaigns):
+            campaigns[i]['filters'] = []
+            campaign1 = campaign
+            while campaign1:
+                try:
+                    if campaign1.choice_set() is not None:
+                        for choice_set_filter in campaign1.choice_set().choicesetfilters.all():
+                            campaigns[i]['filters'].append([
+                                list(choice_set_filter.filter.filterfeatures.values(
+                                    'feature', 'operator', 'value', 'feature_type__code',
+                                ).iterator())
+                            ])
+                except relational.CampaignChoiceSet.MultipleObjectsReturned:
+                    pass
+
+                try:
+                    properties1 = campaign1.campaignproperties.get()
+                except relational.CampaignProperties.MultipleObjectsReturned:
+                    pass
+                campaign1 = properties1.fallback_campaign
+
+            campaigns[i]['properties'] = list(campaign.campaignproperties.values())[0]
+
+            try:
+                campaigns[i]['fb_obj_attributes'] = list(campaign.fb_object().fbobjectattribute_set.values())[0]
+            except relational.CampaignFBObject.MultipleObjectsReturned:
+                pass
+
+        context['campaigns'] = campaigns
+
         return context
 
     def render_to_response(self, context, **response_kwargs):
@@ -57,7 +87,7 @@ class ClientDetailView(DetailView):
             request=self.request,
             template=self.get_template_names(),
             context=dict(
-                campaigns=json.dumps(list(context['root_campaigns']), cls=DjangoJSONEncoder),
+                campaigns=json.dumps(list(context['campaigns']), cls=DjangoJSONEncoder),
                 client=context['client']),
             **response_kwargs
         ) 

@@ -496,6 +496,6 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         'clientPK': client.pk,
         'name': root_campaign.name[:-2],
         'filters': json.dumps(filters),
-        'campaign_properties': json.dumps(list(root_campaign.campaignproperties.values()), cls=DjangoJSONEncoder),
-        'fb_obj_attributes': json.dumps(list(fb_obj_attributes.values()), cls=DjangoJSONEncoder)
+        'campaign_properties': json.dumps(list(root_campaign.campaignproperties.values())[0], cls=DjangoJSONEncoder),
+        'fb_obj_attributes': json.dumps(list(fb_obj_attributes.values())[0], cls=DjangoJSONEncoder)
     }

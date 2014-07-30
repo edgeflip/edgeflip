@@ -3,19 +3,14 @@
     <h4 class="campaign-name">{{name}}</h4>
     <div class="well">
         <h6>Audience</h6>
-        {{#each filter}}
-            <div class="audience-label">{{label}}</div>
-            <ul>
-                {{#each feature}}
-                    <li>{{this}}</li>
-                {{/each}}
-            </ul>
-        {{/each}}
+        <section data-js="filterContainer"></div>
     </div>
     <div class="well">
-        <section id="faces-example"></section>
+        <h6>Faces Page</h6>
+        <section data-js="facesContainer"></section>
     </div>
     <div class="well">
-        <section id="fb-obj-example"></section>
+        <h6>Facebook Post</h6>
+        <section data-js="fbPostExample"></section>
     </div>
 </section>

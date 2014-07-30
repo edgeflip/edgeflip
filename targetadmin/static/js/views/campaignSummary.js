@@ -4,11 +4,12 @@ define(
       'vendor/underscore',
       'vendor/backbone',
       'templates/campaignSummary',
+      'templates/campaignSummaryFilters',
       'css!styles/campaignSummary'
     ],
     function( $, _, Backbone, template ) {
 
-        return Backbone.View.extend( {
+        return new ( Backbone.View.extend( {
             
             events: {
             },
@@ -24,11 +25,18 @@ define(
 
                 this.slurpHtml( {
                     template: template( { } ),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
+                    insertion: { $el: this.$el }
+                } );
 
                 return this;
+            },
+
+            update: function( campaignModel ) {
+
+                console.log( campaignModel );
+
             }
 
-        } );
+        } ) )();
     }
-);
+)
