@@ -5,10 +5,10 @@ define(
       'vendor/backbone',
       'models/campaign',
       'templates/clientHome',
-      'views/campaignSummary',
+      /* 'views/campaignSummary', */
       'css!styles/clientHome'
     ],
-    function( $, _, Backbone, campaign, template, campaignSummary ) {
+    function( $, _, Backbone, campaign, template /* campaignSummary */ ) {
 
         var campaignCollection = Backbone.Collection.extend( { model: campaign } );
 
