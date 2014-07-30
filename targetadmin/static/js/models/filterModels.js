@@ -91,7 +91,6 @@ var filterCollection;
 
     filterCollection = Backbone.Collection.extend( {
         model: function( attrs, options ) {
-            console.log(attrs);
             switch (attrs.feature_type__code) {
                 case 'gender':
                     return new genderFilter( attrs, { parse: true } );
