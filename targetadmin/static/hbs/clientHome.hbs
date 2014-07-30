@@ -10,7 +10,7 @@
     <div class="row">
         <div class="col-sm-12">
             {{#each campaigns}}
-                <div class="row campaign-row">
+                <div data-js="campaignRow" data-id="{{pk}}" class="row campaign-row">
                     <div class="col-sm-5">
                         <div data-id="{{pk}}" data-js="campaignName" class="name">{{name}}</div>
                         <div class="created">

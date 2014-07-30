@@ -31,6 +31,11 @@ require.config( {
         
         'vendor/bootstrap.min': {
             deps: [ 'jquery' ]
+        },
+
+        'models/filterModels': {
+            deps: [ 'jquery', 'vendor/backbone' ],
+            exports: 'filterCollection'
         }
     },
 

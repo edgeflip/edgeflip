@@ -17,8 +17,7 @@
             new ClientHome( {
                 parentEl: $("#content-container"),
                 campaigns: {{ campaigns|safe }},
-                createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}",
-                campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
+                createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}"
             } );
 
             new Help( {
