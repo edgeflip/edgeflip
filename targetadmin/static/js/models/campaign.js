@@ -21,7 +21,10 @@ define(
 
                 rv.create_dt = new Date(attrs.create_dt).toDateString();
     
-                rv.filters = new filterCollection( attrs.filters, { parse: true } );
+                rv.filters = _.map( attrs.filters, function( filterLayer ) {
+                    return new filterCollection( filterLayer[0], { parse: true } );
+                } );
+
                 rv.fbObjAttributes = attrs.fb_obj_attributes;
                 rv.properties = attrs.properties;
                 rv.pk = attrs.pk;
