@@ -771,7 +771,7 @@ body {
 .subheader {
     font-size: 24px;
     text-align: center;
-    margin-bottom: 3em;
+    margin-bottom: 55px;
 }
 
 /* If the subheader is used, the header-end div can be used to make a simple,
@@ -959,7 +959,7 @@ a.ui-state-focus {
 #manual_add {
     width: 100%;
     margin-top: 10px;
-    margin-bottom: 30px;
+    margin-bottom: 55px;
 }
 
 #manual_input_placeholder {
@@ -1074,7 +1074,7 @@ a.ui-state-focus {
 }
 
 #message_helper_txt:empty:before {
-    content: "Click the button above to use a suggested message, or write your own here.";
+    content: 'Write your message here, or click "Suggest a Message".';
 }
 
 .fb-obj-container {
