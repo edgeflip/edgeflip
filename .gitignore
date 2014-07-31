@@ -25,8 +25,3 @@
 
 ssl
 /statsd
-
-.fake_dynamo.pid
-fake_dynamo.fdb
-
-targetadmin/grunt
