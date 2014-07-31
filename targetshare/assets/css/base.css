@@ -47,6 +47,7 @@ html {
 body {
     font-family: "franklin-gothic-ext-comp-urw","Franklin Gothic Book","Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
     font-size: 110%;
+    color: #56555a;
 }
 
 /* No more checkmark */
@@ -95,7 +96,7 @@ body {
     margin: 20px auto 0px auto;
     width: 400px;
     padding: 4px;
-    background: rgba(0, 0, 0, 0.25);
+    background: #bfbfbf;
     border-radius: 6px;
     box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25), 0 1px rgba(255, 255, 255, 0.08);
     height: 24px;
@@ -161,7 +162,7 @@ body {
 }
 
 .sending #spinner:before {
-    content: 'Sending . . .';
+    content: 'Sending your message.';
 }
 /*** Loading Dialog ***/
 
@@ -567,6 +568,11 @@ body {
     }
 
     #button_sugg_msg,
+    #button_select_all {
+        margin-top: 0px;
+    }
+
+    #button_sugg_msg,
     #button_select_all,
     .text_instructions {
         font-size: 24px;
@@ -586,6 +592,11 @@ body {
     #faces_form_container {
         width: 83.33333333%;
         margin-left: 8.33333333%;
+    }
+
+    #button_sugg_msg,
+    #button_select_all {
+        margin-top: 6px;
     }
 
     #button_sugg_msg,
@@ -792,6 +803,8 @@ body {
 
 #button_sugg_msg,
 #button_select_all {
+    font-family: Franklin Gothic Book;
+    font-size: 16px;
     background-color: #d34730;
     border: 1px solid #d34730;
     color: white;
@@ -799,6 +812,7 @@ body {
     text-align: center;
     margin-bottom: 20px;
     margin-right: 2px;
+    padding: 8px 20px;
 }
 
 #button_do_share:hover,
@@ -876,10 +890,6 @@ body {
 
 .friend_box_selected {
     background-color: #d4e0f5;
-}
-
-.friend_box_unselected {
-    color: black;
 }
 
 /* styles the little x button to cross off friends */
@@ -1091,10 +1101,10 @@ a.ui-state-focus {
 }
 
 #button_do_share {
-    font-size: 40px;
+    font-family: Franklin Gothic Book;
+    font-size: 24px;
     padding: 6px 30px;
-    letter-spacing: 1.5px;
-    border-radius: 1px;
+    border-radius: 3px;
     float: right;
     background-color: #d34730;
     border: 1px solid #d34730;
