@@ -16,7 +16,6 @@
     <div class="invalid-input-popover"></div>
     <form id="wizard-form" action="" method="post" class="form-horizontal">
         {% csrf_token %}
-        <input type="hidden" name="original_name" value="{{ original_name }}"/>
         <div id="intro" class="wizard-step">
             <div class="page-header-information row">
                 <div class="span8 offset2">
@@ -195,14 +194,7 @@ $( function() {
         }
     } );
 
-    if( $('input[name="original_name"]').val() ) {
-
-        $('.get-started-btn').click();
-
-        if( $('#id_faces_url').val().indexOf('https://apps.facebook') >= 0 ) {
-            $('#id_faces_url').val('');
-        }
-    }
+    if( $('#id_name').val() ) { $('.get-started-btn').click(); }
 } );
 </script>
 {% endblock %}

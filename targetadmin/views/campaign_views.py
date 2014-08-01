@@ -1,5 +1,6 @@
 import csv
 import json
+import re
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -85,48 +86,51 @@ def campaign_create(request, client_pk):
     })
 
 @utils.auth_client_required
-def campaign_wizard(request, client_pk, campaign_pk):
+def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign_filters = list()
-    original_name = ''
+    campaign_filters = []
 
     if campaign_pk and request.method == 'GET':
-        campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
+        campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
         fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
         campaign_properties = campaign.campaignproperties.get()
-        campaign_filters=[ list(campaign
-            .choice_set().choicesetfilters.get()
-            .filter.filterfeatures.values(
+        if campaign_properties.status != 'draft':
+            return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
+        campaign_filters = [ list(
+            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
                 'feature', 'value', 'operator', 'feature_type__code'
-            ))
-        ]
-        original_name = campaign.name[:-2]
-        empty_fallback = False
+            )
+        ) ]
+
         fallback_campaign = campaign_properties.fallback_campaign
         while fallback_campaign:
-            if fallback_campaign.choice_set().choicesetfilters.count():
-                campaign_filters.append( list(fallback_campaign
-                    .choice_set().choicesetfilters.get()
-                    .filter.filterfeatures.values(
-                        'feature', 'value', 'operator', 'feature_type__code'
-                    ))
-                )
-            empty_choice_set = fallback_campaign.campaignchoicesets.filter(
-                choice_set__choicesetfilters__filter__filterfeatures__isnull=True)
-            if empty_choice_set.exists():
-                empty_fallback = True
-                break
-            else:
-                fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+            try:
+                fallback_features = fallback_campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
+                        'feature', 'value', 'operator', 'feature_type__code')
+                if fallback_features:
+                    campaign_filters.append(list(fallback_features))
+            except relational.ChoiceSetFilter.DoesNotExist:
+                fallback_features=[]
+                pass
+            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+        empty_fallback = bool(campaign_properties.fallback_campaign) and not fallback_features
 
-        campaign_form = forms.CampaignWizardForm( dict(
-            name=original_name,
-            faces_url=campaign_properties.client_faces_url,
-            error_url=campaign_properties.client_error_url,
-            thanks_url=campaign_properties.client_thanks_url,
-            content_url=campaign_properties.client_thanks_url,
-            include_empty_fallback=empty_fallback
-        ) )
+        #we want to hide the facebook url in draft mode if the client isn't hosting
+        initial_faces_url = campaign_properties.client_faces_url
+        if 'https://apps.facebook.com' in initial_faces_url:
+            initial_faces_url = ''
+
+        # FIXME: Necessary only as long as we append " 1" to root campaign names
+        original_name = re.sub(r' 1$', '', campaign.name)
+
+        campaign_form = forms.CampaignWizardForm(initial={
+            'name': original_name,
+            'faces_url': initial_faces_url,
+            'error_url': campaign_properties.client_error_url,
+            'thanks_url': campaign_properties.client_thanks_url,
+            'content_url': campaign_properties.client_thanks_url,
+            'include_empty_fallback': empty_fallback
+        } )
     else:
         fb_attr_inst = relational.FBObjectAttribute(
             og_action='support', og_type='cause')
@@ -139,7 +143,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
         campaign_form = forms.CampaignWizardForm(request.POST)
         if fb_obj_form.is_valid() and campaign_form.is_valid():
             campaign_name = campaign_form.cleaned_data['name']
-            original_name = request.POST.get('original_name')
 
             filter_feature_layers = []
             ranking_feature_layers = []
@@ -308,6 +311,16 @@ def campaign_wizard(request, client_pk, campaign_pk):
                     page__code=relational.Page.FRAME_FACES,
                 )
 
+            campaign_chain = []
+            if campaign_pk:
+                campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+                campaign_properties = campaign.campaignproperties.get()
+                campaign_chain.append(campaign)
+                fallback_campaign = campaign_properties.fallback_campaign
+                while fallback_campaign:
+                    campaign_chain.append(fallback_campaign)
+                    fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+
             last_camp = None
             campaigns = []
 
@@ -315,55 +328,9 @@ def campaign_wizard(request, client_pk, campaign_pk):
                                                         choice_sets,
                                                         ranking_keys)):
                 camp = None
-                if campaign_pk:
-                    try:
-                        camp = relational.Campaign.objects.filter(
-                            client=client,
-                            name='{} {}'.format(original_name, rank + 1)
-                        )[0]
-                    except IndexError:
-                        pass
-                    else:
-                        camp.name='{} {}'.format(campaign_name, rank + 1)
-                        camp.save()
-                        camp.campaignbuttonstyles.update(
-                            button_style=button_style,
-                            rand_cdf=1.0)
-
-                        #let keep the db clean, remove previous filters,
-                        #rankingkeys, choicesets before creating new ones
-                        try:
-                            campaign_choice_set_filters = camp.choice_set().choicesetfilters.get()
-                            campaign_choice_set_filters.filter.filterfeatures.update(filter=None)
-                            campaign_choice_set_filters.filter.delete()
-                            campaign_choice_set_filters.delete()
-                        except relational.ChoiceSetFilter.DoesNotExist:
-                            pass
-
-                        camp.campaignrankingkeys.all().delete()
-
-                        camp.campaignchoicesets.update(choice_set=None)
-                        relational.ChoiceSet.objects.filter(
-                            campaignchoicesets__pk=camp.campaign_choice_set().pk
-                        ).delete()
-
-                        faces_url = campaign_form.cleaned_data['faces_url'] or\
-                                    camp.campaignproperties.get().client_faces_url
-
-                        camp.campaignchoicesets.update(choice_set=cs, rand_cdf=1.0)
-                        camp.campaignproperties.update(
-                            client_faces_url=faces_url,
-                            client_thanks_url=campaign_form.cleaned_data['thanks_url'],
-                            client_error_url=campaign_form.cleaned_data['error_url'],
-                            fallback_campaign=last_camp,
-                            fallback_is_cascading=bool(last_camp),
-                            status=relational.CampaignProperties.STATUS['DRAFT'])
-                        camp.campaignfbobjects.update(fb_object=fb_obj, rand_cdf=1.0)
-                        
-                        if ranking_key:
-                            camp.campaignrankingkeys.create(ranking_key=ranking_key)
-
-                if camp is None: 
+                try:
+                    camp = campaign_chain[rank]
+                except IndexError:
                     camp = client.campaigns.create(name='{} {}'.format(campaign_name, rank + 1))
                     camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                     camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
@@ -377,7 +344,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
                         fallback_is_cascading=bool(last_camp),
-                        status=relational.CampaignProperties.STATUS['DRAFT'],
                     )
                     camp.campaignfbobjects.create(fb_object=fb_obj, rand_cdf=1.0)
                     page_style_set = relational.PageStyleSet.objects.create()
@@ -386,13 +352,64 @@ def campaign_wizard(request, client_pk, campaign_pk):
                         page_style_set=page_style_set,
                         rand_cdf=1.0,
                     )
+                else:
+                    camp.name='{} {}'.format(campaign_name, rank + 1)
+                    camp.save()
+                    camp.campaignbuttonstyles.update(
+                        button_style=button_style,
+                        rand_cdf=1.0)
+
+                    cs0 = camp.choice_set()
+                    camp.campaignchoicesets.update(choice_set=cs) # update campaign to new ChoiceSet
+                    if not cs0.campaignchoicesets.exists():
+                        # Old ChoiceSet is not in use by any other Campaign, so let's clean it up:
+                        try:
+                            csf0 = cs0.choicesetfilters.get()
+                        except relational.ChoiceSetFilter.DoesNotExist:
+                            filter0 = None
+                        else:
+                            filter0 = csf0.filter
+                        cs0.delete()
+
+                        if filter0 and not filter0.choicesetfilters.exists() and not filter0.campaignfbobject_set.exists() and not filter0.campaignglobalfilters.exists():
+                            # Old ChoiceSet's Filter isn't in use anymore, so let's clean that up:
+                            filter0.delete()
+
+                    # ...and ranking keys:
+                    try:
+                        campaign_ranking_key0 = camp.campaignrankingkeys.get()
+                    except relational.CampaignRankingKey.DoesNotExist:
+                        pass
+                    else:
+                        ranking_key0 = campaign_ranking_key0.ranking_key
+                        campaign_ranking_key0.delete()
+                        if not ranking_key0.campaignrankingkeys.exists():
+                            ranking_key0.delete()
+
+                    faces_url = ( campaign_form.cleaned_data['faces_url'] or
+                                  camp.campaignproperties.get().client_faces_url )
+
+                    camp.campaignchoicesets.update(choice_set=cs, rand_cdf=1.0)
+                    camp.campaignproperties.update(
+                        client_faces_url=faces_url,
+                        client_thanks_url=campaign_form.cleaned_data['thanks_url'],
+                        client_error_url=campaign_form.cleaned_data['error_url'],
+                        fallback_campaign=last_camp,
+                        fallback_is_cascading=bool(last_camp))
+
+                    camp.campaignfbobjects.update(fb_object=fb_obj, rand_cdf=1.0)
                     
+                    if ranking_key:
+                        camp.campaignrankingkeys.create(ranking_key=ranking_key)
+
                 campaigns.append(camp)
                 last_camp = camp
 
                 # Check to see if we need to generate the faces_url
                 if campaign_form.cleaned_data['faces_url']:
                     faces_url = campaign_form.cleaned_data['faces_url']
+                elif last_camp.campaignproperties.get().client_faces_url:
+                    faces_url = last_camp.campaignproperties.get().client_faces_url
                 else:
                     encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
                     faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
@@ -427,8 +444,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
         'fb_obj_form': fb_obj_form,
         'campaign_form': campaign_form,
         'filter_features': json.dumps(list(filter_features)),
-        'campaign_filters': json.dumps(campaign_filters),
-        'original_name': original_name
+        'campaign_filters': json.dumps(campaign_filters)
     })
 
 @utils.auth_client_required
