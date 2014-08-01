@@ -4,6 +4,7 @@ import json
 from django.conf import settings
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.serializers.json import DjangoJSONEncoder
 
 
 from targetadmin import utils
@@ -477,7 +478,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
 
     filters = []
     campaign1 = root_campaign
@@ -492,10 +493,10 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         campaign1 = properties1.fallback_campaign
 
     return {
-        'contentURL': content.url,
-        'clientPK': client.pk,
-        'name': root_campaign.name[:-2],
+        'client': client,
+        'content': content,
+        'root_campaign': root_campaign,
+        'campaign_properties': root_campaign.campaignproperties.get(),
+        'fb_obj_attributes': fb_obj_attributes,
         'filters': json.dumps(filters),
-        'campaign_properties': json.dumps(list(root_campaign.campaignproperties.values())[0], cls=DjangoJSONEncoder),
-        'fb_obj_attributes': json.dumps(list(fb_obj_attributes.values())[0], cls=DjangoJSONEncoder)
     }
