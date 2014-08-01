@@ -1,13 +1,11 @@
 require.config( {
 
+    baseUrl: '/static/js',
+
     paths: {
-
         styles: '../css',
-
         templates: '../templates',
-
         jquery: 'vendor/jquery'
-
     },
 
     shim: {
@@ -31,6 +29,10 @@ require.config( {
         
         'vendor/bootstrap.min': {
             deps: [ 'jquery' ]
+        },
+
+        'extendBackbone': {
+            deps: [ 'vendor/backbone', 'vendor/underscore', 'jquery' ],
         },
 
         'models/filterModels': {

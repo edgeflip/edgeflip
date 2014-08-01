@@ -23,7 +23,10 @@
            </div>
        {% endif %}
        <div>Title : {{fb_obj_attributes.og_title}}</div>
-       <div>Image URL : {{fb_obj_attributes.og_image}}</div>
+       <div class="image-url-container">
+            <span>Image URL :</span>
+            <a href="{{fb_obj_attributes.og_image}}">{{fb_obj_attributes.og_image}}</a>
+       </div>
        <div>Description : {{fb_obj_attributes.og_description}}</div>
        <div>Content URL : {{content.url}}</div>
    </div>

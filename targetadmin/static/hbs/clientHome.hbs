@@ -23,6 +23,12 @@
                     {{/if}}
                     </div>
                     <div class="col-sm-3">
+                        {{#if isPublished}}
+                            <div class="published pull-right">Published</div>
+                        {{else}}
+                            <button data-js="editButton" type="button" class="btn btn-default pull-right">Edit</button>
+                        {{/if}}
+                        <!--Use this when there are more options
                         <div class="btn-group pull-right">
                             <button type="button" class="btn btn-default">Action</button>
                             <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
@@ -37,9 +43,12 @@
                                 <li><a href="#">Facebook Post</a></li>
                             </ul>
                         </div>
+                        -->
                     </div>
                 </div>
             {{/each}}
         </div>
     </div>
 </section>
+
+

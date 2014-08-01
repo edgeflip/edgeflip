@@ -5,10 +5,9 @@ define(
       'vendor/backbone',
       'models/campaign',
       'templates/clientHome',
-      /* 'views/campaignSummary', */
       'css!styles/clientHome'
     ],
-    function( $, _, Backbone, campaign, template /* campaignSummary */ ) {
+    function( $, _, Backbone, campaign, template ) {
 
         var campaignCollection = Backbone.Collection.extend( { model: campaign } );
 
@@ -18,7 +17,8 @@ define(
 
             events: {
                 'click button[data-js="createCampaignBtn"]': 'createCampaign',
-                'click div[data-js="campaignName"]': 'showCampaignSummary'
+                'click button[data-js="editButton"]': 'navToEditCampaign',
+                'click div[data-js="campaignName"]': 'navToCampaignSummary'
             },
 
             initialize: function( options ) {
@@ -51,13 +51,13 @@ define(
                 window.location = this.createCampaignURL;
             },
 
-            showCampaignSummary: function(e) {
-
-                this.templateData.campaignRow.filter(
-                    ':not(div[data-id="' + $(e.currentTarget).data('id') + '"])'
-                ).fadeOut( function() {
-                } );
-            }
+            navToCampaignSummary: function(e) {
+                window.location = this.campaignSummaryURL.replace("0", $(e.currentTarget).data('id') );
+            },
+            
+            navToEditCampaign: function(e) {
+                window.location = this.createCampaignURL + $(e.currentTarget).closest('div[data-js="campaignRow"]').data('id');
+            },
 
         } );
     }

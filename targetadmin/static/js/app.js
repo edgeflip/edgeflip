@@ -1,6 +1,5 @@
 define(
     [ 
-      'jquery',
       'extendBackbone',
       'polyfill',
       'vendor/bootstrap.min',

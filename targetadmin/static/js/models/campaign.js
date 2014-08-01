@@ -1,35 +1,18 @@
-define(
-    [
-      'jquery',
-      'vendor/underscore',
-      'vendor/backbone',
-      'models/filterModels'
-    ],
-    function( $, _, Backbone, filterCollection ) {
-        return Backbone.Model.extend( {
-            defaults: {
-                pk: undefined,
-                name: undefined,
-                create_dt: undefined
-            },
-            parse: function(attrs,options) {
-                var rv = { };
-
-                if( attrs.name && attrs.name.endsWith(" 1") ) {
-                    rv.name = attrs.name.substr(0, attrs.name.length-2);
-                }
-
-                rv.create_dt = new Date(attrs.create_dt).toDateString();
-    
-                rv.filters = _.map( attrs.filters, function( filterLayer ) {
-                    return new filterCollection( filterLayer[0], { parse: true } );
-                } );
-
-                rv.fbObjAttributes = attrs.fb_obj_attributes;
-                rv.properties = attrs.properties;
-                rv.pk = attrs.pk;
-
-                return rv;
+define( [ 'vendor/backbone' ], function( Backbone ) {
+    return Backbone.Model.extend( {
+        defaults: {
+            pk: undefined,
+            name: undefined,
+            create_dt: undefined
+        },
+        parse: function(attrs,options) {
+            if( attrs.name && attrs.name.endsWith(" 1") ) {
+                attrs.name = attrs.name.substr(0, attrs.name.length-2);
             }
-        } );
+
+            attrs.create_dt = new Date(attrs.create_dt).toDateString();
+            attrs.isPublished = ( attrs.campaignproperties__status === 'published' )
+            return attrs;
+        }
+    } );
 } );

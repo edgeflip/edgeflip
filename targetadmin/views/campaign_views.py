@@ -7,6 +7,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.core.serializers.json import DjangoJSONEncoder
 
 from targetshare.models import relational
 from targetshare.utils import encodeDES
@@ -552,7 +553,7 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
 
     def get_filters( properties ):
         return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
@@ -570,8 +571,6 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         'campaign_properties': root_campaign.campaignproperties.get(),
         'fb_obj_attributes': fb_obj_attributes,
         'filters': json.dumps(filters),
-        'campaign_properties': json.dumps(list(root_campaign.campaignproperties.values())[0], cls=DjangoJSONEncoder),
-        'fb_obj_attributes': json.dumps(list(fb_obj_attributes.values())[0], cls=DjangoJSONEncoder)
     }
 
 
