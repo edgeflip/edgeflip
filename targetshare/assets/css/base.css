@@ -154,7 +154,7 @@ body {
 
 #spinner:before {
     font-size: 14px;
-    font-family: "Franklin Gothic Book";
+    font-family: "Franklin Gothic Book","Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
 }
 
 .loading #spinner:before {
@@ -804,7 +804,7 @@ body {
 
 #button_sugg_msg,
 #button_select_all {
-    font-family: Franklin Gothic Book;
+    font-family: Franklin Gothic Book,"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
     font-size: 16px;
     background-color: #d34730;
     border: 1px solid #d34730;
@@ -916,7 +916,7 @@ body {
 }
 
 .friend_txt {
-    font-family: "Franklin Gothic Book";
+    font-family: "Franklin Gothic Book,"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif";
     height: 52px;
     float: right;
     padding-left: 5px;
@@ -999,7 +999,7 @@ a.ui-state-focus {
 }                         /* forces the menu to always be this tall */
 
 .added_friend {
-    font-family: "Franklin Gothic Book";
+    font-family: "Franklin Gothic Book,"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif";
     border: 1px solid #cccccc;
     padding: 0px 10px;
     margin: 0px 5px;
@@ -1033,7 +1033,7 @@ a.ui-state-focus {
     padding: 18px;
     border: 1px solid #cccccc;
     border-radius: 2px;
-    font-family: 'Franklin Gothic Book';
+    font-family: 'Franklin Gothic Book',"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
 }
     
 #message_form table {
@@ -1068,7 +1068,7 @@ a.ui-state-focus {
     background-color: #d4e0f5;
     vertical-align: baseline;
     white-space: nowrap;
-    font-family: "Franklin Gothic Book";
+    font-family: "Franklin Gothic Book","Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
     line-height: 29px;
     height: 29px;
 }
@@ -1101,7 +1101,7 @@ a.ui-state-focus {
 }
 
 #button_do_share {
-    font-family: Franklin Gothic Book;
+    font-family: Franklin Gothic Book,"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif;
     font-size: 24px;
     padding: 6px 30px;
     border-radius: 3px;
