@@ -776,6 +776,7 @@ body {
     text-align: center;
     font-size: 6em;
     margin: 0px;
+    line-height: 100%;
 }
 
 /* Optional for sub header styling */
@@ -1070,7 +1071,6 @@ a.ui-state-focus {
     font-family: "Franklin Gothic Book";
     line-height: 29px;
     height: 29px;
-    font-size: 12px;
 }
 
 .message_x {
