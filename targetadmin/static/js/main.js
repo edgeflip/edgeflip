@@ -30,6 +30,10 @@ require.config( {
         'vendor/bootstrap.min': {
             deps: [ 'jquery' ]
         },
+        
+        'vendor/d3': {
+            exports: [ 'd3' ]
+        },
 
         'extendBackbone': {
             deps: [ 'vendor/backbone', 'vendor/underscore', 'jquery' ],
