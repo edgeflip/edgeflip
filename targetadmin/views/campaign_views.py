@@ -95,9 +95,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
         empty_fallback = False
         fallback_campaign = campaign_properties.fallback_campaign
         while fallback_campaign:
-            pprint(dir(fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.get()))
-            empty_choice_set = fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.get().filter(
-                choicesetfilters__filter__filterfeatures__isnull=True)
             empty_choice_set = fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.filter(
                 choicesetfilters__filter__filterfeatures__isnull=True)
     client = get_object_or_404(relational.Client, pk=client_pk)
