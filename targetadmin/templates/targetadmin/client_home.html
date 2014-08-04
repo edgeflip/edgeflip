@@ -2,31 +2,40 @@
 {% block title %}{{ client.name }}{% endblock %}
 
 {% block require %}
-    require( ['app', 'sidebar', 'clientHome', 'views/help'], function(app, Sidebar, ClientHome, Help) {
+    /* load modules */
+    require( ['app', 'views/sidebar', 'views/clientCampaigns', 'views/help'], function(app, Sidebar, ClientCampaigns, Help) {
 
-            new Sidebar( {
-                parentEl: $("#content-container"),
-                model: new Backbone.Model( { state: 'campaigns' } ),
-                templateOptions: {
-                    logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
-                    clientName: "{{ client.name }}",
-                },
-                reportingDashboardURL: "{% url 'reporting:main' %}"
-            } );
-            
-            new ClientHome( {
-                parentEl: $("#content-container"),
-                campaigns: {{ campaigns|safe }},
-                createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}",
-                campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
-            } );
+        /* instantiate help and campaign list
+           note campaign list passed json list
+           of campaigns
+        */ 
+        var contentContainer = $("#content-container"),
+            clientCampaignsContent =        
+                new ClientCampaigns( {
+                    parentEl: contentContainer,
+                    campaigns: {{ campaigns|safe }},
+                    createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}",
+                    campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
+                } ).$el;
+            helpContent =
+                 new Help( {
+                    parentEl: contentContainer,
+                    templateOptions: {
+                        howItWorksSrc: "{{ STATIC_URL }}img/how-it-works.jpg"
+                    }
+                } ).$el.hide();
 
-            new Help( {
-                parentEl: $("#content-container"),
-                templateOptions: {
-                    howItWorksSrc: "{{ STATIC_URL }}img/how-it-works.jpg"
-                }
-            } ).$el.hide();
-        }
-    );
+        /* instantiate sidebar, pass it help and campaign list, among other things */
+        new Sidebar( {
+            parentEl: contentContainer,
+            model: new Backbone.Model( { state: 'campaigns' } ),
+            content: { campaigns: clientCampaignsContent, help: helpContent },
+            templateOptions: {
+                logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                clientName: "{{ client.name }}",
+            },
+            reportingDashboardURL: "{% url 'reporting:main' %}"
+        } );
+
+    } );
 {% endblock %}

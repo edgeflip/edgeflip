@@ -1,22 +1,24 @@
+/* sidebar depends on */
 define(
     [
       'jquery',
       'vendor/underscore',
       'vendor/backbone',
-      'templates/sidebar',
-      'css!styles/sidebar'
+      'templates/sidebar', // function which returns sidebar html
+      'css!styles/sidebar' // CSS ( inserted into DOM )
     ],
     function( $, _, Backbone, template ) {
 
         return Backbone.View.extend( {
-            
+           
+            /* event handler: function */ 
             events: {
-                'click li[data-js="btn"]': 'navClicked',
                 'click li[data-nav="reports"]': 'reportsClicked',
-                'click li[data-nav="help"]': 'helpClicked',
-                'click li[data-nav="campaigns"]': 'campaignsClicked'
+                'click li[data-nav="help"]': 'contentItemClicked',
+                'click li[data-nav="campaigns"]': 'contentItemClicked'
             },
 
+            /* called on instantiation */
             initialize: function( options ) {
 
                 _.extend( this, options );
@@ -30,7 +32,7 @@ define(
 
                 this.slurpHtml( {
                     template: template( this.templateOptions ),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
+                    insertion: { $el: this.$el.prependTo(this.parentEl) } } );
 
                 this.postRender();
 
@@ -41,24 +43,18 @@ define(
                 this.renderState();
             },
 
+            /* style 'selected' button */
             renderState: function() {
                 this.templateData.btn
                     .removeClass('selected')
                     .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
             },
 
-            navClicked: function(e) {
+            /* toggle content on click */
+            contentItemClicked: function(e) {
                 this.model.set( "state", $(e.currentTarget).data('nav') );
-            },
-
-            campaignsClicked: function() {
-                $('.help').parent().fadeOut( function() {
-                    $('.client-home').parent().fadeIn(); } );
-            },
-
-            helpClicked: function() {
-                $('.client-home').parent().fadeOut( function() {
-                    $('.help').parent().fadeIn(); } );
+                this.content[ this.model.previous('state') ].fadeOut();
+                this.content[ this.model.get('state') ].fadeIn();
             },
 
             reportsClicked: function() {
