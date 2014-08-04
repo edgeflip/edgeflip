@@ -9,8 +9,14 @@
        <h5 class="sub-header">Friend Suggestion Page Info</h5>
        <div>Headline : {{fb_obj_attributes.sharing_prompt}}</div>
        <div>Sub-header : {{fb_obj_attributes.sharing_sub_header}}</div>
-       <div>Thanks URL : {{campaign_properties.client_thanks_url}}</div>
-       <div>Error URL : {{campaign_properties.client_error_url}}</div>
+       <div class="url-container">
+           <span>Thanks URL :</span>
+           <a href="{{campaign_properties.client_thanks_url}}">{{campaign_properties.client_thanks_url}}</a>
+       </div>
+       <div class="url-container">
+           <span>Error URL :</span>
+           <a href="{{campaign_properties.client_error_url}}">{{campaign_properties.client_error_url}}</a>
+       </div>
    </div>
    <div>
        <h5 class="sub-header">Facebook Post</h5>
@@ -23,12 +29,15 @@
            </div>
        {% endif %}
        <div>Title : {{fb_obj_attributes.og_title}}</div>
-       <div class="image-url-container">
+       <div class="url-container">
             <span>Image URL :</span>
             <a href="{{fb_obj_attributes.og_image}}">{{fb_obj_attributes.og_image}}</a>
        </div>
        <div>Description : {{fb_obj_attributes.og_description}}</div>
-       <div>Content URL : {{content.url}}</div>
+       <div class="url-container">
+           <span>Content URL :</span>
+           <a href="{{content.url}}">{{content.url}}</a>
+       </div>
    </div>
 </div>
 <script src="{{ STATIC_URL }}js/models/filterModels.js"></script>
@@ -51,11 +60,14 @@
             initialize: function() {
 
                 _.each( this.filters, function( filterLayer, i ) {
-                    this.addLayer( {
-                        layer: filterLayer,
-                        label: ( i === 0 )
-                            ? 'Target Audience'
-                            : 'Fallback Audience ' + ( i + 1 ) } );
+                    //Not showing empty fallback
+                    if( filterLayer.length || i == 0 ) {
+                        this.addLayer( {
+                            layer: filterLayer,
+                            label: ( i === 0 )
+                                ? 'Target Audience'
+                                : 'Fallback Audience ' + ( i + 1 ) } );
+                    }
                 }, this );
             },
 
