@@ -3,7 +3,14 @@
 
 {% block require %}
     /* load modules */
-    require( ['app', 'views/sidebar', 'views/clientCampaigns', 'views/help'], function(app, Sidebar, ClientCampaigns, Help) {
+    require(
+        [
+          'app',
+          'views/sidebar',
+          'views/clientCampaigns',
+          'views/insightsWidgets',
+          'views/help'
+        ], function(app, Sidebar, ClientCampaigns, InsightsWidgets, Help) {
 
         /* instantiate help and campaign list
            note campaign list passed json list
@@ -18,18 +25,27 @@
                     campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
                 } ).$el;
             helpContent =
-                 new Help( {
+                new Help( {
                     parentEl: contentContainer,
                     templateOptions: {
                         howItWorksSrc: "{{ STATIC_URL }}img/how-it-works.jpg"
                     }
-                } ).$el.hide();
+                } ).$el.hide(),
+            insightsContent =
+                new insightsWidgets( {
+                    parentEl: contentContainer
+                } );
+
 
         /* instantiate sidebar, pass it help and campaign list, among other things */
         new Sidebar( {
             parentEl: contentContainer,
             model: new Backbone.Model( { state: 'campaigns' } ),
-            content: { campaigns: clientCampaignsContent, help: helpContent },
+            content: {
+                campaigns: clientCampaignsContent,
+                reports: insightsContent,
+                help: helpContent
+            },
             templateOptions: {
                 logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
                 clientName: "{{ client.name }}",
