@@ -10,7 +10,7 @@ class Migration(SchemaMigration):
     def forwards(self, orm):
         # Adding field 'CampaignProperties.status'
         db.add_column('campaign_properties', 'status',
-                      self.gf('django.db.models.fields.CharField')(max_length=32, null=True),
+                      self.gf('django.db.models.fields.CharField')(default='published', max_length=32),
                       keep_default=False)
 
 
@@ -207,10 +207,10 @@ class Migration(SchemaMigration):
             'fallback_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True'}),
             'fallback_is_cascading': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
             'min_friends': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'num_faces': ('django.db.models.fields.PositiveIntegerField', [], {'default': '9'}),
+            'num_faces': ('django.db.models.fields.PositiveIntegerField', [], {'default': '10'}),
             'root_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'rootcampaign_properties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'status': ('django.db.models.fields.CharField', [], {'max_length': '32', 'null': 'True'})
+            'status': ('django.db.models.fields.CharField', [], {'default': "'published'", 'max_length': '32'})
         },
         'targetshare.campaignproximitymodel': {
             'Meta': {'object_name': 'CampaignProximityModel', 'db_table': "'campaign_proximity_models'"},

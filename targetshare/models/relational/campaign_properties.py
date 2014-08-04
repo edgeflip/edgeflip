@@ -9,11 +9,15 @@ LOG = logging.getLogger('crow')
 
 class CampaignProperties(models.Model):
 
-    STATUS=dict(
-        DRAFT='draft',
-        PUBLISHED='published',
-        INACTIVE='inactive'
-    )
+    class Status(object):
+        DRAFT = 'draft'
+        PUBLISHED = 'published'
+        INACTIVE = 'inactive'
+        CHOICES = (
+            (DRAFT, 'Draft'),
+            (PUBLISHED, 'Published'),
+            (INACTIVE, 'Inactive')
+        )
 
     campaign_property_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign', null=True,
@@ -37,7 +41,7 @@ class CampaignProperties(models.Model):
         related_name='rootcampaign_properties',
         null=True,
     )
-    status = models.CharField(max_length=32, null=True)
+    status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.CHOICES)
 
     objects = manager.TransitoryObjectManager.make()
 
