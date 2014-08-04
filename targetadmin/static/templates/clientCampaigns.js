@@ -51,7 +51,7 @@ function program6(depth0,data) {
   return "\n                            <button data-js=\"editButton\" type=\"button\" class=\"btn btn-default pull-right\">Edit</button>\n                        ";
   }
 
-  buffer += "<section class=\"col-sm-10 client-home\">\n    <div class=\"row header\">\n        <div class=\"col-sm-9\">\n            <h1>Campaigns</h1>\n        </div>\n        <div class=\"col-sm-3\">\n            <button data-js=\"createCampaignBtn\" type=\"button\" class=\"btn create-campaign-btn\">Create Campaign</button>\n        </div>\n    </div>\n    <div class=\"row\">\n        <div class=\"col-sm-12\">\n            ";
+  buffer += "<section class=\"col-sm-10 client-campaigns\">\n    <div class=\"row header\">\n        <div class=\"col-sm-9\">\n            <h1>Campaigns</h1>\n        </div>\n        <div class=\"col-sm-3\">\n            <button data-js=\"createCampaignBtn\" type=\"button\" class=\"btn create-campaign-btn\">Create Campaign</button>\n        </div>\n    </div>\n    <div class=\"row\">\n        <div class=\"col-sm-12\">\n            ";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.campaigns), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "\n        </div>\n    </div>\n</section>\n\n\n";
