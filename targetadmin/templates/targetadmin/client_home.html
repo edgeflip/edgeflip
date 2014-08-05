@@ -32,9 +32,9 @@
                     }
                 } ).$el.hide(),
             insightsContent =
-                new insightsWidgets( {
+                new InsightsWidgets( {
                     parentEl: contentContainer
-                } );
+                } ).$el;
 
 
         /* instantiate sidebar, pass it help and campaign list, among other things */
@@ -43,7 +43,7 @@
             model: new Backbone.Model( { state: 'campaigns' } ),
             content: {
                 campaigns: clientCampaignsContent,
-                reports: insightsContent,
+                widgets: insightsContent,
                 help: helpContent
             },
             templateOptions: {

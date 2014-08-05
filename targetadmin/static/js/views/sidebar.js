@@ -14,8 +14,7 @@ define(
             /* event handler: function */ 
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
-                'click li[data-nav="help"]': 'contentItemClicked',
-                'click li[data-nav="campaigns"]': 'contentItemClicked'
+                'click li[data-js="btn"]': 'contentItemClicked'
             },
 
             /* called on instantiation */

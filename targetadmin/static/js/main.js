@@ -5,7 +5,10 @@ require.config( {
     paths: {
         styles: '../css',
         templates: '../templates',
-        jquery: 'vendor/jquery'
+        jquery: 'vendor/jquery',
+
+        font: 'vendor/font',
+        propertyParser : 'vendor/propertyParser'
     },
 
     shim: {

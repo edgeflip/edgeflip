@@ -1,8 +1,19 @@
+.horizontal-bar-chart {
+  border: 1px solid black;
+  background-color: #d4e0f5;
+}
 .horizontal-bar-chart .chart rect {
-  fill: steelblue;
+  fill: #4d68a2;
+}
+.horizontal-bar-chart .chart .title {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+  fill: black;
+  text-anchor: start;
+  font-size: 20px;
+  text-transform: uppercase;
 }
 .horizontal-bar-chart .chart text {
-  fill: white;
-  font: 10px sans-serif;
-  text-anchor: end;
+  font-family: Helvetica, sans-serif;
+  fill: black;
+  text-anchor: start;
 }

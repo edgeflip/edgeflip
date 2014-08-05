@@ -26,7 +26,13 @@ module.exports = function(grunt) {
 
                 options: {
                     amd: "vendor/handlebars",
-                    namespace: false
+                    namespace: false,
+                    /* remove newlines, white space text nodes from templates */
+                    processContent: function(content, filepath) {
+                        return content.replace(/[\r\n]/g, '')
+                                      .replace(/\n/g, '')
+                                      .replace(/>\s*</g, '><');
+                    }
                 },
 
                 files: [
