@@ -1,21 +1,35 @@
-define( [ 'vendor/backbone' ], function( Backbone ) {
+define( [ 'vendor/backbone', 'vendor/d3' ], function( Backbone, d3 ) {
 
     return Backbone.Model.extend( {
 
-        defaults: {
-            data: [ ],
-            width: '100%',
-            barHeight: 20
+        defaults: function(options) {
+            return {
+                data: [ ],
+                scale: undefined,
+                width: '',
+                title: '',
+                barHeight: 15,
+                maxBarWidth: .5, //50% of graph width
+                padding: 25
+            }
         },
 
-        parse: function(attrs,options) {
-            if( attrs.name && attrs.name.endsWith(" 1") ) {
-                attrs.name = attrs.name.substr(0, attrs.name.length-2);
+        initialize: function(options) {
+
+            if( ! this.has('scale') ) {
+                this.set( {
+                    scale: d3.scale.linear()
+                                .domain([0, d3.max(this.get('data'), function(d) { return d.value; })])
+                                .range([0, this.get('width') * this.get('maxBarWidth') ])
+                } );
             }
 
-            attrs.create_dt = new Date(attrs.create_dt).toDateString();
-            attrs.isPublished = ( attrs.campaignproperties__status === 'published' )
-            return attrs;
+            this.set( {
+                height: ( this.get('barHeight') * this.get('data').length ) +
+                        ( this.get('padding') * 2 )
+            } );
+
+            return this;
         }
     } );
 } );

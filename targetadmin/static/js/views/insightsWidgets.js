@@ -35,7 +35,16 @@ define(
             postRender: function() {
 
                 new HorizontalBarChart( {
-                    el: '#horizontal-bar-chart'
+                    el: '#horizontal-bar-chart',
+                    title: 'Most Popular Interests',
+                    data: [
+                        { value: 4, label: 'Veganism' },
+                        { value: 8, label: 'Cycling' },
+                        { value: 15, label: 'Politics' },
+                        { value: 16, label: 'Cynicism' },
+                        { value: 23, label: 'Trivia Night' },
+                        { value: 42, label: 'The Talking Heads' }
+                    ]
                 } );
             }
 

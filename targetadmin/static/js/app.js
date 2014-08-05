@@ -7,6 +7,7 @@ define(
       'extendBackbone',
       'polyfill',
       'vendor/bootstrap.min',
+      'font!typekit,id:ixj6alt',
       'css!styles/vendor/bootstrap.min',
       'css!styles/vendor/bootstrap-theme.min',
       'css!styles/app'
