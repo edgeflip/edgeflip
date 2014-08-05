@@ -3,17 +3,58 @@ import json
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 
-
-from targetadmin import utils
-from targetadmin import forms
 from targetshare.models import relational
 from targetshare.utils import encodeDES
+
+from targetadmin import forms, utils
 from targetadmin.views.base import (
     ClientRelationListView,
     ClientRelationDetailView,
 )
+
+
+CAMPAIGN_CREATION_NOTIFICATION_MESSAGE = """\
+Client Name: {client.name}
+Campaign Name: {campaign.name}
+
+Campaign Summary URL: {summary_url}
+Campaign Snippets URL: {snippets_url}
+Campaign URL: {campaign_url}
+
+Please verify this campaign and its fallbacks.
+
+Your friend,
+The Campaign Wizard
+"""
+
+
+def render_campaign_creation_message(request, campaign, content):
+    hostname = request.get_host()
+    sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
+    initial_url = "{scheme}//{host}{path}".format(
+        scheme=('https:' if utils.INCOMING_SECURE else 'http:'),
+        host=hostname,
+        path=sharing_urls['initial_url'],
+    )
+
+    return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
+        campaign=campaign,
+        client=campaign.client,
+        summary_url=request.build_absolute_uri(
+            reverse('targetadmin:campaign-summary', args=[campaign.client.pk, campaign.pk])
+        ),
+        snippets_url=request.build_absolute_uri(
+            "{}?campaign_pk={}&content_pk={}".format(
+                reverse('targetadmin:snippets', args=[campaign.client.pk]),
+                campaign.pk,
+                content.pk,
+            )
+        ),
+        campaign_url=initial_url,
+    )
 
 
 class CampaignListView(ClientRelationListView):
@@ -308,16 +349,14 @@ def campaign_wizard(request, client_pk):
                 properties.save()
 
             send_mail(
-                '{} Created New Campaigns'.format(client.name),
-                'Campaign PK: {} created. Please verify it and its children.'.format(last_camp.pk),
-                settings.ADMIN_FROM_ADDRESS,
-                settings.ADMIN_NOTIFICATION_LIST,
-                fail_silently=True
+                subject="{} created a new campaign".format(client.name),
+                message=render_campaign_creation_message(request, last_camp, content),
+                from_email=settings.ADMIN_FROM_ADDRESS,
+                recipient_list=settings.ADMIN_NOTIFICATION_LIST,
+                fail_silently=True,
             )
-            return redirect(
-                'targetadmin:campaign-wizard-finish',
-                client.pk, last_camp.pk, content.pk
-            )
+            return redirect('targetadmin:campaign-wizard-finish',
+                            client.pk, last_camp.pk, content.pk)
 
     filter_features = relational.FilterFeature.objects.filter(
         filter__client=client,
