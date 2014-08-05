@@ -7,19 +7,37 @@ from django.utils import timezone
 from django.utils.importlib import import_module
 
 from targetshare import models
-from targetshare.views.utils import get_visitor, set_visit
+from targetshare.views.utils import get_client_ip, get_visitor, set_visit
 
 from .. import EdgeFlipTestCase
 
 
-class VisitTestCase(EdgeFlipTestCase):
+class RequestTestCase(EdgeFlipTestCase):
 
     def setUp(self):
-        super(VisitTestCase, self).setUp()
+        super(RequestTestCase, self).setUp()
         self.factory = RequestFactory()
 
 
-class TestVisit(VisitTestCase):
+class TestGetClientIP(RequestTestCase):
+
+    def test_simple_ip(self):
+        request = self.factory.get('/', HTTP_X_FORWARDED_FOR='38.88.227.194')
+        ip = get_client_ip(request)
+        self.assertEqual(ip, '38.88.227.194')
+
+    def test_multiple_ips(self):
+        request = self.factory.get('/', HTTP_X_FORWARDED_FOR='38.88.227.194,127.0.0.1')
+        ip = get_client_ip(request)
+        self.assertEqual(ip, '38.88.227.194')
+
+    def test_partial_null_ips(self):
+        request = self.factory.get('/', HTTP_X_FORWARDED_FOR=',127.0.0.1')
+        ip = get_client_ip(request)
+        self.assertEqual(ip, '127.0.0.1')
+
+
+class TestVisit(RequestTestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -110,7 +128,7 @@ class TestVisit(VisitTestCase):
         self.assertNotEqual(request.visit.visitor, visitor0)
 
 
-class TestVisitor(VisitTestCase):
+class TestVisitor(RequestTestCase):
 
     def test_new_visitor(self):
         self.assertFalse(models.Visitor.objects.exists())
