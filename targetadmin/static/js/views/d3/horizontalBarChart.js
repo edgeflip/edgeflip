@@ -4,63 +4,26 @@ define(
       'vendor/underscore',
       'vendor/backbone',
       'vendor/d3',
+      'views/d3/widget',
       'models/d3/horizontalBarChart',
-      'css!styles/horizontalBarChart' // CSS ( inserted into DOM )
+      'css!styles/d3/horizontalBarChart' // CSS ( inserted into DOM )
     ],
-    function( $, _, Backbone, d3, Model, template ) {
+    function( $, _, Backbone, d3, BaseWidget, Model ) {
 
-        return Backbone.View.extend( {
+        return BaseWidget.extend( {
             
             initialize: function( options ) {
 
-                var self = this;
-
-                _.extend( this, options ); 
-
-                this.model = new Model( {
-                    data: this.data,
-                    title: this.title,
-                    width: this.$el.width()
-                } );
-
-                this.model.on( "change:height", this.sizeChart, this );
+                BaseWidget.prototype.initialize.apply(
+                    this, [ options, Model ] );
 
                 return this.render();
             },
 
             render: function() {
                 
-                $('<svg class="chart"></svg>').appendTo( this.$el );
-                
-                this.chart = d3.select(".chart");
-
-                this.createTitle()
+                BaseWidget.prototype.render.call(this)
                     .createRows();
-
-                return this;
-            },
-
-            sizeChart: function() {
-
-                this.chart.attr("width", this.model.get('width'))
-                          .attr("height", this.model.get('height'));
-
-                this.$el.height( this.model.get('height') );
-
-                return this;
-            },
-
-            createTitle: function() {
-
-                this.title = 
-                    this.chart.append("text")
-                        .classed( { 'title': true } )
-                        .attr("x", this.model.get('padding') )
-                        .attr("y", this.model.get('padding') )
-                        .attr("dy", ".35em" )
-                        .text( this.model.get('title') );
-                               
-                this.model.set("titleHeight", this.title.node().getBBox().height);
 
                 return this;
             },
@@ -75,7 +38,7 @@ define(
                     .attr("transform", function(d, i) {
                         return "translate(0," +
                             ( ( i * self.model.get('rowHeight') ) +
-                               self.model.get('padding') +
+                               ( self.model.get('padding') * 2 ) +
                                self.model.get('titleHeight')
                             ) + ")"; } );
 
@@ -104,9 +67,9 @@ define(
                 var self = this;
 
                 this.rows.append("text")
+                    .classed( { 'text': true } )
                     .attr("x", this.model.get('padding') )
                     .attr("y", this.model.get('barHeight') / 2)
-                    .attr("dy", ".35em")
                     .text(function(data) { return data.value; });
 
                 return this;
@@ -117,11 +80,11 @@ define(
                 var self = this;
 
                 this.rows.append("text")
+                    .classed( { 'text': true } )
                     .attr("x", this.model.get('padding') +
                                ( this.model.get('width') * this.model.get('maxBarWidth') ) +
                                this.model.get('labelOffset'))
                     .attr("y", this.model.get('barHeight') / 2)
-                    .attr("dy", ".35em")
                     .text(function(data) { return data.label; });
 
                 return this;

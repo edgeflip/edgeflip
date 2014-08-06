@@ -4,10 +4,11 @@ define(
       'vendor/underscore',
       'vendor/backbone',
       'views/d3/horizontalBarChart',
+      'views/d3/numberBox',
       'templates/insightsWidgets', // function which returns campaign list html
       'css!styles/insightsWidgets' // CSS ( inserted into DOM )
     ],
-    function( $, _, Backbone, HorizontalBarChart, template ) {
+    function( $, _, Backbone, HorizontalBarChart, NumberBox, template ) {
 
         return Backbone.View.extend( {
             
@@ -46,6 +47,13 @@ define(
                         { value: 42, label: 'The Talking Heads' }
                     ]
                 } );
+
+                new NumberBox( {
+                    el: '#number-box',
+                    title: "It's Numberwang",
+                    data: 77
+                } );
+
             }
 
         } );

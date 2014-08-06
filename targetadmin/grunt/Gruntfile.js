@@ -12,8 +12,10 @@ module.exports = function(grunt) {
                     {
                       expand: true,
                       cwd: static(),
-                      src: ['less/*.less'],
-                      rename: function( dest, src ) { return static('css/') + src.replace(/^.*[\\\/]/, ''); },
+                      src: ['less/**/*.less'],
+                      rename: function( dest, src ) {
+                          return static('css/') + src.replace(/^less[\/]/, '');
+                      },
                       ext: '.css'
                     }
                 ]
@@ -49,7 +51,7 @@ module.exports = function(grunt) {
 
         watch: {
           handlebars: {
-            files: [ static('hbs/*.hbs'), static('less/*.less') ],
+            files: [ static('hbs/*.hbs'), static('less/**/*.less') ],
             tasks: [ 'handlebars', 'less' ],
             options: {
               spawn: false,
