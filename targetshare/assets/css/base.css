@@ -658,7 +658,7 @@ body {
     #picked_friends_container {
         float: right;
         width: 65%;
-        margin-top: 0px;
+        margin-top: -5px;
     }
     
     #message_form_editable,
@@ -1002,7 +1002,7 @@ a.ui-state-focus {
     font-family: "Franklin Gothic Book,"Helvetica Neue",Helvetica,Calibri,Arial,"Gill Sans","Trebuchet MS",sans-serif";
     border: 1px solid #cccccc;
     padding: 0px 10px;
-    margin: 0px 5px;
+    margin: 5px;
     background-color: #d4e0f5;
     display: inline-block;
     white-space: nowrap;
