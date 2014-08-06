@@ -6,15 +6,21 @@ define( [ 'vendor/backbone', 'vendor/d3' ], function( Backbone, d3 ) {
             return {
                 data: [ ],
                 scale: undefined,
-                width: '',
+                width: undefined,
+                padding: 25,
                 title: '',
-                barHeight: 15,
+                titleHeight: 0,
+                rowHeight: 15,
+                barHeight: 14,
+                barOffset: 30,
+                labelOffset: 40,
                 maxBarWidth: .5, //50% of graph width
-                padding: 25
             }
         },
 
         initialize: function(options) {
+
+            this.on( "change:titleHeight", this.calculateHeight, this );
 
             if( ! this.has('scale') ) {
                 this.set( {
@@ -24,12 +30,16 @@ define( [ 'vendor/backbone', 'vendor/d3' ], function( Backbone, d3 ) {
                 } );
             }
 
+            return this;
+        },
+
+        calculateHeight: function() {
             this.set( {
                 height: ( this.get('barHeight') * this.get('data').length ) +
+                        this.get('titleHeight') +
                         ( this.get('padding') * 2 )
             } );
 
-            return this;
         }
     } );
 } );

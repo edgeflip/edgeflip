@@ -23,15 +23,18 @@ define(
                     width: this.$el.width()
                 } );
 
+                this.model.on( "change:height", this.sizeChart, this );
+
                 return this.render();
             },
 
             render: function() {
                 
                 $('<svg class="chart"></svg>').appendTo( this.$el );
+                
+                this.chart = d3.select(".chart");
 
-                this.sizeChart()
-                    .createTitle()
+                this.createTitle()
                     .createRows();
 
                 return this;
@@ -39,10 +42,10 @@ define(
 
             sizeChart: function() {
 
-                this.chart =
-                    d3.select(".chart")
-                        .attr("width", this.model.get('width'))
-                        .attr("height", this.model.get('height'));
+                this.chart.attr("width", this.model.get('width'))
+                          .attr("height", this.model.get('height'));
+
+                this.$el.height( this.model.get('height') );
 
                 return this;
             },
@@ -56,6 +59,8 @@ define(
                         .attr("y", this.model.get('padding') )
                         .attr("dy", ".35em" )
                         .text( this.model.get('title') );
+                               
+                this.model.set("titleHeight", this.title.node().getBBox().height);
 
                 return this;
             },
@@ -69,9 +74,9 @@ define(
                     .enter().append("g")
                     .attr("transform", function(d, i) {
                         return "translate(0," +
-                            ( ( i * self.model.get('barHeight') ) +
+                            ( ( i * self.model.get('rowHeight') ) +
                                self.model.get('padding') +
-                               self.title.node().getBBox().height
+                               self.model.get('titleHeight')
                             ) + ")"; } );
 
                 this.createValues()
@@ -87,9 +92,9 @@ define(
 
                 this.rows.append("rect")
                     .attr("width", function(data) { return self.model.get('scale')(data.value); })
-                    .attr("height", this.model.get('barHeight') - 1)
+                    .attr("height", this.model.get('barHeight'))
                     .attr("transform", function(d, i) {
-                        return "translate(" + ( 1 * self.model.get('padding') + 30 ) + ",0)"; } );
+                        return "translate(" + ( 1 * self.model.get('padding') + self.model.get('barOffset') ) + ",0)"; } );
 
                 return this; 
             },
@@ -114,7 +119,7 @@ define(
                 this.rows.append("text")
                     .attr("x", this.model.get('padding') +
                                ( this.model.get('width') * this.model.get('maxBarWidth') ) +
-                               40)
+                               this.model.get('labelOffset'))
                     .attr("y", this.model.get('barHeight') / 2)
                     .attr("dy", ".35em")
                     .text(function(data) { return data.label; });
