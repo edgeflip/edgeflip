@@ -25,12 +25,12 @@ class JsonHttpResponse(http.HttpResponse):
 
 def get_client_ip(request):
     """Return the user agent IP address for the given request."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    ips = (ip.strip() for ip in x_forwarded_for.split(','))
+    try:
+        return next(ip for ip in ips if ip)
+    except StopIteration:
+        return request.META.get('REMOTE_ADDR')
 
 
 def get_visitor(request, fbid=None):
