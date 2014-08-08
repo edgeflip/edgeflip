@@ -5,7 +5,9 @@ import boto
 from boto.s3 import bucket, connection, key
 from django.utils import timezone
 from faraday.utils import epoch
+from httplib import HTTPException
 
+from feed_crawler.utils import retryable
 from targetshare.integration import facebook
 
 
@@ -38,6 +40,7 @@ class FeedKey(key.Key):
             result = facebook.client.exhaust_pagination(next_url)
             self.data['data'].extend(result)
 
+    @retryable(on=(HTTPException, IOError), tries=3)
     def save_to_s3(self):
         ''' Commits the current populated FeedKey to s3 '''
         self.data['updated'] = epoch.from_date(timezone.now())
@@ -46,6 +49,7 @@ class FeedKey(key.Key):
             tmp_file.seek(0)
             self.set_contents_from_file(tmp_file)
 
+    @retryable(on=(HTTPException, IOError), tries=3)
     def extend_s3_data(self, append=True):
         ''' Extends the data we have in S3, typically in incremental or
         back_fill jobs. Append flag lets you dictate if the new data ends up
@@ -77,6 +81,7 @@ class FeedKey(key.Key):
         '''Populates the page like data from Facebook'''
         return facebook.client.get_page_likes(fbid, token)
 
+    @retryable(on=(HTTPException, IOError), tries=3)
     def set_s3_likes(self, likes):
         '''Saves previously retrieved likes data to s3'''
         self.populate_from_s3()
