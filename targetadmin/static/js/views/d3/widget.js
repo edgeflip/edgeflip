@@ -27,7 +27,7 @@ define(
                 
                 this.chart = d3.select( $('<svg class="d3-chart"></svg>').appendTo( this.$el ).get(0) );
 
-                this.createTitle();
+                if( this.model.get('title') ) { this.createTitle(); }
                 
                 return this;
             },

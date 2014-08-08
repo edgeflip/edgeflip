@@ -6,7 +6,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   
 
 
-  return "<section class=\"col-sm-10 insights-widgets\"><div class=\"row\"><div class=\"col-sm-8 col-sm-offset-2 chart-container\"><section id=\"horizontal-bar-chart\" class=\"horizontal-bar-chart\"></section></div><div class=\"col-sm-4 col-sm-offset-4 chart-container\"><section id=\"number-box\" class=\"number-box\"></section></div></div></section>";
+  return "<section class=\"col-sm-10 insights-widgets\"><div class=\"row\"><div class=\"col-sm-8 col-sm-offset-2 chart-container\"><section id=\"horizontal-bar-chart\" class=\"horizontal-bar-chart\"></section></div><div class=\"col-sm-4 col-sm-offset-4 chart-container\"><section id=\"number-box\" class=\"number-box\"></section></div><div class=\"col-sm-4 col-sm-offset-4 chart-container\"><section id=\"gender-box\" class=\"number-box\"></section></div><div class=\"col-sm-8 col-sm-offset-2 chart-container\"><section id=\"line-chart\" class=\"line-chart\"></section></div></div></section>";
   })
 
 });
