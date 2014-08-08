@@ -66,6 +66,7 @@ define(
 
                 new LineChart( { 
                     el: '#line-chart',
+                    title: "Apple's Stock Price",
                     data: lineChartData,
                     labels: { x: 'Date', y: 'Price' },
                     metaData: {
