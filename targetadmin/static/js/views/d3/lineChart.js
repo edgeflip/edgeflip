@@ -18,30 +18,6 @@ define(
                     this, [ options, Model ] );
 
                 return this.render();
-                
-                x.domain(d3.extent(options.data.rows, function(d) { return d[0]; }));
-                y.domain(d3.extent(options.data.rows, function(d) { return d[1]; }));
-
-                svg.append("g")
-                  .attr("class", "x axis")
-                  .attr("transform", "translate(0," + height + ")")
-                  .call(xAxis);
-
-                svg.append("g")
-                  .attr("class", "y axis")
-                  .call(yAxis)
-                .append("text")
-                  .attr("transform", "rotate(-90)")
-                  .attr("y", 6)
-                  .attr("dy", ".71em")
-                  .style("text-anchor", "end")
-                  .text("Price ($)");
-              
-
-                svg.append("path")
-                  .datum(options.data.rows)
-                  .attr("class", "line")
-                  .attr("d", line);
             },
 
             render: function() {
@@ -49,67 +25,43 @@ define(
                 BaseWidget.prototype.render.call(this)
                     .sizeChart();
 
-                this.chart.append("g");
+                this.xAxis = this.chart.append("g")
+                  .attr("class", "x axis")
+                  .attr("transform", "translate(0," + this.model.get('graphHeight') + ")")
+                  .call(this.model.get('axes').x);
+
+                this.yAxis = this.chart.append("g")
+                  .attr("class", "y axis")
+                  .attr("x", this.model.get('padding'))
+                  .call(this.model.get('axes').y)
+                .append("text")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", 6)
+                  .attr("dy", ".71em")
+                  .style("text-anchor", "end")
+                  .text( this.model.get('labels').y );
+
+                console.log(this.yAxis.node().getBBox().width);
+                console.log(( this.model.get('padding') + this.yAxis.node().getBBox().width ));
+                console.log("translate(" + parseInt( this.model.get('padding') + this.yAxis.node().getBBox().width ) + ",0)");
+                  
+                this.yAxis.attr( "transform",
+                    "translate(" + parseInt( this.model.get('padding') + this.yAxis.node().getBBox().width ) + ",0)")
+
+                this.line = this.chart.append("path")
+                  .datum( this.model.get('data') )
+                  .attr("class", "line")
+                  .attr("d", this.model.get('line'));
                
                 return this;
             },
 
-            /*
             sizeChart: function() {
 
                 BaseWidget.prototype.sizeChart.call(this);
 
-                this.labels.attr("y", this.model.get('height') - this.model.get('padding') );
+                this.title.attr("y", this.model.get('height') - this.model.get('padding') );
 
-                return this;
-            },
-            */
-
-            createColumns: function() {
-
-                var self = this;
-
-                this.columnWidth = this.model.get('width') /
-                                   this.model.get('data').length;
-
-                this.columns = this.chart.selectAll("g")
-                    .data(this.model.get('data'))
-                    .enter().append("g")
-                    .attr("transform", function(d, i) {
-                        return "translate(" + ( i * self.columnWidth ) + ",0)";
-                     } );
-
-                this.createNumbers()
-                    .createLabels();
-
-                return this;
-            },
-
-            createNumbers: function() {
-
-                this.numbers = 
-                    this.columns.append("text")
-                        .classed( { 'number': true } )
-                        .attr("x", this.columnWidth / 2 )
-                        .text(function(data) { return data.number; });
-
-                this.model.set("numberHeight", this.numbers.node().getBBox().height);
-                
-                this.numbers.attr("y", this.model.get('padding') + this.model.get('numberHeight') );
-
-                return this;
-            },
-
-            createLabels: function() {
-
-                this.labels = 
-                    this.columns.append("text")
-                        .classed( { 'number-label': true } )
-                        .attr("x", this.columnWidth / 2)
-                        .text(function(data) { return data.label; });
-
-                this.model.set("labelHeight", this.labels.node().getBBox().height);
-                
                 return this;
             }
 

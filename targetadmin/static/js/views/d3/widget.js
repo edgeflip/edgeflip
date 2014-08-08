@@ -12,13 +12,12 @@ define(
             
             initialize: function( options, Model ) {
 
-                _.extend( this, options ); 
-
-                this.model = new Model( {
-                    data: this.data,
-                    title: this.title,
-                    width: ( this.width || this.$el.width() )
-                } ).on( "change:height", this.sizeChart, this );
+                this.model = new Model(
+                    _.defaults(
+                        _.omit( options, '$el' ),
+                        { width: this.$el.width() }
+                    )
+                ).on( "change:height", this.sizeChart, this );
 
                 return this;
             },

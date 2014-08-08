@@ -2,7 +2,7 @@
 {% block title %}{{ client.name }}{% endblock %}
 
 {% block require %}
-    /* load modules */
+    /* load modules, scope them locally */
     require(
         [
           'app',
@@ -23,7 +23,7 @@
                     campaigns: {{ campaigns|safe }},
                     createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}",
                     campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
-                } ).$el;
+                } ).$el.hide();
             helpContent =
                 new Help( {
                     parentEl: contentContainer,
