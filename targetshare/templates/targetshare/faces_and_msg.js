@@ -512,7 +512,7 @@ function friendHTML(oldid, id, fname, lname, div_id) {
 function sendShare() {
     helperTextDisappear();
     $('#friends_div').hide();
-    $('body').css( 'background-color', 'white' );
+    $('body').removeClass('faces');
     $('#progress').show();
     $('#progress').removeClass('loading').addClass('sending');
     
