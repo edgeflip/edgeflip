@@ -50,6 +50,10 @@ body {
     color: #56555a;
 }
 
+body.faces {
+    background-color: gray;
+}
+
 /* No more checkmark */
 .checkmark {
     display: none !important;
