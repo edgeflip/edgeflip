@@ -3,28 +3,20 @@ from __future__ import absolute_import
 from functools import wraps
 
 
-def retryable(on=None, tries=4, logger=None):
-    if not on:
-        return
-
+def retryable(on, tries=4):
     exceptions_to_check = tuple(on)
 
-    def deco_retry(f):
-        @wraps(f)
-        def f_retry(*args, **kwargs):
-            mtries = tries
-            while mtries > 1:
+    def decorator(func):
+        @wraps(func)
+        def func_retry(*args, **kwargs):
+            current_tries = tries
+            while current_tries > 1:
                 try:
-                    return f(*args, **kwargs)
-                except exceptions_to_check as e:
-                    msg = "%s, Retrying..." % (str(e))
-                    if logger:
-                        logger.warning(msg)
-                    else:
-                        print msg
-                    mtries -= 1
-            return f(*args, **kwargs)
+                    return func(*args, **kwargs)
+                except exceptions_to_check:
+                    current_tries -= 1
+            return func(*args, **kwargs)
 
-        return f_retry  # true decorator
+        return func_retry
 
-    return deco_retry
+    return decorator
