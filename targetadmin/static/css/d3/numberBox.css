@@ -1,6 +1,8 @@
-.number-box .d3-chart .number {
+.number-box .d3-chart {
   font-family: Helvetica, sans-serif;
-  fill: #4d68a2;
   text-anchor: middle;
+}
+.number-box .d3-chart .number {
+  fill: #4d68a2;
   font-size: 36px;
 }

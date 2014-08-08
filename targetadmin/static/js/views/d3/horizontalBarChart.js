@@ -64,8 +64,6 @@ define(
 
             createValues: function() {
                 
-                var self = this;
-
                 this.rows.append("text")
                     .classed( { 'text': true } )
                     .attr("x", this.model.get('padding') )
@@ -77,8 +75,6 @@ define(
 
             createLabels: function() {
                 
-                var self = this;
-
                 this.rows.append("text")
                     .classed( { 'text': true } )
                     .attr("x", this.model.get('padding') +

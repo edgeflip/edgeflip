@@ -3,12 +3,15 @@ define(
       'jquery',
       'vendor/underscore',
       'vendor/backbone',
+      'vendor/d3',
       'views/d3/horizontalBarChart',
       'views/d3/numberBox',
+      'views/d3/lineChart',
+      'fakeData/lineChart',
       'templates/insightsWidgets', // function which returns campaign list html
       'css!styles/insightsWidgets' // CSS ( inserted into DOM )
     ],
-    function( $, _, Backbone, HorizontalBarChart, NumberBox, template ) {
+    function( $, _, Backbone, d3, HorizontalBarChart, NumberBox, LineChart, lineChartData, template ) {
 
         return Backbone.View.extend( {
             
@@ -50,8 +53,28 @@ define(
 
                 new NumberBox( {
                     el: '#number-box',
-                    title: "It's Numberwang",
-                    data: 77
+                    data: [ { label: "It's Numberwang", number: 77 } ]
+                } );
+
+                new NumberBox( {
+                    el: '#gender-box',
+                    data: [
+                        { label: 'Females', number: 51 },
+                        { label: 'Males', number: 49 }
+                    ]
+                } );
+
+                new LineChart( { 
+                    el: '#line-chart',
+                    data: lineChartData,
+                    labels: { x: 'Date', y: 'Price' },
+                    metaData: {
+                        x: {
+                            type: 'time',
+                            parse: d3.time.format("%d-%b-%y").parse,
+                        }
+                    },
+                    graphHeight: 500,
                 } );
 
             }

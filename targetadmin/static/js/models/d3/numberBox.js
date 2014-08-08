@@ -14,23 +14,24 @@ define(
                     BaseModel.prototype.defaults,
                     {
                         spacing: 25,
-                        numberHeight: 0
+                        numberHeight: undefined,
+                        labelHeight: undefined
                     }
                 );
             },
 
             initialize: function(options) {
 
-                this.on( "change:titleHeight change:numberHeight", this.calculateHeight, this );
+                this.on( "change:labelHeight change:numberHeight", this.calculateHeight, this );
 
                 return this;
             },
 
             calculateHeight: function() {
 
-                if( this.has('titleHeight') && this.has('numberHeight') ) {
+                if( this.has('labelHeight') && this.has('numberHeight') ) {
                     this.set( {
-                        height: this.get('titleHeight') +
+                        height: this.get('labelHeight') +
                                 this.get('numberHeight') +
                                 this.get('spacing') +
                                 ( this.get('padding') * 2 )

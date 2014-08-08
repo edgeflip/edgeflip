@@ -5,8 +5,8 @@ define(
       'vendor/backbone',
       'vendor/d3',
       'views/d3/widget',
-      'models/d3/numberBox',
-      'css!styles/d3/numberBox' // CSS ( inserted into DOM )
+      'models/d3/lineChart',
+      'css!styles/d3/lineChart' // CSS ( inserted into DOM )
     ],
     function( $, _, Backbone, d3, BaseWidget, Model ) {
 
@@ -18,16 +18,43 @@ define(
                     this, [ options, Model ] );
 
                 return this.render();
+                
+                x.domain(d3.extent(options.data.rows, function(d) { return d[0]; }));
+                y.domain(d3.extent(options.data.rows, function(d) { return d[1]; }));
+
+                svg.append("g")
+                  .attr("class", "x axis")
+                  .attr("transform", "translate(0," + height + ")")
+                  .call(xAxis);
+
+                svg.append("g")
+                  .attr("class", "y axis")
+                  .call(yAxis)
+                .append("text")
+                  .attr("transform", "rotate(-90)")
+                  .attr("y", 6)
+                  .attr("dy", ".71em")
+                  .style("text-anchor", "end")
+                  .text("Price ($)");
+              
+
+                svg.append("path")
+                  .datum(options.data.rows)
+                  .attr("class", "line")
+                  .attr("d", line);
             },
 
             render: function() {
 
                 BaseWidget.prototype.render.call(this)
-                    .createColumns();
+                    .sizeChart();
+
+                this.chart.append("g");
                
                 return this;
             },
 
+            /*
             sizeChart: function() {
 
                 BaseWidget.prototype.sizeChart.call(this);
@@ -36,6 +63,7 @@ define(
 
                 return this;
             },
+            */
 
             createColumns: function() {
 
