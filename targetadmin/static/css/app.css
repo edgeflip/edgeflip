@@ -1,4 +1,52 @@
+body {
+  font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+  color: #5c5c5d;
+}
 ol {
   padding: 0;
   list-style: none;
+}
+input.form-control {
+  display: initial;
+  border: 1px solid #cccccc;
+  border-radius: 0px;
+  color: #56555a;
+  background-color: white;
+}
+input.form-control:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px white inset;
+}
+input.form-control:focus {
+  border-color: #4f6ca0;
+}
+button.btn {
+  background-color: #4f6ca0;
+  color: white;
+  border-radius: 3px;
+  padding: 6px 20px;
+}
+button.btn:hover {
+  color: white;
+  text-decoration: underline;
+}
+.heading {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+  color: #2c4c6c;
+  text-transform: uppercase;
+  font-size: 46px;
+  font-weight: bold;
+}
+.mini-heading {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+  color: #2c4c6c;
+  text-transform: uppercase;
+  font-size: 24px;
+  font-weight: bold;
+  margin: 10px 0px;
+}
+hr.heading-separator {
+  border-bottom: 1px solid #c2c2c2;
+  margin-top: inherit;
+  margin-bottom: 40px;
+  margin-left: -15px;
 }

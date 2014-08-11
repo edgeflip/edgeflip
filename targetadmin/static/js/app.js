@@ -12,4 +12,7 @@ define(
       'css!styles/vendor/bootstrap-theme.min',
       'css!styles/app'
     ],
-    function( extendedBackbone ) { } );
+    function( extendedBackbone ) {
+        Backbone.View.prototype.parentEl = $('#content-container');
+    }
+);
