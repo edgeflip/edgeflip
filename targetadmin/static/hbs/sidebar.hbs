@@ -3,25 +3,11 @@
         <li class="logo">
             <img src="{{logoSrc}}"/>
         </li>
-        <li>
-            <span class="glyphicon glyphicon-home"></span>
-            <span>{{clientName}}</span>
+        {{#each nav}}
+        <li class="button" data-nav="{{this.name}}" {{#if this.content}} data-js="contentBtn"{{/if}}>
+            <span class="{{this.glyphClass}}"></span>
+            <span>{{this.label}}</span>
         </li>
-        <li class="button" data-js="btn" data-nav="campaigns">
-            <span class="glyphicon glyphicon-share"></span>
-            <span>Campaigns</span>
-        </li>
-        <li class="button" data-nav="reports">
-            <span class="glyphicon glyphicon-stats"></span>
-            <span>Reports</span>
-        </li>
-        <li class="button" data-js="btn" data-nav="help">
-            <span class="glyphicon glyphicon-info-sign"></span>
-            <span>Help</span>
-        </li>
-        <li class="button" data-js="btn" data-nav="widgets">
-            <span class="glyphicon glyphicon-certificate"></span>
-            <span>Widgets</span>
-        </li>
+        {{/each}}
     </ol>
 </nav>

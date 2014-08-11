@@ -2,56 +2,43 @@
 {% block title %}{{ client.name }}{% endblock %}
 
 {% block require %}
-    /* load modules, scope them locally */
     require(
         [
           'app',
           'views/sidebar',
           'views/clientCampaigns',
-          'views/insightsWidgets',
-          'views/help'
-        ], function(app, Sidebar, ClientCampaigns, InsightsWidgets, Help) {
+          'templates/miniHeader',
+        ], function(app, Sidebar, ClientCampaigns, InsightsWidgets, miniHeader) {
 
-        /* instantiate help and campaign list
-           note campaign list passed json list
-           of campaigns
-        */ 
-        var contentContainer = $("#content-container"),
-            clientCampaignsContent =        
+        var clientCampaignsContent =        
                 new ClientCampaigns( {
-                    parentEl: contentContainer,
                     campaigns: {{ campaigns|safe }},
-                    createCampaignURL: "{% url 'targetadmin:campaign-wizard' client.pk %}",
                     campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
-                } ).$el.hide();
-            helpContent =
-                new Help( {
-                    parentEl: contentContainer,
-                    templateOptions: {
-                        howItWorksSrc: "{{ STATIC_URL }}img/how-it-works.jpg"
-                    }
-                } ).$el.hide(),
-            insightsContent =
-                new InsightsWidgets( {
-                    parentEl: contentContainer
                 } ).$el;
+        
+        Backbone.View.prototype.parentEl.prepend( miniHeader( { name: "{{client.name}}" } ) );
 
-
-        /* instantiate sidebar, pass it help and campaign list, among other things */
         new Sidebar( {
-            parentEl: contentContainer,
-            model: new Backbone.Model( { state: 'campaigns' } ),
-            content: {
-                campaigns: clientCampaignsContent,
-                widgets: insightsContent,
-                help: helpContent
-            },
-            templateOptions: {
+            model: new Backbone.Model( {
+                state: 'campaigns',
                 logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
-                clientName: "{{ client.name }}",
-            },
+                nav: [
+                    { name: 'campaigns',
+                      label: 'Campaigns',
+                      glyphClass: 'glyphicon glyphicon-share',
+                      content: clientCampaignsContent
+                    },
+                    { name: 'reports',
+                      label: 'Reports',
+                      glyphClass: 'glyphicon glyphicon-stats'
+                    },
+                    { name: 'help',
+                      label: 'Help',
+                      glyphClass: 'glyphicon glyphicon-info-sign'
+                    }
+                ]
+            } ),
             reportingDashboardURL: "{% url 'reporting:main' %}"
         } );
-
     } );
 {% endblock %}

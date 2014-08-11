@@ -1,18 +1,15 @@
-.client-campaigns h1 {
-  color: #2d4c6b;
-}
-.client-campaigns .header {
-  padding-top: 20px;
+.client-campaigns .heading {
+  margin-top: 0px;
 }
 .client-campaigns .create-campaign-btn {
   float: right;
   margin-right: 25px;
-  color: white;
-  background-color: #737373;
 }
-.client-campaigns .create-campaign-btn:hover {
-  color: white;
-  text-decoration: underline;
+.client-campaigns .editBtn {
+  color: black;
+}
+.client-campaigns .editBtn:hover {
+  color: black;
 }
 .client-campaigns .campaign-row {
   border-top: 1px solid #f2f2f2;
@@ -21,7 +18,7 @@
   padding-bottom: 10px;
 }
 .client-campaigns .campaign-row .name {
-  color: #2d4c6b;
+  color: #2c4c6c;
   font-size: 18px;
   font-weight: 700;
 }

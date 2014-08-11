@@ -1,0 +1,25 @@
+<section id="login-container" class="col-sm-10">
+    <h1 class="heading">Login</h1>
+    <hr class="heading-separator">
+    <div class="row">
+        <div class="col-sm-3">
+            <form method="post" class="form-horizontal" role="form" action="{{action}}">
+                {{{token}}}
+                <div class="form-group" data-js="inputContainer">
+                    <label class="sr-only" for="id_username">Username</label>
+                    <input type="text" name="username" class="form-control" id="id_username" placeholder="Username">
+                    <span data-js="errorFeedback" class="hide glyphicon glyphicon-remove form-control-feedback"></span>
+                </div>
+                <div class="form-group" data-js="inputContainer">
+                    <label class="sr-only" for="id_password">Password</label>
+                    <input type="password" name="password" class="form-control" id="id_password" placeholder="Password">
+                    <span data-js="errorFeedback" class="hide glyphicon glyphicon-remove form-control-feedback"></span>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn">Enter</button>
+                </div>
+                <input type="hidden" name="next" value="{{next}}" />
+            </form>
+        </div>
+    </div>
+</section>

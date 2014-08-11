@@ -3,10 +3,8 @@ define(
       'jquery',
       'vendor/underscore',
       'vendor/backbone',
-      'views/campaignWizard',
-      'models/campaign', // model for campaign
-      'templates/clientCampaigns', // function which returns campaign list html
-      'css!styles/clientCampaigns' // CSS ( inserted into DOM )
+      'templates/campaignWizard/intro',
+      'css!styles/campaignWizard'
     ],
     function( $, _, Backbone, CampaignWizard, campaign, template ) {
 

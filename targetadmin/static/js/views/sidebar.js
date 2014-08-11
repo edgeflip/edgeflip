@@ -14,6 +14,7 @@ define(
             /* event handler: function */ 
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
+                'click li[data-nav="help"]': 'helpClicked',
                 'click li[data-js="btn"]': 'contentItemClicked'
             },
 
@@ -30,7 +31,7 @@ define(
             render: function() {
 
                 this.slurpHtml( {
-                    template: template( this.templateOptions ),
+                    template: template( this.model.toJSON() ),
                     insertion: { $el: this.$el.prependTo(this.parentEl) } } );
 
                 this.postRender();
@@ -44,9 +45,11 @@ define(
 
             /* style 'selected' button */
             renderState: function() {
-                this.templateData.btn
-                    .removeClass('selected')
-                    .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
+                if( this.templateData.contentBtn && this.model.get('state') ) {
+                    this.templateData.contentBtn
+                        .removeClass('selected')
+                        .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
+                }
             },
 
             /* toggle content on click */
@@ -58,6 +61,10 @@ define(
 
             reportsClicked: function() {
                 window.location = this.reportingDashboardURL;
+            },
+
+            helpClicked: function() {
+                window.open("mailto:help@edgeflip.com");
             }
         } );
     }
