@@ -7,18 +7,20 @@
           'app',
           'views/sidebar',
           'views/clientCampaigns',
-          'templates/miniHeader',
-        ], function(app, Sidebar, ClientCampaigns, InsightsWidgets, miniHeader) {
+          'views/miniHeader',
+        ], function(app, sidebar, ClientCampaigns, miniHeader) {
 
         var clientCampaignsContent =        
-                new ClientCampaigns( {
-                    campaigns: {{ campaigns|safe }},
-                    campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}"
-                } ).$el;
-        
-        Backbone.View.prototype.parentEl.prepend( miniHeader( { name: "{{client.name}}" } ) );
+            new ClientCampaigns( {
+                campaigns: {{ campaigns|safe }},
+                campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
+                howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
+                facebookPostImage: {{ STATIC_URL }}img/fb-obj-example.png"
+            } ).$el;
 
-        new Sidebar( {
+        miniHeader.setup( { name: "{{client.name}}" } ).render();
+
+        sidebar.setup( {
             model: new Backbone.Model( {
                 state: 'campaigns',
                 logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
@@ -39,6 +41,6 @@
                 ]
             } ),
             reportingDashboardURL: "{% url 'reporting:main' %}"
-        } );
+        } ).render();
     } );
 {% endblock %}

@@ -1,11 +1,12 @@
 @import "colors.less";
+@import "mixins.less";
 
 body {
     font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
     color: @darkGrayText;
 }
 
-ol {
+ol, ul {
     padding: 0;
     list-style: none;
 }
@@ -39,20 +40,11 @@ button.btn {
 }
 
 .heading {
-    font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+    .HeadingFont;
     color: @darkBlue;
     text-transform: uppercase;
     font-size: 46px;
     font-weight: bold;
-}
-
-.mini-heading {
-    font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
-    color: @darkBlue;
-    text-transform: uppercase;
-    font-size: 24px;
-    font-weight: bold;
-    margin: 10px 0px;
 }
 
 hr.heading-separator {

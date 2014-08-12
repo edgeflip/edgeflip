@@ -7,9 +7,9 @@
           'app',
           'views/sidebar',
           'views/login'
-        ], function(app, Sidebar, Login) {
+        ], function(app, sidebar, Login) {
 
-            new Sidebar( {
+            sidebar.setup( {
                 model: new Backbone.Model( {
                     logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
                     nav: [
@@ -19,7 +19,7 @@
                         }
                     ]
                 } )
-            } );
+            } ).render();
 
             new Login( {
                 token: "{% csrf_token %}",

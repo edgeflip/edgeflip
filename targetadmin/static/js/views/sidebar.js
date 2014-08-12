@@ -1,31 +1,32 @@
-/* sidebar depends on */
 define(
     [
       'jquery',
       'vendor/underscore',
       'vendor/backbone',
-      'templates/sidebar', // function which returns sidebar html
-      'css!styles/sidebar' // CSS ( inserted into DOM )
+      'templates/sidebar',
+      'css!styles/sidebar'
     ],
     function( $, _, Backbone, template ) {
 
-        return Backbone.View.extend( {
+        //This module always returns the same instance of sidebar
+        //Useful for accessing in other scopes
+        return new ( Backbone.View.extend( {
            
-            /* event handler: function */ 
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
                 'click li[data-nav="help"]': 'helpClicked',
                 'click li[data-js="btn"]': 'contentItemClicked'
             },
 
-            /* called on instantiation */
-            initialize: function( options ) {
+            initialize: function() { },
+
+            setup: function( options ) {
 
                 _.extend( this, options );
 
                 this.model.on( "change:state", this.renderState, this );
 
-                return this.render();
+                return this;
             },
 
             render: function() {
@@ -66,6 +67,6 @@ define(
             helpClicked: function() {
                 window.open("mailto:help@edgeflip.com");
             }
-        } );
+        } ) )();
     }
 );

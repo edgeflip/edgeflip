@@ -1,8 +1,12 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
 body {
   font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
   color: #5c5c5d;
 }
-ol {
+ol,
+ul {
   padding: 0;
   list-style: none;
 }
@@ -35,14 +39,6 @@ button.btn:hover {
   text-transform: uppercase;
   font-size: 46px;
   font-weight: bold;
-}
-.mini-heading {
-  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
-  color: #2c4c6c;
-  text-transform: uppercase;
-  font-size: 24px;
-  font-weight: bold;
-  margin: 10px 0px;
 }
 hr.heading-separator {
   border-bottom: 1px solid #c2c2c2;
