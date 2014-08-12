@@ -178,6 +178,7 @@ function authFailure() {
 }
 
 function displayFriendDiv(data, jqXHR) {
+    $('body').addClass('faces');
     $('#your-friends-here').html(data);
     $('#your-friends-here').show();
     $('#friends_div').css('display', 'table');
