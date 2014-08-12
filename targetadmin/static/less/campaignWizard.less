@@ -1,0 +1,86 @@
+@import "colors.less";
+@import "mixins.less";
+
+.campaign-wizard-intro {
+
+    margin-bottom: 80px;
+    
+    .heading-separator {
+        margin-bottom: 20px;
+    }
+
+    .subheader {
+        margin-bottom: 40px;
+    }
+
+    .step-box {
+        background-color: #f5f5f5;
+        border: 1px solid #c2c2c2;
+        margin-bottom: 30px;
+
+        li {
+            border: 1px solid #cccccc;
+            padding: 10px;
+            float: left;
+        }
+    }
+
+    .filters-box {
+    
+        li {
+            background-color: @lightBlue;
+            width: 40%;
+            text-align: center;
+            display: table;
+            margin: 5%;
+            height: 60px;
+
+            span {
+                display: table-cell;
+                vertical-align: middle;
+            }
+        }
+    }
+
+    .friends-box {
+
+        li {
+            width: 80%;
+            margin: 5% 10%;
+            background-color: white;
+            height: 62px;
+        }
+
+        .friend-image {
+            
+            float: left;
+            
+            img {
+                height: 40px;
+                width: 40px;
+            }
+        }
+
+        .friend-text {
+            float: left;
+            padding-left: 5px;
+        }
+
+        .xout {
+            float: right;
+            position: relative;
+            top: -10px;    
+        }
+    }
+
+    .wizard-step-description {
+
+        .title {
+            .HeadingFont;
+            color: @darkBlue;
+            text-transform: uppercase;
+            font-size: 24px;
+            font-weight: bold;
+        }
+    }
+}

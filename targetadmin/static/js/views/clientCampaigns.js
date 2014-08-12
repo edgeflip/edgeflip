@@ -4,11 +4,12 @@ define(
       'vendor/underscore',
       'vendor/backbone',
       'views/campaignWizard',
+      'views/miniHeader',
       'models/campaign', // model for campaign
       'templates/clientCampaigns', // function which returns campaign list html
       'css!styles/clientCampaigns' // CSS ( inserted into DOM )
     ],
-    function( $, _, Backbone, CampaignWizard, campaign, template ) {
+    function( $, _, Backbone, CampaignWizard, miniHeader, campaign, template ) {
 
         var campaignCollection = Backbone.Collection.extend( { model: campaign } );
 
@@ -56,7 +57,12 @@ define(
             showCampaignWizard: function() {
                 var self = this;
                 this.$el.fadeOut( 400, function() {
-                    self.campaignWizard = new CampaignWizard();
+                    miniHeader.$el.hide();
+                    self.campaignWizard =
+                        new CampaignWizard( {
+                            howItWorksURL: this.howItWorksURL,
+                            facebookPostImage: this.facebookPostImage
+                        } );
                 } );
             },
 
