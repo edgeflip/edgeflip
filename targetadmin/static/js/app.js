@@ -4,7 +4,6 @@
 */
 define(
     [ 
-      'extendBackbone',
       'polyfill',
       'vendor/bootstrap.min',
       'font!typekit,id:ixj6alt',
@@ -12,7 +11,5 @@ define(
       'css!styles/vendor/bootstrap-theme.min',
       'css!styles/app'
     ],
-    function( extendedBackbone ) {
-        Backbone.View.prototype.parentEl = $('#content-container');
-    }
+    function() { }
 );

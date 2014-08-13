@@ -2,7 +2,7 @@ define(
     [
       'jquery',
       'vendor/underscore',
-      'vendor/backbone',
+      'extendBackbone',
       'views/campaignWizard',
       'views/miniHeader',
       'models/campaign', // model for campaign
@@ -60,8 +60,8 @@ define(
                     miniHeader.$el.hide();
                     self.campaignWizard =
                         new CampaignWizard( {
-                            howItWorksURL: this.howItWorksURL,
-                            facebookPostImage: this.facebookPostImage
+                            howItWorksURL: self.howItWorksURL,
+                            facebookPostImage: self.facebookPostImage
                         } );
                 } );
             },
