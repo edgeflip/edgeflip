@@ -25,10 +25,6 @@ require.config( {
         'vendor/handlebars': {
             exports: 'Handlebars'
         },
-
-        'vendor/handlebars': {
-            exports: 'Handlebars'
-        },
         
         'vendor/bootstrap.min': {
             deps: [ 'jquery' ]
@@ -40,6 +36,7 @@ require.config( {
 
         'extendBackbone': {
             deps: [ 'vendor/backbone', 'vendor/underscore', 'jquery' ],
+            init: function( Backbone, _, $ ) { return Backbone; }
         },
 
         'models/filterModels': {

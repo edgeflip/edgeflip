@@ -1,0 +1,35 @@
+#theModal .modal-dialog {
+  margin-top: 150px;
+  margin-bottom: 150px;
+}
+#theModal .modal-content {
+  border: 1px solid #c2c2c2;
+  border-radius: 0px;
+}
+#theModal .modal-header {
+  border-bottom: none;
+}
+#theModal .close {
+  color: inherit;
+  opacity: 1;
+  filter: alpha(opacity=100);
+  font-weight: normal;
+  font-size: inherit;
+}
+#theModal .modal-body {
+  padding: 5px 40px 20px 40px;
+}
+#theModal .modal-footer {
+  border-top: none;
+  margin-top: 0px;
+  padding-top: 0px;
+  padding-left: 40px;
+  padding-right: 40px;
+}
+.modal-backdrop.in {
+  opacity: .85;
+  filter: alpha(opacity=85);
+}
+.modal-backdrop {
+  background-color: #546f8a;
+}

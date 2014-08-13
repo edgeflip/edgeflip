@@ -15,7 +15,7 @@
                 campaigns: {{ campaigns|safe }},
                 campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
                 howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
-                facebookPostImage: {{ STATIC_URL }}img/fb-obj-example.png"
+                facebookPostImage: "{{ STATIC_URL }}img/fb-obj-example.png"
             } ).$el;
 
         miniHeader.setup( { name: "{{client.name}}" } ).render();

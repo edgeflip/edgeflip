@@ -54,3 +54,5 @@ Backbone.View.prototype.isMouseOnEl = function( event, el ) {
 
     return true;
 }
+        
+Backbone.View.prototype.parentEl = $('#content-container');

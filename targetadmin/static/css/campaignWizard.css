@@ -54,6 +54,11 @@
   position: relative;
   top: -10px;
 }
+.campaign-wizard-intro .facebook-post-box img {
+  height: 284px;
+  display: block;
+  margin: auto;
+}
 .campaign-wizard-intro .wizard-step-description .title {
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
   color: #2c4c6c;

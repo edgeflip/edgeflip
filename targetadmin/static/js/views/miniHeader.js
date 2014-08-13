@@ -2,7 +2,7 @@ define(
     [
       'jquery',
       'vendor/underscore',
-      'vendor/backbone',
+      'extendBackbone',
       'templates/miniHeader',
       'css!styles/miniHeader'
     ],
