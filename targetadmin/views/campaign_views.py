@@ -256,13 +256,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 # but we'll still have a root filter in `choice_sets` to match:
                 ranking_keys = [None]
 
-            fb_obj = client.fbobjects.create(
-                name='{} {}'.format(client.name, campaign_name),
-            )
-            fb_attr = fb_obj_form.save()
-            fb_attr.fb_object = fb_obj
-            fb_attr.save()
-
+            
             content = client.clientcontent.create(
                 name='{} {}'.format(client.name, campaign_name),
                 url=campaign_form.cleaned_data.get('content_url'),
@@ -316,6 +310,8 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 )
 
             campaign_chain = []
+            fb_obj = None
+
             if campaign:
                 campaign_properties = campaign.campaignproperties.get()
                 campaign_chain.append(campaign)
@@ -323,6 +319,16 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 while fallback_campaign:
                     campaign_chain.append(fallback_campaign)
                     fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+                fb_obj = campaign.fb_object()
+                fb_obj_form.save()
+            else:
+                fb_obj = client.fbobjects.create(
+                    name='{} {}'.format(client.name, campaign_name),
+                )
+                fb_attr = fb_obj_form.save()
+                fb_attr.fb_object = fb_obj
+                fb_attr.save()
+            
 
             last_camp = None
             campaigns = []
@@ -375,9 +381,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
                         fallback_is_cascading=bool(last_camp))
-
-                    camp.campaignfbobjects.update(fb_object=fb_obj, rand_cdf=1.0)
-                    
 
                 campaigns.append(camp)
                 last_camp = camp
@@ -512,7 +515,7 @@ def clean_up_campaign(campaign):
             # Old ChoiceSet's Filter isn't in use anymore, so let's clean that up:
             filter0.delete()
 
-    # clean_up_ranking_keys:
+    # clean up ranking_keys:
     try:
         campaign_ranking_key0 = campaign.campaignrankingkeys.get()
     except relational.CampaignRankingKey.DoesNotExist:
