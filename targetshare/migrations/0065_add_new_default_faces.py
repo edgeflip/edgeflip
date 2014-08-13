@@ -1,13 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import datetime
 
-from south.db import db
-from south.v2 import DataMigration
-from django.db import models
 from django.conf import settings
+from south.v2 import DataMigration
 
-#copy pasta'd from 0061_populate_page_styles.py, perhaps this should go into settings ?
+
 css_url_context = {
     'base_url': '//assets-edgeflip.s3.amazonaws.com/',
 }
@@ -35,8 +32,9 @@ def cssurl(filename):
 
 OLD_DEFAULT_CSS_URL = cssurl('edgeflip-base-0')
 DEFAULT_CSS_URL = cssurl('edgeflip-base-1')
-        
+
 FRAME_FACES = 'frame_faces'
+
 
 class Migration(DataMigration):
 
@@ -46,14 +44,17 @@ class Migration(DataMigration):
         print("[{}:{}]".format(app, name), s.format(*args, **kws))
 
     def forwards(self, orm):
-        "Write your forwards methods here."
-        # Note: Don't use "from appname.models import ModelName". 
-        # Use orm.ModelName to refer to models in this application,
-        # and orm['appname.ModelName'] for models in other applications.
         page = orm.Page.objects.get(code=FRAME_FACES)
 
-        old_default = page.pagestyles.get(starred=True, client=None, url=OLD_DEFAULT_CSS_URL)
-        old_default.starred=False
+        try:
+            old_default = page.pagestyles.get(starred=True, client=None, url=OLD_DEFAULT_CSS_URL)
+        except orm.PageStyle.DoesNotExist:
+            if settings.ENV == 'development':
+                self.puts("Skipping page style data migration against development database")
+                return
+            raise
+
+        old_default.starred = False
         old_default.save()
         self.puts("Unstarred frame faces default page style for `{}`", old_default.url)
 
@@ -69,12 +70,12 @@ class Migration(DataMigration):
     def backwards(self, orm):
         "Write your backwards methods here."
         page = orm.Page.objects.get(code=FRAME_FACES)
-        
+
         new_default = page.pagestyles.get(starred=True, client=None, url=DEFAULT_CSS_URL)
         new_default.delete()
-        
+
         old_default = page.pagestyles.get(starred=False, client=None, url=OLD_DEFAULT_CSS_URL)
-        old_default.starred=True
+        old_default.starred = True
         old_default.save()
 
     models = {
