@@ -92,7 +92,6 @@ urlpatterns += patterns('targetadmin.views',
         name='how-it-works'),
 )
 
-
 urlpatterns += patterns('targetadmin.views',
     # Snippet URLs
     url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
@@ -100,6 +99,12 @@ urlpatterns += patterns('targetadmin.views',
     url(r'^client/(?P<client_pk>\d+)/snippets/data.json$',
         'snippets.snippet_update',
         name='snippet-update')
+)
+
+urlpatterns += patterns('targetadmin.views',
+    # JSON models
+    url(r'^available-filters/(?P<client_pk>\d+)/$', 'campaign_views.available_filters',
+        name='available-filters'),
 )
 
 urlpatterns += patterns('',

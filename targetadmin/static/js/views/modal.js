@@ -12,6 +12,7 @@ define(
         return new ( Backbone.View.extend( {
            
             events: {
+                'click button[data-js="confirmBtn"]': 'triggerConfirmed'
             },
 
             initialize: function() {
@@ -32,13 +33,35 @@ define(
 
             update: function( options ) {
 
-                if( options && options.body ) {
-                    this.templateData.modalBody.html( options.body );
+                var self = this;
+
+                if( options ) {
+
+                    if( options.longContent ) {
+                        this.templateData.modalContainer
+                            .addClass('long-content')
+                            .on('hidden.bs.modal', function() {
+                                self.templateData.modalContainer
+                                    .off('hidden.bs.modal')
+                                    .removeClass('long-content');
+                            } );
+                    }
+
+                    if( options.body ) {
+                        this.templateData.modalBody.html( options.body );
+                    }
+
+                    if( options.confirmText ) {
+                        this.templateData.confirmBtn.text( options.confirmText );
+                    }
+                    
                 }
 
-                if( options && options.confirmText ) {
-                    this.templateData.confirmBtn.text( options.confirmText );
-                }
+                return this;
+            },
+
+            triggerConfirmed: function() {
+                this.trigger('confirmed');
             }
 
         } ) )();

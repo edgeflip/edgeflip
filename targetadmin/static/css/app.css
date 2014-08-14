@@ -23,15 +23,18 @@ input.form-control:-webkit-autofill {
 input.form-control:focus {
   border-color: #4f6ca0;
 }
-button.btn {
+button.btn:not(.btn-link) {
   background-color: #4f6ca0;
   color: white;
   border-radius: 3px;
   padding: 6px 20px;
 }
-button.btn:hover {
+button.btn:not(.btn-link):hover {
   color: white;
   text-decoration: underline;
+}
+.btn-link {
+  padding: 0px 6px;
 }
 .heading {
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;

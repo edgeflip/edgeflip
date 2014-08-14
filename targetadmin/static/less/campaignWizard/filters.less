@@ -1,0 +1,81 @@
+@import "../colors.less";
+@import "../mixins.less";
+
+.campaign-wizard-filters {
+
+    .enabled-filters {
+        margin-bottom: 40px;
+    }
+
+    .filter-layer-header {
+        margin-bottom: 5px;
+    }
+
+    .filter-layer-label {
+        font-size: 16px;
+        margin-right: 10px;
+    }
+
+    .filter-container {
+        min-height: 60px;
+        border: 1px solid @borderGray;
+        background-color: @lightGray;
+    }
+
+    .available-filters-header {
+
+        margin-bottom: 5px;
+
+        .title {
+            margin-right: 20px;
+        }
+    }
+
+    .available-filters-header button,
+    .enabled-filters button {
+        padding: 2px 10px;
+        font-size: 12px;
+        vertical-align: text-bottom;
+    }
+
+    .available-filters {
+        margin-bottom: 10px;
+    }
+
+    .empty-fallback-input {
+        margin: 0px 20px;
+    }
+
+    .glyphicon-question-sign {
+
+        &:hover {
+            cursor: pointer;
+        }
+
+        &:before {
+            vertical-align: middle;
+        }
+    }
+
+    .filter {
+        float: left;
+        display: table;
+        width: 16%;
+        margin: 2%;
+        padding: 2px 10px;
+        background-color: @lightBlue;
+        border: 1px solid @borderGray;
+        height: 60px;
+        overflow: hidden;
+    }
+
+    .filter-cell {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: center;
+
+        div {
+            max-height: 60px;
+        }
+    }
+}

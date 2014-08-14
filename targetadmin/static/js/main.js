@@ -39,7 +39,7 @@ require.config( {
             init: function( Backbone, _, $ ) { return Backbone; }
         },
 
-        'models/filterModels': {
+        'models/filters': {
             deps: [ 'jquery', 'vendor/backbone' ],
             exports: 'filterCollection'
         }

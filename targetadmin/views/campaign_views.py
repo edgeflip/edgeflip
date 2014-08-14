@@ -6,6 +6,7 @@ import re
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.serializers.json import DjangoJSONEncoder
 
@@ -599,3 +600,20 @@ def clean_up_campaign(campaign):
         campaign_ranking_key0.delete()
         if not ranking_key0.campaignrankingkeys.exists():
             ranking_key0.delete()
+
+
+@utils.auth_client_required
+def available_filters( request, client_pk ):
+    if not request.is_ajax():
+        raise Http404
+
+    client = get_object_or_404(relational.Client, pk=client_pk)
+
+    filter_features = relational.FilterFeature.objects.filter(
+            filter__client=client,
+            feature__isnull=False,
+            operator__isnull=False,
+            value__isnull=False,
+        ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
+
+    return HttpResponse(json.dumps(list(filter_features)))

@@ -1,3 +1,7 @@
+#theModal.long-content .modal-dialog {
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
 #theModal .modal-dialog {
   margin-top: 150px;
   margin-bottom: 150px;

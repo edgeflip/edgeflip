@@ -1,0 +1,34 @@
+<section class="row campaign-wizard-filters">
+    <div class="col-sm-12">
+        <h1 data-js="heading" class="heading">
+            <span>Select A Target Audience For </span>
+            <span data-js="campaignName">{{name}}</span>
+        </h1>
+        <hr class="heading-separator">
+        <div class="row subheader">
+            <div class="col-sm-8">
+                <span>Define a Target Audience for your campaign by dragging one or more filters from the Available Filters container to the Enabled Filters container. You can also add up to four Fallback Audiences with fewer filters enabled by clicking "Add Fallback Audience."</span>
+                <button data-js="moreInfoBtn" type="button" class="btn btn-link">Learn more about audiences</button>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-sm-9">
+                <div class="title">Enabled Filters</div>
+                <div data-js="enabledFiltersContainer" class="enabled-filters"></div>
+                <div class="available-filters-header">
+                    <span class="title">Available Filters</span>
+                    <button type="button" class="btn">Add Filter</button>
+                </div>
+                <div data-js="availableFilters" class="available-filters filter-container clearfix"></div>
+                <div>
+                    <span>Include empty fallback</span>
+                    <input checked="checked" class="empty-fallback-input" data-js="formInput" name="include_empty_fallback" type="checkbox">
+                    <span class="glyphicon glyphicon-question-sign" data-js="emptyFallbackHelpBtn"></span>
+                </div>
+                <div>
+                    <button type="button" class="btn pull-right" data-js="nextStep">Next Step</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
