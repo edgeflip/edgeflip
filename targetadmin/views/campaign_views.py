@@ -293,18 +293,21 @@ def campaign_wizard(request, client_pk):
                 choice_sets.append(empty_cs)
                 ranking_keys.append(None)
 
-            # Page Style
-            if client.pagestyles.exists():
-                page_styles = client.pagestyles.filter(
+            # Page Styles
+            page_style_sets = []
+            for page in relational.Page.objects.all():
+                client_styles = page.pagestyles.filter(
                     starred=True,
-                    page__code=relational.Page.FRAME_FACES,
+                    client=client,
                 )
-            else:
-                page_styles = relational.PageStyle.objects.filter(
-                    client=None,
-                    starred=True,
-                    page__code=relational.Page.FRAME_FACES,
-                )
+                if client_styles:
+                    page_style_sets.append(client_styles)
+                else:
+                    default_styles = page.pagestyles.filter(
+                        starred=True,
+                        client=None,
+                    )
+                    page_style_sets.append(default_styles)
 
             last_camp = None
             campaigns = []
@@ -326,12 +329,14 @@ def campaign_wizard(request, client_pk):
                     fallback_is_cascading=bool(last_camp),
                 )
                 camp.campaignfbobjects.create(fb_object=fb_obj, rand_cdf=1.0)
-                page_style_set = relational.PageStyleSet.objects.create()
-                page_style_set.page_styles = page_styles
-                camp.campaignpagestylesets.create(
-                    page_style_set=page_style_set,
-                    rand_cdf=1.0,
-                )
+                for page_styles in page_style_sets:
+                    page_style_set = relational.PageStyleSet.objects.create()
+                    page_style_set.page_styles = page_styles
+                    camp.campaignpagestylesets.create(
+                        page_style_set=page_style_set,
+                        rand_cdf=1.0,
+                    )
+
                 campaigns.append(camp)
                 last_camp = camp
 
