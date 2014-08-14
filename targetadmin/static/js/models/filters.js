@@ -90,6 +90,15 @@ var filterCollection;
     });
 
     filterCollection = Backbone.Collection.extend( {
+
+        url: function() {
+            return '/admin/available-filters/' + this.clientId + '/';
+        },
+
+        initialize: function( models, options ) {
+            return _.extend( this, options );
+        },
+
         model: function( attrs, options ) {
             switch (attrs.feature_type__code) {
                 case 'gender':

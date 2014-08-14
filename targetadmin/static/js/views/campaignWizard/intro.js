@@ -6,14 +6,12 @@ define(
       'views/modal',
       'templates/campaignWizard/intro',
       'templates/campaignWizard/nameInput',
-      'css!styles/campaignWizard'
+      'css!styles/campaignWizard/intro'
     ],
-    function( $, _, Backbone, modal, introTemplate, nameTemplate ) {
+    function( $, _, Backbone, modal, template, nameTemplate ) {
 
         return Backbone.View.extend( {
             
-            model: new Backbone.Model( { } ),
-
             events: {
                 "click button[data-js='getStartedBtn']": "promptForCampaignName"
             },
@@ -27,8 +25,10 @@ define(
 
             render: function() {
 
+                if( this.hide ) { this.$el.hide(); }
+
                 this.slurpHtml( {
-                    template: introTemplate( this ),
+                    template: template( this ),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
                 return this;
@@ -37,9 +37,15 @@ define(
             promptForCampaignName: function() {
                 modal.update( {
                     body: nameTemplate,
-                    confirmText: 'Continue'
-                } );
-                modal.templateData.modalContainer.modal();
+                    confirmText: 'Continue',
+                  } ).on('confirmed', this.triggerNextStep, this )
+                     .templateData.modalContainer.modal();
+            },
+
+            triggerNextStep: function() {
+                this.model.set('name', modal.$el.find('input[name="name"]').val() );
+                modal.templateData.modalContainer.modal('hide');
+                this.trigger('nextStep');
             }
 
         } );

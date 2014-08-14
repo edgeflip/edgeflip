@@ -4,6 +4,7 @@ import re
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 
@@ -501,3 +502,19 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         'fb_obj_attributes': fb_obj_attributes,
         'filters': json.dumps(filters),
     }
+
+@utils.auth_client_required
+def available_filters( request, client_pk ):
+    if not request.is_ajax():
+        raise Http404
+
+    client = get_object_or_404(relational.Client, pk=client_pk)
+
+    filter_features = relational.FilterFeature.objects.filter(
+            filter__client=client,
+            feature__isnull=False,
+            operator__isnull=False,
+            value__isnull=False,
+        ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
+
+    return HttpResponse(json.dumps(list(filter_features)))

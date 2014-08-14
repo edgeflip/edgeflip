@@ -3,7 +3,7 @@ define(
       'jquery',
       'vendor/underscore',
       'extendBackbone',
-      'views/campaignWizard',
+      'views/campaignWizard/skeleton',
       'views/miniHeader',
       'models/campaign', // model for campaign
       'templates/clientCampaigns', // function which returns campaign list html
@@ -61,7 +61,8 @@ define(
                     self.campaignWizard =
                         new CampaignWizard( {
                             howItWorksURL: self.howItWorksURL,
-                            facebookPostImage: self.facebookPostImage
+                            facebookPostImage: self.facebookPostImage,
+                            clientId: self.clientId
                         } );
                 } );
             },

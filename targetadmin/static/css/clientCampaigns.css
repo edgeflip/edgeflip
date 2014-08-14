@@ -5,10 +5,10 @@
   float: right;
   margin-right: 25px;
 }
-.client-campaigns .editBtn {
+.client-campaigns button.editBtn.btn {
   color: black;
 }
-.client-campaigns .editBtn:hover {
+.client-campaigns button.editBtn.btn:hover {
   color: black;
 }
 .client-campaigns .campaign-row {

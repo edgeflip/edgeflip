@@ -27,7 +27,7 @@ input.form-control {
     }
 }
 
-button.btn {
+button.btn:not(.btn-link) {
     background-color: @blue;
     color: white;
     border-radius: 3px;
@@ -37,6 +37,10 @@ button.btn {
         color: white;
         text-decoration: underline;
     }
+}
+
+.btn-link {
+    padding: 0px 6px;
 }
 
 .heading {
