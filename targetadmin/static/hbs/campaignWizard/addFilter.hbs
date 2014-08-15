@@ -1,0 +1,54 @@
+<section id="add-filter">
+    <div class="dropdown">
+        <button class="btn btn-default dropdown-toggle" type="button" id="filter-type" data-toggle="dropdown">
+            <span class="pull-left">Select Filter Type</span>
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu" aria-labelledby="filter-type">
+            {{#each filterTypes}}
+                <li role="presentation"><a data-js="filterType" data-type="{{this.name}}" role="menuitem" tabindex="-1" href="#">{{this.label}}</a></li>
+            {{/each}}
+        </ul>
+    </div>
+    <div data-js="filterTypeUI" data-type="age" class="hide">
+        <div class="age-range-display" data-js="ageRangeDisplay"></div>
+        <div class="age-slider" data-js="ageSlider"></div>
+    </div>
+    <div data-js="filterTypeUI" data-type="gender" class="dropdown hide">
+        <button class="btn btn-default dropdown-toggle" type="button" id="interest-type" data-toggle="dropdown">
+            <span>Select Gender</span>
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu" aria-labelledby="interest-type">
+            <li role="presentation"><a data-js="genderType" data-type="female" role="menuitem" tabindex="-1" href="#">Female</a></li>
+            <li role="presentation"><a data-js="genderType" data-type="male" role="menuitem" tabindex="-1" href="#">Male</a></li>
+        </ul>
+    </div>
+    <div data-js="filterTypeUI" data-type="interest" class="dropdown hide">
+        <button class="btn btn-default dropdown-toggle" type="button" id="interest-type" data-toggle="dropdown">
+            <span>Select Interest Type</span>
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" role="menu" aria-labelledby="interest-type">
+            <li role="presentation"><a data-js="interestType" data-type="cycling" role="menuitem" tabindex="-1" href="#">Cycling</a></li>
+            <li role="presentation"><a data-js="interestType" data-type="education" role="menuitem" tabindex="-1" href="#">Education</a></li>
+            <li role="presentation"><a data-js="interestType" data-type="healthcare" role="menuitem" tabindex="-1" href="#">Healthcare</a></li>
+        </ul>
+    </div>
+    <div data-js="filterTypeUI" data-type="location" class="dropdown hide">
+        <div class="dropdown hide">
+            <button class="btn btn-default dropdown-toggle" type="button" id="location-type" data-toggle="dropdown">
+                <span>Location Type (one per filter)</span>
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu" role="menu" aria-labelledby="interest-type">
+                <li role="presentation"><a data-js="interestType" data-type="cycling" role="menuitem" tabindex="-1" href="#">Cycling</a></li>
+                <li role="presentation"><a data-js="interestType" data-type="education" role="menuitem" tabindex="-1" href="#">Education</a></li>
+                <li role="presentation"><a data-js="interestType" data-type="healthcare" role="menuitem" tabindex="-1" href="#">Healthcare</a></li>
+            </ul>
+        </div>
+        <input data-js="locationText" class="form-control" type="text">
+        <button class="btn add-location-btn" data-js="addLocationBtn">Add Location</button>
+        <div data-js="locationContainer"></div>
+    </div>
+</section>

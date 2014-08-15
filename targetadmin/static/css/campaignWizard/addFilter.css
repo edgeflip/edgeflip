@@ -1,0 +1,39 @@
+#add-filter {
+  margin-top: 20px;
+}
+#add-filter button.dropdown-toggle {
+  color: inherit;
+  background-color: transparent;
+  background-image: none;
+  width: 100%;
+}
+#add-filter .caret {
+  margin-top: 10px;
+  float: right;
+}
+#add-filter .dropdown-menu {
+  width: 100%;
+}
+#add-filter .age-range-display {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+#add-filter .age-slider {
+  margin-top: 10px;
+  border-radius: 0px;
+  border-color: #c2c2c2;
+}
+#add-filter .ui-slider-horizontal .ui-slider-range {
+  background: none;
+  background-color: #f2f2f2;
+}
+#add-filter .ui-state-default,
+#add-filter .ui-widget-content .ui-state-default,
+#add-filter .ui-widget-header .ui-state-default {
+  background: none;
+  background-color: #2c4c6c;
+  border: none;
+  border-radius: 1px;
+  width: 10px;
+  height: 20px;
+}

@@ -43,6 +43,7 @@ define(
             },
 
             triggerNextStep: function() {
+                modal.off('confirmed', this.triggerNextStep );
                 this.model.set('name', modal.$el.find('input[name="name"]').val() );
                 modal.templateData.modalContainer.modal('hide');
                 this.trigger('nextStep');
