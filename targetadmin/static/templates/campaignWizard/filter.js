@@ -30,11 +30,11 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.value) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.value); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "\" class=\"filter draggable\"><div class=\"filter-cell\"><div>";
+    + "\" class=\"filter draggable\"><div class=\"filter-table-wrap\"><div class=\"filter-table-cell-wrap\"><div>";
   if (helper = helpers.readable) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.readable); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</div></div></div>";
+    + "</div></div></div></div>";
   return buffer;
   })
 

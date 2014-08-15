@@ -13,6 +13,9 @@
 #theModal .modal-header {
   border-bottom: none;
 }
+#theModal .modal-header.show-border {
+  border-bottom: 1px solid #c2c2c2;
+}
 #theModal .close {
   color: inherit;
   opacity: 1;
@@ -29,6 +32,11 @@
   padding-top: 0px;
   padding-left: 40px;
   padding-right: 40px;
+}
+#theModal .close-btn {
+  background-image: none;
+  background-color: #c2c2c2;
+  text-shadow: none;
 }
 .modal-backdrop.in {
   opacity: .85;

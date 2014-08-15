@@ -13,6 +13,10 @@ require.config( {
 
     shim: {
 
+        'vendor/jquery-ui': {
+            deps: [ 'jquery' ]
+        },
+
         'vendor/backbone': {
             deps: [ 'vendor/underscore', 'jquery' ],
             exports: 'Backbone'

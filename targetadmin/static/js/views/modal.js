@@ -34,6 +34,9 @@ define(
             update: function( options ) {
 
                 var self = this;
+                        
+                this.templateData.closeBtn.addClass('hide');
+                this.templateData.modalHeader.removeClass('show-border');
 
                 if( options ) {
 
@@ -46,6 +49,11 @@ define(
                                     .removeClass('long-content');
                             } );
                     }
+                    
+                    if( options.title ) {
+                        this.templateData.modalTitle.text( options.title );
+                        this.templateData.modalHeader.addClass('show-border');
+                    }
 
                     if( options.body ) {
                         this.templateData.modalBody.html( options.body );
@@ -53,6 +61,10 @@ define(
 
                     if( options.confirmText ) {
                         this.templateData.confirmBtn.text( options.confirmText );
+                    }
+                    
+                    if( options.showCloseBtn ) {
+                        this.templateData.closeBtn.removeClass('hide');
                     }
                     
                 }
