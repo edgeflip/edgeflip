@@ -213,7 +213,7 @@ class Command(BaseCommand):
 
         head = ()
         while True:
-            batch = itertools.islice(token_stream, debug_size)
+            batch = itertools.islice(token_stream, debug_size - len(head))
             full_batch = itertools.chain(head, batch)
             for token in debug_tokens(full_batch):
                 yield token
