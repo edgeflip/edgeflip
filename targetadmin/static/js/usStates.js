@@ -1,4 +1,4 @@
-var usStates = [ 
+define( { values: [ 
     'Alabama',
     'Alaska',
     'Arizona',
@@ -50,4 +50,4 @@ var usStates = [
     'West Virginia',
     'Wisconsin',
     'Wyoming'
-];
+] } );
