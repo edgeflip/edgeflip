@@ -34,6 +34,10 @@ require.config( {
             deps: [ 'jquery' ]
         },
         
+        'vendor/bootstrap3-typeahead': {
+            deps: [ 'jquery' ]
+        },
+        
         'vendor/d3': {
             exports: [ 'd3' ]
         },

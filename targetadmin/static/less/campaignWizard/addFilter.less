@@ -1,4 +1,5 @@
 @import "../colors.less";
+@import "../mixins.less";
 
 #add-filter {
 
@@ -18,6 +19,43 @@
 
     .dropdown-menu {
         width: 100%;
+    }
+
+    .dropdown-label {
+        float: left;
+    }
+
+    .location-text {
+        padding: 6px 20px;
+        .placeholderColor(@darkGrayText);
+    }
+    
+    .add-location-btn {
+        padding: 0px 40px;
+    }
+
+    .location-text,
+    .add-location-btn,
+    .sub-dropdown {
+        margin-top: 10px;
+    }
+
+    .typeahead.dropdown-menu {
+        position: inherit;
+    }
+
+    .location-container {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: @lightGray;
+        border: 1px solid @borderGray;
+    }
+
+    .location {
+        border: 1px solid @borderGray;
+        background-color: @lightBlue;
+        padding: 5px;
+        margin: 5px;
     }
 
     .age-range-display{

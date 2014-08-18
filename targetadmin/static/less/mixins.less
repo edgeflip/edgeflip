@@ -1,3 +1,9 @@
 .HeadingFont {
     font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
 }
+
+.placeholderColor(@color) {
+    &::-webkit-input-placeholder {color:@color}
+    &::-moz-placeholder {color:@color}
+    &:-ms-input-placeholder {color:@color}
+}

@@ -33,6 +33,7 @@ define(
                 ).on( 'add', this.addAvailableFilter, this );
 
                 this.model.on('change:name', this.updateName, this );
+                addFilter.on('ageFilterCreated', this.updateAgeFilterUI, this );
 
                 return this.render();
             },
@@ -99,16 +100,34 @@ define(
 
             showAddFilter: function() {
 
-                modal.on( 'confirmed', addFilter.addFilter, addFilter );
-
                 modal.update( {
                     body: addFilter.$el,
                     title: 'Filter Type',
                     confirmText: 'Add Filter',
                     showCloseBtn: true
                 } );
-                
+
                 modal.templateData.modalContainer.modal();
+
+                addFilter.shown();
+            },
+            
+            updateAgeFilterUI: function() {
+
+                var min = this.availableFilters.at( this.availableFilters.length - 2 ).get('min'),
+                    max = this.availableFilters.at( this.availableFilters.length - 1 ).get('max'),
+                    availableFiltersCount = this.templateData.availableFilters.children().length,
+                    combinedAgeFilter = $( filterTemplate( { readable: 'Between ' + min + ' and ' + max } ) );
+
+                combinedAgeFilter.attr('data-link',min + '-' + max);
+
+                _.each( [ availableFiltersCount - 2, availableFiltersCount - 1 ], function( i ) {
+                    $( this.templateData.availableFilters.children()[ i ] )
+                      .hide()
+                      .attr('data-link',min + '-' + max);
+                }, this );
+
+                this.templateData.availableFilters.append( combinedAgeFilter );
             },
 
             triggerNextStep: function() {
