@@ -90,63 +90,16 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign_filters = []
-
-    if campaign_pk and request.method == 'GET':
-        campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
-        fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
-        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-        campaign_properties = campaign.campaignproperties.get()
-        if campaign_properties.status != 'draft':
-            return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
-        campaign_filters = [ list(
-            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
-                'feature', 'value', 'operator', 'feature_type__code'
-            )
-        ) ]
-
-        fallback_campaign = campaign_properties.fallback_campaign
-        while fallback_campaign:
-            try:
-                choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
-            except relational.ChoiceSetFilter.DoesNotExist:
-                fallback_features = ()
-            else:
-                fallback_features = choice_set_filter.filter.filterfeatures.values(
-                        'feature', 'value', 'operator', 'feature_type__code') 
-            if fallback_features:
-                campaign_filters.append(list(fallback_features))
-            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
-        empty_fallback = bool(campaign_properties.fallback_campaign) and not fallback_features
-
-        #we want to hide the facebook url in draft mode if the client isn't hosting
-        initial_faces_url = campaign_properties.client_faces_url
-        if 'https://apps.facebook.com' in initial_faces_url:
-            initial_faces_url = ''
-
-        # FIXME: Necessary only as long as we append " 1" to root campaign names
-        original_name = re.sub(r' 1$', '', campaign.name)
-
-        campaign_form = forms.CampaignWizardForm(initial={
-            'name': original_name,
-            'faces_url': initial_faces_url,
-            'error_url': campaign_properties.client_error_url,
-            'thanks_url': campaign_properties.client_thanks_url,
-            'content_url': campaign_properties.client_thanks_url,
-            'include_empty_fallback': empty_fallback
-        } )
-    elif request.method == 'GET':
-        fb_attr_inst = relational.FBObjectAttribute(
-            og_action='support', og_type='cause')
-        campaign_form = forms.CampaignWizardForm()
-        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-    elif request.method == 'POST':
+    if request.method == 'POST':
         campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+       
+        # NOTE: Unlike with ChoiceSets etc., we update the existing FBObjectAttribute here
         if campaign:
             fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
         else:
             fb_attr_inst = relational.FBObjectAttribute(
                 og_action='support', og_type='cause')
+
         fb_obj_form = forms.FBObjectWizardForm(
             request.POST, instance=fb_attr_inst)
         campaign_form = forms.CampaignWizardForm(request.POST)
@@ -315,7 +268,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 )
 
             campaign_chain = []
-            fb_obj = None
 
             if campaign:
                 campaign_properties = campaign.campaignproperties.get()
@@ -327,6 +279,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 fb_obj = campaign.fb_object()
                 fb_obj_form.save()
             else:
+                # Only create fb object for new campaign
                 fb_obj = client.fbobjects.create(
                     name='{} {}'.format(client.name, campaign_name),
                 )
@@ -429,6 +382,58 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 'targetadmin:campaign-wizard-finish',
                 client.pk, last_camp.pk, content.pk
             )
+   
+    campaign_filters = [] 
+    if campaign_pk:
+        campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+        fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
+        campaign_properties = campaign.campaignproperties.get()
+        if campaign_properties.status != 'draft':
+            return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
+        campaign_filters = [ list(
+            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
+                'feature', 'value', 'operator', 'feature_type__code'
+            )
+        ) ]
+
+        fallback_campaign = campaign_properties.fallback_campaign
+        while fallback_campaign:
+            try:
+                choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
+            except relational.ChoiceSetFilter.DoesNotExist:
+                fallback_features = ()
+            else:
+                fallback_features = choice_set_filter.filter.filterfeatures.values(
+                        'feature', 'value', 'operator', 'feature_type__code') 
+            if fallback_features:
+                campaign_filters.append(list(fallback_features))
+            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+        empty_fallback = bool(campaign_properties.fallback_campaign) and not fallback_features
+
+        #we want to hide the facebook url in draft mode if the client isn't hosting
+        initial_faces_url = campaign_properties.client_faces_url
+        if 'https://apps.facebook.com' in initial_faces_url:
+            initial_faces_url = ''
+
+        # FIXME: Necessary only as long as we append " 1" to root campaign names
+        original_name = re.sub(r' 1$', '', campaign.name)
+
+        campaign_form = forms.CampaignWizardForm(initial={
+            'name': original_name,
+            'faces_url': initial_faces_url,
+            'error_url': campaign_properties.client_error_url,
+            'thanks_url': campaign_properties.client_thanks_url,
+            'content_url': campaign_properties.client_thanks_url,
+            'include_empty_fallback': empty_fallback
+        } )
+
+    else:
+        fb_attr_inst = relational.FBObjectAttribute(
+            og_action='support', og_type='cause')
+        campaign_form = forms.CampaignWizardForm()
+        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
+
 
     filter_features = relational.FilterFeature.objects.filter(
         filter__client=client,
