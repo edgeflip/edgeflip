@@ -95,6 +95,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     if campaign_pk and request.method == 'GET':
         campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
         fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
         campaign_properties = campaign.campaignproperties.get()
         if campaign_properties.status != 'draft':
             return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
@@ -134,14 +135,18 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
             'content_url': campaign_properties.client_thanks_url,
             'include_empty_fallback': empty_fallback
         } )
-    else:
+    elif request.method == 'GET':
         fb_attr_inst = relational.FBObjectAttribute(
             og_action='support', og_type='cause')
         campaign_form = forms.CampaignWizardForm()
-
-    fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-    if request.method == 'POST':
+        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
+    elif request.method == 'POST':
         campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+        if campaign:
+            fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+        else:
+            fb_attr_inst = relational.FBObjectAttribute(
+                og_action='support', og_type='cause')
         fb_obj_form = forms.FBObjectWizardForm(
             request.POST, instance=fb_attr_inst)
         campaign_form = forms.CampaignWizardForm(request.POST)
