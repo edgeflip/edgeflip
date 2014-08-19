@@ -394,7 +394,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
-def proximity_rank_four(self, token, **filtering_args):
+def proximity_rank_four(self, token, freshness=None, **filtering_args):
     """Crawl, filter and rank a user's network to proximity level four, and
     persist the User, secondary Users, Token, PostInteractions and Edges to
     the database.
@@ -405,7 +405,7 @@ def proximity_rank_four(self, token, **filtering_args):
     recording_args = get_recording_args(filtering_args)
     record_visit_event('px4_started', **recording_args)
     try:
-        (stream, edges_ranked) = px4_crawl(token)
+        (stream, edges_ranked) = px4_crawl(token, freshness)
     except IOError as exc:
         if self.request.retries == self.max_retries:
             record_visit_event('px4_failed', **recording_args)
@@ -415,7 +415,7 @@ def proximity_rank_four(self, token, **filtering_args):
     return px4_rank(px4_filter(stream, edges_ranked, fbid=token.fbid, **filtering_args))
 
 
-def px4_crawl(token):
+def px4_crawl(token, freshness=None):
     """Retrieve the user's network from Facebook or from cache in Dynamo.
 
     If the user's network is under DB_MIN_FRIEND_COUNT friends, Facebook is always
@@ -435,7 +435,9 @@ def px4_crawl(token):
             user,
             require_incoming=True,
             require_outgoing=False,
-            max_age=timedelta(days=settings.FRESHNESS),
+            max_age=timedelta(days=(
+                settings.FRESHNESS if freshness is None else freshness
+            )),
         )
         if (
             not friend_count or
