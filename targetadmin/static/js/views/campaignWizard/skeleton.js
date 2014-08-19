@@ -62,6 +62,7 @@ define(
                     faces: new Faces( {
                         model: this.model,
                         parentEl: this.templateData.container,
+                        facesExampleURL: this.facesExampleURL,
                         hide: true,
                     } ).on('nextStep', function() { this.model.set('state','fbObj'); }, this )
                 }

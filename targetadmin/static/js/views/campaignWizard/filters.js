@@ -44,7 +44,6 @@ define(
                 this.render();
 
                 this.addDraggableFunctionality();
-                
 
                 return this;
             },

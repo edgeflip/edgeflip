@@ -62,6 +62,7 @@ define(
                         new CampaignWizard( {
                             howItWorksURL: self.howItWorksURL,
                             facebookPostImage: self.facebookPostImage,
+                            facesExampleURL: self.facesExampleURL,
                             clientId: self.clientId
                         } );
                 } );
