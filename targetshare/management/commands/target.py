@@ -223,7 +223,12 @@ class Command(BaseCommand):
 
     def spawn_subtasks(self, tokens):
         for token in tokens:
-            # TODO: should maybe more lax about freshness?
-            # TODO: and, don't record a visit...
-            yield targeting.proximity_rank_four.s(token, # ...
-                                                  )
+            yield targeting.proximity_rank_four.s(
+                token,
+                campaign_id=self.campaign.pk,
+                content_id=self.client_content.pk,
+                num_faces=10,
+                force=True,                         # always perform filtering
+                freshness=90,                       # 90-day-old cached data is OK
+                visit_id=targeting.NOVISIT,         # don't record events against any visit
+            )
