@@ -7,8 +7,21 @@
         margin-bottom: 40px;
     }
 
+    .filter-layer:not(:first-child) {
+        margin-top: 20px;
+    }
+
     .filter-layer-header {
         margin-bottom: 5px;
+
+        .glyphicon-remove {
+
+            float: right;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
     }
 
     .filter-layer-label {
@@ -17,7 +30,7 @@
     }
 
     .filter-container {
-        min-height: 60px;
+        min-height: 90px;
         border: 1px solid @borderGray;
         background-color: @lightGray;
     }
@@ -64,6 +77,10 @@
         margin: 2%;
         background-color: @lightBlue;
         border: 1px solid @borderGray;
+
+        &:hover {
+            cursor: move;
+        }
     }
 
     .filter-table-wrap {

@@ -17,25 +17,35 @@ define(
         return Backbone.View.extend( {
             
             events: {
-                'click button[data-js="moreInfoBtn"]': 'showFilterInfo',
-                'click span[data-js="emptyFallbackHelpBtn"]': 'showEmptyFallbackInfo',
-                'click button[data-js="addFilterBtn"]': 'showAddFilter',
+                'click *[data-js="moreInfoBtn"]': 'showFilterInfo',
+                'click *[data-js="emptyFallbackHelpBtn"]': 'showEmptyFallbackInfo',
+                'click *[data-js="addFilterBtn"]': 'showAddFilter',
+                'click *[data-js="addFallbackBtn"]': 'addFallbackLayer',
+                'click *[data-js="removeLayerBtn"]': 'removeLayer',
+                'dblclick *[data-js="filter"]': 'moveFilter'
             },
 
             initialize: function( options ) {
 
                 _.extend( this, options ); 
 
+                //makes ajax call to get filters
                 this.availableFilters = 
                 addFilter.availableFilters = new FilterCollection(
                     [ ], 
                     { clientId: this.model.get('clientId') } 
                 ).on( 'add', this.addAvailableFilter, this );
 
+                this.model.set('filterLayerCount',1);
                 this.model.on('change:name', this.updateName, this );
                 addFilter.on('ageFilterCreated', this.updateAgeFilterUI, this );
 
-                return this.render();
+                this.render();
+
+                this.addDraggableFunctionality();
+                
+
+                return this;
             },
 
             render: function() {
@@ -56,12 +66,14 @@ define(
                 this.availableFilters.fetch();
 
                 if( ! this.model.has('filters') ) {
- 
-                    this.templateData.enabledFiltersContainer.append(
-                        filterLayerTemplate( {
+
+                    this.slurpHtml( {
+                        template: filterLayerTemplate( {
                             label: 'Target Audience',
-                            addBtn: true
-                        } ) );
+                            removeBtn: false
+                        } ),
+                        insertion: { $el: this.templateData.enabledFiltersContainer }
+                    } );
                 }
             },
 
@@ -70,6 +82,102 @@ define(
                 this.templateData.availableFilters.append(
                     filterTemplate( _.extend( {}, filter.toJSON(), { readable: filter.getReadable() } ) )
                 );
+            },
+
+            addFallbackLayer: function(e) {
+
+                var clickedButton = $(e.currentTarget);
+
+                if( this.model.get('filterLayerCount') === 4 ) { return; }
+
+                clickedButton.fadeOut();
+
+                this.slurpHtml( {
+                    template: filterLayerTemplate( {
+                        label: 'Fallback Audience ' + ( this.model.get('filterLayerCount') ),
+                        removeBtn: true,
+                        disableAddBtn: ( this.model.get('filterLayerCount') === 3 ) ? true: false
+                    } ),
+                    insertion: { $el: this.templateData.enabledFiltersContainer }
+                } );
+
+                //copy filters to new layer
+                clickedButton.closest('*[data-target="filterLayer"]')
+                                .find('*[data-js="filterContainer"]').children().clone(true).appendTo(
+                    this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]') );
+
+                this.model.set('filterLayerCount', this.model.get('filterLayerCount') + 1 );
+
+                this.addDraggableFunctionality();
+
+                return this;
+            },
+
+            filterReceived: function( event, ui ) {
+                var dataLink = ui.item.attr('data-link');
+                if( dataLink ) {
+                    ui.sender.find('[data-link="' + dataLink + '"]').appendTo( $(event.target) );
+                }
+            },
+
+            addDraggableFunctionality: function() {
+
+                var sortableElements = this.$el.find('*[data-type="sortable"]');
+
+                sortableElements.sortable( {
+                    connectWith: sortableElements,
+                    receive: this.filterReceived
+                } ).disableSelection();
+
+                return this;
+            },
+
+            moveFilter: function(e) {
+
+                var dblClickedFilter = $(e.currentTarget);
+                
+                if( dblClickedFilter.closest( this.templateData.availableFilters ).length ) {
+                    dblClickedFilter.appendTo(
+                        this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]')
+                    );
+                } else {
+                    dblClickedFilter.appendTo( this.templateData.availableFilters );
+                }
+            },
+
+            removeLayer: function(e) {
+                
+                var layerContainer = $(e.currentTarget).closest('*[data-target="filterLayer"]'),
+                    self = this;
+                
+                if( layerContainer.find('*:visible[data-js="addFallbackBtn"]').length ) {
+                    layerContainer.prev().find('*[data-js="addFallbackBtn"]').show();
+                }
+
+                //make sure we aren't remove a filter that doesn't exist elsewhere
+                _.each( layerContainer.find('*[data-js="filterContainer"]').children(), function( filter ) {
+                    filter = $(filter);
+                    if( this.$el.find('*[data-filter-id="' + $(filter).attr('data-filter-id') + '"]').length === 1 ) {
+                        filter.appendTo( this.templateData.availableFilters );
+                    }
+                }, this );
+
+
+                layerContainer.fadeOut( 400, function() {
+                    $(this).remove();
+                    self.updateFallbackLabels();
+                } );
+                
+                this.model.set('filterLayerCount', this.model.get('filterLayerCount') - 1 );
+            },
+
+            updateFallbackLabels: function() {
+
+                _.each( this.templateData.enabledFiltersContainer.children(), function( filterLayerContainer, i ) {
+                    if( i === 0 ) { return; }
+                    $(filterLayerContainer).find('*[data-target="filter-label"]').text( 'Fallback Audience ' + i);
+                }, this );
+                
             },
 
             updateName: function() {

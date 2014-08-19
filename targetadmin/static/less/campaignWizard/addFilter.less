@@ -52,10 +52,24 @@
     }
 
     .location {
+        position: relative;
+        float: left;
         border: 1px solid @borderGray;
         background-color: @lightBlue;
         padding: 5px;
         margin: 5px;
+
+        .close-btn {
+            position: absolute;
+            font-size: 6px;
+            font-weight: bold;
+            top: 2px;
+            right: 2px;
+            
+            &:hover {
+                cursor: pointer;
+            }
+        }
     }
 
     .age-range-display{
