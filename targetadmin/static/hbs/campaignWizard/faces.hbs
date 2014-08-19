@@ -11,7 +11,7 @@
             </div>
         </div>
         <div class="row">
-            <div class="col-sm-6">
+            <div class="col-sm-5">
                 <div class="form-group">
                     <label class="input-label">Headline</label>
                     <input class="form-control" autocomplete="off" data-js="formInput" name="sharing_prompt" type="text" placeholder="YOUR HEADLINE HERE">
@@ -41,11 +41,12 @@
                     <button type="button" class="btn pull-right" data-js="prevStep">Go Back</button>
                 </div>
             </div>
-            <div class="col-sm-6">
+            <div class="col-sm-7">
                 <div data-js="imageContainer" class="image-container">
-                    <img data-js="companionImage">
+                    <img data-js="companionImage" src="{{facesExampleURL}}">
                 </div>
             </div>
+            <div data-js="popoverEl"></div>
         </div>
     </div>
 </section>

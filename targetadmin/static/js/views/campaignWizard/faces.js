@@ -3,11 +3,10 @@ define(
       'jquery',
       'vendor/underscore',
       'extendBackbone',
-      'views/modal',
       'templates/campaignWizard/faces',
       'css!styles/campaignWizard/faces'
     ],
-    function( $, _, Backbone, modal, template, nameTemplate ) {
+    function( $, _, Backbone, template, nameTemplate ) {
 
         return Backbone.View.extend( {
             
@@ -26,7 +25,10 @@ define(
                 if( this.hide ) { this.$el.hide(); }
 
                 this.slurpHtml( {
-                    template: template( this ),
+                    template: template( {
+                        name: this.model.get('name'),
+                        facesExampleURL: this.facesExampleURL
+                    } ),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
                 return this;
