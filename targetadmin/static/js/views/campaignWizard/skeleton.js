@@ -5,10 +5,11 @@ define(
       'extendBackbone',
       'views/campaignWizard/intro',
       'views/campaignWizard/filters',
+      'views/campaignWizard/faces',
       'templates/campaignWizard/skeleton',
       'css!styles/campaignWizard/skeleton'
     ],
-    function( $, _, Backbone, Intro, Filters, template ) {
+    function( $, _, Backbone, Intro, Filters, Faces, template ) {
 
         return Backbone.View.extend( {
             
@@ -56,7 +57,13 @@ define(
                         model: this.model,
                         parentEl: this.templateData.container,
                         hide: true,
-                    } ).on('nextStep', function() { this.model.set('state','faces'); }, this )
+                    } ).on('nextStep', function() { this.model.set('state','faces'); }, this ),
+                    
+                    faces: new Faces( {
+                        model: this.model,
+                        parentEl: this.templateData.container,
+                        hide: true,
+                    } ).on('nextStep', function() { this.model.set('state','fbObj'); }, this )
                 }
 
                 return this;
