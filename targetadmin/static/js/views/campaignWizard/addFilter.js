@@ -5,12 +5,13 @@ define(
       'extendBackbone',
       'views/modal',
       'templates/campaignWizard/addFilter',
+      'templates/campaignWizard/singleLocation',
       'usStates',
       'css!styles/campaignWizard/addFilter',
       'vendor/jquery-ui',
       'vendor/bootstrap3-typeahead'
     ],
-    function( $, _, Backbone, modal, template, usStates ) {
+    function( $, _, Backbone, modal, template, singleLocationHTML, usStates ) {
 
         return new ( Backbone.View.extend( {
             
@@ -19,6 +20,7 @@ define(
                 'click a[data-js="filterTypeOption"]': 'filterValueSelected',
                 'click a[data-js="locationTypeOption"]': 'locationTypeSelected',
                 'click button[data-js="addLocationBtn"]': 'addLocationToFilter',
+                'click span[data-js="removeLocationBtn"]': 'removeProposedLocation'
             },
 
             model: new ( Backbone.Model.extend( { state: undefined } ) )(),
@@ -55,13 +57,9 @@ define(
                 ];
                 
                 this.render()
-                    .initializeAgeSlider();
+                    .bindAgeSlider()
+                    .bindStatesTypeahead();
 
-                this.templateData.locationInput.filter('*[data-type="state"]').typeahead( {
-                    source: usStates.values,
-                    items: 3
-                } );
-                
                 return this;
             },
 
@@ -74,7 +72,7 @@ define(
                 return this;
             },
 
-            initializeAgeSlider: function() {
+            bindAgeSlider: function() {
                 var self = this,
                     initialMin = 25,
                     initialMax = 75,
@@ -96,12 +94,26 @@ define(
                 return this;
             },
 
+            bindStatesTypeahead: function() {
+
+                this.templateData.locationInput.filter('*[data-type="state"]').typeahead( {
+                    source: usStates.values,
+                    items: 3
+                } );
+
+                return this;
+            },
+
             shown: function() {
 
                 var self = this;
                 
                 modal.on( 'confirmed', this.addFilter, this );
-                this.delegateEvents();
+
+                this.delegateEvents()
+                    .bindAgeSlider()
+                    .bindStatesTypeahead();
+
                 modal.templateData.modalContainer.on('hide.bs.modal', function() {
                     modal.off( 'confirmed', self.addFilter ); } );
             },
@@ -137,6 +149,8 @@ define(
 
                 var clickedEl = $(e.currentTarget);
 
+                this.model.set('locationType', clickedEl.data('value'));
+
                 this.updateDropdownLabel(e);
 
                 this.templateData.locationInput
@@ -152,12 +166,8 @@ define(
                 var inputEl = this.templateData.locationInput.filter(':visible'),
                     value = $.trim( inputEl.val() );
 
-                if( value && this.templateData.locationContainer.find('span[data-value="' + value + '"]').length === 0 ) {
-                    this.templateData.locationContainer.append(
-                        $(document.createElement('span'))
-                            .addClass('location')
-                            .attr('data-value', value)
-                            .text(value));
+                if( value && this.templateData.locationContainer.find('li[data-value="' + value + '"]').length === 0 ) {
+                    this.templateData.locationContainer.append( singleLocationHTML( { value: value } ) );
 
                     if( this.templateData.locationContainer.hasClass('hide') ) {
                         this.templateData.locationContainer.removeClass('hide').fadeIn();
@@ -165,34 +175,54 @@ define(
                 }
             },
 
+            removeProposedLocation: function(e) {
+                $(e.currentTarget).parent().fadeOut();    
+
+                if( this.templateData.locationContainer.children().length === 0 ) {
+                    this.templateData.locationContainer.addClass('hide');
+                }
+            },
+
             addFilter: function() {
 
                 var state = this.model.get('state');
 
-                if( state === 'age' ) {
-                    this.availableFilters.add( {
-                        feature_type__code: 'age',
-                        operator: 'min',
-                        value: this.templateData.ageSlider.slider('values')[0]
-                    } );
-                    this.availableFilters.add( {
-                        feature_type__code: 'age',
-                        operator: 'max',
-                        value: this.templateData.ageSlider.slider('values')[1]
-                    } );
-                
-                    this.trigger('ageFilterCreated');
-
-                } else if( state === 'gender' ) {
-                    this.availableFilters.add( {
-                        feature_type__code: 'gender',
-                        value: this.model.get('value')
-                    } );
-                } else if( state === 'topic' ) {
-                    this.availableFilters.add( {
-                        feature_type__code: 'topics',
-                        feature: 'topics[' + this.model.get('value') + ']'
-                    } );
+                switch (this.model.get('state')) {
+                    case 'age':
+                        this.availableFilters.add( {
+                            feature_type__code: 'age',
+                            operator: 'min',
+                            value: this.templateData.ageSlider.slider('values')[0]
+                        } );
+                        this.availableFilters.add( {
+                            feature_type__code: 'age',
+                            operator: 'max',
+                            value: this.templateData.ageSlider.slider('values')[1]
+                        } );
+                    
+                        this.trigger('ageFilterCreated');
+                        break;
+                    case 'gender':
+                        this.availableFilters.add( {
+                            feature_type__code: 'gender',
+                            value: this.model.get('value')
+                        } );
+                        break;
+                    case 'topic':
+                        this.availableFilters.add( {
+                            feature_type__code: 'topics',
+                            feature: 'topics[' + this.model.get('value') + ']'
+                        } );
+                        break;
+                    case 'location':
+                        this.availableFilters.add( {
+                            feature_type__code: this.model.get('locationType'),
+                            feature: this.model.get('locationType'),
+                            value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
+                                return $(locationEl).find('*[data-js="value"]').text();
+                            }, this ).join('||')
+                        } );
+                        break;
                 }
                 
                 modal.templateData.modalContainer.modal('hide');

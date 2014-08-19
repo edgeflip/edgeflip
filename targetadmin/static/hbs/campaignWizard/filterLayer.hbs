@@ -1,7 +1,10 @@
-<div class="filter-layer">
+<div class="filter-layer" data-target="filterLayer">
     <div class="filter-layer-header">
-        <span class="filter-layer-label">{{label}}</span>
-        {{#if addBtn}}<button data-js="addFallbackBtn" type="button" class="btn">Add Fallback Audience</button>{{/if}}
+        <span data-target="filter-label" class="filter-layer-label">{{label}}</span>
+        <button data-js="addFallbackBtn" type="button" class="btn" {{#if disableAddBtn}}disabled="true"{{/if}}>
+            Add Fallback Audience
+        </button>
+        {{#if removeBtn}}<span class="glyphicon glyphicon-remove" data-js="removeLayerBtn"></span>{{/if}}
     </div>
-    <div class="filter-container"></div>
+    <div data-js="filterContainer" class="filter-container" data-type="sortable"></div>
 </div>

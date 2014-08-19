@@ -50,10 +50,22 @@
   border: 1px solid #c2c2c2;
 }
 #add-filter .location {
+  position: relative;
+  float: left;
   border: 1px solid #c2c2c2;
   background-color: #d4e0f5;
   padding: 5px;
   margin: 5px;
+}
+#add-filter .location .close-btn {
+  position: absolute;
+  font-size: 6px;
+  font-weight: bold;
+  top: 2px;
+  right: 2px;
+}
+#add-filter .location .close-btn:hover {
+  cursor: pointer;
 }
 #add-filter .age-range-display {
   margin-top: 10px;
