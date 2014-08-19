@@ -90,9 +90,8 @@ def campaign_create(request, client_pk):
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
+    campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
     if request.method == 'POST':
-        campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
-       
         # NOTE: Unlike with ChoiceSets etc., we update the existing FBObjectAttribute here
         if campaign:
             fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
@@ -383,32 +382,23 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 client.pk, last_camp.pk, content.pk
             )
    
-    campaign_filters = [] 
-    if campaign_pk:
-        campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    elif campaign:
         fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
         fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
         campaign_properties = campaign.campaignproperties.get()
         if campaign_properties.status != 'draft':
             return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
-        campaign_filters = [ list(
-            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
-                'feature', 'value', 'operator', 'feature_type__code'
-            )
-        ) ]
 
         fallback_campaign = campaign_properties.fallback_campaign
         while fallback_campaign:
-            try:
-                choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
-            except relational.ChoiceSetFilter.DoesNotExist:
-                fallback_features = ()
-            else:
-                fallback_features = choice_set_filter.filter.filterfeatures.values(
-                        'feature', 'value', 'operator', 'feature_type__code') 
-            if fallback_features:
-                campaign_filters.append(list(fallback_features))
+            last_campaign = fallback_campaign
             fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+        try:
+            choice_set_filter = last_campaign.choice_set().choicesetfilters.get()
+        except relational.ChoiceSetFilter.DoesNotExist:
+            fallback_features = False
+        else:
+            fallback_features = True
         empty_fallback = bool(campaign_properties.fallback_campaign) and not fallback_features
 
         #we want to hide the facebook url in draft mode if the client isn't hosting
@@ -434,6 +424,27 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
         campaign_form = forms.CampaignWizardForm()
         fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
 
+
+    campaign_filters = [] 
+    if campaign:
+        campaign_filters = [ list(
+            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
+                'feature', 'value', 'operator', 'feature_type__code'
+            )
+        ) ]
+
+        fallback_campaign = campaign_properties.fallback_campaign
+        while fallback_campaign:
+            try:
+                choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
+            except relational.ChoiceSetFilter.DoesNotExist:
+                fallback_features = ()
+            else:
+                fallback_features = choice_set_filter.filter.filterfeatures.values(
+                        'feature', 'value', 'operator', 'feature_type__code') 
+            if fallback_features:
+                campaign_filters.append(list(fallback_features))
+            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
 
     filter_features = relational.FilterFeature.objects.filter(
         filter__client=client,
