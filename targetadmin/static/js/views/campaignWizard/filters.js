@@ -22,7 +22,8 @@ define(
                 'click *[data-js="addFilterBtn"]': 'showAddFilter',
                 'click *[data-js="addFallbackBtn"]': 'addFallbackLayer',
                 'click *[data-js="removeLayerBtn"]': 'removeLayer',
-                'dblclick *[data-js="filter"]': 'moveFilter'
+                'dblclick *[data-js="filter"]': 'moveFilter',
+                'click *[data-js="nextStep"]': 'triggerNextStep'
             },
 
             initialize: function( options ) {
