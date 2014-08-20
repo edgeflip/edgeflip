@@ -1,7 +1,7 @@
 .HeadingFont {
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
 }
-.campaign-wizard-faces .input-label {
+.campaign-wizard-fbobj .input-label {
   margin-right: 5px;
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
   color: #2c4c6c;
@@ -9,7 +9,7 @@
   text-transform: uppercase;
   margin-bottom: 0px;
 }
-.campaign-wizard-faces button.close-btn {
+.campaign-wizard-fbobj button.close-btn {
   background-color: #c2c2c2;
   margin-right: 20px;
 }

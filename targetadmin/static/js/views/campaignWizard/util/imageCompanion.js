@@ -1,4 +1,11 @@
-define( [ 'jquery', 'vendor/underscore', 'extendBackbone' ], function( $, _, Backbone ) {
+define(
+    [
+      'jquery',
+      'vendor/underscore',
+      'extendBackbone',
+      'windowUtil',
+      'css!styles/campaignWizard/imageCompanion'
+    ], function( $, _, Backbone, windowUtil ) {
      
         return Backbone.View.extend( {
 
@@ -9,243 +16,189 @@ define( [ 'jquery', 'vendor/underscore', 'extendBackbone' ], function( $, _, Bac
                 'blur input,textarea': 'fieldBlurred'
             },
 
+            initialize: function( options ) {
+
+                _.extend( this, options ); 
+
+                this.on('shown', this.postRender, this);
+
+                this.render();
+
+                return this;
+            },
+
+            render: function() {
+
+                if( this.hide ) { this.$el.hide(); }
+
+                this.slurpHtml( {
+                    template: this.template(
+                        _.extend( { },
+                            { name: this.model.get('name') },
+                            this )
+                    ),
+                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
+
+                return this;
+            },
+
             postRender: function() {
 
                 this.templateData.popoverEl.popover( {
                     animation: false,
                     trigger: 'manual',
-                    content: this.getPopoverContent.bind( this ),
+                    content: this.getPopoverText.bind( this ),
                     placement: this.getPopoverPlacement.bind( this )
                 } );
+
+                if( this.templateData.companionImage.height() ) {
+                    this.imageLoaded();
+                } else {
+                    this.templateData.companionImage.on( 'load', this.imageLoaded.bind( this ) );
+                }
+
+                windowUtil.window.resize( _.debounce( this.windowResized.bind( this ), 300 ) );
                 
                 return this; 
-            }
-
-
-            return this;
-        },
-
-        afterRender: function() {
-            if( this.templateData.image.height() ) {
-                this.imageLoaded();
-            } else {
-                this.templateData.image.on( 'load', this.imageLoaded.bind( this ) );
-            }
+            },
             
-            this.model.set('hasRendered', true );
-        },
+            fieldFocused: function(e) {
+                var currentInputEl = $(e.currentTarget);
+                this.companionModel.set( 'currentEl', currentInputEl );
+                this.companionModel.set( 'currentField', currentInputEl.attr('name') );
+                this.scrollToCurrentField();
 
-        fieldFocused: function(e) {
-            this.companionModel.set( 'currentField', $(e.currentTarget).attr('name') );
-            this.scrollToCurrentField();
+                return this;
+            },
 
-            return this;
-        },
+            fieldBlurred: function() {
+                this.templateData.popoverEl.popover('hide');
+                this.companionModel.set( 'currentField', null );
+                this.companionModel.set( 'currentEl', null );
+            },
 
-        fieldBlurred: function() {
-            this.templateData.popoverEl.popover('hide');
-            this.companionModel.set( 'currentField', null );
-        },
+            setImageContainerBBox: function() {
+                var offset = this.templateData.imageContainer.offset();
 
-        setImageContainerBBox: function() {
-            var offset = this.templateData.imageContainer.offset();
+                this.companionModel.set( {
+                    imageContainerTop: offset.top - parseFloat( this.templateData.imageContainer.css('top') ),
+                    imageContainerLeft: offset.left
+                } );
+            },
 
-            this.model.set( {
-                imageContainerTop: offset.top - parseFloat( this.templateData.imageContainer.css('top') ),
-                imageContainerLeft: offset.left
-            } );
-        },
+            scrollToCurrentField: function() {
 
-        scrollToCurrentField: function() {
+                var fieldElTop = this.companionModel.get('currentEl').offset().top,
+                    scrollTop = ( fieldElTop - ( windowUtil.windowHeight / 2 ) ),
+                    maxDifference = this.companionModel.get('inputContainerHeight') - this.companionModel.get('imageHeight'),
+                    difference = fieldElTop - ( this.companionModel.get('imageContainerTop') + ( this.companionModel.get('imageHeight') / 2 ) );
 
-            var fieldElTop = this.templateData[ this.model.get('currentField') ].offset().top,
-                scrollTop = ( fieldElTop - ( this.util.windowHeight / 2 ) ),
-                maxDifference = this.model.get('inputContainerHeight') - this.model.get('imageHeight'),
-                difference = fieldElTop - ( this.model.get('imageContainerTop') + ( this.model.get('imageHeight') / 2 ) );
+                if( difference < 0 ) { difference = 0; }
+                else if( difference > maxDifference ) { difference = maxDifference; }
 
-            if( difference < 0 ) { difference = 0; }
-            else if( difference > maxDifference ) { difference = maxDifference; }
-
-            this.templateData.imageContainer.animate( { 'top': difference } );
-        
-            if( ( this.util.scrollTop >= this.util.maxScroll && scrollTop >= this.util.maxScroll ) ||
-                ( this.util.scrollTop === scrollTop ) || 
-                ( this.util.scrollTop === 0 && scrollTop <= 0 ) ) {
-
-                this.showPopover();
-
-            } else {
-
-                $('body,html').animate(
-                    { 'scrollTop' : scrollTop },
-                    { 'complete': this.showPopover.bind(this) }
-                );
-            }
-
-            return this;
-        },
-
-        showPopover: function() {
-
-            if( this.model.has('currentField') ) {
-                this[
-                    'show' +
-                    this.fields[ this.model.get('currentField') ].type.capitalize() +
-                    'Popover' ]();
-            }
-
-            return this;
-        },
-
-        showImagePopover: function() {
-
-            this.templateData.inputPopover.popover('hide');
-
-            this.updateImagePopover().popover('show');
+                this.templateData.imageContainer.animate( { 'top': difference } );
             
-            return this;
-        },
+                if( ( windowUtil.scrollTop >= windowUtil.maxScroll && scrollTop >= windowUtil.maxScroll ) ||
+                    ( windowUtil.scrollTop === scrollTop ) || 
+                    ( windowUtil.scrollTop === 0 && scrollTop <= 0 ) ) {
 
-        showInputPopover: function() {
+                    this.showPopover();
 
-            this.templateData.imagePopover.popover('hide');
+                } else {
 
-            this.updateInputPopover().popover('show');
-            
-            return this;
-        },
+                    $('body,html').animate(
+                        { 'scrollTop' : scrollTop },
+                        { 'complete': this.showPopover.bind(this) }
+                    );
+                }
 
-        updatePopoverPosition: function() {
-            return this[
-                'update' +
-                this.fields[ this.model.get('currentField') ].type.capitalize() +
-                'Popover' ]();
-        },
+                return this;
+            },
 
-        updateImagePopover: function() {
-            var currentField = this.fields[ this.model.get('currentField') ];
+            showPopover: function() {
 
-            return this.templateData.imagePopover.css( {
-                top: currentField.coords.y * this.model.get('multiplierY'),
-                left: currentField.coords.x * this.model.get('multiplierX') } );
-        },
+                if( this.companionModel.has('currentField') ) {
+                    this.updatePopoverPosition();
+                    this.templateData.popoverEl.popover('show');
+                }
+            },
 
-        updateInputPopover: function() {
-            var inputEl = this.templateData[ this.model.get('currentField') ],
-                inputOffset = inputEl.position();
+            updatePopoverPosition: function() {
+                var currentField = this.fields[ this.companionModel.get('currentField') ],
+                    currentEl = this.companionModel.get('currentEl');
 
-            return this.templateData.inputPopover.css( {
-                top: inputOffset.top + inputEl.outerHeight( true ) + 5,
-                left: inputOffset.left + ( inputEl.outerWidth( true ) / 2 ) } );
-        },
+                if( currentField.imageCoords ) {
+                    this.templateData.popoverEl.appendTo( this.templateData.imageContainer );
+                    
+                    this.templateData.popoverEl.css( {
+                        top: currentField.imageCoords.y * this.companionModel.get('multiplierY'),
+                        left: currentField.imageCoords.x * this.companionModel.get('multiplierX')
+                    } ); 
 
-        windowResized: function() {
+                } else {
+                    
+                    this.templateData.popoverEl.appendTo( this.templateData.inputContainer );
+                    
+                    this.templateData.popoverEl.css( {
+                        top: currentEl.position().top + ( currentEl.outerHeight() ) + 5,
+                        left: currentEl.position().left + ( currentEl.outerWidth() / 2 )
+                    } );
+                }
+            },
 
-            this.setImageDimensions()
-                .setMultiplier()
-                .setBoundingBoxData();
+            windowResized: function() {
 
-            if( this.model.has('currentField') ) {
-                this.hidePopover()
-                    .showPopover();
-            }
-        },
+                this.setImageDimensions()
+                    .setMultiplier()
+                    .setBoundingBoxData();
 
-        setMultiplier: function() {
-            this.model.set( {
-                multiplierX: this.model.get('imageWidth') / this.model.get('originalImageWidth'),
-                multiplierY: this.model.get('imageHeight') / this.model.get('originalImageHeight')
-            } );
+                if( this.companionModel.has('currentField') ) {
+                    this.hidePopover()
+                        .showPopover();
+                }
+            },
 
-            return this;
-        },
+            setMultiplier: function() {
+                this.companionModel.set( {
+                    multiplierX: this.companionModel.get('imageWidth') / this.companionModel.get('originalImageWidth'),
+                    multiplierY: this.companionModel.get('imageHeight') / this.companionModel.get('originalImageHeight')
+                } );
 
-        setImageDimensions: function() {
-            this.model.set( {
-                imageWidth: this.templateData.image.width(),
-                imageHeight: this.templateData.image.height()
-            } );
+                return this;
+            },
 
-            return this;
-        },
+            setImageDimensions: function() {
+                this.companionModel.set( {
+                    imageWidth: this.templateData.companionImage.width(),
+                    imageHeight: this.templateData.companionImage.height()
+                } );
 
-        imageLoaded: function() {
-            this.model.set( {
-                originalImageHeight: this.templateData.image.height(),
-                originalImageWidth: this.templateData.image.width()
-            } );
+                return this;
+            },
 
-            this.templateData.image.addClass( 'companion-image' );
+            imageLoaded: function() {
+                this.companionModel.set( {
+                    originalImageHeight: this.templateData.companionImage.height(),
+                    originalImageWidth: this.templateData.companionImage.width()
+                } );
 
-            this.util.computeSizes();
+                this.templateData.companionImage.addClass( 'companion-image' );
 
-            this.setImageDimensions()
-                .setMultiplier()
-                .setBoundingBoxData();
+                windowUtil.computeSizes();
 
-            this.beginFieldCycle();
+                this.setImageDimensions()
+                    .setMultiplier()
+                    .setBoundingBoxData();
 
-            return this;
-        },
-
-        beginFieldCycle: function() {
-
-            this.model.set( 'isCycling', true );
-            
-            _.each( this.inputEls, function( $el ) {
-                $el.addClass('white-text');
-            } );
-
-            this.cycleFields();
-
-            this.clickPtr = this.clickDuringCycle.bind(this);
-            this.keydownPtr = this.keydownDuringCycle.bind( this );
-            this.windowBlurPtr = this.windowBlurDuringCycle.bind( this );
-
-            this.$el.on( 'keydown', 'input,textarea', this.keydownPtr )
-                    .on( 'click', this.clickPtr );
-
-            this.util.window.on( 'blur', this.windowBlurPtr );
-        },
-
-        windowBlurDuringCycle: function() {
-            this.stopCycling();
-        },
-
-        stopCycling: function() {
-            clearTimeout( this.cycleTimer );
-
-            this.model.set( 'isCycling', false );
-            
-            _.each( this.inputEls, function( $el ) {
-                $el.removeClass('white-text');
-            } );
-            
-            this.$el.off( 'keydown', 'input,textarea', this.keydownPtr )
-                    .off( 'click', this.clickPtr );
-
-            this.util.window.off( 'blur', this.windowBlurPtr );
-
-            _.each( [ 'clickPtr', 'keydownPtr', 'windowBlurPtr' ], function( attr ) { this.attr = undefined; }, this );
-        },
-
-        clickDuringCycle: function() { this.stopCycling(); },
-
-        keydownDuringCycle: function() { this.stopCycling(); },
-
-        cycleFields: function() {
-            this.inputEls[ this.model.get('fieldCycleIndex') ].focus();
-            this.model.set('fieldCycleIndex', this.model.get('fieldCycleIndex') + 1 );
-            if( this.model.get('fieldCycleIndex') == this.inputEls.length ) { this.model.set('fieldCycleIndex', 0); }
-            this.cycleTimer = _.delay( this.cycleFields.bind(this), 5000 );
-        },
+                return this;
+            },
 
         setBoundingBoxData: function() {
             var inputContainerOffset = this.templateData.inputContainer.offset();
 
             this.setImageContainerBBox();
 
-            this.model.set( {
+            this.companionModel.set( {
                 inputContainerTop: inputContainerOffset.top,
                 inputContainerLeft: inputContainerOffset.left,
                 inputContainerHeight: this.templateData.inputContainer.outerHeight( true ),
@@ -254,8 +207,7 @@ define( [ 'jquery', 'vendor/underscore', 'extendBackbone' ], function( $, _, Bac
             return this;
         },
 
-        getPopoverText: function() { return this.fields[ this.model.get('currentField') ].text; },
-        getPopoverPlacement: function() { return this.fields[ this.model.get('currentField') ].placement; }
-
-
+        getPopoverText: function() { return this.fields[ this.companionModel.get('currentField') ].hoverText; },
+        getPopoverPlacement: function() { return this.fields[ this.companionModel.get('currentField') ].placement; }
     } );
+} );

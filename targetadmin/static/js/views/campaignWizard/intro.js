@@ -36,13 +36,40 @@ define(
 
             promptForCampaignName: function() {
                 modal.update( {
-                    body: nameTemplate,
+                    body: '',
                     confirmText: 'Continue',
-                  } ).on('confirmed', this.triggerNextStep, this )
+                  } ).on('confirmed', this.validateName, this )
                      .templateData.modalContainer.modal();
+
+                delete this.templateData.formInput;
+
+                this.slurpHtml( {
+                    template: nameTemplate(),
+                    insertion: { $el: modal.templateData.modalBody } } );
             },
 
-            triggerNextStep: function() {
+            validateName: function() {
+
+                if( $.trim( this.templateData.formInput.val() ) !== '' ) {
+
+                    this.templateData.formInput.parent()
+                        .removeClass('has-error')
+                        .removeClass('has-feedback');
+                    
+                    this.templateData.formInput.next().addClass('hide');
+
+                    this.goToNextStep();
+
+                } else {
+                    this.templateData.formInput.parent()
+                        .addClass('has-error')
+                        .addClass('has-feedback');
+                    
+                    this.templateData.formInput.next().removeClass('hide');
+                }
+            },
+
+            goToNextStep: function() {
                 modal.off('confirmed', this.triggerNextStep );
                 this.model.set('name', modal.$el.find('input[name="name"]').val() );
                 modal.templateData.modalContainer.modal('hide');

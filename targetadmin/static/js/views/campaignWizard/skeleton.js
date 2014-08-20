@@ -6,10 +6,11 @@ define(
       'views/campaignWizard/intro',
       'views/campaignWizard/filters',
       'views/campaignWizard/faces',
+      'views/campaignWizard/fbObj',
       'templates/campaignWizard/skeleton',
       'css!styles/campaignWizard/skeleton'
     ],
-    function( $, _, Backbone, Intro, Filters, Faces, template ) {
+    function( $, _, Backbone, Intro, Filters, Faces, FbObj, template ) {
 
         return Backbone.View.extend( {
             
@@ -64,7 +65,14 @@ define(
                         parentEl: this.templateData.container,
                         facesExampleURL: this.facesExampleURL,
                         hide: true,
-                    } ).on('nextStep', function() { this.model.set('state','fbObj'); }, this )
+                    } ).on('nextStep', function() { this.model.set('state','fbObj'); }, this ),
+                    
+                    fbObj: new FbObj( {
+                        model: this.model,
+                        parentEl: this.templateData.container,
+                        fbObjExampleURL: this.facebookPostImage,
+                        hide: true,
+                    } )
                 }
 
                 return this;
@@ -81,8 +89,13 @@ define(
             },
 
             showCurrentState: function() {
-                this.subViews[ this.model.get('state') ].$el.fadeIn();
+                $('html,body').scrollTop(0);
+                this.subViews[ this.model.get('state') ].$el.fadeIn( 400, this.triggerShown.bind(this) );
             },
+
+            triggerShown: function() {
+                this.subViews[ this.model.get('state') ].trigger('shown');
+            }
 
         } );
     }

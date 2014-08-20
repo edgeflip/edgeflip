@@ -7,3 +7,44 @@
     &::-moz-placeholder {color:@color}
     &:-ms-input-placeholder {color:@color}
 }
+
+.style-popover( @text-color, @bg-color, @border-color ) {
+    
+   .popover {
+        color: @text-color;
+        background-color: @bg-color;
+        border-color: @border-color;
+    }
+
+    .popover.right .arrow:after {
+        border-right-color: @bg-color;
+    }
+
+    .popover.bottom .arrow:after {
+        border-bottom-color: @bg-color;
+    }
+
+    .popover.left .arrow:after {
+        border-left-color: @bg-color;
+    }
+
+    .popover.top .arrow:after {
+        border-top-color: @bg-color;
+    }
+
+    .popover.right .arrow {
+        border-right-color: @border-color;
+    }
+
+    .popover.bottom .arrow {
+        border-bottom-color: @border-color;
+    }
+
+    .popover.left .arrow {
+        border-left-color: @border-color;
+    }
+
+    .popover.top .arrow {
+        border-top-color: @border-color;
+    }
+}
