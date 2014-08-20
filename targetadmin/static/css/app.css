@@ -23,6 +23,9 @@ input.form-control:-webkit-autofill {
 input.form-control:focus {
   border-color: #4f6ca0;
 }
+.form-group.no-label span.form-control-feedback {
+  top: 0px;
+}
 button.btn:not(.btn-link) {
   background-color: #4f6ca0;
   color: white;

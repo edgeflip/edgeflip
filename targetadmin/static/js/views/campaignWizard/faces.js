@@ -3,37 +3,65 @@ define(
       'jquery',
       'vendor/underscore',
       'extendBackbone',
-      'templates/campaignWizard/faces',
-      'css!styles/campaignWizard/faces'
+      'views/campaignWizard/util/imageCompanion',
+      'templates/campaignWizard/faces'
     ],
-    function( $, _, Backbone, template, nameTemplate ) {
+    function( $, _, Backbone, imageCompanion, template ) {
 
-        return Backbone.View.extend( {
-            
-            events: {
+        return imageCompanion.extend( {
+
+            template: template,
+
+            events: function() {
+                return _.extend( 
+                    imageCompanion.prototype.events,
+                    { 
+                      'click *[data-js="nextStep"]': 'validateInputs'
+                    }
+                );
             },
 
-            initialize: function( options ) {
-
-                _.extend( this, options ); 
-
-                return this.render();
+            fields: {
+                'sharing_prompt': {
+                    hoverText: 'Your headline will go here.',
+                    imageCoords: { x: 457, y: 63 },
+                    placement: 'bottom'
+                },
+                'sharing_sub_header': {
+                    hoverText: 'Your sub-header will go here.',
+                    imageCoords: { x: 457, y: 145 },
+                    placement: 'bottom'
+                },
+                'sharing_button': {
+                    hoverText: 'What should the sharing button say?',
+                    imageCoords: { x: 625, y: 804 },
+                    placement: 'left'
+                },
+                'thanks_url': {
+                    hoverText: "Where should we send your supporters once they've shared with their friends?",
+                    placement: 'bottom'
+                },
+                'error_url': {
+                    hoverText: 'Where should we send your supporters in case something goes wrong?',
+                    placement: 'bottom'
+                },
+                'faces_url': {
+                    hoverText: 'Leave this blank unless you plan to host the Friend Suggestion Page on your site.',
+                    placement: 'bottom'
+                }
             },
 
-            render: function() {
+            validateInputs: function() {
 
-                if( this.hide ) { this.$el.hide(); }
+                var allValid = true;
 
-                this.slurpHtml( {
-                    template: template( {
-                        name: this.model.get('name'),
-                        facesExampleURL: this.facesExampleURL
-                    } ),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
-                return this;
+            },
+
+            triggerNextStep: function() {
+                this.trigger('nextStep');
             }
-
+            
         } );
     }
 );

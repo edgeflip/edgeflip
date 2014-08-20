@@ -1,6 +1,6 @@
-( function( $ ) {
+define( [ 'jquery' ], function( $ ) {
     
-    var util = function() {
+    var windowUtil = function() {
         var self = this;
 
         $.extend( this, {
@@ -24,7 +24,7 @@
             self.navbarHeight = $('.navbar-fixed-top').outerHeight( true ) } );
     };
 
-    $.extend( util.prototype, {
+    $.extend( windowUtil.prototype, {
 
         computeSizes: function() { 
             $.extend( this, {
@@ -46,6 +46,5 @@
         }
     } );
 
-    window.util = new util();
-
-} )(jQuery);
+    return new windowUtil();
+} );

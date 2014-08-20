@@ -55,7 +55,7 @@ define(
                         this.templateData.modalHeader.addClass('show-border');
                     }
 
-                    if( options.body ) {
+                    if( options.body !== undefined ) {
                         this.templateData.modalBody.html( options.body );
                     }
 

@@ -1,0 +1,45 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
+.image-companion .popover {
+  color: #ffffff;
+  background-color: #515153;
+  border-color: #f5f5f5;
+}
+.image-companion .popover.right .arrow:after {
+  border-right-color: #515153;
+}
+.image-companion .popover.bottom .arrow:after {
+  border-bottom-color: #515153;
+}
+.image-companion .popover.left .arrow:after {
+  border-left-color: #515153;
+}
+.image-companion .popover.top .arrow:after {
+  border-top-color: #515153;
+}
+.image-companion .popover.right .arrow {
+  border-right-color: #f5f5f5;
+}
+.image-companion .popover.bottom .arrow {
+  border-bottom-color: #f5f5f5;
+}
+.image-companion .popover.left .arrow {
+  border-left-color: #f5f5f5;
+}
+.image-companion .popover.top .arrow {
+  border-top-color: #f5f5f5;
+}
+.image-companion .companion-image {
+  width: 100%;
+}
+.image-companion .input-container,
+.image-companion .image-container {
+  position: relative;
+}
+.image-companion .image-container {
+  top: 0px;
+}
+.image-companion .popover-target {
+  position: absolute;
+}
