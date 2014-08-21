@@ -23,7 +23,7 @@ define(
                 'click *[data-js="addFallbackBtn"]': 'addFallbackLayer',
                 'click *[data-js="removeLayerBtn"]': 'removeLayer',
                 'dblclick *[data-js="filter"]': 'moveFilter',
-                'click *[data-js="nextStep"]': 'triggerNextStep'
+                'click *[data-js="nextStep"]': 'prepareFormFieldValues'
             },
 
             initialize: function( options ) {
@@ -70,7 +70,8 @@ define(
                     this.slurpHtml( {
                         template: filterLayerTemplate( {
                             label: 'Target Audience',
-                            removeBtn: false
+                            removeBtn: false,
+                            count: 1
                         } ),
                         insertion: { $el: this.templateData.enabledFiltersContainer }
                     } );
@@ -96,6 +97,7 @@ define(
                     template: filterLayerTemplate( {
                         label: 'Fallback Audience ' + ( this.model.get('filterLayerCount') ),
                         removeBtn: true,
+                        count: this.model.get('filterLayerCount'),
                         disableAddBtn: ( this.model.get('filterLayerCount') === 3 ) ? true: false
                     } ),
                     insertion: { $el: this.templateData.enabledFiltersContainer }
@@ -175,7 +177,9 @@ define(
 
                 _.each( this.templateData.enabledFiltersContainer.children(), function( filterLayerContainer, i ) {
                     if( i === 0 ) { return; }
-                    $(filterLayerContainer).find('*[data-target="filter-label"]').text( 'Fallback Audience ' + i);
+                    $(filterLayerContainer).find('*[data-target="filterLabel"]').text( 'Fallback Audience ' + i);
+                    $(filterLayerContainer).find('*[data-target="filterLayerFormField"]').attr(
+                        'name', 'enabled-filters-' + ( i + 1 ) );
                 }, this );
                 
             },
@@ -238,9 +242,10 @@ define(
                 this.templateData.availableFilters.append( combinedAgeFilter );
             },
 
-            triggerNextStep: function() {
+            prepareFormFieldValues: function() {
+
                 this.trigger('nextStep');
-            }
+            },
 
         } );
     }

@@ -14,7 +14,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.token) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.token); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "    <section data-js=\"container\" class=\"col-sm-10 campaign-wizard\"></section></form>";
+  buffer += "    <input type=\"hidden\" data-js=\"name\" name=\"name\" /><section data-js=\"container\" class=\"col-sm-10 campaign-wizard\"></section></form>";
   return buffer;
   })
 

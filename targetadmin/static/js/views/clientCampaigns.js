@@ -19,8 +19,8 @@ define(
 
             /* jquery event handler: function */ 
             events: {
-                'click button[data-js="createCampaignBtn"]': 'showCampaignWizard',
-                'click button[data-js="editButton"]': 'navToEditCampaign',
+                'click button[data-js="createCampaignBtn"]': 'showNewCampaign',
+                'click button[data-js="editButton"]': 'showEditableCampaign',
                 'click div[data-js="campaignName"]': 'navToCampaignSummary'
             },
 
@@ -54,20 +54,29 @@ define(
             },
 
             /* create campaign button clicked */
-            showCampaignWizard: function() {
-                var self = this;
-                this.$el.fadeOut( 400, function() {
-                    miniHeader.$el.hide();
-                    self.campaignWizard =
-                        new CampaignWizard( {
-                            howItWorksURL: self.howItWorksURL,
-                            facebookPostImage: self.facebookPostImage,
-                            facesExampleURL: self.facesExampleURL,
-                            clientId: self.clientId,
-                            token: self.token,
-                            formAction: self.formAction
-                        } );
-                } );
+            showNewCampaign: function() {
+                this.$el.fadeOut( 400, this.instantiateCampaignWizard.bind(this) );
+                miniHeader.$el.hide();
+            },
+
+            showEditableCampaign: function(e) {
+                var campaignId = $(e.currentTarget).closest('*[data-js="campaignRow"]').data('id');
+                this.$el.fadeOut( 400, this.instantiateCampaignWizard.bind( this, campaignId ) );
+                miniHeader.$el.hide();
+            },
+
+            instantiateCampaignWizard: function( id ) {
+                this.campaignWizard =
+                    new CampaignWizard( {
+                        id: id,
+                        howItWorksURL: this.howItWorksURL,
+                        facebookPostImage: this.facebookPostImage,
+                        facesExampleURL: this.facesExampleURL,
+                        clientId: this.clientId,
+                        token: this.token,
+                        formAction: this.formAction,
+                        campaignDataURL: this.campaignDataURL
+                    } );
             },
 
             /* campaign name clicked */

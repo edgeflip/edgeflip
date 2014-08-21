@@ -21,6 +21,8 @@ define(
             initialize: function( options ) {
 
                 _.extend( this, options ); 
+
+                if( this.id ) { this.getCampaignData(); }
                 
                 this.model.set( { clientId: this.clientId } );
 
@@ -52,7 +54,7 @@ define(
                         howItWorksURL: this.howItWorksURL,
                         parentEl: this.templateData.container,
                         hide: true,
-                    } ).on('nextStep', function() { this.model.set('state','filters'); }, this ),
+                    } ).on('nextStep', this.handleIntroNextStep, this ),
 
                     filters: new Filters( {
                         model: this.model,
@@ -97,8 +99,25 @@ define(
                 this.subViews[ this.model.get('state') ].trigger('shown');
             },
 
+            handleIntroNextStep: function() {
+                this.templateData.name.val( this.subViews.intro.templateData.formInput.val() );
+                this.model.set('state','filters');
+            },
+
             postForm: function() {
                 this.templateData.form.submit();
+            },
+
+            getCampaignData: function() {
+
+                $.ajax( {
+                    url: this.campaignDataURL.replace( '/0/', '/' + this.id + '/' ),
+                    success: this.handleCampaignData.bind( this )
+                } );
+            },
+
+            handleCampaignData: function( response ) {
+                console.log( response );
             }
 
         } );

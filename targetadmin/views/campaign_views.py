@@ -617,3 +617,61 @@ def available_filters( request, client_pk ):
         ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
     return HttpResponse(json.dumps(list(filter_features)))
+
+@utils.auth_client_required
+def campaign_data( request, client_pk, campaign_pk ):
+    if not request.is_ajax():
+        raise Http404
+
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign_properties = campaign.campaignproperties.get()
+
+    if not campaign:
+        return HttpResponse(json.dumps({}))
+
+    fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+
+    campaign_filters = [ (list(
+        campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
+            'feature', 'value', 'operator', 'feature_type__code'
+        )
+    )) ]
+
+    fallback_campaign = campaign_properties.fallback_campaign
+    while fallback_campaign:
+        last_campaign = fallback_campaign
+        try:
+            choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
+        except relational.ChoiceSetFilter.DoesNotExist:
+            fallback_features = ()
+        else:
+            fallback_features = choice_set_filter.filter.filterfeatures.values(
+                'feature', 'value', 'operator', 'feature_type__code')
+        if fallback_features:
+            campaign_filters.append(list(fallback_features))
+        fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+
+    empty_fallback = (bool(campaign_properties.fallback_campaign) and
+                      not last_campaign.choice_set().choicesetfilters.exists())
+
+    # We want to hide the facebook url in draft mode if the client isn't hosting
+    faces_url = campaign_properties.client_faces_url
+    if 'https://apps.facebook.com' in faces_url:
+        faces_url = ''
+
+    return HttpResponse( json.dumps( {
+        'name': re.sub(r' 1$', '', campaign.name),
+        'faces_url': faces_url,
+        'error_url': campaign_properties.client_error_url,
+        'thanks_url': campaign_properties.client_thanks_url,
+        'content_url': campaign_properties.client_thanks_url,
+        'include_empty_fallback': empty_fallback,
+        'campaign_filters': campaign_filters,
+        'og_title': fb_attr_inst.og_title,
+        'og_image': fb_attr_inst.og_image,
+        'og_description': fb_attr_inst.og_description,
+        'sharing_prompt': fb_attr_inst.sharing_prompt,
+        'sharing_sub_header': fb_attr_inst.sharing_sub_header,
+        'sharing_button': fb_attr_inst.sharing_button
+    } ) )
