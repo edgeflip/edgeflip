@@ -224,10 +224,11 @@ def urlload(url, query=(), timeout=None):
             original_msg = exc.read()
         except Exception:
             pass
-        if original_msg:
-            LOG.warning("Returned error message was: %s", original_msg)
-            if is_oauth_exception(original_msg):
-                raise OAuthException(original_msg)
+        else:
+            if original_msg:
+                LOG.warning("Returned error message was: %s", original_msg)
+                if is_oauth_exception(original_msg):
+                    raise OAuthException(original_msg)
         raise exc_type, exc_value, trace
 
 
