@@ -202,7 +202,7 @@ def decode_date(date):
     return None
 
 
-class OAuthException(RuntimeError):
+class OAuthException(IOError):
     pass
 
 def urlload(url, query=(), timeout=None):
@@ -227,18 +227,16 @@ def urlload(url, query=(), timeout=None):
         if original_msg:
             LOG.warning("Returned error message was: %s", original_msg)
             if is_oauth_exception(original_msg):
-                raise OAuthException()
+                raise OAuthException(original_msg)
         raise exc_type, exc_value, trace
 
 
 def is_oauth_exception(msg):
     try:
         response = json.loads(msg)
-        if response['error']['type'] == 'OAuthException':
-            return True
-    except StandardError:
+        return response['error']['type'] == 'OAuthException'
+    except (KeyError, ValueError):
         return False
-    return False
 
 
 def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
