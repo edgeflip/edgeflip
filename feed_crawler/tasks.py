@@ -295,6 +295,12 @@ def back_fill_crawl(self, primary, secondary):
             # feed
             rvn_logger.info(
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
+    except (facebook.client.OAuthException):
+        rvn_logger.info(
+            'Failed back fill crawl due to expired token for {}'.format(
+                sync_map.s3_key_name
+            )
+        )
     else:
         s3_key.crawl_pagination()
         if 'data' in s3_key.data:
@@ -333,17 +339,23 @@ def crawl_comments_and_likes(self, primary, secondary):
         # bogus/error'd out feed
         return
 
-    for item in s3_key.data['data']:
-        next_url = item.get('comments', {}).get('paging', {}).get('next')
-        if next_url:
-            result = facebook.client.exhaust_pagination(next_url)
-            item['comments']['data'].extend(result)
+    try:
+        for item in s3_key.data['data']:
+            next_url = item.get('comments', {}).get('paging', {}).get('next')
+            if next_url:
+                result = facebook.client.exhaust_pagination(next_url)
+                item['comments']['data'].extend(result)
 
-        next_url = item.get('likes', {}).get('paging', {}).get('next')
-        if next_url:
-            result = facebook.client.exhaust_pagination(next_url)
-            item['likes']['data'].extend(result)
-
+            next_url = item.get('likes', {}).get('paging', {}).get('next')
+            if next_url:
+                result = facebook.client.exhaust_pagination(next_url)
+                item['likes']['data'].extend(result)
+    except (facebook.client.OAuthException):
+        rvn_logger.info(
+            'Failed back fill crawl due to expired token for {}'.format(
+                sync_map.s3_key_name
+            )
+        )
     try:
         s3_key.save_to_s3()
     except HTTPException as exc:
@@ -373,6 +385,12 @@ def incremental_crawl(self, primary, secondary):
             # We'll get `em next time, boss.
             rvn_logger.info(
                 'Failed incremental crawl of {}'.format(sync_map.s3_key_name))
+    except (facebook.client.OAuthException):
+        rvn_logger.info(
+            'Failed incremental crawl due to expired token for {}'.format(
+                sync_map.s3_key_name
+            )
+        )
     else:
         s3_key.crawl_pagination()
 

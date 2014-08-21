@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 from functools import wraps
 
 
-def retryable(on, tries=4):
-    exceptions_to_check = tuple(on)
+def retryable(exceptions_to_check, tries=4):
 
     def decorator(func):
         @wraps(func)

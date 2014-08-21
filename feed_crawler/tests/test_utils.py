@@ -1,14 +1,14 @@
-from targetshare.tests import EdgeFlipTestCase
+from django.utils.unittest import TestCase
 
 from feed_crawler.utils import retryable
 
 
-class UtilsTestCase(EdgeFlipTestCase):
+class UtilsTestCase(TestCase):
 
     def test_retryable_neverworks(self):
         self.iterations = 0
 
-        @retryable(on=(KeyError,), tries=4)
+        @retryable(KeyError, tries=4)
         def do_stuff(arg):
             self.iterations += 1
             d = {'4': '4'}
@@ -21,7 +21,7 @@ class UtilsTestCase(EdgeFlipTestCase):
     def test_retryable_eventuallyworks(self):
         self.iterations = 0
 
-        @retryable(on=(KeyError,), tries=4)
+        @retryable(KeyError, tries=4)
         def do_stuff():
             self.iterations += 1
             d = {'3': '3'}

@@ -49,7 +49,6 @@ class FeedKey(key.Key):
             tmp_file.seek(0)
             self.set_contents_from_file(tmp_file)
 
-    @retryable(on=(HTTPException, IOError), tries=3)
     def extend_s3_data(self, append=True):
         ''' Extends the data we have in S3, typically in incremental or
         back_fill jobs. Append flag lets you dictate if the new data ends up
