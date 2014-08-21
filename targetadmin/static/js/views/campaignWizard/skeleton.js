@@ -35,7 +35,7 @@ define(
             render: function() {
 
                 this.slurpHtml( {
-                    template: template(),
+                    template: template(this),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
                 this.renderSubViews();
@@ -72,7 +72,7 @@ define(
                         parentEl: this.templateData.container,
                         fbObjExampleURL: this.facebookPostImage,
                         hide: true,
-                    } )
+                    } ).on('validated', this.postForm, this )
                 }
 
                 return this;
@@ -95,6 +95,10 @@ define(
 
             triggerShown: function() {
                 this.subViews[ this.model.get('state') ].trigger('shown');
+            },
+
+            postForm: function() {
+                this.templateData.form.submit();
             }
 
         } );

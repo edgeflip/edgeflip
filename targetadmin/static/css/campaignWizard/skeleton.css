@@ -17,8 +17,11 @@
   font-size: 24px;
   font-weight: bold;
 }
+.campaign-wizard .form-group {
+  margin-bottom: 25px;
+}
 .campaign-wizard .campaign-wizard-faces .input-label,
-.campaign-wizard .campaign-wizard-fbobj .input-label {
+.campaign-wizard .campaign-wizard-fb-obj .input-label {
   margin-right: 5px;
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
   color: #2c4c6c;
@@ -27,11 +30,15 @@
   margin-bottom: 0px;
 }
 .campaign-wizard .campaign-wizard-faces .nav-button-container,
-.campaign-wizard .campaign-wizard-fbobj .nav-button-container {
+.campaign-wizard .campaign-wizard-fb-obj .nav-button-container {
   margin-top: 40px;
 }
 .campaign-wizard .campaign-wizard-faces button.close-btn,
-.campaign-wizard .campaign-wizard-fbobj button.close-btn {
+.campaign-wizard .campaign-wizard-fb-obj button.close-btn {
   background-color: #c2c2c2;
   margin-right: 20px;
+}
+.campaign-wizard .campaign-wizard-faces .form-group span.form-control-feedback,
+.campaign-wizard .campaign-wizard-fb-obj .form-group span.form-control-feedback {
+  top: 34px;
 }

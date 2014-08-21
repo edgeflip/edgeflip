@@ -16,6 +16,7 @@
                 <div class="form-group">
                     <label class="input-label">Cause or Organization Being Supported</label>
                     <input class="form-control" autocomplete="off" data-js="formInput" name="org_name" type="text" placeholder="Your Cause">
+                    <span class="glyphicon glyphicon-remove form-control-feedback hide"></span>
                 </div>
                 <div class="form-group">
                     <label class="input-label">Suggested Messages</label>
@@ -24,36 +25,46 @@
                 <div class="form-group">
                     <div class="message-heading">Message 1</div>
                     <label class="message-label">Text before friend names (optional)</label>
-                    <input class="form-control" autocomplete="off" data-js="formInput" name="msg1_pre" type="text" placeholder="Hi">
+                    <input class="form-control" autocomplete="off" data-js="formInput"
+                           data-type="optional" name="msg1_pre" type="text" placeholder="Hi">
                 </div>
                 <div class="form-group">
                     <label class="message-label">Text after friend names (optional)</label>
-                    <input class="form-control" autocomplete="off" data-js="formInput" name="msg1_post" type="text" placeholder="-- this is a suggested message.">
+                    <input class="form-control" autocomplete="off" data-js="formInput"
+                           data-type="optional" name="msg1_post" type="text" placeholder="-- this is a suggested message.">
                 </div>
                 <div class="form-group">
                     <div class="message-heading">Message 2</div>
                     <label class="message-label">Text before friend names (optional)</label>
-                    <input class="form-control" autocomplete="off" data-js="formInput" name="msg2_pre" type="text" placeholder="Hey">
+                    <input class="form-control" autocomplete="off" data-js="formInput"
+                           data-type="optional" name="msg2_pre" type="text" placeholder="Hey">
                 </div>
                 <div class="form-group">
                     <label class="message-label">Text after friend names (optional)</label>
-                    <input class="form-control" autocomplete="off" data-js="formInput" name="msg2_post" type="text" placeholder="-- this is another suggested message!">
+                    <input class="form-control" autocomplete="off" data-js="formInput"
+                           data-type="optional" name="msg2_post" type="text" placeholder="-- this is another suggested message!">
                 </div>
                 <div class="form-group">
                     <label class="input-label">Facebook Post Image URL</label>
                     <input class="form-control" autocomplete="off" data-js="formInput" name="og_image" type="text" placeholder="your.org/image.jpg">
+                    <span class="glyphicon glyphicon-remove form-control-feedback hide"></span>
                 </div>
                 <div class="form-group">
                     <label class="input-label">Facebook Post Title</label>
                     <input class="form-control" autocomplete="off" data-js="formInput" name="og_title" type="text" placeholder="Your post title.">
+                    <span class="glyphicon glyphicon-remove form-control-feedback hide"></span>
                 </div>
                 <div class="form-group">
                     <label class="input-label">Facebook Post Description</label>
-                    <textarea class="form-control" autocomplete="off" data-js="formInput" name="og_description" type="text" placeholder="Use this space to insert a brief description of the content that you want your target audience to click on"></textarea>
+                    <textarea class="form-control" autocomplete="off" data-js="formInput"
+                              name="og_description" type="text"
+                              placeholder="Use this space to insert a brief description of the content that you want your target audience to click on"></textarea>
+                    <span class="glyphicon glyphicon-remove form-control-feedback hide"></span>
                 </div>
                 <div class="form-group">
                     <label class="input-label">Content URL</label>
                     <input class="form-control" autocomplete="off" data-js="formInput" name="content_url" type="text" placeholder="your.org/content.html">
+                    <span class="glyphicon glyphicon-remove form-control-feedback hide"></span>
                 </div>
                 <div class="nav-button-container clearfix">
                     <button type="button" class="btn pull-right" data-js="createCampaignBtn">Create Campaign</button>

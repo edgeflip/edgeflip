@@ -63,7 +63,9 @@ define(
                             howItWorksURL: self.howItWorksURL,
                             facebookPostImage: self.facebookPostImage,
                             facesExampleURL: self.facesExampleURL,
-                            clientId: self.clientId
+                            clientId: self.clientId,
+                            token: self.token,
+                            formAction: self.formAction
                         } );
                 } );
             },

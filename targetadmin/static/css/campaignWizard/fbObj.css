@@ -1,15 +1,9 @@
 .HeadingFont {
   font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
 }
-.campaign-wizard-fbobj .input-label {
-  margin-right: 5px;
-  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+.campaign-wizard-fb-obj .message-heading {
   color: #2c4c6c;
-  font-size: 24px;
-  text-transform: uppercase;
-  margin-bottom: 0px;
-}
-.campaign-wizard-fbobj button.close-btn {
-  background-color: #c2c2c2;
-  margin-right: 20px;
+  text-align: center;
+  margin-bottom: 5px;
+  font-weight: bold;
 }

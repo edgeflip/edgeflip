@@ -4,13 +4,23 @@ define(
       'vendor/underscore',
       'extendBackbone',
       'views/campaignWizard/util/imageCompanion',
-      'templates/campaignWizard/fbObj'
+      'templates/campaignWizard/fbObj',
+      'css!styles/campaignWizard/fbObj'
     ],
     function( $, _, Backbone, imageCompanion, template ) {
 
         return imageCompanion.extend( {
             
             template: template,
+
+            events: function() {
+                return _.extend( 
+                    imageCompanion.prototype.events,
+                    { 
+                      'click *[data-js="createCampaignBtn"]': 'validateInputs'
+                    }
+                );
+            },
 
             fields: {
                 'org_name': {
