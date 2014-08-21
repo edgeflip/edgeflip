@@ -36,6 +36,9 @@ button.btn:not(.btn-link):hover {
   color: white;
   text-decoration: underline;
 }
+button.btn.btn-default:hover {
+  background-color: #e0e0e0;
+}
 .btn-link {
   padding: 0px 6px;
 }

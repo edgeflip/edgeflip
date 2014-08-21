@@ -14,6 +14,7 @@
             new ClientCampaigns( {
                 campaigns: {{ campaigns|safe }},
                 campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
+                campaignDataURL: "{% url 'targetadmin:campaign-data' client.pk 0 %}",
                 howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
                 facebookPostImage: "{{ STATIC_URL }}img/fb-obj-example.png",
                 facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",

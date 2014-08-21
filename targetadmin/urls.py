@@ -103,6 +103,8 @@ urlpatterns += patterns('targetadmin.views',
 
 urlpatterns += patterns('targetadmin.views',
     # JSON models
+    url(r'^campaign-data/(?P<client_pk>\d+)/(?P<campaign_pk>\d+)/$', 'campaign_views.campaign_data',
+        name='campaign-data'),
     url(r'^available-filters/(?P<client_pk>\d+)/$', 'campaign_views.available_filters',
         name='available-filters'),
 )
