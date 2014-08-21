@@ -21,6 +21,15 @@ define(
                 );
             },
 
+            initialize: function(options) {
+
+                imageCompanion.prototype.initialize.call(this, options);
+
+                this.on( 'validated', this.triggerNextStep );
+
+                return this;
+            },
+
             fields: {
                 'sharing_prompt': {
                     hoverText: 'Your headline will go here.',
@@ -49,13 +58,6 @@ define(
                     hoverText: 'Leave this blank unless you plan to host the Friend Suggestion Page on your site.',
                     placement: 'bottom'
                 }
-            },
-
-            validateInputs: function() {
-
-                var allValid = true;
-
-
             },
 
             triggerNextStep: function() {

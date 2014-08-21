@@ -4,10 +4,11 @@ define(
       'vendor/underscore',
       'extendBackbone',
       'windowUtil',
+      'views/campaignWizard/util/base',
       'css!styles/campaignWizard/imageCompanion'
-    ], function( $, _, Backbone, windowUtil ) {
+    ], function( $, _, Backbone, windowUtil, BaseView ) {
      
-        return Backbone.View.extend( {
+        return BaseView.extend( {
 
             companionModel: new Backbone.Model(),
 

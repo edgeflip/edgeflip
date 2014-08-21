@@ -17,7 +17,9 @@
                 howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
                 facebookPostImage: "{{ STATIC_URL }}img/fb-obj-example.png",
                 facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",
-                clientId: {{client.pk}}
+                clientId: {{client.pk}},
+                token: "{% csrf_token %}",
+                formAction: "{% url 'targetadmin:campaign-wizard' client.pk %}"
             } ).$el;
 
         miniHeader.setup( { name: "{{client.name}}" } ).render();
