@@ -29,12 +29,12 @@ class TestSnippetViews(TestAdminBase):
         assert response.context['campaign']
         assert response.context['content']
         assert response.context['slug']
-        assert response.context['oauth_url']
+        assert response.context['fb_oauth_url']
 
-        short_url = response.context['shortened_url']
+        short_url = response.context['initial_url']
         short_match = resolve(short_url)
         short = ShortenedUrl.objects.get(pk=short_match.kwargs['slug'])
-        self.assertEqual(short.url, response.context['oauth_url'])
+        self.assertEqual(short.url, response.context['fb_oauth_url'])
 
         form = response.context['snippet_form']
         form_campaigns = form.fields['campaign'].queryset
@@ -67,7 +67,7 @@ class TestSnippetViews(TestAdminBase):
             data['slug'],
             utils.encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
         )
-        oauth_url = data['oauth_url']
+        oauth_url = data['fb_oauth_url']
         parsed = urlparse.urlparse(oauth_url)
         query = urlparse.parse_qs(parsed.query)
         redirect_uri = query['redirect_uri'][0]

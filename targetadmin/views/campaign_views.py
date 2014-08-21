@@ -1,25 +1,65 @@
 import csv
 import json
-import re
 import logging
+import re
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.core.urlresolvers import reverse
 from django.shortcuts import get_object_or_404, redirect, render
 
-from targetadmin import utils
-from targetadmin import forms
 from targetshare.models import relational
 from targetshare.utils import encodeDES
-from targetadmin.views.base import (
-    ClientRelationListView,
-    ClientRelationDetailView,
-)
+
+from targetadmin import forms, utils
+from targetadmin.views import base
+
 
 LOG_RVN = logging.getLogger('crow')
 
 
-class CampaignListView(ClientRelationListView):
+CAMPAIGN_CREATION_NOTIFICATION_MESSAGE = """\
+Client Name: {client.name}
+Campaign Name: {campaign.name}
+
+Campaign Summary URL: {summary_url}
+Campaign Snippets URL: {snippets_url}
+Campaign URL: {campaign_url}
+
+Please verify this campaign and its fallbacks.
+
+Your friend,
+The Campaign Wizard
+"""
+
+
+def render_campaign_creation_message(request, campaign, content):
+    hostname = request.get_host()
+    sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
+    initial_url = "{scheme}//{host}{path}".format(
+        scheme=('https:' if utils.INCOMING_SECURE else 'http:'),
+        host=hostname,
+        path=sharing_urls['initial_url'],
+    )
+
+    return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
+        campaign=campaign,
+        client=campaign.client,
+        summary_url=request.build_absolute_uri(
+            reverse('targetadmin:campaign-summary', args=[campaign.client.pk, campaign.pk])
+        ),
+        snippets_url=request.build_absolute_uri(
+            "{}?campaign_pk={}&content_pk={}".format(
+                reverse('targetadmin:snippets', args=[campaign.client.pk]),
+                campaign.pk,
+                content.pk,
+            )
+        ),
+        campaign_url=initial_url,
+    )
+
+
+class CampaignListView(base.ClientRelationListView):
     model = relational.Campaign
     object_string = 'Campaign'
     detail_url_name = 'targetadmin:campaign-detail'
@@ -29,7 +69,7 @@ class CampaignListView(ClientRelationListView):
 campaign_list = CampaignListView.as_view()
 
 
-class CampaignDetailView(ClientRelationDetailView):
+class CampaignDetailView(base.ClientRelationDetailView):
     model = relational.Campaign
     object_string = 'Campaign'
     edit_url_name = 'targetadmin:campaign-edit'
@@ -255,18 +295,21 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 choice_sets.append(empty_cs)
                 ranking_keys.append(None)
 
-            # Page Style
-            if client.pagestyles.exists():
-                page_styles = client.pagestyles.filter(
+            # Page Styles
+            page_style_sets = []
+            for page in relational.Page.objects.all():
+                client_styles = page.pagestyles.filter(
                     starred=True,
-                    page__code=relational.Page.FRAME_FACES,
+                    client=client,
                 )
-            else:
-                page_styles = relational.PageStyle.objects.filter(
-                    client=None,
-                    starred=True,
-                    page__code=relational.Page.FRAME_FACES,
-                )
+                if client_styles:
+                    page_style_sets.append(client_styles)
+                else:
+                    default_styles = page.pagestyles.filter(
+                        starred=True,
+                        client=None,
+                    )
+                    page_style_sets.append(default_styles)
 
             campaign_chain = []
             if campaign:
@@ -300,6 +343,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                     camp = client.campaigns.create(name='{} {}'.format(campaign_name, rank + 1))
                     camp.campaignbuttonstyles.create(button_style=button_style, rand_cdf=1.0)
                     camp.campaignglobalfilters.create(filter=global_filter, rand_cdf=1.0)
+                    camp.campaignfbobjects.create(fb_object=fb_obj, rand_cdf=1.0)
                     camp.campaignchoicesets.create(choice_set=cs, rand_cdf=1.0)
                     if ranking_key:
                         camp.campaignrankingkeys.create(ranking_key=ranking_key)
@@ -311,19 +355,18 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                         fallback_campaign=last_camp,
                         fallback_is_cascading=bool(last_camp),
                     )
-                    camp.campaignfbobjects.create(fb_object=fb_obj, rand_cdf=1.0)
-                    page_style_set = relational.PageStyleSet.objects.create()
-                    page_style_set.page_styles = page_styles
-                    camp.campaignpagestylesets.create(
-                        page_style_set=page_style_set,
-                        rand_cdf=1.0,
-                    )
+
+                    for page_styles in page_style_sets:
+                        page_style_set = relational.PageStyleSet.objects.create()
+                        page_style_set.page_styles = page_styles
+                        camp.campaignpagestylesets.create(
+                            page_style_set=page_style_set,
+                            rand_cdf=1.0,
+                        )
                 else:
                     camp.name = '{} {}'.format(campaign_name, rank + 1)
                     camp.save()
-                    camp.campaignbuttonstyles.update(
-                        button_style=button_style,
-                        rand_cdf=1.0)
+                    camp.campaignbuttonstyles.update(button_style=button_style, rand_cdf=1.0)
 
                     clean_up_campaign(camp)
                     camp.campaignchoicesets.update(choice_set=cs) # update campaign to new ChoiceSet
@@ -373,16 +416,14 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 discarded_fallback.delete()
 
             send_mail(
-                '{} Created New Campaigns'.format(client.name),
-                'Campaign PK: {} created. Please verify it and its children.'.format(last_camp.pk),
-                settings.ADMIN_FROM_ADDRESS,
-                settings.ADMIN_NOTIFICATION_LIST,
-                fail_silently=True
+                subject="{} created a new campaign".format(client.name),
+                message=render_campaign_creation_message(request, last_camp, content),
+                from_email=settings.ADMIN_FROM_ADDRESS,
+                recipient_list=settings.ADMIN_NOTIFICATION_LIST,
+                fail_silently=True,
             )
-            return redirect(
-                'targetadmin:campaign-wizard-finish',
-                client.pk, last_camp.pk, content.pk
-            )
+            return redirect('targetadmin:campaign-wizard-finish',
+                            client.pk, last_camp.pk, content.pk)
 
     elif campaign:
         fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()

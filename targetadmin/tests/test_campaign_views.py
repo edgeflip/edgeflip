@@ -1,3 +1,5 @@
+from itertools import chain
+
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
@@ -276,15 +278,23 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
         # Page Style
-        self.assertTrue(camp.campaignpagestylesets.exists())
+        campaign_page_style_sets = camp.campaignpagestylesets.all()
+        self.assertEqual(len(campaign_page_style_sets), 2)
         self.assertEqual(
-            camp.campaignpagestylesets.get().page_style_set.page_styles.count(),
-            1
+            [campaign_page_style_set.page_style_set.page_styles.count()
+             for campaign_page_style_set in campaign_page_style_sets],
+            [1, 1]
+        )
+        page_styles_pages = (
+            campaign_page_style_set.page_style_set.page_styles.values_list('page__code', flat=True)
+            for campaign_page_style_set in campaign_page_style_sets
         )
         self.assertEqual(
-            mail.outbox[0].body,
-            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
+            set(chain.from_iterable(page_styles_pages)),
+            {relational.Page.BUTTON, relational.Page.FRAME_FACES}
         )
+        (notification,) = mail.outbox
+        self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_generate_faces_url(self):
         new_client = relational.Client.objects.create(
@@ -350,10 +360,7 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(new_client.choicesets.count(), 2)
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
-        self.assertEqual(
-            mail.outbox[0].body,
-            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
-        )
+
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
@@ -361,6 +368,8 @@ class TestCampaignViews(TestAdminBase):
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
+        (notification,) = mail.outbox
+        self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_new_filter_feature(self):
         new_client = relational.Client.objects.create(
@@ -426,16 +435,14 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
         self.assertEqual(
-            mail.outbox[0].body,
-            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
-        )
-        self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
                 new_client.fb_app_name,
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
+        (notification,) = mail.outbox
+        self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_topics_feature(self):
         new_client = relational.Client.objects.create(
@@ -554,16 +561,14 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
         self.assertEqual(
-            mail.outbox[0].body,
-            'Campaign PK: {} created. Please verify it and its children.'.format(camp.pk)
-        )
-        self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
                 new_client.fb_app_name,
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
+        (notification,) = mail.outbox
+        self.assertIn(camp.name, notification.body)
 
     def test_campaign_wizard_no_empty_fallback(self):
         new_client = relational.Client.objects.create(
@@ -644,15 +649,26 @@ class TestCampaignViews(TestAdminBase):
         self.assertEqual(fb_attr.og_action, 'support')
         self.assertEqual(fb_attr.og_type, 'cause')
         # Page Style
-        self.assertTrue(camp.campaignpagestylesets.exists())
+        campaign_page_style_sets = camp.campaignpagestylesets.all()
+        self.assertEqual(len(campaign_page_style_sets), 2)
         self.assertEqual(
-            camp.campaignpagestylesets.get().page_style_set.page_styles.count(),
-            1
+            [campaign_page_style_set.page_style_set.page_styles.count()
+             for campaign_page_style_set in campaign_page_style_sets],
+            [1, 1]
+        )
+        page_styles_pages = (
+            campaign_page_style_set.page_style_set.page_styles.values_list('page__code', flat=True)
+            for campaign_page_style_set in campaign_page_style_sets
         )
         self.assertEqual(
-            camp.campaignpagestylesets.get().page_style_set.page_styles.get(),
-            page_style
+            set(chain.from_iterable(page_styles_pages)),
+            {relational.Page.BUTTON, relational.Page.FRAME_FACES}
         )
+        campaign_ff_page_styles = camp.campaignpagestylesets.get(
+            page_style_set__page_styles__page=frame_faces
+        )
+        self.assertEqual(campaign_ff_page_styles.page_style_set.page_styles.get(),
+                         page_style)
 
     def test_campaign_wizard_finish(self):
         response = self.client.get(
