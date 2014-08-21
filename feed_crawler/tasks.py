@@ -317,7 +317,15 @@ def back_fill_crawl(self, primary, secondary):
             rvn_logger.info(
                 'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
     else:
-        s3_key.crawl_pagination()
+        try:
+            s3_key.crawl_pagination()
+        except (facebook.client.OAuthException):
+            rvn_logger.info(
+                'Failed back fill crawl due to expired token for {}'.format(
+                    sync_map.s3_key_name
+                )
+            )
+            return
         if 'data' in s3_key.data:
             # If we don't have any data, the back fill likely failed. We'll go
             # ahead in that case and kick off the comment crawl, but not mark
