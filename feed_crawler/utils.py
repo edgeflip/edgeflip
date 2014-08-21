@@ -1,7 +1,10 @@
 from functools import wraps
 
 
-def retryable(exceptions_to_check, tries=4):
+def retryable(*exceptions_to_check, **kwargs):
+    tries = kwargs.pop('tries', 4)
+    if kwargs:
+        raise TypeError
 
     def decorator(func):
         @wraps(func)

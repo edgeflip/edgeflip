@@ -40,7 +40,7 @@ class FeedKey(key.Key):
             result = facebook.client.exhaust_pagination(next_url)
             self.data['data'].extend(result)
 
-    @retryable(on=(HTTPException, IOError), tries=3)
+    @retryable(HTTPException, IOError, tries=3)
     def save_to_s3(self):
         ''' Commits the current populated FeedKey to s3 '''
         self.data['updated'] = epoch.from_date(timezone.now())
@@ -80,7 +80,7 @@ class FeedKey(key.Key):
         '''Populates the page like data from Facebook'''
         return facebook.client.get_page_likes(fbid, token)
 
-    @retryable(on=(HTTPException, IOError), tries=3)
+    @retryable(HTTPException, IOError, tries=3)
     def set_s3_likes(self, likes):
         '''Saves previously retrieved likes data to s3'''
         self.populate_from_s3()

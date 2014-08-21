@@ -3,7 +3,7 @@ from django.utils.unittest import TestCase
 from feed_crawler.utils import retryable
 
 
-class UtilsTestCase(TestCase):
+class TestUtils(TestCase):
 
     def test_retryable_neverworks(self):
         self.iterations = 0

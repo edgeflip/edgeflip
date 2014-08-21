@@ -352,7 +352,7 @@ def crawl_comments_and_likes(self, primary, secondary):
                 item['likes']['data'].extend(result)
     except (facebook.client.OAuthException):
         rvn_logger.info(
-            'Failed back fill crawl due to expired token for {}'.format(
+            'Failed comment crawl due to expired token for {}'.format(
                 sync_map.s3_key_name
             )
         )
