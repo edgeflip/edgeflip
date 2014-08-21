@@ -232,9 +232,12 @@ def urlload(url, query=(), timeout=None):
 
 
 def is_oauth_exception(msg):
-    response = json.loads(msg)
-    if response['error']['type'] == 'OAuthException':
-        return True
+    try:
+        response = json.loads(msg)
+        if response['error']['type'] == 'OAuthException':
+            return True
+    except StandardError:
+        return False
     return False
 
 
