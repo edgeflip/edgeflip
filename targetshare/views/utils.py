@@ -25,12 +25,12 @@ class JsonHttpResponse(http.HttpResponse):
 
 def get_client_ip(request):
     """Return the user agent IP address for the given request."""
-    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-    if x_forwarded_for:
-        ip = x_forwarded_for.split(',')[0]
-    else:
-        ip = request.META.get('REMOTE_ADDR')
-    return ip
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    ips = (ip.strip() for ip in x_forwarded_for.split(','))
+    try:
+        return next(ip for ip in ips if ip)
+    except StopIteration:
+        return request.META.get('REMOTE_ADDR')
 
 
 def get_visitor(request, fbid=None):
@@ -292,8 +292,9 @@ def assign_page_styles(visit, page_code, campaign, content=None):
         ).values_list('pk', 'page_style_set_id', 'rand_cdf').distinct()
         options = tuple(campaign_page_style_sets.iterator())
 
-        # Store in cache:
-        django.core.cache.cache.set(cache_key, options, settings.PAGE_STYLE_CACHE_TIMEOUT)
+        if options:
+            # Store in cache
+            django.core.cache.cache.set(cache_key, options, settings.PAGE_STYLE_CACHE_TIMEOUT)
 
     # Assign PageStyles:
     page_style_set_id = utils.random_assign(

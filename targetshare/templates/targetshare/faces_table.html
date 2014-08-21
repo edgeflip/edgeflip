@@ -58,7 +58,7 @@ this is the message div and the faces themselves
     <div id="manual_add">
         <div id="manual_add_text">
             {# Only one input will be displayed by CSS #}
-            {% with text="You can add extra friends by typing their names here" %}
+            {% with text="Add extra friends by typing their names here..." %}
             <label for="manual_input">{{ text }}:&nbsp;</label>
             <input id="manual_input" class="manual_input" />
             <input id="manual_input_placeholder" class="manual_input" placeholder="{{ text }}" />
@@ -71,14 +71,14 @@ this is the message div and the faces themselves
         <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
-    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest A Message</div><div class="clearfix"></div>
+    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest a Message</div><div class="clearfix"></div>
 
     <div id="message_container">
         <div id="message_form">
             <div id="message_form_editable" contentEditable="True">
                 <span id='message_helper_txt' style='color: gray;'></span>
             </div>
-            <div style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: Helvetica, Arial, 'lucida grande',tahoma,verdana,arial,sans-serif;">
+            <div class="fb-obj-container" style="font-size: 0.75em; border-top: dashed thin gray; padding: 5px; font-family: Helvetica, Arial, 'lucida grande',tahoma,verdana,arial,sans-serif;">
                 <table style='width: 321px; height: 60px; background: white; padding-left: 10px; font-family: "lucida grande", tahoma, verdana, arial, sans-serif; float: left' valign='middle'>
                     <tr>
                         <td>

@@ -1,5 +1,4 @@
-from django.core.exceptions import ImproperlyConfigured
-from targetshare.models.relational import Campaign, CampaignProperties
+from targetshare.models.relational import Campaign
 from mock import patch
 
 from .. import EdgeFlipTestCase
@@ -67,8 +66,7 @@ class TestCampaignProperties(EdgeFlipTestCase):
             logger_mock.exception.call_args[0][1],
             one.campaign_id
         )
-        self.assertIn('Fallback loop detected', logger_mock.exception.call_args[0][2])
-
+        self.assertIn('Fallback loop detected', str(logger_mock.exception.call_args[0][2]))
 
     def test_save_nonroot(self):
         # change something unrelated on a nonroot node and
@@ -120,3 +118,7 @@ class TestCampaignProperties(EdgeFlipTestCase):
                 one
             )
 
+    def test_deferred_field_query(self):
+        campaign = self._create_campaign('Test')
+        props = campaign.campaignproperties.only('num_faces').get()
+        self.assertEqual(props.num_faces, 10)

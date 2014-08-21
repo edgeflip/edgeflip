@@ -14,8 +14,8 @@
                 $('.campaign-pk').html(cmpg);
                 $('.content-pk').html(cnt);
                 $('.cmpgslug').html(data.slug);
-                $('.oauth-url').html(data.oauth_url);
-                $('.shortened-url').html(data.shortened_url);
+                $('.oauth-url').html(data.fb_oauth_url);
+                $('.initial-url').html(data.initial_url);
 
                 $('.url').each(function () {
                     var $this = $(this),
@@ -46,11 +46,11 @@
     <section>
         <h4>Initial URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
         <p>This should be the URL shared with clients, which users click first, to be directed through OAuth.</p>
-        <pre><code>https://{{ client.subdomain }}.{{ client.domain }}<span class="shortened-url">{{ shortened_url }}</span></code></pre>
+        <pre><code>https://{{ client.subdomain }}.{{ client.domain }}<span class="initial-url">{{ initial_url }}</span></code></pre>
     </section>
     <section>
         <h4>OAuth URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
-        <pre><code class="oauth-url">{{ oauth_url }}</code></pre>
+        <pre><code class="oauth-url">{{ fb_oauth_url }}</code></pre>
     </section>
     <section>
         <h4>Canvas URL (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>

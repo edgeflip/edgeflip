@@ -1,11 +1,20 @@
 import functools
+import urllib
 
-from django.utils.decorators import method_decorator
-from django.core.exceptions import PermissionDenied
+from django.conf import settings
 from django.contrib.auth import decorators
+from django.core.exceptions import PermissionDenied
 from django.http import HttpResponseForbidden
+from django.utils.decorators import method_decorator
 
-from targetshare import models
+import chapo.utils
+
+from targetshare import models, utils
+
+
+FB_OAUTH_URL = 'https://www.facebook.com/dialog/oauth'
+
+INCOMING_SECURE = settings.ENV != 'development'
 
 
 def superuser_required(view):
@@ -45,3 +54,25 @@ def auth_client_required(view):
         return view
     else:
         return verify_client_auth_relation
+
+
+def fb_oauth_url(client, redirect_uri):
+    return FB_OAUTH_URL + '?' + urllib.urlencode([
+        ('client_id', client.fb_app_id),
+        ('scope', settings.FB_PERMS),
+        ('redirect_uri', redirect_uri),
+    ])
+
+
+def build_sharing_urls(incoming_host, campaign, content, incoming_secure=INCOMING_SECURE):
+    client = campaign.client
+    slug = utils.encodeDES('{}/{}'.format(campaign.pk, content.pk))
+    incoming_url = utils.incoming_redirect(incoming_secure, incoming_host, campaign.pk, content.pk)
+    oauth_url = fb_oauth_url(client, incoming_url)
+    shortened_url = chapo.utils.shorten(oauth_url, prefix=client.codename, campaign=campaign)
+    return {
+        'slug': slug,
+        'incoming_url': incoming_url,
+        'fb_oauth_url': oauth_url,
+        'initial_url': shortened_url,
+    }
