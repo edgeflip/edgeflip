@@ -616,7 +616,7 @@ def available_filters( request, client_pk ):
             value__isnull=False,
         ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
-    return HttpResponse(json.dumps(list(filter_features)))
+    return HttpResponse(json.dumps(list(filter_features)), content_type="application/json")
 
 @utils.auth_client_required
 def campaign_data( request, client_pk, campaign_pk ):
@@ -628,7 +628,7 @@ def campaign_data( request, client_pk, campaign_pk ):
     campaign_properties = campaign.campaignproperties.get()
 
     if not campaign:
-        return HttpResponse(json.dumps({}))
+        return HttpResponse(json.dumps({}), content_type="application/json")
 
     fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
 
@@ -667,11 +667,12 @@ def campaign_data( request, client_pk, campaign_pk ):
         'thanks_url': campaign_properties.client_thanks_url,
         'content_url': campaign_properties.client_thanks_url,
         'include_empty_fallback': empty_fallback,
-        'campaign_filters': campaign_filters,
+        'filters': campaign_filters,
+        'org_name': fb_attr_inst.org_name,
         'og_title': fb_attr_inst.og_title,
         'og_image': fb_attr_inst.og_image,
         'og_description': fb_attr_inst.og_description,
         'sharing_prompt': fb_attr_inst.sharing_prompt,
         'sharing_sub_header': fb_attr_inst.sharing_sub_header,
         'sharing_button': fb_attr_inst.sharing_button
-    } ) )
+    } ), content_type="application/json" )

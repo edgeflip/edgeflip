@@ -21,15 +21,15 @@ define(
             initialize: function( options ) {
 
                 _.extend( this, options ); 
-
-                if( this.id ) { this.getCampaignData(); }
                 
                 this.model.set( { clientId: this.clientId } );
 
-                this.render();
-
-                this.model.on( 'change:state', this.reflectState, this );
-                this.model.set( { state: 'intro' } );
+                if( this.id ) {
+                    this.getCampaignData();
+                    this.on( 'receivedCampaignData', this.render, this );
+                } else {
+                    this.render();
+                }
 
                 return this;
             },
@@ -41,40 +41,38 @@ define(
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
                 this.renderSubViews();
+                
+                this.model.on( 'change:state', this.reflectState, this );
+                this.model.set( { state: 'intro' } );
 
                 return this;
             },
 
             renderSubViews: function() {
 
-                this.subViews = {
-                    intro: new Intro( {
-                        model: this.model,
-                        facebookPostImage: this.facebookPostImage,
-                        howItWorksURL: this.howItWorksURL,
-                        parentEl: this.templateData.container,
-                        hide: true,
-                    } ).on('nextStep', this.handleIntroNextStep, this ),
+                var subViewOpts = {
+                    model: this.model,
+                    campaignModel: this.campaignModel,
+                    facebookPostImage: this.facebookPostImage,
+                    facesExampleURL: this.facesExampleURL,
+                    fbObjExampleURL: this.facebookPostImage,
+                    howItWorksURL: this.howItWorksURL,
+                    parentEl: this.templateData.container,
+                    hide: true
+                };
 
-                    filters: new Filters( {
-                        model: this.model,
-                        parentEl: this.templateData.container,
-                        hide: true,
-                    } ).on('nextStep', function() { this.model.set('state','faces'); }, this ),
+                this.subViews = {
+                    intro: new Intro( subViewOpts )
+                               .on('nextStep', this.handleIntroNextStep, this ),
+
+                    filters: new Filters( subViewOpts )
+                               .on('nextStep', function() { this.model.set('state','faces'); }, this ),
                     
-                    faces: new Faces( {
-                        model: this.model,
-                        parentEl: this.templateData.container,
-                        facesExampleURL: this.facesExampleURL,
-                        hide: true,
-                    } ).on('nextStep', function() { this.model.set('state','fbObj'); }, this ),
+                    faces: new Faces( subViewOpts )
+                               .on('nextStep', function() { this.model.set('state','fbObj'); }, this ),
                     
-                    fbObj: new FbObj( {
-                        model: this.model,
-                        parentEl: this.templateData.container,
-                        fbObjExampleURL: this.facebookPostImage,
-                        hide: true,
-                    } ).on('validated', this.postForm, this )
+                    fbObj: new FbObj( subViewOpts )
+                               .on('validated', this.postForm, this )
                 }
 
                 return this;
@@ -117,7 +115,8 @@ define(
             },
 
             handleCampaignData: function( response ) {
-                console.log( response );
+                this.campaignModel = new Backbone.Model( response );
+                this.trigger('receivedCampaignData');
             }
 
         } );
