@@ -1,6 +1,9 @@
 /*
-   module that adds our flavor to backbone, a .js polyfill,
-   bootstrap.js, bootstrap css, and our global css
+   application wide module:
+      adds custom flavor to backbone,
+      a .js polyfill,
+      uses require.js font plugin to grab our typekit font package
+      bootstrap css, and our global css
 */
 define(
     [ 

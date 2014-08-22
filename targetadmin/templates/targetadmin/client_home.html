@@ -1,5 +1,8 @@
 {% extends "targetadmin/page.html" %}
+{% comment %}added new base template for require js stack {% endcomment %}
+
 {% block title %}{{ client.name }}{% endblock %}
+
 
 {% block require %}
     require(
@@ -10,6 +13,10 @@
           'views/miniHeader',
         ], function(app, sidebar, ClientCampaigns, miniHeader) {
 
+        /* its silly to pass all of these attributes here, they
+           are mostly used by sub views of ClientCampaigns, I would
+           argue to have more ajax calls made by the sub views.  The only
+           one really necessary for optimal page rendering is the 'campaigns' attribute */
         var clientCampaigns =        
             new ClientCampaigns( {
                 campaigns: {{ campaigns|safe }},
@@ -23,10 +30,15 @@
                 formAction: "{% url 'targetadmin:campaign-wizard' client.pk %}"
             } );
 
+        /* let the sidebar show it when its ready */
         clientCampaigns.$el.hide();
 
+        /* display the client name at the top of the page */
         miniHeader.setup( { name: "{{client.name}}" } ).render();
 
+        /* sidebar is already instantiated (singleton pattern),
+           give it data to work with -- TODO: tie reporting url to
+           nav data structure */
         sidebar.setup( {
             model: new Backbone.Model( {
                 state: 'campaigns',

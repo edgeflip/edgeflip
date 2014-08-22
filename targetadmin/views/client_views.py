@@ -52,6 +52,7 @@ class ClientDetailView(DetailView):
             .values('pk', 'name', 'create_dt', 'campaignproperties__status' )
         return context
 
+    # passing json back so javascript can deal with HTML creation, manipulation
     def render_to_response(self, context, **response_kwargs):
         return self.response_class(
             request=self.request,
