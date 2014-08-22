@@ -28,6 +28,10 @@ DEBUG_MAX_THREADS = 100
 
 
 def _do_debug(queue, results):
+    """Thread worker that debugs enqueued tokens with Facebook and appends validated
+    tokens to the results list.
+
+    """
     while True:
         token = queue.get()
 
@@ -82,6 +86,10 @@ def debug_tokens(tokens, max_threads=DEBUG_MAX_THREADS):
 
 
 def _do_task_group(queue, results):
+    """Thread worker that submits enqueued groups of Celery tasks to the message
+    queue and reports their results.
+
+    """
     while True:
         subtasks = queue.get()
 
@@ -103,6 +111,10 @@ def _do_task_group(queue, results):
 
 
 def group_subtasks(subtasks, num, size):
+    """Iteratively submit (chunks of) Celery tasks from the given stream to the
+    message queue and stream their results as they arrive.
+
+    """
     if num < 1:
         raise ValueError("group num must be >= 1")
 
@@ -138,11 +150,19 @@ def group_subtasks(subtasks, num, size):
 
 
 class ResultView(object):
+    """Command extension whose methods generate writeable lines for a given
+    iterable of results.
 
+    """
     def __init__(self, command):
         self.command = command
 
     def shown_faces(self, results):
+        """Map each result to a JSON object
+
+            {PRIMARY: [{SECONDARY0: {TOPIC0: SCORE0, ...}}, ...]}
+
+        """
         num_faces = self.command.options['num_faces']
         for result in results:
             primary = result.ranked.primary
