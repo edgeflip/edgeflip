@@ -31,3 +31,4 @@ django-celery==3.1.1
 psycopg2==2.5.1
 -e git+git@github.com:edgeflip/faraday.git#egg=Faraday
 rjsmin
+sentinels==0.0.6

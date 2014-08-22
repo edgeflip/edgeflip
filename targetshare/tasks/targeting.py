@@ -6,9 +6,9 @@ from collections import namedtuple
 from datetime import timedelta
 
 import celery
+import sentinels
 from celery import shared_task
 from celery.utils.log import get_task_logger
-
 from django.conf import settings
 from django.db.models.loading import get_model
 from django.db.models import Q
@@ -62,7 +62,7 @@ empty_filtering_result = FilteringResult._make((None,) * 6)
 
 # Reporting helpers #
 
-NOVISIT = object()
+NOVISIT = sentinels.Sentinel('NOVISIT') # like object() but [un]pickleable by workers
 
 
 def record_visit_event(event_type, visit_id, visit_type='targetshare.Visit',
