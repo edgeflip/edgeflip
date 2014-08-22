@@ -23,7 +23,8 @@ define(
                 'click *[data-js="addFallbackBtn"]': 'addFallbackLayer',
                 'click *[data-js="removeLayerBtn"]': 'removeLayer',
                 'dblclick *[data-js="filter"]': 'moveFilter',
-                'click *[data-js="nextStep"]': 'prepareFormFieldValues'
+                'click *[data-js="nextStep"]': 'prepareFormFieldValues',
+                'click *[data-js="prevStep"]': 'goBack'
             },
 
             initialize: function( options ) {
@@ -152,7 +153,7 @@ define(
 
             removeLayer: function(e) {
                 
-                var layerContainer = $(e.currentTarget).closest('*[data-target="filterLayer"]'),
+                var layerContainer = $(e.currentTarget).closest('*[data-js="filterLayer"]'),
                     self = this;
                 
                 if( layerContainer.find('*:visible[data-js="addFallbackBtn"]').length ) {
@@ -281,6 +282,10 @@ define(
 
                 this.trigger('nextStep');
             },
+
+            goBack: function() {
+                this.trigger('previousStep');
+            }
 
         } );
     }

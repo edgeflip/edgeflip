@@ -16,7 +16,8 @@ define(
                 return _.extend( 
                     imageCompanion.prototype.events,
                     { 
-                      'click *[data-js="nextStep"]': 'validateInputs'
+                      'click *[data-js="nextStep"]': 'validateInputs',
+                      'click *[data-js="prevStep"]': 'goBack'
                     }
                 );
             },
@@ -62,6 +63,10 @@ define(
 
             triggerNextStep: function() {
                 this.trigger('nextStep');
+            },
+            
+            goBack: function() {
+                this.trigger('previousStep');
             }
             
         } );

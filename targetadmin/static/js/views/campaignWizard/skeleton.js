@@ -14,17 +14,16 @@ define(
 
         return Backbone.View.extend( {
             
-            model: new Backbone.Model( { } ),
-
             events: { },
 
             initialize: function( options ) {
 
                 _.extend( this, options ); 
                 
-                this.model.set( { clientId: this.clientId } );
+                this.model = new Backbone.Model( { clientId: this.clientId } );
 
                 if( this.id ) {
+                    this.formAction += this.id + "/";
                     this.getCampaignData();
                     this.on( 'receivedCampaignData', this.render, this );
                 } else {
@@ -45,6 +44,7 @@ define(
                 this.model.on( 'change:state', this.reflectState, this );
                 this.model.set( { state: 'intro' } );
 
+                this.off( 'receivedCampaignData', this.render );
                 return this;
             },
 
@@ -66,13 +66,16 @@ define(
                                .on('nextStep', this.handleIntroNextStep, this ),
 
                     filters: new Filters( subViewOpts )
-                               .on('nextStep', function() { this.model.set('state','faces'); }, this ),
+                               .on('nextStep', function() { this.model.set('state','faces'); }, this )
+                               .on('previousStep', function() { this.model.set('state','intro'); }, this ),
                     
                     faces: new Faces( subViewOpts )
-                               .on('nextStep', function() { this.model.set('state','fbObj'); }, this ),
+                               .on('nextStep', function() { this.model.set('state','fbObj'); }, this )
+                               .on('previousStep', function() { this.model.set('state','filters'); }, this ),
                     
                     fbObj: new FbObj( subViewOpts )
                                .on('validated', this.postForm, this )
+                               .on('previousStep', function() { this.model.set('state','faces'); }, this )
                 }
 
                 return this;

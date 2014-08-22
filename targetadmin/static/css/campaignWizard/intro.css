@@ -15,11 +15,16 @@
   background-color: #d4e0f5;
   width: 40%;
   text-align: center;
-  display: table;
   margin: 5%;
-  height: 60px;
+  height: 62px;
+  font-size: 12px;
 }
-.campaign-wizard-intro .filters-box li span {
+.campaign-wizard-intro .filters-box li .table-wrap {
+  display: table;
+  height: 100%;
+  width: 100%;
+}
+.campaign-wizard-intro .filters-box li .table-wrap span {
   display: table-cell;
   vertical-align: middle;
 }
@@ -46,7 +51,7 @@
   top: -10px;
 }
 .campaign-wizard-intro .facebook-post-box img {
-  height: 284px;
+  height: 280px;
   display: block;
   margin: auto;
 }

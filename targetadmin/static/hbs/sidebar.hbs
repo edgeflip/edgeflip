@@ -4,7 +4,7 @@
             <img src="{{logoSrc}}"/>
         </li>
         {{#each nav}}
-        <li class="button" data-nav="{{this.name}}" {{#if this.content}} data-js="contentBtn"{{/if}}>
+        <li class="button" data-nav="{{this.name}}" {{#if this.view}} data-js="contentBtn"{{/if}}>
             <span class="{{this.glyphClass}}"></span>
             <span>{{this.label}}</span>
         </li>

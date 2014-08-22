@@ -10,7 +10,7 @@
           'views/miniHeader',
         ], function(app, sidebar, ClientCampaigns, miniHeader) {
 
-        var clientCampaignsContent =        
+        var clientCampaigns =        
             new ClientCampaigns( {
                 campaigns: {{ campaigns|safe }},
                 campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
@@ -21,7 +21,9 @@
                 clientId: {{client.pk}},
                 token: "{% csrf_token %}",
                 formAction: "{% url 'targetadmin:campaign-wizard' client.pk %}"
-            } ).$el;
+            } );
+
+        clientCampaigns.$el.hide();
 
         miniHeader.setup( { name: "{{client.name}}" } ).render();
 
@@ -33,7 +35,7 @@
                     { name: 'campaigns',
                       label: 'Campaigns',
                       glyphClass: 'glyphicon glyphicon-share',
-                      content: clientCampaignsContent
+                      view: true
                     },
                     { name: 'reports',
                       label: 'Reports',
@@ -45,6 +47,7 @@
                     }
                 ]
             } ),
+            views: { campaigns: clientCampaigns },
             reportingDashboardURL: "{% url 'reporting:main' %}"
         } ).render();
     } );
