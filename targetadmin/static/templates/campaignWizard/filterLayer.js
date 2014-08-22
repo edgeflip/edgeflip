@@ -17,7 +17,7 @@ function program3(depth0,data) {
   return "<span class=\"glyphicon glyphicon-remove\" data-js=\"removeLayerBtn\"></span>";
   }
 
-  buffer += "<div class=\"filter-layer\" data-target=\"filterLayer\"><div class=\"filter-layer-header\"><span data-target=\"filterLabel\" class=\"filter-layer-label\">";
+  buffer += "<div class=\"filter-layer\" data-js=\"filterLayer\"><div class=\"filter-layer-header\"><span data-target=\"filterLabel\" class=\"filter-layer-label\">";
   if (helper = helpers.label) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.label); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)

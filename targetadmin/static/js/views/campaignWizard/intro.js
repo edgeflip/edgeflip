@@ -20,7 +20,15 @@ define(
 
                 _.extend( this, options ); 
 
-                return this.render();
+                this.render();
+
+                if( this.campaignModel ) {
+                    this.on( 'shown', function() {
+                        this.templateData.getStartedBtn.click();
+                    }, this );
+                }
+
+                return this;
             },
 
             render: function() {
@@ -46,6 +54,10 @@ define(
                 this.slurpHtml( {
                     template: nameTemplate(),
                     insertion: { $el: modal.templateData.modalBody } } );
+
+                if( this.campaignModel ) {
+                    this.templateData.formInput.val( this.campaignModel.get('name') );
+                }
             },
 
             validateName: function() {

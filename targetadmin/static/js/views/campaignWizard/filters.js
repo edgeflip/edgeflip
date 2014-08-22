@@ -30,12 +30,15 @@ define(
 
                 _.extend( this, options ); 
 
-                //makes ajax call to get filters
                 this.availableFilters = 
                 addFilter.availableFilters = new FilterCollection(
                     [ ], 
                     { clientId: this.model.get('clientId') } 
                 ).on( 'add', this.addAvailableFilter, this );
+
+                if( this.campaignModel ) {
+                    this.availableFilters.on( 'sync', this.reflectCampaignState, this );
+                }
 
                 this.model.set('filterLayerCount',1);
                 this.model.on('change:name', this.updateName, this );
@@ -104,7 +107,7 @@ define(
                 } );
 
                 //copy filters to new layer
-                clickedButton.closest('*[data-target="filterLayer"]')
+                clickedButton.closest( this.templateData.filterLayer )
                                 .find('*[data-js="filterContainer"]').children().clone(true).appendTo(
                     this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]') );
 
@@ -188,6 +191,27 @@ define(
                 this.templateData.campaignName.text( this.model.get('name') );
             },
 
+            reflectCampaignState: function() {
+                var campaignFilters = this.campaignModel.get('filters');
+                _.each( campaignFilters, function( filterLayer, i ) {
+                    _.each( filterLayer, function( filter ) {
+                        var selector = '*[data-filter-id="set_number=' + filter.feature + '.' + filter.operator + '.' + filter.value + '"]',
+                            fromAvailable = this.templateData.availableFilters.find( selector );
+
+                        if( fromAvailable.length ) { fromAvailable.dblclick(); }
+                        else {
+                            this.templateData.enabledFiltersContainer
+                              .find( selector ).clone(true).first().appendTo( this.templateData.availableFilters ).dblclick();
+                        }
+                    }, this );
+
+                    if( campaignFilters.length - 1 != i && campaignFilters[i+1].length != 0 ) {
+                        this.templateData.addFallbackBtn.click();
+                        this.templateData.filterContainer.last().empty();
+                    }
+                }, this );
+            },
+
             showFilterInfo: function() {
                 modal.update( {
                     body: filtersInfoTemplate,
@@ -243,6 +267,17 @@ define(
             },
 
             prepareFormFieldValues: function() {
+
+                _.each( _.range( 1, this.model.get('filterLayerCount') + 1 ), function( i ) {
+
+                    var layerContainer = $(this.templateData.filterLayer[i-1]);
+
+                    layerContainer.find('input[name="enabled-filters-' + i + '"]').val(
+                        _.map( layerContainer.find('*[data-js="filterContainer"]').children(), function( filter ) {
+                            return '"' + $(filter).attr('data-filter-id').split('=')[1] + '"';
+                        }, this )
+                    );
+                }, this );
 
                 this.trigger('nextStep');
             },

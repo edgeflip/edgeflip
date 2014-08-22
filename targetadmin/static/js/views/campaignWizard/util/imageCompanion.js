@@ -40,6 +40,8 @@ define(
                     ),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
+                if( this.campaignModel ) { this.reflectCampaignState(); }
+                
                 return this;
             },
 
@@ -61,6 +63,15 @@ define(
                 windowUtil.window.resize( _.debounce( this.windowResized.bind( this ), 300 ) );
                 
                 return this; 
+            },
+
+            reflectCampaignState: function() {
+
+                _.each( this.campaignModel.keys(), function( key ) {
+                    this.templateData.formInput.filter('*[name="' + key + '"]').val(
+                        this.campaignModel.get(key)
+                    );
+                }, this );
             },
             
             fieldFocused: function(e) {
