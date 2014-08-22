@@ -1,3 +1,4 @@
+/* view for side navigation menu */
 define(
     [
       'jquery',
@@ -8,18 +9,23 @@ define(
     ],
     function( $, _, Backbone, template ) {
 
-        //This module always returns the same instance of sidebar
-        //Useful for accessing in other scopes
+        /* This module always returns the same instance of sidebar
+           useful for accessing in other scopes */
         return new ( Backbone.View.extend( {
-           
+          
+            /* automatically delegated on initialize
+               in the past I've removed the data-* attributes in
+               the slurpHtml function and bound the events myself
+               using jQuery instead of backbone in order to reduce
+               DOM bloat */
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
                 'click li[data-nav="help"]': 'helpClicked',
                 'click li[data-js="contentBtn"]': 'contentItemClicked'
             },
 
-            initialize: function() { },
-
+            /* see templates/targetadmin/client_home.html for example
+               invocation, could certainly be cleaner */
             setup: function( options ) {
 
                 _.extend( this, options );
@@ -29,22 +35,19 @@ define(
                 return this;
             },
 
+            /* creates DOM structure based on the model passed into this.setup */
             render: function() {
 
                 this.slurpHtml( {
                     template: template( this.model.toJSON() ),
                     insertion: { $el: this.$el.prependTo(this.parentEl) } } );
 
-                this.postRender();
+                this.renderState();
 
                 return this;
             },
 
-            postRender: function() {
-                this.renderState();
-            },
-
-            /* style 'selected' button */
+            /* style 'selected' button, show selected content */
             renderState: function() {
                 if( this.templateData.contentBtn && this.model.get('state') ) {
                     this.templateData.contentBtn
@@ -58,6 +61,10 @@ define(
                 }
             },
 
+            /* a nav item with associated content already on the page
+                has been clicked, update the state, and let the associated
+                content know that its top level nav has been clicked by
+                triggering an event */
             contentItemClicked: function(e) {
                 this.model.set( "state", $(e.currentTarget).data('nav') );
                 if( this.views[ this.model.get('state') ] ) {
@@ -65,10 +72,13 @@ define(
                 }
             },
 
+            /* hacky, should be associated with nav structure
+               ( perhaps with button type ), reports nav item has been clicked, redirect */
             reportsClicked: function() {
                 window.location = this.reportingDashboardURL;
             },
 
+            /* hacky, help nav item has been clicked, open mail */
             helpClicked: function() {
                 window.open("mailto:help@edgeflip.com");
             }

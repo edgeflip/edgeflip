@@ -1,7 +1,12 @@
+/* require js configuration file */
 require.config( {
 
+    /* base path when looking for files ( preferably modules )
+       e.g. : require( [ 'dir/myFile' ], function(myFile) { }
+       looks here: $DOMAIN/static/js/dir/myFile.js */
     baseUrl: '/static/js',
 
+    /* essentially symlinks for paths (still use baseUrl) */
     paths: {
         styles: '../css',
         templates: '../templates',
@@ -11,6 +16,9 @@ require.config( {
         propertyParser : 'vendor/propertyParser'
     },
 
+    /* not all files executed by require need to be in AMD 
+       ( asynchronous modular definition ) format, those files
+       are spelled out here so require knows what to do with them */
     shim: {
 
         'vendor/jquery-ui': {
@@ -42,6 +50,8 @@ require.config( {
             exports: [ 'd3' ]
         },
 
+        /* these two files should probably be made into AMD
+           so this nonsense isn't needed */ 
         'extendBackbone': {
             deps: [ 'vendor/backbone', 'vendor/underscore', 'jquery' ],
             init: function( Backbone, _, $ ) { return Backbone; }
@@ -53,6 +63,10 @@ require.config( {
         }
     },
 
+    /* this is used by the require.js css plugin
+       instead of using link tags it will inject css 
+       directly onto the page 
+    */
     map: {
         '*': {
             'css': 'vendor/css'
