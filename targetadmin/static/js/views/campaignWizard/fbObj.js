@@ -17,7 +17,8 @@ define(
                 return _.extend( 
                     imageCompanion.prototype.events,
                     { 
-                      'click *[data-js="createCampaignBtn"]': 'validateInputs'
+                      'click *[data-js="createCampaignBtn"]': 'validateInputs',
+                      'click *[data-js="prevStep"]': 'goBack'
                     }
                 );
             },
@@ -67,6 +68,10 @@ define(
                     hoverText: 'Where should we send people who click on the Facebook post?',
                     placement: 'bottom'
                 }
+            },
+            
+            goBack: function() {
+                this.trigger('previousStep');
             }
 
         } );

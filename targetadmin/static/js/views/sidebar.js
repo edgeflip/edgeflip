@@ -15,7 +15,7 @@ define(
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
                 'click li[data-nav="help"]': 'helpClicked',
-                'click li[data-js="btn"]': 'contentItemClicked'
+                'click li[data-js="contentBtn"]': 'contentItemClicked'
             },
 
             initialize: function() { },
@@ -50,14 +50,19 @@ define(
                     this.templateData.contentBtn
                         .removeClass('selected')
                         .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
+
+                    if( this.model.previous('state' ) ) { 
+                        this.views[ this.model.previous('state') ].$el.fadeOut();
+                    }
+                    this.views[ this.model.get('state') ].$el.fadeIn();
                 }
             },
 
-            /* toggle content on click */
             contentItemClicked: function(e) {
                 this.model.set( "state", $(e.currentTarget).data('nav') );
-                this.content[ this.model.previous('state') ].fadeOut();
-                this.content[ this.model.get('state') ].fadeIn();
+                if( this.views[ this.model.get('state') ] ) {
+                    this.views[ this.model.get('state') ].trigger('sidebarBtnClicked');
+                }
             },
 
             reportsClicked: function() {

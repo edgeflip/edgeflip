@@ -11,7 +11,7 @@ function program1(depth0,data) {
   buffer += "        <li class=\"button\" data-nav=\""
     + escapeExpression(((stack1 = (depth0 && depth0.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "\" ";
-  stack1 = helpers['if'].call(depth0, (depth0 && depth0.content), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.view), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "><span class=\""
     + escapeExpression(((stack1 = (depth0 && depth0.glyphClass)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))

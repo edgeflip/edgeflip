@@ -27,7 +27,10 @@ define(
             /* called on instantiation */
             initialize: function( options ) {
 
-                _.extend( this, options ); 
+                _.extend( this, options );
+
+                this.model.set( 'state', 'mainView' );
+                this.on( 'sidebarBtnClicked', this.handleSidebarClick, this );
 
                 /* creates collection of campaigns, see model for attributes */
                 this.campaigns = new campaignCollection(
@@ -55,17 +58,24 @@ define(
 
             /* create campaign button clicked */
             showNewCampaign: function() {
-                this.$el.fadeOut( 400, this.instantiateCampaignWizard.bind(this) );
-                miniHeader.$el.hide();
+                this.$el.fadeOut( 400, this.showCampaignWizard.bind(this) );
             },
 
             showEditableCampaign: function(e) {
                 var campaignId = $(e.currentTarget).closest('*[data-js="campaignRow"]').data('id');
-                this.$el.fadeOut( 400, this.instantiateCampaignWizard.bind( this, campaignId ) );
-                miniHeader.$el.hide();
+                this.$el.fadeOut( 400, this.showCampaignWizard.bind( this, campaignId ) );
             },
 
-            instantiateCampaignWizard: function( id ) {
+            showCampaignWizard: function( id ) {
+
+                miniHeader.$el.hide();
+                this.model.set( 'state', 'campaignWizard' );
+
+                // TODO: fix laziness
+                if( this.campaignWizard ) {
+                    this.campaignWizard.remove();
+                }
+                
                 this.campaignWizard =
                     new CampaignWizard( {
                         id: id,
@@ -76,7 +86,7 @@ define(
                         token: this.token,
                         formAction: this.formAction,
                         campaignDataURL: this.campaignDataURL
-                    } );
+                } );
             },
 
             /* campaign name clicked */
@@ -87,6 +97,15 @@ define(
             /* campaign name clicked */
             navToEditCampaign: function(e) {
                 window.location = this.createCampaignURL + $(e.currentTarget).closest('div[data-js="campaignRow"]').data('id');
+            },
+
+            handleSidebarClick: function() {
+                if( this.model.get('state') !== 'mainView' ) {
+                    this[ this.model.get('state') ].$el.fadeOut();
+                    this.model.set( 'state', 'mainView' );
+                    miniHeader.$el.show();
+                    this.$el.fadeIn();
+                }
             }
 
         } );
