@@ -3,6 +3,7 @@ from south.v2 import SchemaMigration
 
 
 class Migration(SchemaMigration):
+    """Add field UserClient.visitor which relies on existing columns (no-op!)"""
 
     def forwards(self, orm):
         ## Don't!
