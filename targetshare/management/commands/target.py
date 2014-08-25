@@ -9,7 +9,7 @@ from textwrap import dedent
 from threading import Thread
 
 from django.core.management.base import CommandError, BaseCommand
-from django.db import transaction
+from django.db import connection, transaction
 from django.utils import timezone
 
 from targetshare.integration import facebook
@@ -210,23 +210,38 @@ class Command(BaseCommand):
 
         elif self.options['random']:
             sixty_days_ago = timezone.now() - timedelta(days=60)
-            app_users = relational.UserClient.objects.filter(client___fb_app_id=fb_app_id)
-            recently_added_users = app_users.filter(create_dt__gt=sixty_days_ago)
-            recently_visited_users = app_users.filter(
-                visitor__visits__events__event_type='authorized',
-                visitor__visits__events__event_datetime__gt=sixty_days_ago,
+            (query, params) = (
+                "SELECT DISTINCT user_clients.fbid "
+                "FROM user_clients "
+                "JOIN clients USING (client_id) "
+                "JOIN visitors USING (fbid) "
+                "JOIN visits USING (visitor_id) "
+                "JOIN events USING (visit_id) "
+                "WHERE clients.fb_app_id = %s AND ("
+                "   (user_clients.create_dt > %s) OR "
+                "   (events.type = 'authorized' AND events.event_datetime > %s)"
+                ") ORDER BY RAND()",
+                [fb_app_id, sixty_days_ago, sixty_days_ago]
             )
-            active_users = recently_added_users | recently_visited_users
-            random_fbids = active_users.values_list('fbid', flat=True).distinct().order_by('?')
-            if self.options['debug'] and self.options['limit']:
-                # Some of these might be no good when debugged, so get 2x
-                num_fbids = self.options['limit'] * 2
-            else:
+
+            if self.options['limit']:
+                query += " LIMIT %s"
+                if self.options['debug']:
+                    # Some of these might be no good when debugged, so get 2x
+                    params.append(self.options['limit'] * 2)
+                else:
+                    params.append(self.options['limit'])
+
+            cursor = connection.cursor()
+            try:
+                cursor.execute(query, params)
+                fbids = itertools.chain.from_iterable(cursor.fetchall())
                 # It'd be nice if boto allowed you to specify an (infinite)
-                # iterator of keys (this might be None)....
-                num_fbids = self.options['limit']
-            keys = [{'fbid': fbid, 'appid': fb_app_id}
-                    for fbid in random_fbids[:num_fbids].iterator()]
+                # iterator of keys....
+                keys = [{'fbid': fbid, 'appid': fb_app_id} for fbid in fbids]
+            finally:
+                cursor.close()
+
             tokens = dynamo.Token.items.batch_get(keys)
 
         else:
