@@ -202,6 +202,9 @@ def decode_date(date):
     return None
 
 
+class OAuthException(IOError):
+    pass
+
 def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""
     parsed_url = urlparse.urlparse(url)
@@ -218,10 +221,23 @@ def urlload(url, query=(), timeout=None):
         exc_type, exc_value, trace = sys.exc_info()
         LOG.warning("Error opening URL %s %r", url, getattr(exc, 'reason', ''), exc_info=True)
         try:
-            LOG.warning("Returned error message was: %s", exc.read())
+            original_msg = exc.read()
         except Exception:
             pass
+        else:
+            if original_msg:
+                LOG.warning("Returned error message was: %s", original_msg)
+                if is_oauth_exception(original_msg):
+                    raise OAuthException(original_msg)
         raise exc_type, exc_value, trace
+
+
+def is_oauth_exception(msg):
+    try:
+        response = json.loads(msg)
+        return response['error']['type'] == 'OAuthException'
+    except (KeyError, ValueError):
+        return False
 
 
 def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):

@@ -28,99 +28,13 @@
        <div>Content URL : {{content.url}}</div>
    </div>
 </div>
+<script src="{{ STATIC_URL }}js/models/filterModels.js"></script>
 
 <script type="text/javascript">
     ( function($) {
 
-        var genderFilter = Backbone.Model.extend( {
-
-            defaults: {
-                gender: undefined
-            },
-
-            parse: function( attrs ) {
-                return { gender: attrs.value };
-            },
-
-            getReadable: function() { return this.get('gender') + 's'; }
-
-        } );
-        
-        var ageFilter = Backbone.Model.extend( {
-            defaults: {
-                min: undefined,
-                max: undefined
-            },
-
-            parse: function( attrs ) {
-                var rv = { };
-                rv[ attrs.operator ] = attrs.value;
-                return rv;
-            },
-
-            getReadable: function() {
-                return this.has('min')
-                    ? this.get('min') + ' and older'
-                    : this.get('max') + ' and younger';
-            }
-
-        } );
-        
-        var locationFilter = Backbone.Model.extend( {
-            defaults: {
-                type: undefined,
-                values: [ ]
-            },
-
-            parse: function( attrs ) {
-                return {
-                    type: attrs.feature,
-                    values: attrs.value.split('||')
-                }
-            },
-
-            getReadable: function() {
-
-                return 'Lives in ' + ( ( this.get('values').length < 2 )
-                    ? this.get('values')
-                    : this.get('values').join(', ') );
-            }
-        } );
-
-        var interestFilter = Backbone.Model.extend({
-            defaults: {
-                topic: undefined
-            },
-            _expr: /topics\[(.+)\]/,
-            parse: function (attrs) {
-                var groups = attrs.feature.match(this._expr);
-                return {
-                    topic: groups[1]
-                };
-            },
-            getReadable: function() {
-                return 'Interest in ' + this.get('topic');
-            }
-        });
-
-        var filters = Backbone.Collection.extend( {
-            model: function( attrs, options ) {
-                switch (attrs.feature_type__code) {
-                    case 'gender':
-                        return new genderFilter( attrs, { parse: true } );
-                    case 'age':
-                        return new ageFilter( attrs, { parse: true } );
-                    case 'full_location':
-                        return new locationFilter( attrs, { parse: true } );
-                    case 'topics':
-                        return new interestFilter(attrs, {parse: true});
-                }
-                throw "unrecognized feature type: " + attrs.feature_type__code;
-            }
-        } );
-        
         var filterLayers = _.map( {{ filters|safe }}, function( filter ) {
-           return new filters( filter[0] ); 
+           return new filterCollection( filter[0] ); 
         } );
 
         var filterView = function( options ) {
