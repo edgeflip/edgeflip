@@ -1,82 +1,23 @@
 # -*- coding: utf-8 -*-
-from __future__ import print_function
-
-from django.conf import settings
-from south.v2 import DataMigration
+from south.v2 import SchemaMigration
 
 
-css_url_context = {
-    'base_url': '//assets-edgeflip.s3.amazonaws.com/',
-}
-if settings.ENV == 'production':
-    css_url_context.update(
-        env_initial='p',
-        min_ext='.min',
-    )
-elif settings.ENV == 'staging':
-    css_url_context.update(
-        env_initial='s',
-        min_ext='.min',
-    )
-else:
-    css_url_context.update(
-        env_initial='s',
-        min_ext='',
-    )
-
-css_url_template = '{base_url}{env_initial}/c/{{}}{min_ext}.css'.format(**css_url_context)
-
-
-def cssurl(filename):
-    return css_url_template.format(filename)
-
-OLD_DEFAULT_CSS_URL = cssurl('edgeflip-base-0')
-DEFAULT_CSS_URL = cssurl('edgeflip-base-1')
-
-FRAME_FACES = 'frame_faces'
-
-
-class Migration(DataMigration):
-
-    @classmethod
-    def puts(cls, s, *args, **kws):
-        (app, _dir, name) = cls.__module__.split('.')
-        print("[{}:{}]".format(app, name), s.format(*args, **kws))
+class Migration(SchemaMigration):
+    """Add field UserClient.visitor which relies on existing columns (no-op!)"""
 
     def forwards(self, orm):
-        page = orm.Page.objects.get(code=FRAME_FACES)
-
-        try:
-            old_default = page.pagestyles.get(starred=True, client=None, url=OLD_DEFAULT_CSS_URL)
-        except orm.PageStyle.DoesNotExist:
-            if settings.ENV == 'development':
-                self.puts("Skipping page style data migration against development database")
-                return
-            raise
-
-        old_default.starred = False
-        old_default.save()
-        self.puts("Unstarred frame faces default page style for `{}`", old_default.url)
-
-        page.pagestyles.create(
-            name="Edgeflip default faces style v1",
-            description="Default faces stylesheet provided by Edgeflip -- version one",
-            client=None,
-            starred=True,
-            url=DEFAULT_CSS_URL,
-        )
-        self.puts("Starred {} default page style", DEFAULT_CSS_URL)
+        ## Don't!
+        # Adding field 'UserClient.visitor'
+        #db.add_column('user_clients', 'visitor',
+        #              self.gf('django.db.models.fields.related.ForeignKey')(related_name='userclients', db_column='fbid', on_delete=models.DO_NOTHING, default=None, to_field='fbid', to=orm['targetshare.Visitor']),
+        #              keep_default=False)
+        pass
 
     def backwards(self, orm):
-        "Write your backwards methods here."
-        page = orm.Page.objects.get(code=FRAME_FACES)
-
-        new_default = page.pagestyles.get(starred=True, client=None, url=DEFAULT_CSS_URL)
-        new_default.delete()
-
-        old_default = page.pagestyles.get(starred=False, client=None, url=OLD_DEFAULT_CSS_URL)
-        old_default.starred = True
-        old_default.save()
+        ## Don't!
+        # Deleting field 'UserClient.visitor'
+        #db.delete_column('user_clients', 'fbid')
+        pass
 
     models = {
         u'auth.group': {
@@ -266,7 +207,7 @@ class Migration(DataMigration):
             'fallback_content': ('django.db.models.fields.related.ForeignKey', [], {'to': "orm['targetshare.ClientContent']", 'null': 'True'}),
             'fallback_is_cascading': ('django.db.models.fields.NullBooleanField', [], {'null': 'True', 'blank': 'True'}),
             'min_friends': ('django.db.models.fields.IntegerField', [], {'default': '1'}),
-            'num_faces': ('django.db.models.fields.PositiveIntegerField', [], {'default': '9'}),
+            'num_faces': ('django.db.models.fields.PositiveIntegerField', [], {'default': '10'}),
             'root_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'rootcampaign_properties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'})
         },
@@ -711,7 +652,8 @@ class Migration(DataMigration):
             'client': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'userclients'", 'to': "orm['targetshare.Client']"}),
             'create_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'fbid': ('django.db.models.fields.BigIntegerField', [], {}),
-            'user_client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'})
+            'user_client_id': ('django.db.models.fields.AutoField', [], {'primary_key': 'True'}),
+            'visitor': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'userclients'", 'to_field': "'fbid'", 'on_delete': 'models.DO_NOTHING', 'db_column': "'fbid'", 'to': "orm['targetshare.Visitor']"})
         },
         'targetshare.visit': {
             'Meta': {'unique_together': "(('session_id', 'app_id'),)", 'object_name': 'Visit', 'db_table': "'visits'"},
@@ -737,4 +679,3 @@ class Migration(DataMigration):
     }
 
     complete_apps = ['targetshare']
-    symmetrical = True

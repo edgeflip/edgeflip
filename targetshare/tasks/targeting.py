@@ -6,9 +6,9 @@ from collections import namedtuple
 from datetime import timedelta
 
 import celery
+import sentinels
 from celery import shared_task
 from celery.utils.log import get_task_logger
-
 from django.conf import settings
 from django.db.models.loading import get_model
 from django.db.models import Q
@@ -21,6 +21,9 @@ from targetshare.tasks import db
 
 LOG = get_task_logger(__name__)
 LOG_RVN = logging.getLogger('crow')
+
+
+# Configuration constants #
 
 # FIXME: Restore these values to their former glory after we handle
 # null mutual friend counts from FB properly
@@ -42,6 +45,9 @@ PX_REFINE_MAX_COUNT = 500
 # but not px4 filter features, s.t. `px4_filter` defers to px3):
 PX_REFINE_PX3_TIMEOUT = 3
 
+
+# Return types #
+
 FilteringResult = namedtuple('FilteringResult', [
     'ranked',
     'filtered',
@@ -54,28 +60,59 @@ FilteringResult = namedtuple('FilteringResult', [
 empty_filtering_result = FilteringResult._make((None,) * 6)
 
 
-def create_crawl_track_event(event_type, visit_id, visit_type='targetshare.Visit',
-                             campaign_id=None, content_id=None):
-    app, model_name = visit_type.split('.')
+# Reporting helpers #
+
+NOVISIT = sentinels.Sentinel('NOVISIT') # like object() but [un]pickleable by workers
+
+
+def record_visit_event(event_type, visit_id, visit_type='targetshare.Visit',
+                       campaign_id=None, content_id=None):
+    if visit_id is NOVISIT:
+        LOG.debug("Skipping %r event record for non-visit", event_type)
+        return
+    (app, model_name) = visit_type.split('.')
     interaction = get_model(app, model_name).objects.get(pk=visit_id)
-    event = interaction.events.model(
-        visit_id=visit_id,
+    interaction.events.create(
         campaign_id=campaign_id,
         client_content_id=content_id,
         event_type=event_type,
     )
-    db.delayed_save.delay(event)
+
+
+def record_event(interaction, event_type, **kws):
+    if interaction is NOVISIT:
+        LOG.debug("Skipping %r event record for non-visit", event_type)
+        return
+    interaction.events.create(event_type=event_type, **kws)
+
+
+def record_assignment(interaction, **kws):
+    if interaction is NOVISIT:
+        LOG.debug("Skipping assignment record for non-visit")
+        return
+    interaction.assignments.create(**kws)
+
+
+def make_record_assignment(interaction, **kws):
+    if interaction is NOVISIT:
+        LOG.debug("Skipping assignment record for non-visit")
+        return
+    interaction.assignments.create_managed(**kws)
 
 
 def get_recording_args(filtering_args):
     recording_args = {key: filtering_args[key] for key in ('visit_id',)}
-    recording_args.update(
-        (key, filtering_args[key])
-        for key in ('visit_type', 'campaign_id', 'content_id')
-        if key in filtering_args
-    )
+    for key in ('visit_type', 'campaign_id', 'content_id'):
+        try:
+            value = filtering_args[key]
+        except KeyError:
+            pass
+        else:
+            recording_args[key] = value
     return recording_args
 
+
+# Tasks #
 
 def proximity_rank_three(token, **filtering_args):
     """Build the px3 crawl-and-filter chain."""
@@ -90,16 +127,16 @@ def proximity_rank_three(token, **filtering_args):
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
 def px3_crawl(self, token, **recording_args):
     """Crawl and rank a user's network to proximity level three."""
-    create_crawl_track_event('px3_started', **recording_args)
+    record_visit_event('px3_started', **recording_args)
     try:
         user = facebook.client.get_user(token.fbid, token.token)
         edges_unranked = facebook.client.get_friend_edges(user, token.token)
     except IOError as exc:
         if self.request.retries == self.max_retries:
-            create_crawl_track_event('px3_failed', **recording_args)
+            record_visit_event('px3_failed', **recording_args)
         px3_crawl.retry(exc=exc)
 
-    create_crawl_track_event('px3_completed', **recording_args)
+    record_visit_event('px3_completed', **recording_args)
     return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
@@ -117,8 +154,11 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     if fallback_count > settings.MAX_FALLBACK_COUNT:
         raise RuntimeError("Exceeded maximum fallback count")
 
-    app, model_name = visit_type.split('.')
-    interaction = get_model(app, model_name).objects.get(pk=visit_id)
+    if visit_id is NOVISIT:
+        interaction = NOVISIT
+    else:
+        (app, model_name) = visit_type.split('.')
+        interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
     client_content = relational.ClientContent.objects.get(content_id=content_id)
     campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
@@ -156,7 +196,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
     # Apply global filter
     global_filter = campaign.campaignglobalfilters.random_assign()
-    interaction.assignments.create_managed(
+    make_record_assignment(
+        interaction,
         campaign=campaign,
         content=client_content,
         feature_row=global_filter,
@@ -174,7 +215,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     # Assign choice set experiments (and record)
     campaign_choice_sets = campaign.campaignchoicesets.all()
     choice_set = campaign_choice_sets.random_assign()
-    interaction.assignments.create_managed(
+    make_record_assignment(
+        interaction,
         campaign=campaign,
         content=client_content,
         feature_row=choice_set,
@@ -219,7 +261,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
                 "used generic" if choice_set_filters else "none at rank"
             )
             LOG.debug(template, fbid, campaign_id)
-            interaction.assignments.create_managed(
+            make_record_assignment(
+                interaction,
                 campaign=campaign,
                 content=client_content,
                 feature_row=None,
@@ -228,7 +271,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
                 feature_type='generic choice set filter',
             )
         else:
-            interaction.assignments.create_managed(
+            make_record_assignment(
+                interaction,
                 campaign=campaign,
                 content=client_content,
                 feature_row=best_csf.filter_id,
@@ -241,7 +285,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         # We still have slots to fill and can fallback to do so
 
         # Record "fallback" assignments:
-        interaction.assignments.create(
+        record_assignment(
+            interaction,
             campaign=campaign,
             content=client_content,
             feature_type='cascading fallback campaign',
@@ -250,7 +295,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             chosen_from_rows=[properties.pk],
             random_assign=False,
         )
-        interaction.assignments.create(
+        record_assignment(
+            interaction,
             campaign=campaign,
             content=client_content,
             feature_type='cascading fallback content',
@@ -288,17 +334,19 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             else:
                 LOG_RVN.error("No fallback for %s with campaign %s.", fbid, campaign_id)
 
-            interaction.events.create(
+            record_event(
+                interaction,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
                 content=px_rank,
-                event_type='no_friends_error'
+                event_type='no_friends_error',
             )
             return empty_filtering_result._replace(campaign_id=campaign_id,
                                                    content_id=content_id)
 
         # Record "fallback" assignments:
-        interaction.assignments.create(
+        record_assignment(
+            interaction,
             campaign=campaign,
             content=client_content,
             feature_type='cascading fallback campaign',
@@ -307,7 +355,8 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
             chosen_from_rows=[properties.pk],
             random_assign=False,
         )
-        interaction.assignments.create(
+        record_assignment(
+            interaction,
             campaign=campaign,
             content=client_content,
             feature_type='fallback campaign',
@@ -345,7 +394,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
-def proximity_rank_four(self, token, **filtering_args):
+def proximity_rank_four(self, token, freshness=None, **filtering_args):
     """Crawl, filter and rank a user's network to proximity level four, and
     persist the User, secondary Users, Token, PostInteractions and Edges to
     the database.
@@ -354,19 +403,19 @@ def proximity_rank_four(self, token, **filtering_args):
 
     """
     recording_args = get_recording_args(filtering_args)
-    create_crawl_track_event('px4_started', **recording_args)
+    record_visit_event('px4_started', **recording_args)
     try:
-        (stream, edges_ranked) = px4_crawl(token)
+        (stream, edges_ranked) = px4_crawl(token, freshness)
     except IOError as exc:
         if self.request.retries == self.max_retries:
-            create_crawl_track_event('px4_failed', **recording_args)
+            record_visit_event('px4_failed', **recording_args)
         proximity_rank_four.retry(exc=exc)
 
-    create_crawl_track_event('px4_completed', **recording_args)
+    record_visit_event('px4_completed', **recording_args)
     return px4_rank(px4_filter(stream, edges_ranked, fbid=token.fbid, **filtering_args))
 
 
-def px4_crawl(token):
+def px4_crawl(token, freshness=None):
     """Retrieve the user's network from Facebook or from cache in Dynamo.
 
     If the user's network is under DB_MIN_FRIEND_COUNT friends, Facebook is always
@@ -386,7 +435,9 @@ def px4_crawl(token):
             user,
             require_incoming=True,
             require_outgoing=False,
-            max_age=timedelta(days=settings.FRESHNESS),
+            max_age=timedelta(days=(
+                settings.FRESHNESS if freshness is None else freshness
+            )),
         )
         if (
             not friend_count or
