@@ -528,7 +528,6 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         else:
             content = list(content[:1])[0]
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
 
     filters = []
     campaign1 = root_campaign
@@ -542,12 +541,26 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         properties1 = campaign1.campaignproperties.get()
         campaign1 = properties1.fallback_campaign
 
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
     return {
         'client': client,
         'content': content,
         'root_campaign': root_campaign,
-        'campaign_properties': root_campaign.campaignproperties.get(),
-        'fb_obj_attributes': fb_obj_attributes,
+        'campaign_properties': json.dumps(root_campaign.campaignproperties.values(
+            'client_faces_url',
+            'client_thanks_url',
+            'client_error_url',
+        ).get()),
+        'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
+            'og_type',
+            'og_image',
+            'og_title',
+            'og_description',
+            'msg1_pre',
+            'msg1_post',
+            'msg2_pre',
+            'msg2_post',
+        ).get()),
         'filters': json.dumps(filters),
     }
 
