@@ -245,8 +245,7 @@ class Command(BaseCommand):
             tokens = dynamo.Token.items.batch_get(keys)
 
         else:
-            query = dynamo.Token.items.filter(appid__eq=fb_app_id, expires__gt=timezone.now())
-            tokens = query.scan(limit=self.options['limit'])
+            tokens = dynamo.Token.items.scan(appid__eq=fb_app_id, expires__gt=timezone.now())
 
         return tokens.iterable # FIXME
 
