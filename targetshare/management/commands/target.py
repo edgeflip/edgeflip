@@ -2,14 +2,12 @@ import itertools
 import json
 import sys
 import time
-from collections import deque
 from datetime import timedelta
 from optparse import make_option
 from Queue import Queue
 from textwrap import dedent
 from threading import Thread
 
-from celery import group
 from django.core.management.base import CommandError, BaseCommand
 from django.db import connection, transaction
 from django.utils import timezone
@@ -17,14 +15,6 @@ from django.utils import timezone
 from targetshare.integration import facebook
 from targetshare.models import dynamo, relational
 from targetshare.tasks import targeting
-
-
-# Number of tokens to request at once for parallelized debugging
-# (see DEBUG_MAX_THREADS)
-DEBUG_SIZE = 500
-
-# Maximum number of tokens which will be debugged at once (by separate threads)
-DEBUG_MAX_THREADS = 100
 
 
 def _do_debug(queue, results):
@@ -47,101 +37,44 @@ def _do_debug(queue, results):
         queue.task_done()
 
 
-def debug_tokens(tokens, max_threads=DEBUG_MAX_THREADS):
-    """Test a given iterable of Tokens for validity via concurrent requests to
+def debug_tokens(tokens, max_threads, look_ahead=0):
+    """Filter a given iterable of Tokens by validity via concurrent requests to
     the Facebook API.
 
-    Valid, unexpired Tokens are returned in a list.
+    Valid, unexpired Tokens are passed through.
 
     """
-    debugged = []
-    queue = Queue()
-    thread_count = 0
+    queue = Queue(maxsize=(max_threads + look_ahead))
+    results = []
     iterator = iter(tokens)
 
     if max_threads < 1:
         raise ValueError("max_threads must be >= 1")
 
-    while thread_count < max_threads:
-        try:
-            token = next(iterator)
-        except StopIteration:
-            break
-        else:
-            queue.put(token)
-            thread = Thread(target=_do_debug, args=(queue, debugged))
-            thread.setDaemon(True)
-            thread.start()
-            thread_count += 1
-    else:
-        for token in iterator:
-            queue.put(token)
-
-    queue.join()
-
-    for _count in xrange(thread_count):
-        queue.put(None) # relieve debugging threads
-
-    return debugged
-
-
-def _do_task_group(queue, results):
-    """Thread worker that submits enqueued groups of Celery tasks to the message
-    queue and reports their results.
-
-    """
-    while True:
-        subtasks = queue.get()
-
-        if subtasks is None:
-            # Term sentinel; we're done.
-            break
-
-        grp = group(subtasks)
-        async_results = grp.apply_async()
-        while async_results.waiting():
-            # Commit implicit REPEATABLE READ transaction
-            # FIXME: This should've just been one line:
-            # FIXME: results.extend(async_results.join())
-            transaction.commit_unless_managed()
-            time.sleep(0.1)
-        results.extend(async_results.get())
-
-        queue.task_done()
-
-
-def group_subtasks(subtasks, num, size):
-    """Iteratively submit (chunks of) Celery tasks from the given stream to the
-    message queue and stream their results as they arrive.
-
-    """
-    if num < 1:
-        raise ValueError("group num must be >= 1")
-
-    queue = Queue()
-    results = deque()
-
-    for _thread_num in xrange(num):
-        # Start worker
-        thread = Thread(target=_do_task_group, args=(queue, results))
+    # Seed queue and initialize threads
+    initial_tokens = itertools.islice(iterator, max_threads)
+    for (thread_count, token) in enumerate(initial_tokens, 1):
+        queue.put(token)
+        thread = Thread(target=_do_debug, args=(queue, results))
         thread.setDaemon(True)
         thread.start()
 
-    while True:
-        if queue.unfinished_tasks < num:
-            # Share results
-            for _result_num in xrange(min(size, len(results))):
-                yield results.popleft()
+    # Pad queue according to look_ahead
+    for token in itertools.islice(iterator, look_ahead):
+        queue.put(token)
 
-            # Enqueue task group
-            task_group = tuple(itertools.islice(subtasks, size))
-            if not task_group:
-                break # we're already done
-            queue.put(task_group)
+    # Feed remaining tokens to queue and share results as they're returned
+    for token in iterator:
+        # maxsize will block until a slot opens up
+        queue.put(token)
 
-    queue.join() # let them finish (FIXME: ^C)
+        # Share results
+        while results:
+            yield results.pop()
 
-    for _thread_num in xrange(num):
+    queue.join() # let them finish
+
+    for _thread_num in xrange(thread_count):
         queue.put(None) # retire workers
 
     # Share any remaining results
@@ -205,11 +138,9 @@ class Command(BaseCommand):
             help="Number of friends' faces to display [default: 10]"),
         make_option('--freshness', default=90, type=int, metavar="DAYS",
             help='Acceptable age of cached network data in days [default: 90]'),
-        make_option('--task-group-size', default=4, type=int, metavar="NUM",
-            help='Number of ranking tasks to wait on at a time (this should not be more than '
-                 'the number of available Celery workers) [default: 4]'),
-        make_option('--task-groups', default=3, type=int, metavar="NUM",
-            help='Number of groups of ranking tasks to maintain in parallel [default: 3]'),
+        make_option('--concurrency', default=12, type=int, metavar="NUM",
+            help='Number of concurrent targeting tasks to run, (and concurrent '
+                 'token debugging threads, if applicable) [default: 12]'),
     )
 
     def __init__(self):
@@ -228,22 +159,6 @@ class Command(BaseCommand):
         """Write the given string to stderr as allowed by the verbosity."""
         if self.verbosity >= verbosity:
             self.stderr.write(msg)
-
-    def pplain(self, msg, verbosity=1):
-        """Write the given string to stdout as allowed by the verbosity.
-
-        No "new line" character is forced onto the end of the string; it is
-        printed "plain".
-
-        A Boolean is returned indicating whether the message was allowed by the
-        verbosity setting, (which may be used to determine whether to flush
-        stdout).
-
-        """
-        if self.verbosity >= verbosity:
-            self.stdout.write(msg, ending='')
-            return True
-        return False
 
     def handle(self, campaign_id, client_content_id, fbidfile=None, **options):
         if fbidfile and (options['limit'] or options['random']):
@@ -264,25 +179,26 @@ class Command(BaseCommand):
         token_stream = self.stream_tokens(fbidfile)
 
         if options['debug']:
-            token_stream = self.debug_stream(token_stream)
+            token_stream = debug_tokens(token_stream,
+                                        max_threads=options['concurrency'],
+                                        look_ahead=(options['concurrency'] / 2))
 
         tokens = itertools.islice(token_stream, options['limit'])
-        subtasks = self.spawn_subtasks(tokens)
+        tasks = self.spawn_tasks(tokens)
 
         self.pout("targeting networks at proximity rank four with campaign {} "
                   "and client content {}".format(campaign_id, client_content_id))
 
         # Stream chunked tasks' network results thru chosen view to STDOUT
-        # grouped tasks => view => STDOUT
+        # tasks => results => view => STDOUT
 
-        results = group_subtasks(subtasks,
-                                 self.options['task_groups'],
-                                 self.options['task_group_size'])
+        results = self.apply_tasks(tasks, max_size=options['concurrency'])
         view = getattr(ResultView(self), options['display'])
         for display_line in view(results):
             self.stdout.write(display_line)
 
     def stream_tokens(self, fbidfile):
+        """Generate user tokens."""
         fb_app_id = self.campaign.client.fb_app_id
 
         if fbidfile:
@@ -333,23 +249,8 @@ class Command(BaseCommand):
 
         return tokens.iterable # FIXME
 
-    def debug_stream(self, token_stream):
-        debug_size = DEBUG_SIZE
-        if self.options['limit'] and self.options['limit'] < debug_size:
-            debug_size = self.options['limit']
-
-        head = ()
-        while True:
-            batch = itertools.islice(token_stream, debug_size - len(head))
-            full_batch = itertools.chain(head, batch)
-            for token in debug_tokens(full_batch):
-                yield token
-
-            # Force exhausted stream to raise StopIteration for us
-            # (rather than iterating over empty slices forever)
-            head = (next(token_stream),)
-
-    def spawn_subtasks(self, tokens):
+    def spawn_tasks(self, tokens):
+        """Generate task signatures from the given stream of tokens."""
         for token in tokens:
             yield targeting.proximity_rank_four.s(
                 token,
@@ -360,3 +261,41 @@ class Command(BaseCommand):
                 force=True,                         # always perform filtering
                 visit_id=targeting.NOVISIT,         # don't record events against any visit
             )
+
+    def apply_tasks(self, tasks, max_size, wait=0.1):
+        """Iteratively submit (chunks of) Celery tasks from the given stream to the
+        message queue, and stream their results as they arrive.
+
+        """
+        if max_size < 1:
+            raise ValueError("max_size must be >= 1")
+
+        queue = []
+        iterable = iter(tasks)
+
+        while True:
+            # Populate / top-off the queue with Celery tasks to monitor
+            for task in itertools.islice(iterable, (max_size - len(queue))):
+                async_result = task.apply_async()
+                queue.append(async_result)
+
+            if not queue:
+                break # no tasks left to monitor
+
+            # Give tasks (and database) a moment
+            time.sleep(wait)
+
+            # Check on active tasks
+            for async_result in queue:
+                if async_result.ready():
+                    # Report completed task result and remove from queue
+                    queue.remove(async_result)
+
+                    if async_result.successful():
+                        yield async_result.get()
+                    else:
+                        self.perr("Task failed: [{}] {}".format(async_result.id,
+                                                                async_result.result))
+
+            # Commit implicit REPEATABLE READ transaction
+            transaction.commit_unless_managed()
