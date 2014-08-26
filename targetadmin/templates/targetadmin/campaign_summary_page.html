@@ -1,25 +1,51 @@
-{% extends "targetadmin/base.html" %}
-{% block title %}Campaign Summary{% endblock %}
+{% extends "targetadmin/page.html" %}
+{% comment %}added new base template for require js stack {% endcomment %}
 
-{% block content %}
-    <div class="row">
-        <h2 class="page-header" style="text-align: center;">Campaign Summary</h2>
-    </div>
-    <div class="row">
-        <div class="span3">
-        </div>
-        <div class="span6 campaign-box">
+{% block title %}{{ client.name }}{% endblock %}
 
-            {% include 'targetadmin/includes/campaign_summary.html' %}
+{% block require %}
+    require(
+        [
+          'app',
+          'views/sidebar',
+          'views/campaignSummary',
+        ], function(app, sidebar, CampaignSummary) {
 
-            <div class="row">
-                <div id="buttons" style="padding-bottom: 40px; text-align:center;">
-                    <a href="{% url 'targetadmin:client-detail' client.pk %}" class="btn btn-primary">Return Home</a>
-                </div>
-            </div>
-        
-        </div>
+        var campaignSummary = new CampaignSummary({
+            client: "{{ client|safe }}",
+            content: "{{ content|safe }}",
+            root_campaign: "{{ root_campaign|safe }}",
+            campaign_properties: {{ campaign_properties|safe }},
+            fb_obj_attributes: {{ fb_obj_attributes|safe }},
+            filters: {{ filters|safe }},
+            token: "{% csrf_token %}"
+        });
 
-        <div class="span3"></div>
-    </div>
+        /* sidebar is already instantiated (singleton pattern),
+           give it data to work with -- TODO: tie reporting url to
+           nav data structure */
+        sidebar.setup( {
+            model: new Backbone.Model( {
+                state: 'campaignSummary',
+                logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                nav: [
+                    { name: 'campaigns',
+                      label: 'Campaigns',
+                      glyphClass: 'glyphicon glyphicon-share',
+                      view: true
+                    },
+                    { name: 'reports',
+                      label: 'Reports',
+                      glyphClass: 'glyphicon glyphicon-stats'
+                    },
+                    { name: 'help',
+                      label: 'Help',
+                      glyphClass: 'glyphicon glyphicon-info-sign'
+                    }
+                ]
+            } ),
+            views: { campaignSummary: campaignSummary },
+            reportingDashboardURL: "{% url 'reporting:main' %}"
+        } ).render();
+    } );
 {% endblock %}

@@ -1,0 +1,50 @@
+<section class="col-sm-10 campaign-summary">
+    <div class="row divided">
+        <div class="col-sm-9">
+            <h1 class="heading">{{ campaign.name }}</h1>
+        </div>
+        <div class="col-sm-3">
+            <button data-js="createCampaignBtn" type="button" class="btn create-campaign-btn">Create Campaign</button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="group">
+            <div class="name">Campaign Name</div>
+            <div class="value">{{ campaign.name }}</div>
+        </div>
+
+        {{#each campaign.filters}}
+            <div class="group">
+                <div class="name">Audience {{@index}}</div>
+                {{#each this}}
+                    {{#each this}}
+                        <div class="value">{{operator}} {{feature}} {{value}}</div>
+                    {{/each}}
+                {{/each}}
+            </div>
+        {{/each}}
+        <div class="group">
+            <div class="name">Friend Suggestion Page</div>
+            <div class="value">Headline: </div>
+            <div class="value">Sub-header: </div>
+            <div class="value">Thanks URL: <a href="{{ campaign.thanks_url }}">{{ campaign.thanks_url }}</a></div>
+            <div class="value">Error URL: <a href="{{ campaign.error_url }}">{{ campaign.error_url }}</a></div>
+        </div>
+        <div class="group">
+            <div class="name">Facebook Post</div>
+            <div class="value">Cause or Organization: {{ campaign.og_type }}</div>
+        </div>
+
+        <div class="group">
+            <div class="value">Suggested Message 1: {{ campaign.suggested_message_1 }}</div>
+            <div class="value">Suggested Message 2: {{ campaign.suggested_message_2 }}</div>
+        </div>
+
+        <div class="group">
+            <div class="value">Post Image: <img src="{{ campaign.og_image }}"></div>
+            <div class="value">Post Title: {{ campaign.og_title }}</div>
+            <div class="value">Post Text: {{ campaign.og_text }}</div>
+            <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
+        </div>
+    </div>
+</section>
