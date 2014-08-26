@@ -1,3 +1,17 @@
+/* This was implemented before the redesign and used in the old
+   wizard and campaign summary ( why its not a module ).
+   filterCollection is a backbone collection of backbone models
+   that describe a filter type.  A base model rather than generic defaults
+   is probably a better idea */
+   
+/* At the moment, this code is used to take a json object from the server
+   that is a list of campaign filters and generates a filter collection.
+   Get readable generates a human readable description for the wizard user,
+   parse takes data from the server and applies more naturally named attributes
+   to the model, defaults is self documenting code for the most part, on instantiation
+   it adds the default attributes, values.  See Backbone documentation for more details. */
+
+
 var filterCollection;
 
 ( function( $ ) {
@@ -89,6 +103,8 @@ var filterCollection;
         }
     });
 
+    /* "url" attribute tells Backbone where to fetch the data,
+       "model" returns the appropriate model to be added to the collection */
     filterCollection = Backbone.Collection.extend( {
 
         url: function() {

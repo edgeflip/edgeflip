@@ -1,3 +1,4 @@
+/* campaign wizard's intro sub view model */
 define(
     [
       'jquery',
@@ -11,11 +12,13 @@ define(
     function( $, _, Backbone, modal, template, nameTemplate ) {
 
         return Backbone.View.extend( {
-            
+           
+            /* show modal when user clicks get started button */ 
             events: {
                 "click button[data-js='getStartedBtn']": "promptForCampaignName"
             },
 
+            /* if we are editing a campaign, show the modal that prompts for a name */
             initialize: function( options ) {
 
                 _.extend( this, options ); 
@@ -31,6 +34,7 @@ define(
                 return this;
             },
 
+            /* standard render, may be best to have a campaign view base class for DRY */
             render: function() {
 
                 if( this.hide ) { this.$el.hide(); }
@@ -42,6 +46,9 @@ define(
                 return this;
             },
 
+            /* update modal content, show it.  This is a little over
+               complicated by the fact that the content is recreated every time
+               the get started button is clicked. */
             promptForCampaignName: function() {
                 modal.update( {
                     body: '',
@@ -60,6 +67,10 @@ define(
                 }
             },
 
+            /* before we go to the next step, make sure we have a valid campaign
+               name ( non empty ), again this may be better in a base class as its
+               done in other views, albeit differently.  If not valid, show error
+               feedback. */
             validateName: function() {
 
                 if( $.trim( this.templateData.formInput.val() ) !== '' ) {
@@ -81,8 +92,9 @@ define(
                 }
             },
 
+            /* go to the next view, whatever it is */
             goToNextStep: function() {
-                modal.off('confirmed', this.triggerNextStep );
+                modal.off('confirmed', this.triggerNextStep ); // don't need this anymore
                 this.model.set('name', modal.$el.find('input[name="name"]').val() );
                 modal.templateData.modalContainer.modal('hide');
                 this.trigger('nextStep');

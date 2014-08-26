@@ -1,3 +1,5 @@
+/* Module that exports a campaign wizard base view, should have
+   more added to it */
 define(
     [
       'jquery',
@@ -7,8 +9,11 @@ define(
      
         return Backbone.View.extend( {
 
-            // when validation is more nuanced, it may be better to move them to
-            // the campaign wizard model 
+            /* when validation is more nuanced, it may be better to move them to
+               a campaign wizard model, see backbone model documentation,
+               it looks at all templateData formInputs that don't have
+               'data-type' attrbutes that are no of "optional" value, and makes
+               sure they aren't empty, if they are, add bootstrap error stuff */
             validateInputs: function() {
                 
                 var allValid = true,

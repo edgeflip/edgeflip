@@ -1,3 +1,4 @@
+/* Module exporting the faces section of the campaign wizard */
 define(
     [
       'jquery',
@@ -8,6 +9,7 @@ define(
     ],
     function( $, _, Backbone, imageCompanion, template ) {
 
+        /* Note this extends the imageCompanion view */
         return imageCompanion.extend( {
 
             template: template,
@@ -22,6 +24,7 @@ define(
                 );
             },
 
+            /* call image companion initialization, listen for validation */
             initialize: function(options) {
 
                 imageCompanion.prototype.initialize.call(this, options);
@@ -31,6 +34,9 @@ define(
                 return this;
             },
 
+            /* data structure which maps the input elements to
+               the popover displayed on the image -- I'd say
+               put this on the server, in the db */
             fields: {
                 'sharing_prompt': {
                     hoverText: 'Your headline will go here.',

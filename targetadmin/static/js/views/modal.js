@@ -1,3 +1,5 @@
+/* Module implementing bootstrap's modal dialog.
+   See bootstrap 3.1.1 documentation for more details */
 define(
     [
       'jquery',
@@ -8,9 +10,10 @@ define(
     ],
     function( $, _, Backbone, template ) {
 
-        //Singleton pattern
+        /* Singleton pattern, every define([ 'views/modal'[) will return this object */
         return new ( Backbone.View.extend( {
-           
+          
+            /* confirm button clicked calls triggerConfirmed method * / 
             events: {
                 'click button[data-js="confirmBtn"]': 'triggerConfirmed'
             },
@@ -22,6 +25,7 @@ define(
                 return this;
             },
 
+            /* places template in DOM */
             render: function() {
 
                 this.slurpHtml( {
@@ -31,6 +35,7 @@ define(
                 return this;
             },
 
+            /* a little sloppy -- adds content, other options for customization */
             update: function( options ) {
 
                 var self = this;
@@ -40,6 +45,7 @@ define(
 
                 if( options ) {
 
+                    /* a lot of content to display, add custom css */
                     if( options.longContent ) {
                         this.templateData.modalContainer
                             .addClass('long-content')
@@ -72,6 +78,7 @@ define(
                 return this;
             },
 
+            /* fires event letting everyone know the 'confirm button was clicked */
             triggerConfirmed: function() {
                 this.trigger('confirmed');
             }

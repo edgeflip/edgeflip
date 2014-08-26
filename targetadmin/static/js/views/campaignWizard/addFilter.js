@@ -1,3 +1,7 @@
+/* Module for Adding a filter in the campaign wizard
+   -- currently placed in a bootstrapped modal.  This was a little
+   rushed.  It should all work, but its noisy code, not thought
+   through enough. */
 define(
     [
       'jquery',
@@ -25,6 +29,9 @@ define(
 
             model: new ( Backbone.Model.extend( { state: undefined } ) )(),
 
+            /* It would be better to have the filter option metadata
+               coming back on an ajax request, so we don't need to hardcode
+               anything here */
             initialize: function( options ) {
 
                 _.extend( this, options ); 
@@ -57,8 +64,8 @@ define(
                 ];
                 
                 this.render()
-                    .bindAgeSlider()
-                    .bindStatesTypeahead();
+                    .bindAgeSlider() // don't think this is needed
+                    .bindStatesTypeahead(); // don't think this is needed
 
                 return this;
             },
@@ -72,6 +79,7 @@ define(
                 return this;
             },
 
+            /* jQuery UI slider -- see docs */
             bindAgeSlider: function() {
                 var self = this,
                     initialMin = 25,
@@ -94,6 +102,7 @@ define(
                 return this;
             },
 
+            /* bootstrap3 typeahead plugin, not from bootstrap, but some dude */
             bindStatesTypeahead: function() {
 
                 this.templateData.locationInput.filter('*[data-type="state"]').typeahead( {
@@ -104,6 +113,8 @@ define(
                 return this;
             },
 
+            /* called when modal is shown, this should be fired on a listener instead
+               of directly called by the filters campaign view */
             shown: function() {
 
                 var self = this;
@@ -118,6 +129,7 @@ define(
                     modal.off( 'confirmed', self.addFilter ); } );
             },
 
+            /* Filter type has been selected, show the proper UI */
             showFilterTypeUI: function(e) {
 
                 var clickedEl = $(e.currentTarget);
@@ -129,6 +141,7 @@ define(
                 this.templateData.filterTypeUI.filter( '*[data-type="' + this.model.get('state') + '"]' ).removeClass('hide').fadeIn();
             },
 
+            /* After a dropdown value has been selected, updated the text shown */
             updateDropdownLabel: function(e) {
                
                 var clickedEl = $(e.currentTarget);
@@ -138,6 +151,7 @@ define(
                 return this;
             },
 
+            /* Called when a filter value has been selected (male,female) */
             filterValueSelected: function(e) {
 
                 this.updateDropdownLabel(e);
@@ -145,6 +159,7 @@ define(
                 this.model.set( 'value', $(e.currentTarget).data('value') );
             },
 
+            /* Show either state, or city location input */
             locationTypeSelected: function(e) {
 
                 var clickedEl = $(e.currentTarget);
@@ -161,6 +176,7 @@ define(
                 this.templateData.addLocationBtn.text( 'Add ' + clickedEl.text() );
             },
 
+            /* location added, put it in box, to await others joining */
             addLocationToFilter: function() {
 
                 var inputEl = this.templateData.locationInput.filter(':visible'),
@@ -175,6 +191,8 @@ define(
                 }
             },
 
+            /* location removed, remove it from box
+                potential bug: should remove location after fadeOut */
             removeProposedLocation: function(e) {
                 $(e.currentTarget).parent().fadeOut();    
 
@@ -183,6 +201,8 @@ define(
                 }
             },
 
+            /* user clicks add filter, so we create a filter model based on the
+               options selected, the rest is handled by the filters campaign view */
             addFilter: function() {
 
                 var state = this.model.get('state');

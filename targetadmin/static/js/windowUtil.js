@@ -1,3 +1,5 @@
+/* Module that exports a utility object to help with
+   scrolling, and various DOM dimensions */
 define( [ 'jquery' ], function( $ ) {
     
     var windowUtil = function() {

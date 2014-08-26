@@ -1,0 +1,49 @@
+August 2014
+Extra Front End Notes
+
+I started building a more modern approach to the front end for the client-detail view.
+It utilizes the client_home.html template and is only used for users associated with a
+single client.
+
+It utilizes require.js for file and module loading.  Currently, any file being required
+is grabbed asycnhronously at runtime.  For optimal production environments, it is
+encouraged to use the r.js optimizer ( grunt.js can help ) in order to package all of your necessary files
+into a single, minified file that reduces tcp/ip requests greatly.  Also, I'm utilizing a
+require.js CSS plugin (https://github.com/guybedford/require-css) which allows you to
+specify a CSS file dependency which is injected into the DOM.  This is nice from a modularity standpoint,
+a Backbone view's template, model, and styling can all be referenced in a single file,
+and one doesn't need deal with link tags.  Another require.js plugin being used is a font plugin
+(https://github.com/millermedeiros/requirejs-plugins) to load our typekit fonts asychronously
+and have require let us know when they've been evaluated so that we won't have to deal with
+font styles switching before the users eyes.
+
+It utilizes Backbone.  You can read all you want about Backbone.  I mostly utilized its views as
+it would have taken too long to break up the backend code into smaller more RESTlike functions
+so that Backbone models and collections could be utilized.  I encourage the use of its Router
+object if the application continues on a more single page like application.
+Note targetadmin/static/js/extendBackbone.js which adds the slurpHtml function which I use
+heavily in views.
+
+It utilizes grunt.js.  The application currently does one thing with grunt --
+a watcher task is used to check file writes to the targetadmin/static/hbs/**/*.hbs and
+targetadmin/static/less/**/*.less, when a write occurs, the corresponding handlebars.js, or LESS
+complier runs on the newly written file, generating output in targetadmin/static/templates/**/*.js
+or targetadmin/static/css/**/*.css respectively.  To get grunt up and running on your machine :
+
+install node.js -- (http://nodejs.org/download/)
+
+from the edgeflip directory
+`cd targetadmin/grunt`
+`npm install -g grunt-cli` -- installs grunts cli
+`sudo npm install` -- installs node nodules used by our application
+`grunt watch` -- to start watch task
+
+It utilizes the LESS framework.  Simply a CSS preprocessor.  One can define functions
+(mixins), use variables, nested stylesheets, and much more so that writing CSS isn't so painful.  Take note of
+targetadmin/static/less/colors.less and targetadmin/static/less/mixins.less for
+our color scheme and current mixins.  Create a LESS file, CSS gets generated, have require
+include it when you need it.
+
+
+Please let me know if more needs to be added here, problems, questions, etc.
+--Chris Baron topherbaron@gmail.com.
