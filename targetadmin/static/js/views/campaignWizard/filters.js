@@ -1,3 +1,6 @@
+/* Module for the Filters section of the Campaign Wizard.
+   Too many templates for one view -- perhaps they should
+   go into their own module */
 define(
     [
       'jquery',
@@ -15,7 +18,8 @@ define(
     function( $, _, Backbone, FilterCollection, modal, addFilter, template, filterLayerTemplate, filtersInfoTemplate, filterTemplate ) {
 
         return Backbone.View.extend( {
-            
+  
+            /* see templates for more information */
             events: {
                 'click *[data-js="moreInfoBtn"]': 'showFilterInfo',
                 'click *[data-js="emptyFallbackHelpBtn"]': 'showEmptyFallbackInfo',
@@ -31,12 +35,15 @@ define(
 
                 _.extend( this, options ); 
 
+                /* Whenever a filter is added to the collection addAvailableFilter will be invoked. */
                 this.availableFilters = 
                 addFilter.availableFilters = new FilterCollection(
                     [ ], 
                     { clientId: this.model.get('clientId') } 
                 ).on( 'add', this.addAvailableFilter, this );
 
+                /* If we are editing a campaign, update the UI to show the current filters
+                   enabled. */
                 if( this.campaignModel ) {
                     this.availableFilters.on( 'sync', this.reflectCampaignState, this );
                 }
@@ -52,6 +59,7 @@ define(
                 return this;
             },
 
+            /* slurp and insert out main template, */
             render: function() {
 
                 if( this.hide ) { this.$el.hide(); }
@@ -67,8 +75,10 @@ define(
 
             renderFilters: function() {
 
+                /* (backbone.model) send an ajax request for the filters */
                 this.availableFilters.fetch();
 
+                /* I don't think this if statement is needed */ 
                 if( ! this.model.has('filters') ) {
 
                     this.slurpHtml( {
@@ -82,6 +92,7 @@ define(
                 }
             },
 
+            /* Adds a client filter into the Available Filter box */
             addAvailableFilter: function(filter) {
 
                 this.templateData.availableFilters.append(
@@ -89,6 +100,7 @@ define(
                 );
             },
 
+            /* Add fallback button is clicked */
             addFallbackLayer: function(e) {
 
                 var clickedButton = $(e.currentTarget);
@@ -119,6 +131,10 @@ define(
                 return this;
             },
 
+            /* Called when a filter is moved from one layer to another, or back to the available
+               filters container.  This is a hack to handle age filters.  On the back end it is
+               two existing filters, on the front, it is one filter for display with two associated
+               filters hiding for the backend */
             filterReceived: function( event, ui ) {
                 var dataLink = ui.item.attr('data-link');
                 if( dataLink ) {
@@ -126,6 +142,7 @@ define(
                 }
             },
 
+            /* jQuery ui draggable (sortable) stuff */
             addDraggableFunctionality: function() {
 
                 var sortableElements = this.$el.find('*[data-type="sortable"]');
@@ -138,6 +155,7 @@ define(
                 return this;
             },
 
+            /* handles double click on a filter */
             moveFilter: function(e) {
 
                 var dblClickedFilter = $(e.currentTarget);
@@ -151,6 +169,7 @@ define(
                 }
             },
 
+            /* 'X' (remove layer) is clicked */ 
             removeLayer: function(e) {
                 
                 var layerContainer = $(e.currentTarget).closest('*[data-js="filterLayer"]'),
@@ -177,6 +196,7 @@ define(
                 this.model.set('filterLayerCount', this.model.get('filterLayerCount') - 1 );
             },
 
+            /* after a layer removal make sure the labels still make sense ( numbers ) */
             updateFallbackLabels: function() {
 
                 _.each( this.templateData.enabledFiltersContainer.children(), function( filterLayerContainer, i ) {
@@ -188,10 +208,13 @@ define(
                 
             },
 
+            /* should be in base class, updates campaign name in header if it changes */
             updateName: function() {
                 this.templateData.campaignName.text( this.model.get('name') );
             },
 
+            /* Potential bug: 'filterLayerCount' should be updated here */
+            /* Adds current campaign filter state to ui */
             reflectCampaignState: function() {
                 var campaignFilters = this.campaignModel.get('filters');
                 _.each( campaignFilters, function( filterLayer, i ) {
@@ -213,6 +236,7 @@ define(
                 }, this );
             },
 
+            /* shows modal with information regarding how filters work */ 
             showFilterInfo: function() {
                 modal.update( {
                     body: filtersInfoTemplate,
@@ -224,6 +248,7 @@ define(
                 
             },
 
+            /* shows modal with information regarding how empty fallbacks work */ 
             showEmptyFallbackInfo: function() {
                 modal.update( {
                     body: filtersInfoTemplate,
@@ -235,6 +260,7 @@ define(
                 modal.templateData.modalContainer.modal();
             },
 
+            /* shows modal with add filter view as content */ 
             showAddFilter: function() {
 
                 modal.update( {
@@ -248,7 +274,8 @@ define(
 
                 addFilter.shown();
             },
-            
+           
+            /* Handles the age filter hack (described above) when an age filter is created */
             updateAgeFilterUI: function() {
 
                 var min = this.availableFilters.at( this.availableFilters.length - 2 ).get('min'),
@@ -267,6 +294,8 @@ define(
                 this.templateData.availableFilters.append( combinedAgeFilter );
             },
 
+            /* translates filters into input element value for the backend to handle before
+               heading to the next step this format was not done by cbaron, it is not good */
             prepareFormFieldValues: function() {
 
                 _.each( _.range( 1, this.model.get('filterLayerCount') + 1 ), function( i ) {
@@ -283,6 +312,7 @@ define(
                 this.trigger('nextStep');
             },
 
+            /* back is clicked */
             goBack: function() {
                 this.trigger('previousStep');
             }

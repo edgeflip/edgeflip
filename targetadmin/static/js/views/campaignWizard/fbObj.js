@@ -1,3 +1,4 @@
+/* Module exporting the facebook post "object" section of the campaign wizard */
 define(
     [
       'jquery',
@@ -9,10 +10,13 @@ define(
     ],
     function( $, _, Backbone, imageCompanion, template ) {
 
+        /* Note this extends the imageCompanion view */
         return imageCompanion.extend( {
             
             template: template,
 
+            /* add some events on top of whatever the image companion
+               is doing */
             events: function() {
                 return _.extend( 
                     imageCompanion.prototype.events,
@@ -23,6 +27,9 @@ define(
                 );
             },
 
+            /* data structure which maps the input elements to
+               the popover displayed on the image -- I'd say
+               put this on the server, in the db */
             fields: {
                 'org_name': {
                     hoverText: 'The cause or organization you enter will appear here.',

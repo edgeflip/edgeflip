@@ -1,3 +1,13 @@
+/* Module that exports the image companion module, ued by the faces, and fb object views.
+   Note that this includes its own css file.  Rather than have this view add
+   classes to elements in views that inherit from it, I simply added the classes in the
+   child templates.  This was probably a mistake.  These are the classes necessary
+   for the image companion views :
+       .companion-image ( on <img> tag )
+       .input-container ( on <input> container )
+       .image-container ( on <img> container )
+       .popover-target ( on popover element )
+    */
 define(
     [
       'jquery',
@@ -7,16 +17,19 @@ define(
       'views/campaignWizard/util/base',
       'css!styles/campaignWizard/imageCompanion'
     ], function( $, _, Backbone, windowUtil, BaseView ) {
-     
+    
+        /* Notice this inherits functionality from a base view */ 
         return BaseView.extend( {
 
             companionModel: new Backbone.Model(),
 
+            /* when an input is focused or loses focus, I want to know! */
             events: {
                 'focus input,textarea': 'fieldFocused',
                 'blur input,textarea': 'fieldBlurred'
             },
 
+            /* listen for 'shown' event on myself to call postRender */
             initialize: function( options ) {
 
                 _.extend( this, options ); 
@@ -28,6 +41,7 @@ define(
                 return this;
             },
 
+            /* adds template to DOM */
             render: function() {
 
                 if( this.hide ) { this.$el.hide(); }
@@ -40,11 +54,16 @@ define(
                     ),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
+                /* if we are editing a campaign, update fields */
                 if( this.campaignModel ) { this.reflectCampaignState(); }
                 
                 return this;
             },
 
+            /* this view has been shown to the user, initialize popup,
+               gather information on the dimensions of our image when
+               it has loaded, bind window resize to something so we still
+               look okay */
             postRender: function() {
 
                 this.templateData.popoverEl.popover( {
@@ -65,6 +84,7 @@ define(
                 return this; 
             },
 
+            /* update input values to reflect campaign data */
             reflectCampaignState: function() {
 
                 _.each( this.campaignModel.keys(), function( key ) {
@@ -73,7 +93,9 @@ define(
                     );
                 }, this );
             },
-            
+           
+            /* when a field is focused update our model, scroll so that
+               it is in the center of the page */ 
             fieldFocused: function(e) {
                 var currentInputEl = $(e.currentTarget);
                 this.companionModel.set( 'currentEl', currentInputEl );
@@ -83,12 +105,15 @@ define(
                 return this;
             },
 
+            /* when a field loses focus hide the popover, update our model */
             fieldBlurred: function() {
                 this.templateData.popoverEl.popover('hide');
                 this.companionModel.set( 'currentField', null );
                 this.companionModel.set( 'currentEl', null );
             },
 
+            /* update our model with the dimensions of the div that is our
+               image element's parent */
             setImageContainerBBox: function() {
                 var offset = this.templateData.imageContainer.offset();
 
@@ -98,6 +123,14 @@ define(
                 } );
             },
 
+            /* This function not only scrolls the window to our focused field,
+               it also moves our image such that its vertical middle is in line with
+               the focused field.
+               scrollTop: the value of where we want to scroll the window
+               maxDifference: the difference in height between our image, and its container,
+                 the maximum we can move our image inside its container
+               difference: the distance between the focused field, and the center of our image
+            */
             scrollToCurrentField: function() {
 
                 var fieldElTop = this.companionModel.get('currentEl').offset().top,
@@ -109,7 +142,9 @@ define(
                 else if( difference > maxDifference ) { difference = maxDifference; }
 
                 this.templateData.imageContainer.animate( { 'top': difference } );
-            
+           
+                /* we do not need to scroll the number under the following circumstances.
+                   if we do not need to scroll the window, just show the popover */ 
                 if( ( windowUtil.scrollTop >= windowUtil.maxScroll && scrollTop >= windowUtil.maxScroll ) ||
                     ( windowUtil.scrollTop === scrollTop ) || 
                     ( windowUtil.scrollTop === 0 && scrollTop <= 0 ) ) {
@@ -127,6 +162,7 @@ define(
                 return this;
             },
 
+            /* see bootstrap's docs for more info */
             showPopover: function() {
 
                 if( this.companionModel.has('currentField') ) {
@@ -135,6 +171,8 @@ define(
                 }
             },
 
+            /* put the popover over the image, or next to the field depending on
+               the metadata of the field set in the inheriting view */
             updatePopoverPosition: function() {
                 var currentField = this.fields[ this.companionModel.get('currentField') ],
                     currentEl = this.companionModel.get('currentEl');
@@ -158,6 +196,8 @@ define(
                 }
             },
 
+            /* if the window resizes, recalculate stuff so that our animations, popover, and
+               scrolling still functions */
             windowResized: function() {
 
                 this.setImageDimensions()
@@ -170,6 +210,9 @@ define(
                 }
             },
 
+            /* the coordinates set in inheriting views are for the original image size,
+               so we need to handle things when the the image gets rendered to a size
+               that fits on the screen */
             setMultiplier: function() {
                 this.companionModel.set( {
                     multiplierX: this.companionModel.get('imageWidth') / this.companionModel.get('originalImageWidth'),
@@ -179,6 +222,7 @@ define(
                 return this;
             },
 
+            /* update our model */
             setImageDimensions: function() {
                 this.companionModel.set( {
                     imageWidth: this.templateData.companionImage.width(),
@@ -188,6 +232,7 @@ define(
                 return this;
             },
 
+            /* the image has loaded, update our model */
             imageLoaded: function() {
                 this.companionModel.set( {
                     originalImageHeight: this.templateData.companionImage.height(),
@@ -205,21 +250,23 @@ define(
                 return this;
             },
 
-        setBoundingBoxData: function() {
-            var inputContainerOffset = this.templateData.inputContainer.offset();
+            /* update our model */
+            setBoundingBoxData: function() {
+                var inputContainerOffset = this.templateData.inputContainer.offset();
 
-            this.setImageContainerBBox();
+                this.setImageContainerBBox();
 
-            this.companionModel.set( {
-                inputContainerTop: inputContainerOffset.top,
-                inputContainerLeft: inputContainerOffset.left,
-                inputContainerHeight: this.templateData.inputContainer.outerHeight( true ),
-            } );
+                this.companionModel.set( {
+                    inputContainerTop: inputContainerOffset.top,
+                    inputContainerLeft: inputContainerOffset.left,
+                    inputContainerHeight: this.templateData.inputContainer.outerHeight( true ),
+                } );
 
-            return this;
-        },
+                return this;
+            },
 
-        getPopoverText: function() { return this.fields[ this.companionModel.get('currentField') ].hoverText; },
-        getPopoverPlacement: function() { return this.fields[ this.companionModel.get('currentField') ].placement; }
+            /* see bootstrap docs for more info, determines placement, content for popover */
+            getPopoverText: function() { return this.fields[ this.companionModel.get('currentField') ].hoverText; },
+            getPopoverPlacement: function() { return this.fields[ this.companionModel.get('currentField') ].placement; }
     } );
 } );
