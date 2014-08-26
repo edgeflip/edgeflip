@@ -210,7 +210,7 @@ class Migration(SchemaMigration):
             'num_faces': ('django.db.models.fields.PositiveIntegerField', [], {'default': '10'}),
             'root_campaign': ('django.db.models.fields.related.ForeignKey', [], {'related_name': "'rootcampaign_properties'", 'null': 'True', 'to': "orm['targetshare.Campaign']"}),
             'start_dt': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
-            'status': ('django.db.models.fields.CharField', [], {'default': "'published'", 'max_length': '32'})
+            'status': ('django.db.models.fields.CharField', [], {'default': "'draft'", 'max_length': '32'})
         },
         'targetshare.campaignproximitymodel': {
             'Meta': {'object_name': 'CampaignProximityModel', 'db_table': "'campaign_proximity_models'"},
