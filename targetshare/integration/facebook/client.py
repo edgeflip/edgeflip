@@ -248,6 +248,8 @@ def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
         try:
             paginated_data = urlload(
                 url, timeout=timeout)
+        except (OAuthException):
+            raise
         except (ValueError, IOError):
             LOG.debug('Failed to grab next page of data')
             retry_count += 1
