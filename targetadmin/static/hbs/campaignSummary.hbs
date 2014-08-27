@@ -7,26 +7,45 @@
             <button data-js="createCampaignBtn" type="button" class="btn create-campaign-btn">Create Campaign</button>
         </div>
     </div>
+    {{#if campaign.is_published}}
+    {{else}}
+        <div class="row"><div class="group">
+            Nice job! You've successfully created a Targeted Sharing campaign. Here's your campaign summary—please make sure everything looks right before you hit "Publish Now."
+        </div></div>
+    {{/if}}
     <div class="row">
         <div class="group">
             <div class="name">Campaign Name</div>
             <div class="value">{{ campaign.name }}</div>
         </div>
 
-        {{#each campaign.filters}}
+        {{#each campaign.cleaned_filters}}
             <div class="group">
-                <div class="name">Audience {{@index}}</div>
+                {{#if @index}}
+                    <div class="name">Fallback Audience {{@index}}</div>
+                {{else}}
+                    <div class="name">Target Audience</div>
+                {{/if}}
                 {{#each this}}
-                    {{#each this}}
-                        <div class="value">{{operator}} {{feature}} {{value}}</div>
-                    {{/each}}
+                    <div class="value">{{this}}</div>
                 {{/each}}
             </div>
         {{/each}}
+
+        {{#if campaign.cleaned_filters}}
+            <div class="group">
+            <span class="name">Empty Fallback: </span>
+            {{#if campaign.empty_fallback}}
+                Yes
+            {{else}}
+                No
+            {{/if}}
+            </div>
+        {{/if}}
         <div class="group">
             <div class="name">Friend Suggestion Page</div>
-            <div class="value">Headline: </div>
-            <div class="value">Sub-header: </div>
+            <div class="value">Headline: {{ campaign.headline }}</div>
+            <div class="value">Sub-header: {{ campaign.subheader }}</div>
             <div class="value">Thanks URL: <a href="{{ campaign.thanks_url }}">{{ campaign.thanks_url }}</a></div>
             <div class="value">Error URL: <a href="{{ campaign.error_url }}">{{ campaign.error_url }}</a></div>
         </div>
@@ -46,5 +65,14 @@
             <div class="value">Post Text: {{ campaign.og_text }}</div>
             <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
         </div>
+        {{#if campaign.is_published}}
+        {{else}}
+            <div class="group">
+                <div><span class="name">Campaign Test URL: </span> {{campaign.live_snippet_url}}</div>
+                All your changes have been saved. If you're not ready to publish your campaign now, you can always come back later and pick up where you left off.
+            </div>
+
+        {{/if}}
     </div>
+
 </section>
