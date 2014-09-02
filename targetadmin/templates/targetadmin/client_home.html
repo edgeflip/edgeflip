@@ -60,6 +60,7 @@
                 ]
             } ),
             views: { campaigns: clientCampaigns },
+            campaignListURL: "{% url 'targetadmin:client-detail' client.pk %}",
             reportingDashboardURL: "{% url 'reporting:main' %}"
         } ).render();
     } );

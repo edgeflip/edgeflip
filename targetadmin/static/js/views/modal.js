@@ -13,7 +13,7 @@ define(
         /* Singleton pattern, every define([ 'views/modal'[) will return this object */
         return new ( Backbone.View.extend( {
           
-            /* confirm button clicked calls triggerConfirmed method * / 
+            /* confirm button clicked calls triggerConfirmed method */ 
             events: {
                 'click button[data-js="confirmBtn"]': 'triggerConfirmed'
             },

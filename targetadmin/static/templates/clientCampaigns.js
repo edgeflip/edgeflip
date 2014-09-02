@@ -27,10 +27,10 @@ function program1(depth0,data) {
     + "</span></div></div><div class=\"col-sm-4\">                    ";
   stack1 = helpers['if'].call(depth0, (depth0 && depth0.stats), {hash:{},inverse:self.noop,fn:self.program(2, program2, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "                    </div><div class=\"col-sm-3\">                        ";
+  buffer += "                    </div><div class=\"col-sm-3\"><!--Punting on this for now                        ";
   stack1 = helpers['if'].call(depth0, (depth0 && depth0.isPublished), {hash:{},inverse:self.program(6, program6, data),fn:self.program(4, program4, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "                        <!--Use this when there are more options                        <div class=\"btn-group pull-right\"><button type=\"button\" class=\"btn btn-default\">Action</button><button type=\"button\" class=\"btn btn-default dropdown-toggle\" data-toggle=\"dropdown\"><span class=\"caret\"></span><span class=\"sr-only\">Toggle Dropdown</span></button><ul class=\"dropdown-menu\" role=\"menu\"><li><a href=\"#\">Edit</a></li><li><a href=\"#\">Clone</a></li><li><a href=\"#\">Reports</a></li><li><a href=\"#\">Faces Page</a></li><li><a href=\"#\">Facebook Post</a></li></ul></div>                        --></div></div>            ";
+  buffer += "                        --><!--Use this when there are more options                        <div class=\"btn-group pull-right\"><button type=\"button\" class=\"btn btn-default\">Action</button><button type=\"button\" class=\"btn btn-default dropdown-toggle\" data-toggle=\"dropdown\"><span class=\"caret\"></span><span class=\"sr-only\">Toggle Dropdown</span></button><ul class=\"dropdown-menu\" role=\"menu\"><li><a href=\"#\">Edit</a></li><li><a href=\"#\">Clone</a></li><li><a href=\"#\">Reports</a></li><li><a href=\"#\">Faces Page</a></li><li><a href=\"#\">Facebook Post</a></li></ul></div>                        --></div></div>            ";
   return buffer;
   }
 function program2(depth0,data) {

@@ -12,12 +12,14 @@
         ], function(app, sidebar, CampaignSummary) {
 
         var campaignSummary = new CampaignSummary({
+            pk: "{{ campaign_id|safe }}",
             client: "{{ client|safe }}",
-            content: "{{ content|safe }}",
+            content_url: "{{ content_url|safe }}",
             root_campaign: "{{ root_campaign|safe }}",
             campaign_properties: {{ campaign_properties|safe }},
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
+            message: "{{ message|safe }}",
             token: "{% csrf_token %}"
         });
 
@@ -45,6 +47,7 @@
                 ]
             } ),
             views: { campaignSummary: campaignSummary },
+            campaignListURL: "{% url 'targetadmin:client-detail' client.pk %}",
             reportingDashboardURL: "{% url 'reporting:main' %}"
         } ).render();
     } );

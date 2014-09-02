@@ -6,6 +6,20 @@
   margin-right: 25px;
   margin-top: 25px;
 }
+.campaign-summary .edit-campaign-btn {
+  color: black;
+  margin: 15px;
+}
+.campaign-summary .edit-campaign-btn:hover {
+  color: black;
+}
+.campaign-summary .publish-campaign-btn {
+  color: black;
+  margin: 15px;
+}
+.campaign-summary .publish-campaign-btn:hover {
+  color: black;
+}
 .campaign-summary .group {
   margin-left: 15px;
   margin-right: 10px;

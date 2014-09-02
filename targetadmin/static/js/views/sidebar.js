@@ -21,7 +21,7 @@ define(
             events: {
                 'click li[data-nav="reports"]': 'reportsClicked',
                 'click li[data-nav="help"]': 'helpClicked',
-                'click li[data-js="contentBtn"]': 'contentItemClicked'
+                'click li[data-js="contentBtn"]': 'campaignListClicked'
             },
 
             /* see templates/targetadmin/client_home.html for example
@@ -70,6 +70,10 @@ define(
                 if( this.views[ this.model.get('state') ] ) {
                     this.views[ this.model.get('state') ].trigger('sidebarBtnClicked');
                 }
+            },
+
+            campaignListClicked: function() {
+                window.location = this.campaignListURL;
             },
 
             /* hacky, should be associated with nav structure

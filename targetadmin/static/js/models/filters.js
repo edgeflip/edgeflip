@@ -12,6 +12,7 @@
    it adds the default attributes, values.  See Backbone documentation for more details. */
 
 
+
 var filterCollection;
 
 ( function( $ ) {
@@ -20,6 +21,14 @@ var filterCollection;
         feature: undefined,
         operator: undefined,
         value: undefined
+    }
+
+
+    var readable_list = function(list, set_operator) {
+        first_part = list.slice(0, -2);
+        last_two = list.slice(-2);
+        full_string = [first_part.join(", "), last_two.join(" " + set_operator + " ")].filter(function(e) { return e; }).join(", ");
+        return full_string;
     }
 
     var genderFilter = Backbone.Model.extend( {
@@ -80,12 +89,9 @@ var filterCollection;
         },
 
         getReadable: function() {
-
-            return 'Lives in ' + ( ( this.get('values').length < 2 )
-                ? this.get('values')
-                : this.get('values').join(', ') );
+            return 'Lives in ' + readable_list(this.get('values'), 'or');
         }
-    } );
+    });
 
     var interestFilter = Backbone.Model.extend({
         defaults: {
@@ -95,11 +101,13 @@ var filterCollection;
         parse: function (attrs) {
             var groups = attrs.feature.match(this._expr);
             return {
-                topic: groups[1]
+                feature: 'interest',
+                operator: 'eq',
+                value: groups[1],
             };
         },
         getReadable: function() {
-            return 'Interest in ' + this.get('topic');
+            return 'Interest in ' + this.get('value');
         }
     });
 
@@ -113,6 +121,10 @@ var filterCollection;
 
         initialize: function( models, options ) {
             return _.extend( this, options );
+        },
+
+        readable_list: function(list, set_operator) {
+            return readable_list(list, set_operator);
         },
 
         model: function( attrs, options ) {
@@ -131,5 +143,4 @@ var filterCollection;
             throw "unrecognized feature type: " + attrs.feature_type__code;
         }
     } );
-
 })(jQuery);

@@ -34,6 +34,11 @@ Your friend,
 The Campaign Wizard
 """
 
+CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
+Your new campaign has been created. Edgeflip is validating the campaign \
+and will notify you when it has been deployed and ready for you to use.\
+"""
+
 
 def render_campaign_creation_message(request, campaign, content):
     hostname = request.get_host()
@@ -133,8 +138,8 @@ def campaign_create(request, client_pk):
 def campaign_wizard(request, client_pk, campaign_pk):
     from pprint import pprint
     client = get_object_or_404(relational.Client, pk=client_pk)
-    if campaign_pk:
-        campaign = get_object_or_404(relational.Campaign, pk=campaign_pk)
+    campaign = campaign_pk and get_object_or_404(relational.Campaign, pk=campaign_pk)
+    if campaign:
         fb_attr_inst = campaign.fb_object()
         campaign_properties = campaign.campaignproperties.get()
         empty_fallback = False
@@ -147,14 +152,14 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 break
             else:
                 fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
-        campaign_form = forms.CampaignWizardForm(
-            name=campaign.name,
-            faces_url=campaign_properties.get().client_faces_url,
-            error_url=campaign_properties.get().client_error_url,
-            thanks_url=campaign_properties.get().client_thanks_url,
-            content_url=campaign_properties.get().client_thanks_url,
-            include_empty_fallback=empty_fallback
-        )
+        campaign_form = forms.CampaignWizardForm(initial={
+            'name': campaign.name,
+            'faces_url': campaign_properties.client_faces_url,
+            'error_url': campaign_properties.client_error_url,
+            'thanks_url': campaign_properties.client_thanks_url,
+            'content_url': campaign_properties.client_thanks_url,
+            'include_empty_fallback': empty_fallback
+        })
     else:
         fb_attr_inst = relational.FBObjectAttribute(
             og_action='support', og_type='cause')
@@ -176,6 +181,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
             enabled_filters = (request.POST.get('enabled-filters-{}'.format(index), '')
                                for index in xrange(1, 5))
             for inputs in csv.reader(enabled_filters):
+                print inputs
                 if not inputs:
                     continue
 
@@ -377,7 +383,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
                         fallback_is_cascading=bool(last_camp),
-                        status=relational.CampaignProperties.STATUS['DRAFT']
+                        status=relational.CampaignProperties.Status.DRAFT,
                     )
 
                     for page_styles in page_style_sets:
@@ -510,6 +516,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
         value__isnull=False,
     ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
+    print "here?"
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,
@@ -524,20 +531,22 @@ def campaign_summary(request, client_pk, campaign_pk):
     return render(
         request,
         'targetadmin/campaign_summary_page.html',
-        get_campaign_summary_data(client_pk, campaign_pk)
+        get_campaign_summary_data(request, client_pk, campaign_pk)
     )
 
 
 @utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
+    summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
+    summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
     return render(
         request,
-        'targetadmin/campaign_wizard_finish.html',
-        get_campaign_summary_data(client_pk, campaign_pk, content_pk)
+        'targetadmin/campaign_summary_page.html',
+        summary_data
     )
 
 
-def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
+def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk, client=client)
 
@@ -545,15 +554,18 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         content = get_object_or_404(relational.ClientContent, pk=content_pk)
     else:
         # FIXME
-        content = relational.ClientContent.objects.filter(name='{} {}'.format(client.name, root_campaign.name[:-2]))
+        content = relational.ClientContent.objects.filter(
+            name='{} {}'.format(client.name, root_campaign.name[:-2])
+        )
         if content.count() == 1:
             content = get_object_or_404(content)
         else:
             content = list(content[:1])[0]
 
+    properties = root_campaign.campaignproperties.get()
 
     def get_filters( properties ):
-        return [ list( filter.values('feature', 'operator', 'value').distinct() ) for filter in\
+        return [ list( filter.values('feature', 'operator', 'value', 'feature_type__code').distinct() ) for filter in\
             [ choice_set.filter.filterfeatures.all() for choice_set in properties.campaign.choice_set().choicesetfilters.all() ] ]
 
     filters = [ get_filters(properties) ]
@@ -563,8 +575,9 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
 
     fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
     return {
+        'campaign_id': campaign_pk,
         'client': client,
-        'content': content,
+        'content_url': content.url,
         'root_campaign': root_campaign,
         'campaign_properties': json.dumps(root_campaign.campaignproperties.values(
             'client_faces_url',
@@ -572,14 +585,17 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
             'client_error_url',
         ).get()),
         'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
-            'og_type',
+            'msg1_post',
+            'msg1_pre',
+            'msg2_post',
+            'msg2_pre',
+            'og_description',
             'og_image',
             'og_title',
-            'og_description',
-            'msg1_pre',
-            'msg1_post',
-            'msg2_pre',
-            'msg2_post',
+            'og_type',
+            'org_name',
+            'sharing_prompt',
+            'sharing_sub_header',
         ).get()),
         'filters': json.dumps(filters),
     }

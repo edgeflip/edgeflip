@@ -125,6 +125,7 @@ define(
                     this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]') );
 
                 this.model.set('filterLayerCount', this.model.get('filterLayerCount') + 1 );
+                this.updateFallbackLabels();
 
                 this.addDraggableFunctionality();
 

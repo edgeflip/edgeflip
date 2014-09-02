@@ -7,13 +7,12 @@
             <button data-js="createCampaignBtn" type="button" class="btn create-campaign-btn">Create Campaign</button>
         </div>
     </div>
-    {{#if campaign.is_published}}
-    {{else}}
-        <div class="row"><div class="group">
-            Nice job! You've successfully created a Targeted Sharing campaign. Here's your campaign summary—please make sure everything looks right before you hit "Publish Now."
-        </div></div>
-    {{/if}}
     <div class="row">
+        {{#if campaign.message}}
+            <div class="group">
+                <div class="value">{{ campaign.message }}</div>
+            </div>
+        {{/if}}
         <div class="group">
             <div class="name">Campaign Name</div>
             <div class="value">{{ campaign.name }}</div>
@@ -51,7 +50,7 @@
         </div>
         <div class="group">
             <div class="name">Facebook Post</div>
-            <div class="value">Cause or Organization: {{ campaign.og_type }}</div>
+            <div class="value">Cause or Organization: {{ campaign.org_name }}</div>
         </div>
 
         <div class="group">
@@ -60,19 +59,11 @@
         </div>
 
         <div class="group">
-            <div class="value">Post Image: <img src="{{ campaign.og_image }}"></div>
+            <div class="value">Post Image URL: <a href="{{ campaign.og_image }}">{{ campaign.og_image }}</a></div>
             <div class="value">Post Title: {{ campaign.og_title }}</div>
-            <div class="value">Post Text: {{ campaign.og_text }}</div>
+            <div class="value">Post Text: {{ campaign.og_description }}</div>
             <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
         </div>
-        {{#if campaign.is_published}}
-        {{else}}
-            <div class="group">
-                <div><span class="name">Campaign Test URL: </span> {{campaign.live_snippet_url}}</div>
-                All your changes have been saved. If you're not ready to publish your campaign now, you can always come back later and pick up where you left off.
-            </div>
-
-        {{/if}}
     </div>
 
 </section>
