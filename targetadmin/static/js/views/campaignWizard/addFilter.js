@@ -211,20 +211,22 @@ define(
                     case 'age':
                         this.availableFilters.add( {
                             feature_type__code: 'age',
+                            feature: 'age',
                             operator: 'min',
                             value: this.templateData.ageSlider.slider('values')[0]
                         } );
                         this.availableFilters.add( {
                             feature_type__code: 'age',
+                            feature: 'age',
                             operator: 'max',
                             value: this.templateData.ageSlider.slider('values')[1]
                         } );
-                    
                         this.trigger('ageFilterCreated');
                         break;
                     case 'gender':
                         this.availableFilters.add( {
                             feature_type__code: 'gender',
+                            feature: 'gender',
                             value: this.model.get('value')
                         } );
                         break;
@@ -244,7 +246,7 @@ define(
                         } );
                         break;
                 }
-                
+
                 modal.templateData.modalContainer.modal('hide');
             }
 

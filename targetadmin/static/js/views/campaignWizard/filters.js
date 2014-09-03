@@ -298,13 +298,14 @@ define(
             /* translates filters into input element value for the backend to handle before
                heading to the next step this format was not done by cbaron, it is not good */
             prepareFormFieldValues: function() {
+                var dummy_filter_neglector = "[data-filter-id!='set_number=..']";
 
                 _.each( _.range( 1, this.model.get('filterLayerCount') + 1 ), function( i ) {
 
                     var layerContainer = $(this.templateData.filterLayer[i-1]);
 
                     layerContainer.find('input[name="enabled-filters-' + i + '"]').val(
-                        _.map( layerContainer.find('*[data-js="filterContainer"]').children(), function( filter ) {
+                        _.map( layerContainer.find('*[data-js="filterContainer"]').children(dummy_filter_neglector), function( filter ) {
                             return '"' + $(filter).attr('data-filter-id').split('=')[1] + '"';
                         }, this )
                     );

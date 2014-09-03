@@ -181,7 +181,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
             enabled_filters = (request.POST.get('enabled-filters-{}'.format(index), '')
                                for index in xrange(1, 5))
             for inputs in csv.reader(enabled_filters):
-                print inputs
                 if not inputs:
                     continue
 
