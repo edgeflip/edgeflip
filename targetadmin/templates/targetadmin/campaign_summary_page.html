@@ -11,6 +11,7 @@
           'views/campaignSummary',
         ], function(app, sidebar, CampaignSummary) {
 
+        var campaignListURL = "{% url 'targetadmin:client-detail' client.pk %}";
         var campaignSummary = new CampaignSummary({
             pk: "{{ campaign_id|safe }}",
             client: "{{ client|safe }}",
@@ -20,7 +21,8 @@
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
             message: "{{ message|safe }}",
-            token: "{% csrf_token %}"
+            token: "{% csrf_token %}",
+            campaign_list_url: campaignListURL
         });
 
         /* sidebar is already instantiated (singleton pattern),
@@ -47,7 +49,7 @@
                 ]
             } ),
             views: { campaignSummary: campaignSummary },
-            campaignListURL: "{% url 'targetadmin:client-detail' client.pk %}",
+            campaignListURL: campaignListURL,
             reportingDashboardURL: "{% url 'reporting:main' %}"
         } ).render();
     } );

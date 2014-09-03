@@ -3,9 +3,6 @@
         <div class="col-sm-9">
             <h1 class="heading">{{ campaign.name }}</h1>
         </div>
-        <div class="col-sm-3">
-            <button data-js="createCampaignBtn" type="button" class="btn create-campaign-btn">Create Campaign</button>
-        </div>
     </div>
     <div class="row">
         {{#if campaign.message}}
@@ -63,6 +60,10 @@
             <div class="value">Post Title: {{ campaign.og_title }}</div>
             <div class="value">Post Text: {{ campaign.og_description }}</div>
             <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
+        </div>
+
+        <div class="group">
+            <button data-js="homeBtn" type="button" class="btn">Home</button>
         </div>
     </div>
 

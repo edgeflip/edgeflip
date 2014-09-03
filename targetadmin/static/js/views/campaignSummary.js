@@ -5,11 +5,10 @@ define(
       'vendor/underscore',
       'extendBackbone',
       'models/campaign',
-      'views/campaignWizard/skeleton',
       'templates/campaignSummary',
       'css!styles/campaignSummary'
     ],
-    function( $, _, Backbone, campaign, CampaignWizard, template ) {
+    function( $, _, Backbone, campaign, template ) {
 
         return Backbone.View.extend( {
             /* model for view's state */
@@ -17,9 +16,7 @@ define(
 
             /* see sidebar.js for not bloated DOM suggestion */
             events: {
-                'click button[data-js="createCampaignBtn"]': 'showNewCampaign',
-                'click button[data-js="editButton"]': 'showEditableCampaign',
-                'click div[data-js="contentBtn"]': 'showCampaignList',
+                'click button[data-js="homeBtn"]': 'goHome',
             },
 
             initialize: function( options ) {
@@ -37,42 +34,6 @@ define(
                 return this.render();
             },
 
-            /* create campaign button clicked */
-            showNewCampaign: function() {
-                this.$el.fadeOut( 400, this.showCampaignWizard.bind(this) );
-            },
-
-            /* edit campaign button clicked */
-            showEditableCampaign: function(e) {
-                this.$el.fadeOut( 400, this.showCampaignWizard.bind( this, this.campaign.id ) );
-            },
-
-            /* right now, we just destroy the current campaign wizard object
-               if it already exists and create a new one, this is sloppy */
-            showCampaignWizard: function( id ) {
-
-                this.model.set( 'state', 'campaignWizard' );
-
-                // TODO: fix laziness
-                if( this.campaignWizard ) {
-                    this.campaignWizard.remove();
-                }
-               
-                /* ideally, most of these parameters should come from
-                   an ajax call instead of passed through a bunch of views */ 
-                this.campaignWizard =
-                    new CampaignWizard( {
-                        id: id,
-                        howItWorksURL: this.howItWorksURL,
-                        facebookPostImage: this.facebookPostImage,
-                        facesExampleURL: this.facesExampleURL,
-                        clientId: this.clientId,
-                        token: this.token,
-                        formAction: this.formAction,
-                        campaignDataURL: this.campaignDataURL
-                } );
-            },
-
             /* render out that campaign */
             render: function() {
 
@@ -81,6 +42,10 @@ define(
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );
 
                 return this;
+            },
+
+            goHome: function() {
+                window.location = this.campaign_list_url;
             },
 
         } );
