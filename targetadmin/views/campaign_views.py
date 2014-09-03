@@ -6,6 +6,7 @@ import re
 from django.conf import settings
 from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
+from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from targetshare.models import relational
@@ -422,8 +423,11 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 recipient_list=settings.ADMIN_NOTIFICATION_LIST,
                 fail_silently=True,
             )
-            return redirect('targetadmin:campaign-wizard-finish',
-                            client.pk, last_camp.pk, content.pk)
+            response = redirect('targetadmin:campaign-wizard-finish',
+                                client.pk, last_camp.pk)
+            # FIXME
+            response['Location'] += "?content={}".format(content.pk)
+            return response
 
     elif campaign:
         fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
@@ -505,20 +509,23 @@ def campaign_summary(request, client_pk, campaign_pk):
 
 
 @utils.auth_client_required
-def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
-    return render(
-        request,
-        'targetadmin/campaign_wizard_finish.html',
-        get_campaign_summary_data(client_pk, campaign_pk, content_pk)
-    )
+def campaign_wizard_finish(request, client_pk, campaign_pk):
+    content_pk = request.GET.get('content')
+    if content_pk:
+        return render(
+            request,
+            'targetadmin/campaign_wizard_finish.html',
+            get_campaign_summary_data(client_pk, campaign_pk, content_pk)
+        )
+    return HttpResponseBadRequest("Client content is required.") # FIXME
 
 
 def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    root_campaign = get_object_or_404(relational.Campaign, pk=campaign_pk, client=client)
+    root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
 
     if content_pk:
-        content = get_object_or_404(relational.ClientContent, pk=content_pk)
+        content = get_object_or_404(client.clientcontent, pk=content_pk)
     else:
         # FIXME
         content = relational.ClientContent.objects.filter(name='{} {}'.format(client.name, root_campaign.name[:-2]))
