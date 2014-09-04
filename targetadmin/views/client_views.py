@@ -39,10 +39,11 @@ class ClientListView(ListView):
 class ClientDetailView(DetailView):
     model = relational.Client
     pk_url_kwarg = 'client_pk'
+    force_home = False
 
     def get_template_names(self):
         return ['targetadmin/{}'.format(
-            'superuser_home.html' if self.request.user.is_superuser else 'client_home.html')]
+            'superuser_home.html' if self.request.user.is_superuser and not self.force_home else 'client_home.html')]
 
     def get_context_data(self, **kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
@@ -61,7 +62,7 @@ class ClientDetailView(DetailView):
                 campaigns=json.dumps(list(context['root_campaigns']), cls=DjangoJSONEncoder),
                 client=context['client']),
             **response_kwargs
-        ) 
+        )
 
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'
@@ -72,3 +73,4 @@ class ClientFormView(CRUDView):
 client_list_view = login_required(ClientListView.as_view(), login_url='targetadmin:login')
 client_detail_view = utils.auth_client_required(ClientDetailView.as_view())
 client_form_view = ClientFormView.as_view()
+client_home_view = utils.auth_client_required(ClientDetailView.as_view(force_home=True))

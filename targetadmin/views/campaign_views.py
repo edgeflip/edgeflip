@@ -515,7 +515,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
         value__isnull=False,
     ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
-    print "here?"
     return render(request, 'targetadmin/campaign_wizard.html', {
         'client': client,
         'fb_obj_form': fb_obj_form,

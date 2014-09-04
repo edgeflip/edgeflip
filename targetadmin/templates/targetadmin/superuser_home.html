@@ -3,9 +3,14 @@
 {% block content %}
     <h2>{{ client.name }}</h2>
     <div class="span9">
+        <h4>General</h4>
+        <ul>
+            <li><a href="{% url 'targetadmin:client-home' client.pk %}">Client Home</a></li>
+        </ul>
+    </div>
+    <div class="span9">
         <h4>Create New Elements</h4>
         <ul>
-            <li><a href="{% url 'targetadmin:campaign-wizard' client.pk %}">Campaign Wizard</a></li>
             <li><a href="{% url 'targetadmin:content-new' client.pk %}">Create Content</a></li>
             <li><a href="{% url 'targetadmin:fb-obj-new' client.pk %}">Create FaceBook Objects</a></li>
             <li><a href="{% url 'targetadmin:filter-new' client.pk %}">Create Filter</a></li>
