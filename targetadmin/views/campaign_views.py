@@ -146,7 +146,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
         fallback_campaign = campaign_properties.fallback_campaign
         while fallback_campaign:
             empty_choice_set = fallback_campaign.campaignchoicesets.get().choice_set.choicesetfilters.filter(
-                choicesetfilters__filter__filterfeatures__isnull=True)
+                filter__filterfeatures__isnull=True)
             if empty_choice_set.exists():
                 empty_fallback = True
                 break
