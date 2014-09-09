@@ -260,9 +260,9 @@ class TestCampaignViews(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, reverse(
-            'targetadmin:campaign-wizard-finish',
-            args=[new_client.pk, camp.pk, content.pk]
+        self.assertRedirects(response, "{}?content={}".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
+            content.pk
         ))
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
@@ -339,9 +339,9 @@ class TestCampaignViews(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, reverse(
-            'targetadmin:campaign-wizard-finish',
-            args=[new_client.pk, camp.pk, content.pk]
+        self.assertRedirects(response, "{}?content={}".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
+            content.pk
         ))
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
@@ -413,9 +413,9 @@ class TestCampaignViews(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, reverse(
-            'targetadmin:campaign-wizard-finish',
-            args=[new_client.pk, camp.pk, content.pk]
+        self.assertRedirects(response, "{}?content={}".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
+            content.pk
         ))
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
@@ -478,9 +478,9 @@ class TestCampaignViews(TestAdminBase):
         camp = new_client.campaigns.latest('pk')
         content = new_client.clientcontent.latest('pk')
         cs = camp.choice_set()
-        self.assertRedirects(response, reverse(
-            'targetadmin:campaign-wizard-finish',
-            args=[new_client.pk, camp.pk, content.pk]
+        self.assertRedirects(response, "{}?content={}".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
+            content.pk
         ))
 
         self.assertIn('Root', cs.name)
@@ -543,9 +543,9 @@ class TestCampaignViews(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, reverse(
-            'targetadmin:campaign-wizard-finish',
-            args=[new_client.pk, camp.pk, content.pk]
+        self.assertRedirects(response, "{}?content={}".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
+            content.pk
         ))
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
@@ -671,6 +671,6 @@ class TestCampaignViews(TestAdminBase):
                          page_style)
 
     def test_campaign_wizard_finish(self):
-        response = self.client.get(
-            reverse('targetadmin:campaign-wizard-finish', args=[1, 1, 1]))
+        response = self.client.get("{}?content=1".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
         self.assertStatusCode(response, 200)
