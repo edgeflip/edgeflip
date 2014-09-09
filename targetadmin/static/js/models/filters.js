@@ -25,9 +25,9 @@ var filterCollection;
 
 
     var readable_list = function(list, set_operator) {
-        first_part = list.slice(0, -2);
-        last_two = list.slice(-2);
-        full_string = [first_part.join(", "), last_two.join(" " + set_operator + " ")].filter(function(e) { return e; }).join(", ");
+        var first_part = list.slice(0, -2),
+            last_two = list.slice(-2),
+            full_string = [first_part.join(", "), last_two.join(" " + set_operator + " ")].filter(function(e) { return e; }).join(", ");
         return full_string;
     }
 
@@ -116,16 +116,14 @@ var filterCollection;
     filterCollection = Backbone.Collection.extend( {
 
         url: function() {
-            return '/admin/available-filters/' + this.clientId + '/';
+            return '/admin/client/' + this.clientId + '/filters.json';
         },
 
         initialize: function( models, options ) {
             return _.extend( this, options );
         },
 
-        readable_list: function(list, set_operator) {
-            return readable_list(list, set_operator);
-        },
+        readable_list: readable_list,
 
         model: function( attrs, options ) {
             switch (attrs.feature_type__code) {

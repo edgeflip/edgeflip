@@ -8,10 +8,10 @@ from django.core.mail import send_mail
 from django.core.urlresolvers import reverse
 from django.http import HttpResponse, HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
-from django.core.serializers.json import DjangoJSONEncoder
 
 from targetshare.models import relational
 from targetshare.utils import encodeDES
+from targetshare.views.utils import JsonHttpResponse
 
 from targetadmin import forms, utils
 from targetadmin.views import base
@@ -136,9 +136,8 @@ def campaign_create(request, client_pk):
 
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk):
-    from pprint import pprint
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign = campaign_pk and get_object_or_404(relational.Campaign, pk=campaign_pk)
+    campaign = campaign_pk and get_object_or_404(client.Campaigns, pk=campaign_pk)
     if campaign:
         fb_attr_inst = campaign.fb_object()
         campaign_properties = campaign.campaignproperties.get()
@@ -485,11 +484,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
             'include_empty_fallback': empty_fallback
         })
 
-    else:
-        campaign_form = forms.CampaignWizardForm()
-        fb_attr_inst = relational.FBObjectAttribute(og_action='support', og_type='cause')
-        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-
     campaign_filters = []
     if campaign:
         campaign_filters.append(list(
@@ -511,21 +505,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 campaign_filters.append(list(fallback_features))
             fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
 
-    filter_features = relational.FilterFeature.objects.filter(
-        filter__client=client,
-        feature__isnull=False,
-        operator__isnull=False,
-        value__isnull=False,
-    ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
-
-    return render(request, 'targetadmin/campaign_wizard.html', {
-        'client': client,
-        'fb_obj_form': fb_obj_form,
-        'campaign_form': campaign_form,
-        'filter_features': json.dumps(list(filter_features)),
-        'campaign_filters': json.dumps(campaign_filters)
-    })
-
 
 @utils.auth_client_required
 def campaign_summary(request, client_pk, campaign_pk):
@@ -537,14 +516,16 @@ def campaign_summary(request, client_pk, campaign_pk):
 
 
 @utils.auth_client_required
-def campaign_wizard_finish(request, client_pk, campaign_pk, content_pk):
-    summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
-    summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
-    return render(
-        request,
-        'targetadmin/campaign_summary_page.html',
-        summary_data
-    )
+def campaign_wizard_finish(request, client_pk, campaign_pk):
+    content_pk = request.GET.get('content')
+    if content_pk:
+        summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
+        summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
+        return render(
+            request,
+            'targetadmin/campaign_summary_page.html',
+            summary_data
+        )
     return HttpResponseBadRequest("Client content is required.") # FIXME
 
 
@@ -635,9 +616,6 @@ def clean_up_campaign(campaign):
 
 @utils.auth_client_required
 def available_filters( request, client_pk ):
-    if not request.is_ajax():
-        raise Http404
-
     client = get_object_or_404(relational.Client, pk=client_pk)
 
     filter_features = relational.FilterFeature.objects.filter(
@@ -647,19 +625,13 @@ def available_filters( request, client_pk ):
             value__isnull=False,
         ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
 
-    return HttpResponse(json.dumps(list(filter_features)), content_type="application/json")
+    return JsonHttpResponse(filter_features)
 
 @utils.auth_client_required
 def campaign_data( request, client_pk, campaign_pk ):
-    if not request.is_ajax():
-        raise Http404
-
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
-
-    if not campaign:
-        return HttpResponse(json.dumps({}), content_type="application/json")
 
     fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
 

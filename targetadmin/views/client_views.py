@@ -46,23 +46,16 @@ class ClientDetailView(DetailView):
             'superuser_home.html' if self.request.user.is_superuser and not self.force_home else 'client_home.html')]
 
     def get_context_data(self, **kwargs):
-        context = super(ClientDetailView, self).get_context_data(**kwargs)
-        context['root_campaigns'] = context['client'].campaigns\
+        super_context = super(ClientDetailView, self).get_context_data(**kwargs)
+        root_campaigns = super_context['client'].campaigns\
             .exclude(rootcampaign_properties=None).exclude(campaignproperties__status='inactive')\
             .order_by( '-create_dt' )\
             .values('pk', 'name', 'create_dt', 'campaignproperties__status' )
-        return context
-
-    # passing json back so javascript can deal with HTML creation, manipulation
-    def render_to_response(self, context, **response_kwargs):
-        return self.response_class(
-            request=self.request,
-            template=self.get_template_names(),
-            context=dict(
-                campaigns=json.dumps(list(context['root_campaigns']), cls=DjangoJSONEncoder),
-                client=context['client']),
-            **response_kwargs
+        context = dict(
+            campaigns=json.dumps(list(root_campaigns), cls=DjangoJSONEncoder),
+            client=super_context['client'],
         )
+        return context
 
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'

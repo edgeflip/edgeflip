@@ -91,6 +91,10 @@ urlpatterns += patterns('targetadmin.views',
         name='campaign-wizard-finish'),
     url(r'^campaign/how-it-works/$', TemplateView.as_view(template_name='targetadmin/how_it_works.html'),
         name='how-it-works'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)?/data.json$', 'campaign_views.campaign_data',
+        name='campaign-data'),
+    url(r'^client/(?P<client_pk>\d+)/filters.json$', 'campaign_views.available_filters',
+        name='available-filters'),
 )
 
 urlpatterns += patterns('targetadmin.views',
@@ -100,14 +104,6 @@ urlpatterns += patterns('targetadmin.views',
     url(r'^client/(?P<client_pk>\d+)/snippets/data.json$',
         'snippets.snippet_update',
         name='snippet-update')
-)
-
-urlpatterns += patterns('targetadmin.views',
-    # JSON models
-    url(r'^campaign-data/(?P<client_pk>\d+)/(?P<campaign_pk>\d+)/$', 'campaign_views.campaign_data',
-        name='campaign-data'),
-    url(r'^available-filters/(?P<client_pk>\d+)/$', 'campaign_views.available_filters',
-        name='available-filters'),
 )
 
 urlpatterns += patterns('',
