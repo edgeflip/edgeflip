@@ -7,8 +7,6 @@
 
 /.dynamodb
 
-.dynamodb
-
 /doc/_build/*
 /doc/snakefood.svg
 
