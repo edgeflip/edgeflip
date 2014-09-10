@@ -1,15 +1,19 @@
 import itertools
 import json
+import os
 import sys
 import time
+import tempfile
+from contextlib import closing
 from datetime import timedelta
 from optparse import make_option
 from Queue import Queue
 from textwrap import dedent
 from threading import Thread
 
+import celery
 from django.core.management.base import CommandError, BaseCommand
-from django.db import connection, transaction
+from django.db import connection
 from django.utils import timezone
 
 from targetshare.integration import facebook
@@ -98,13 +102,34 @@ class ResultView(object):
         """
         num_faces = self.command.options['num_faces']
         for result in results:
-            primary = result.ranked.primary
-            faces = result.filtered.secondaries[:num_faces]
-            yield json.dumps({
-                str(primary.fbid): [{str(face.fbid): face.topics} for face in faces]
-            })
+            if result.ranked:
+                primary = result.ranked.primary
+                if result.filtered is None:
+                    faces = ()
+                else:
+                    faces = result.filtered.secondaries
+                friend_interests = [{str(face.fbid): face.topics} for face in faces[:num_faces]]
+                yield json.dumps({str(primary.fbid): friend_interests})
+            else:
+                yield 'null'
 
 VIEWS = tuple(name for name in vars(ResultView) if not name.startswith('_'))
+
+
+def get_isolation_level():
+    with closing(connection.cursor()) as cursor:
+        cursor.execute(
+            "SELECT variable_value "
+            "FROM information_schema.session_variables "
+            "WHERE variable_name = 'tx_isolation'"
+        )
+        (isolation_level,) = cursor.fetchone()
+    return isolation_level
+
+
+def set_isolation_level(value):
+    with closing(connection.cursor()) as cursor:
+        cursor.execute('SET SESSION TRANSACTION ISOLATION LEVEL {}'.format(value))
 
 
 class Command(BaseCommand):
@@ -134,6 +159,8 @@ class Command(BaseCommand):
             help='Skip tokens that fail a Facebook debugging test'),
         make_option('--display', choices=VIEWS, default='shown_faces', metavar="VIEW",
             help='View of results to display [choices: {}, default: shown_faces]'.format(VIEWS)),
+        make_option('--fb-app-id', type=int, metavar="APPID",
+            help="A Facebook app ID to which to limit authorizations under consideration"),
         make_option('--num-faces', default=10, type=int, metavar="NUM",
             help="Number of friends' faces to display [default: 10]"),
         make_option('--freshness', default=90, type=int, metavar="DAYS",
@@ -141,6 +168,8 @@ class Command(BaseCommand):
         make_option('--concurrency', default=12, type=int, metavar="NUM",
             help='Number of concurrent targeting tasks to run, (and concurrent '
                  'token debugging threads, if applicable) [default: 12]'),
+        make_option('--timeout', default=600, type=int, metavar="SECONDS",
+            help='Seconds to wait for a targeting task to be picked up and completed [default: 600]'),
     )
 
     def __init__(self):
@@ -173,10 +202,16 @@ class Command(BaseCommand):
         self.options = options
         self.verbosity = int(options['verbosity'])
 
+        isolation_level = get_isolation_level()
+        if isolation_level != 'READ-COMMITTED':
+            self.perr("target not intended for use with {}, "
+                      "setting level READ-COMMITTED".format(isolation_level))
+            set_isolation_level('READ COMMITTED')
+
         # Stream tokens thru parallelized background tasks to generate ranked friend networks
         # args => tokens => [debugged tokens] => [sliced tokens] => tasks
 
-        token_stream = self.stream_tokens(fbidfile)
+        token_stream = self.stream_tokens(fbidfile, options['fb_app_id'])
 
         if options['debug']:
             token_stream = debug_tokens(token_stream,
@@ -192,23 +227,33 @@ class Command(BaseCommand):
         # Stream chunked tasks' network results thru chosen view to STDOUT
         # tasks => results => view => STDOUT
 
-        results = self.apply_tasks(tasks, max_size=options['concurrency'])
+        results = self.apply_tasks(tasks,
+                                   max_size=options['concurrency'],
+                                   timeout=options['timeout'])
         view = getattr(ResultView(self), options['display'])
         for display_line in view(results):
             self.stdout.write(display_line)
 
-    def stream_tokens(self, fbidfile):
+    def stream_tokens(self, fbidfile, fb_app_id=None):
         """Generate user tokens."""
-        fb_app_id = self.campaign.client.fb_app_id
+        client_app_id = self.campaign.client.fb_app_id
 
         if fbidfile:
+            if fb_app_id and fb_app_id != client_app_id:
+                raise CommandError("Facebook app ID is assumed from campaign "
+                                   "client when reading FBID stream")
+            self.pout("only networks authorized under Facebook app {} will be considered"
+                      .format(client_app_id))
             fh = sys.stdin if fbidfile == '-' else open(fbidfile)
             # Grab fbids separated by any space (newline, space, tab):
             fbids = itertools.chain.from_iterable(line.split() for line in fh.xreadlines())
-            keys = [{'fbid': int(fbid), 'appid': fb_app_id} for fbid in fbids]
+            keys = [{'fbid': int(fbid), 'appid': client_app_id} for fbid in fbids]
             tokens = dynamo.Token.items.batch_get(keys)
 
         elif self.options['random']:
+            fb_app_id = fb_app_id or client_app_id
+            self.pout("only networks authorized under Facebook app "
+                      "{} will be considered".format(fb_app_id))
             sixty_days_ago = timezone.now() - timedelta(days=60)
             (query, params) = (
                 "SELECT DISTINCT user_clients.fbid "
@@ -232,20 +277,22 @@ class Command(BaseCommand):
                 else:
                     params.append(self.options['limit'])
 
-            cursor = connection.cursor()
-            try:
+            with closing(connection.cursor()) as cursor:
                 cursor.execute(query, params)
                 fbids = itertools.chain.from_iterable(cursor.fetchall())
-                # It'd be nice if boto allowed you to specify an (infinite)
-                # iterator of keys....
+                # FIXME: It'd be nice if boto allowed you to specify an
+                # (infinite) iterator of keys....
                 keys = [{'fbid': fbid, 'appid': fb_app_id} for fbid in fbids]
-            finally:
-                cursor.close()
 
             tokens = dynamo.Token.items.batch_get(keys)
 
         else:
-            tokens = dynamo.Token.items.scan(appid__eq=fb_app_id, expires__gt=timezone.now())
+            query = dynamo.Token.items.filter(expires__gt=timezone.now())
+            if fb_app_id:
+                self.pout("only networks authorized under Facebook app "
+                          "{} will be considered".format(fb_app_id))
+                query = query.filter(appid__eq=fb_app_id)
+            tokens = query.scan()
 
         return tokens.iterable # FIXME
 
@@ -262,7 +309,7 @@ class Command(BaseCommand):
                 visit_id=targeting.NOVISIT,         # don't record events against any visit
             )
 
-    def apply_tasks(self, tasks, max_size, wait=0.1):
+    def apply_tasks(self, tasks, max_size, timeout, wait=0.25):
         """Iteratively submit (chunks of) Celery tasks from the given stream to the
         message queue, and stream their results as they arrive.
 
@@ -270,32 +317,44 @@ class Command(BaseCommand):
         if max_size < 1:
             raise ValueError("max_size must be >= 1")
 
-        queue = []
         iterable = iter(tasks)
+
+        # Let the filesystem manage our pool of task IDs
+        # (and make them available to inspection/debugging)
+        tmp_dir = tempfile.mkdtemp(prefix='target-')
 
         while True:
             # Populate / top-off the queue with Celery tasks to monitor
-            for task in itertools.islice(iterable, (max_size - len(queue))):
+            task_ids = os.listdir(tmp_dir)
+            for task in itertools.islice(iterable, (max_size - len(task_ids))):
                 async_result = task.apply_async()
-                queue.append(async_result)
+                tmp_path = os.path.join(tmp_dir, async_result.id)
+                open(tmp_path, 'w').close()
 
-            if not queue:
+            task_ids = os.listdir(tmp_dir)
+            if not task_ids:
                 break # no tasks left to monitor
 
             # Give tasks (and database) a moment
             time.sleep(wait)
 
             # Check on active tasks
-            for async_result in queue:
-                if async_result.ready():
+            for task_id in task_ids:
+                tmp_path = os.path.join(tmp_dir, task_id)
+                async_result = celery.current_app.AsyncResult(task_id)
+                if (time.time() - os.path.getmtime(tmp_path)) >= timeout or async_result.ready():
                     # Report completed task result and remove from queue
-                    queue.remove(async_result)
+                    os.remove(tmp_path)
 
                     if async_result.successful():
                         yield async_result.get()
-                    else:
+                    elif async_result.ready():
                         self.perr("Task failed: [{}] {}".format(async_result.id,
                                                                 async_result.result))
+                    else:
+                        self.perr("Task timed out: [{}]".format(async_result.id))
 
-            # Commit implicit REPEATABLE READ transaction
-            transaction.commit_unless_managed()
+        try:
+            os.rmdir(tmp_dir)
+        except OSError:
+            self.perr("Failed to remove temporary dir {}".format(tmp_dir))
