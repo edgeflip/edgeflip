@@ -13,14 +13,14 @@
 
         var campaignListURL = "{% url 'targetadmin:client-detail' client.pk %}";
         var campaignSummary = new CampaignSummary({
-            pk: "{{ campaign_id|safe }}",
-            client: "{{ client|safe }}",
-            content_url: "{{ content_url|safe }}",
-            root_campaign: "{{ root_campaign|safe }}",
+            pk: "{{ campaign_id }}",
+            client: "{{ client }}",
+            content_url: "{{ content_url }}",
+            root_campaign: "{{ root_campaign }}",
             campaign_properties: {{ campaign_properties|safe }},
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
-            message: "{{ message|safe }}",
+            message: "{{ message }}",
             token: "{% csrf_token %}",
             campaign_list_url: campaignListURL
         });
