@@ -7,7 +7,6 @@ urlpatterns = patterns('targetadmin.views',
     url(r'^client/(?P<client_pk>\d+)/$', 'client_views.client_detail_view', name='client-detail'),
     url(r'^client/new/$', 'client_views.client_form_view', name='client-new'),
     url(r'^client/(?P<client_pk>\d+)/edit/$', 'client_views.client_form_view', name='client-edit'),
-    url(r'^client/(?P<client_pk>\d+)/home/$', 'client_views.client_home_view', name='client-home'),
 )
 
 urlpatterns += patterns('targetadmin.views',

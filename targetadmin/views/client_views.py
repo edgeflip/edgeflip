@@ -37,13 +37,9 @@ class ClientListView(ListView):
 
 
 class ClientDetailView(DetailView):
+    template_name = 'targetadmin/client_home.html'
     model = relational.Client
     pk_url_kwarg = 'client_pk'
-    force_home = False
-
-    def get_template_names(self):
-        return ['targetadmin/{}'.format(
-            'superuser_home.html' if self.request.user.is_superuser and not self.force_home else 'client_home.html')]
 
     def get_context_data(self, **kwargs):
         super_context = super(ClientDetailView, self).get_context_data(**kwargs)
@@ -66,4 +62,3 @@ class ClientFormView(CRUDView):
 client_list_view = login_required(ClientListView.as_view(), login_url='targetadmin:login')
 client_detail_view = utils.auth_client_required(ClientDetailView.as_view())
 client_form_view = ClientFormView.as_view()
-client_home_view = utils.auth_client_required(ClientDetailView.as_view(force_home=True))
