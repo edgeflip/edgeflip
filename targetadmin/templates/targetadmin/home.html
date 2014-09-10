@@ -1,11 +1,48 @@
-{% extends "targetadmin/base.html" %}
+{% extends "targetadmin/page.html" %}
 {% block title %}Choose a Client{% endblock %}
+{% block require %}
+    require(
+        [
+          'app',
+          'views/sidebar',
+          'views/miniHeader',
+        ], function(app, sidebar, miniHeader) {
+
+        /* display the client name at the top of the page */
+        miniHeader.setup( { name: "Choose a Client" } ).render();
+
+        /* sidebar is already instantiated (singleton pattern),
+           give it data to work with -- TODO: tie reporting url to
+           nav data structure */
+        sidebar.setup( {
+            model: new Backbone.Model( {
+                state: 'campaigns',
+                logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                nav: [
+                    { name: 'campaigns',
+                      label: 'Campaigns',
+                      glyphClass: 'glyphicon glyphicon-share',
+                      view: true
+                    },
+                    { name: 'reports',
+                      label: 'Reports',
+                      glyphClass: 'glyphicon glyphicon-stats'
+                    },
+                    { name: 'help',
+                      label: 'Help',
+                      glyphClass: 'glyphicon glyphicon-info-sign'
+                    }
+                ]
+            } ),
+            views: { },
+            reportingDashboardURL: "{% url 'reporting:main' %}"
+        } ).render();
+    } );
+{% endblock %}
 {% block content %}
-    <h2>Choose a Client</h2>
     <ul>
         {% for client in client_list %}
             <li><a href="{% url 'targetadmin:client-detail' client.pk %}">{{ client.name }}</a></li>
         {% endfor %}
     </ul>
-    {% if request.user.is_superuser %}Or, <a href="{% url 'targetadmin:client-new' %}">Create a Client</a>{% endif %}
 {% endblock %}

@@ -16,12 +16,12 @@
   </head>
 
     {% comment %}
-        let javascript templates build the DOM so you don't have the 
+        let javascript templates build the DOM so you don't have the
         same templates on both server and client
     {% endcomment %}
   <body>
     <section class="container-fluid">
-        <div id="content-container" class="row"></div>
+        <div id="content-container" class="row">{% block content %}{% endblock %}</div>
     </section>
 
     {% comment %}
