@@ -10,6 +10,6 @@ from edgeflip.settings import *
 
 CELERY_MAX_CACHED_RESULTS = 1
 
-DATABASES['default']['OPTIONS'] = {
-    'init_command': 'SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED'
-}
+DATABASES['default'].setdefault('OPTIONS', {}).update(
+    init_command='SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
+)
