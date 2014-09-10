@@ -77,3 +77,8 @@ class TestSnippetViews(TestAdminBase):
                                     self.campaign.pk, self.content.pk)
         )
         self.assertEqual(shorts.get(), oauth_url)
+
+    def test_snippets_empty(self):
+        self.campaign.delete()
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)

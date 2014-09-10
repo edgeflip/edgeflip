@@ -60,13 +60,13 @@
     <h2>Snippets</h2>
     <section>
         <h4>Button Snippet (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
-        <pre><code>{% spaceless %}
+        <pre><code>{% if slug %}{% spaceless %}
 &lt;!-- SHARE BUTTON --&gt;
     &lt;div style="display: table; position: relative; margin: 0px auto;"&gt;
         &lt;iframe src="https://{{client.subdomain}}.{{client.domain}}<span class="url" data-url="button-encoded">{% url 'button-encoded' slug %}</span>" id="button_frame" ALLOWTRANSPARENCY="true" scrolling="no" style="width: 280px; border: none; overflow: hidden;"&gt;&lt;/iframe&gt;
     &lt;/div&gt;
 &lt;!-- SHARE BUTTON --&gt;
-        {% endspaceless %}</code></pre>
+        {% endspaceless %}{% endif %}</code></pre>
     </section>
     <section>
         <h4>Faces Snippet (<span class="campaign-pk">{{ campaign.pk }}</span>/<span class="content-pk">{{ content.pk }}</span>)</h4>
