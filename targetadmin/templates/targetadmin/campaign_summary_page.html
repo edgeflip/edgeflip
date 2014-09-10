@@ -21,6 +21,7 @@
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
             message: "{{ message }}",
+            sharing_url: "{{ sharing_url }}",
             token: "{% csrf_token %}",
             campaign_list_url: campaignListURL
         });

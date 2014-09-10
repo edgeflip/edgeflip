@@ -62,6 +62,12 @@
             <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
         </div>
 
+        {{#if campaign.sharing_url}}
+            <div class="group">
+                <div class="value">Shortened URL: <a href="{{ campaign.sharing_url }}">{{ campaign.sharing_url }}</a></div>
+            </div>
+        {{/if}}
+
         <div class="group">
             <button data-js="homeBtn" type="button" class="btn">Home</button>
         </div>

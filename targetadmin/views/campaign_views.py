@@ -484,7 +484,12 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         filters.append( get_filters(properties) )
 
     fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
-    return {
+    sharing_urls = utils.build_sharing_urls(
+        request.get_host(),
+        root_campaign,
+        content
+    )
+    base_values = {
         'campaign_id': campaign_pk,
         'client': client,
         'content_url': content.url,
@@ -509,6 +514,10 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         ).get()),
         'filters': json.dumps(filters),
     }
+    if request.user.is_superuser:
+        base_values['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain, client.domain, sharing_urls['initial_url'])
+
+    return base_values
 
 
 def clean_up_campaign(campaign):

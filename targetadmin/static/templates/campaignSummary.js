@@ -71,6 +71,17 @@ function program13(depth0,data) {
   return "                No            ";
   }
 
+function program15(depth0,data) {
+  
+  var buffer = "", stack1;
+  buffer += "            <div class=\"group\"><div class=\"value\">Shortened URL: <a href=\""
+    + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
+    + "\">"
+    + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
+    + "</a></div></div>        ";
+  return buffer;
+  }
+
   buffer += "<section class=\"col-sm-10 campaign-summary\"><div class=\"row divided\"><div class=\"col-sm-9\"><h1 class=\"heading\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</h1></div></div><div class=\"row\">        ";
@@ -114,7 +125,10 @@ function program13(depth0,data) {
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.content_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.content_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "</a></div></div><div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn\">Home</button></div></div></section>";
+    + "</a></div></div>        ";
+  stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url), {hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "        <div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn\">Home</button></div></div></section>";
   return buffer;
   })
 
