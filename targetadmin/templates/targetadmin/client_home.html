@@ -17,7 +17,7 @@
            are mostly used by sub views of ClientCampaigns, I would
            argue to have more ajax calls made by the sub views.  The only
            one really necessary for optimal page rendering is the 'campaigns' attribute */
-        var clientCampaigns =        
+        var clientCampaigns =
             new ClientCampaigns( {
                 campaigns: {{ campaigns|safe }},
                 campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
@@ -27,7 +27,7 @@
                 facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",
                 clientId: {{client.pk}},
                 token: "{% csrf_token %}",
-                formAction: "{% url 'targetadmin:campaign-wizard' client.pk %}"
+                formAction: "{% url 'targetadmin:campaign-wizard' client.pk 0 %}"
             } );
 
         /* let the sidebar show it when its ready */

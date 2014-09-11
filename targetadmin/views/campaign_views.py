@@ -531,8 +531,10 @@ def clean_up_campaign(campaign):
             filter0 = None
         else:
             filter0 = csf0.filter
-        campaign.campaignchoicesets.update(choice_set=None) # prevent cascading delete of CampaignChoiceSet
-        choice_set.delete()
+
+        if filter0 and filter0.filterfeatures.exists():
+            campaign.campaignchoicesets.update(choice_set=None) # prevent cascading delete of CampaignChoiceSet
+            choice_set.delete()
 
         if filter0 and not filter0.choicesetfilters.exists() and not filter0.campaignfbobject_set.exists() and not filter0.campaignglobalfilters.exists():
             # Old ChoiceSet's Filter isn't in use anymore, so let's clean that up:

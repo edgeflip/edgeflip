@@ -28,7 +28,7 @@ define(
                 this.model = new Backbone.Model( { clientId: this.clientId } );
 
                 if( this.id ) {
-                    this.formAction += this.id + "/";
+                    this.formAction = this.formAction.replace(0, this.id);
                     this.getCampaignData();
                     this.on( 'receivedCampaignData', this.render, this );
                 } else {
