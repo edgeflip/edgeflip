@@ -260,6 +260,8 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 # but we'll still have a root filter in `choice_sets` to match:
                 ranking_keys = [None]
 
+            old_content = guess_content(client, campaign)
+
             content = client.clientcontent.create(
                 name='{} {}'.format(client.name, campaign_name),
                 url=campaign_form.cleaned_data.get('content_url'),
@@ -372,7 +374,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
                     camp.save()
                     camp.campaignbuttonstyles.update(button_style=button_style, rand_cdf=1.0)
 
-                    clean_up_campaign(camp)
+                    clean_up_campaign(camp, old_content)
                     camp.campaignchoicesets.update(choice_set=cs) # update campaign to new ChoiceSet
                     if ranking_key:
                         camp.campaignrankingkeys.create(ranking_key=ranking_key)
@@ -456,6 +458,17 @@ def campaign_wizard_finish(request, client_pk, campaign_pk):
     return HttpResponseBadRequest("Client content is required.") # FIXME
 
 
+def guess_content(client, root_campaign):
+    # FIXME
+    content = relational.ClientContent.objects.filter(
+        name='{} {}'.format(client.name, root_campaign.name[:-2])
+    )
+    if content.count() == 1:
+        content = get_object_or_404(content)
+    else:
+        content = list(content[:1])[0]
+    return content
+
 def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
@@ -463,14 +476,7 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     if content_pk:
         content = get_object_or_404(client.clientcontent, pk=content_pk)
     else:
-        # FIXME
-        content = relational.ClientContent.objects.filter(
-            name='{} {}'.format(client.name, root_campaign.name[:-2])
-        )
-        if content.count() == 1:
-            content = get_object_or_404(content)
-        else:
-            content = list(content[:1])[0]
+        content = guess_content(client, root_campaign)
 
     properties = root_campaign.campaignproperties.get()
 
@@ -520,7 +526,11 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     return base_values
 
 
-def clean_up_campaign(campaign):
+def clean_up_campaign(campaign, content=None):
+    # clean up content:
+    if content:
+        content.delete()
+
     # clean up choice set
     choice_set = campaign.choice_set()
     if choice_set.campaignchoicesets.count() == 1:
