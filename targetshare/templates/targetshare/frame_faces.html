@@ -7,7 +7,7 @@
 {% endblock %}
 
 {% block style_includes %}
-    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.4/dojox/html/resources/ellipsis.css" />
+    <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/dojo/1.10.0/dojox/html/resources/ellipsis.css" />
     <link rel="stylesheet" href="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.0/themes/base/jquery-ui.css" />
 
     <!-- Campaign stylesheets -->
@@ -33,15 +33,15 @@
     <script> 
         // Force dojo to come in via https and load dojo.require() via https as well.
         dojoConfig = {
-            baseUrl: 'https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/',
+            baseUrl: 'https://ajax.googleapis.com/ajax/libs/dojo/1.10.0/dojo/',
             modulePaths: {
-                "dojo": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo",
-                "dijit": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dijit",
-                "dojox": "https://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojox"
+                "dojo": "https://ajax.googleapis.com/ajax/libs/dojo/1.10.0/dojo",
+                "dijit": "https://ajax.googleapis.com/ajax/libs/dojo/1.10.0/dijit",
+                "dojox": "https://ajax.googleapis.com/ajax/libs/dojo/1.10.0/dojox"
             }
         }; 
     </script>
-    <script src="//ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/dojo/1.10.0/dojo/dojo.js"></script>
     <script>
         dojo.require("dojox.html.ellipsis");
     </script>
