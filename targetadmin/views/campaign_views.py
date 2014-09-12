@@ -410,7 +410,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
 
             for campaign in campaigns:
-                properties = campaign.campaign_properties.get()
+                properties = campaign.campaignproperties.get()
                 properties.client_faces_url = faces_url
                 properties.root_campaign = last_camp
                 properties.save()
