@@ -219,8 +219,13 @@ define(
             reflectCampaignState: function() {
                 var campaignFilters = this.campaignModel.get('filters');
                 _.each( campaignFilters, function( filterLayer, i ) {
-                    _.each( filterLayer, function( filter ) {
-                        var selector = '*[data-filter-id="set_number=' + filter.feature + '.' + filter.operator + '.' + filter.value + '"]',
+                    var filter_collection = new FilterCollection(
+                        filterLayer,
+                        { }
+                    )
+                    _.each( filter_collection.models, function( filter ) {
+                        var atts = filter.attributes;
+                        var selector = '*[data-filter-id="set_number=' + atts.feature + '.' + atts.operator + '.' + atts.value + '"]',
                             fromAvailable = this.templateData.availableFilters.find( selector );
 
                         if( fromAvailable.length ) { fromAvailable.dblclick(); }
