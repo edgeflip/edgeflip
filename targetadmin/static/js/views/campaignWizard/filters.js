@@ -160,14 +160,17 @@ define(
             moveFilter: function(e) {
 
                 var dblClickedFilter = $(e.currentTarget);
-                
+                var dataLink = dblClickedFilter.attr('data-link');
+                var target, source;
                 if( dblClickedFilter.closest( this.templateData.availableFilters ).length ) {
-                    dblClickedFilter.appendTo(
-                        this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]')
-                    );
+                    target = this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]');
+                    source = this.templateData.availableFilters;
                 } else {
-                    dblClickedFilter.appendTo( this.templateData.availableFilters );
+                    source = this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]');
+                    target = this.templateData.availableFilters;
                 }
+                dblClickedFilter.appendTo(target);
+                source.find('[data-link="' + dataLink + '"]').appendTo(target);
             },
 
             /* 'X' (remove layer) is clicked */ 
