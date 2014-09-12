@@ -1,9 +1,0 @@
-.horizontal-bar-chart .d3-chart rect {
-  fill: #4d68a2;
-}
-.horizontal-bar-chart .d3-chart .text {
-  font-family: Helvetica, sans-serif;
-  fill: black;
-  text-anchor: start;
-  dominant-baseline: central;
-}
