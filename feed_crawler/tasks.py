@@ -215,7 +215,7 @@ def _get_sync_maps(edges, token):
 def initial_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
-    logger.info('Starting initial crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Starting initial crawl of %s', sync_map.s3_key_name)
     sync_map.save_status(models.FBSyncMap.INITIAL_CRAWL)
     past_epoch = epoch.from_date(timezone.now() - timedelta(days=365))
     now_epoch = epoch.from_date(timezone.now())
@@ -226,11 +226,8 @@ def initial_crawl(self, primary, secondary):
             sync_map.fbid_secondary, sync_map.token, past_epoch, now_epoch
         )
     except (facebook.client.OAuthException):
-        rvn_logger.info(
-            'Failed initial crawl due to expired token for {}'.format(
-                sync_map.s3_key_name
-            )
-        )
+        rvn_logger.info('Failed initial crawl due to expired token for %s',
+                        sync_map.s3_key_name)
         return
     except (ValueError, IOError, HTTPException):
         try:
@@ -252,7 +249,7 @@ def initial_crawl(self, primary, secondary):
         args=[sync_map.fbid_primary, sync_map.fbid_secondary],
         countdown=DELAY_INCREMENT
     )
-    logger.info('Completed initial crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Completed initial crawl of %s', sync_map.s3_key_name)
 
 
 @shared_task(bind=True, max_retries=5)
@@ -266,11 +263,8 @@ def retrieve_page_likes(self, primary, secondary):
         s3_key, _ = bucket.get_or_create_key(sync_map.s3_key_name)
         likes = s3_key.retrieve_page_likes(sync_map.fbid_secondary, sync_map.token)
     except (facebook.client.OAuthException):
-        rvn_logger.info(
-            'Failed page like retrieval due to expired token for {}'.format(
-                sync_map.s3_key_name
-            )
-        )
+        rvn_logger.info('Failed page like retrieval due to expired token for %s',
+                        sync_map.s3_key_name)
         return
     except (IOError, HTTPException):
         try:
@@ -292,7 +286,7 @@ def retrieve_page_likes(self, primary, secondary):
 def back_fill_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
-    logger.info('Starting back fill crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Starting back fill crawl of %s', sync_map.s3_key_name)
     try:
         bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
         s3_key, _ = bucket.get_or_create_key(sync_map.s3_key_name)
@@ -301,11 +295,8 @@ def back_fill_crawl(self, primary, secondary):
             0, sync_map.back_fill_epoch
         )
     except (facebook.client.OAuthException):
-        rvn_logger.info(
-            'Failed back fill crawl due to expired token for {}'.format(
-                sync_map.s3_key_name
-            )
-        )
+        rvn_logger.info('Failed back fill crawl due to expired token for %s',
+                        sync_map.s3_key_name)
         return
     except (ValueError, IOError):
         try:
@@ -314,17 +305,13 @@ def back_fill_crawl(self, primary, secondary):
             # Hit a dead end. Given the retry delays and such, if we die here
             # we're likely, but not definitively at the end of the user's
             # feed
-            rvn_logger.info(
-                'Failed back fill crawl of {}'.format(sync_map.s3_key_name))
+            rvn_logger.info('Failed back fill crawl of %s', sync_map.s3_key_name)
     else:
         try:
             s3_key.crawl_pagination()
         except (facebook.client.OAuthException):
-            rvn_logger.info(
-                'Failed back fill crawl due to expired token for {}'.format(
-                    sync_map.s3_key_name
-                )
-            )
+            rvn_logger.info('Failed back fill crawl due to expired token for %s',
+                            sync_map.s3_key_name)
             return
         if 'data' in s3_key.data:
             # If we don't have any data, the back fill likely failed. We'll go
@@ -343,14 +330,14 @@ def back_fill_crawl(self, primary, secondary):
         args=[sync_map.fbid_primary, sync_map.fbid_secondary],
         countdown=DELAY_INCREMENT
     )
-    logger.info('Completed back fill crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Completed back fill crawl of %s', sync_map.s3_key_name)
 
 
 @shared_task(bind=True)
 def crawl_comments_and_likes(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
-    logger.info('Starting comment crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Starting comment crawl of %s', sync_map.s3_key_name)
     try:
         bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
         s3_key, _ = bucket.get_or_create_key(sync_map.s3_key_name)
@@ -374,11 +361,8 @@ def crawl_comments_and_likes(self, primary, secondary):
                 result = facebook.client.exhaust_pagination(next_url)
                 item['likes']['data'].extend(result)
     except (facebook.client.OAuthException):
-        rvn_logger.info(
-            'Failed comment crawl due to expired token for {}'.format(
-                sync_map.s3_key_name
-            )
-        )
+        rvn_logger.info('Failed comment crawl due to expired token for %s',
+                        sync_map.s3_key_name)
         return
     try:
         s3_key.save_to_s3()
@@ -386,14 +370,14 @@ def crawl_comments_and_likes(self, primary, secondary):
         self.retry(exc=exc)
 
     sync_map.save_status(models.FBSyncMap.COMPLETE)
-    logger.info('Completed comment crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Completed comment crawl of %s', sync_map.s3_key_name)
 
 
 @shared_task(bind=True, default_retry_delay=300, max_retries=5)
 def incremental_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
-    logger.info('Starting incremental crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Starting incremental crawl of %s', sync_map.s3_key_name)
     sync_map.save_status(models.FBSyncMap.INCREMENTAL)
     try:
         bucket = S3_CONN.get_or_create_bucket(sync_map.bucket)
@@ -403,28 +387,21 @@ def incremental_crawl(self, primary, secondary):
             sync_map.incremental_epoch, epoch.from_date(timezone.now())
         )
     except (facebook.client.OAuthException):
-        rvn_logger.info(
-            'Failed incremental crawl due to expired token for {}'.format(
-                sync_map.s3_key_name
-            )
-        )
+        rvn_logger.info('Failed incremental crawl due to expired token for %s',
+                        sync_map.s3_key_name)
         return
     except (ValueError, IOError):
         try:
             self.retry()
         except MaxRetriesExceededError:
             # We'll get `em next time, boss.
-            rvn_logger.info(
-                'Failed incremental crawl of {}'.format(sync_map.s3_key_name))
+            rvn_logger.info('Failed incremental crawl of %s', sync_map.s3_key_name)
     else:
         try:
             s3_key.crawl_pagination()
         except (facebook.client.OAuthException):
-            rvn_logger.info(
-                'Failed incremental crawl due to expired token for {}'.format(
-                    sync_map.s3_key_name
-                )
-            )
+            rvn_logger.info('Failed incremental crawl due to expired token for %s',
+                            sync_map.s3_key_name)
             return
 
         if 'data' in s3_key.data:
@@ -442,4 +419,4 @@ def incremental_crawl(self, primary, secondary):
             )
 
     sync_map.save_status(models.FBSyncMap.COMPLETE)
-    logger.info('Completed incremental crawl of {}'.format(sync_map.s3_key_name))
+    logger.info('Completed incremental crawl of %s', sync_map.s3_key_name)

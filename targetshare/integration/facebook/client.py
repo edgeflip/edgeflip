@@ -243,7 +243,7 @@ def is_oauth_exception(msg):
 def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):
     retry_count = 0
     data = []
-    LOG.info('Starting pagination dive with {}'.format(url))
+    LOG.info('Starting pagination dive with %s', url)
     while url:
         try:
             paginated_data = urlload(

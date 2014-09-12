@@ -58,7 +58,7 @@ def civis_cached_filter(edges, feature, operator, score_value):
         try:
             cr = dynamo.CivisResult.items.get_item(fbid=edge.secondary.fbid)
         except dynamo.CivisResult.DoesNotExist:
-            logger.info('No civis result for {}'.format(edge.secondary.fbid))
+            logger.info('No civis result for %s', edge.secondary.fbid)
             continue
 
         data = cr.result.get('result') or {}

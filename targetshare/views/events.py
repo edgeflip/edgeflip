@@ -136,13 +136,11 @@ def record_event(request):
             fbid = appid = token_string = None
 
         if not all([fbid, appid, token_string, campaign]):
-            msg = (
-                "Cannot write authorization for fbid {!r}, appid {!r} "
-                "and token {!r} under campaign {!r}"
-                .format(user_id, app_id, request.POST.get('token'), campaign_id)
-            )
-            LOG.warning(msg, extra={'request': request})
-            return http.HttpResponseBadRequest(msg)
+            msg = ("Cannot write authorization for fbid %r, appid %r "
+                   "and token %r under campaign %r")
+            args = (user_id, app_id, request.POST.get('token'), campaign_id)
+            LOG.warning(msg, *args, extra={'request': request})
+            return http.HttpResponseBadRequest(msg % args)
 
         campaign.client.userclients.get_or_create(fbid=fbid)
         if extend:
