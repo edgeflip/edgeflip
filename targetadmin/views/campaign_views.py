@@ -412,9 +412,23 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 client_faces_url=faces_url,
                 root_campaign=last_camp,
             )
-
             discarded_fallbacks = campaign_chain[len(campaigns):]
-            for discarded_fallback in reversed(discarded_fallbacks):
+            for index in reversed(range(len(discarded_fallbacks))):
+                if index > 0:
+                    # Break chain link:
+                    discarded_fallback1 = discarded_fallbacks[index - 1]
+                    discarded_fallback1.campaignproperties.update(fallback_campaign=None)
+
+                discarded_fallback = discarded_fallbacks[index]
+
+                # Check for extraordinary links from other chains:
+                if discarded_fallback.fallbackcampaign_properties.exists():
+                    LOG_RVN.error("Campaign in use by multiple fallback chains, clean-up deferred at %s %r",
+                                  discarded_fallback.pk,
+                                  [discarded.pk for discarded in discarded_fallbacks],
+                                  extra={'request': request})
+                    break
+
                 clean_up_campaign(discarded_fallback)
                 discarded_fallback.delete()
 
