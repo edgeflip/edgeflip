@@ -11,6 +11,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from targetshare.models import relational
 from targetshare.utils import encodeDES
+from targetshare.views.utils import JsonHttpResponse
 
 from targetadmin import forms, utils
 from targetadmin.views import base
@@ -31,6 +32,11 @@ Please verify this campaign and its fallbacks.
 
 Your friend,
 The Campaign Wizard
+"""
+
+CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
+Your new campaign has been created. Edgeflip is validating the campaign \
+and will notify you when it has been deployed and ready for you to use.\
 """
 
 
@@ -128,19 +134,19 @@ def campaign_create(request, client_pk):
         'form': form
     })
 
-
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
-    if campaign:
-        campaign_properties = campaign.campaignproperties.get()
-        if campaign_properties.status != campaign_properties.Status.DRAFT:
-            return redirect('targetadmin:campaign-summary', client.pk, campaign.pk)
-
     if request.method == 'POST':
+        old_content = None
         if campaign:
             fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+            campaign_properties = campaign.campaignproperties.get()
+            old_content = guess_content(client, campaign)
+
+            if campaign_properties.status != relational.CampaignProperties.Status.DRAFT:
+                return HttpResponseBadRequest("Only campaigns in draft mode can be modified")
         else:
             fb_attr_inst = relational.FBObjectAttribute(og_action='support', og_type='cause')
         fb_obj_form = forms.FBObjectWizardForm(request.POST, instance=fb_attr_inst)
@@ -257,10 +263,15 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 # but we'll still have a root filter in `choice_sets` to match:
                 ranking_keys = [None]
 
+
+            # TODO: get or create ClientContent based on URL
             content = client.clientcontent.create(
                 name='{} {}'.format(client.name, campaign_name),
                 url=campaign_form.cleaned_data.get('content_url'),
             )
+
+            if old_content:
+                old_content.delete()
 
             # Global Filter
             empty_filters = client.filters.filter(filterfeatures=None)
@@ -398,15 +409,23 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
                 faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
 
-            relational.CampaignProperties.objects.filter(campaign__in=campaigns).update(
-                client_faces_url=faces_url,
-                root_campaign=last_camp,
-            )
+            for campaign in campaigns:
+                properties = campaign.campaignproperties.get()
+                properties.client_faces_url = faces_url
+                properties.root_campaign = last_camp
+                properties.save()
 
             discarded_fallbacks = campaign_chain[len(campaigns):]
-            for discarded_fallback in reversed(discarded_fallbacks):
-                discarded_props = discarded_fallback.campaignproperties.get()
-                if discarded_props.fallback_campaign or discarded_props.root_campaign:
+            for index in reversed(range(len(discarded_fallbacks))):
+                if index > 0:
+                    # Break chain link:
+                    discarded_fallback1 = discarded_fallbacks[index - 1]
+                    discarded_fallback1.campaignproperties.update(fallback_campaign=None)
+
+                discarded_fallback = discarded_fallbacks[index]
+
+                # Check for extraordinary links from other chains:
+                if discarded_fallback.fallbackcampaign_properties.exists():
                     LOG_RVN.error("Campaign in use by multiple fallback chains, clean-up deferred at %s %r",
                                   discarded_fallback.pk,
                                   [discarded.pk for discarded in discarded_fallbacks],
@@ -429,82 +448,13 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
             response['Location'] += "?content={}".format(content.pk)
             return response
 
-    elif campaign:
-        fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
-        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-
-        fallback_campaign = campaign_properties.fallback_campaign
-        while fallback_campaign:
-            last_campaign = fallback_campaign
-            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
-        empty_fallback = (bool(campaign_properties.fallback_campaign) and
-                          not last_campaign.choice_set().choicesetfilters.exists())
-
-        # We want to hide the facebook url in draft mode if the client isn't hosting
-        initial_faces_url = campaign_properties.client_faces_url
-        if 'https://apps.facebook.com' in initial_faces_url:
-            initial_faces_url = ''
-
-        # FIXME: Necessary only as long as we append " 1" to root campaign names
-        original_name = re.sub(r' 1$', '', campaign.name)
-
-        campaign_form = forms.CampaignWizardForm(initial={
-            'name': original_name,
-            'faces_url': initial_faces_url,
-            'error_url': campaign_properties.client_error_url,
-            'thanks_url': campaign_properties.client_thanks_url,
-            'content_url': campaign_properties.client_thanks_url,
-            'include_empty_fallback': empty_fallback
-        })
-
-    else:
-        campaign_form = forms.CampaignWizardForm()
-        fb_attr_inst = relational.FBObjectAttribute(og_action='support', og_type='cause')
-        fb_obj_form = forms.FBObjectWizardForm(instance=fb_attr_inst)
-
-    campaign_filters = []
-    if campaign:
-        campaign_filters.append(list(
-            campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
-                'feature', 'value', 'operator', 'feature_type__code'
-            )
-        ))
-
-        fallback_campaign = campaign_properties.fallback_campaign
-        while fallback_campaign:
-            try:
-                choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
-            except relational.ChoiceSetFilter.DoesNotExist:
-                fallback_features = ()
-            else:
-                fallback_features = choice_set_filter.filter.filterfeatures.values(
-                    'feature', 'value', 'operator', 'feature_type__code')
-            if fallback_features:
-                campaign_filters.append(list(fallback_features))
-            fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
-
-    filter_features = relational.FilterFeature.objects.filter(
-        filter__client=client,
-        feature__isnull=False,
-        operator__isnull=False,
-        value__isnull=False,
-    ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
-
-    return render(request, 'targetadmin/campaign_wizard.html', {
-        'client': client,
-        'fb_obj_form': fb_obj_form,
-        'campaign_form': campaign_form,
-        'filter_features': json.dumps(list(filter_features)),
-        'campaign_filters': json.dumps(campaign_filters)
-    })
-
 
 @utils.auth_client_required
 def campaign_summary(request, client_pk, campaign_pk):
     return render(
         request,
         'targetadmin/campaign_summary_page.html',
-        get_campaign_summary_data(client_pk, campaign_pk)
+        get_campaign_summary_data(request, client_pk, campaign_pk)
     )
 
 
@@ -512,29 +462,31 @@ def campaign_summary(request, client_pk, campaign_pk):
 def campaign_wizard_finish(request, client_pk, campaign_pk):
     content_pk = request.GET.get('content')
     if content_pk:
+        summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
+        summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
         return render(
             request,
-            'targetadmin/campaign_wizard_finish.html',
-            get_campaign_summary_data(client_pk, campaign_pk, content_pk)
+            'targetadmin/campaign_summary_page.html',
+            summary_data
         )
     return HttpResponseBadRequest("Client content is required.") # FIXME
 
 
-def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
+def guess_content(client, root_campaign):
+    # FIXME
+    return relational.ClientContent.objects.filter(
+        name='{} {}'.format(client.name, root_campaign.name[:-2])
+    )[0]
+
+def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
 
     if content_pk:
         content = get_object_or_404(client.clientcontent, pk=content_pk)
     else:
-        # FIXME
-        content = relational.ClientContent.objects.filter(name='{} {}'.format(client.name, root_campaign.name[:-2]))
-        if content.count() == 1:
-            content = get_object_or_404(content)
-        else:
-            content = list(content[:1])[0]
+        content = guess_content(client, root_campaign)
 
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.get()
 
     filters = []
     campaign1 = root_campaign
@@ -548,14 +500,41 @@ def get_campaign_summary_data(client_pk, campaign_pk, content_pk=None):
         properties1 = campaign1.campaignproperties.get()
         campaign1 = properties1.fallback_campaign
 
-    return {
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
+    sharing_urls = utils.build_sharing_urls(
+        request.get_host(),
+        root_campaign,
+        content
+    )
+    base_values = {
+        'campaign_id': campaign_pk,
         'client': client,
-        'content': content,
+        'content_url': content.url,
         'root_campaign': root_campaign,
-        'campaign_properties': root_campaign.campaignproperties.get(),
-        'fb_obj_attributes': fb_obj_attributes,
+        'campaign_properties': json.dumps(root_campaign.campaignproperties.values(
+            'client_faces_url',
+            'client_thanks_url',
+            'client_error_url',
+        ).get()),
+        'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
+            'msg1_post',
+            'msg1_pre',
+            'msg2_post',
+            'msg2_pre',
+            'og_description',
+            'og_image',
+            'og_title',
+            'og_type',
+            'org_name',
+            'sharing_prompt',
+            'sharing_sub_header',
+        ).get()),
         'filters': json.dumps(filters),
     }
+    if request.user.is_superuser:
+        base_values['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain, client.domain, sharing_urls['initial_url'])
+
+    return base_values
 
 
 def clean_up_campaign(campaign):
@@ -569,8 +548,10 @@ def clean_up_campaign(campaign):
             filter0 = None
         else:
             filter0 = csf0.filter
-        campaign.campaignchoicesets.update(choice_set=None) # prevent cascading delete of CampaignChoiceSet
-        choice_set.delete()
+
+        if filter0 and filter0.filterfeatures.exists(): # long live the empty choice set
+            campaign.campaignchoicesets.update(choice_set=None) # prevent cascading delete of CampaignChoiceSet
+            choice_set.delete()
 
         if filter0 and not filter0.choicesetfilters.exists() and not filter0.campaignfbobject_set.exists() and not filter0.campaignglobalfilters.exists():
             # Old ChoiceSet's Filter isn't in use anymore, so let's clean that up:
@@ -586,3 +567,74 @@ def clean_up_campaign(campaign):
         campaign_ranking_key0.delete()
         if not ranking_key0.campaignrankingkeys.exists():
             ranking_key0.delete()
+
+
+@utils.auth_client_required
+def available_filters( request, client_pk ):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+
+    filter_features = relational.FilterFeature.objects.filter(
+            filter__client=client,
+            feature__isnull=False,
+            operator__isnull=False,
+            value__isnull=False,
+        ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
+
+    return JsonHttpResponse(list(filter_features.iterator()))
+
+@utils.auth_client_required
+def campaign_data( request, client_pk, campaign_pk ):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign_properties = campaign.campaignproperties.get()
+
+    fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+
+    campaign_filters = [list(
+        campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
+            'feature', 'value', 'operator', 'feature_type__code'
+        )
+    )]
+
+    fallback_campaign = campaign_properties.fallback_campaign
+    while fallback_campaign:
+        last_campaign = fallback_campaign
+        try:
+            choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
+        except relational.ChoiceSetFilter.DoesNotExist:
+            fallback_features = ()
+        else:
+            fallback_features = choice_set_filter.filter.filterfeatures.values(
+                'feature', 'value', 'operator', 'feature_type__code')
+        if fallback_features:
+            campaign_filters.append(list(fallback_features))
+        fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+
+    empty_fallback = (bool(campaign_properties.fallback_campaign) and
+                      not last_campaign.choice_set().choicesetfilters.exists())
+
+    # We want to hide the facebook url in draft mode if the client isn't hosting
+    faces_url = campaign_properties.client_faces_url
+    if 'https://apps.facebook.com' in faces_url:
+        faces_url = ''
+
+    return JsonHttpResponse({
+        'name': re.sub(r' 1$', '', campaign.name),
+        'faces_url': faces_url,
+        'error_url': campaign_properties.client_error_url,
+        'thanks_url': campaign_properties.client_thanks_url,
+        'content_url': campaign_properties.client_thanks_url,
+        'include_empty_fallback': empty_fallback,
+        'filters': campaign_filters,
+        'msg1_post': fb_attr_inst.msg1_post,
+        'msg1_pre': fb_attr_inst.msg1_pre,
+        'msg2_post': fb_attr_inst.msg2_post,
+        'msg2_pre': fb_attr_inst.msg2_pre,
+        'org_name': fb_attr_inst.org_name,
+        'og_title': fb_attr_inst.og_title,
+        'og_image': fb_attr_inst.og_image,
+        'og_description': fb_attr_inst.og_description,
+        'sharing_prompt': fb_attr_inst.sharing_prompt,
+        'sharing_sub_header': fb_attr_inst.sharing_sub_header,
+        'sharing_button': fb_attr_inst.sharing_button
+    })

@@ -83,8 +83,9 @@ class WizardFilterFeatureForm(forms.ModelForm):
     )
 
     TOPICS = sorted(classifier.SIMPLE_WEIGHTS)
-
-    feature = forms.ChoiceField(label='Filter Type', choices=CHOICES)
+    feature = forms.ChoiceField(
+        label='Filter Type',
+        choices=CHOICES )
 
     class Meta(object):
         model = relational.FilterFeature

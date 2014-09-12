@@ -1,10 +1,32 @@
-{% extends "targetadmin/base.html" %}
+{% extends "targetadmin/page.html" %}
 {% block title %}Log in to your account{% endblock %}
-{% block content %}
-<h2 style="text-align:center; margin-bottom: 20px;">Log in</h2>
-<form method="post" action="">
-	{% csrf_token %}
-	{{ form.as_p }}
-	<input type="submit" class="btn btn-primary" value="Enter">
-</form>
+
+{% block require %}
+    require(
+        [
+          'app',
+          'views/sidebar',
+          'views/login'
+        ], function(app, sidebar, Login) {
+
+            sidebar.setup( {
+                model: new Backbone.Model( {
+                    logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                    nav: [
+                        { name: 'help',
+                          label: 'Help',
+                          glyphClass: 'glyphicon glyphicon-info-sign'
+                        }
+                    ]
+                } )
+            } ).render();
+
+            new Login( {
+                token: "{% csrf_token %}",
+                action: "{% url 'targetadmin:login' %}",
+                next: "{{next}}",
+                error: {% if form.errors %} true {% else %} false {% endif %}
+            } );
+        }
+    );
 {% endblock %}

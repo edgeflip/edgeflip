@@ -1,0 +1,39 @@
+@import "colors.less";
+
+.client-campaigns {
+    .heading {
+        margin-top: 0px;
+    }
+
+    .create-campaign-btn {
+        float: right;
+        margin-right: 25px;
+    }
+
+    button.editBtn.btn {
+        color: black;
+
+        &:hover {
+            color: black;
+        }
+    }
+
+    .campaign-row {
+        border-top: 1px solid @lightGray;
+        margin-right: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+
+        .name {
+            color: @darkBlue;
+            font-size: 18px;
+            font-weight: 700;
+
+            &:hover {
+                cursor: pointer;
+                text-decoration: underline;
+            }
+        }
+    }
+
+}

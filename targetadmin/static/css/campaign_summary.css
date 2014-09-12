@@ -18,3 +18,7 @@
 .suggested-messages-header {
     margin-bottom: 0px;
 }
+
+.url-container {
+    overflow: hidden;
+}

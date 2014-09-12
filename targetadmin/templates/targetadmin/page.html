@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>{% block title %}{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    {% comment %}
+         base template for pages utilizing require.js
+         require.js is the vendor file, main.js is configuration
+    {% endcomment %}
+    <script src="{{ STATIC_URL }}js/vendor/require.js"></script>
+    <script src="{{ STATIC_URL }}js/main.js"></script>
+  </head>
+
+    {% comment %}
+        let javascript templates build the DOM so you don't have the
+        same templates on both server and client
+    {% endcomment %}
+  <body>
+    <section class="container-fluid">
+        <div id="content-container" class="row">{% block content %}{% endblock %}</div>
+    </section>
+
+    {% comment %}
+        page specific javascript AMD modules will execute here
+    {% endcomment %}
+    <script>{% block require %}{% endblock %}</script>
+  </body>
+</html>

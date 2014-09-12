@@ -1,0 +1,53 @@
+@import "../colors.less";
+@import "../mixins.less";
+
+.campaign-wizard {
+
+    margin-bottom: 80px;
+
+    .heading-separator {
+        margin-bottom: 20px;
+    }
+
+    .subheader {
+        margin-bottom: 40px;
+    }
+
+    .title {
+        .HeadingFont;
+        color: @darkBlue;
+        text-transform: uppercase;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .form-group {
+        margin-bottom: 25px;
+    }
+
+    button.back-btn {
+        background-color: @borderGray;
+        margin-right: 20px;
+    }
+
+    .campaign-wizard-faces,
+    .campaign-wizard-fb-obj {
+
+        .input-label {
+            margin-right: 5px;
+            .HeadingFont();
+            color: @darkBlue;
+            font-size: 24px;
+            text-transform: uppercase;
+            margin-bottom: 0px;
+        } 
+
+        .nav-button-container {
+            margin-top: 40px;
+        }
+
+        .form-group span.form-control-feedback {
+            top: 34px;
+        }
+    }
+}

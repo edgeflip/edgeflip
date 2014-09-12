@@ -1,6 +1,9 @@
+import json
+
 from django.contrib.auth.decorators import login_required
 from django.views.generic import ListView, DetailView
 from django.shortcuts import redirect
+from django.core.serializers.json import DjangoJSONEncoder
 
 from targetadmin import forms, utils
 from targetshare.models import relational
@@ -12,11 +15,16 @@ class ClientListView(ListView):
     template_name = 'targetadmin/home.html'
     queryset = relational.Client.objects.all()
 
-    def render_to_response(self,context,**response_kwargs):
-        if len( context['client_list'] ) == 1: 
-            return redirect( 'targetadmin:client-detail', context['client_list'][0].pk )
+    def get(self, request):
+        # Check for only one client
+        try:
+            client_id = self.get_queryset().values_list('pk', flat=True).get()
+        except (relational.Client.DoesNotExist, relational.Client.MultipleObjectsReturned):
+            pass
         else:
-            return ListView.render_to_response( self, context, **response_kwargs) 
+            return redirect('targetadmin:client-detail', client_id)
+
+        return super(ClientListView, self).get(request)
 
     def get_queryset(self):
         queryset = super(ClientListView, self).get_queryset()
@@ -29,20 +37,18 @@ class ClientListView(ListView):
 
 
 class ClientDetailView(DetailView):
+    template_name = 'targetadmin/client_home.html'
     model = relational.Client
     pk_url_kwarg = 'client_pk'
-  
-    def get_template_names(self):
-        return [ 'targetadmin/superuser_home.html' ] if self.request.user.is_superuser\
-             else [ 'targetadmin/client_home.html' ]
 
-    def get_context_data(self,**kwargs):
+    def get_context_data(self, **kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
-        context['root_campaigns'] = context['client'].campaigns\
-            .exclude(rootcampaign_properties=None)\
-            .order_by( '-create_dt' )
+        root_campaigns = context['client'].campaigns\
+            .exclude(rootcampaign_properties=None).exclude(campaignproperties__status='inactive')\
+            .order_by( '-create_dt' )\
+            .values('pk', 'name', 'create_dt', 'campaignproperties__status' )
+        context['campaigns'] = json.dumps(list(root_campaigns), cls=DjangoJSONEncoder)
         return context
-
 
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'

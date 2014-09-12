@@ -1,0 +1,92 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
+#add-filter {
+  margin-top: 20px;
+}
+#add-filter button.dropdown-toggle {
+  color: inherit;
+  background-color: transparent;
+  background-image: none;
+  width: 100%;
+}
+#add-filter .caret {
+  margin-top: 10px;
+  float: right;
+}
+#add-filter .dropdown-menu {
+  width: 100%;
+}
+#add-filter .dropdown-label {
+  float: left;
+}
+#add-filter .location-text {
+  padding: 6px 20px;
+}
+#add-filter .location-text::-webkit-input-placeholder {
+  color: #5c5c5d;
+}
+#add-filter .location-text::-moz-placeholder {
+  color: #5c5c5d;
+}
+#add-filter .location-text:-ms-input-placeholder {
+  color: #5c5c5d;
+}
+#add-filter .add-location-btn {
+  padding: 0px 40px;
+}
+#add-filter .location-text,
+#add-filter .add-location-btn,
+#add-filter .sub-dropdown {
+  margin-top: 10px;
+}
+#add-filter .typeahead.dropdown-menu {
+  position: inherit;
+}
+#add-filter .location-container {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f2f2f2;
+  border: 1px solid #c2c2c2;
+}
+#add-filter .location {
+  position: relative;
+  float: left;
+  border: 1px solid #c2c2c2;
+  background-color: #d4e0f5;
+  padding: 5px;
+  margin: 5px;
+}
+#add-filter .location .close-btn {
+  position: absolute;
+  font-size: 6px;
+  font-weight: bold;
+  top: 2px;
+  right: 2px;
+}
+#add-filter .location .close-btn:hover {
+  cursor: pointer;
+}
+#add-filter .age-range-display {
+  margin-top: 10px;
+  padding-left: 20px;
+}
+#add-filter .age-slider {
+  margin-top: 10px;
+  border-radius: 0px;
+  border-color: #c2c2c2;
+}
+#add-filter .ui-slider-horizontal .ui-slider-range {
+  background: none;
+  background-color: #f2f2f2;
+}
+#add-filter .ui-state-default,
+#add-filter .ui-widget-content .ui-state-default,
+#add-filter .ui-widget-header .ui-state-default {
+  background: none;
+  background-color: #2c4c6c;
+  border: none;
+  border-radius: 1px;
+  width: 10px;
+  height: 20px;
+}

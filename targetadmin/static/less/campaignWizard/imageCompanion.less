@@ -1,0 +1,26 @@
+@import "../mixins.less";
+@popoverGray: #515153;
+@popoverBorderGray: #f5f5f5;
+
+.image-companion {
+    
+    .style-popover( white, @popoverGray, @popoverBorderGray );
+
+    .companion-image {
+        width: 100%;
+    }
+
+    .input-container,
+    .image-container {
+        position: relative;
+    }
+    
+    .image-container {
+        top: 0px;
+    }
+
+    .popover-target {
+        position: absolute;
+    }
+
+}

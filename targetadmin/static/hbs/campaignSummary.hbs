@@ -1,0 +1,76 @@
+<section class="col-sm-10 campaign-summary">
+    <div class="row divided">
+        <div class="col-sm-9">
+            <h1 class="heading">{{ campaign.name }}</h1>
+        </div>
+    </div>
+    <div class="row">
+        {{#if campaign.message}}
+            <div class="group">
+                <div class="value">{{ campaign.message }}</div>
+            </div>
+        {{/if}}
+        <div class="group">
+            <div class="name">Campaign Name</div>
+            <div class="value">{{ campaign.name }}</div>
+        </div>
+
+        {{#each campaign.cleaned_filters}}
+            <div class="group">
+                {{#if @index}}
+                    <div class="name">Fallback Audience {{@index}}</div>
+                {{else}}
+                    <div class="name">Target Audience</div>
+                {{/if}}
+                {{#each this}}
+                    <div class="value">{{this}}</div>
+                {{/each}}
+            </div>
+        {{/each}}
+
+        {{#if campaign.cleaned_filters}}
+            <div class="group">
+            <span class="name">Empty Fallback: </span>
+            {{#if campaign.empty_fallback}}
+                Yes
+            {{else}}
+                No
+            {{/if}}
+            </div>
+        {{/if}}
+        <div class="group">
+            <div class="name">Friend Suggestion Page</div>
+            <div class="value">Headline: {{ campaign.headline }}</div>
+            <div class="value">Sub-header: {{ campaign.subheader }}</div>
+            <div class="value">Thanks URL: <a href="{{ campaign.thanks_url }}">{{ campaign.thanks_url }}</a></div>
+            <div class="value">Error URL: <a href="{{ campaign.error_url }}">{{ campaign.error_url }}</a></div>
+        </div>
+        <div class="group">
+            <div class="name">Facebook Post</div>
+            <div class="value">Cause or Organization: {{ campaign.org_name }}</div>
+        </div>
+
+        <div class="group">
+            <div class="value">Suggested Message 1: {{ campaign.suggested_message_1 }}</div>
+            <div class="value">Suggested Message 2: {{ campaign.suggested_message_2 }}</div>
+        </div>
+
+        <div class="group">
+            <div class="value">Post Image URL: <a href="{{ campaign.og_image }}">{{ campaign.og_image }}</a></div>
+            <div class="value">Post Title: {{ campaign.og_title }}</div>
+            <div class="value">Post Text: {{ campaign.og_description }}</div>
+            <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
+        </div>
+
+        {{#if campaign.sharing_url}}
+            <div class="group">
+                <div class="value">Shortened URL: <a href="{{ campaign.sharing_url }}">{{ campaign.sharing_url }}</a></div>
+            </div>
+        {{/if}}
+
+        <div class="group">
+            <button data-js="homeBtn" type="button" class="btn">Home</button>
+        </div>
+    </div>
+
+</section>

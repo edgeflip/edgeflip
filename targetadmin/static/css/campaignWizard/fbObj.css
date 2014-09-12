@@ -1,0 +1,9 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
+.campaign-wizard-fb-obj .message-heading {
+  color: #2c4c6c;
+  text-align: center;
+  margin-bottom: 5px;
+  font-weight: bold;
+}

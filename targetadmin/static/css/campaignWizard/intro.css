@@ -1,0 +1,57 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
+.campaign-wizard-intro .step-box {
+  background-color: #f5f5f5;
+  border: 1px solid #c2c2c2;
+  margin-bottom: 30px;
+}
+.campaign-wizard-intro .step-box li {
+  border: 1px solid #cccccc;
+  padding: 10px;
+  float: left;
+}
+.campaign-wizard-intro .filters-box li {
+  background-color: #d4e0f5;
+  width: 40%;
+  text-align: center;
+  margin: 5%;
+  height: 62px;
+  font-size: 12px;
+}
+.campaign-wizard-intro .filters-box li .table-wrap {
+  display: table;
+  height: 100%;
+  width: 100%;
+}
+.campaign-wizard-intro .filters-box li .table-wrap span {
+  display: table-cell;
+  vertical-align: middle;
+}
+.campaign-wizard-intro .friends-box li {
+  width: 80%;
+  margin: 5% 10%;
+  background-color: white;
+  height: 62px;
+}
+.campaign-wizard-intro .friends-box .friend-image {
+  float: left;
+}
+.campaign-wizard-intro .friends-box .friend-image img {
+  height: 40px;
+  width: 40px;
+}
+.campaign-wizard-intro .friends-box .friend-text {
+  float: left;
+  padding-left: 5px;
+}
+.campaign-wizard-intro .friends-box .xout {
+  float: right;
+  position: relative;
+  top: -10px;
+}
+.campaign-wizard-intro .facebook-post-box img {
+  height: 280px;
+  display: block;
+  margin: auto;
+}

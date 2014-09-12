@@ -1,31 +1,68 @@
-{% extends "targetadmin/base.html" %}
-{% block title %}{{ client.name }}{% endblock %}
-{% block content %}
-    <h2 style="text-align:center;">{{ client.name }}</h2>
-    <div class="row">
-        <div class="span6 offset3">
-            <div style="margin-top: 2em; margin-bottom: 4em; text-align: center;" class="row">
-                <div class="span3">
-                    <a class="btn btn-primary" href="{% url 'targetadmin:campaign-wizard' client.pk %}">Create New Campaign</a>
-                </div>
-                <div class="span3">
-                    <a class="btn btn-primary" href="{% url 'reporting:main' %}">Reporting Dashboard</a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="row">
-        <div class="span6 offset3">
-            <h4 style="text-align: center; margin-bottom: 1em;">Campaigns</h4>
-            <ul class="row">
-                {% for campaign in root_campaigns.all %}
-                    <li style="margin-bottom: 1em; list-style-type: none;">
-                        <span style="margin-right: 1em;">{{ campaign.create_dt.year }}.{{ campaign.create_dt.month }}.{{ campaign.create_dt.day }}</span>
-                        <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">{{ campaign.name|slice:":-2" }}</a>
-                    </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
+{% extends "targetadmin/page.html" %}
+{% comment %}added new base template for require js stack {% endcomment %}
 
+{% block title %}{{ client.name }}{% endblock %}
+
+
+{% block require %}
+    require(
+        [
+          'app',
+          'views/sidebar',
+          'views/clientCampaigns',
+          'views/miniHeader',
+        ], function(app, sidebar, ClientCampaigns, miniHeader) {
+
+        /* its silly to pass all of these attributes here, they
+           are mostly used by sub views of ClientCampaigns, I would
+           argue to have more ajax calls made by the sub views.  The only
+           one really necessary for optimal page rendering is the 'campaigns' attribute */
+        var clientCampaigns =
+            new ClientCampaigns( {
+                campaigns: {{ campaigns|safe }},
+                campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
+                campaignDataURL: "{% url 'targetadmin:campaign-data' client.pk 0 %}",
+                howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
+                facebookPostImage: "{{ STATIC_URL }}img/fb-obj-example.png",
+                facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",
+                clientId: {{client.pk}},
+                token: "{% csrf_token %}",
+                wizardCreate: "{% url 'targetadmin:campaign-wizard' client.pk %}",
+                wizardEdit: "{% url 'targetadmin:campaign-wizard-edit' client.pk 0 %}"
+            } );
+
+        /* let the sidebar show it when its ready */
+        clientCampaigns.$el.hide();
+
+        /* display the client name at the top of the page */
+        miniHeader.setup( { name: "{{client.name}}" } ).render();
+
+        /* sidebar is already instantiated (singleton pattern),
+           give it data to work with -- TODO: tie reporting url to
+           nav data structure */
+        sidebar.setup( {
+            model: new Backbone.Model( {
+                state: 'campaigns',
+                logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
+                nav: [
+                    { name: 'campaigns',
+                      label: 'Campaigns',
+                      glyphClass: 'glyphicon glyphicon-share',
+                      view: true
+                    },
+                    { name: 'reports',
+                      label: 'Reports',
+                      glyphClass: 'glyphicon glyphicon-stats'
+                    },
+                    { name: 'help',
+                      label: 'Help',
+                      glyphClass: 'glyphicon glyphicon-info-sign'
+                    }
+                ]
+            } ),
+            views: { campaigns: clientCampaigns },
+            campaignListURL: "{% url 'targetadmin:client-detail' client.pk %}",
+            reportingDashboardURL: "{% url 'reporting:main' %}"
+        } ).render();
+    } );
 {% endblock %}

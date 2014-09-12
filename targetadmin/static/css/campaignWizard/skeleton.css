@@ -1,0 +1,43 @@
+.HeadingFont {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+}
+.campaign-wizard {
+  margin-bottom: 80px;
+}
+.campaign-wizard .heading-separator {
+  margin-bottom: 20px;
+}
+.campaign-wizard .subheader {
+  margin-bottom: 40px;
+}
+.campaign-wizard .title {
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+  color: #2c4c6c;
+  text-transform: uppercase;
+  font-size: 24px;
+  font-weight: bold;
+}
+.campaign-wizard .form-group {
+  margin-bottom: 25px;
+}
+.campaign-wizard button.back-btn {
+  background-color: #c2c2c2;
+  margin-right: 20px;
+}
+.campaign-wizard .campaign-wizard-faces .input-label,
+.campaign-wizard .campaign-wizard-fb-obj .input-label {
+  margin-right: 5px;
+  font-family: "franklin-gothic-ext-comp-urw", Helvetica, sans-serif;
+  color: #2c4c6c;
+  font-size: 24px;
+  text-transform: uppercase;
+  margin-bottom: 0px;
+}
+.campaign-wizard .campaign-wizard-faces .nav-button-container,
+.campaign-wizard .campaign-wizard-fb-obj .nav-button-container {
+  margin-top: 40px;
+}
+.campaign-wizard .campaign-wizard-faces .form-group span.form-control-feedback,
+.campaign-wizard .campaign-wizard-fb-obj .form-group span.form-control-feedback {
+  top: 34px;
+}

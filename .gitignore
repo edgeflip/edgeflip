@@ -25,3 +25,5 @@
 
 ssl
 /statsd
+
+targetadmin/grunt/node_modules/*

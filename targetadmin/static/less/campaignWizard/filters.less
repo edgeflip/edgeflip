@@ -1,0 +1,104 @@
+@import "../colors.less";
+@import "../mixins.less";
+
+.campaign-wizard-filters {
+
+    .enabled-filters {
+        margin-bottom: 40px;
+    }
+
+    .filter-layer:not(:first-child) {
+        margin-top: 20px;
+    }
+
+    .filter-layer-header {
+        margin-bottom: 5px;
+
+        .glyphicon-remove {
+
+            float: right;
+
+            &:hover {
+                cursor: pointer;
+            }
+        }
+    }
+
+    .filter-layer-label {
+        font-size: 16px;
+        margin-right: 10px;
+    }
+
+    .filter-container {
+        min-height: 90px;
+        border: 1px solid @borderGray;
+        background-color: @lightGray;
+    }
+
+    .available-filters-header {
+
+        margin-bottom: 5px;
+
+        .title {
+            margin-right: 20px;
+        }
+    }
+
+    .available-filters-header button,
+    .enabled-filters button {
+        padding: 2px 10px;
+        font-size: 12px;
+        vertical-align: text-bottom;
+    }
+
+    .available-filters {
+        margin-bottom: 10px;
+    }
+
+    .empty-fallback-input {
+        margin: 0px 20px;
+    }
+
+    .glyphicon-question-sign {
+
+        &:hover {
+            cursor: pointer;
+        }
+
+        &:before {
+            vertical-align: middle;
+        }
+    }
+
+    .filter {
+        float: left;
+        height: 60px;
+        width: 16%;
+        margin: 2%;
+        background-color: @lightBlue;
+        border: 1px solid @borderGray;
+
+        &:hover {
+            cursor: move;
+        }
+    }
+
+    .filter-table-wrap {
+        display: table;
+        height: 100%;
+        width: 100%;
+    }
+
+    .filter-table-cell-wrap {
+        display: table-cell;
+        vertical-align: middle;
+        text-align: center;
+        padding: 0px 5px;
+
+        div {
+            font-size: 12px;
+            max-height: 35px;
+            overflow: hidden;
+        }
+    }
+}

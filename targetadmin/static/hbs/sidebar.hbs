@@ -1,0 +1,13 @@
+<nav id="left-panel" class="col-sm-2">
+    <ol>
+        <li class="logo">
+            <img src="{{logoSrc}}"/>
+        </li>
+        {{#each nav}}
+        <li class="button" data-nav="{{this.name}}" {{#if this.view}} data-js="contentBtn"{{/if}}>
+            <span class="{{this.glyphClass}}"></span>
+            <span>{{this.label}}</span>
+        </li>
+        {{/each}}
+    </ol>
+</nav>

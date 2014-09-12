@@ -131,12 +131,7 @@ $.extend( createFilterManager.prototype, {
             if( filters.length === 0 ) {
                 this.addLocationFilterButton.click();
                 filters = this.locationFilters.children();
-            }
-
-            if( filters.length === 0 ) {
                 return;
-                this.addLocationFilterButton.attr( 'data-content', 'Please add a filter.' ).popover('show');
-                this.delegateRemovePopover( this.addLocationFilterButton );
             }
 
             filters.each( function( i, filterEl ) {

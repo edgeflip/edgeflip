@@ -1,0 +1,46 @@
+<section id="add-filter">
+    <div class="dropdown">
+        <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+            <span data-js="dropdownLabel" class="dropdown-label">{{filterTypeLabel}}</span>
+            <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu">
+            {{#each filterTypes}}
+                <li><a data-js="filterType" data-type="{{this.name}}" tabindex="-1" href="#">{{this.label}}</a></li>
+            {{/each}}
+        </ul>
+    </div>
+    <div data-js="filterTypeUI" data-type="age" class="hide">
+        <div class="age-range-display" data-js="ageRangeDisplay"></div>
+        <div class="age-slider" data-js="ageSlider"></div>
+    </div>
+    {{#each filterTypeOptions}}
+        <div data-js="filterTypeUI" data-type="{{this.name}}" class="sub-dropdown dropdown hide">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                <span data-js="dropdownLabel" class="dropdown-label">{{this.label}}</span>
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                {{#each this.options}}
+                    <li><a data-js="filterTypeOption" data-value="{{this.value}}"tabindex="-1" href="#">{{this.label}}</a></li>
+                {{/each}}
+            </ul>
+        </div>
+    {{/each}}
+    <div data-js="filterTypeUI" data-type="location" class="hide">
+        <div class="sub-dropdown dropdown">
+            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                <span data-js="dropdownLabel" class="dropdown-label">Location Type (one per filter)</span>
+                <span class="caret"></span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a data-js="locationTypeOption" data-value="city" tabindex="-1" href="#">City</a></li>
+                <li><a data-js="locationTypeOption" data-value="state" tabindex="-1" href="#">State</a></li>
+            </ul>
+        </div>
+        <input placeholder="Add City" data-type="city" data-js="locationInput" class="hide form-control location-text" type="text">
+        <input placeholder="Add State" data-type="state" data-js="locationInput" class="hide form-control location-text" type="text">
+        <button class="btn add-location-btn" data-js="addLocationBtn">Add Filter</button>
+        <ul class="location-container clearfix hide" data-js="locationContainer"></ul>
+    </div>
+</section>
