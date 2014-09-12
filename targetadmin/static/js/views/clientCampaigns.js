@@ -101,7 +101,8 @@ define(
                         facesExampleURL: this.facesExampleURL,
                         clientId: this.clientId,
                         token: this.token,
-                        formAction: this.formAction,
+                        editFormAction: this.wizardEdit,
+                        createFormAction: this.wizardCreate,
                         campaignDataURL: this.campaignDataURL
                 } );
             },

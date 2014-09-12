@@ -135,7 +135,7 @@ def campaign_create(request, client_pk):
     })
 
 @utils.auth_client_required
-def campaign_wizard(request, client_pk, campaign_pk):
+def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
     if request.method == 'POST':
