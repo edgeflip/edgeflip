@@ -42,15 +42,12 @@ class ClientDetailView(DetailView):
     pk_url_kwarg = 'client_pk'
 
     def get_context_data(self, **kwargs):
-        super_context = super(ClientDetailView, self).get_context_data(**kwargs)
-        root_campaigns = super_context['client'].campaigns\
+        context = super(ClientDetailView, self).get_context_data(**kwargs)
+        root_campaigns = context['client'].campaigns\
             .exclude(rootcampaign_properties=None).exclude(campaignproperties__status='inactive')\
             .order_by( '-create_dt' )\
             .values('pk', 'name', 'create_dt', 'campaignproperties__status' )
-        context = dict(
-            campaigns=json.dumps(list(root_campaigns), cls=DjangoJSONEncoder),
-            client=super_context['client'],
-        )
+        context['campaigns'] = json.dumps(list(root_campaigns), cls=DjangoJSONEncoder)
         return context
 
 class ClientFormView(CRUDView):
