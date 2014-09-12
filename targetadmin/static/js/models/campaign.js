@@ -2,6 +2,7 @@ define( [
     'vendor/backbone',
     'models/filters',
 ], function( Backbone, FilterCollection ) {
+    //TODO: DRY up this incarnation and the one in the filter model
     var readable_list = function(list, set_operator) {
         first_part = list.slice(0, -2);
         last_two = list.slice(-2);
