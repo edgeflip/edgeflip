@@ -32,6 +32,7 @@ define(
                     this.getCampaignData();
                     this.on( 'receivedCampaignData', this.render, this );
                 } else {
+                    this.formAction = this.formAction.replace(0, '');
                     this.render();
                 }
 

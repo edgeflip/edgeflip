@@ -139,9 +139,12 @@ def campaign_wizard(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
     if request.method == 'POST':
+        old_content = None
         if campaign:
             fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
             campaign_properties = campaign.campaignproperties.get()
+            old_content = guess_content(client, campaign)
+
             if campaign_properties.status != relational.CampaignProperties.Status.DRAFT:
                 raise TypeError("Only campaigns in draft mode can be modified")
         else:
@@ -260,12 +263,14 @@ def campaign_wizard(request, client_pk, campaign_pk):
                 # but we'll still have a root filter in `choice_sets` to match:
                 ranking_keys = [None]
 
-            old_content = guess_content(client, campaign)
 
             content = client.clientcontent.create(
                 name='{} {}'.format(client.name, campaign_name),
                 url=campaign_form.cleaned_data.get('content_url'),
             )
+
+            if old_content:
+                old_content.delete()
 
             # Global Filter
             empty_filters = client.filters.filter(filterfeatures=None)
@@ -374,7 +379,7 @@ def campaign_wizard(request, client_pk, campaign_pk):
                     camp.save()
                     camp.campaignbuttonstyles.update(button_style=button_style, rand_cdf=1.0)
 
-                    clean_up_campaign(camp, old_content)
+                    clean_up_campaign(camp)
                     camp.campaignchoicesets.update(choice_set=cs) # update campaign to new ChoiceSet
                     if ranking_key:
                         camp.campaignrankingkeys.create(ranking_key=ranking_key)
@@ -410,14 +415,6 @@ def campaign_wizard(request, client_pk, campaign_pk):
 
             discarded_fallbacks = campaign_chain[len(campaigns):]
             for discarded_fallback in reversed(discarded_fallbacks):
-                discarded_props = discarded_fallback.campaignproperties.get()
-                if discarded_props.fallback_campaign or discarded_props.root_campaign:
-                    LOG_RVN.error("Campaign in use by multiple fallback chains, clean-up deferred at %s %r",
-                                  discarded_fallback.pk,
-                                  [discarded.pk for discarded in discarded_fallbacks],
-                                  extra={'request': request})
-                    break
-
                 clean_up_campaign(discarded_fallback)
                 discarded_fallback.delete()
 
@@ -526,11 +523,7 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     return base_values
 
 
-def clean_up_campaign(campaign, content=None):
-    # clean up content:
-    if content:
-        content.delete()
-
+def clean_up_campaign(campaign):
     # clean up choice set
     choice_set = campaign.choice_set()
     if choice_set.campaignchoicesets.count() == 1:
