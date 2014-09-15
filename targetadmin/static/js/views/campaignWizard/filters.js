@@ -249,7 +249,8 @@ define(
             showFilterInfo: function() {
                 modal.update( {
                     body: filtersInfoTemplate,
-                    longContent: true
+                    longContent: true,
+                    title: 'Filter Info'
                   } );
 
                 modal.templateData.confirmBtn.hide();
@@ -261,10 +262,12 @@ define(
             showEmptyFallbackInfo: function() {
                 modal.update( {
                     body: filtersInfoTemplate,
+                    title: 'Empty Fallback'
                   } );
 
                 modal.templateData.modalContainer.find('p[data-js="target-audience"]').hide();
                 modal.templateData.modalContainer.find('p[data-js="fallback-audience"]').hide();
+                modal.templateData.modalContainer.find('span[class="fallback-subtitle"]').hide();
                 modal.templateData.confirmBtn.hide();
                 modal.templateData.modalContainer.modal();
             },
