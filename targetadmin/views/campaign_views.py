@@ -35,7 +35,7 @@ The Campaign Wizard
 """
 
 CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
-Your new campaign has been created. Edgeflip is validating the campaign \
+Your campaign has been saved. Edgeflip is validating the campaign \
 and will notify you when it has been deployed and ready for you to use.\
 """
 
