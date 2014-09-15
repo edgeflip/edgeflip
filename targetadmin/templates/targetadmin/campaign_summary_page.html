@@ -16,7 +16,7 @@
             pk: "{{ campaign_id }}",
             client: "{{ client }}",
             content_url: "{{ content_url }}",
-            root_campaign: "{{ root_campaign }}",
+            root_campaign: "{{ root_campaign|safe }}",
             campaign_properties: {{ campaign_properties|safe }},
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
