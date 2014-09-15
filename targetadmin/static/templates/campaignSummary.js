@@ -76,7 +76,7 @@ function program15(depth0,data) {
   var buffer = "", stack1;
   buffer += "            <div class=\"group\"><div class=\"value\">Shortened URL: <a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\">"
+    + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></div></div>        ";
   return buffer;
@@ -101,11 +101,11 @@ function program15(depth0,data) {
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.subheader)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</div><div class=\"value\">Thanks URL: <a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.thanks_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\">"
+    + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.thanks_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></div><div class=\"value\">Error URL: <a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.error_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\">"
+    + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.error_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></div></div><div class=\"group\"><div class=\"name\">Facebook Post</div><div class=\"value\">Cause or Organization: "
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.org_name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
@@ -115,7 +115,7 @@ function program15(depth0,data) {
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.suggested_message_2)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</div></div><div class=\"group\"><div class=\"value\">Post Image URL: <a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.og_image)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\">"
+    + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.og_image)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></div><div class=\"value\">Post Title: "
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.og_title)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
@@ -123,7 +123,7 @@ function program15(depth0,data) {
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.og_description)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</div><div class=\"value\">Post Content URL: <a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.content_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\">"
+    + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.content_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></div></div>        ";
   stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url), {hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data});

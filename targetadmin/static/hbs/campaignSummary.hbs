@@ -42,8 +42,8 @@
             <div class="name">Friend Suggestion Page</div>
             <div class="value">Headline: {{ campaign.headline }}</div>
             <div class="value">Sub-header: {{ campaign.subheader }}</div>
-            <div class="value">Thanks URL: <a href="{{ campaign.thanks_url }}">{{ campaign.thanks_url }}</a></div>
-            <div class="value">Error URL: <a href="{{ campaign.error_url }}">{{ campaign.error_url }}</a></div>
+            <div class="value">Thanks URL: <a href="{{ campaign.thanks_url }}" target="_blank">{{ campaign.thanks_url }}</a></div>
+            <div class="value">Error URL: <a href="{{ campaign.error_url }}" target="_blank">{{ campaign.error_url }}</a></div>
         </div>
         <div class="group">
             <div class="name">Facebook Post</div>
@@ -56,15 +56,15 @@
         </div>
 
         <div class="group">
-            <div class="value">Post Image URL: <a href="{{ campaign.og_image }}">{{ campaign.og_image }}</a></div>
+            <div class="value">Post Image URL: <a href="{{ campaign.og_image }}" target="_blank">{{ campaign.og_image }}</a></div>
             <div class="value">Post Title: {{ campaign.og_title }}</div>
             <div class="value">Post Text: {{ campaign.og_description }}</div>
-            <div class="value">Post Content URL: <a href="{{ campaign.content_url }}">{{ campaign.content_url }}</a></div>
+            <div class="value">Post Content URL: <a href="{{ campaign.content_url }}" target="_blank">{{ campaign.content_url }}</a></div>
         </div>
 
         {{#if campaign.sharing_url}}
             <div class="group">
-                <div class="value">Shortened URL: <a href="{{ campaign.sharing_url }}">{{ campaign.sharing_url }}</a></div>
+                <div class="value">Shortened URL: <a href="{{ campaign.sharing_url }}" target="_blank">{{ campaign.sharing_url }}</a></div>
             </div>
         {{/if}}
 
