@@ -35,7 +35,7 @@ The Campaign Wizard
 """
 
 CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
-Your new campaign has been created. Edgeflip is validating the campaign \
+Your campaign has been saved. Edgeflip is validating the campaign \
 and will notify you when it has been deployed and ready for you to use.\
 """
 
@@ -460,8 +460,8 @@ def campaign_summary(request, client_pk, campaign_pk):
 
 @utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk):
-    content_pk = request.GET.get('content')
-    if content_pk:
+    content_pk = request.GET.get('content', '')
+    if content_pk.isdigit():
         summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
         summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
         return render(

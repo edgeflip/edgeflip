@@ -22,6 +22,16 @@ define(
 
                 this.render();
 
+                var self = this;
+
+                this.templateData.modalContainer.on('confirm_bad', function() {
+                    self.templateData.confirmBtn.prop("disabled", true);
+                });
+
+                this.templateData.modalContainer.on('confirm_ok', function() {
+                    self.templateData.confirmBtn.prop("disabled", false);
+                });
+
                 return this;
             },
 
@@ -39,7 +49,7 @@ define(
             update: function( options ) {
 
                 var self = this;
-                        
+
                 this.templateData.closeBtn.addClass('hide');
                 this.templateData.modalHeader.removeClass('show-border');
 
@@ -55,7 +65,7 @@ define(
                                     .removeClass('long-content');
                             } );
                     }
-                    
+
                     if( options.title ) {
                         this.templateData.modalTitle.text( options.title );
                         this.templateData.modalHeader.addClass('show-border');
@@ -68,11 +78,11 @@ define(
                     if( options.confirmText ) {
                         this.templateData.confirmBtn.text( options.confirmText );
                     }
-                    
+
                     if( options.showCloseBtn ) {
                         this.templateData.closeBtn.removeClass('hide');
                     }
-                    
+
                 }
 
                 return this;
