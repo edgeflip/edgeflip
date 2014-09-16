@@ -10,7 +10,7 @@ helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
   if (helper = helpers.name) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.name); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
-    + "</span></h1><hr class=\"heading-separator\"><div class=\"row subheader\"><div class=\"col-sm-8\"><span>Once your supporters have selected which friends to share with, the Targeted Sharing application will generate a Facebook post that your target audience will see. Make your Facebook post engaging to encourage your target audience to click through to your campaign content! Configure your Facebook post by filling in the form below.</span><a href=\"";
+    + "</span></h1><hr class=\"heading-separator\"><div class=\"row subheader\"><div class=\"col-sm-8\"><span>Once your supporters have selected which friends to share with, the Targeted Sharing application will generate a Facebook post that your target audience will see. Configure your Facebook post by filling in the form below.</span><a href=\"";
   if (helper = helpers.howItWorksURL) { stack1 = helper.call(depth0, {hash:{},data:data}); }
   else { helper = (depth0 && depth0.howItWorksURL); stack1 = typeof helper === functionType ? helper.call(depth0, {hash:{},data:data}) : helper; }
   buffer += escapeExpression(stack1)
