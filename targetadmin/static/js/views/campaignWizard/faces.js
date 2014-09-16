@@ -44,7 +44,7 @@ define(
                     placement: 'bottom'
                 },
                 'sharing_sub_header': {
-                    hoverText: 'Your sub-header will go here.',
+                    hoverText: 'Your sub-heading will go here.',
                     imageCoords: { x: 457, y: 145 },
                     placement: 'bottom'
                 },
