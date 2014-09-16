@@ -463,12 +463,13 @@ def campaign_wizard_finish(request, client_pk, campaign_pk):
     content_pk = request.GET.get('content', '')
     if content_pk.isdigit():
         summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
-        summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
+        summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
         return render(
             request,
             'targetadmin/campaign_summary_page.html',
             summary_data
         )
+
     return HttpResponseBadRequest("Client content is required.") # FIXME
 
 
@@ -501,21 +502,19 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         campaign1 = properties1.fallback_campaign
 
     fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
-    sharing_urls = utils.build_sharing_urls(
-        request.get_host(),
-        root_campaign,
-        content
-    )
+    root_properties = root_campaign.campaignproperties.values(
+        'client_faces_url',
+        'client_thanks_url',
+        'client_error_url',
+        'status',
+    ).get()
+
     base_values = {
         'campaign_id': campaign_pk,
         'client': client,
         'content_url': content.url,
         'root_campaign': root_campaign,
-        'campaign_properties': json.dumps(root_campaign.campaignproperties.values(
-            'client_faces_url',
-            'client_thanks_url',
-            'client_error_url',
-        ).get()),
+        'campaign_properties': json.dumps(root_properties),
         'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
             'msg1_post',
             'msg1_pre',
@@ -531,8 +530,15 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         ).get()),
         'filters': json.dumps(filters),
     }
-    if request.user.is_superuser:
-        base_values['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain, client.domain, sharing_urls['initial_url'])
+
+    if (
+        request.user.is_superuser or
+        root_properties['status'] == relational.CampaignProperties.Status.PUBLISHED
+    ):
+        sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
+        base_values['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain,
+                                                              client.domain,
+                                                              sharing_urls['initial_url'])
 
     return base_values
 

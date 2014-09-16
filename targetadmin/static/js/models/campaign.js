@@ -1,14 +1,15 @@
-define( [
+define([
     'vendor/backbone',
     'models/filters',
-], function( Backbone, FilterCollection ) {
-    //TODO: DRY up this incarnation and the one in the filter model
+], function(Backbone, FilterCollection) {
     var readable_list = function(list, set_operator) {
-        first_part = list.slice(0, -2);
-        last_two = list.slice(-2);
-        full_string = [first_part.join(", "), last_two.join(" " + set_operator + " ")].filter(function(e) { return e; }).join(", ");
-        return full_string;
-    }
+        // TODO: DRY up this incarnation and the one in the filter model
+        var first_part = list.slice(0, -2),
+            last_two = list.slice(-2),
+            combined = [first_part.join(", "), last_two.join(" " + set_operator + " ")];
+        return combined.filter(function(el) {return el;}).join(", ");
+    };
+
     return Backbone.Model.extend( {
         //attributes
         defaults: {
@@ -50,23 +51,19 @@ define( [
                 return "Interested in " + readable_list(topics, 'and');
             }
         },
-        parse: function(attrs,options) {
-            if( attrs.root_campaign ) {
-                attrs.name = attrs.root_campaign;
-            }
-
-            if( attrs.name && attrs.name.endsWith(" 1") ) {
+        parse: function(attrs, options) {
+            if (attrs.name && attrs.name.endsWith(" 1")) {
                 attrs.name = attrs.name.substr(0, attrs.name.length-2);
             }
             attrs.create_dt = new Date(attrs.create_dt).toDateString();
-            attrs.isPublished = ( attrs.campaignproperties__status === 'published' );
+            attrs.isPublished = attrs.campaignproperties__status === 'published';
 
-            if( attrs.campaign_properties ) {
+            if (attrs.campaign_properties) {
                 attrs.thanks_url = attrs.campaign_properties.client_thanks_url;
                 attrs.error_url = attrs.campaign_properties.client_error_url;
             }
 
-            if( attrs.fb_obj_attributes ) {
+            if (attrs.fb_obj_attributes) {
                 attrs.org_name = attrs.fb_obj_attributes.org_name;
                 attrs.headline = attrs.fb_obj_attributes.sharing_prompt;
                 attrs.subheader = attrs.fb_obj_attributes.sharing_sub_header;
@@ -77,7 +74,7 @@ define( [
                 attrs.og_description = attrs.fb_obj_attributes.og_description;
             }
 
-            if( attrs.filters ) {
+            if (attrs.filters) {
                 attrs.empty_fallback = false;
                 attrs.cleaned_filters = []
                 for(var layer_index in attrs.filters) {
@@ -85,19 +82,16 @@ define( [
                     var layer = attrs.filters[layer_index];
                     for(var stuff_index in layer) {
                         var real_layer = layer[stuff_index];
-                        var filter_collection = new FilterCollection(
-                            real_layer,
-                            { }
-                        )
+                        var filter_collection = new FilterCollection(real_layer, {});
                         filter_collection.each(function(filter) {
                             if(!(filter.attributes.feature in cleaned_filter)) {
-                                cleaned_filter[filter.attributes.feature] = []
+                                cleaned_filter[filter.attributes.feature] = [];
                             }
-                            cleaned_filter[filter.attributes.feature].push(filter)
+                            cleaned_filter[filter.attributes.feature].push(filter);
                         });
                     }
                     for(var type_code in cleaned_filter) {
-                        cleaned_filter[type_code] = this.format(type_code, cleaned_filter[type_code])
+                        cleaned_filter[type_code] = this.format(type_code, cleaned_filter[type_code]);
                     }
                     if(
                         (layer_index == attrs.filters.length - 1) &&
@@ -105,11 +99,11 @@ define( [
                     ) {
                         attrs.empty_fallback = true;
                     } else {
-                        attrs.cleaned_filters.push(cleaned_filter)
+                        attrs.cleaned_filters.push(cleaned_filter);
                     }
                 }
             }
             return attrs;
         }
-    } );
-} );
+    });
+});
