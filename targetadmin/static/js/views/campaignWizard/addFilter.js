@@ -267,18 +267,14 @@ define(
                         } );
                         break;
                     case 'location':
-                        if( this.templateData.locationContainer.children().length > 0 ) {
-                            this.availableFilters.add( {
-                                feature_type__code: this.model.get('locationType'),
-                                feature: this.model.get('locationType'),
-                                value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
-                                    return $(locationEl).find('*[data-js="value"]').text();
-                                }, this ).join('||')
-                            } );
-                            break;
-                        } else {
-
-                        }
+                        this.availableFilters.add( {
+                            feature_type__code: this.model.get('locationType'),
+                            feature: this.model.get('locationType'),
+                            value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
+                                return $(locationEl).find('*[data-js="value"]').text();
+                            }, this ).join('||')
+                        } );
+                        break;
                 }
 
                 modal.templateData.modalContainer.modal('hide');
