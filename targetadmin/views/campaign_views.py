@@ -460,8 +460,8 @@ def campaign_summary(request, client_pk, campaign_pk):
 
 @utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk):
-    content_pk = request.GET.get('content')
-    if content_pk:
+    content_pk = request.GET.get('content', '')
+    if content_pk.isdigit():
         summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
         summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
         return render(

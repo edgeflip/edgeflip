@@ -17,7 +17,6 @@ class TestCampaignViews(TestAdminBase):
         super(TestCampaignViews, self).setUp()
         self.campaign = self.test_client.campaigns.get(pk=1)
 
-
     def test_create_campaign_wizard(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
@@ -495,3 +494,13 @@ class TestCampaignViews(TestAdminBase):
         response = self.client.get("{}?content=1".format(
             reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
         self.assertStatusCode(response, 200)
+
+    def test_campaign_wizard_finish_missing_content(self):
+        response = self.client.get("{}?content=106".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
+        self.assertStatusCode(response, 404)
+
+    def test_campaign_wizard_finish_bad_content(self):
+        response = self.client.get("{}?content=1/logout".format(
+            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
+        self.assertStatusCode(response, 400)

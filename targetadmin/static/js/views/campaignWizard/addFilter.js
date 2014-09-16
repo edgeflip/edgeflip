@@ -70,6 +70,14 @@ define(
                 return this;
             },
 
+            clearModal: function() {
+                this.templateData.locationContainer.empty();
+                this.templateData.locationInput.val('');
+                this.model.set('state', undefined );
+                this.templateData.dropdownLabel.text('Select Filter Type');
+                this.templateData.filterTypeUI.addClass('hide');
+            },
+
             render: function() {
 
                 this.slurpHtml( {
@@ -120,6 +128,9 @@ define(
                 var self = this;
                 
                 modal.on( 'confirmed', this.addFilter, this );
+                self.disableConfirmButton();
+
+                self.clearModal();
 
                 this.delegateEvents()
                     .bindAgeSlider()
@@ -139,6 +150,21 @@ define(
                 
                 this.templateData.filterTypeUI.addClass('hide');
                 this.templateData.filterTypeUI.filter( '*[data-type="' + this.model.get('state') + '"]' ).removeClass('hide').fadeIn();
+
+                // no further selections are necessary to select an age filter, so let the user do it now
+                if( this.model.get('state') === 'age' ) {
+                    this.enableConfirmButton();
+                } else {
+                    this.disableConfirmButton();
+                }
+            },
+
+            disableConfirmButton: function() {
+                modal.templateData.modalContainer.trigger('confirm_bad');
+            },
+
+            enableConfirmButton: function() {
+                modal.templateData.modalContainer.trigger('confirm_ok');
             },
 
             /* After a dropdown value has been selected, updated the text shown */
@@ -155,6 +181,7 @@ define(
             filterValueSelected: function(e) {
 
                 this.updateDropdownLabel(e);
+                this.enableConfirmButton();
 
                 this.model.set( 'value', $(e.currentTarget).data('value') );
             },
@@ -183,6 +210,7 @@ define(
                     value = $.trim( inputEl.val() );
 
                 if( value && this.templateData.locationContainer.find('li[data-value="' + value + '"]').length === 0 ) {
+                    this.enableConfirmButton();
                     this.templateData.locationContainer.append( singleLocationHTML( { value: value } ) );
 
                     if( this.templateData.locationContainer.hasClass('hide') ) {
@@ -191,10 +219,12 @@ define(
                 }
             },
 
-            /* location removed, remove it from box
-                potential bug: should remove location after fadeOut */
+            /* location removed, remove it from box */
             removeProposedLocation: function(e) {
-                $(e.currentTarget).parent().fadeOut();    
+                var loc = $(e.currentTarget).parent();
+                loc.fadeOut( 400, function() {
+                    loc.remove();
+                });
 
                 if( this.templateData.locationContainer.children().length === 0 ) {
                     this.templateData.locationContainer.addClass('hide');
