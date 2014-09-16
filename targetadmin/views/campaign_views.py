@@ -35,7 +35,7 @@ The Campaign Wizard
 """
 
 CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
-Your new campaign has been created. Edgeflip is validating the campaign \
+Your campaign has been saved. Edgeflip is validating the campaign \
 and will notify you when it has been deployed and ready for you to use.\
 """
 
@@ -134,6 +134,7 @@ def campaign_create(request, client_pk):
         'form': form
     })
 
+
 @utils.auth_client_required
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
@@ -166,7 +167,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 filter_feature_layer = []
                 ranking_feature_layer = []
                 for feature_string in inputs:
-                    (feature, operator, value) = feature_string.split('.')
+                    (feature, operator, value) = feature_string.split('.', 2)
                     if feature == 'interest':
                         feature = 'topics[{}]'.format(value)
                         operator = relational.FilterFeature.Operator.MIN
@@ -262,7 +263,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 # Campaign defines no filtering at all;
                 # but we'll still have a root filter in `choice_sets` to match:
                 ranking_keys = [None]
-
 
             # TODO: get or create ClientContent based on URL
             content = client.clientcontent.create(
@@ -460,8 +460,8 @@ def campaign_summary(request, client_pk, campaign_pk):
 
 @utils.auth_client_required
 def campaign_wizard_finish(request, client_pk, campaign_pk):
-    content_pk = request.GET.get('content')
-    if content_pk:
+    content_pk = request.GET.get('content', '')
+    if content_pk.isdigit():
         summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
         summary_data.update({"message": CAMPAIGN_CREATION_THANK_YOU_MESSAGE})
         return render(
@@ -478,6 +478,7 @@ def guess_content(client, root_campaign):
         name='{} {}'.format(client.name, root_campaign.name[:-2])
     )[0]
 
+
 def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
     root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
@@ -486,7 +487,6 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         content = get_object_or_404(client.clientcontent, pk=content_pk)
     else:
         content = guess_content(client, root_campaign)
-
 
     filters = []
     campaign1 = root_campaign
@@ -570,20 +570,19 @@ def clean_up_campaign(campaign):
 
 
 @utils.auth_client_required
-def available_filters( request, client_pk ):
+def available_filters(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-
     filter_features = relational.FilterFeature.objects.filter(
-            filter__client=client,
-            feature__isnull=False,
-            operator__isnull=False,
-            value__isnull=False,
-        ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
-
+        filter__client=client,
+        feature__isnull=False,
+        operator__isnull=False,
+        value__isnull=False,
+    ).values('feature', 'operator', 'value', 'feature_type__code').distinct()
     return JsonHttpResponse(list(filter_features.iterator()))
 
+
 @utils.auth_client_required
-def campaign_data( request, client_pk, campaign_pk ):
+def campaign_data(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
