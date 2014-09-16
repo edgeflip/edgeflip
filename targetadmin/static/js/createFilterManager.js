@@ -183,11 +183,8 @@ $.extend( createFilterManager.prototype, {
         //  createFilter does what it says ( only on the client though )
         //  this is something that needs to be addressed
         generic: function() {
-
             this.setFilterValue();
-
             if( this.isValid() ) { this.createFilter().close(); }
-            
             return this;
         }
     },
@@ -494,7 +491,6 @@ $.extend( createFilterManager.prototype, {
         return isValid;
     },
 
-    //this function was lifted from legacy code
     createFilter: function( opts ) {
         var feature = ( opts && opts.feature ) ? opts.feature : this.featureDropdown.val(),
             operator = this.operatorDropdown.val(),
