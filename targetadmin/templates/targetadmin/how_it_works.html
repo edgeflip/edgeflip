@@ -4,35 +4,8 @@
     require(
         [
           'app',
-          'views/sidebar',
-        ], function(app, sidebar) {
+        ], function(app) {
 
-        /* sidebar is already instantiated (singleton pattern),
-           give it data to work with -- TODO: tie reporting url to
-           nav data structure */
-        sidebar.setup( {
-            model: new Backbone.Model( {
-                state: 'campaigns',
-                logoSrc: "{{ STATIC_URL }}img/edgeflip-logo.png",
-                nav: [
-                    { name: 'campaigns',
-                      label: 'Campaigns',
-                      glyphClass: 'glyphicon glyphicon-share',
-                      view: true
-                    },
-                    { name: 'reports',
-                      label: 'Reports',
-                      glyphClass: 'glyphicon glyphicon-stats'
-                    },
-                    { name: 'help',
-                      label: 'Help',
-                      glyphClass: 'glyphicon glyphicon-info-sign'
-                    }
-                ]
-            } ),
-            views: { },
-            reportingDashboardURL: "{% url 'reporting:main' %}"
-        } ).render();
     } );
 {% endblock %}
 
