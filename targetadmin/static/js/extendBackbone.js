@@ -4,18 +4,24 @@
    and based on its 'data-js' or 'name' attribute, creates a key.
    If this key exists in the current view's templateData object, simply
    add the element, if not, create a new key/value pair */
-Backbone.View.prototype.slurpEl = function( el ) {
+Backbone.View.prototype.slurpEl = function (el) {
+    var key, value;
 
-    var key = ( el.is('[data-js]') )
-        ? el.attr('data-js')
-        : ( el.is('input,select,textarea[name]' ) )
-            ? el.attr('name')
-            : '_';
+    if (el.is('[data-js]')) {
+        key = el.attr('data-js');
+    } else if (el.is('input,select,textarea[name]')) {
+        key = el.attr('name');
+    } else {
+        key = '_';
+    }
 
-    this.templateData[ key ] = ( this.templateData.hasOwnProperty(key) )
-        ? this.templateData[ key ].add( el )
-        : el;
+    if (this.templateData.hasOwnProperty(key)) {
+        value = this.templateData[key].add(el);
+    } else {
+        value = el;
+    }
 
+    this.templateData[key] = value;
     return this;
 }
 
