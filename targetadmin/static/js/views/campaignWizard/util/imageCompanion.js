@@ -35,11 +35,13 @@ define(
                 _.extend( this, options ); 
 
                 this.on('shown', this.postRender, this);
+                this.model.on('change:name', this.updateName, this );
 
                 this.render();
 
                 return this;
             },
+
 
             /* adds template to DOM */
             render: function() {
@@ -169,6 +171,11 @@ define(
                     this.updatePopoverPosition();
                     this.templateData.popoverEl.popover('show');
                 }
+            },
+
+            /* should be in base class, updates campaign name in header if it changes */
+            updateName: function() {
+                this.templateData.campaignName.text( this.model.get('name') );
             },
 
             /* put the popover over the image, or next to the field depending on
