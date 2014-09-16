@@ -74,7 +74,7 @@ function program13(depth0,data) {
 function program15(depth0,data) {
   
   var buffer = "", stack1;
-  buffer += "            <div class=\"group\"><div class=\"value\">Shortened URL: <a href=\""
+  buffer += "            <div class=\"group\"><div class=\"name\">Campaign URL</div><div class=\"value\"><a href=\""
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "\" target=\"_blank\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))

@@ -1,5 +1,4 @@
 {% extends "targetadmin/page.html" %}
-{% comment %}added new base template for require js stack {% endcomment %}
 
 {% block title %}{{ client.name }}{% endblock %}
 
@@ -13,17 +12,16 @@
 
         var campaignListURL = "{% url 'targetadmin:client-detail' client.pk %}";
         var campaignSummary = new CampaignSummary({
-            pk: "{{ campaign_id }}",
-            client: "{{ client }}",
+            pk: {{ campaign_id }},
+            name: "{{ root_campaign }}",
+            campaign_list_url: campaignListURL,
             content_url: "{{ content_url }}",
-            root_campaign: "{{ root_campaign|safe }}",
+            sharing_url: "{{ sharing_url }}",
             campaign_properties: {{ campaign_properties|safe }},
             fb_obj_attributes: {{ fb_obj_attributes|safe }},
             filters: {{ filters|safe }},
-            message: "{{ message }}",
-            sharing_url: "{{ sharing_url }}",
-            token: "{% csrf_token %}",
-            campaign_list_url: campaignListURL
+            message: "{{ message|safe }}",
+            token: "{% csrf_token %}"
         });
 
         /* sidebar is already instantiated (singleton pattern),
