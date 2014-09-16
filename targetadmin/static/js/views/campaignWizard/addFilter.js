@@ -70,11 +70,12 @@ define(
                 return this;
             },
 
-            clearPopup: function() {
+            clearModal: function() {
                 this.templateData.locationContainer.empty();
                 this.templateData.locationInput.val('');
                 this.model.set('state', undefined );
-                this.filterTypeLabel = 'Select Filter Type';
+                this.templateData.dropdownLabel.text('Select Filter Type');
+                this.templateData.filterTypeUI.addClass('hide');
             },
 
             render: function() {
@@ -127,8 +128,9 @@ define(
                 var self = this;
                 
                 modal.on( 'confirmed', this.addFilter, this );
+                self.disableConfirmButton();
 
-                self.clearPopup();
+                self.clearModal();
 
                 this.delegateEvents()
                     .bindAgeSlider()
@@ -148,6 +150,21 @@ define(
                 
                 this.templateData.filterTypeUI.addClass('hide');
                 this.templateData.filterTypeUI.filter( '*[data-type="' + this.model.get('state') + '"]' ).removeClass('hide').fadeIn();
+
+                // no further selections are necessary to select an age filter, so let the user do it now
+                if( this.model.get('state') === 'age' ) {
+                    this.enableConfirmButton();
+                } else {
+                    this.disableConfirmButton();
+                }
+            },
+
+            disableConfirmButton: function() {
+                modal.templateData.modalContainer.trigger('confirm_bad');
+            },
+
+            enableConfirmButton: function() {
+                modal.templateData.modalContainer.trigger('confirm_ok');
             },
 
             /* After a dropdown value has been selected, updated the text shown */
@@ -164,6 +181,7 @@ define(
             filterValueSelected: function(e) {
 
                 this.updateDropdownLabel(e);
+                this.enableConfirmButton();
 
                 this.model.set( 'value', $(e.currentTarget).data('value') );
             },
@@ -192,6 +210,7 @@ define(
                     value = $.trim( inputEl.val() );
 
                 if( value && this.templateData.locationContainer.find('li[data-value="' + value + '"]').length === 0 ) {
+                    this.enableConfirmButton();
                     this.templateData.locationContainer.append( singleLocationHTML( { value: value } ) );
 
                     if( this.templateData.locationContainer.hasClass('hide') ) {
@@ -248,14 +267,18 @@ define(
                         } );
                         break;
                     case 'location':
-                        this.availableFilters.add( {
-                            feature_type__code: this.model.get('locationType'),
-                            feature: this.model.get('locationType'),
-                            value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
-                                return $(locationEl).find('*[data-js="value"]').text();
-                            }, this ).join('||')
-                        } );
-                        break;
+                        if( this.templateData.locationContainer.children().length > 0 ) {
+                            this.availableFilters.add( {
+                                feature_type__code: this.model.get('locationType'),
+                                feature: this.model.get('locationType'),
+                                value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
+                                    return $(locationEl).find('*[data-js="value"]').text();
+                                }, this ).join('||')
+                            } );
+                            break;
+                        } else {
+
+                        }
                 }
 
                 modal.templateData.modalContainer.modal('hide');
