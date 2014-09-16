@@ -70,6 +70,13 @@ define(
                 return this;
             },
 
+            clearPopup: function() {
+                this.templateData.locationContainer.empty();
+                this.templateData.locationInput.val('');
+                this.model.set('state', undefined );
+                this.filterTypeLabel = 'Select Filter Type';
+            },
+
             render: function() {
 
                 this.slurpHtml( {
@@ -120,6 +127,8 @@ define(
                 var self = this;
                 
                 modal.on( 'confirmed', this.addFilter, this );
+
+                self.clearPopup();
 
                 this.delegateEvents()
                     .bindAgeSlider()
@@ -191,10 +200,12 @@ define(
                 }
             },
 
-            /* location removed, remove it from box
-                potential bug: should remove location after fadeOut */
+            /* location removed, remove it from box */
             removeProposedLocation: function(e) {
-                $(e.currentTarget).parent().fadeOut();    
+                var loc = $(e.currentTarget).parent();
+                loc.fadeOut( 400, function() {
+                    loc.remove();
+                });
 
                 if( this.templateData.locationContainer.children().length === 0 ) {
                     this.templateData.locationContainer.addClass('hide');
