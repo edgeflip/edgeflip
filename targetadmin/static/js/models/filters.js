@@ -37,7 +37,7 @@ var filterCollection;
             return _.extend(
                 { gender: undefined },
                 genericDefaults,
-                { operator: 'eq' },
+                { operator: 'eq' }
             );
         },
 
