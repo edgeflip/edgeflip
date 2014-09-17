@@ -15,7 +15,9 @@ define(
 
         return Backbone.View.extend( {
             
-            events: { },
+            events: {
+                "keyup input": "keyUp"
+            },
 
             /* If a campaign id was passed into the constructor,
                make an ajax request to get the data.  A more backbone approach
@@ -39,6 +41,7 @@ define(
 
                 return this;
             },
+
 
             /* Insert wizard scaffold, then insert sub views, initialize model's "state"
                ( associated with a sub view ), so we know what view to render */
@@ -166,6 +169,12 @@ define(
             handleCampaignData: function(response) {
                 this.campaignModel = new Backbone.Model(response);
                 this.trigger('receivedCampaignData');
+            },
+
+            keyUp: function(e) {
+                if(e.which === 13) {
+                    this.subViews[this.model.get('state')].trigger('enterPressed');
+                }
             }
 
         } );
