@@ -36,7 +36,9 @@ var filterCollection;
         defaults: function() {
             return _.extend(
                 { gender: undefined },
-                genericDefaults );
+                genericDefaults,
+                { operator: 'eq' }
+            );
         },
 
         parse: function( attrs ) {

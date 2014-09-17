@@ -267,12 +267,15 @@ define(
                         } );
                         break;
                     case 'location':
+                        var children = _.map( this.templateData.locationContainer.children(), function(locationEl) {
+                            return $(locationEl).find('*[data-js="value"]').text();
+                        }, this );
+
                         this.availableFilters.add( {
                             feature_type__code: this.model.get('locationType'),
                             feature: this.model.get('locationType'),
-                            value: _.map( this.templateData.locationContainer.children(), function(locationEl) {
-                                return $(locationEl).find('*[data-js="value"]').text();
-                            }, this ).join('||')
+                            operator: children.length > 1 ? 'in' : 'eq',
+                            value: children.join('||'),
                         } );
                         break;
                 }
