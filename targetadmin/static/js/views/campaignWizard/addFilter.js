@@ -221,14 +221,15 @@ define(
 
             /* location removed, remove it from box */
             removeProposedLocation: function(e) {
-                var loc = $(e.currentTarget).parent();
+                var self = this,
+                    loc = $(e.currentTarget).parent();
                 loc.fadeOut( 400, function() {
-                    loc.remove();
+                    $(this).remove();
+                    if( self.templateData.locationContainer.children().length === 0 ) {
+                        self.templateData.locationContainer.addClass('hide');
+                        self.disableConfirmButton();
+                    }
                 });
-
-                if( this.templateData.locationContainer.children().length === 0 ) {
-                    this.templateData.locationContainer.addClass('hide');
-                }
             },
 
             /* user clicks add filter, so we create a filter model based on the
