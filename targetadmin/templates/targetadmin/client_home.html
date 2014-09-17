@@ -18,18 +18,15 @@
            argue to have more ajax calls made by the sub views.  The only
            one really necessary for optimal page rendering is the 'campaigns' attribute */
         var clientCampaigns =
-            new ClientCampaigns( {
+            new ClientCampaigns({
                 campaigns: {{ campaigns|safe }},
-                campaignSummaryURL: "{% url 'targetadmin:campaign-summary' client.pk 0 %}",
-                campaignDataURL: "{% url 'targetadmin:campaign-data' client.pk 0 %}",
-                howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
                 facebookPostImage: "{{ STATIC_URL }}img/fb-obj-example.png",
                 facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",
-                clientId: {{client.pk}},
+                clientId: {{ client.pk }},
                 token: "{% csrf_token %}",
-                wizardCreate: "{% url 'targetadmin:campaign-wizard' client.pk %}",
-                wizardEdit: "{% url 'targetadmin:campaign-wizard-edit' client.pk 0 %}"
-            } );
+                howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
+                wizardCreate: "{% url 'targetadmin:campaign-wizard' client.pk %}"
+            });
 
         /* let the sidebar show it when its ready */
         clientCampaigns.$el.hide();

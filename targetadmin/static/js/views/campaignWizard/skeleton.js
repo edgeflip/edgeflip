@@ -27,10 +27,11 @@ define(
                 
                 this.model = new Backbone.Model( { clientId: this.clientId } );
 
-                if( this.id ) {
-                    this.formAction = this.editFormAction.replace(0, this.id);
+                if (this.id) {
+                    this.formAction = edgeflip.router.reverse('targetadmin:campaign-wizard-edit',
+                                                              this.clientId, this.id);
                     this.getCampaignData();
-                    this.on( 'receivedCampaignData', this.render, this );
+                    this.on('receivedCampaignData', this.render, this);
                 } else {
                     this.formAction = this.createFormAction;
                     this.render();
@@ -74,35 +75,62 @@ define(
                 };
 
                 this.subViews = {
-                    intro: new Intro( subViewOpts )
-                               .on('nextStep', this.handleIntroNextStep, this ),
+                    intro: new Intro(subViewOpts)
+                               .on('nextStep', this.handleIntroNextStep, this),
 
-                    filters: new Filters( subViewOpts )
-                               .on('nextStep', function() { this.model.set('state','faces'); }, this )
-                               .on('previousStep', function() { this.model.set('state','intro'); }, this ),
+                    filters: new Filters(subViewOpts)
+                               .on('nextStep', this.navDeferred('faces'), this)
+                               .on('previousStep', this.navDeferred('intro'), this),
                     
-                    faces: new Faces( subViewOpts )
-                               .on('nextStep', function() { this.model.set('state','fbObj'); }, this )
-                               .on('previousStep', function() { this.model.set('state','filters'); }, this ),
+                    faces: new Faces(subViewOpts)
+                               .on('nextStep', this.navDeferred('fbObj'), this)
+                               .on('previousStep', this.navDeferred('filters'), this),
                     
-                    fbObj: new FbObj( subViewOpts )
-                               .on('validated', this.postForm, this )
-                               .on('previousStep', function() { this.model.set('state','faces'); }, this )
-                }
+                    fbObj: new FbObj(subViewOpts)
+                               .on('validated', this.postForm, this)
+                               .on('previousStep', this.navDeferred('faces'), this)
+                };
 
                 return this;
+            },
+
+            navDeferred: function (state) {
+                return (function () {
+                    this.model.set('state', state);
+                }).bind(this);
+            },
+
+            setStateLocation: function () {
+                window.location.hash =
+                    'campaign.' +
+                    (this.id ? this.id + '.' : '') +
+                    'wizard.' +
+                    this.model.get('state');
+            },
+
+            getStateLocation: function () {
+                var stateMatch = window.location.hash.match(/campaign\.(?:\d+\.)?wizard\.(.+)$/);
+                return stateMatch ? stateMatch[1] : null;
+            },
+
+            reflectLocation: function () {
+                var hashState = this.getStateLocation();
+                if (hashState && hashState !== this.model.get('state')) {
+                    /* user initiated browser navigation */
+                    this.model.set('state', hashState);
+                }
             },
 
             /* When the model's "state" attribute changes, this function fires, hiding the old
                showing the new */
             reflectState: function() {
-                var previousUI = this.subViews[ this.model.previous('state') ];
-
-                if( previousUI ) {
-                    previousUI.$el.fadeOut( 400, this.showCurrentState.bind(this) );
+                var previousUI = this.subViews[this.model.previous('state')];
+                if (previousUI) {
+                    previousUI.$el.fadeOut(400, this.showCurrentState.bind(this));
                 } else {
                     this.showCurrentState();
                 }
+                this.setStateLocation();
             },
 
             showCurrentState: function() {
@@ -129,16 +157,14 @@ define(
             },
 
             getCampaignData: function() {
-
-                $.ajax( {
-                    url: this.campaignDataURL.replace( '/0/', '/' + this.id + '/' ),
-                    success: this.handleCampaignData.bind( this )
-                } );
+                var dataUrl = edgeflip.router.reverse('targetadmin:campaign-data',
+                                                      this.clientId, this.id);
+                $.ajax({url: dataUrl, success: this.handleCampaignData.bind(this)});
             },
 
             /* takes campaign-data response and sets it on the campaignModel */
-            handleCampaignData: function( response ) {
-                this.campaignModel = new Backbone.Model( response );
+            handleCampaignData: function(response) {
+                this.campaignModel = new Backbone.Model(response);
                 this.trigger('receivedCampaignData');
             }
 
