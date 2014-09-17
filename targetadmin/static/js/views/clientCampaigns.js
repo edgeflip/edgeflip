@@ -36,14 +36,13 @@ define(
 
                 _.extend( this, options );
 
-                this.model.set( 'state', 'mainView' );
-                this.on( 'sidebarBtnClicked', this.handleSidebarClick, this );
+                this.model.set('state', 'mainView');
+                this.on('sidebarBtnClicked', this.resume, this);
 
                 /* creates collection of campaigns, see model for attributes */
-                this.campaigns = new campaignCollection(
-                    this.campaigns,
-                    { parse: true } );
+                this.campaigns = new campaignCollection(this.campaigns, {parse: true});
 
+                window.location.hash = ''; // for back btn hack
                 return this.render();
             },
 
@@ -68,63 +67,76 @@ define(
                 //$('.dropdown-toggle').dropdown();
             },
 
-            /* create campaign button clicked */
             showNewCampaign: function() {
-                this.$el.fadeOut( 400, this.showCampaignWizard.bind(this) );
+                /* create campaign button clicked */
+                this.$el.fadeOut(400, this.showCampaignWizard.bind(this));
             },
 
-            /* edit campaign button clicked */
             showEditableCampaign: function(e) {
+                /* edit campaign button clicked */
                 var campaignId = $(e.currentTarget).closest('*[data-js="campaignRow"]').data('id');
-                this.$el.fadeOut( 400, this.showCampaignWizard.bind( this, campaignId ) );
+                this.$el.fadeOut(400, this.showCampaignWizard.bind(this, campaignId));
             },
 
             /* right now, we just destroy the current campaign wizard object
                if it already exists and create a new one, this is sloppy */
-            showCampaignWizard: function( id ) {
+            showCampaignWizard: function(id) {
+                var self = this;
 
                 miniHeader.$el.hide();
-                this.model.set( 'state', 'campaignWizard' );
+                this.model.set('state', 'campaignWizard');
 
                 // TODO: fix laziness
-                if( this.campaignWizard ) {
+                if(this.campaignWizard) {
                     this.campaignWizard.remove();
                 }
-               
+
                 /* ideally, most of these parameters should come from
                    an ajax call instead of passed through a bunch of views */ 
-                this.campaignWizard =
-                    new CampaignWizard( {
-                        id: id,
-                        howItWorksURL: this.howItWorksURL,
-                        facebookPostImage: this.facebookPostImage,
-                        facesExampleURL: this.facesExampleURL,
-                        clientId: this.clientId,
-                        token: this.token,
-                        editFormAction: this.wizardEdit,
-                        createFormAction: this.wizardCreate,
-                        campaignDataURL: this.campaignDataURL
-                } );
+                this.campaignWizard = new CampaignWizard({
+                    id: id,
+                    howItWorksURL: this.howItWorksURL,
+                    facebookPostImage: this.facebookPostImage,
+                    facesExampleURL: this.facesExampleURL,
+                    clientId: this.clientId,
+                    token: this.token,
+                    createFormAction: this.wizardCreate
+                });
+
+                /* for back btn hack */
+                window.onhashchange = function () {
+                    if (window.location.hash.length === 0) {
+                        // we're back at the beginning
+                        $('#theModal').modal('hide');
+                        self.hideCampaignWizard();
+                        window.onhashchange = null;
+                    } else {
+                        self.campaignWizard.reflectLocation();
+                    }
+                };
             },
 
-            /* campaign name clicked, show summary, which could more simply be
-               another view, that makes an ajax request to get a campaign model */
-            navToCampaignSummary: function(e) {
-                window.location = this.campaignSummaryURL.replace("0", $(e.currentTarget).data('id') );
+            hideCampaignWizard: function () {
+                this.resume();
+                if (this.campaignWizard) {
+                    this.campaignWizard.remove();
+                }
+            },
+
+            navToCampaignSummary: function(event) {
+                var campaignId = $(event.currentTarget).data('id'),
+                    summaryUrl = edgeflip.router.reverse('targetadmin:campaign-summary',
+                                                         this.clientId, campaignId);
+                window.location = summaryUrl;
             },
            
-            /* if a user clicks the side navigation button associated with his
-               content, and we are displaying something other than the
-               list of campaigns, show the list of campaigns */ 
-            handleSidebarClick: function() {
-                if( this.model.get('state') !== 'mainView' ) {
-                    this[ this.model.get('state') ].$el.fadeOut();
-                    this.model.set( 'state', 'mainView' );
-                    miniHeader.$el.show();
-                    this.$el.fadeIn();
-                }
+            resume: function () {
+                if (this.model.get('state') === 'mainView') return;
+                this[this.model.get('state')].$el.fadeOut();
+                this.model.set('state', 'mainView');
+                miniHeader.$el.show();
+                this.$el.fadeIn();
             }
-
-        } );
+        });
     }
 );
