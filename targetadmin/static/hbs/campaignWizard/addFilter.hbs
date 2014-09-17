@@ -6,7 +6,7 @@
         </button>
         <ul class="dropdown-menu">
             {{#each filterTypes}}
-                <li><a data-js="filterType" data-type="{{this.name}}" tabindex="-1" href="#">{{this.label}}</a></li>
+                <li><a data-js="filterType" data-type="{{this.name}}" tabindex="-1">{{this.label}}</a></li>
             {{/each}}
         </ul>
     </div>
@@ -22,7 +22,7 @@
             </button>
             <ul class="dropdown-menu">
                 {{#each this.options}}
-                    <li><a data-js="filterTypeOption" data-value="{{this.value}}"tabindex="-1" href="#">{{this.label}}</a></li>
+                    <li><a data-js="filterTypeOption" data-value="{{this.value}}"tabindex="-1">{{this.label}}</a></li>
                 {{/each}}
             </ul>
         </div>
@@ -34,8 +34,8 @@
                 <span class="caret"></span>
             </button>
             <ul class="dropdown-menu">
-                <li><a data-js="locationTypeOption" data-value="city" tabindex="-1" href="#">City</a></li>
-                <li><a data-js="locationTypeOption" data-value="state" tabindex="-1" href="#">State</a></li>
+                <li><a data-js="locationTypeOption" data-value="city" tabindex="-1">City</a></li>
+                <li><a data-js="locationTypeOption" data-value="state" tabindex="-1">State</a></li>
             </ul>
         </div>
         <input placeholder="Add City" data-type="city" data-js="locationInput" class="hide form-control location-text" type="text">
