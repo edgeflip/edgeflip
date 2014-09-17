@@ -10,7 +10,7 @@ function program1(depth0,data) {
   var buffer = "", stack1;
   buffer += "                <li><a data-js=\"filterType\" data-type=\""
     + escapeExpression(((stack1 = (depth0 && depth0.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\" tabindex=\"-1\" href=\"#\">"
+    + "\" tabindex=\"-1\">"
     + escapeExpression(((stack1 = (depth0 && depth0.label)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></li>            ";
   return buffer;
@@ -34,7 +34,7 @@ function program4(depth0,data) {
   var buffer = "", stack1;
   buffer += "                    <li><a data-js=\"filterTypeOption\" data-value=\""
     + escapeExpression(((stack1 = (depth0 && depth0.value)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "\"tabindex=\"-1\" href=\"#\">"
+    + "\"tabindex=\"-1\">"
     + escapeExpression(((stack1 = (depth0 && depth0.label)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</a></li>                ";
   return buffer;
@@ -50,7 +50,7 @@ function program4(depth0,data) {
   buffer += "        </ul></div><div data-js=\"filterTypeUI\" data-type=\"age\" class=\"hide\"><div class=\"age-range-display\" data-js=\"ageRangeDisplay\"></div><div class=\"age-slider\" data-js=\"ageSlider\"></div></div>    ";
   stack1 = helpers.each.call(depth0, (depth0 && depth0.filterTypeOptions), {hash:{},inverse:self.noop,fn:self.program(3, program3, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "    <div data-js=\"filterTypeUI\" data-type=\"location\" class=\"hide\"><div class=\"sub-dropdown dropdown\"><button class=\"btn btn-default dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\"><span data-js=\"dropdownLabel\" class=\"dropdown-label\">Location Type (one per filter)</span><span class=\"caret\"></span></button><ul class=\"dropdown-menu\"><li><a data-js=\"locationTypeOption\" data-value=\"city\" tabindex=\"-1\" href=\"#\">City</a></li><li><a data-js=\"locationTypeOption\" data-value=\"state\" tabindex=\"-1\" href=\"#\">State</a></li></ul></div><input placeholder=\"Add City\" data-type=\"city\" data-js=\"locationInput\" class=\"hide form-control location-text\" type=\"text\"><input placeholder=\"Add State\" data-type=\"state\" data-js=\"locationInput\" class=\"hide form-control location-text\" type=\"text\"><button class=\"btn add-location-btn\" data-js=\"addLocationBtn\">Add Filter</button><ul class=\"location-container clearfix hide\" data-js=\"locationContainer\"></ul></div></section>";
+  buffer += "    <div data-js=\"filterTypeUI\" data-type=\"location\" class=\"hide\"><div class=\"sub-dropdown dropdown\"><button class=\"btn btn-default dropdown-toggle\" type=\"button\" data-toggle=\"dropdown\"><span data-js=\"dropdownLabel\" class=\"dropdown-label\">Location Type (one per filter)</span><span class=\"caret\"></span></button><ul class=\"dropdown-menu\"><li><a data-js=\"locationTypeOption\" data-value=\"city\" tabindex=\"-1\">City</a></li><li><a data-js=\"locationTypeOption\" data-value=\"state\" tabindex=\"-1\">State</a></li></ul></div><input placeholder=\"Add City\" data-type=\"city\" data-js=\"locationInput\" class=\"hide form-control location-text\" type=\"text\"><input placeholder=\"Add State\" data-type=\"state\" data-js=\"locationInput\" class=\"hide form-control location-text\" type=\"text\"><button class=\"btn add-location-btn\" data-js=\"addLocationBtn\">Add Filter</button><ul class=\"location-container clearfix hide\" data-js=\"locationContainer\"></ul></div></section>";
   return buffer;
   })
 

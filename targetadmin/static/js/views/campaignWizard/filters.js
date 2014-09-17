@@ -296,7 +296,7 @@ define(
                     availableFiltersCount = this.templateData.availableFilters.children().length,
                     combinedAgeFilter = $( filterTemplate( { readable: 'Between ' + min + ' and ' + max } ) );
 
-                combinedAgeFilter.attr('data-link',min + '-' + max);
+                combinedAgeFilter.attr('data-link', min + '-' + max);
 
                 _.each( [ availableFiltersCount - 2, availableFiltersCount - 1 ], function( i ) {
                     $( this.templateData.availableFilters.children()[ i ] )
