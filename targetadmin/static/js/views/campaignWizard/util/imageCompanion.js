@@ -35,6 +35,7 @@ define(
                 _.extend( this, options ); 
 
                 this.on('shown', this.postRender, this);
+                this.on('enterPressed', this.validateInputs, this);
                 this.model.on('change:name', this.updateName, this );
 
                 this.render();
