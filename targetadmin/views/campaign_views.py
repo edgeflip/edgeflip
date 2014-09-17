@@ -513,6 +513,7 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         'campaign_id': campaign_pk,
         'client': client,
         'content_url': content.url,
+        'campaign_name': re.sub(r' 1$', '', root_campaign.name),
         'root_campaign': root_campaign,
         'campaign_properties': json.dumps(root_properties),
         'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
