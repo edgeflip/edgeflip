@@ -224,11 +224,11 @@ define(
                 var loc = $(e.currentTarget).parent();
                 loc.fadeOut( 400, function() {
                     loc.remove();
-                });
-
-                if( this.templateData.locationContainer.children().length === 0 ) {
-                    this.templateData.locationContainer.addClass('hide');
-                }
+                    if( this.templateData.locationContainer.children().length === 0 ) {
+                        this.templateData.locationContainer.addClass('hide');
+                        this.disableConfirmButton();
+                    }
+                }.bind(this));
             },
 
             /* user clicks add filter, so we create a filter model based on the
