@@ -257,7 +257,6 @@ define(
                         this.availableFilters.add( {
                             feature_type__code: 'gender',
                             feature: 'gender',
-                            operator: 'eq',
                             value: this.model.get('value')
                         } );
                         break;
