@@ -46,24 +46,28 @@ define(
                 return this;
             },
 
-            /* update modal content, show it.  This is a little over
-               complicated by the fact that the content is recreated every time
-               the get started button is clicked. */
             promptForCampaignName: function() {
-                modal.update( {
+                /* Update modal content, show it.
+                *  This is a little over complicated by the fact that the content
+                *  is recreated every time the get started button is clicked.
+                *  */
+                modal.update({
                     body: '',
                     confirmText: 'Continue',
-                  } ).on('confirmed', this.validateName, this )
-                     .templateData.modalContainer.modal();
+                }).on('confirmed', this.validateName, this)
+                .templateData.modalContainer.modal();
 
                 delete this.templateData.formInput;
 
-                this.slurpHtml( {
+                this.slurpHtml({
                     template: nameTemplate(),
-                    insertion: { $el: modal.templateData.modalBody } } );
+                    insertion: {$el: modal.templateData.modalBody}
+                });
 
-                if( this.campaignModel ) {
-                    this.templateData.formInput.val( this.campaignModel.get('name') );
+                modal.templateData.confirmBtn.show();
+
+                if (this.campaignModel) {
+                    this.templateData.formInput.val(this.campaignModel.get('name'));
                 }
             },
 
