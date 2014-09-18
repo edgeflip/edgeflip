@@ -283,11 +283,12 @@ define(
                     showCloseBtn: true
                 } );
 
+                modal.templateData.confirmBtn.show();
                 modal.templateData.modalContainer.modal();
 
                 addFilter.shown();
             },
-           
+
             /* Handles the age filter hack (described above) when an age filter is created */
             updateAgeFilterUI: function() {
 
