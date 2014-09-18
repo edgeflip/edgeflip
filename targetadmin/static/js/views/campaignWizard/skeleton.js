@@ -4,6 +4,7 @@ define(
       'jquery',
       'vendor/underscore',
       'extendBackbone',
+      'views/modal',
       'views/campaignWizard/intro',
       'views/campaignWizard/filters',
       'views/campaignWizard/faces',
@@ -11,7 +12,7 @@ define(
       'templates/campaignWizard/skeleton',
       'css!styles/campaignWizard/skeleton'
     ],
-    function( $, _, Backbone, Intro, Filters, Faces, FbObj, template ) {
+    function( $, _, Backbone, modal, Intro, Filters, Faces, FbObj, template ) {
 
         return Backbone.View.extend( {
             
@@ -124,15 +125,20 @@ define(
                 }
             },
 
-            /* When the model's "state" attribute changes, this function fires, hiding the old
-               showing the new */
             reflectState: function() {
+                /* When the model's "state" attribute changes, this function fires,
+                 * hiding the old and showing the new
+                 * */
+                // Don't let modals stay open across subviews:
+                modal.templateData.modalContainer.modal('hide');
+
                 var previousUI = this.subViews[this.model.previous('state')];
                 if (previousUI) {
                     previousUI.$el.fadeOut(400, this.showCurrentState.bind(this));
                 } else {
                     this.showCurrentState();
                 }
+
                 this.setStateLocation();
             },
 
