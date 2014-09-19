@@ -24,7 +24,7 @@ class Campaign(models.Model):
     def iterfallbacks(self):
         campaign = self
         while True:
-            props = campaign.campaignproperties.only('fallback_campaign').get()
+            props = campaign.campaignproperties.get()
             campaign = props.fallback_campaign
             if campaign is None:
                 break
