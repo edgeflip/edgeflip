@@ -113,6 +113,32 @@ var filterCollection;
         }
     });
 
+    var matchingFilter = Backbone.Model.extend({
+        defaults: function() {
+            return _.extend(
+                { type: undefined },
+                genericDefaults
+            );
+        },
+        _expr: /matching\[(.+)\]/,
+        parse: function (attrs) {
+            var groups = attrs.feature.match(this._expr);
+            return _.extend(
+                attrs,
+                { type: groups[1] }
+            );
+        },
+        getReadable: function() {
+            var operator = this.get('operator');
+            if(operator === 'min') {
+                operator = '>';
+            } else if(operator === 'max') {
+                operator = '<';
+            }
+            return 'Match on ' + this.get('type') + ' ' + operator + this.get('value');
+        }
+    });
+
     /* "url" attribute tells Backbone where to fetch the data,
        "model" returns the appropriate model to be added to the collection */
     filterCollection = Backbone.Collection.extend( {
@@ -139,6 +165,8 @@ var filterCollection;
                     return new locationFilter( attrs, { parse: true } );
                 case 'topics':
                     return new interestFilter(attrs, {parse: true});
+                case 'matching':
+                    return new matchingFilter(attrs, {parse: true});
             }
             throw "unrecognized feature type: " + attrs.feature_type__code;
         }
