@@ -323,18 +323,15 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                     )
                     page_style_sets.append(default_styles)
 
-            campaign_chain = []
             if campaign:
-                campaign_chain.append(campaign)
-                fallback_campaign = campaign_properties.fallback_campaign
-                while fallback_campaign:
-                    campaign_chain.append(fallback_campaign)
-                    fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+                campaign_chain = list(campaign.iterchain())
 
                 # NOTE: Unlike with ChoiceSets etc., we update the existing FBObjectAttribute
                 fb_obj = campaign.fb_object()
                 fb_obj_form.save()
             else:
+                campaign_chain = []
+
                 # Only create fb object for new campaign
                 fb_obj = client.fbobjects.create(
                     name='{} {}'.format(client.name, campaign_name),
@@ -490,16 +487,13 @@ def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
         content = guess_content(client, root_campaign)
 
     filters = []
-    campaign1 = root_campaign
-    while campaign1:
+    for campaign in root_campaign.iterchain():
         filters.append([
             list(choice_set_filter.filter.filterfeatures.values(
                 'feature', 'operator', 'value', 'feature_type__code',
             ).iterator())
-            for choice_set_filter in campaign1.choice_set().choicesetfilters.all()
+            for choice_set_filter in campaign.choice_set().choicesetfilters.all()
         ])
-        properties1 = campaign1.campaignproperties.get()
-        campaign1 = properties1.fallback_campaign
 
     fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
     root_properties = root_campaign.campaignproperties.values(
@@ -560,7 +554,12 @@ def clean_up_campaign(campaign):
             campaign.campaignchoicesets.update(choice_set=None) # prevent cascading delete of CampaignChoiceSet
             choice_set.delete()
 
-        if filter0 and not filter0.choicesetfilters.exists() and not filter0.campaignfbobject_set.exists() and not filter0.campaignglobalfilters.exists():
+        if (
+            filter0 and
+            not filter0.choicesetfilters.exists() and
+            not filter0.campaignfbobject_set.exists() and
+            not filter0.campaignglobalfilters.exists()
+        ):
             # Old ChoiceSet's Filter isn't in use anymore, so let's clean that up:
             filter0.delete()
 
@@ -594,35 +593,29 @@ def campaign_data(request, client_pk, campaign_pk):
     campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
 
-    fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
-
-    campaign_filters = [list(
-        campaign.choice_set().choicesetfilters.get().filter.filterfeatures.values(
-            'feature', 'value', 'operator', 'feature_type__code'
-        )
-    )]
-
-    fallback_campaign = campaign_properties.fallback_campaign
-    while fallback_campaign:
-        last_campaign = fallback_campaign
+    campaign_filters = []
+    for campaign0 in campaign.iterchain():
         try:
-            choice_set_filter = fallback_campaign.choice_set().choicesetfilters.get()
+            choice_set_filter = campaign0.choice_set().choicesetfilters.get()
         except relational.ChoiceSetFilter.DoesNotExist:
             fallback_features = ()
         else:
-            fallback_features = choice_set_filter.filter.filterfeatures.values(
-                'feature', 'value', 'operator', 'feature_type__code')
-        if fallback_features:
-            campaign_filters.append(list(fallback_features))
-        fallback_campaign = fallback_campaign.campaignproperties.get().fallback_campaign
+            fallback_features = list(
+                choice_set_filter.filter.filterfeatures.values(
+                    'feature', 'value', 'operator', 'feature_type__code',
+                ).iterator()
+            )
+            if fallback_features:
+                campaign_filters.append(fallback_features)
 
-    empty_fallback = (bool(campaign_properties.fallback_campaign) and
-                      not last_campaign.choice_set().choicesetfilters.exists())
+    empty_fallback = bool(campaign_properties.fallback_campaign) and not fallback_features
 
     # We want to hide the facebook url in draft mode if the client isn't hosting
     faces_url = campaign_properties.client_faces_url
-    if 'https://apps.facebook.com' in faces_url:
+    if faces_url.startswith('https://apps.facebook.com/'):
         faces_url = ''
+
+    fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
 
     return JsonHttpResponse({
         'name': re.sub(r' 1$', '', campaign.name),
@@ -642,5 +635,5 @@ def campaign_data(request, client_pk, campaign_pk):
         'og_description': fb_attr_inst.og_description,
         'sharing_prompt': fb_attr_inst.sharing_prompt,
         'sharing_sub_header': fb_attr_inst.sharing_sub_header,
-        'sharing_button': fb_attr_inst.sharing_button
+        'sharing_button': fb_attr_inst.sharing_button,
     })
