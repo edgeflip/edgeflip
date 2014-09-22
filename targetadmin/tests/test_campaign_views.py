@@ -1,21 +1,19 @@
+import json
 from itertools import chain
 
 from django.conf import settings
 from django.core import mail
 from django.core.urlresolvers import reverse
 
-from . import TestAdminBase
 from targetshare.models import relational
 from targetshare.utils import encodeDES
 
+from . import TestAdminBase
 
-class TestCampaignViews(TestAdminBase):
+
+class TestCampaignWizard(TestAdminBase):
 
     fixtures = ['admin_test_data']
-
-    def setUp(self):
-        super(TestCampaignViews, self).setUp()
-        self.campaign = self.test_client.campaigns.get(pk=1)
 
     def test_create_campaign_wizard(self):
         new_client = relational.Client.objects.create(
@@ -504,3 +502,54 @@ class TestCampaignViews(TestAdminBase):
         response = self.client.get("{}?content=1/logout".format(
             reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
         self.assertStatusCode(response, 400)
+
+
+class TestCampaignData(TestAdminBase):
+
+    fixtures = ['admin_test_data']
+
+    def setUp(self):
+        super(TestCampaignData, self).setUp()
+        self.campaign_nofallback = (self.test_client.campaigns
+                                    .exclude(rootcampaign_properties=None)
+                                    .filter(campaignproperties__fallback_campaign=None))[0]
+        self.campaign_wfallback = (self.test_client.campaigns
+                                   .exclude(rootcampaign_properties=None)
+                                   .exclude(campaignproperties__fallback_campaign=None))[0]
+        self.last_fallback = relational.Campaign.objects.get(
+            campaignproperties__root_campaign=self.campaign_wfallback,
+            campaignproperties__fallback_campaign=None,
+        )
+        csf = self.campaign_wfallback.choice_set().choicesetfilters.all()
+        csf0 = csf[0]
+        csf.exclude(pk=csf0.pk).delete()
+
+    def test_campaign_data_no_empty_fallback0(self):
+        campaign = self.campaign_nofallback
+        self.assertIsNone(campaign.campaignproperties.get().fallback_campaign)
+        response = self.client.get(reverse('targetadmin:campaign-data',
+                                           args=[self.test_client.pk, campaign.pk]))
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertFalse(data['include_empty_fallback'])
+
+    def test_campaign_data_no_empty_fallback1(self):
+        campaign = self.campaign_wfallback
+        last_fallback = self.last_fallback
+        last_filter = last_fallback.choice_set().choicesetfilters.get().filter
+        last_filter.filterfeatures.create(feature='gender', operator='eq', value='male')
+        response = self.client.get(reverse('targetadmin:campaign-data',
+                                           args=[self.test_client.pk, campaign.pk]))
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertFalse(data['include_empty_fallback'])
+
+    def test_campaign_data_empty_fallback(self):
+        campaign = self.campaign_wfallback
+        last_fallback = self.last_fallback
+        last_fallback.choice_set().choicesetfilters.get().filter.filterfeatures.all().delete()
+        response = self.client.get(reverse('targetadmin:campaign-data',
+                                           args=[self.test_client.pk, campaign.pk]))
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertTrue(data['include_empty_fallback'])
