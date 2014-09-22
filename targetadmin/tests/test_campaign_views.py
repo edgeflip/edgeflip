@@ -504,3 +504,72 @@ class TestCampaignViews(TestAdminBase):
         response = self.client.get("{}?content=1/logout".format(
             reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
         self.assertStatusCode(response, 400)
+
+    def test_edit_campaign_wizard(self):
+        new_client = relational.Client.objects.create(
+            name='Test Client',
+            _fb_app_name='testing',
+            _fb_app_id=1
+        )
+        self.assertFalse(new_client.campaigns.exists())
+        response = self.client.post(
+            reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
+                # Campaign Details
+                'name': 'Test Campaign',
+                'error_url': 'http://www.error.com',
+                'thanks_url': 'http://www.thanks.com',
+                'content_url': 'http://www.content.com',
+                'include_empty_fallback': False,
+                'enabled-filters-1': '"state.eq.California"',
+                # FB Object
+                'og_title': 'Test Title',
+                'org_name': 'Test Organization',
+                'msg1_pre': 'Hey, ',
+                'msg1_post': ' How goes it?',
+                'msg2_pre': 'Hey 2, ',
+                'msg2_post': ' How goes it 2?',
+                'og_image': 'http://imgur.com/VsiPr',
+                'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support!',
+                'og_description': 'Description of FB stuff'
+            }
+        )
+        self.assertStatusCode(response, 302)
+        campaign = new_client.campaigns.get()
+        content0 = new_client.clientcontent.get()
+        props = campaign.campaignproperties.all()
+        encoded = encodeDES('{}/{}'.format(campaign.pk, content0.pk))
+        self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
+                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app_name, encoded))
+        self.assertIsNone(props.get().fallback_campaign)
+
+        response = self.client.post(
+            reverse('targetadmin:campaign-wizard-edit', args=[new_client.pk, campaign.pk]), {
+                # Campaign Details
+                'name': 'Test Campaign',
+                'error_url': 'http://www.error.com',
+                'thanks_url': 'http://www.thanks.com',
+                'content_url': 'http://www.content.com',
+                'include_empty_fallback': True,
+                'enabled-filters-1': '"state.eq.California"',
+                # FB Object
+                'og_title': 'Test Title',
+                'org_name': 'Test Organization',
+                'msg1_pre': 'Hey, ',
+                'msg1_post': ' How goes it?',
+                'msg2_pre': 'Hey 2, ',
+                'msg2_post': ' How goes it 2?',
+                'og_image': 'http://imgur.com/VsiPr',
+                'sharing_prompt': 'SHARE IT',
+                'sharing_button': 'Show Your Support!',
+                'og_description': 'Description of FB stuff'
+            }
+        )
+        self.assertStatusCode(response, 302)
+        campaign = new_client.campaigns.exclude(rootcampaign_properties=None).get()
+        content = new_client.clientcontent.get()
+        self.assertNotEqual(content, content0)
+        self.assertTrue(props.get().fallback_campaign)
+        encoded = encodeDES('{}/{}'.format(campaign.pk, content.pk))
+        self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
+                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app_name, encoded))
