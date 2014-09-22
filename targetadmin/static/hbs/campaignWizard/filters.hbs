@@ -22,7 +22,7 @@
                 <div data-js="availableFilters" class="available-filters filter-container clearfix" data-type="sortable"></div>
                 <div>
                     <span>Include empty fallback</span>
-                    <input checked="checked" class="empty-fallback-input" data-js="formInput" name="include_empty_fallback" type="checkbox">
+                    <input {{#unless noEmptyFallback }}checked="checked" {{/unless}}class="empty-fallback-input" data-js="formInput" name="include_empty_fallback" type="checkbox">
                     <span class="glyphicon glyphicon-question-sign" data-js="emptyFallbackHelpBtn"></span>
                 </div>
                 <div>
