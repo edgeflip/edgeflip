@@ -358,7 +358,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                         camp.campaignrankingkeys.create(ranking_key=ranking_key)
 
                     camp.campaignproperties.create(
-                        client_faces_url=campaign_form.cleaned_data['faces_url'],
                         client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
@@ -382,11 +381,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                     if ranking_key:
                         camp.campaignrankingkeys.create(ranking_key=ranking_key)
 
-                    faces_url = (campaign_form.cleaned_data['faces_url'] or
-                                 camp.campaignproperties.get().client_faces_url)
-
                     camp.campaignproperties.update(
-                        client_faces_url=faces_url,
                         client_thanks_url=campaign_form.cleaned_data['thanks_url'],
                         client_error_url=campaign_form.cleaned_data['error_url'],
                         fallback_campaign=last_camp,
@@ -396,15 +391,10 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
                 campaigns.append(camp)
                 last_camp = camp
 
-            # Check to see if we need to generate the faces_url
-            stored_faces_url = last_camp.campaignproperties.get().client_faces_url
-            if campaign_form.cleaned_data['faces_url']:
-                faces_url = campaign_form.cleaned_data['faces_url']
-            elif stored_faces_url:
-                faces_url = stored_faces_url
-            else:
-                encoded_url = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
-                faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, encoded_url)
+            faces_url = campaign_form.cleaned_data['faces_url']
+            if not faces_url:
+                slug = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
+                faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, slug)
 
             for campaign in campaigns:
                 properties = campaign.campaignproperties.get()
