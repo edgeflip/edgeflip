@@ -47,7 +47,11 @@ var filterCollection;
                 attrs );
         },
 
-        getReadable: function() { return this.get('gender') + 's'; }
+        getReadable: function() {
+            var gender = this.get('gender'),
+                capped = gender.charAt(0).toUpperCase() + gender.slice(1);
+            return capped + 's';
+        }
 
     } );
 
