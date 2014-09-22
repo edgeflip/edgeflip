@@ -49,8 +49,8 @@ define(
                     { name: 'gender',
                       label: 'Select Gender',
                       options: [
-                          { value: 'Female', label: 'Female' },
-                          { value: 'Male', label: 'Male' }
+                          { value: 'female', label: 'Female' },
+                          { value: 'male', label: 'Male' }
                       ]
                     },
                     { name: 'topic',

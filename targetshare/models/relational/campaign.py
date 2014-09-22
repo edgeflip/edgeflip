@@ -21,6 +21,20 @@ class Campaign(models.Model):
 
     # Helpers assuming a basic configuration #
 
+    def iterfallbacks(self):
+        campaign = self
+        while True:
+            props = campaign.campaignproperties.get()
+            campaign = props.fallback_campaign
+            if campaign is None:
+                break
+            yield campaign
+
+    def iterchain(self):
+        yield self
+        for fallback in self.iterfallbacks():
+            yield fallback
+
     def global_filter(self, dt=None):
         try:
             campaign_global_filter = self.campaignglobalfilters.for_datetime(datetime=dt).get()
