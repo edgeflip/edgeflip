@@ -3,6 +3,7 @@ import logging
 import re
 import sys
 
+import gerry
 from django.core import validators
 from django.db import models
 
@@ -38,7 +39,10 @@ class FilterFeatureType(FeatureType):
     STATE = 'state'
     CITY = 'city'
     FULL_LOCATION = 'full_location'
-    MATCHING = 'matching'
+    MATCHING = 'matching' # TODO: => civis_voter
+    # TODO: ef_voter
+    # TODO: switch sort order of matching and full_location (matching types
+    # come last, except for topics)
 
     px_rank = models.PositiveIntegerField(default=3)
     sort_order = models.IntegerField(default=0)
@@ -266,9 +270,12 @@ class FilterFeature(models.Model, Feature):
 
             return filter_(edges, self.feature, self.operator, self.value)
 
+        if self.feature_type.code == self.feature_type.EF_VOTER:
+            # Pre-cache relevant features via gerry:
+            gerry.bulk_impute((edge.secondary for edge in edges), self.feature)
+
         # Standard min/max/eq/in filters:
-        return tuple(edge for edge in edges
-                     if self.operate_standard(edge.secondary))
+        return [edge for edge in edges if self.operate_standard(edge.secondary)]
 
     def encode_value(self):
         """Encode value and automatically determine value_type."""

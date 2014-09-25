@@ -235,6 +235,7 @@ INSTALLED_APPS = (
     'jsurls',
     # Edgeflip apps:
     'core',
+    'gerry',
     'targetshare',
     'targetadmin',
     'targetmock',
