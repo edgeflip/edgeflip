@@ -1,14 +1,17 @@
 from faraday import (
+    HashKeyField,
     Item,
     ItemField,
     ItemManager,
-    HashKeyField,
     NUMBER,
 )
 
 
 class cached_class_property(object):
+    """Descriptor implementing a class-level property, which replaces itself
+    with the static value returned by the method it wraps.
 
+    """
     def __init__(self, func):
         self.func = func
 
@@ -27,22 +30,22 @@ class FeatureMissing(Exception):
 
 class VoterLookupManager(ItemManager):
 
-    def _make_signature(self, values):
-        return {self.table.item.hashkey: self.table.item.delimiter.join(values)}
+    def _make_signature(self, attrs):
+        return {self.table.item.hashkey: self.table.item.delimiter.join(attrs)}
 
-    def lookup_match(self, voter):
-        voter_attrs = self.table.item.extract_attrs(voter)
-        missing_features = [feature for (feature, value) in voter_attrs if not value]
+    def lookup_match(self, obj):
+        attrs = self.table.item.extract_attrs(obj)
+        missing_features = [
+            feature for (feature, value) in zip(self.table.item.keyfeatures, attrs)
+            if not value
+        ]
         if any(missing_features):
             raise FeatureMissing(missing_features)
-        signature = self._make_signature(value for (_feature, value) in voter_attrs)
+        signature = self._make_signature(attrs)
         return self.get_item(**signature)
 
-    def batch_match(self, voters):
-        all_values = (
-            [value for (_feature, value) in self.table.item.extract_attrs(voter)]
-            for voter in voters
-        )
+    def batch_match(self, objs):
+        all_values = (self.table.item.extract_attrs(obj) for obj in objs)
         return self.batch_get([self._make_signature(values)
                                for values in all_values if all(values)])
 
@@ -65,17 +68,15 @@ class AbstractVoterLookup(Item):
 
     @cached_class_property
     def hashkey(cls):
-        for (name, field) in cls._meta.keys.items():
-            if isinstance(field, HashKeyField):
-                return name
+        return cls.items.table.get_key_fields()[0]
 
     @cached_class_property
-    def features(cls):
+    def keyfeatures(cls):
         return cls.hashkey.split(cls.delimiter)
 
     @classmethod
     def extract_attrs(cls, obj):
-        return [(feature, getattr(obj, feature)) for feature in cls.features]
+        return [getattr(obj, feature, None) for feature in cls.keyfeatures]
 
     @property
     def hashvalue(self):
@@ -112,3 +113,7 @@ class StateCityNameVoter(AbstractVoterLookup):
     @property
     def city(self):
         return self.attrs[1]
+
+
+LOOKUPS = (StateCityNameVoter, StateNameVoter)
+SUPPORTED_FEATURES = set(AbstractVoterLookup._meta.fields.keys())
