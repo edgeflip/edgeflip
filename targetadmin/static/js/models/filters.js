@@ -122,6 +122,8 @@ var filterCollection;
         },
         _expr: /matching\[(.+)\]/,
         parse: function (attrs) {
+            // This will have to get changed, but I'm still not sure what
+            // this part is going to look like based on the current backend code
             var groups = attrs.feature.match(this._expr);
             return _.extend(
                 attrs,
