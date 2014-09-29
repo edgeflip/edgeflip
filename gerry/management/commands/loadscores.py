@@ -21,7 +21,7 @@ from gerry import models
 NETWORK_PATTERN = r'^[a-zA-Z]*://'
 
 
-def netreadlines(url, cache_time=(5 * 3600), chunk_size=(16 * 1024)):
+def netreadlines(url, cache_time=(5 * 3600)):
     """Line-wise stream generator for networked resources.
 
     By default, documents are cached in a temporary directory; and on invocation,
@@ -37,24 +37,8 @@ def netreadlines(url, cache_time=(5 * 3600), chunk_size=(16 * 1024)):
             yield line
         return
 
-    response = urllib2.urlopen(url)
-
-    def get_chunk():
-        return response.read(chunk_size)
-
     with open(cachepath, 'w') as cachefh:
-        # Re-chunk by line:
-        line = ''
-        for chunk in iter(get_chunk, ''):
-            for byte in chunk:
-                line += byte
-                if byte == '\n':
-                    cachefh.write(line)
-                    yield line
-                    line = ''
-
-        # Yield any remainder (for files that do not end with newline):
-        if line:
+        for line in urllib2.urlopen(url):
             cachefh.write(line)
             yield line
 
