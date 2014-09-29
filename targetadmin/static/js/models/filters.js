@@ -62,9 +62,9 @@ var filterCollection;
         parse: function( attrs ) {
             //Hurry ECMA 6
             //http://wiki.ecmascript.org/doku.php?id=harmony%3aobject_literals#object_literal_computed_property_keys
-            var rv = { };
-            rv[ attrs.operator ] = attrs.value;
-            return _.extend( rv, attrs );
+            var rv = {};
+            rv[attrs.operator] = attrs.value;
+            return _.extend(rv, attrs);
         },
 
         getReadable: function() {
@@ -113,17 +113,14 @@ var filterCollection;
         }
     });
 
-    var matchingFilter = Backbone.Model.extend({
+    var voterFilter = Backbone.Model.extend({
         defaults: function() {
             return _.extend(
                 { type: undefined },
                 genericDefaults
             );
         },
-        _expr: /matching\[(.+)\]/,
         parse: function (attrs) {
-            // This will have to get changed, but I'm still not sure what
-            // this part is going to look like based on the current backend code
             var groups = attrs.feature.match(this._expr);
             return _.extend(
                 attrs,
@@ -167,8 +164,8 @@ var filterCollection;
                     return new locationFilter( attrs, { parse: true } );
                 case 'topics':
                     return new interestFilter(attrs, {parse: true});
-                case 'matching':
-                    return new matchingFilter(attrs, {parse: true});
+                case 'ef_voter':
+                    return new voterFilter(attrs, {parse: true});
             }
             throw "unrecognized feature type: " + attrs.feature_type__code;
         }
