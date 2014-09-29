@@ -16,10 +16,12 @@ def impute_feature(user, feature):
         try:
             match = lookup.items.lookup_match(user)
         except (lookup.DoesNotExist, models.FeatureMissing):
-            pass
+            value = None
         else:
-            value = match[feature]
-            setattr(user, feature, value)
+            value = match.get(feature)
+
+        setattr(user, feature, value)
+        if value is not None:
             return value
 
 
@@ -37,7 +39,7 @@ def bulk_impute(users, feature):
 
         matches = lookup.batch_match(queue)
         iterable = matches.iterable # FIXME
-        scores = {match.attrs: match[feature] for match in iterable}
+        scores = {match.attrs: match[feature] for match in iterable if feature in match}
         if not scores:
             continue # try the next look-up
 
@@ -52,6 +54,7 @@ def bulk_impute(users, feature):
                 score = scores[attrs]
             except KeyError:
                 # No luck; maybe next look-up
+                setattr(user, feature, None)
                 queue.append(user)
             else:
                 # We got a match!
