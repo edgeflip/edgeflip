@@ -72,11 +72,11 @@ class AbstractVoterLookup(Item):
 
     @cached_class_property
     def keyfeatures(cls):
-        return cls.hashkey.split(cls.delimiter)
+        return tuple(cls.hashkey.split(cls.delimiter))
 
     @classmethod
     def extract_attrs(cls, obj):
-        return [getattr(obj, feature, None) for feature in cls.keyfeatures]
+        return tuple(getattr(obj, feature, None) for feature in cls.keyfeatures)
 
     @property
     def hashvalue(self):
@@ -84,7 +84,7 @@ class AbstractVoterLookup(Item):
 
     @property
     def attrs(self):
-        return self.hashvalue.split(self.delimiter)
+        return tuple(self.hashvalue.split(self.delimiter))
 
     @property
     def fname(self):
