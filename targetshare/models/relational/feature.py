@@ -39,10 +39,8 @@ class FilterFeatureType(FeatureType):
     STATE = 'state'
     CITY = 'city'
     FULL_LOCATION = 'full_location'
-    MATCHING = 'matching' # TODO: => civis_voter
-    # TODO: ef_voter
-    # TODO: switch sort order of matching and full_location (matching types
-    # come last, except for topics)
+    CIVIS_VOTER = 'civis_voter'
+    EF_VOTER = 'ef_voter'
 
     px_rank = models.PositiveIntegerField(default=3)
     sort_order = models.IntegerField(default=0)
@@ -70,7 +68,7 @@ class Feature(object):
         CITY = 'city'
         FULL_LOCATION = 'full_location'
 
-        # MATCHING features:
+        # Voter matching features:
         TURNOUT_SCORE = 'turnout_2013'
         SUPPORT_SCORE = 'support_cand_2013'
         PERSUASION_SCORE = 'persuasion_score'
@@ -88,7 +86,8 @@ class Feature(object):
 
         NON_STANDARD = expressions(
             # (feature type code, feature expression)
-            (FilterFeatureType.MATCHING, '|'.join([
+            (FilterFeatureType.EF_VOTER, '|'.join([PERSUASION_SCORE, GOTV_SCORE])),
+            (FilterFeatureType.CIVIS_VOTER, '|'.join([
                 TURNOUT_SCORE, SUPPORT_SCORE, PERSUASION_SCORE, GOTV_SCORE, PERSUASION_TURNOUT
             ])),
             (FilterFeatureType.TOPICS, r'topics\[([^\[\]]+)\]'),
@@ -261,7 +260,7 @@ class FilterFeature(models.Model, Feature):
     def filter_edges(self, edges, cache_match=False):
         from targetshare.integration import civis
 
-        if self.feature_type.code == self.feature_type.MATCHING:
+        if self.feature_type.code == self.feature_type.CIVIS_VOTER:
             # Civis matching:
             if cache_match:
                 filter_ = civis.client.civis_cached_filter
@@ -271,8 +270,17 @@ class FilterFeature(models.Model, Feature):
             return filter_(edges, self.feature, self.operator, self.value)
 
         if self.feature_type.code == self.feature_type.EF_VOTER:
-            # Pre-cache relevant features via gerry:
-            gerry.bulk_impute((edge.secondary for edge in edges), self.feature)
+            unscored_secondaries = (edge.secondary for edge in edges
+                                    if not hasattr(edge.secondary, self.feature))
+            # FIXME: Though, through inspection, the above ensures that we
+            # don't re-match for the same feature, if for some reason we ever
+            # wanted to filter on multiple different voter scores, we'd be
+            # matching more than once, unnecessarily.
+            first = tuple(itertools.islice(unscored_secondaries, 1))
+            if first:
+                # Pre-cache relevant feature scores via gerry
+                unscored_secondaries = itertools.chain(first, unscored_secondaries)
+                gerry.bulk_impute(unscored_secondaries, self.feature)
 
         # Standard min/max/eq/in filters:
         return [edge for edge in edges if self.operate_standard(edge.secondary)]
