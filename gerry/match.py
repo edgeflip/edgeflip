@@ -37,7 +37,7 @@ def bulk_impute(users, feature):
         # and, matches don't require group-by, they're already unique;
         # so, construct score look-up table and iterate over users ("once")
 
-        matches = lookup.batch_match(queue)
+        matches = lookup.items.batch_match(queue)
         iterable = matches.iterable # FIXME
         scores = {match.attrs: match[feature] for match in iterable if feature in match}
         if not scores:
