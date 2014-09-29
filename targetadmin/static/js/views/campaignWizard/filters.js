@@ -47,6 +47,7 @@ define(
                 /* If we are editing a campaign, update the UI to show the current filters
                    enabled. */
                 if(this.campaignModel) {
+                    this.model.set('noEmptyFallback', !this.campaignModel.get('include_empty_fallback'));
                     this.availableFilters.on('sync', this.reflectCampaignState, this);
                 }
 

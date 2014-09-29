@@ -38,7 +38,7 @@ class TestSnippetViews(TestAdminBase):
 
         form = response.context['snippet_form']
         form_campaigns = form.fields['campaign'].queryset
-        self.assertEqual(form_campaigns.get(), self.campaign)
+        self.assertTrue(form_campaigns.filter(pk=self.campaign.pk).exists())
 
     def test_specified_snippets(self):
         ''' Test that campaign_pk and content_pk GET args are respected '''
