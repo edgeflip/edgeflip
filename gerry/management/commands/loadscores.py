@@ -124,11 +124,6 @@ class Command(BaseCommand):
 
         """).strip()
 
-    option_list = BaseCommand.option_list + (
-        #make_option('--no-header', action='store_false', default=True, dest='discard_header',
-        #            help="Retain first line of input (when there is no header)"),
-    )
-
     def __init__(self):
         super(Command, self).__init__()
         self.header = None
@@ -202,7 +197,8 @@ class Command(BaseCommand):
             self.perr("Parse failed: {!r}".format(line))
             return None
 
-        return '_'.join(registration[feature] for feature in features)
+        return '_'.join(registration[feature].upper().replace(' ', '-')
+                        for feature in features)
 
     @lookupkey
     def state_lname_fname(self, line):

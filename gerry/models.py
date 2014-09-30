@@ -1,3 +1,4 @@
+import us
 from faraday import (
     HashKeyField,
     Item,
@@ -74,9 +75,23 @@ class AbstractVoterLookup(Item):
     def keyfeatures(cls):
         return tuple(cls.hashkey.split(cls.delimiter))
 
+    @staticmethod
+    def _extract_attr(obj, feature):
+        attr = getattr(obj, feature, None)
+        if attr is None:
+            return attr
+
+        if feature == 'state':
+            if len(attr) == 2:
+                return attr.upper()
+            state = us.states.lookup(attr)
+            return state.abbr
+
+        return attr.upper().replace(' ', '-')
+
     @classmethod
     def extract_attrs(cls, obj):
-        return tuple(getattr(obj, feature, None) for feature in cls.keyfeatures)
+        return tuple(cls._extract_attr(obj, feature) for feature in cls.keyfeatures)
 
     @property
     def hashvalue(self):
