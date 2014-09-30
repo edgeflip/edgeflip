@@ -38,7 +38,7 @@ def bulk_impute(users, feature):
         # so, construct score look-up table and iterate over users ("once")
 
         matches = lookup.items.batch_match(lookup_queue)
-        iterable = matches.iterable # FIXME
+        iterable = matches.iterable or () # FIXME
         scores = {match.attrs: match[feature] for match in iterable if feature in match}
 
         # ...However, we can't alter a collection during iteration;

@@ -35,6 +35,16 @@ class TestBulkImpute(GerryTestCase):
         bulk_impute([self.user], 'gotv_score')
         tools.assert_is_none(self.user.gotv_score)
 
+    def test_no_state(self):
+        self.user.state = None
+        bulk_impute([self.user], 'gotv_score')
+        tools.assert_is_none(self.user.gotv_score)
+
+    def test_bad_state(self):
+        self.user.state = 'garbage'
+        bulk_impute([self.user], 'gotv_score')
+        tools.assert_is_none(self.user.gotv_score)
+
     def test_fallback(self):
         models.StateNameVoter.items.create(
             state_lname_fname="PA_APP_GERRY",

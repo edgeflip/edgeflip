@@ -78,14 +78,14 @@ class AbstractVoterLookup(Item):
     @staticmethod
     def _extract_attr(obj, feature):
         attr = getattr(obj, feature, None)
-        if attr is None:
+        if not attr:
             return attr
 
         if feature == 'state':
             if len(attr) == 2:
                 return attr.upper()
             state = us.states.lookup(attr)
-            return state.abbr
+            return state and state.abbr
 
         return attr.upper().replace(' ', '-')
 
