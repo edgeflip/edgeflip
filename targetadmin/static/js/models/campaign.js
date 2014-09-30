@@ -40,16 +40,16 @@ define([
                     }
                     return "Between " + winning_min + " and " + winning_max + " years old"
                 }
-            } else if( type_code === "state" || type_code === "city" || type_code === "full_location" || type_code === "gender" ) {
-                var values = model_list.map(function(model) {
-                    return model.getReadable();
-                });
-                return readable_list(values, 'and');
             } else if( type_code === "interest" ) {
                 var topics = model_list.map(function(model) {
                     return model.attributes.value;
                 });
                 return "Interested in " + readable_list(topics, 'and');
+            } else {
+                var values = model_list.map(function(model) {
+                    return model.getReadable();
+                });
+                return readable_list(values, 'and');
             }
         },
         parse: function(attrs, options) {

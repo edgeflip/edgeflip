@@ -35,16 +35,14 @@ var filterCollection;
 
         defaults: function() {
             return _.extend(
-                { gender: undefined },
+                {gender: undefined},
                 genericDefaults,
-                { operator: 'eq' }
+                {operator: 'eq'}
             );
         },
 
-        parse: function( attrs ) {
-            return _.extend(
-                { gender: attrs.value },
-                attrs );
+        parse: function(attrs) {
+            return _.extend({gender: attrs.value}, attrs);
         },
 
         getReadable: function() {
@@ -66,9 +64,9 @@ var filterCollection;
         parse: function( attrs ) {
             //Hurry ECMA 6
             //http://wiki.ecmascript.org/doku.php?id=harmony%3aobject_literals#object_literal_computed_property_keys
-            var rv = { };
-            rv[ attrs.operator ] = attrs.value;
-            return _.extend( rv, attrs );
+            var rv = {};
+            rv[attrs.operator] = attrs.value;
+            return _.extend(rv, attrs);
         },
 
         getReadable: function() {
@@ -117,34 +115,61 @@ var filterCollection;
         }
     });
 
-    /* "url" attribute tells Backbone where to fetch the data,
-       "model" returns the appropriate model to be added to the collection */
-    filterCollection = Backbone.Collection.extend( {
-
-        url: function() {
-            return '/admin/client/' + this.clientId + '/filters.json';
+    var voterFilter = Backbone.Model.extend({
+        parse: function (attrs) {
+            attrs.value = parseFloat(attrs.value);
+            return attrs;
         },
+        getReadable: function() {
+            var legibleFeature, legibleOperator;
+            switch (this.get('feature')) {
+                case 'gotv_score':
+                    legibleFeature = 'GOTV';
+                    break;
+                case 'persuasion_score':
+                    legibleFeature = 'Voter persuasion';
+            }
+            switch (this.get('operator')) {
+                case 'min':
+                    legibleOperator = '+';
+                    break;
+                case 'max':
+                    legibleOperator = '-';
+            }
+            return legibleFeature + ' ' + this.get('value') + legibleOperator;
+        }
+    });
 
-        initialize: function( models, options ) {
-            return _.extend( this, options );
-        },
-
+    filterCollection = Backbone.Collection.extend({
+        /* "url" attribute tells Backbone where to fetch the data,
+         * "model" returns the appropriate model to be added to the collection
+         * */
         readable_list: readable_list,
 
-        model: function( attrs, options ) {
+        url: function () {
+            return edgeflip.router.reverse('targetadmin:available-filters', this.clientId);
+        },
+
+        initialize: function (models, options) {
+            return _.extend(this, options);
+        },
+
+        model: function (attrs, options) {
             switch (attrs.feature_type__code) {
                 case 'gender':
-                    return new genderFilter( attrs, { parse: true } );
+                    return new genderFilter(attrs, {parse: true});
                 case 'age':
-                    return new ageFilter( attrs, { parse: true } );
+                    return new ageFilter(attrs, {parse: true});
                 case 'full_location':
                 case 'state':
                 case 'city':
-                    return new locationFilter( attrs, { parse: true } );
+                    return new locationFilter(attrs, {parse: true});
                 case 'topics':
                     return new interestFilter(attrs, {parse: true});
+                case 'ef_voter':
+                    return new voterFilter(attrs, {parse: true});
             }
             throw "unrecognized feature type: " + attrs.feature_type__code;
         }
-    } );
+    });
 })(jQuery);
