@@ -9,6 +9,7 @@ import sys
 import tempfile
 import time
 import urlparse
+from contextlib import closing
 from operator import attrgetter
 from textwrap import dedent
 
@@ -33,14 +34,16 @@ def netreadlines(url, cache_time=(5 * 3600)):
     filename = '{}-{}'.format(result.netloc, result.path.strip('/').replace('/', '-'))
     cachepath = os.path.join(tempfile.gettempdir(), filename)
     if os.path.exists(cachepath) and time.time() - os.path.getmtime(cachepath) < cache_time:
-        for line in open(cachepath, 'r'):
-            yield line
+        with open(cachepath, 'r') as cachefh:
+            for line in cachefh:
+                yield line
         return
 
     with open(cachepath, 'w') as cachefh:
-        for line in urllib2.urlopen(url):
-            cachefh.write(line)
-            yield line
+        with closing(urllib2.urlopen(url)) as response:
+            for line in response:
+                cachefh.write(line)
+                yield line
 
 
 Keyed = collections.namedtuple('Keyed', ('key', 'obj'))

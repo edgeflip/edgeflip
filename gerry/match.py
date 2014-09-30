@@ -28,34 +28,33 @@ def impute_feature(user, feature):
 def bulk_impute(users, feature):
     _check_feature(feature)
 
-    queue = collections.deque(users)
+    lookup_queue = collections.deque(users)
     for lookup in models.LOOKUPS:
-        if not queue:
+        if not lookup_queue:
             break # we're done
 
         # We expect fewer matches than total users in the queue;
         # and, matches don't require group-by, they're already unique;
         # so, construct score look-up table and iterate over users ("once")
 
-        matches = lookup.items.batch_match(queue)
+        matches = lookup.items.batch_match(lookup_queue)
         iterable = matches.iterable # FIXME
         scores = {match.attrs: match[feature] for match in iterable if feature in match}
-        if not scores:
-            continue # try the next look-up
 
         # ...However, we can't alter a collection during iteration;
         # at least, avoid holding two copies of queue in memory at once
-        (queue0, queue) = (queue, collections.deque())
+        unassigned = lookup_queue
+        lookup_queue = collections.deque()
 
-        while queue0:
-            user = queue0.popleft()
+        while unassigned:
+            user = unassigned.popleft()
             attrs = lookup.extract_attrs(user)
             try:
                 score = scores[attrs]
             except KeyError:
                 # No luck; maybe next look-up
                 setattr(user, feature, None)
-                queue.append(user)
+                lookup_queue.append(user)
             else:
                 # We got a match!
                 setattr(user, feature, score)
