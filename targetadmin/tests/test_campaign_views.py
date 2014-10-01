@@ -1,4 +1,5 @@
 import json
+from decimal import Decimal
 from itertools import chain
 
 from django.conf import settings
@@ -314,7 +315,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual({ff.operator for ff in filters},
                          {relational.FilterFeature.Operator.MIN})
         self.assertEqual({ff.decode_value() for ff in filters},
-                         {settings.ADMIN_TOPICS_FILTER_THRESHOLD})
+                         {Decimal(str(settings.ADMIN_TOPICS_FILTER_THRESHOLD))})
 
         ranking_key = camp.campaignrankingkeys.get().ranking_key
         self.assertEqual(ranking_key.name, "Test Client Test Campaign")

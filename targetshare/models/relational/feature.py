@@ -1,5 +1,7 @@
+import decimal
 import itertools
 import logging
+import numbers
 import re
 import sys
 
@@ -179,14 +181,14 @@ class FilterFeature(models.Model, Feature):
 
     class ValueType(object):
         INT = 'int'
-        FLOAT = 'float'
+        DECIMAL = 'decimal'
         STRING = 'string'
         LIST = 'list'
 
         CHOICES = (
             ('', ""),
             (INT, "integer"),
-            (FLOAT, "float"),
+            (DECIMAL, "decimal"),
             (STRING, "string"),
             (LIST, "list"),
         )
@@ -231,8 +233,8 @@ class FilterFeature(models.Model, Feature):
         ''' Returns the value as the proper value type instance '''
         if self.value_type == self.ValueType.INT:
             return int(self.value)
-        elif self.value_type == self.ValueType.FLOAT:
-            return float(self.value)
+        elif self.value_type == self.ValueType.DECIMAL:
+            return decimal.Decimal(self.value)
         elif self.value_type == self.ValueType.LIST:
             return self.value.split(self.ValueType.LIST_DELIM)
         else:
@@ -288,16 +290,21 @@ class FilterFeature(models.Model, Feature):
     def encode_value(self):
         """Encode value and automatically determine value_type."""
         value = self.value
-        try:
-            value = float(value) if '.' in value else int(value)
-        except (TypeError, ValueError):
-            pass
+        if isinstance(value, basestring):
+            # Eagerly coerce strings to numbers
+            try:
+                value = decimal.Decimal(value) if '.' in value else int(value)
+            except (decimal.DecimalException, TypeError, ValueError):
+                pass
 
         if isinstance(value, (int, long)):
             return (str(value), self.ValueType.INT)
 
         if isinstance(value, float):
-            return ('%.8f' % value, self.ValueType.FLOAT)
+            return ('%.8f' % value, self.ValueType.DECIMAL)
+
+        if isinstance(value, numbers.Number):
+            return (str(value), self.ValueType.DECIMAL)
 
         if isinstance(value, basestring):
             if self.ValueType.LIST_DELIM in value:
@@ -309,7 +316,7 @@ class FilterFeature(models.Model, Feature):
                                                    for part in value)
             return (value, self.ValueType.LIST)
 
-        raise ValueError("Can't filter on type of %s" % self.value)
+        raise TypeError("Can't filter on type of %s" % self.value)
 
     def get_feature_type(self):
         code = self.feature
