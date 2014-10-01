@@ -194,14 +194,22 @@ class FilterFeature(models.Model, Feature):
         LIST_DELIM = '||'
 
     class Operator(object):
-        IN = 'in'
+        BOOL = 'bool'
+        BOOL_NOT = 'bool_not'
         EQ = 'eq'
+        IN = 'in'
+        GT = 'gt'
+        LT = 'lt'
         MIN = 'min'
         MAX = 'max'
 
         CHOICES = (
+            (BOOL, "Bool"),
+            (BOOL_NOT, "Not"),
             (IN, "In"),
             (EQ, "Equal"),
+            (GT, "Greater"),
+            (LT, "Lesser"),
             (MIN, "Min"),
             (MAX, "Max")
         )
@@ -240,7 +248,18 @@ class FilterFeature(models.Model, Feature):
 
     def operate_standard(self, user):
         user_value = self.get_user_value_safe(user)
+
+        # Unary operators (don't depend on FilterFeature.value)
+
+        if self.operator == self.Operator.BOOL:
+            return bool(user_value)
+        elif self.operator == self.Operator.BOOL_NOT:
+            return not user_value
+
+        # Binary operators (depend on FilterFeature.value)
+
         if user_value is None:
+            # User value missing and unsuitable for comparision
             return False
 
         value = self.decode_value()
@@ -250,6 +269,12 @@ class FilterFeature(models.Model, Feature):
 
         elif self.operator == self.Operator.MAX:
             return user_value <= value
+
+        elif self.operator == self.Operator.GT:
+            return user_value > value
+
+        elif self.operator == self.Operator.LT:
+            return user_value < value
 
         elif self.operator == self.Operator.EQ:
             return user_value == value

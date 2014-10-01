@@ -48,10 +48,10 @@ class TestFilters(EdgeFlipTestCase):
         (feature.value, feature.value_type) = feature.encode_value()
         return feature.operate_standard(self.user)
 
-    def assertFilter(self, feature, operator, value, feature_code=None):
+    def assertFilter(self, feature, operator, value='', feature_code=None):
         self.assertTrue(self._operate(feature, operator, value, feature_code))
 
-    def assertNotFilter(self, feature, operator, value, feature_code=None):
+    def assertNotFilter(self, feature, operator, value='', feature_code=None):
         self.assertFalse(self._operate(feature, operator, value, feature_code))
 
     def test_standard_filter_age(self):
@@ -116,6 +116,25 @@ class TestFilters(EdgeFlipTestCase):
         self.assertFilter('topics[Health]', self.operators.MIN, '0.7', topics_type)
         self.assertFilter('topics[Sports]', self.operators.MAX, '0.99', topics_type)
         self.assertNotFilter('topics[Sports]', self.operators.MAX, '0.93', topics_type)
+
+    def test_standard_filter_gt_age(self):
+        self.assertFilter(self.expressions.AGE, self.operators.MIN, 29)
+        self.assertNotFilter(self.expressions.AGE, self.operators.GT, 29)
+        self.user.birthday = datetime(1983, 1, 1)
+        self.assertFilter(self.expressions.AGE, self.operators.GT, 29)
+
+    def test_standard_filter_lt_age(self):
+        self.assertFilter(self.expressions.AGE, self.operators.MAX, 29)
+        self.assertNotFilter(self.expressions.AGE, self.operators.LT, 29)
+        self.user.birthday = datetime(1984, 1, 2)
+        self.assertFilter(self.expressions.AGE, self.operators.LT, 29)
+
+    def test_standard_filter_bool_state(self):
+        self.assertFilter(self.expressions.STATE, self.operators.BOOL)
+        self.assertNotFilter(self.expressions.STATE, self.operators.BOOL_NOT)
+        self.user.state = ''
+        self.assertFilter(self.expressions.STATE, self.operators.BOOL_NOT)
+        self.assertNotFilter(self.expressions.STATE, self.operators.BOOL)
 
     def test_standard_filter_missing_feature(self):
         self.assertNotFilter('not_an_option', self.operators.EQ, 1000)
