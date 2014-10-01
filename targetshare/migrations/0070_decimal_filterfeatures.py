@@ -1,16 +1,26 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 from south.v2 import DataMigration
 
 
 class Migration(DataMigration):
 
+    @classmethod
+    def puts(cls, s, *args, **kws):
+        (app, _dir, name) = cls.__module__.split('.')
+        print("[{}:{}]".format(app, name), s.format(*args, **kws))
+
     def forwards(self, orm):
         """Replace filter feature value type "float" with "decimal"."""
         orm.FilterFeature.objects.filter(value_type='float').update(value_type='decimal')
+        self.puts("float value type converted to decimal. "
+                  "non-integer numeric values will now be interpreted as decimals; "
+                  "(you may want to check on these).")
 
     def backwards(self, orm):
         """Revert filter feature value type "decimal" to "float"."""
         orm.FilterFeature.objects.filter(value_type='decimal').update(value_type='float')
+        self.puts("decimal value type reverted to float.")
 
     models = {
         u'auth.group': {
