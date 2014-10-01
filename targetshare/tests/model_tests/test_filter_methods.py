@@ -117,5 +117,9 @@ class TestFilters(EdgeFlipTestCase):
         self.assertFilter('topics[Sports]', self.operators.MAX, '0.99', topics_type)
         self.assertNotFilter('topics[Sports]', self.operators.MAX, '0.93', topics_type)
 
+    def test_standard_filter_fractional_value(self):
+        self.user.gotv_score = Decimal('0.2')
+        self.assertFilter('gotv_score', self.operators.MIN, '0.2')
+
     def test_standard_filter_missing_feature(self):
         self.assertNotFilter('not_an_option', self.operators.EQ, 1000)
