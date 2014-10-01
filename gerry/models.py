@@ -32,7 +32,7 @@ class FeatureMissing(Exception):
 class VoterLookupManager(ItemManager):
 
     def _make_signature(self, attrs):
-        return {self.table.item.hashkey: self.table.item.delimiter.join(attrs)}
+        return (self.table.item.hashkey, self.table.item.delimiter.join(attrs))
 
     def lookup_match(self, obj):
         attrs = self.table.item.extract_attrs(obj)
@@ -42,13 +42,13 @@ class VoterLookupManager(ItemManager):
         ]
         if any(missing_features):
             raise FeatureMissing(missing_features)
-        signature = self._make_signature(attrs)
-        return self.get_item(**signature)
+        (_hashkey, hashvalue) = self._make_signature(attrs)
+        return self.lookup(hashvalue)
 
     def batch_match(self, objs):
         all_values = (self.table.item.extract_attrs(obj) for obj in objs)
-        return self.batch_get([self._make_signature(values)
-                               for values in all_values if all(values)])
+        unique_signatures = {self._make_signature(values) for values in all_values if all(values)}
+        return self.batch_get([{hashkey: hashvalue} for (hashkey, hashvalue) in unique_signatures])
 
 
 class AbstractVoterLookup(Item):
