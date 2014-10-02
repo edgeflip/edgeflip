@@ -254,7 +254,7 @@ define(
                 modal.update({
                     body: filtersInfoTemplate,
                     longContent: true,
-                    title: 'Filter Info'
+                    title: 'About Audiences'
                 });
                 modal.templateData.confirmBtn.hide();
                 modal.templateData.modalContainer.modal();
