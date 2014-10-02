@@ -121,13 +121,16 @@ var filterCollection;
             return attrs;
         },
         getReadable: function() {
-            var legibleFeature, legibleOperator;
+            var legibleFeature, legibleOperator, value = this.get('value');
             switch (this.get('feature')) {
                 case 'gotv_score':
                     legibleFeature = 'GOTV';
                     break;
                 case 'persuasion_score':
                     legibleFeature = 'Voter persuasion';
+                    break;
+                default:
+                    legibleFeature = this.get('feature');
             }
             switch (this.get('operator')) {
                 case 'min':
@@ -135,8 +138,23 @@ var filterCollection;
                     break;
                 case 'max':
                     legibleOperator = '-';
+                    break;
+                case 'gt':
+                    legibleOperator = '>';
+                    break;
+                case 'lt':
+                    legibleOperator = '<';
+                    break;
+                default:
+                    legibleOperator = this.get('operator');
             }
-            return legibleFeature + ' ' + this.get('value') + legibleOperator;
+            if (legibleOperator === '+' || legibleOperator === '-') {
+                // Display min/max operators in most compact way, after value:
+                return legibleFeature + ' ' + value + legibleOperator;
+            } else {
+                // By default just place operator between feature and value:
+                return legibleFeature + ' ' + legibleOperator + ' ' + value;
+            }
         }
     });
 
