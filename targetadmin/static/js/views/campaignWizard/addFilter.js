@@ -62,6 +62,12 @@ define(
                       ]
                     }
                 ];
+
+                this.dropdownLabels = {
+                    "gender": "Select gender",
+                    "topic": "Select interest",
+                    "location": "Select location type (one per filter)"
+                };
                 
                 this.render()
                     .bindAgeSlider() // don't think this is needed
@@ -74,7 +80,12 @@ define(
                 this.templateData.locationContainer.empty();
                 this.templateData.locationInput.val('');
                 this.model.set('state', undefined );
-                this.templateData.dropdownLabel.text('Select Filter Type');
+                _.each(this.templateData.dropdownLabel, function (dropdownLabel) {
+                    var $dropdownLabel = $(dropdownLabel),
+                        dataType = $dropdownLabel.parents('[data-type]').attr('data-type'),
+                        text = (dataType ? this.dropdownLabels[dataType] : null) || 'Select filter type';
+                    $dropdownLabel.text(text);
+                }, this);
                 this.templateData.filterTypeUI.addClass('hide');
             },
 
@@ -169,11 +180,8 @@ define(
 
             /* After a dropdown value has been selected, updated the text shown */
             updateDropdownLabel: function(e) {
-               
                 var clickedEl = $(e.currentTarget);
-
-                clickedEl.closest('.dropdown').find('*[data-js="dropdownLabel"]').text(clickedEl.text());
-
+                clickedEl.closest('.dropdown').find('[data-js=dropdownLabel]').text(clickedEl.text());
                 return this;
             },
 

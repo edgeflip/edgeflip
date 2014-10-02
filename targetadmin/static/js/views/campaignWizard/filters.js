@@ -279,7 +279,7 @@ define(
 
                 modal.update( {
                     body: addFilter.$el,
-                    title: 'Filter Type',
+                    title: 'Add Filter',
                     confirmText: 'Add Filter',
                     showCloseBtn: true
                 } );
