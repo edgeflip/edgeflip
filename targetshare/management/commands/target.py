@@ -56,6 +56,7 @@ def debug_tokens(tokens, max_threads, look_ahead=0):
         raise ValueError("max_threads must be >= 1")
 
     # Seed queue and initialize threads
+    thread_count = 0
     initial_tokens = itertools.islice(iterator, max_threads)
     for (thread_count, token) in enumerate(initial_tokens, 1):
         queue.put(token)
