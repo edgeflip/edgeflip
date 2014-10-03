@@ -115,7 +115,7 @@ class ResultView(object):
         for result in results:
             faces = self._secondaries(result)
             if faces is None:
-                yield 'null'
+                yield ''
             else:
                 friend_interests = [{str(face.fbid): face.topics} for face in faces[:num_faces]]
                 yield self._format_results(result.ranked.primary, friend_interests)
@@ -141,7 +141,7 @@ class ResultView(object):
         for result in results:
             faces = self._secondaries(result)
             if faces is None:
-                yield 'null'
+                yield ''
             else:
                 friend_scores = [
                     {str(face.fbid): {feature: str_or_none(face, feature)
