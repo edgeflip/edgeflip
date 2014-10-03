@@ -1,7 +1,7 @@
 from django.db import connections
 from django.views.decorators.http import require_GET
 from reporting.query import metric_where_fragment
-from reporting.utils import run_safe_dict_query, JsonResponse, cached_value
+from reporting.utils import run_safe_dict_query, JsonResponse, cached_report
 from targetadmin.utils import auth_client_required
 from targetshare.models.relational import Client
 
@@ -52,13 +52,13 @@ def client_summary(request, client_pk):
             (client.client_id,)
         )
 
-    data = cached_value(
+    data = cached_report(
         'campaignrollups',
         client.client_id,
         retrieve_campaign_rollups
     )
 
-    rollup_data = cached_value(
+    rollup_data = cached_report(
         'clientrollups',
         client.client_id,
         retrieve_client_rollups

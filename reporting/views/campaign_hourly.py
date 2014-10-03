@@ -6,7 +6,7 @@ from django.views.decorators.http import require_GET
 from targetadmin.utils import auth_client_required
 from targetshare.models import Client
 from reporting.query import metric_where_fragment
-from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse, cached_value
+from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse, cached_report
 
 
 @auth_client_required
@@ -46,14 +46,14 @@ def campaign_hourly(request, client_pk, campaign_pk):
         )
 
     if response_format == 'csv':
-        data = cached_value(
+        data = cached_report(
             'campaignhourlycsv',
             campaign_pk,
             retrieve_campaign_hourly_csv
         )
         return generate_csv(data, client_pk)
     else:
-        data = cached_value(
+        data = cached_report(
             'campaignhourly',
             campaign_pk,
             retrieve_campaign_hourly

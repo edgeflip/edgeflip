@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core import cache
 from django.http import HttpResponse
 import json
@@ -42,10 +43,16 @@ class JsonResponse(HttpResponse):
         super(JsonResponse, self).__init__(json.dumps(content), content_type=content_type)
 
 
-def cached_value(prefix, identifier, value_generator):
+def cached_report(prefix, identifier, value_generator, cache_timeout=None):
     cache_key = '|'.join(['reporting', prefix, str(identifier)])
     data = cache.cache.get(cache_key)
     if not data:
         data = value_generator()
-        cache.cache.set(cache_key, data)
+        if cache_timeout is None:
+            cache_timeout = getattr(
+                settings,
+                'REPORTING_CACHE_TIMEOUT',
+                60 * 60 * 4
+            )
+        cache.cache.set(cache_key, data, cache_timeout)
     return data
