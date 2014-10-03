@@ -6,7 +6,7 @@ from django.views.decorators.http import require_GET
 from targetadmin.utils import auth_client_required
 from targetshare.models.relational import Client
 from reporting.query import METRICS
-from reporting.models.relational import Clientstats
+from reporting.models.relational import Campaignhourly
 
 @login_required(login_url='reporting:login')
 @require_GET
@@ -16,7 +16,7 @@ def main(request):
         client_queryset = client_queryset.filter(auth_groups__user=request.user)
 
     return render(request, 'clientdash.html', {
-        'updated': Clientstats.objects.aggregate(max_hour=Max('hour'))['max_hour'],
+        'updated': Campaignhourly.objects.aggregate(max_hour=Max('hour'))['max_hour'],
         'columns': METRICS,
         'clients': client_queryset.order_by('name').values_list('client_id', 'name'),
     })

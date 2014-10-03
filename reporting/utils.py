@@ -1,3 +1,4 @@
+from django.core import cache
 from django.http import HttpResponse
 import json
 
@@ -36,7 +37,15 @@ def run_safe_row_query(cursor, query, args):
 class JsonResponse(HttpResponse):
 
     def __init__(self, content=None, content_type=None):
-        if not content_type: 
+        if not content_type:
             content_type = 'application/json'
         super(JsonResponse, self).__init__(json.dumps(content), content_type=content_type)
 
+
+def cached_value(prefix, identifier, value_generator):
+    cache_key = '|'.join(['reporting', prefix, str(identifier)])
+    data = cache.cache.get(cache_key)
+    if not data:
+        data = value_generator()
+        cache.cache.set(cache_key, data)
+    return data

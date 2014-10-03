@@ -1,10 +1,9 @@
 from targetshare.tests import EdgeFlipTestCase
-from targetshare.models import relational
 
 
 class TestReportingBase(EdgeFlipTestCase):
 
-    fixtures = ['reporting_testdata', 'redshift_testdata']
+    fixtures = ['reporting_testdata', 'cache_testdata']
     multi_db = True
 
     def login_superuser(self):
@@ -18,4 +17,3 @@ class TestReportingBase(EdgeFlipTestCase):
             username='peon',
             password='testing'
         ))
-

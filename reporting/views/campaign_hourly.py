@@ -6,7 +6,7 @@ from django.views.decorators.http import require_GET
 from targetadmin.utils import auth_client_required
 from targetshare.models import Client
 from reporting.query import metric_where_fragment
-from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse
+from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse, cached_value
 
 
 @auth_client_required
@@ -18,16 +18,17 @@ def campaign_hourly(request, client_pk, campaign_pk):
         SELECT
             date_trunc('hour', hour) as time,
             {}
-        FROM clientstats
+        FROM campaignhourly
         JOIN campaigns using (campaign_id)
         WHERE campaigns.campaign_id = %s
         GROUP BY time
         ORDER BY time ASC
         """.format(metric_where_fragment())
-    cursor = connections['redshift'].cursor()
+    cursor = connections['reporting'].cursor()
 
     response_format = request.GET.get('format', '')
-    if response_format == 'csv':
+
+    def retrieve_campaign_hourly_csv():
         data = run_safe_row_query(
             cursor,
             query,
@@ -35,14 +36,29 @@ def campaign_hourly(request, client_pk, campaign_pk):
         )
         data = [isoformat_row(row, [0]) for row in data]
         data.insert(0, [col.name for col in cursor.description])
-        return generate_csv(data, client_pk)
-    else:
-        data = run_safe_dict_query(
+        return data
+
+    def retrieve_campaign_hourly():
+        return run_safe_dict_query(
             cursor,
             query,
             (campaign_pk,)
         )
-        return JsonResponse({'data':[isoformat_dict(row) for row in data]})
+
+    if response_format == 'csv':
+        data = cached_value(
+            'campaignhourlycsv',
+            campaign_pk,
+            retrieve_campaign_hourly_csv
+        )
+        return generate_csv(data, client_pk)
+    else:
+        data = cached_value(
+            'campaignhourly',
+            campaign_pk,
+            retrieve_campaign_hourly
+        )
+        return JsonResponse({'data': [isoformat_dict(row) for row in data]})
 
 
 def generate_csv(data, client_pk):

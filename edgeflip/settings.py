@@ -251,7 +251,7 @@ if ENV in ('staging', 'production'):
         'raven.contrib.django.raven_compat',
     )
 
-DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
+DATABASE_ROUTERS = ['reporting.router.ReportingRouter']
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
