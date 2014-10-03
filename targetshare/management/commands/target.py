@@ -95,24 +95,60 @@ class ResultView(object):
     def __init__(self, command):
         self.command = command
 
-    def shown_faces(self, results):
-        """Map each result to a JSON object
+    @staticmethod
+    def _secondaries(result):
+        if result.ranked:
+            return () if result.filtered is None else result.filtered.secondaries
+        return None
 
-            {PRIMARY: [{SECONDARY0: {TOPIC0: SCORE0, ...}}, ...]}
+    @staticmethod
+    def _format_results(primary, results):
+        return '"{}": {}'.format(primary.fbid, json.dumps(results))
+
+    def shown_topics(self, results):
+        """Map each result to a line of YAML in compact notation
+
+            PRIMARY: [{SECONDARY0: {TOPIC0: SCORE0, ...}}, ...]
 
         """
         num_faces = self.command.options['num_faces']
         for result in results:
-            if result.ranked:
-                primary = result.ranked.primary
-                if result.filtered is None:
-                    faces = ()
-                else:
-                    faces = result.filtered.secondaries
-                friend_interests = [{str(face.fbid): face.topics} for face in faces[:num_faces]]
-                yield json.dumps({str(primary.fbid): friend_interests})
-            else:
+            faces = self._secondaries(result)
+            if faces is None:
                 yield 'null'
+            else:
+                friend_interests = [{str(face.fbid): face.topics} for face in faces[:num_faces]]
+                yield self._format_results(result.ranked.primary, friend_interests)
+
+    def shown_voters(self, results):
+        """Map each result to a line of YAML in compact notation
+
+            PRIMARY: [{SECONDARY0: {FEATURE0: SCORE0, ...}}, ...]
+
+        """
+        features = (relational.FilterFeature.Expression.PERSUASION_SCORE,
+                    relational.FilterFeature.Expression.GOTV_SCORE)
+        num_faces = self.command.options['num_faces']
+
+        def str_or_none(face, feature):
+            try:
+                score = getattr(face, feature)
+            except AttributeError:
+                return None
+            else:
+                return score if score is None else str(score)
+
+        for result in results:
+            faces = self._secondaries(result)
+            if faces is None:
+                yield 'null'
+            else:
+                friend_scores = [
+                    {str(face.fbid): {feature: str_or_none(face, feature)
+                                      for feature in features}}
+                    for face in faces[:num_faces]
+                ]
+                yield self._format_results(result.ranked.primary, friend_scores)
 
 VIEWS = tuple(name for name in vars(ResultView) if not name.startswith('_'))
 
@@ -128,6 +164,7 @@ def get_isolation_level():
     return isolation_level
 
 
+# FIXME: This doesn't appear to work in production
 def set_isolation_level(value):
     with closing(connection.cursor()) as cursor:
         cursor.execute('SET SESSION TRANSACTION ISOLATION LEVEL {}'.format(value))
@@ -147,7 +184,9 @@ class Command(BaseCommand):
             python manage.py target 150 150
             python manage.py target 150 150 --limit=50
             python manage.py target 150 150 ./fbids.in
-            echo 2904423 | python manage.py target 150 150 -
+            <<< 2904423 python manage.py target 150 150 -
+
+        Output is YAML-compliant.
 
         """).strip()
 
@@ -158,8 +197,8 @@ class Command(BaseCommand):
             help='Select tokens randomly (if FBIDs not specified)'),
         make_option('--debug', action='store_true',
             help='Skip tokens that fail a Facebook debugging test'),
-        make_option('--display', choices=VIEWS, default='shown_faces', metavar="VIEW",
-            help='View of results to display [choices: {}, default: shown_faces]'.format(VIEWS)),
+        make_option('--display', choices=VIEWS, default='shown_topics', metavar="VIEW",
+            help='View of results to display [choices: {}, default: shown_topics]'.format(VIEWS)),
         make_option('--fb-app-id', type=int, metavar="APPID",
             help="A Facebook app ID to which to limit authorizations under consideration"),
         make_option('--num-faces', default=10, type=int, metavar="NUM",
@@ -222,7 +261,7 @@ class Command(BaseCommand):
         tokens = itertools.islice(token_stream, options['limit'])
         tasks = self.spawn_tasks(tokens)
 
-        self.pout("targeting networks at proximity rank four with campaign {} "
+        self.pout("# targeting networks at proximity rank four with campaign {} "
                   "and client content {}".format(campaign_id, client_content_id))
 
         # Stream chunked tasks' network results thru chosen view to STDOUT
@@ -243,7 +282,7 @@ class Command(BaseCommand):
             if fb_app_id and fb_app_id != client_app_id:
                 raise CommandError("Facebook app ID is assumed from campaign "
                                    "client when reading FBID stream")
-            self.pout("only networks authorized under Facebook app {} will be considered"
+            self.pout("# only networks authorized under Facebook app {} will be considered"
                       .format(client_app_id))
             fh = sys.stdin if fbidfile == '-' else open(fbidfile)
             # Grab fbids separated by any space (newline, space, tab):
@@ -253,7 +292,7 @@ class Command(BaseCommand):
 
         elif self.options['random']:
             fb_app_id = fb_app_id or client_app_id
-            self.pout("only networks authorized under Facebook app "
+            self.pout("# only networks authorized under Facebook app "
                       "{} will be considered".format(fb_app_id))
             sixty_days_ago = timezone.now() - timedelta(days=60)
             (query, params) = (
@@ -290,7 +329,7 @@ class Command(BaseCommand):
         else:
             query = dynamo.Token.items.filter(expires__gt=timezone.now())
             if fb_app_id:
-                self.pout("only networks authorized under Facebook app "
+                self.pout("# only networks authorized under Facebook app "
                           "{} will be considered".format(fb_app_id))
                 query = query.filter(appid__eq=fb_app_id)
             tokens = query.scan()
