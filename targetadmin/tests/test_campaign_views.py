@@ -594,6 +594,21 @@ class TestCampaignData(TestAdminBase):
         csf0 = csf[0]
         csf.exclude(pk=csf0.pk).delete()
 
+        # Ensure campaigns have well-named content:
+        # FIXME: due to legacy campaigns and content-guessing
+        for campaign in (self.campaign_nofallback, self.campaign_wfallback):
+            campaign.client.clientcontent.create(
+                name="{} {}".format(campaign.client.name, campaign.name[:-2]),
+                url='http://www.disney.com/',
+            )
+
+    def test_campaign_data_content_url(self):
+        response = self.client.get(reverse('targetadmin:campaign-data',
+                                           args=[self.test_client.pk, self.campaign_nofallback.pk]))
+        self.assertStatusCode(response, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['content_url'], 'http://www.disney.com/')
+
     def test_campaign_data_no_empty_fallback0(self):
         campaign = self.campaign_nofallback
         self.assertIsNone(campaign.campaignproperties.get().fallback_campaign)

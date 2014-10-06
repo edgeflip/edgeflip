@@ -582,6 +582,7 @@ def campaign_data(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
+    content = guess_content(client, campaign)
 
     campaign_filters = []
     for campaign0 in campaign.iterchain():
@@ -612,7 +613,7 @@ def campaign_data(request, client_pk, campaign_pk):
         'faces_url': faces_url,
         'error_url': campaign_properties.client_error_url,
         'thanks_url': campaign_properties.client_thanks_url,
-        'content_url': campaign_properties.client_thanks_url,
+        'content_url': content.url,
         'include_empty_fallback': empty_fallback,
         'filters': campaign_filters,
         'msg1_post': fb_attr_inst.msg1_post,
