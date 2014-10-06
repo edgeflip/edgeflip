@@ -251,7 +251,7 @@ if ENV in ('staging', 'production'):
         'raven.contrib.django.raven_compat',
     )
 
-DATABASE_ROUTERS = ['reporting.router.RedshiftRouter']
+DATABASE_ROUTERS = ['reporting.router.ReportingRouter']
 
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
@@ -410,6 +410,9 @@ JSURLS_PROFILES = {
         'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router.js'),
     },
 }
+
+# reporting settings
+REPORTING_CACHE_TIMEOUT = (60 * 60 * 4) # 4 hours
 
 # chapo settings #
 CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days

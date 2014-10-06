@@ -1,9 +1,7 @@
-from django.core.exceptions import PermissionDenied
 from django.db import connections
-from django.http import Http404
 from django.views.decorators.http import require_GET
 from reporting.query import metric_where_fragment
-from reporting.utils import run_safe_dict_query, JsonResponse
+from reporting.utils import run_safe_dict_query, JsonResponse, cached_report
 from targetadmin.utils import auth_client_required
 from targetshare.models.relational import Client
 
@@ -17,39 +15,53 @@ def client_summary(request, client_pk):
 
     client = Client.objects.get(pk=client_pk)
 
-    data = run_safe_dict_query(
-        connections['redshift'].cursor(),
-        """
-        SELECT
-            campaignstats.campaign_id as root_id,
-            campaigns.name,
-            max(latest_activity) as latest_activity,
-            min(first_activity) as first_activity,
+    def retrieve_campaign_rollups():
+        return run_safe_dict_query(
+            connections['reporting'].cursor(),
+            """
+            SELECT
+                campaignrollups.campaign_id as root_id,
+                campaigns.name,
+                max(latest_activity) as latest_activity,
+                min(first_activity) as first_activity,
+                {}
+            FROM campaignrollups
+            JOIN campaigns using (campaign_id)
+            JOIN (
+                select
+                    campaign_id,
+                    to_char(max(hour), 'YYYY-MM-DD') as latest_activity,
+                    to_char(min(hour), 'YYYY-MM-DD') as first_activity
+                    from campaignhourly group by campaign_id
+                ) as timelookup using (campaign_id)
+            WHERE campaigns.client_id = %s
+            GROUP BY campaignrollups.campaign_id, campaigns.name
+            """.format(metric_where_fragment()),
+            (client.client_id,)
+        )
+
+    def retrieve_client_rollups():
+        return run_safe_dict_query(
+            connections['reporting'].cursor(),
+            """
+            SELECT
             {}
-        FROM campaignstats
-        JOIN campaigns using (campaign_id)
-        JOIN (
-            select
-                campaign_id,
-                to_char(max(hour), 'YYYY-MM-DD') as latest_activity,
-                to_char(min(hour), 'YYYY-MM-DD') as first_activity
-                from clientstats group by campaign_id
-            ) as timelookup using (campaign_id)
-        WHERE campaigns.client_id = %s
-        GROUP BY campaignstats.campaign_id, campaigns.name
-        """.format(metric_where_fragment()),
-         (client.client_id,)
+            FROM clientrollups
+            WHERE client_id = %s
+            """.format(metric_where_fragment()),
+            (client.client_id,)
+        )
+
+    data = cached_report(
+        'campaignrollups',
+        client.client_id,
+        retrieve_campaign_rollups
     )
 
-    rollup_data = run_safe_dict_query(
-        connections['redshift'].cursor(),
-        """
-        SELECT
-        {}
-        FROM clientrollups
-        WHERE client_id = %s
-        """.format(metric_where_fragment()),
-        (client.client_id,)
+    rollup_data = cached_report(
+        'clientrollups',
+        client.client_id,
+        retrieve_client_rollups
     )
 
     return JsonResponse({'data': data, 'rollups': rollup_data})

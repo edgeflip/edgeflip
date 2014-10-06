@@ -55,7 +55,7 @@ def build_all(deps='1', env=None):
 
     # db
     fab.execute(setup_db)
-    fab.execute(setup_redshift)
+    fab.execute(setup_reporting)
     fab.execute(setup_dynamodb)
 
     # static files
@@ -221,29 +221,29 @@ def setup_db(env=None, force='0', testdata='1'):
         manage('loaddata', ['test_data'], env=env)
 
 
-@fab.task(name='redshift')
-def setup_redshift(env=None, force='0', testdata='1'):
-    """Initialize a redshift (postgresql) database
+@fab.task(name='reporting')
+def setup_reporting(env=None, force='0', testdata='1'):
+    """Initialize a postgresql database for reporting
 
     Requires that a virtual environment has been created, and is either
     already activated, or specified, e.g.:
 
-        redshift:MY-ENV
+        reporting:MY-ENV
 
     To force initialization during development, by tearing down any existing
     database, specify "force":
 
-        redshift:force=[1|true|yes|y]
+        reporting:force=[1|true|yes|y]
 
     In development, a test data fixture is loaded into the database by default; disable
     this by specifying "testdata":
 
-        redshift:testdata=[0|false|no|n]
+        reporting:testdata=[0|false|no|n]
 
     """
     roles = fab.env.roles or ['dev']
-    sql_path = join(BASEDIR, 'reporting', 'sql', 'redshift')
-    sql_context = {'DATABASE': 'redshift', 'USER': 'redshift', 'PASSWORD': 'root'}
+    sql_path = join(BASEDIR, 'reporting', 'sql', 'reporting')
+    sql_context = {'DATABASE': 'reporting', 'USER': 'edgeflip', 'PASSWORD': 'root'}
 
     # Database teardown
     if 'dev' in roles:
@@ -280,7 +280,7 @@ def setup_redshift(env=None, force='0', testdata='1'):
 
         # Load test data:
         if true(testdata):
-            manage('loaddata', ['redshift_testdata'], env=env, keyed={
+            manage('loaddata', ['reporting_testdata'], env=env, keyed={
                 'database': sql_context['DATABASE'],
             })
 
