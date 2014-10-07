@@ -178,6 +178,14 @@ def faces(request):
             num_faces=data['num_face'],
             px3_task_id=px3_task.id,
         )
+
+        targeting.record_visit_event(
+            'targeting_initiated',
+            request.visit.pk,
+            campaign_id=campaign.pk,
+            content_id=content.pk,
+        )
+
         return utils.JsonHttpResponse({
             'status': 'waiting',
             'px3_task_id': px3_task.id,
