@@ -154,6 +154,14 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     if fallback_count > settings.MAX_FALLBACK_COUNT:
         raise RuntimeError("Exceeded maximum fallback count")
 
+    if fallback_count == 0:
+        record_visit_event(
+            'filtering_started',
+            visit_id=visit_id,
+            campaign_id=campaign_id,
+            content_id=content_id,
+        )
+
     if visit_id is NOVISIT:
         interaction = NOVISIT
     else:
@@ -390,7 +398,14 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         # We're done cascading and have enough friends, so time to return!
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
-        return FilteringResult(edges_ranked, already_picked, **last_tier)
+        result = FilteringResult(edges_ranked, already_picked, **last_tier)
+        record_visit_event(
+            'filtering_completed',
+            visit_id=visit_id,
+            campaign_id=campaign_id,
+            content_id=content_id,
+        )
+        return result
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
