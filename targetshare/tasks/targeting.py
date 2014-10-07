@@ -154,19 +154,20 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     if fallback_count > settings.MAX_FALLBACK_COUNT:
         raise RuntimeError("Exceeded maximum fallback count")
 
-    if fallback_count == 0:
-        record_visit_event(
-            'filtering_started',
-            visit_id=visit_id,
-            campaign_id=campaign_id,
-            content_id=content_id,
-        )
-
     if visit_id is NOVISIT:
         interaction = NOVISIT
     else:
         (app, model_name) = visit_type.split('.')
         interaction = get_model(app, model_name).objects.get(pk=visit_id)
+
+    if fallback_count == 0:
+        record_event(
+            interaction,
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            content=px_rank,
+            event_type='filtering_started',
+        )
 
     client_content = relational.ClientContent.objects.get(content_id=content_id)
     campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
@@ -349,6 +350,13 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
                 content=px_rank,
                 event_type='no_friends_error',
             )
+            record_event(
+                interaction,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                content=px_rank,
+                event_type='filtering_completed',
+            )
             return empty_filtering_result._replace(campaign_id=campaign_id,
                                                    content_id=content_id)
 
@@ -399,11 +407,12 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
         result = FilteringResult(edges_ranked, already_picked, **last_tier)
-        record_visit_event(
-            'filtering_completed',
-            visit_id=visit_id,
+        record_event(
+            interaction,
             campaign_id=campaign_id,
-            content_id=content_id,
+            client_content_id=content_id,
+            content=px_rank,
+            event_type='filtering_completed',
         )
         return result
 
