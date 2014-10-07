@@ -36,6 +36,7 @@ def client_summary(request, client_pk):
                 ) as timelookup using (campaign_id)
             WHERE campaigns.client_id = %s
             GROUP BY campaignrollups.campaign_id, campaigns.name
+            ORDER BY campaignrollups.campaign_id desc
             """.format(metric_where_fragment()),
             (client.client_id,)
         )
