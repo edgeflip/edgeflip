@@ -179,11 +179,11 @@ def faces(request):
             px3_task_id=px3_task.id,
         )
 
-        targeting.record_visit_event(
-            'targeting_initiated',
-            request.visit.pk,
+        request.visit.events.create(
+            event_type='targeting_requested',
             campaign_id=campaign.pk,
-            content_id=content.pk,
+            client_content_id=content.pk,
+            content="px3_task_id: {}, px4_task_id: {}".format(px3_task.id,px4_task.id),
         )
 
         return utils.JsonHttpResponse({
