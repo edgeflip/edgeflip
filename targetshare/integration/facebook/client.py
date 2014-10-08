@@ -190,6 +190,10 @@ PX3_EXTENDED_FIELDS = {
 
 FULL_PX3_FIELDS = ','.join(PX3_FIELDS | PX3_EXTENDED_FIELDS)
 
+OAUTH_EXCEPTION_TYPES = {
+    'OAuthException',
+    'OAuthBaseException',
+}
 
 def decode_date(date):
     if date:
@@ -235,7 +239,7 @@ def urlload(url, query=(), timeout=None):
 def is_oauth_exception(msg):
     try:
         response = json.loads(msg)
-        return response['error']['type'] == 'OAuthException'
+        return response['error']['type'] in OAUTH_EXCEPTION_TYPES
     except (KeyError, ValueError):
         return False
 
