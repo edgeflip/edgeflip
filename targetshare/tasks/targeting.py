@@ -160,6 +160,15 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         (app, model_name) = visit_type.split('.')
         interaction = get_model(app, model_name).objects.get(pk=visit_id)
 
+    if fallback_count == 0:
+        record_event(
+            interaction,
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            content=px_rank,
+            event_type='filtering_started',
+        )
+
     client_content = relational.ClientContent.objects.get(content_id=content_id)
     campaign = relational.Campaign.objects.get(campaign_id=campaign_id)
     properties = campaign.campaignproperties.get()
@@ -341,6 +350,13 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
                 content=px_rank,
                 event_type='no_friends_error',
             )
+            record_event(
+                interaction,
+                campaign_id=campaign_id,
+                client_content_id=content_id,
+                content=px_rank,
+                event_type='filtering_completed',
+            )
             return empty_filtering_result._replace(campaign_id=campaign_id,
                                                    content_id=content_id)
 
@@ -390,7 +406,15 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
         # We're done cascading and have enough friends, so time to return!
         last_tier = already_picked[-1].copy()
         del last_tier['edges']
-        return FilteringResult(edges_ranked, already_picked, **last_tier)
+        result = FilteringResult(edges_ranked, already_picked, **last_tier)
+        record_event(
+            interaction,
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            content=px_rank,
+            event_type='filtering_completed',
+        )
+        return result
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
