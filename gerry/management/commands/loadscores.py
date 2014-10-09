@@ -156,6 +156,7 @@ class LookupKey(object):
     def __init__(self, model, columns):
         self.model = model
         self.columns = columns
+        self._features = dict(zip(columns, model.keyfeatures))
 
     @property
     def name(self):
@@ -163,8 +164,11 @@ class LookupKey(object):
     __name__ = name
 
     def make(self, registration):
+        # Rather than map input header's column names to ours on parse (which
+        # we could still do), extract value here and send internally-recognized
+        # name to normalizer:
         return self.model.delimiter.join(
-            self.model.extract_attr(registration, column)
+            models.normalize(self._features[column], registration[column])
             for column in self.columns
         )
 
