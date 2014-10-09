@@ -76,8 +76,12 @@ class AbstractVoterLookup(Item):
         return tuple(cls.hashkey.split(cls.delimiter))
 
     @staticmethod
-    def _extract_attr(obj, feature):
-        attr = getattr(obj, feature, None)
+    def extract_attr(obj, feature):
+        if isinstance(obj, dict):
+            attr = obj.get(feature)
+        else:
+            attr = getattr(obj, feature, None)
+
         if not attr:
             return attr
 
@@ -91,7 +95,7 @@ class AbstractVoterLookup(Item):
 
     @classmethod
     def extract_attrs(cls, obj):
-        return tuple(cls._extract_attr(obj, feature) for feature in cls.keyfeatures)
+        return tuple(cls.extract_attr(obj, feature) for feature in cls.keyfeatures)
 
     @property
     def hashvalue(self):
