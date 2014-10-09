@@ -72,7 +72,7 @@ def normalize(feature, value):
 normalize.name_suffix_pttrn = re.compile(
     # Separator(s) followed by one of these common suffixes:
     r'[, ]+'
-    r'(I+|JR\.?|SR\.?|2ND|3RD|LPN?|RN|LCSW|M\.?D\.?|Ph\.?D\.?|J\.?D\.?)$',
+    r'(I{1,3}|IV|VI{,3}|IX|JR\.?|SR\.?|2ND|3RD|LPN?|RN|LCSW|M\.?D\.?|Ph\.?D\.?|J\.?D\.?)$',
     # Ignore capitalization:
     re.I
 )

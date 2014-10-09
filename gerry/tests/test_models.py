@@ -12,8 +12,15 @@ def test_normalization():
         ('Jane', 'JANE', 'fname'),
         ('St Paul', 'ST-PAUL', 'city'),
         ('Illinois', 'IL', 'state'),
-        ('Smith, Jr.', 'SMITH', 'lname'),
-        ('Smith II', 'SMITH', 'lname'),
         ('Smith, PhD', 'SMITH', 'lname'),
+        ('Smith, Jr.', 'SMITH', 'lname'),
+        ('Smith I', 'SMITH', 'lname'),
+        ('Smith II', 'SMITH', 'lname'),
+        ('Smith IV', 'SMITH', 'lname'),
+        ('Smith V', 'SMITH', 'lname'),
+        ('Smith VII', 'SMITH', 'lname'),
+        ('Smith IX', 'SMITH', 'lname'),
+        ('Smith X', 'SMITH-X', 'lname'),
+        ('Hsu Xi', 'HSU-XI', 'lname'),
     ]:
         yield (try_normalization, inp, out, feature)
