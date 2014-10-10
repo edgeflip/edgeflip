@@ -59,7 +59,7 @@ def data(request):
         # FIXME: Also a problem for record_event on "authorized"
 
         # Initiate crawl task:
-        px3_task = targeting.px3_crawl.delay(token, visit_id=request.visit.pk)
+        px3_task = targeting.px3_crawl.delay(token)
         request.session[task_key] = px3_task.id
 
     # Check status #

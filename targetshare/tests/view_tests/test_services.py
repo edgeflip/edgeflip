@@ -62,7 +62,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     @patch('targetshare.tasks.targeting.proximity_rank_four')
     @patch('targetshare.tasks.targeting.proximity_rank_three')
     def test_health_check_faces_failure(self, px3_mock, px4_mock):
-        px3_mock.return_value = Mock(status='FAILURE', id='1-1')
+        px3_mock.delay.return_value = Mock(status='FAILURE', id='1-1')
         px4_mock.delay.return_value = Mock(status='FAILURE', id='1-2')
         response = self.client.get(reverse('faces-health-check'), {
             'fbid': 1,
