@@ -11,6 +11,7 @@ import time
 import urlparse
 from contextlib import closing
 from operator import attrgetter
+from optparse import make_option
 from textwrap import dedent
 
 from django.core.management.base import BaseCommand
@@ -20,6 +21,17 @@ from gerry import models
 
 
 NETWORK_PATTERN = r'^[a-zA-Z]*://'
+NICKNAMES_PATH = 'http://edgeflip-misc.s3.amazonaws.com/nicknames.csv'
+
+
+def readlines(path):
+    """Generate lines from the file at the given path, ensuring that the handle
+    is closed upon completion.
+
+    """
+    with open(path, 'r') as fh:
+        for line in fh:
+            yield line
 
 
 def netreadlines(url, cache_time=(5 * 3600)):
@@ -85,6 +97,32 @@ class MethodRegistry(list):
     """Method registration list, providing a decorator entrypoint, and
     descriptor-binding retrieval.
 
+    For example, with the registry instantiated in the class definition as:
+
+        lookupkey = LOOKUP_KEYS = MethodRegistry()
+
+    methods may be registered as:
+
+        @lookupkey
+        def my_key(self, row):
+            ...
+
+    and later inspected by other methods:
+
+        def my_method(self):
+            for lookup_key in self.LOOKUP_KEYS:
+                ...
+
+    When the registry is retrieved from an instance of a class of which it is
+    an attribute, as above, the registered methods are returned already bound,
+    as though they were retrieved by direct attribute access,
+    (e.g. `self.my_key`).
+
+    Note that the registry may be instantiated, and functions defined and
+    registered, anywhere; registered functions are bound as methods, indirectly
+    when the registry is accessed as an instance attribute, or directly via the
+    registry's __get__ method.
+
     """
     class BoundMethods(LazySequence):
 
@@ -92,10 +130,14 @@ class MethodRegistry(list):
         def bind(cls, instance, funcs):
             return cls(func.__get__(instance) for func in funcs)
 
-    def __call__(self, func):
+    def register(self, func):
         """Decorator-style registration entrypoint."""
         self.append(func)
         return func
+
+    def __call__(self, func):
+        """Decorator-style registration entrypoint."""
+        return self.register(func)
 
     def __get__(self, instance, cls=None):
         """When accessed as a class attribute, the registry is returned as is;
@@ -107,6 +149,66 @@ class MethodRegistry(list):
             return self
 
         return self.BoundMethods.bind(instance, self)
+
+
+class LookupKey(object):
+
+    def __init__(self, model, columns):
+        self.model = model
+        self.columns = columns
+        self._features = dict(zip(columns, model.keyfeatures))
+
+    @property
+    def name(self):
+        return self.model.hashkey
+    __name__ = name
+
+    def make(self, registration):
+        # Rather than map input header's column names to ours on parse (which
+        # we could still do), extract value here and send internally-recognized
+        # name to normalizer:
+        return self.model.delimiter.join(
+            models.normalize(self._features[column], registration[column])
+            for column in self.columns
+        )
+
+    def extract(self, command, line):
+        registration = command.parse(line)
+        if registration is None:
+            return None
+        else:
+            return self.make(registration)
+
+    def __call__(self, *args, **kws):
+        return self.extract(*args, **kws)
+
+    def __get__(self, command, cls=None):
+        if command is None:
+            return self
+
+        return CommandBoundLookupKey(self.model, self.columns, command)
+
+
+class CommandBoundLookupKey(LookupKey):
+
+    def __init__(self, model, columns, command):
+        super(CommandBoundLookupKey, self).__init__(model, columns)
+        self.command = command
+
+    def extract(self, line):
+        return super(CommandBoundLookupKey, self).extract(self.command, line)
+
+
+class LookupRegistry(MethodRegistry):
+
+    def __init__(self, iterable):
+        super(LookupRegistry, self).__init__(LookupKey(*item) for item in iterable)
+
+
+LOOKUP_KEYS = LookupRegistry([
+    (models.StateNameVoter, ['regstate', 'lastname', 'firstname']),
+    (models.StateCityNameVoter, ['regstate', 'regcity', 'lastname', 'firstname']),
+])
 
 
 class Command(BaseCommand):
@@ -127,10 +229,21 @@ class Command(BaseCommand):
 
         """).strip()
 
+    option_list = BaseCommand.option_list + (
+        make_option('--nonicks', action='store_false', default=True, dest='include_nicknames',
+            help='Disable creation of additional listings for entries with recognized nicknames'),
+        make_option('--nicknames', default=NICKNAMES_PATH, dest='nicknames_path',
+            help="Local or remote path from which to populate nickname look-ups "
+                 "[default: `{}']".format(NICKNAMES_PATH)),
+    )
+
+    lookup_keys = LOOKUP_KEYS
+
     def __init__(self):
         super(Command, self).__init__()
         self.header = None
         self.verbosity = None
+        self.nicknames = {}
 
     def pout(self, msg, verbosity=1):
         """Write the given string to stdout as allowed by the verbosity."""
@@ -142,17 +255,40 @@ class Command(BaseCommand):
         if self.verbosity >= verbosity:
             self.stderr.write(msg)
 
+    def populate_nicknames(self, path):
+        stream = netreadlines(path) if re.search(NETWORK_PATTERN, path) else readlines(path)
+        for row in csv.DictReader(stream):
+            key = row['name'].upper()
+            value = row['nickname'].upper()
+            collection = self.nicknames.setdefault(key, set())
+            collection.add(value)
+
+    def parselines(self, lines):
+        return csv.DictReader(lines, self.header)
+
+    def parse(self, line):
+        try:
+            (registration,) = self.parselines((line,))
+        except (csv.Error, StopIteration, ValueError):
+            self.perr("Parse failed: {!r}".format(line))
+            return None
+        else:
+            return registration
+
     def handle(self, path=None, **options):
         self.verbosity = int(options['verbosity'])
 
-        for lookup_key in self.LOOKUP_KEYS:
+        if options['include_nicknames']:
+            self.populate_nicknames(options['nicknames_path'])
+
+        for lookup_key in self.lookup_keys:
             if path is None:
                 sys.stdin.seek(0)
                 stream = sys.stdin
             elif re.search(NETWORK_PATTERN, path):
                 stream = netreadlines(path)
             else:
-                stream = open(path, 'r')
+                stream = readlines(path)
 
             header = next(stream)
             if self.header is None:
@@ -165,50 +301,42 @@ class Command(BaseCommand):
             # -> insert
             self.persist_scores(lookup_key, score_lookups)
 
-    def handle_key(self, key, stream):
-        sorted_stream = batch_sort(stream, key, retain_key=True)
+    def handle_key(self, lookup_key, stream):
+        key_name = lookup_key.name
+        sorted_stream = batch_sort(stream, lookup_key, retain_key=True)
         for (signature, group) in itertools.groupby(sorted_stream, attrgetter('key')):
             if signature is None:
                 self.perr("Skipping group of {} rows without signature"
                           .format(sum(1 for element in group)))
                 continue
 
-            score_lookup = {key.__name__: signature}
+            # Build aggregate scores for group of registrations sharing look-up signature
+            score_lookup = {key_name: signature}
             rows = (keyed.obj for keyed in group)
-            registrations = tuple(csv.DictReader(rows, self.header))
+            registrations = tuple(self.parselines(rows))
             for (feature_code, feature) in (('persuasion_score_dnc', 'persuasion_score'),
                                             ('gotv_2014', 'gotv_score')):
-                scores = [score for score in (
-                    registration[feature_code] for registration in registrations
-                ) if score] # ignore empties
+                values = (registration[feature_code] for registration in registrations)
+                scores = [value for value in values if value] # ignore empties
                 if scores:
                     score_lookup[feature] = min(scores)
 
+            if len(score_lookup) == 1:
+                # Empty besides hash key, no reason to insert
+                continue
+
             yield score_lookup
+
+            # Cross formal name look-up with nickname look-ups
+            # All keys use firstname, and it will be shared across group:
+            registration = registrations[0]
+            firstname = registration['firstname']
+            for nickname in self.nicknames.get(firstname.upper(), ()):
+                nickname_registration = dict(registration, firstname=nickname)
+                nickname_key = lookup_key.make(nickname_registration)
+                yield dict(score_lookup, **{key_name: nickname_key})
 
     def persist_scores(self, lookup_key, score_lookups):
         with lookup_key.model.items.batch_write() as batch:
             for score_lookup in score_lookups:
                 batch.put_item(score_lookup)
-
-    lookupkey = LOOKUP_KEYS = MethodRegistry()
-
-    def _extract_key(self, line, features):
-        try:
-            (registration,) = csv.DictReader((line,), self.header)
-        except (csv.Error, StopIteration):
-            self.perr("Parse failed: {!r}".format(line))
-            return None
-
-        return '_'.join(registration[feature].upper().replace(' ', '-')
-                        for feature in features)
-
-    @lookupkey
-    def state_lname_fname(self, line):
-        return self._extract_key(line, ('regstate', 'lastname', 'firstname'))
-    state_lname_fname.model = models.StateNameVoter
-
-    @lookupkey
-    def state_city_lname_fname(self, line):
-        return self._extract_key(line, ('regstate', 'regcity', 'lastname', 'firstname'))
-    state_city_lname_fname.model = models.StateCityNameVoter

@@ -1,3 +1,5 @@
+import re
+
 import us
 from faraday import (
     HashKeyField,
@@ -51,6 +53,31 @@ class VoterLookupManager(ItemManager):
         return self.batch_get([{hashkey: hashvalue} for (hashkey, hashvalue) in unique_signatures])
 
 
+def normalize(feature, value):
+    if not value:
+        return value
+
+    if feature == 'state':
+        if len(value) == 2:
+            return value.upper()
+        state = us.states.lookup(value)
+        return state and state.abbr
+
+    if feature == 'lname':
+        # First strip any apparent titular suffix
+        value = normalize.name_suffix_pttrn.sub('', value)
+
+    return value.upper().replace(' ', '-')
+
+normalize.name_suffix_pttrn = re.compile(
+    # Separator(s) followed by one of these common suffixes:
+    r'[, ]+'
+    r'(I{1,3}|IV|VI{,3}|IX|JR\.?|SR\.?|2ND|3RD|LPN?|RN|LCSW|M\.?D\.?|Ph\.?D\.?|J\.?D\.?)$',
+    # Ignore capitalization:
+    re.I
+)
+
+
 class AbstractVoterLookup(Item):
 
     # MIN scores across all voters who match the concrete signature:
@@ -76,22 +103,13 @@ class AbstractVoterLookup(Item):
         return tuple(cls.hashkey.split(cls.delimiter))
 
     @staticmethod
-    def _extract_attr(obj, feature):
+    def extract_attr(obj, feature):
         attr = getattr(obj, feature, None)
-        if not attr:
-            return attr
-
-        if feature == 'state':
-            if len(attr) == 2:
-                return attr.upper()
-            state = us.states.lookup(attr)
-            return state and state.abbr
-
-        return attr.upper().replace(' ', '-')
+        return normalize(feature, attr)
 
     @classmethod
     def extract_attrs(cls, obj):
-        return tuple(cls._extract_attr(obj, feature) for feature in cls.keyfeatures)
+        return tuple(cls.extract_attr(obj, feature) for feature in cls.keyfeatures)
 
     @property
     def hashvalue(self):
