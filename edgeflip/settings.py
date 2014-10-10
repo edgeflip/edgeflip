@@ -318,6 +318,10 @@ CELERY_ROUTES = {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
+    'targetshare.tasks.targeting.px3_crawl': {
+        'queue': 'px3',
+        'routing_key': 'px3.crawl'
+    },
     'targetshare.tasks.targeting.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
