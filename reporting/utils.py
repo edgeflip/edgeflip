@@ -1,6 +1,6 @@
-import decimal
 from django.conf import settings
 from django.core import cache
+from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse
 import json
 
@@ -36,19 +36,13 @@ def run_safe_row_query(cursor, query, args):
     finally:
         cursor.close()
 
-class DecimalEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, decimal.Decimal):
-            return float(obj)
-        raise TypeError
-
 
 class JsonResponse(HttpResponse):
 
     def __init__(self, content=None, content_type=None):
         if not content_type:
             content_type = 'application/json'
-        super(JsonResponse, self).__init__(json.dumps(content, cls=DecimalEncoder), content_type=content_type)
+        super(JsonResponse, self).__init__(json.dumps(content, cls=DjangoJSONEncoder), content_type=content_type)
 
 
 def cached_report(prefix, identifier, value_generator, cache_timeout=None):
