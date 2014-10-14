@@ -54,10 +54,8 @@ class JsonResponse(HttpResponse):
 def cached_report(prefix, identifier, value_generator, cache_timeout=None):
     cache_key = '|'.join(['reporting', prefix, str(identifier)])
     data = cache.cache.get(cache_key)
-    print "cache?", data
     if data is None:
         data = value_generator()
-        print "data?", data
         if cache_timeout is None:
             cache_timeout = getattr(
                 settings,
