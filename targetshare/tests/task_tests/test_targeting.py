@@ -81,7 +81,7 @@ class TestProximityRankThree(TargetingTestCase):
         self.assertIsInstance(filter_id, long)
         self.assertIsInstance(cs_slug, (types.NoneType, basestring))
 
-        events = models.relational.Event.objects.filter(visit=visit)
+        events = visit.events.all()
         self.assertEqual(events.filter(event_type='px3_started').count(), 1)
         self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
@@ -235,7 +235,7 @@ class TestProximityRankFour(Px4TargetingTestCase):
                                                num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
-        events = models.relational.Event.objects.filter(visit=self.visit)
+        events = self.visit.events.all()
         self.assertEqual(events.filter(event_type='px4_started').count(), 1)
         self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
@@ -268,7 +268,7 @@ class TestProximityRankFour(Px4TargetingTestCase):
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
-        events = models.relational.Event.objects.filter(visit=self.visit)
+        events = self.visit.events.all()
         self.assertEqual(events.filter(event_type='px4_started').count(), 1)
         self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
