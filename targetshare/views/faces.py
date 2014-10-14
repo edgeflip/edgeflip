@@ -163,7 +163,7 @@ def faces(request):
         )
 
         # Initiate targeting tasks:
-        px3_task = targeting.proximity_rank_three(
+        px3_task = targeting.proximity_rank_three.delay(
             token=token,
             visit_id=request.visit.pk,
             campaign_id=campaign.pk,

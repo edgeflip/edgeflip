@@ -289,7 +289,6 @@ CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
 CELERY_QUEUES = (
     # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
-    Queue('px3_filter', routing_key='px3.filter', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
@@ -315,13 +314,13 @@ CELERY_QUEUES = (
     Queue('crawl_comments_and_likes', routing_key='crawl.comments.and.likes', queue_arguments=QUEUE_ARGS),
 )
 CELERY_ROUTES = {
-    'targetshare.tasks.targeting.px3_crawl': {
+    'targetshare.tasks.targeting.proximity_rank_three': {
         'queue': 'px3',
         'routing_key': 'px3.crawl'
     },
-    'targetshare.tasks.targeting.perform_filtering': {
-        'queue': 'px3_filter',
-        'routing_key': 'px3.filter'
+    'targetshare.tasks.targeting.px3_crawl': {
+        'queue': 'px3',
+        'routing_key': 'px3.crawl'
     },
     'targetshare.tasks.targeting.proximity_rank_four': {
         'queue': 'px4',

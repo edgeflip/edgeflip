@@ -114,36 +114,33 @@ def get_recording_args(filtering_args):
 
 # Tasks #
 
-def proximity_rank_three(token, **filtering_args):
+@shared_task(default_retry_delay=1, max_retries=3, bind=True)
+def proximity_rank_three(self, token, **filtering_args):
     """Build the px3 crawl-and-filter chain."""
     recording_args = get_recording_args(filtering_args)
-    chain = (
-        px3_crawl.s(token, **recording_args) |
-        perform_filtering.s(fbid=token.fbid, **filtering_args)
-    )
-    return chain.apply_async()
-
-
-@shared_task(default_retry_delay=1, max_retries=3, bind=True)
-def px3_crawl(self, token, **recording_args):
-    """Crawl and rank a user's network to proximity level three."""
     record_visit_event('px3_started', **recording_args)
+
     try:
-        user = facebook.client.get_user(token.fbid, token.token)
-        edges_unranked = facebook.client.get_friend_edges(user, token.token)
+        edges_ranked = px3_crawl(token)
     except IOError as exc:
         if self.request.retries == self.max_retries:
             record_visit_event('px3_failed', **recording_args)
-        px3_crawl.retry(exc=exc)
+        proximity_rank_three.retry(exc=exc)
 
     record_visit_event('px3_completed', **recording_args)
+    return perform_filtering(edges_ranked, fbid=token.fbid, **filtering_args)
+
+
+@shared_task
+def px3_crawl(token):
+    user = facebook.client.get_user(token.fbid, token.token)
+    edges_unranked = facebook.client.get_friend_edges(user, token.token)
     return edges_unranked.ranked(
         require_incoming=False,
         require_outgoing=False,
     )
 
 
-@shared_task
 def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num_faces,
                       fallback_count=0, already_picked=None,
                       px_rank=3, visit_type='targetshare.Visit', cache_match=False):

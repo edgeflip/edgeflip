@@ -1,7 +1,6 @@
 import random
 import types
 
-import celery
 from django.utils import timezone
 from freezegun import freeze_time
 from mock import patch
@@ -37,21 +36,54 @@ class TargetingTestCase(EdgeFlipTestCase):
 
 class TestProximityRankThree(TargetingTestCase):
 
-    @patch_facebook
-    @patch.object(targeting, 'perform_filtering')
-    def test_proximity_rank_three(self, perform_filtering):
-        ''' Test that calls tasks.proximity_rank_three with dummy args. This
-        method is simply supposed to create a celery Task chain, and return the
-        ID to the caller. As such, we assert that we receive a valid Celery
-        task ID.
+    def setUp(self):
+        super(TestProximityRankThree, self).setUp()
 
-        '''
+        # Set up new campaign:
+        self.client = models.Client.objects.create()
+        self.campaign = self.client.campaigns.create()
+        self.content = self.client.clientcontent.create()
+        self.properties = self.campaign.campaignproperties.create()
+
+        # ...and default (no-op) filtering:
+        self.default_filter = self.client.filters.create()
+        self.choice_set = self.client.choicesets.create()
+        self.campaign.campaignglobalfilters.create(filter=self.default_filter, rand_cdf=1)
+        self.default_filter.choicesetfilters.create(choice_set=self.choice_set, url_slug='test')
+        self.campaign.campaignchoicesets.create(rand_cdf=1, choice_set=self.choice_set)
+
+    @patch_facebook
+    def test_proximity_rank_three(self):
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        task_id = targeting.proximity_rank_three(self.token, visit_id=visit.pk)
-        assert task_id
-        assert celery.current_app.AsyncResult(task_id)
-        perform_filtering.s.assert_called_once_with(fbid=1, visit_id=visit.pk)
+        (
+            edges_ranked,
+            edges_filtered,
+            filter_id,
+            cs_slug,
+            campaign_id,
+            content_id,
+        ) = targeting.proximity_rank_three(
+            self.token,
+            visit_id=visit.pk,
+            campaign_id=self.campaign.pk,
+            content_id=self.content.pk,
+            num_faces=5
+        )
+
+        # since we perform filtering too, assert that the output looks filtered
+        self.assertTrue(edges_ranked)
+        self.assertEqual({type(edge) for edge in edges_ranked},
+                         {models.datastructs.Edge})
+        self.assertIsInstance(edges_filtered, models.datastructs.TieredEdges)
+        self.assertEqual({type(edge) for edge in edges_filtered.edges},
+                         {models.datastructs.Edge})
+        self.assertIsInstance(filter_id, long)
+        self.assertIsInstance(cs_slug, (types.NoneType, basestring))
+
+        events = visit.events.all()
+        self.assertEqual(events.filter(event_type='px3_started').count(), 1)
+        self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
     @patch_facebook
     def test_px3_crawl(self):
@@ -62,23 +94,23 @@ class TestProximityRankThree(TargetingTestCase):
         Pass in True for mock mode, a dummy FB id, and a dummy token. Should
         get back a lengthy list of Edges.
         '''
-        visitor = models.relational.Visitor.objects.create()
-        visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        ranked_edges = targeting.px3_crawl(self.token, visit_id=visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
-        events = models.relational.Event.objects.filter(visit=visit)
-        self.assertEqual(events.filter(event_type='px3_started').count(), 1)
-        self.assertEqual(events.filter(event_type='px3_completed').count(), 1)
 
     @patch('targetshare.tasks.targeting.facebook')
-    def test_px3_crawl_fail(self, fb_mock):
+    def test_proximity_rank_three_fail(self, fb_mock):
         ''' Test that asserts we create a px3_failed event when px3 fails '''
         # 4 exceptions: 3 retries, 1 initial call
         fb_mock.client.get_user.side_effect = [IOError, IOError, IOError, IOError]
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
         with self.assertRaises(IOError):
-            targeting.px3_crawl.delay(self.token, visit_id=visit.pk)
+            targeting.proximity_rank_three.delay(
+                self.token,
+                visit_id=visit.pk,
+                campaign_id=self.campaign.pk,
+                content_id=self.content.pk,
+            )
         self.assertEqual(
             models.relational.Event.objects.filter(
                 visit=visit, event_type='px3_failed').count(),
@@ -96,7 +128,7 @@ class TestFiltering(TargetingTestCase):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
-        ranked_edges = targeting.px3_crawl(self.token, visit_id=visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token)
         # Ensure at least one edge passes filter:
         # (NOTE: May have to fiddle with campaign properties as well.)
         ranked_edges[0].secondary.state = 'Illinois'
@@ -203,7 +235,7 @@ class TestProximityRankFour(Px4TargetingTestCase):
                                                num_faces=None)
         ranked_edges = result[0]
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
-        events = models.relational.Event.objects.filter(visit=self.visit)
+        events = self.visit.events.all()
         self.assertEqual(events.filter(event_type='px4_started').count(), 1)
         self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
@@ -236,7 +268,7 @@ class TestProximityRankFour(Px4TargetingTestCase):
         self.assertIsInstance(ranked_edges, models.datastructs.UserNetwork)
         assert all(isinstance(x, models.datastructs.Edge) for x in ranked_edges)
         assert all(x.incoming.post_likes is not None for x in ranked_edges)
-        events = models.relational.Event.objects.filter(visit=self.visit)
+        events = self.visit.events.all()
         self.assertEqual(events.filter(event_type='px4_started').count(), 1)
         self.assertEqual(events.filter(event_type='px4_completed').count(), 1)
 
@@ -507,7 +539,7 @@ class TestPx4OnlyFilterTargeting(TargetingTestCase):
         self.campaign.campaignchoicesets.create(choice_set=choice_set, rand_cdf=1)
 
         # px3
-        ranked_edges = targeting.px3_crawl(self.token, visit_id=self.visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token)
         result = targeting.perform_filtering(
             ranked_edges,
             fbid=self.token.fbid,
@@ -567,7 +599,7 @@ class TestPx4OnlyFilterTargeting(TargetingTestCase):
         self.campaign.campaignchoicesets.create(choice_set=choice_set, rand_cdf=1)
 
         # px3
-        ranked_edges = targeting.px3_crawl(self.token, visit_id=self.visit.pk)
+        ranked_edges = targeting.px3_crawl(self.token)
         result = targeting.perform_filtering(
             ranked_edges,
             fbid=self.token.fbid,

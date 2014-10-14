@@ -210,7 +210,7 @@ def faces_health_check(request):
         appid=client.fb_app_id,
         token=token,
     )
-    px3_task = targeting.proximity_rank_three(
+    px3_task = targeting.proximity_rank_three.delay(
         token=token,
         visit_id=request.visit.pk,
         campaign_id=campaign.pk,
