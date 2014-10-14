@@ -36,8 +36,6 @@ class TargetingTestCase(EdgeFlipTestCase):
 
 class TestProximityRankThree(TargetingTestCase):
 
-    fixtures = ['test_data']
-
     def setUp(self):
         super(TestProximityRankThree, self).setUp()
 
@@ -110,8 +108,8 @@ class TestProximityRankThree(TargetingTestCase):
             targeting.proximity_rank_three.delay(
                 self.token,
                 visit_id=visit.pk,
-                campaign_id=1,
-                content_id=1,
+                campaign_id=self.campaign.pk,
+                content_id=self.content.pk,
             )
         self.assertEqual(
             models.relational.Event.objects.filter(
