@@ -58,10 +58,16 @@ def netreadlines(url, cache_time=(5 * 3600)):
                 yield line
 
 
-Keyed = collections.namedtuple('Keyed', ('key', 'obj'))
-
-
 def batch_sort(iterable, key=None, retain_key=False, buffer_size=(32 * 1024)):
+    """Sort the given iterable of strings, in batches (heap sort), storing
+    batches on disk.
+
+    Results are returned as a stream. Use this method to sort a large
+    collection, to avoid constraints of memory.
+
+    """
+    # Note: this could be extended to sort any pickleable object, though that's
+    # currently unnecessary.
     chunks = []
     stream = iter(iterable)
 
@@ -77,9 +83,10 @@ def batch_sort(iterable, key=None, retain_key=False, buffer_size=(32 * 1024)):
             temp.seek(0)
             chunks.append(temp)
 
-        # Merge the chunks, sorted, and stream the lines:
+        # Merge the chunks, sorted, and stream the lines
+        # (heapq accepts no sort key, so we wrap the lines in Keyed)
         keyed_chunks = (
-            (Keyed((key and key(line)), line) for line in chunk)
+            (batch_sort.Keyed((key and key(line)), line) for line in chunk)
             for chunk in chunks
         )
         for keyed in heapq.merge(*keyed_chunks):
@@ -91,6 +98,8 @@ def batch_sort(iterable, key=None, retain_key=False, buffer_size=(32 * 1024)):
                 temp.close()
             except Exception:
                 pass
+
+batch_sort.Keyed = collections.namedtuple('Keyed', ('key', 'obj'))
 
 
 class MethodRegistry(list):
@@ -151,7 +160,7 @@ class MethodRegistry(list):
         return self.BoundMethods.bind(instance, self)
 
 
-class LookupKey(object):
+class LookupMethod(object):
 
     def __init__(self, model, columns):
         self.model = model
@@ -186,26 +195,26 @@ class LookupKey(object):
         if command is None:
             return self
 
-        return CommandBoundLookupKey(self.model, self.columns, command)
+        return BoundLookupMethod(self.model, self.columns, command)
 
 
-class CommandBoundLookupKey(LookupKey):
+class BoundLookupMethod(LookupMethod):
 
     def __init__(self, model, columns, command):
-        super(CommandBoundLookupKey, self).__init__(model, columns)
+        super(BoundLookupMethod, self).__init__(model, columns)
         self.command = command
 
     def extract(self, line):
-        return super(CommandBoundLookupKey, self).extract(self.command, line)
+        return super(BoundLookupMethod, self).extract(self.command, line)
 
 
 class LookupRegistry(MethodRegistry):
 
     def __init__(self, iterable):
-        super(LookupRegistry, self).__init__(LookupKey(*item) for item in iterable)
+        super(LookupRegistry, self).__init__(LookupMethod(*item) for item in iterable)
 
 
-LOOKUP_KEYS = LookupRegistry([
+LOOKUP_METHODS = LookupRegistry([
     (models.StateNameVoter, ['regstate', 'lastname', 'firstname']),
     (models.StateCityNameVoter, ['regstate', 'regcity', 'lastname', 'firstname']),
 ])
@@ -237,7 +246,7 @@ class Command(BaseCommand):
                  "[default: `{}']".format(NICKNAMES_PATH)),
     )
 
-    lookup_keys = LOOKUP_KEYS
+    lookup_methods = LOOKUP_METHODS
 
     def __init__(self):
         super(Command, self).__init__()
@@ -281,7 +290,7 @@ class Command(BaseCommand):
         if options['include_nicknames']:
             self.populate_nicknames(options['nicknames_path'])
 
-        for lookup_key in self.lookup_keys:
+        for lookup_method in self.lookup_methods:
             if path is None:
                 sys.stdin.seek(0)
                 stream = sys.stdin
@@ -296,22 +305,22 @@ class Command(BaseCommand):
                 self.header = header.strip().split(',')
 
             # sort -> groupby -> [{signature: SIG, score0: min(feature0), ...}, ...]
-            score_lookups = self.handle_key(lookup_key, stream)
+            score_lookups = self.generate_lookups(lookup_method, stream)
 
             # -> insert
-            self.persist_scores(lookup_key, score_lookups)
+            self.persist_lookups(lookup_method.model, score_lookups)
 
-    def handle_key(self, lookup_key, stream):
-        key_name = lookup_key.name
-        sorted_stream = batch_sort(stream, lookup_key, retain_key=True)
-        for (signature, group) in itertools.groupby(sorted_stream, attrgetter('key')):
-            if signature is None:
+    def generate_lookups(self, lookup_method, stream):
+        key_name = lookup_method.name
+        sorted_stream = batch_sort(stream, key=lookup_method, retain_key=True)
+        for (lookup_key, group) in itertools.groupby(sorted_stream, attrgetter('key')):
+            if lookup_key is None:
                 self.perr("Skipping group of {} rows without signature"
                           .format(sum(1 for element in group)))
                 continue
 
             # Build aggregate scores for group of registrations sharing look-up signature
-            score_lookup = {key_name: signature}
+            score_lookup = {key_name: lookup_key}
             rows = (keyed.obj for keyed in group)
             registrations = tuple(self.parselines(rows))
             for (feature_code, feature) in (('persuasion_score_dnc', 'persuasion_score'),
@@ -333,10 +342,10 @@ class Command(BaseCommand):
             firstname = registration['firstname']
             for nickname in self.nicknames.get(firstname.upper(), ()):
                 nickname_registration = dict(registration, firstname=nickname)
-                nickname_key = lookup_key.make(nickname_registration)
+                nickname_key = lookup_method.make(nickname_registration)
                 yield dict(score_lookup, **{key_name: nickname_key})
 
-    def persist_scores(self, lookup_key, score_lookups):
-        with lookup_key.model.items.batch_write() as batch:
+    def persist_lookups(self, model, score_lookups):
+        with model.items.batch_write() as batch:
             for score_lookup in score_lookups:
                 batch.put_item(score_lookup)
