@@ -265,7 +265,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
                     data: response.data.map(function(row) {
                         return {
                             x: new Date(row.time).getTime() / 1000,
-                            y: row[col]
+                            y: parseFloat(row[col])
                         };
                     }),
                     color: palette.color(),
