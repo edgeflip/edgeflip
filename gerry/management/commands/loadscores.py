@@ -10,8 +10,10 @@ import tempfile
 import time
 import urlparse
 from contextlib import closing
+from decimal import Decimal
 from operator import attrgetter
 from optparse import make_option
+from cStringIO import StringIO
 from textwrap import dedent
 
 from django.core.management.base import BaseCommand
@@ -264,14 +266,6 @@ class Command(BaseCommand):
         if self.verbosity >= verbosity:
             self.stderr.write(msg)
 
-    def populate_nicknames(self, path):
-        stream = netreadlines(path) if re.search(NETWORK_PATTERN, path) else readlines(path)
-        for row in csv.DictReader(stream):
-            key = row['name'].upper()
-            value = row['nickname'].upper()
-            collection = self.nicknames.setdefault(key, set())
-            collection.add(value)
-
     def parselines(self, lines):
         return csv.DictReader(lines, self.header)
 
@@ -283,6 +277,21 @@ class Command(BaseCommand):
             return None
         else:
             return registration
+
+    def encodelines(self, objs):
+        target = StringIO()
+        writer = csv.DictWriter(target, self.header)
+        writer.writerows(objs)
+        target.seek(0)
+        return target
+
+    def populate_nicknames(self, path):
+        stream = netreadlines(path) if re.search(NETWORK_PATTERN, path) else readlines(path)
+        for row in csv.DictReader(stream):
+            key = row['name'].upper()
+            value = row['nickname'].upper()
+            collection = self.nicknames.setdefault(key, set())
+            collection.add(value)
 
     def handle(self, path=None, **options):
         self.verbosity = int(options['verbosity'])
@@ -304,11 +313,30 @@ class Command(BaseCommand):
                 self.pout("Header is:\n\t{}".format(header))
                 self.header = header.strip().split(',')
 
-            # sort -> groupby -> [{signature: SIG, score0: min(feature0), ...}, ...]
-            score_lookups = self.generate_lookups(lookup_method, stream)
+            # Duplicate rows across nicknames if requested
+            full_stream = self.nickname_expand(stream) if options['include_nicknames'] else stream
 
-            # -> insert
+            # csv -> :sort -> :groupby => [{signature: SIG, score0: min(feature0), ...}, ...]
+            score_lookups = self.generate_lookups(lookup_method, full_stream)
+
+            # -> :insert
             self.persist_lookups(lookup_method.model, score_lookups)
+
+    def nickname_expand(self, stream):
+        for row in stream:
+            yield row
+
+            original = self.parse(row)
+            firstname = original['firstname']
+
+            try:
+                nicknames = self.nicknames[firstname.upper()]
+            except KeyError:
+                continue
+
+            renamed = (dict(original, firstname=nickname) for nickname in nicknames)
+            for reencoded in self.encodelines(renamed):
+                yield reencoded
 
     def generate_lookups(self, lookup_method, stream):
         key_name = lookup_method.name
@@ -326,7 +354,7 @@ class Command(BaseCommand):
             for (feature_code, feature) in (('persuasion_score_dnc', 'persuasion_score'),
                                             ('gotv_2014', 'gotv_score')):
                 values = (registration[feature_code] for registration in registrations)
-                scores = [value for value in values if value] # ignore empties
+                scores = [Decimal(value) for value in values if value]
                 if scores:
                     score_lookup[feature] = min(scores)
 
@@ -335,15 +363,6 @@ class Command(BaseCommand):
                 continue
 
             yield score_lookup
-
-            # Cross formal name look-up with nickname look-ups
-            # All keys use firstname, and it will be shared across group:
-            registration = registrations[0]
-            firstname = registration['firstname']
-            for nickname in self.nicknames.get(firstname.upper(), ()):
-                nickname_registration = dict(registration, firstname=nickname)
-                nickname_key = lookup_method.make(nickname_registration)
-                yield dict(score_lookup, **{key_name: nickname_key})
 
     def persist_lookups(self, model, score_lookups):
         with model.items.batch_write() as batch:
