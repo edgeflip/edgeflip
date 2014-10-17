@@ -8,6 +8,7 @@ from faraday import (
     ItemManager,
     NUMBER,
 )
+from unidecode import unidecode
 
 
 class cached_class_property(object):
@@ -67,7 +68,9 @@ def normalize(feature, value):
         # First strip any apparent titular suffix
         value = normalize.name_suffix_pttrn.sub('', value)
 
-    return value.upper().replace(' ', '-')
+    decoded = value.decode('utf-8') if isinstance(value, str) else value
+    unidecoded = unidecode(decoded)
+    return unidecoded.upper().replace(' ', '-')
 
 normalize.name_suffix_pttrn = re.compile(
     # Separator(s) followed by one of these common suffixes:
@@ -110,6 +113,11 @@ class AbstractVoterLookup(Item):
     @classmethod
     def extract_attrs(cls, obj):
         return tuple(cls.extract_attr(obj, feature) for feature in cls.keyfeatures)
+
+    @classmethod
+    def extract_hash(cls, obj):
+        attrs = cls.extract_attrs(obj)
+        return cls.delimiter.join(attrs)
 
     @property
     def hashvalue(self):

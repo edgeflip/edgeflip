@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from decimal import Decimal
 
 from nose import tools
@@ -54,6 +55,17 @@ class TestBulkImpute(GerryTestCase):
         users = [User(id=id) for id in xrange(2)]
         bulk_impute(users, 'gotv_score')
         tools.eq_([user.gotv_score for user in users], [Decimal('0.2')] * 2)
+
+    def test_accented(self):
+        models.StateNameVoter.items.create(
+            state_lname_fname="PA_APP_GERRI",
+            gotv_score='0.2',
+            persuasion_score='1.2',
+        )
+        self.user.fname = u'Gèrri'
+        self.user.lname = u'Äpp'
+        bulk_impute([self.user], 'gotv_score')
+        tools.eq_(self.user.gotv_score, Decimal('0.2'))
 
     def test_fallback(self):
         models.StateNameVoter.items.create(
