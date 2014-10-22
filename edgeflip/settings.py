@@ -276,16 +276,8 @@ BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERYD_MAX_TASKS_PER_CHILD = 50
-CELERY_TASK_RESULT_EXPIRES = 3600
-CELERY_RESULT_BACKEND = 'djcelery.backends.database:DatabaseBackend'
-CELERY_RESULT_DBURI = "mysql://{USER}:{PASSWORD}@{host}/{NAME}".format(
-    host=(DATABASES.default.HOST or 'localhost'),
-    **DATABASES.default
-)
+CELERY_RESULT_BACKEND = 'redis://{host}:6379'.format(**REDIS_RESULT_BACKEND)
 CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
-# FIXME: Short lived sessions won't be needed once we have more consistent
-# traffic levels. Then MySQL won't kill our connections.
-CELERY_RESULT_DB_SHORT_LIVED_SESSIONS = True
 CELERY_QUEUES = (
     # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
