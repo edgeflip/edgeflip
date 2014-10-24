@@ -67,7 +67,7 @@ def record_event(request):
     # Create event(s) according to record type #
 
     if event_type in SINGULAR_EVENTS:
-        with transaction.commit_on_success():
+        with transaction.atomic():
             # We have no uniqueness constraint to defend against duplicate
             # events created by competing threads, so lock get() via
             # select_for_update:
@@ -83,7 +83,7 @@ def record_event(request):
             )
     elif event_type in UPDATED_EVENTS:
         # This is (currently) just the 'heartbeat' event
-        with transaction.commit_on_success():
+        with transaction.atomic():
             (event, created) = relational.Event.objects.select_for_update().get_or_create(
                 event_type=event_type,
                 visit=request.visit,

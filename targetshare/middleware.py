@@ -40,7 +40,7 @@ class CookieVerificationMiddleware(object):
                 # We have no uniqueness constraint to defend against duplicate
                 # events created by competing threads, so lock get() via
                 # select_for_update:
-                with transaction.commit_on_success():
+                with transaction.atomic():
                     relational.Event.objects.select_for_update().get_or_create(
                         visit=visit,
                         event_type='cookies_enabled',
