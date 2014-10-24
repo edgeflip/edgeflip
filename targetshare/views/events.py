@@ -147,12 +147,14 @@ def record_event(request):
             extend_token.delay(fbid, appid, token_string)
 
     elif event_type == 'shared':
-        # If this was a share, write these friends to the exclusions table so
-        # we don't show them for the same content/campaign again
+        root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
+
+        # Write friends with whom we shared to the exclusions table,
+        # so we don't show them for the same content/campaign again:
         exclusions = [
             {
                 'fbid': user_id,
-                'campaign_id': campaign_id,
+                'campaign_id': root_campaign.campaign_id,
                 'content_id': content_id,
                 'friend_fbid': friend,
                 'defaults': {
@@ -203,40 +205,34 @@ def suppress(request):
     fname = request.POST.get('fname')
     lname = request.POST.get('lname')
 
-    db.delayed_save.delay(
-        relational.Event(
-            visit=request.visit,
-            campaign_id=campaign_id,
-            client_content_id=content_id,
-            friend_fbid=old_id,
-            content=content,
-            event_type='suppressed',
-        )
-    )
-    db.get_or_create.delay(
-        relational.FaceExclusion,
-        fbid=user_id,
+    root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
+
+    request.visit.events.create(
         campaign_id=campaign_id,
+        client_content_id=content_id,
+        friend_fbid=old_id,
+        content=content,
+        event_type='suppressed',
+    )
+    root_campaign.faceexclusions.get_or_create(
+        fbid=user_id,
         content_id=content_id,
         friend_fbid=old_id,
         defaults={'reason': 'suppressed'},
     )
 
     if new_id:
-        db.delayed_save.delay(
-            relational.Event(
-                visit=request.visit,
-                campaign_id=campaign_id,
-                client_content_id=content_id,
-                friend_fbid=new_id,
-                content=content,
-                event_type="shown",
-            )
+        request.visit.events.create(
+            campaign_id=campaign_id,
+            client_content_id=content_id,
+            friend_fbid=new_id,
+            content=content,
+            event_type='shown',
         )
         return render(request, 'targetshare/new_face.html', {
             'fbid': new_id,
             'firstname': fname,
             'lastname': lname,
         })
-    else:
-        return http.HttpResponse()
+
+    return http.HttpResponse()
