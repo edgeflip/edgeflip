@@ -134,7 +134,7 @@
         client_faces_url: 'http://local.edgeflip.com:8080/mocks/guncontrol_share',
         client_thanks_url: 'https://donate.demandaction.org/act/donate', end_dt: null,
         fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
-        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 1}
     model: targetshare.campaignproperties
     pk: 1
 -   fields: {campaign: 2, client_error_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
