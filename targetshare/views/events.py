@@ -214,7 +214,7 @@ def suppress(request):
         content=content,
         event_type='suppressed',
     )
-    root_campaign.faceexclusions.get_or_create(
+    root_campaign.faceexclusion_set.get_or_create(
         fbid=user_id,
         content_id=content_id,
         friend_fbid=old_id,
