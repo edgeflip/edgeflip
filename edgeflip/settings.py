@@ -120,6 +120,7 @@ if os.getenv('EDGEFLIP_CONF_DIR') or os.path.isdir('/var/www/edgeflip'):
                      filename_as_namespace=False)
 locals().update((key.upper(), value) for key, value in config.items())
 
+
 # Django settings #
 
 MANAGERS = ADMINS
