@@ -32,3 +32,4 @@ psycopg2==2.5.1
 -e git+git@github.com:edgeflip/faraday.git@0.2.0#egg=Faraday
 rjsmin
 sentinels==0.0.6
+redis==2.10

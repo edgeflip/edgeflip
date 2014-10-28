@@ -178,7 +178,7 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
                      campaign_id)
         fallback_cascading = None
 
-    # If fallback content_id IS NULL, defer to current content_id:
+    # If fallback content empty, defer to current content
     if properties.fallback_content is None and properties.fallback_campaign is not None:
         fallback_content_id = content_id
 
@@ -187,11 +187,13 @@ def perform_filtering(edges_ranked, campaign_id, content_id, fbid, visit_id, num
     # use the min_friends parameter as the threshold for errors.
     min_friends = 1 if fallback_cascading else properties.min_friends
 
-    # Check if any friends should be excluded for this campaign & content:
+    # Check if any friends should be excluded for this campaign & content
+    # (Faces excluded from "campaign", not merely this fallback;
+    # so, check against "root campaign")
     face_exclusions = relational.FaceExclusion.objects.filter(
         fbid=fbid,
-        campaign=campaign,
         content=client_content,
+        campaign__rootcampaign_properties__campaign=campaign,
     )
     exclude_friends = set(face_exclusions.values_list('friend_fbid', flat=True).iterator())
     exclude_friends.update(already_picked.secondary_ids) # don't re-add those already picked
