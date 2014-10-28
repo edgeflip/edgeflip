@@ -5,7 +5,7 @@ import uuid
 import django.core.cache
 from django.conf import settings
 from django.core.urlresolvers import reverse
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.utils.text import slugify
 
 from chapo.models import ShortenedUrl
@@ -84,12 +84,13 @@ def shorten(long_url, prefix='', campaign=None, event_type='initial_redirect',
         for count in itertools.count(1):
             slug = ShortenedUrl.make_slug(prefix)
             try:
-                ShortenedUrl.objects.create(
-                    slug=slug,
-                    campaign_id=campaign_id or None,
-                    event_type=event_type,
-                    url=long_url,
-                )
+                with transaction.atomic():
+                    ShortenedUrl.objects.create(
+                        slug=slug,
+                        campaign_id=campaign_id or None,
+                        event_type=event_type,
+                        url=long_url,
+                    )
             except IntegrityError:
                 # slug was not unique, try again?
                 if count == max_attempts:

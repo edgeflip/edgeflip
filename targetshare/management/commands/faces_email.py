@@ -11,7 +11,7 @@ from collections import defaultdict
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
-from django.db import connection, transaction
+from django.db import connection
 from django.utils import timezone
 
 from targetshare.models import dynamo, relational
@@ -229,7 +229,7 @@ class Command(BaseCommand):
         ),
         make_option(
             '-w', '--workers',
-            help='Number of threads to run [1]',
+            help='Number of workers to run [1]',
             dest='workers',
             type='int',
             default=1
@@ -250,9 +250,8 @@ class Command(BaseCommand):
         people_count = count or client.userclients.count()
         worker_slice = people_count / workers
         worker_args = []
-        # The threads freak out over the database connection, killing it
-        # here causes each thread to end up with their own db connection.
-        transaction.commit_unless_managed()
+        # The workers freak out over the database connection, killing it
+        # here causes each workers to end up with their own db connection.
         connection.close()
         for x in xrange(workers):
             worker_offset = offset + x * worker_slice

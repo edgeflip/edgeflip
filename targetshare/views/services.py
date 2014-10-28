@@ -90,7 +90,7 @@ def incoming(request, campaign_id, content_id):
         url = "{}?{}".format(
             reverse('outgoing', args=[
                 campaign.client.fb_app_id,
-                urllib.quote_plus(properties.client_error_url)
+                properties.client_error_url
             ]),
             urllib.urlencode({'campaignid': campaign_id}),
         )

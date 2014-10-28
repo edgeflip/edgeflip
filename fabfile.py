@@ -37,8 +37,6 @@ def start_shell():
 def ishell():
     """Open a Django shell requiring iPython, with common libraries loaded."""
     commands = [
-        "import os",
-        "os.environ['DJANGO_SETTINGS_MODULE'] = 'edgeflip.settings_mgmt'",
         "from targetshare import models",
         "from targetshare.integration import facebook",
     ]

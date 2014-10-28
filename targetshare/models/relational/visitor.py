@@ -3,8 +3,6 @@ import string
 from django.db import models
 from django.utils.crypto import get_random_string
 
-from core.models.manager import Manager
-
 
 class Visitor(models.Model):
 
@@ -13,8 +11,6 @@ class Visitor(models.Model):
     fbid = models.BigIntegerField(unique=True, null=True, blank=True)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
-
-    objects = Manager()
 
     class Meta(object):
         app_label = 'targetshare'

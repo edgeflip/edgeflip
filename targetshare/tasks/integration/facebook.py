@@ -96,7 +96,8 @@ def store_oauth_token(client_id, code, redirect_uri,
                     try:
                         # Update the visitor we have:
                         visitor.fbid = token_fbid
-                        visitor.save(update_fields=['fbid'])
+                        with transaction.atomic():
+                            visitor.save(update_fields=['fbid'])
                     except IntegrityError:
                         exc_info = sys.exc_info()
                         try:
@@ -109,7 +110,7 @@ def store_oauth_token(client_id, code, redirect_uri,
             visit.save(update_fields=['visitor'])
 
         # Record auth event (if e.g. faces hasn't already done it):
-        with transaction.commit_on_success():
+        with transaction.atomic():
             relational.Event.objects.select_for_update().get_or_create(
                 visit=visit,
                 event_type='authorized',

@@ -140,7 +140,7 @@ def source_campaign_fbobject(campaign, source_url, refresh=False):
     if campaign_fb_object.fb_object is None:
         # Created or created by competing by thread;
         # safely update CampaignFBObject with new FBObject
-        with transaction.commit_on_success():
+        with transaction.atomic():
             # Block row from competitors with FOR UPDATE:
             campaign_fb_object = models.CampaignFBObject.objects.select_for_update().get(
                 pk=campaign_fb_object.pk
