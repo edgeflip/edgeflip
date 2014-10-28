@@ -253,6 +253,10 @@ if ENV in ('staging', 'production'):
 
 DATABASE_ROUTERS = ['reporting.router.ReportingRouter']
 
+DATABASES['default'].setdefault('OPTIONS', {}).update(
+    init_command='SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
+)
+
 TEMPLATE_CONTEXT_PROCESSORS = (
     # Default Processors
     'django.contrib.auth.context_processors.auth',
