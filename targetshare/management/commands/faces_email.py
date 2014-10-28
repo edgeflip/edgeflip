@@ -229,7 +229,7 @@ class Command(BaseCommand):
         ),
         make_option(
             '-w', '--workers',
-            help='Number of threads to run [1]',
+            help='Number of workers to run [1]',
             dest='workers',
             type='int',
             default=1
@@ -250,8 +250,8 @@ class Command(BaseCommand):
         people_count = count or client.userclients.count()
         worker_slice = people_count / workers
         worker_args = []
-        # The threads freak out over the database connection, killing it
-        # here causes each thread to end up with their own db connection.
+        # The workers freak out over the database connection, killing it
+        # here causes each workers to end up with their own db connection.
         connection.close()
         for x in xrange(workers):
             worker_offset = offset + x * worker_slice

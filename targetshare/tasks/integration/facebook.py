@@ -96,7 +96,8 @@ def store_oauth_token(client_id, code, redirect_uri,
                     try:
                         # Update the visitor we have:
                         visitor.fbid = token_fbid
-                        visitor.save(update_fields=['fbid'])
+                        with transaction.atomic():
+                            visitor.save(update_fields=['fbid'])
                     except IntegrityError:
                         exc_info = sys.exc_info()
                         try:

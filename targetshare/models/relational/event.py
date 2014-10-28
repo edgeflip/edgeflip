@@ -1,8 +1,6 @@
 from django.db import models
 from django.utils import timezone
 
-from core.models.manager import Manager
-
 
 class EventModel(models.Model):
 
@@ -15,8 +13,6 @@ class EventModel(models.Model):
     event_datetime = models.DateTimeField(default=timezone.now)
     updated = models.DateTimeField(auto_now=True)
     created = models.DateTimeField(auto_now_add=True)
-
-    objects = Manager()
 
     class Meta(object):
         abstract = True

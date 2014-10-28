@@ -1,6 +1,6 @@
 import re
 
-from core.models.manager import Manager
+from django.db.models.manager import Manager
 from django.db.models.query import QuerySet
 
 
