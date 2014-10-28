@@ -11,7 +11,7 @@ from collections import defaultdict
 from django.core.urlresolvers import reverse
 from django.core.management.base import BaseCommand
 from django.template.loader import render_to_string
-from django.db import connection, transaction
+from django.db import connection
 from django.utils import timezone
 
 from targetshare.models import dynamo, relational
@@ -252,7 +252,6 @@ class Command(BaseCommand):
         worker_args = []
         # The threads freak out over the database connection, killing it
         # here causes each thread to end up with their own db connection.
-        transaction.commit_unless_managed()
         connection.close()
         for x in xrange(workers):
             worker_offset = offset + x * worker_slice
