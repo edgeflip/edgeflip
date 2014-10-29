@@ -33,3 +33,16 @@ class TestFacebookIntegration(unittest.TestCase):
         ''' Facebook can't always provide us with the year someone was born '''
         bday = facebook.client.decode_date('02/29')
         self.assertEqual(bday, None)
+
+    def test_is_oauth_exception(self):
+        exceptions = {
+            '{"error": {"message": "(#4) Application request limit reached","type": "OAuthException","code": 4}}': False,
+            '{"error": {"message": "Expired token or somesuch","type": "OAuthException","code": 4}}': True,
+            'garbage': False,
+        }
+
+        for exception, is_oauth in exceptions.iteritems():
+            self.assertEqual(
+                facebook.client.is_oauth_exception(exception),
+                is_oauth
+            )
