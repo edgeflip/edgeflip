@@ -4,7 +4,7 @@ from boto.dynamodb2.exceptions import ConditionalCheckFailedException
 from boto.dynamodb2.items import NEWVALUE
 from celery import shared_task
 from django.core import serializers
-from django.db import IntegrityError
+from django.db import IntegrityError, transaction
 from django.db.models import Model
 from faraday import UpsertStrategy
 
@@ -28,7 +28,8 @@ def bulk_create(objects):
     if issubclass(model, Model):
         for obj in objects:
             try:
-                obj.save()
+                with transaction.atomic():
+                    obj.save()
             except IntegrityError:
                 (serialization,) = serializers.serialize('python', [obj])
                 LOG_RVN.exception("bulk_create object save failed: %r", serialization)

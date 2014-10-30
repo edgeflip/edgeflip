@@ -2,14 +2,10 @@
 
 Enable these with the "settings" option:
 
-    python manage.py mycommand --settings=edgeflip.settings_mgmt
+ python manage.py mycommand --settings=edgeflip.settings_mgmt
 
 """
 from edgeflip.settings import *
 
 
 CELERY_MAX_CACHED_RESULTS = 1
-
-DATABASES['default'].setdefault('OPTIONS', {}).update(
-    init_command='SET SESSION TRANSACTION ISOLATION LEVEL READ COMMITTED',
-)

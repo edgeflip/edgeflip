@@ -239,7 +239,10 @@ def urlload(url, query=(), timeout=None):
 def is_oauth_exception(msg):
     try:
         response = json.loads(msg)
-        return response['error']['type'] in OAUTH_EXCEPTION_TYPES
+        return (
+            response['error']['type'] in OAUTH_EXCEPTION_TYPES and
+            'Application request limit reached' not in response['error']['message']
+        )
     except (KeyError, ValueError):
         return False
 

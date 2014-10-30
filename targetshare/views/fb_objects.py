@@ -55,7 +55,7 @@ def objects(request, fb_object_id, content_id):
         redirect_url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
 
     full_redirect_path = "{}?{}".format(
-        reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(redirect_url)]),
+        reverse('outgoing', args=[client.fb_app_id, redirect_url]),
         urllib.urlencode({'campaignid': campaign_id}),
     )
 

@@ -23,7 +23,7 @@ mock==1.0.1
 requests==1.2.3
 pylibmc==1.2.3
 South==0.8.1
-Django==1.5.1
+Django==1.6.8
 python-memcached==1.53
 raven==3.6.0
 celery==3.1.7
@@ -32,3 +32,4 @@ psycopg2==2.5.1
 -e git+git@github.com:edgeflip/faraday.git@0.2.0#egg=Faraday
 rjsmin
 sentinels==0.0.6
+redis==2.10

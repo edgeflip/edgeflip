@@ -64,7 +64,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     ]:
         value = request.REQUEST.get(override_key) or properties[field]
         properties[field] = "{}?{}".format(
-            reverse('outgoing', args=[client.fb_app_id, urllib.quote_plus(value)]),
+            reverse('outgoing', args=[client.fb_app_id, value]),
             urllib.urlencode({'campaignid': campaign_id}),
         )
 

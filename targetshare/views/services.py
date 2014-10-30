@@ -90,7 +90,7 @@ def incoming(request, campaign_id, content_id):
         url = "{}?{}".format(
             reverse('outgoing', args=[
                 campaign.client.fb_app_id,
-                urllib.quote_plus(properties.client_error_url)
+                properties.client_error_url
             ]),
             urllib.urlencode({'campaignid': campaign_id}),
         )
@@ -229,9 +229,6 @@ def faces_health_check(request):
     px3_result = px4_result = None
     start_time = time.time()
     while time.time() - start_time < 30:
-        # As long as we're using the MySQL result backend with the
-        # repeatable read isolation level:
-        transaction.commit_unless_managed()
         px3_result = px3_task.result
         px4_result = px4_task.result
         if px3_result and px4_result:

@@ -79,8 +79,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], url)
@@ -95,21 +94,21 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_outgoing_url_bad_source(self):
         url = 'http://www.google.com/path?query=string&string=query'
         redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+                                               url])
         response = self.client.get(redirector, {'source': 'true!!1!'})
         self.assertContains(response, 'Invalid "source" flag', status_code=400)
 
     def test_outgoing_url_bad_campaign(self):
         url = 'http://www.google.com/path?query=string&string=query'
         redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+                                               url])
         response = self.client.get(redirector, {'source': '1', 'campaignid': 'two'})
         self.assertContains(response, 'Invalid campaign identifier', status_code=400)
 
     def test_outgoing_url_missing_campaign(self):
         url = 'http://www.google.com/path?query=string&string=query'
         redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+                                               url])
         self.assertFalse(models.Campaign.objects.filter(pk=9999).exists())
         response = self.client.get(redirector, {'source': '1', 'campaignid': '9999'})
         self.assertStatusCode(response, 404)
@@ -117,31 +116,28 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_outgoing_url_missing_protocol(self):
         url = 'www.badeggs.com'
         redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+                                               url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], "http://{}".format(url))
 
     def test_outgoing_url_implicit_protocol(self):
         url = '//www.badeggs.com'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], "http:{}".format(url))
 
     def test_outgoing_url_only_path(self):
         url = '/weird'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], "http://testserver{}".format(url))
 
     def test_outgoing_url_source(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                               urllib.quote_plus(url)])
+        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
         campaign = models.Campaign.objects.all()[0]
         final_url = url + '&rs=ef{}'.format(campaign.pk)
 
@@ -188,7 +184,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
         campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
         outgoing_path = reverse('outgoing', args=[
             campaign_props.campaign.client.fb_app_id,
-            urllib.quote_plus(campaign_props.client_error_url)]
+            campaign_props.client_error_url]
         )
         outgoing_url = "{}?{}".format(outgoing_path, urllib.urlencode({
             'campaignid': campaign_props.campaign.pk,
@@ -216,7 +212,9 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     @patch('targetshare.views.services.store_oauth_token')
     def test_incoming_url_fb_auth_permitted(self, task_mock):
-        path = reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
+        path = urllib.unquote(
+            reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
+        )
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
         session_id = self.client.cookies['sessionid'].value

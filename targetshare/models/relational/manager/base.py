@@ -1,6 +1,7 @@
 import re
 
-from core.models.manager import Manager, RepeatableReadQuerySet
+from django.db.models.manager import Manager
+from django.db.models.query import QuerySet
 
 
 class TypeObjectManager(Manager):
@@ -120,7 +121,7 @@ class ConfigurableManager(Manager):
         return ConfiguredManager()
 
 
-class ConfigurableQuerySet(RepeatableReadQuerySet):
+class ConfigurableQuerySet(QuerySet):
 
     @classmethod
     def make(cls, manager):
