@@ -643,7 +643,7 @@ function recordShare(actionid, shareMsg, recips) {
         complete: function() {
             updateProgressBar(100);
             // thanksURL set in frame_faces.html
-            setTimeout( function() { outgoingRedirect(edgeflip.faces.thanksURL); }, 500 );
+            setTimeout(outgoingRedirect.bind(undefined, edgeflip.faces.thanksURL), 500);
         }
     });
 }
