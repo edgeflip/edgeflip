@@ -136,7 +136,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
 
         error = ValueError('Ruh-Roh!')
 
-        px3_result_mock = Mock()
+        px3_result_mock = Mock(id='123')
         px3_result_mock.ready.return_value = px3_ready
         px3_result_mock.successful.return_value = px3_successful
         px3_result_mock.failed.return_value = px3_failed
@@ -156,7 +156,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         else:
             px3_result_mock.result = None
 
-        px4_result_mock = Mock()
+        px4_result_mock = Mock(id='1234')
         px4_result_mock.ready.return_value = px4_ready
         px4_result_mock.successful.return_value = px4_successful
         px4_result_mock.failed.return_value = px4_failed

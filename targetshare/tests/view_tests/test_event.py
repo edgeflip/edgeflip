@@ -63,6 +63,20 @@ class TestEventViews(EdgeFlipViewTestCase):
 
     def test_record_event_shared(self):
         ''' Test views.record_event with shared event_type '''
+        friends = [10, 11, 12]
+        exclusions = models.FaceExclusion.objects.filter(friend_fbid__in=friends)
+        message = models.ShareMessage.objects.filter(
+            activity_id=100, fbid=1, campaign_id=1,
+            content_id=1, message='Testing Share'
+        )
+        shares = models.Event.objects.filter(
+            event_type='shared',
+            friend_fbid__in=friends,
+        )
+        self.assertEqual(shares.count(), 0)
+        self.assertEqual(exclusions.count(), 0)
+        self.assertFalse(message.exists())
+
         response = self.client.post(
             reverse('record-event'), {
                 'userid': 1,
@@ -71,26 +85,17 @@ class TestEventViews(EdgeFlipViewTestCase):
                 'contentid': 1,
                 'content': 'Testing',
                 'actionid': 100,
-                'friends[]': [10, 11, 12],
+                'friends[]': friends,
                 'eventType': 'shared',
                 'shareMsg': 'Testing Share'
             }
         )
         self.assertStatusCode(response, 200)
-        self.assertEqual(
-            models.Event.objects.filter(
-                event_type='shared', friend_fbid__in=[10, 11, 12]
-            ).count(), 3
-        )
-        self.assertEqual(
-            models.FaceExclusion.objects.filter(
-                friend_fbid__in=[10, 11, 12]
-            ).count(), 3
-        )
-        assert models.ShareMessage.objects.filter(
-            activity_id=100, fbid=1, campaign_id=1,
-            content_id=1, message='Testing Share'
-        ).exists()
+
+        self.assertEqual(shares.count(), 3)
+        self.assertEqual(exclusions.count(), 3)
+        self.assertTrue(message.exists())
+        self.assertEqual(self.client.session['face_exclusions_1_1_1'], friends)
 
     def test_record_event_button_click(self):
         ''' Test views.record_event with shared event_type '''
