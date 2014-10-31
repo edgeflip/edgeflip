@@ -105,6 +105,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             self.test_user,
             None
         )
+        self.test_edges = [self.test_edge]
         self.test_client = models.Client.objects.get(pk=1)
         self.test_cs = models.ChoiceSet.objects.create(
             client=self.test_client, name='Unit Tests')
@@ -142,9 +143,9 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         px3_result_mock.failed.return_value = px3_failed
         if px3_ready:
             px3_result_mock.result = FilteringResult(
-                [self.test_edge],
+                self.test_edges,
                 models.datastructs.TieredEdges(
-                    edges=[self.test_edge],
+                    edges=self.test_edges,
                     campaign_id=1,
                     content_id=1,
                 ),
@@ -163,9 +164,9 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
         if px4_ready:
             if px4_filtering:
                 px4_result_mock.result = FilteringResult(
-                    [self.test_edge],
+                    self.test_edges,
                     models.datastructs.TieredEdges(
-                        edges=[self.test_edge],
+                        edges=self.test_edges,
                         campaign_id=1,
                         content_id=1,
                     ),
@@ -176,7 +177,7 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
                 ) if px4_successful else error
             else:
                 px4_result_mock.result = (
-                    empty_filtering_result._replace(ranked=[self.test_edge])
+                    empty_filtering_result._replace(ranked=self.test_edges)
                     if px4_successful else error)
         else:
             px4_result_mock.result = None

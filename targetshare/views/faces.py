@@ -311,6 +311,11 @@ def faces(request):
                 )
             )
 
+    if not show_faces:
+        LOG_RVN.fatal("No faces to show, (all suppressed). (Will return error to user.)",
+                      extra={'request': request})
+        return http.HttpResponseServerError("No friends remaining.")
+
     db.bulk_create.delay(shown)
 
     rendered_table = render_to_string('targetshare/faces_table.html', {

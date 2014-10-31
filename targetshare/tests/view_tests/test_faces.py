@@ -148,7 +148,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertIn('px3 failed to complete', logger_mock.fatal.call_args[0][0])
 
     def test_px4_filtering(self, celery_mock):
-        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
         self.patch_targeting(celery_mock, px4_filtering=True)
         request = self.post_request(self.params)
         request.session[self.task_key] = self.task_ids
@@ -162,7 +162,7 @@ class TestFaces(EdgeFlipViewTestCase):
 
     def test_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
-        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
         self.patch_targeting(celery_mock)
         request = self.post_request(self.params)
         request.session[self.task_key] = self.task_ids
@@ -177,7 +177,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(shown.content, 'px4_score: 1.5 (1234)')
 
     def test_reload(self, celery_mock):
-        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
 
         self.patch_targeting(celery_mock)
         request = self.post_request(self.params)
@@ -209,7 +209,11 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(generated1, generated0)
 
     def test_session_exclusion(self, celery_mock):
-        self.test_edge = self.test_edge._replace(px3_score=1.0, px4_score=1.5)
+        user2 = models.User(self.test_user, fbid=2)
+        self.test_edges = [
+            self.test_edge._replace(px3_score=1.0, px4_score=1.5),
+            self.test_edge._replace(secondary=user2, px3_score=1.0, px4_score=1.5),
+        ]
 
         self.patch_targeting(celery_mock)
         request = self.post_request(self.params)
@@ -225,8 +229,18 @@ class TestFaces(EdgeFlipViewTestCase):
         events = request.visit.events.all()
         generated0 = events.filter(event_type='generated').count()
         shown0 = events.filter(event_type='shown').count()
-        self.assertEqual(shown0, 0)
-        self.assertEqual(generated0, 1)
+        self.assertEqual(shown0, 1)
+        self.assertEqual(generated0, 2)
+
+    def test_full_session_exclusion(self, celery_mock):
+        self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
+        self.patch_targeting(celery_mock)
+        request = self.post_request(self.params)
+        request.session[self.task_key] = self.task_ids
+        request.session['face_exclusions_1_1_1'] = [1]
+        request.session.save()
+        response = self.get_response(request)
+        self.assertStatusCode(response, 500)
 
     @patch('targetshare.integration.facebook.third_party.requests.get')
     def test_client_fbobject(self, get_mock, celery_mock):
