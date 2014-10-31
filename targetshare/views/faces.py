@@ -18,7 +18,7 @@ from targetshare.integration import facebook
 from targetshare.models import datastructs, dynamo, relational
 from targetshare.tasks import db, targeting
 from targetshare.tasks.integration.facebook import extend_token
-from targetshare.views import FACES_TASK_KEY, PENDING_EXCLUSIONS_KEY, utils
+from targetshare.views import FACES_TASKS_KEY, PENDING_EXCLUSIONS_KEY, utils
 
 
 LOG = logging.getLogger(__name__)
@@ -97,10 +97,10 @@ def faces(request):
     content = data['content']
     client = campaign.client
 
-    faces_task_key = FACES_TASK_KEY.format(campaign_id=campaign.pk,
-                                           content_id=content.pk,
-                                           fbid=data['fbid'])
-    (task_id_px3, task_id_px4) = request.session.get(faces_task_key, (None, None))
+    faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign.pk,
+                                             content_id=content.pk,
+                                             fbid=data['fbid'])
+    (task_id_px3, task_id_px4) = request.session.get(faces_tasks_key, (None, None))
 
     if task_id_px3 and task_id_px4:
         # Retrieve statuses of active targeting tasks #
@@ -146,7 +146,7 @@ def faces(request):
             content="px3_task_id: {}, px4_task_id: {}".format(task_px3.id, task_px4.id),
         )
 
-        request.session[faces_task_key] = (task_px3.id, task_px4.id)
+        request.session[faces_tasks_key] = (task_px3.id, task_px4.id)
 
     # Check status #
     if not (task_px3.ready() and task_px4.ready()) and not task_px3.failed() and not data['last_call']:
