@@ -97,6 +97,23 @@ def faces(request):
     content = data['content']
     client = campaign.client
 
+    if not request.session.test_cookie_worked():
+        # Avoid spamming the workers with an agent who can't hold onto its session
+        if data['last_call']:
+            LOG_RVN.fatal("User agent failed cookie test. (Will return error to user.)",
+                          extra={'request': request})
+            return http.HttpResponseForbidden("Cookies are required.")
+
+        # Agent failed test, but give it another shot
+        LOG_RVN.warning("Suspicious session missing cookie test", extra={'request': request})
+        request.session.set_test_cookie()
+        return utils.JsonHttpResponse({
+            'status': 'waiting',
+            'reason': "Cookies are required. Please try again.",
+            'campaignid': campaign.pk,
+            'contentid': content.pk,
+        }, status=202)
+
     faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign.pk,
                                              content_id=content.pk,
                                              fbid=data['fbid'])
@@ -152,9 +169,10 @@ def faces(request):
     if not (task_px3.ready() and task_px4.ready()) and not task_px3.failed() and not data['last_call']:
         return utils.JsonHttpResponse({
             'status': 'waiting',
+            'reason': "Identifying friends.",
             'campaignid': campaign.pk,
             'contentid': content.pk,
-        })
+        }, status=202)
 
     # Select results #
     (result_px3, result_px4) = (
