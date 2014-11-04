@@ -41,92 +41,80 @@ edgeflip.faces = (function (edgeflip, $) {
         }
     };
 
-    self.poll = function (fbid, accessToken, response, px3_task_id, px4_task_id, last_call) {
-        /* AJAX call to hit /faces endpoint - receives HTML snippet & stuffs in DOM */
-        if (response.authResponse) {
-            var friends_div = $('#friends_div');
-            var progress = $('#progress');
-            var your_friends_div = $('#your-friends-here');
+    self.poll = function (fbid, accessToken, response, last_call) {
+        /* Perform an asynchronous HTTP call to the "faces" endpoint.
+         *
+         * On success, receives an HTML snippet & stuffs it in the DOM.
+         */
+        if (!response.authResponse) {
+            return;
+        }
 
+        if (self.test_mode) {
             // In test mode, just use the provided test fbid & token for getting faces
             // Note, however, that you're logged into facebook as you, so trying to
             // share with someone else's friends is going to cause you trouble!
-            var ajax_fbid = fbid;
-            var ajax_token = accessToken;
-            if (self.test_mode) {
-                console.log('in test mode');
-                console.log(self.test_token);
-                ajax_fbid = self.test_fbid;
-                ajax_token = self.test_token;
-            }
+            console.log('in test mode:', self.test_token);
+        }
 
-            var params = {
-                fbid: ajax_fbid,
-                token: ajax_token,
+        if (!self.pollingTimer_) {
+            updateProgressBar(5);
+        }
+
+        $.ajax({
+            type: 'POST',
+            url: '/faces/',
+            dataType: 'json',
+            data: {
+                fbid: self.test_mode ? self.test_fbid : fbid,
+                token: self.test_mode ? self.test_token : accessToken,
                 num_face: self.num_face,
                 campaign: self.campaignid,
                 content: self.contentid,
-                px3_task_id: px3_task_id,
-                px4_task_id: px4_task_id,
-                last_call: last_call
-            };
-           
-            if( !self.pollingTimer_ ) { 
-                updateProgressBar(5);
-            }
+                last_call: last_call,
+                efobjsrc: edgeflip.Url.window.query.efobjsrc
+            },
+            success: function (data) {
+                var nextPoll;
 
-            if (edgeflip.Url.window.query.efobjsrc) {
-                params.efobjsrc = edgeflip.Url.window.query.efobjsrc;
-            }
+                self.campaignid = data.campaignid;
+                self.contentid = data.contentid;
 
-            $.ajax({
-                type: "POST",
-                url: '/faces/',
-                dataType: 'json',
-                data: params,
-                error: function() {
-                    your_friends_div.show();
-                    progress.hide();
-                    clearTimeout(self.pollingTimer_);
-                    outgoingRedirect(self.errorURL);
-                },
-                success: function(data, textStatus, jqXHR) {
-                    self.campaignid = data.campaignid;
-                    self.contentid = data.contentid;
-                    if (data.status === 'waiting') {
-                        if (self.pollingTimer_) {
-                            if (self.pollingCount_ > 40) {
-                                clearTimeout(self.pollingTimer_);
-                                self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id, true);
-                            } else {
-                                self.pollingCount_ += 1;
-                                updateProgressBar( Math.floor( ( 2 * self.pollingCount_ ) + 10 ) );
-                                self.pollingTimer_ = setTimeout(function() {
-                                    self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
-                                }, 500);
-                            }
-                        } else {
-                            updateProgressBar(10);
-                            self.pollingTimer_ = setTimeout(function() {
-                                self.poll(fbid, accessToken, response, data.px3_task_id, data.px4_task_id)
-                            }, 500);
-                        }
-                    } else {
-                        updateProgressBar(100);
-                        setTimeout(
-                            function() {
-                                displayFriendDiv(data.html, jqXHR);
-                                updateProgressBar(0);
-                            },
-                            500 );
+                if (data.status === 'waiting') {
+                    // Continue polling
+                    nextPoll = self.poll.bind(undefined, fbid, accessToken, response);
+
+                    if (self.pollingCount_ > 40) {
+                        // Give it one last call:
                         clearTimeout(self.pollingTimer_);
-                        if (self.debug) {
-                            edgeflip.events.record('faces_page_rendered');
-                        }
+                        nextPoll(true);
+                        return;
                     }
+
+                    if (self.pollingTimer_) self.pollingCount_ ++;
+                    updateProgressBar(Math.floor((2 * self.pollingCount_) + 10));
+                    self.pollingTimer_ = setTimeout(nextPoll, 500);
+                    return;
                 }
-            });
-        }
+
+                // Success!
+                updateProgressBar(100);
+                setTimeout(function () {
+                    displayFriendDiv(data.html);
+                    updateProgressBar(0);
+                }, 500);
+                clearTimeout(self.pollingTimer_);
+                if (self.debug) {
+                    edgeflip.events.record('faces_page_rendered');
+                }
+            },
+            error: function () {
+                $('#your-friends-here').show();
+                $('#progress').hide();
+                clearTimeout(self.pollingTimer_);
+                outgoingRedirect(self.errorURL);
+            }
+        });
     };
 
     return self;
@@ -159,7 +147,7 @@ function preload(arrayOfImages) {
 /* loads a bunch of images
 */
     $(arrayOfImages).each(function () {
-        $('<img />').attr('src',this);
+        $('<img />').attr('src', this);
     });
 }
 
@@ -177,7 +165,7 @@ function authFailure() {
     });
 }
 
-function displayFriendDiv(data, jqXHR) {
+function displayFriendDiv(data) {
     $('body').addClass('faces');
     $('#your-friends-here').html(data);
     $('#your-friends-here').show();

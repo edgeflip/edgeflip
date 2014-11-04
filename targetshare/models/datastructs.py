@@ -290,26 +290,26 @@ class TieredEdges(tuple):
         return "<{}: {}>".format(self.__class__.__name__,
                                  super(TieredEdges, self).__repr__())
 
-    def _edges(self):
+    def iteredges(self):
         return itertools.chain.from_iterable(tier['edges'] for tier in self)
 
     def __len__(self):
-        return sum(1 for _edge in self._edges())
+        return sum(1 for _edge in self.iteredges())
 
     @property
     def edges(self):
         """All edges contained in the collection, untiered."""
-        return tuple(self._edges())
+        return tuple(self.iteredges())
 
     @property
     def secondaries(self):
         """All edge secondaries contained in the collection."""
-        return tuple(edge.secondary for edge in self._edges())
+        return tuple(edge.secondary for edge in self.iteredges())
 
     @property
     def secondary_ids(self):
         """All edge secondaries' IDs."""
-        return tuple(edge.secondary.fbid for edge in self._edges())
+        return tuple(edge.secondary.fbid for edge in self.iteredges())
 
     def copy(self):
         return type(self)(self)

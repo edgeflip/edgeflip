@@ -10,8 +10,6 @@ class FacesForm(forms.Form):
     num_face = forms.IntegerField(min_value=1)
     content = forms.ModelChoiceField(relational.ClientContent.objects.all())
     campaign = forms.ModelChoiceField(relational.Campaign.objects.all())
-    px3_task_id = forms.CharField(required=False)
-    px4_task_id = forms.CharField(required=False)
     last_call = forms.BooleanField(required=False)
     efobjsrc = forms.CharField(required=False)
 

@@ -7,9 +7,9 @@ from django.shortcuts import render
 from django.views.decorators.http import require_POST
 
 from targetshare.models import relational
-from targetshare.views import utils
 from targetshare.tasks import db
 from targetshare.tasks.integration.facebook import extend_token
+from targetshare.views import PENDING_EXCLUSIONS_KEY, utils
 
 LOG = logging.getLogger('crow')
 
@@ -150,7 +150,8 @@ def record_event(request):
         root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
 
         # Write friends with whom we shared to the exclusions table,
-        # so we don't show them for the same content/campaign again:
+        # so we don't show them for the same content/campaign again.
+        # Rather than wait on as many as 10 get+inserts, background the task.
         exclusions = [
             {
                 'fbid': user_id,
@@ -164,6 +165,13 @@ def record_event(request):
         ]
         if exclusions:
             db.get_or_create.delay(relational.FaceExclusion, *exclusions)
+
+        # Attempt to avoid race condition between subsequent reload of faces
+        # page and above record of exclusions by storing these in session:
+        faces_exclusions_key = PENDING_EXCLUSIONS_KEY.format(campaign_id=root_campaign.campaign_id,
+                                                             content_id=content_id,
+                                                             fbid=user_id)
+        request.session[faces_exclusions_key] = friends
 
     # Additional handling #
 
