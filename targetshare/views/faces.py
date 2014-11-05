@@ -4,6 +4,7 @@ import itertools
 
 import celery
 from django import http
+from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
@@ -32,20 +33,25 @@ MAX_FACES = 50
 @utils.require_visit
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(relational.Campaign, campaign_id=campaign_id)
+    campaign_properties = campaign.campaignproperties.get()
+    if campaign_properties.root_campaign_id != campaign_properties.campaign_id:
+        LOG_RVN.warning("Received request for non-root campaign", extra={'request': request})
+        raise http.Http404
+
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
 
     db.bulk_create.delay([
         relational.Event(
-            visit=request.visit,
-            campaign=campaign,
-            client_content=content,
+            visit_id=request.visit.pk,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
             event_type='faces_page_load',
         ),
         relational.Event(
-            visit=request.visit,
-            campaign=campaign,
-            client_content=content,
+            visit_id=request.visit.pk,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
             event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
     ])
@@ -57,7 +63,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         content,
     )
 
-    properties = campaign.campaignproperties.values().get()
+    (serialized_properties,) = serialize('python', (campaign_properties,))
+    properties = serialized_properties['fields']
     for override_key, field in [
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),

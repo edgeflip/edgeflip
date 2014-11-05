@@ -46,6 +46,15 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertStatusCode(response, 405)
 
     @patch_facebook
+    def test_fallback_campaign_rejection(self, _celery_mock):
+        """(Initially-requested) campaign must be root"""
+        root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
+        root_campaign_id = root_campaigns.get(campaign_id=6)
+        self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
+        response = self.make_post(dict(self.params, campaign=6))
+        self.assertStatusCode(response, 400)
+
+    @patch_facebook
     def test_initial_entry(self, _celery_mock):
         """Initial request initiates tasks and extends token"""
         fbid = self.params['fbid'] = 1111111 # returned by patch
@@ -367,6 +376,14 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
         assert models.Event.objects.get(event_type='faces_iframe_load')
+
+    def test_fallback_campaign_rejection(self):
+        """Campaign must be root"""
+        root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
+        root_campaign_id = root_campaigns.get(campaign_id=6)
+        self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
+        response = self.client.get(reverse('frame-faces', args=[6, 1]))
+        self.assertStatusCode(response, 404)
 
     def test_configurable_urls(self):
         success_url = '//disney.com/'

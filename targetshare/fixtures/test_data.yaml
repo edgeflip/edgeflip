@@ -102,6 +102,10 @@
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobject
     pk: 8
+-   fields: {campaign: 6, end_dt: null, fb_object: 1, filter: 3, rand_cdf: '1.000000000',
+        start_dt: !!timestamp '2013-07-15 11:38:28'}
+    model: targetshare.campaignfbobject
+    pk: 9
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15
             11:38:28'}
     model: targetshare.campaigngenericfbobjects
@@ -625,6 +629,35 @@
   fields:
     campaign: 5
     page_style_set: 10
+    rand_cdf: 1
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
+
+- model: targetshare.pagestyleset
+  pk: 11
+  fields:
+    page_styles: [1]
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
+- model: targetshare.pagestyleset
+  pk: 12
+  fields:
+    page_styles: [2]
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
+- model: targetshare.campaignpagestyleset
+  pk: 11
+  fields:
+    campaign: 6
+    page_style_set: 11
+    rand_cdf: 1
+    created: '2013-10-01 17:04:53'
+    updated: '2013-10-01 17:04:53'
+- model: targetshare.campaignpagestyleset
+  pk: 12
+  fields:
+    campaign: 6
+    page_style_set: 12
     rand_cdf: 1
     created: '2013-10-01 17:04:53'
     updated: '2013-10-01 17:04:53'
