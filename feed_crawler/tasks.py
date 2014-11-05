@@ -34,7 +34,7 @@ def expires_safe(token):
     return token.get('expires', UTCMIN)
 
 
-@shared_task(max_retries=6)
+@shared_task(max_retries=6, ignore_result=True)
 def crawl_user(fbid, retry_delay=0):
     """Enqueue crawl tasks for the user (`fbid`) and the users of his/her network."""
     # Find a valid token for the user #
@@ -211,7 +211,7 @@ def _get_sync_maps(edges, token):
     return fb_sync_maps
 
 
-@shared_task(bind=True, default_retry_delay=300, max_retries=5)
+@shared_task(bind=True, default_retry_delay=300, max_retries=5, ignore_result=True)
 def initial_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
@@ -252,7 +252,7 @@ def initial_crawl(self, primary, secondary):
     logger.info('Completed initial crawl of %s', sync_map.s3_key_name)
 
 
-@shared_task(bind=True, max_retries=5)
+@shared_task(bind=True, max_retries=5, ignore_result=True)
 def retrieve_page_likes(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary
@@ -282,7 +282,7 @@ def retrieve_page_likes(self, primary, secondary):
     logger.info('Completed page like retrieval of %s', sync_map.s3_key_name)
 
 
-@shared_task(bind=True, default_retry_delay=3600, max_retries=5)
+@shared_task(bind=True, default_retry_delay=3600, max_retries=5, ignore_result=True)
 def back_fill_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
@@ -333,7 +333,7 @@ def back_fill_crawl(self, primary, secondary):
     logger.info('Completed back fill crawl of %s', sync_map.s3_key_name)
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, ignore_result=True)
 def crawl_comments_and_likes(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
@@ -373,7 +373,7 @@ def crawl_comments_and_likes(self, primary, secondary):
     logger.info('Completed comment crawl of %s', sync_map.s3_key_name)
 
 
-@shared_task(bind=True, default_retry_delay=300, max_retries=5)
+@shared_task(bind=True, default_retry_delay=300, max_retries=5, ignore_result=True)
 def incremental_crawl(self, primary, secondary):
     sync_map = models.FBSyncMap.items.get_item(
         fbid_primary=primary, fbid_secondary=secondary)
