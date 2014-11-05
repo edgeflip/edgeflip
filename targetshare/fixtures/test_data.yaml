@@ -30,6 +30,10 @@
     model: targetshare.campaign
     pk: 5
 -   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
+         is_deleted: false, name: cascade test real}
+    model: targetshare.campaign
+    pk: 6
+-   fields: {client: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
         description: Default element created by edgeflip, is_deleted: false, name: edgeflip
             default}
     model: targetshare.choiceset
@@ -62,6 +66,10 @@
         rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignchoiceset
     pk: 5
+-   fields: {allow_generic: false, campaign: 6, choice_set: 1, end_dt: null, generic_url_slug: null,
+        rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-15 11:38:28'}
+    model: targetshare.campaignchoiceset
+    pk: 6
 -   fields: {campaign: 1, end_dt: null, fb_object: 1, filter: 2, rand_cdf: '1.000000000',
         start_dt: !!timestamp '2013-07-15 11:38:28'}
     model: targetshare.campaignfbobject
@@ -130,6 +138,10 @@
             11:38:28'}
     model: targetshare.campaignglobalfilter
     pk: 5
+-   fields: {campaign: 6, end_dt: null, filter: 1, rand_cdf: '1.000000000', start_dt: !!timestamp '2013-07-05
+            11:38:28'}
+    model: targetshare.campaignglobalfilter
+    pk: 6
 -   fields: {campaign: 1, client_error_url: 'https://donate.demandaction.org/act/donate',
         client_faces_url: 'http://local.edgeflip.com:8080/mocks/guncontrol_share',
         client_thanks_url: 'https://donate.demandaction.org/act/donate', end_dt: null,
@@ -141,27 +153,33 @@
         client_faces_url: 'http://local.edgeflip.com:8080/mocks/immigration_share',
         client_thanks_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
-        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 2}
     model: targetshare.campaignproperties
     pk: 2
 -   fields: {campaign: 3, client_error_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
         client_faces_url: 'http://local.edgeflip.com:8080/mocks/ofa_share', client_thanks_url: 'https://contribute.barackobama.com/donation/orgforaction/2/index.html',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
-        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 3}
     model: targetshare.campaignproperties
     pk: 3
 -   fields: {campaign: 4, client_error_url: 'https://donate.terrymcauliffe.com/page/contribute/thanks-donate',
         client_faces_url: 'http://local.edgeflip.com:8080/mocks/mcauliffe_share', client_thanks_url: 'https://donate.terrymcauliffe.com/page/contribute/thanks-donate',
         end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: null,
-        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 4}
     model: targetshare.campaignproperties
     pk: 4
 -   fields: {campaign: 5, client_error_url: 'http://fake.com', 
         client_faces_url: 'http://fake.com/', client_thanks_url: 'http://fake.com/',
-        end_dt: null, fallback_campaign: 4, fallback_content: null, fallback_is_cascading: true,
-        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28'}
+        end_dt: null, fallback_campaign: 6, fallback_content: null, fallback_is_cascading: true,
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 5}
     model: targetshare.campaignproperties
     pk: 5
+-   fields: {campaign: 6, client_error_url: 'http://fake.com', 
+        client_faces_url: 'http://fake.com/', client_thanks_url: 'http://fake.com/',
+        end_dt: null, fallback_campaign: null, fallback_content: null, fallback_is_cascading: false,
+        min_friends: 1, start_dt: !!timestamp '2013-07-15 11:38:28', root_campaign: 5}
+    model: targetshare.campaignproperties
+    pk: 6
 -   fields: {choice_set: 1, end_dt: null, filter: 1, 
         start_dt: !!timestamp '2013-07-15 11:38:28', url_slug: all}
     model: targetshare.choicesetfilter

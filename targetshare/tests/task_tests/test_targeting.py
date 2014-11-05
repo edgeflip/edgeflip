@@ -195,7 +195,7 @@ class TestFiltering(TargetingTestCase):
 
         self.assertEquals(edges_filtered.secondary_ids, (1, 2))
         self.assertEquals(edges_filtered[0]['campaign_id'], 5)
-        self.assertEquals(edges_filtered[1]['campaign_id'], 4)
+        self.assertEquals(edges_filtered[1]['campaign_id'], 6)
 
 
 ## PX4 tests ##
