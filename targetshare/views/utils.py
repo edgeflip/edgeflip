@@ -1,16 +1,72 @@
+import base64
+import functools
 import json
 import logging
-import functools
+import urllib
+import urlparse
 
 import django.core.cache
+from Crypto.Cipher import DES
 from django import http
+from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.shortcuts import _get_queryset
 
 from targetshare import models, utils
 from targetshare.tasks import db
 
+
 LOG = logging.getLogger(__name__)
+
+
+PADDING = ' '
+BLOCK_SIZE = 8
+
+
+def pad(s):
+    return s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
+
+
+# DES appears to be limited to 8-character secret, so truncate if too long
+SECRET = pad(settings.CRYPTO.des_secret)[:8]
+CIPHER = DES.new(SECRET)
+
+
+def encodeDES(message, quote=True):
+    """Encrypt a message with DES cipher, returning a URL-safe, quoted string"""
+    message = str(message)
+    encrypted = CIPHER.encrypt(pad(message))
+    b64encoded = base64.urlsafe_b64encode(encrypted)
+    if quote:
+        return urllib.quote(b64encoded)
+    return b64encoded
+
+
+def decodeDES(encoded):
+    """Decrypt a message with DES cipher, assuming a URL-safe, quoted string"""
+    encoded = str(encoded)
+    unquoted = urllib.unquote(encoded)
+    b64decoded = base64.urlsafe_b64decode(unquoted)
+    message = CIPHER.decrypt(b64decoded).rstrip(PADDING)
+    return message
+
+
+def faces_url(client_faces_url, campaign_id, content_id, *multi, **extra):
+    """Construct the complete faces frame URL for the given campaign's base URL."""
+    url = urlparse.urlparse(client_faces_url)
+    query = http.QueryDict(url.query, mutable=True)
+    slug = encodeDES('{}/{}'.format(campaign_id, content_id), quote=False)
+    extra.update(efcmpgslug=slug)
+    query.update(*multi, **extra)
+    full_url = url._replace(query=query.urlencode())
+    return full_url.geturl()
+
+
+def incoming_redirect(is_secure, host, campaign_id, content_id):
+    protocol = 'https://' if is_secure else 'http://'
+    slug = encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
+    path = urllib.unquote(reverse('incoming-encoded', args=(slug,)))
+    return protocol + host + path
 
 
 class JsonHttpResponse(http.HttpResponse):
@@ -259,7 +315,7 @@ def encoded_endpoint(view):
         if not campaign_id or not content_id:
             if campaign_slug:
                 try:
-                    decoded = utils.decodeDES(campaign_slug)
+                    decoded = decodeDES(campaign_slug)
                     campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
                 except (ValueError, TypeError):
                     LOG.exception('Failed to decrypt: %r', campaign_slug)

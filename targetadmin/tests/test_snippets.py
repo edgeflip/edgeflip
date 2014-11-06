@@ -4,7 +4,7 @@ import urlparse
 from django.core.urlresolvers import resolve, reverse
 
 from chapo.models import ShortenedUrl
-from targetshare import utils
+from targetshare.views import utils
 from targetshare.models import relational
 
 from . import TestAdminBase

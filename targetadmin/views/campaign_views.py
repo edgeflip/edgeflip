@@ -10,8 +10,7 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 
 from targetshare.models import relational
-from targetshare.utils import encodeDES
-from targetshare.views.utils import JsonHttpResponse
+from targetshare.views.utils import encodeDES, JsonHttpResponse
 
 from targetadmin import forms, utils
 from targetadmin.views import base

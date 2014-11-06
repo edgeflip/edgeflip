@@ -7,7 +7,7 @@ from django.core import mail
 from django.core.urlresolvers import reverse
 
 from targetshare.models import relational
-from targetshare.utils import encodeDES
+from targetshare.views.utils import encodeDES
 
 from . import TestAdminBase
 

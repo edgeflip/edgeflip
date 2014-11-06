@@ -1,29 +1,15 @@
-import base64
 import datetime
 import functools
 import logging
 import math
 import random
 import time
-import urllib
-from Crypto.Cipher import DES
-
-from django.conf import settings
-from django.core.urlresolvers import reverse
 
 
 logger = logging.getLogger(__name__)
 
 
-PADDING = ' '
-BLOCK_SIZE = 8
 MAX_MISSING_CIVIS_MATCHES = 20
-
-pad = lambda s: s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
-
-# DES appears to be limited to 8-character secret, so truncate if too long
-secret = pad(settings.CRYPTO.des_secret)[:8]
-cipher = DES.new(secret)
 
 
 def atan_norm(value):
@@ -71,25 +57,6 @@ def random_assign(sequence):
             return obj_id
 
     raise CDFProbsError("Math must be broken if we got here...")
-
-
-def encodeDES(message, quote=True):
-    """Encrypt a message with DES cipher, returning a URL-safe, quoted string"""
-    message = str(message)
-    encrypted = cipher.encrypt(pad(message))
-    b64encoded = base64.urlsafe_b64encode(encrypted)
-    if quote:
-        return urllib.quote(b64encoded)
-    return b64encoded
-
-
-def decodeDES(encoded):
-    """Decrypt a message with DES cipher, assuming a URL-safe, quoted string"""
-    encoded = str(encoded)
-    unquoted = urllib.unquote(encoded)
-    b64decoded = base64.urlsafe_b64decode(unquoted)
-    message = cipher.decrypt(b64decoded).rstrip(PADDING)
-    return message
 
 
 class Timer(object):
@@ -223,10 +190,3 @@ partition_edges = functools.partial(partition,
                                     key=lambda edge: edge.score,
                                     min_value=0,
                                     max_value=1)
-
-
-def incoming_redirect(is_secure, host, campaign_id, content_id):
-    protocol = 'https://' if is_secure else 'http://'
-    slug = encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
-    path = urllib.unquote(reverse('incoming-encoded', args=(slug,)))
-    return protocol + host + path

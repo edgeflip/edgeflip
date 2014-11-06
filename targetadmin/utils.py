@@ -9,7 +9,8 @@ from django.utils.decorators import method_decorator
 
 import chapo.utils
 
-from targetshare import models, utils
+from targetshare import models
+from targetshare.views import utils
 
 
 FB_OAUTH_URL = 'https://www.facebook.com/dialog/oauth'

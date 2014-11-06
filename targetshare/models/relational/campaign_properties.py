@@ -3,8 +3,6 @@ import logging
 from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
-from targetshare import utils
-
 from . import manager
 
 LOG = logging.getLogger('crow')
@@ -47,12 +45,6 @@ class CampaignProperties(models.Model):
     status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.CHOICES)
 
     objects = manager.TransitoryObjectManager.make()
-
-    def faces_url(self, content_id):
-        url = self.client_faces_url
-        url += '&' if '?' in url else '?'
-        slug = utils.encodeDES('%s/%s' % (self.campaign_id, content_id))
-        return url + 'efcmpgslug=' + str(slug)
 
     def _calculate_root_campaign(self):
         root_campaign = None

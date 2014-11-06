@@ -3,7 +3,6 @@ from django.shortcuts import render, get_object_or_404
 
 from targetshare import models
 from targetshare.views import utils
-from targetshare.utils import encodeDES
 
 
 @utils.encoded_endpoint
@@ -15,7 +14,7 @@ def button(request, campaign_id, content_id):
     faces_url = '{}{}{}'.format(
         'https://' if request.is_secure() else 'http://',
         request.get_host(),
-        reverse('incoming-encoded', args=[encodeDES('%s/%s' % (campaign_id, content_id))])
+        reverse('incoming-encoded', args=[utils.encodeDES('%s/%s' % (campaign_id, content_id))])
     )
 
     page_styles = utils.assign_page_styles(

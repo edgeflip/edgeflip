@@ -5,7 +5,7 @@ from django.core.urlresolvers import reverse
 from mock import Mock, patch
 
 from targetshare import models
-from targetshare.utils import encodeDES
+from targetshare.views.utils import encodeDES
 
 from .. import EdgeFlipViewTestCase, patch_facebook
 
