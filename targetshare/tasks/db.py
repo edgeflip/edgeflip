@@ -12,7 +12,7 @@ from faraday import UpsertStrategy
 LOG_RVN = logging.getLogger('crow')
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def bulk_create(objects):
     """Bulk-create objects belonging to a single model.
 
@@ -40,7 +40,7 @@ def bulk_create(objects):
                 batch.put_item(obj)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def delayed_save(model_obj, **kws):
     """Save the given object in a background task process.
 
@@ -58,7 +58,7 @@ def delayed_save(model_obj, **kws):
     model_obj.save(**kws)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def get_or_create(model, *params, **kws):
     """Pass the given parameters to the model manager's get_or_create.
 
@@ -84,7 +84,7 @@ def get_or_create(model, *params, **kws):
             LOG_RVN.exception("get_or_create failed: %r", paramset)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def partial_save(item, _attempt=0):
     """Save the given boto Item in a background process, using its partial_save method.
 
@@ -123,7 +123,7 @@ def partial_save(item, _attempt=0):
     partial_save.delay(fresh, _attempt + 1)
 
 
-@shared_task
+@shared_task(ignore_result=True)
 def upsert(*items, **kws):
     """Upsert the given boto Items.
 
@@ -178,7 +178,7 @@ def upsert(*items, **kws):
         )
 
 
-@shared_task(task_time_limit=600)
+@shared_task(task_time_limit=600, ignore_result=True)
 def update_edges(edges):
     """Update edge tables.
 
