@@ -137,7 +137,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(data['status'], 'success')
         assert data['html']
 
-    @patch('targetshare.views.faces.LOG_RVN')
+    @patch('targetshare.views.faces.LOG')
     def test_px3_fail_last_call(self, logger_mock, celery_mock):
         """Receive 503 response to last call request if there are no results"""
         self.patch_targeting(celery_mock, px3_ready=False, px4_ready=False)
@@ -453,3 +453,97 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         self.assertEqual(models.Event.objects.filter(event_type='faces_email_page_load').count(), 1)
         self.assertEqual(models.Event.objects.filter(event_type='shown').count(), 3)
         self.assertEqual(models.Event.objects.filter(event_type='generated').count(), 4)
+
+
+@patch('targetshare.views.faces.celery')
+class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
+
+    fixtures = ['test_data']
+
+    oauth_task_id = 'OAUTH_TOKEN_TASK-1'
+
+    faces_task_key = 'faces_tasks_px_1_1_1'
+
+    def setUp(self):
+        super(TestFrameFacesEagerTargeting, self).setUp()
+        self.url = reverse('frame-faces', args=[1, 1])
+
+        # Finesse the test client session #
+
+        # Client is a jerk. Set session cookie so we get an actual SessionStore:
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
+        self.session = self.client.session
+        self.session['oauth_task'] = self.oauth_task_id
+        self.session.save()
+
+        # Set *true* session key:
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+
+    def test_pending(self, celery_mock):
+        task = celery_mock.current_app.AsyncResult.return_value
+        task.ready.return_value = False
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(len(task.method_calls), 1)
+        session = self.client.session
+        self.assertEqual(session['oauth_task'], self.oauth_task_id)
+        self.assertNotIn(self.faces_task_key, session)
+
+    def test_failed(self, celery_mock):
+        task = celery_mock.current_app.AsyncResult.return_value
+        task.ready.return_value = True
+        task.successful.return_value = False
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(len(task.method_calls), 2)
+        session = self.client.session
+        self.assertNotIn(self.oauth_task_id, session)
+        self.assertNotIn(self.faces_task_key, session)
+
+    @patch('targetshare.views.faces.request_targeting')
+    def test_already_started(self, targeting_mock, celery_mock):
+        task = celery_mock.current_app.AsyncResult.return_value
+        task.ready.return_value = True
+        task.successful.return_value = True
+        task.result = models.datastructs.ShortToken(1, 1, 'TOKZ')
+
+        targeting_mock.return_value = (Mock(id='PX3-2'), Mock(id='PX4-2'))
+
+        self.session[self.faces_task_key] = targeting_task_ids = ['PX3-1', 'PX4-1']
+        self.session.save()
+
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(len(task.method_calls), 2)
+
+        session = self.client.session
+        self.assertNotIn(self.oauth_task_id, session)
+        self.assertEqual(session[self.faces_task_key], targeting_task_ids)
+
+        self.assertFalse(targeting_mock.called)
+
+    @patch('targetshare.views.faces.request_targeting')
+    def test_eager_targeting(self, targeting_mock, celery_mock):
+        task = celery_mock.current_app.AsyncResult.return_value
+        task.ready.return_value = True
+        task.successful.return_value = True
+        task.result = token = models.datastructs.ShortToken(1, 1, 'TOKZ')
+
+        targeting_mock.return_value = (Mock(id='PX3-2'), Mock(id='PX4-2'))
+
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(len(task.method_calls), 2)
+
+        session = self.client.session
+        self.assertNotIn(self.oauth_task_id, session)
+        self.assertEqual(session[self.faces_task_key], ['PX3-2', 'PX4-2'])
+
+        self.assertTrue(targeting_mock.called)
+        targeting_mock.assert_called_once_with(
+            token=token,
+            visit=models.Visit.objects.get(session_id=session.session_key),
+            campaign=models.Campaign.objects.get(pk=1),
+            client_content=models.ClientContent.objects.get(pk=1),
+            num_faces=10,
+        )
