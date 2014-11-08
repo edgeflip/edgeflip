@@ -45,9 +45,15 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
         self.assertEqual(user_clients.count(), 0)
         self.assertEqual(tokens.query_count(), 0)
-        facebook.store_oauth_token(1, 'PIEZ', 'http://testserver/incoming/SLUGZ/')
+
+        token = facebook.store_oauth_token(1, 'PIEZ', 'http://testserver/incoming/SLUGZ/')
+
+        self.assertEqual(token, (100, 471727162864364, 'TOKZ'))
         self.assertEqual(user_clients.count(), 1)
         self.assertEqual(tokens.query_count(), 1)
+        extended_token = tokens.filter_get()
+        self.assertEqual(extended_token.fbid, 100)
+        self.assertEqual(extended_token.token, 'tok1')
 
     @requests_patch
     @mock.patch('urllib2.urlopen', **{'return_value.read.return_value': json.dumps({

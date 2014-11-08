@@ -6,14 +6,15 @@ from celery import shared_task
 from django.db import IntegrityError, transaction
 from django.utils import six
 
-from targetshare.models import dynamo, relational
+from targetshare.models import datastructs, dynamo, relational
 from targetshare.integration import facebook
+from targetshare.tasks import db
 
 
 LOG = logging.getLogger('crow')
 
 
-@shared_task(default_retry_delay=300, max_retries=9)
+@shared_task(default_retry_delay=300, max_retries=9, ignore_result=True)
 def extend_token(fbid, appid, token_value):
     now = time.time()
 
@@ -34,6 +35,52 @@ def extend_token(fbid, appid, token_value):
         expires=(now + expires_in),
     )
     token.save(overwrite=True)
+
+
+@shared_task(ignore_result=True)
+def record_auth(fbid, visit_id, campaign_id=None, content_id=None):
+    visit = relational.Visit.objects.get(visit_id=visit_id)
+
+    # Ensure Visitor.fbid:
+    visitor = visit.visitor
+    if visitor.fbid != fbid:
+        if visitor.fbid:
+            # Visitor-in-hand already set; get-or-create matching visitor
+            LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
+            (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=fbid)
+        else:
+            # Get matching visitor or update visitor-in-hand
+            try:
+                # Check for pre-existing Visitor with this fbid:
+                visitor = relational.Visitor.objects.get(fbid=fbid)
+            except relational.Visitor.DoesNotExist:
+                try:
+                    # Update the visitor we have:
+                    visitor.fbid = fbid
+                    with transaction.atomic():
+                        visitor.save(update_fields=['fbid'])
+                except IntegrityError:
+                    exc_info = sys.exc_info()
+                    try:
+                        # Check for race condition:
+                        visitor = relational.Visitor.objects.get(fbid=fbid)
+                    except relational.Visitor.DoesNotExist:
+                        six.reraise(*exc_info)
+
+        visit.visitor = visitor
+        visit.save(update_fields=['visitor'])
+
+    # Record auth event (if e.g. faces hasn't already done it):
+    with transaction.atomic():
+        relational.Event.objects.select_for_update().get_or_create(
+            visit=visit,
+            event_type='authorized',
+            defaults={
+                'content': 'oauth',
+                'campaign_id': campaign_id,
+                'client_content_id': content_id,
+            },
+        )
 
 
 @shared_task(default_retry_delay=300, max_retries=2)
@@ -74,49 +121,16 @@ def store_oauth_token(client_id, code, redirect_uri,
         LOG.fatal("Failed to retrieve OAuth token data & giving up", exc_info=True)
         return
 
-    extend_token.delay(token_fbid, client.fb_app_id, token_value)
-    client.userclients.get_or_create(fbid=token_fbid)
+    token = datastructs.ShortToken(
+        fbid=token_fbid,
+        appid=client.fb_app_id,
+        token=token_value,
+    )
+
+    extend_token.delay(*token)
+    db.get_or_create.delay(relational.UserClient, client_id=client.pk, fbid=token.fbid)
 
     if visit_id:
-        visit = relational.Visit.objects.get(visit_id=visit_id)
+        record_auth.delay(token.fbid, visit_id, campaign_id, content_id)
 
-        # Ensure Visitor.fbid:
-        visitor = visit.visitor
-        if visitor.fbid != token_fbid:
-            if visitor.fbid:
-                # Visitor-in-hand already set; get-or-create matching visitor
-                LOG.warning("Visitor of Visit %s has mismatching FBID", visit.visit_id)
-                (visitor, _created) = relational.Visitor.objects.get_or_create(fbid=token_fbid)
-            else:
-                # Get matching visitor or update visitor-in-hand
-                try:
-                    # Check for pre-existing Visitor with this fbid:
-                    visitor = relational.Visitor.objects.get(fbid=token_fbid)
-                except relational.Visitor.DoesNotExist:
-                    try:
-                        # Update the visitor we have:
-                        visitor.fbid = token_fbid
-                        with transaction.atomic():
-                            visitor.save(update_fields=['fbid'])
-                    except IntegrityError:
-                        exc_info = sys.exc_info()
-                        try:
-                            # Check for race condition:
-                            visitor = relational.Visitor.objects.get(fbid=token_fbid)
-                        except relational.Visitor.DoesNotExist:
-                            six.reraise(*exc_info)
-
-            visit.visitor = visitor
-            visit.save(update_fields=['visitor'])
-
-        # Record auth event (if e.g. faces hasn't already done it):
-        with transaction.atomic():
-            relational.Event.objects.select_for_update().get_or_create(
-                visit=visit,
-                event_type='authorized',
-                defaults={
-                    'content': 'oauth',
-                    'campaign_id': campaign_id,
-                    'client_content_id': content_id,
-                },
-            )
+    return token

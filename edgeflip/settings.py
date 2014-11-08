@@ -286,6 +286,7 @@ CELERY_QUEUES = (
     # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
     Queue('partial_save', routing_key='partial.save', queue_arguments=QUEUE_ARGS),
@@ -293,7 +294,7 @@ CELERY_QUEUES = (
     Queue('get_or_create', routing_key='get.or.create', queue_arguments=QUEUE_ARGS),
     Queue('upsert', routing_key='upsert', queue_arguments=QUEUE_ARGS),
     Queue('update_edges', routing_key='update.edges', queue_arguments=QUEUE_ARGS),
-    Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
+    Queue('record_auth', routing_key='record.auth', queue_arguments=QUEUE_ARGS),
     Queue('extend_token', routing_key='extend.token', queue_arguments=QUEUE_ARGS),
     # Feed Crawler Queues
     Queue('user_feeds', routing_key='user.feeds', queue_arguments=QUEUE_ARGS),
@@ -329,6 +330,10 @@ CELERY_ROUTES = {
     'targetshare.tasks.integration.facebook.extend_token': {
         'queue': 'extend_token',
         'routing_key': 'extend.token'
+    },
+    'targetshare.tasks.integration.facebook.record_auth': {
+        'queue': 'record_auth',
+        'routing_key': 'record.auth'
     },
     'targetshare.tasks.db.bulk_create': {
         'queue': 'bulk_create',

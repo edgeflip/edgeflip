@@ -18,13 +18,38 @@ from targetshare.integration import facebook
 from targetshare.models import datastructs, dynamo, relational
 from targetshare.tasks import db, targeting
 from targetshare.tasks.integration.facebook import extend_token
-from targetshare.views import FACES_TASKS_KEY, PENDING_EXCLUSIONS_KEY, utils
+from targetshare.views import FACES_TASKS_KEY, OAUTH_TASK_KEY, PENDING_EXCLUSIONS_KEY, utils
 
 
-LOG = logging.getLogger(__name__)
-LOG_RVN = logging.getLogger('crow')
+LOG = logging.getLogger('crow')
 
 MAX_FACES = 50
+
+
+def request_targeting(visit, token, campaign, client_content, num_faces):
+    """Kick off targeting tasks and record event."""
+    task_px3 = targeting.proximity_rank_three.delay(
+        token=token,
+        visit_id=visit.pk,
+        campaign_id=campaign.pk,
+        content_id=client_content.pk,
+        num_faces=num_faces,
+    )
+    task_px4 = targeting.proximity_rank_four.delay(
+        token=token,
+        visit_id=visit.pk,
+        campaign_id=campaign.pk,
+        content_id=client_content.pk,
+        num_faces=num_faces,
+        px3_task_id=task_px3.id,
+    )
+    visit.events.create(
+        event_type='targeting_requested',
+        campaign_id=campaign.pk,
+        client_content_id=client_content.pk,
+        content="px3_task_id: {}, px4_task_id: {}".format(task_px3.id, task_px4.id),
+    )
+    return (task_px3, task_px4)
 
 
 @csrf_exempt # FB posts directly to this view
@@ -32,6 +57,7 @@ MAX_FACES = 50
 @utils.require_visit
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(relational.Campaign, campaign_id=campaign_id)
+    campaign_properties = campaign.campaignproperties.get()
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
 
@@ -49,6 +75,30 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
     ])
+
+    # If the visitor passed through FB OAuth and our incoming redirector, we
+    # may be able to retrieve the result of their store_oauth_token job,
+    # determine their FBID & token, and eagerly start their targeting jobs.
+    task_id_oauth = request.session.get(OAUTH_TASK_KEY)
+    if task_id_oauth:
+        task_oauth = celery.current_app.AsyncResult(task_id_oauth)
+        if task_oauth.ready():
+            del request.session[OAUTH_TASK_KEY] # no need to do this again
+            if task_oauth.successful():
+                token = task_oauth.result
+                faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign_id,
+                                                         content_id=content_id,
+                                                         fbid=token.fbid)
+                if faces_tasks_key not in request.session:
+                    # Initiate targeting tasks:
+                    (task_px3, task_px4) = request_targeting(
+                        visit=request.visit,
+                        token=token,
+                        campaign=campaign,
+                        client_content=content,
+                        num_faces=campaign_properties.num_faces,
+                    )
+                    request.session[faces_tasks_key] = (task_px3.id, task_px4.id)
 
     page_styles = utils.assign_page_styles(
         request.visit,
@@ -123,29 +173,13 @@ def faces(request):
         )
 
         # Initiate targeting tasks:
-        task_px3 = targeting.proximity_rank_three.delay(
+        (task_px3, task_px4) = request_targeting(
+            visit=request.visit,
             token=token,
-            visit_id=request.visit.pk,
-            campaign_id=campaign.pk,
-            content_id=content.pk,
+            campaign=campaign,
+            client_content=content,
             num_faces=data['num_face'],
         )
-        task_px4 = targeting.proximity_rank_four.delay(
-            token=token,
-            visit_id=request.visit.pk,
-            campaign_id=campaign.pk,
-            content_id=content.pk,
-            num_faces=data['num_face'],
-            px3_task_id=task_px3.id,
-        )
-
-        request.visit.events.create(
-            event_type='targeting_requested',
-            campaign_id=campaign.pk,
-            client_content_id=content.pk,
-            content="px3_task_id: {}, px4_task_id: {}".format(task_px3.id, task_px4.id),
-        )
-
         request.session[faces_tasks_key] = (task_px3.id, task_px4.id)
 
     # Check status #
@@ -186,8 +220,8 @@ def faces(request):
         if task_px3.ready():
             return http.HttpResponseServerError('No friends were identified for you.')
         else:
-            LOG_RVN.fatal("px3 failed to complete in the time allotted (%s)",
-                          task_px3.task_id, extra={'request': request})
+            LOG.fatal("px3 failed to complete in the time allotted (%s)",
+                      task_px3.task_id, extra={'request': request})
             return http.HttpResponse('Response has taken too long, giving up', status=503)
 
     if targeting_result.campaign_id and targeting_result.campaign_id != campaign.pk:
@@ -243,7 +277,6 @@ def faces(request):
         'fb_object_image': fb_attrs.og_image,
         'fb_object_description': fb_attrs.og_description
     }
-    LOG.debug('fb_object_url: %s', fb_params['fb_object_url'])
 
     # Record generation of suggestions (but only once per set of tasks):
     num_gen = MAX_FACES
@@ -312,8 +345,8 @@ def faces(request):
             )
 
     if not show_faces:
-        LOG_RVN.fatal("No faces to show, (all suppressed). (Will return error to user.)",
-                      extra={'request': request})
+        LOG.fatal("No faces to show, (all suppressed). (Will return error to user.)",
+                  extra={'request': request})
         return http.HttpResponseServerError("No friends remaining.")
 
     db.bulk_create.delay(shown)
