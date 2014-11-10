@@ -413,7 +413,7 @@ REPORTING_CACHE_TIMEOUT = (60 * 60 * 4) # 4 hours
 CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
 
 # Session Settings
-SESSION_COOKIE_AGE = 60 * 30 # 30 minutes
+SESSION_COOKIE_AGE = 60 * 60 * 12 # 12 hours
 SESSION_COOKIE_DOMAIN = '.edgeflip.com'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 
