@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 
@@ -89,3 +90,46 @@ class TestRedirectEvent(TestCase):
             'friend_fbid': None,
             'activity_id': None,
         })
+
+    def test_cycle_session(self):
+        """el chapo starts a new visit"""
+        # Force an initial session
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
+        session = self.client.session
+        session['willi'] = 'beretained?'
+        session.save()
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
+
+        # Create a visitor and visit for this session
+        visitor = relational.Visitor.objects.create()
+        visit0 = visitor.visits.create(
+            session_id=session.session_key,
+            app_id=self.campaign.client.fb_app_id,
+            ip='127.0.0.1',
+        )
+        self.client.cookies[settings.VISITOR_COOKIE_NAME] = visitor.uuid
+
+        events = relational.Event.objects.all()
+        visits = relational.Visit.objects.all()
+
+        self.assertEqual(events.count(), 0)
+        self.assertEqual(visits.count(), 1)
+
+        response = self.client.get(self.path)
+
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response['Location'], URL)
+
+        # Check new session & visit
+        self.assertEqual(visits.count(), 2)
+        visit = visitor.visits.exclude(pk=visit0.pk).get() # visitor retained
+        self.assertEqual(visit.session_id, self.client.session.session_key)
+        self.assertNotEqual(visit.session_id, visit0.session_id)
+
+        self.assertEqual(events.count(), 2)
+        self.assertEqual(sorted(visit.events.values_list('event_type', flat=True)),
+                         ['initial_redirect', 'session_start'])
+
+        # Check session data retained
+        self.assertIn('willi', self.client.session)
+        self.assertEqual(self.client.session['willi'], 'beretained?')

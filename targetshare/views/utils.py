@@ -90,7 +90,7 @@ def get_visitor(request, fbid=None):
         return models.relational.Visitor.objects.create()
 
 
-def set_visit(request, app_id, fbid=None, start_event=None):
+def set_visit(request, app_id, fbid=None, start_event=None, cycle=False):
     """Set the Visit object for the request.
 
     Visits are unique per session (`session_key`) and application (`app_id`), and
@@ -104,12 +104,19 @@ def set_visit(request, app_id, fbid=None, start_event=None):
         fbid: The Facebook user identifier (optional)
         start_event: A dict of additional data for the session start event,
             (e.g. `campaign`) (optional)
+        cycle: Force a new session (and visit); session data is carried over
+            (optional)
 
     """
     # Ensure we have a valid session
-    if request.session.session_key:
+    session_key0 = request.session.session_key
+    if session_key0:
         # Don't trust existing; ensure unexpired session has loaded:
         request.session._get_session()
+
+        if cycle and request.session.session_key == session_key0:
+            # New session key required; force:
+            request.session.cycle_key()
     else:
         # Force a session and key to be created:
         request.session.save()
