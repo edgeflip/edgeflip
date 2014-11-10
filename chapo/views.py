@@ -31,7 +31,12 @@ def main(request, slug):
 
     if shortened.campaign and shortened.event_type:
         app_id = shortened.campaign.client.fb_app_id
-        set_visit(request, app_id, start_event={'campaign_id': shortened.campaign.campaign_id})
+        set_visit(
+            request,
+            app_id,
+            start_event={'campaign_id': shortened.campaign.campaign_id},
+            cycle=True,
+        )
         delayed_save.delay(
             Event(
                 visit_id=request.visit.visit_id,
