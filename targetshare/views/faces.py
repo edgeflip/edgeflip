@@ -4,6 +4,7 @@ import itertools
 
 import celery
 from django import http
+from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
 from django.shortcuts import render, get_object_or_404
 from django.template import RequestContext
@@ -58,20 +59,24 @@ def request_targeting(visit, token, campaign, client_content, num_faces):
 def frame_faces(request, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(relational.Campaign, campaign_id=campaign_id)
     campaign_properties = campaign.campaignproperties.get()
+    if campaign_properties.root_campaign_id != campaign_properties.campaign_id:
+        LOG.warning("Received request for non-root campaign", extra={'request': request})
+        raise http.Http404
+
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
 
     db.bulk_create.delay([
         relational.Event(
-            visit=request.visit,
-            campaign=campaign,
-            client_content=content,
+            visit_id=request.visit.pk,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
             event_type='faces_page_load',
         ),
         relational.Event(
-            visit=request.visit,
-            campaign=campaign,
-            client_content=content,
+            visit_id=request.visit.pk,
+            campaign_id=campaign.pk,
+            client_content_id=content.pk,
             event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
         )
     ])
@@ -107,7 +112,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         content,
     )
 
-    properties = campaign.campaignproperties.values().get()
+    (serialized_properties,) = serialize('python', (campaign_properties,))
+    properties = serialized_properties['fields']
     for override_key, field in [
         ('efsuccessurl', 'client_thanks_url'),
         ('eferrorurl', 'client_error_url'),
@@ -146,6 +152,23 @@ def faces(request):
     campaign = root_campaign = data['campaign']
     content = data['content']
     client = campaign.client
+
+    if not request.session.test_cookie_worked():
+        # Avoid spamming the workers with an agent who can't hold onto its session
+        if data['last_call']:
+            LOG.fatal("User agent failed cookie test. (Will return error to user.)",
+                      extra={'request': request})
+            return http.HttpResponseForbidden("Cookies are required.")
+
+        # Agent failed test, but give it another shot
+        LOG.warning("Suspicious session missing cookie test", extra={'request': request})
+        request.session.set_test_cookie()
+        return utils.JsonHttpResponse({
+            'status': 'waiting',
+            'reason': "Cookies are required. Please try again.",
+            'campaignid': campaign.pk,
+            'contentid': content.pk,
+        }, status=202)
 
     faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign.pk,
                                              content_id=content.pk,
@@ -186,9 +209,10 @@ def faces(request):
     if not (task_px3.ready() and task_px4.ready()) and not task_px3.failed() and not data['last_call']:
         return utils.JsonHttpResponse({
             'status': 'waiting',
+            'reason': "Identifying friends.",
             'campaignid': campaign.pk,
             'contentid': content.pk,
-        })
+        }, status=202)
 
     # Select results #
     (result_px3, result_px4) = (

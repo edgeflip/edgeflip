@@ -1,4 +1,5 @@
 from django import forms
+from django.db.models import F
 
 from targetshare.models import relational
 
@@ -8,8 +9,10 @@ class FacesForm(forms.Form):
     fbid = forms.IntegerField(min_value=1)
     token = forms.CharField()
     num_face = forms.IntegerField(min_value=1)
+    campaign = forms.ModelChoiceField(
+        relational.Campaign.objects.filter(campaignproperties__root_campaign_id=F('campaign_id'))
+    )
     content = forms.ModelChoiceField(relational.ClientContent.objects.all())
-    campaign = forms.ModelChoiceField(relational.Campaign.objects.all())
     last_call = forms.BooleanField(required=False)
     efobjsrc = forms.CharField(required=False)
 

@@ -24,28 +24,46 @@ class VisitorMiddleware(object):
 
 class CookieVerificationMiddleware(object):
 
+    COOKIE_REFERERS_NAME = 'testcookie_referers'
+
     def process_response(self, request, response):
-        # http://stackoverflow.com/questions/11783404/wsgirequest-object-has-no-attribute-session
         try:
             session = request.session
         except AttributeError:
+            # Response generated before SessionMiddleware.process_request ran; bail:
             return response
 
         if session.test_cookie_worked():
-            session.delete_test_cookie()
+            # We set a cookie-testing session value in a previous response,
+            # and the user agent has proven it can hold onto session cookies.
+            cleanup = getattr(settings, 'SESSION_COOKIE_VERIFICATION_DELETE', True)
+
+            if cleanup:
+                session.delete_test_cookie()
 
             visit = getattr(request, 'visit', None)
-            referer = request.META.get('HTTP_REFERER', '')
-            if settings.SESSION_COOKIE_DOMAIN in referer and visit:
-                # We have no uniqueness constraint to defend against duplicate
-                # events created by competing threads, so lock get() via
-                # select_for_update:
+            referer = request.META.get('HTTP_REFERER', '')[:1028]
+
+            # If we're not cleaning up the test, rather than lock database rows
+            # on every response, we'll first check a (non-isolated and inexact!)
+            # record of referrers:
+            recorded = session.get(self.COOKIE_REFERERS_NAME, [])
+
+            if visit and settings.SESSION_COOKIE_DOMAIN in referer and (
+                cleanup or referer not in recorded
+            ):
+                # We have no uniqueness constraint to defend against duplicate events
+                # created by competing threads, so lock get() via select_for_update
                 with transaction.atomic():
                     relational.Event.objects.select_for_update().get_or_create(
                         visit=visit,
                         event_type='cookies_enabled',
-                        content=referer[:1028],
+                        content=referer,
                     )
+
+                if not cleanup:
+                    recorded.append(referer)
+                    session[self.COOKIE_REFERERS_NAME] = recorded
 
         if not request.is_ajax():
             # Don't bother unless it's a new "page" request
