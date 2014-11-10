@@ -3,10 +3,8 @@ import json
 import os.path
 
 from django.conf import settings
-from django.core.urlresolvers import resolve, reverse
-from django.test import RequestFactory
+from django.core.urlresolvers import reverse
 from django.utils import timezone
-from django.utils.importlib import import_module
 from mock import patch, Mock
 
 from targetshare import models
@@ -20,40 +18,44 @@ class TestFaces(EdgeFlipViewTestCase):
     fixtures = ['test_data']
 
     task_key = 'faces_tasks_px_1_1_1'
-    task_ids = ('dummypx3taskid', 'dummypx4taskid')
-
-    @classmethod
-    def setUpClass(cls):
-        super(TestFaces, cls).setUpClass()
-        cls.session_engine = import_module(settings.SESSION_ENGINE)
+    task_ids = ['dummypx3taskid', 'dummypx4taskid']
 
     def setUp(self):
         super(TestFaces, self).setUp()
-        self.factory = RequestFactory()
+        self.url = reverse('faces')
 
-    # Helpers for minute control of requests #
+        # Finesse the test client session #
 
-    def post_request(self, data=(), **extra):
-        cookie = self.factory.cookies.get(settings.SESSION_COOKIE_NAME, None)
-        session_key = cookie and cookie.value
-        request = self.factory.post(reverse('faces'), data, **extra)
-        request.session = self.session_engine.SessionStore(session_key)
-        return request
+        # Client is a jerk. Set session cookie so we get an actual SessionStore:
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
+        self.session = self.client.session
+        self.session.set_test_cookie() # usually set by frame_faces
+        self.session.save()
 
-    def get_response(self, request):
-        match = resolve(request.path)
-        self.factory.cookies[settings.SESSION_COOKIE_NAME] = request.session.session_key
-        return match.func(request, *match.args, **match.kwargs)
+        # Set *true* session key:
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
 
-    # Tests #
+    def make_post(self, data=()):
+        response = self.client.post(self.url, data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
+        response.data = json.loads(response.content) if 200 <= response.status_code < 300 else None
+        return response
 
     def test_get(self, _celery_mock):
         """Response to GET is code 405"""
-        response = self.client.get(reverse('faces'))
+        response = self.client.get(self.url)
         self.assertStatusCode(response, 405)
 
     @patch_facebook
-    def test_initial_entry(self, celery_mock):
+    def test_fallback_campaign_rejection(self, _celery_mock):
+        """(Initially-requested) campaign must be root"""
+        root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
+        root_campaign_id = root_campaigns.get(campaign_id=6)
+        self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
+        response = self.make_post(dict(self.params, campaign=6))
+        self.assertStatusCode(response, 400)
+
+    @patch_facebook
+    def test_initial_entry(self, _celery_mock):
         """Initial request initiates tasks and extends token"""
         fbid = self.params['fbid'] = 1111111 # returned by patch
 
@@ -67,96 +69,96 @@ class TestFaces(EdgeFlipViewTestCase):
         clientuser = self.test_client.userclients.filter(fbid=fbid)
         self.assertFalse(clientuser.exists())
 
-        request = self.post_request(self.params)
-        response = self.get_response(request)
-        self.assertStatusCode(response, 200)
+        response = self.make_post(self.params)
+        self.assertStatusCode(response, 200) # eager celery completes targeting
 
-        data = json.loads(response.content)
-        self.assertEqual(data['campaignid'], 1)
-        self.assertEqual(data['contentid'], 1)
+        self.assertEqual(response.data['campaignid'], 1)
+        self.assertEqual(response.data['contentid'], 1)
 
-        task_ids = request.session['faces_tasks_px_1111111_1_1']
+        task_ids = self.client.session['faces_tasks_px_1111111_1_1']
         self.assertEqual(len(task_ids), 2)
 
-        refreshed_token = models.dynamo.Token.items.get_item(
-            fbid=fbid,
-            appid=self.test_client.fb_app_id,
-        )
+        refreshed_token = models.dynamo.Token.items.lookup(fbid, self.test_client.fb_app_id)
         self.assertGreater(refreshed_token.expires, expires0)
-        self.assertTrue(clientuser.exists())
+        self.assertEqual(clientuser.count(), 1)
 
     def test_px3_wait(self, celery_mock):
         """Receive "waiting" response when px3 task incomplete"""
         self.patch_targeting(celery_mock, px3_ready=False, px4_ready=False)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
 
-        response = self.get_response(request)
-        self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'waiting')
-        self.assertEqual(request.session[self.task_key], self.task_ids)
-        self.assertEqual(len(request.session.keys()), 1)
+        response = self.make_post(self.params)
+        self.assertStatusCode(response, 202)
+        self.assertEqual(response.data['status'], 'waiting')
+        self.assertEqual(response.data['reason'], "Identifying friends.")
+
+        session = self.client.session
+        self.assertEqual(set(session.keys()), {'testcookie', self.task_key})
+        self.assertEqual(session[self.task_key], self.task_ids)
 
     def test_px4_wait(self, celery_mock):
         """Receive "waiting" response when px3 task complete but px4 incomplete"""
         self.patch_targeting(celery_mock, px4_ready=False)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
 
-        response = self.get_response(request)
-        self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'waiting')
-        self.assertEqual(request.session[self.task_key], self.task_ids)
-        self.assertEqual(len(request.session.keys()), 1)
+        response = self.make_post(self.params)
+        self.assertStatusCode(response, 202)
+        self.assertEqual(response.data['status'], 'waiting')
+        self.assertEqual(response.data['reason'], "Identifying friends.")
+
+        session = self.client.session
+        self.assertEqual(set(session.keys()), {'testcookie', self.task_key})
+        self.assertEqual(session[self.task_key], self.task_ids)
 
     def test_px3_fail(self, celery_mock):
         """Receive error response as soon as px3 task fails"""
         self.patch_targeting(celery_mock, px3_successful=False, px4_ready=False)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertContains(response, 'No friends were identified for you.', status_code=500)
 
     def test_px3_fail_px4_success(self, celery_mock):
         """Receive error response px3 task fails despite px4 success"""
         self.patch_targeting(celery_mock, px3_successful=False, px4_ready=True)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertContains(response, 'No friends were identified for you.', status_code=500)
 
     def test_last_call(self, celery_mock):
         """Receive px3 results on last call if px4 not ready"""
         self.patch_targeting(celery_mock, px4_ready=False)
-        request = self.post_request(dict(self.params, last_call=True))
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
-        assert data['html']
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(dict(self.params, last_call=True))
+        self.assertStatusCode(response, 200)
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue(response.data['html'])
 
     @patch('targetshare.views.faces.LOG_RVN')
     def test_px3_fail_last_call(self, logger_mock, celery_mock):
         """Receive 503 response to last call request if there are no results"""
         self.patch_targeting(celery_mock, px3_ready=False, px4_ready=False)
-        request = self.post_request(dict(self.params, last_call=True))
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(dict(self.params, last_call=True))
         self.assertContains(response, 'Response has taken too long, giving up', status_code=503)
         self.assertIn('px3 failed to complete', logger_mock.fatal.call_args[0][0])
 
     def test_px4_filtering(self, celery_mock):
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
         self.patch_targeting(celery_mock, px4_filtering=True)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
 
-        generated = request.visit.events.get(event_type='generated')
-        shown = request.visit.events.get(event_type='shown')
+        visit = models.Visit.objects.get(session_id=self.session.session_key)
+        generated = visit.events.get(event_type='generated')
+        shown = visit.events.get(event_type='shown')
         self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234)')
         self.assertEqual(shown.content, 'px4_score: 1.5 (1234)')
 
@@ -164,15 +166,16 @@ class TestFaces(EdgeFlipViewTestCase):
         ''' Test that completes both px3 and px4 crawls '''
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
-        self.assertTrue(data['html'])
-        generated = request.visit.events.get(event_type='generated')
-        shown = request.visit.events.get(event_type='shown')
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue(response.data['html'])
+
+        visit = models.Visit.objects.get(session_id=self.session.session_key)
+        generated = visit.events.get(event_type='generated')
+        shown = visit.events.get(event_type='shown')
         self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234)')
         self.assertEqual(shown.content, 'px4_score: 1.5 (1234)')
 
@@ -180,33 +183,63 @@ class TestFaces(EdgeFlipViewTestCase):
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
 
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        request.session.save()
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
-        self.assertTrue(data['html'])
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue(response.data['html'])
 
-        events = request.visit.events.all()
+        visit = models.Visit.objects.get(session_id=self.session.session_key)
+        events = visit.events.all()
         generated0 = events.filter(event_type='generated').count()
         shown0 = events.filter(event_type='shown').count()
         self.assertEqual(shown0, 1)
         self.assertEqual(generated0, 1)
 
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        response = self.get_response(request)
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
-        self.assertTrue(data['html'])
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue(response.data['html'])
 
         generated1 = events.filter(event_type='generated').count()
         shown1 = events.filter(event_type='shown').count()
         self.assertEqual(shown1, shown0 * 2)
         self.assertEqual(generated1, generated0)
+
+    @patch_facebook
+    def test_cookieless_client_spam(self, celery_mock):
+        targeting = models.Event.objects.filter(event_type='targeting_requested')
+
+        del self.client.cookies[settings.SESSION_COOKIE_NAME] # client is diabetic
+        response = self.make_post(self.params)
+        self.assertStatusCode(response, 202)
+        self.assertEqual(response.data['status'], 'waiting')
+        self.assertEqual(response.data['reason'], "Cookies are required. Please try again.")
+
+        # We didn't do anything:
+        self.assertEqual(self.client.session.keys(), ['testcookie'])
+        self.assertFalse(targeting.exists())
+        self.assertFalse(celery_mock.current_app.AsyncResult.called)
+
+        # But if they can hold the session this time...
+        response = self.make_post(self.params)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(targeting.get().visit.session_id, self.client.session.session_key)
+        self.assertEqual(response.data['status'], 'success') # eager celery completes targeting
+
+    def test_cookieless_client_failure(self, celery_mock):
+        targeting = models.Event.objects.filter(event_type='targeting_requested')
+
+        del self.client.cookies[settings.SESSION_COOKIE_NAME] # client is diabetic
+        response = self.make_post(dict(self.params, last_call=True))
+        self.assertContains(response, "Cookies are required.", status_code=403)
+
+        # We didn't do anything:
+        self.assertEqual(self.client.session.keys(), [])
+        self.assertFalse(targeting.exists())
+        self.assertFalse(celery_mock.current_app.AsyncResult.called)
 
     def test_session_exclusion(self, celery_mock):
         user2 = models.User(self.test_user, fbid=2)
@@ -216,17 +249,16 @@ class TestFaces(EdgeFlipViewTestCase):
         ]
 
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        request.session['face_exclusions_1_1_1'] = [1]
-        request.session.save()
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session['face_exclusions_1_1_1'] = [1]
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
-        self.assertTrue(data['html'])
+        self.assertEqual(response.data['status'], 'success')
+        self.assertTrue(response.data['html'])
 
-        events = request.visit.events.all()
+        visit = models.Visit.objects.get(session_id=self.session.session_key)
+        events = visit.events.all()
         generated0 = events.filter(event_type='generated').count()
         shown0 = events.filter(event_type='shown').count()
         self.assertEqual(shown0, 1)
@@ -235,12 +267,11 @@ class TestFaces(EdgeFlipViewTestCase):
     def test_full_session_exclusion(self, celery_mock):
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        request.session['face_exclusions_1_1_1'] = [1]
-        request.session.save()
-        response = self.get_response(request)
-        self.assertStatusCode(response, 500)
+        self.session[self.task_key] = self.task_ids
+        self.session['face_exclusions_1_1_1'] = [1]
+        self.session.save()
+        response = self.make_post(self.params)
+        self.assertContains(response, "No friends remaining.", status_code=500)
 
     @patch('targetshare.integration.facebook.third_party.requests.get')
     def test_client_fbobject(self, get_mock, celery_mock):
@@ -253,22 +284,18 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertFalse(campaign_objs.exists())
 
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        request.session[self.task_key] = self.task_ids
-        request.session.save()
-        response = self.get_response(request)
+        self.session[self.task_key] = self.task_ids
+        self.session.save()
+        response = self.make_post(self.params)
         self.assertStatusCode(response, 200)
-        data = json.loads(response.content)
-        self.assertEqual(data['status'], 'success')
+        self.assertEqual(response.data['status'], 'success')
 
         # Assert second request doesn't hit client site:
         self.assertEqual(get_mock.call_count, 1)
         self.patch_targeting(celery_mock)
-        request = self.post_request(self.params)
-        response = self.get_response(request)
-        self.assertStatusCode(response, 200)
-        data1 = json.loads(response.content)
-        self.assertEqual(data1['status'], 'success')
+        response1 = self.make_post(self.params)
+        self.assertStatusCode(response1, 200)
+        self.assertEqual(response1.data['status'], 'success')
         self.assertEqual(get_mock.call_count, 1)
 
         campaign_obj = campaign_objs.get()
@@ -287,8 +314,8 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(obj_attrs.sharing_prompt[:25], "Ask your Facebook friends")
 
         # Check html:
-        self.assertIn(obj_attrs.og_image, data['html'])
-        self.assertIn(obj_attrs.og_image, data1['html'])
+        self.assertIn(obj_attrs.og_image, response.data['html'])
+        self.assertIn(obj_attrs.og_image, response1.data['html'])
 
 
 class TestFrameFaces(EdgeFlipViewTestCase):
@@ -349,6 +376,14 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         assert models.Event.objects.get(event_type='session_start')
         assert models.Event.objects.get(event_type='faces_page_load')
         assert models.Event.objects.get(event_type='faces_iframe_load')
+
+    def test_fallback_campaign_rejection(self):
+        """Campaign must be root"""
+        root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
+        root_campaign_id = root_campaigns.get(campaign_id=6)
+        self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
+        response = self.client.get(reverse('frame-faces', args=[6, 1]))
+        self.assertStatusCode(response, 404)
 
     def test_configurable_urls(self):
         success_url = '//disney.com/'
