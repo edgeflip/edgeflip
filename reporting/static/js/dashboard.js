@@ -55,6 +55,10 @@ edgeflip.dashboard = (function (edgeflip, $) {
 
         window.response = response;
 
+        $('#timestamp i').text(
+            "Last data found at " + new Date(response.lastupdated).toString()
+        );
+
         var table = d3.select('#sumtable');
 
         // build rows
