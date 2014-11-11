@@ -423,8 +423,6 @@ SESSION_COOKIE_DOMAIN = '.edgeflip.com'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
-SESSION_COOKIE_VERIFICATION_DELETE = False
-
 # targetshare settings #
 CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours

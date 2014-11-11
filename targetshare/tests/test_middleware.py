@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.http import HttpResponse
 from django.test import RequestFactory
-from django.test.utils import override_settings
 from django.utils.importlib import import_module
 
 from targetshare import middleware
@@ -49,106 +48,78 @@ class TestVisitorMiddleware(BaseMiddlewareTestCase):
         self.assertFalse(response.cookies)
 
 
-@override_settings()
 class TestCookieVerificationMiddleware(BaseMiddlewareTestCase):
+
+    events = relational.Event.objects.filter(event_type='cookies_enabled')
 
     def setUp(self):
         super(TestCookieVerificationMiddleware, self).setUp()
         self.factory = RequestFactory()
         self.middleware = middleware.CookieVerificationMiddleware()
-        try:
-            del settings.SESSION_COOKIE_VERIFICATION_DELETE
-        except AttributeError:
-            pass
 
     def test_initial_visit(self):
         request = self.get_request()
-        response = HttpResponse()
-        self.assertFalse(request.session.test_cookie_worked())
-        self.middleware.process_response(request, response)
-        self.assertTrue(request.session.test_cookie_worked())
+        self.assertNotIn('testcookie', request.session)
+        self.assertNotIn('sessionverified', request.session)
 
-    def test_second_visit_cookies_work(self):
-        events = relational.Event.objects.filter(event_type='cookies_enabled')
-        self.assertEqual(events.count(), 0)
-
-        request = self.get_request()
-        request.META['HTTP_REFERER'] = 'test.edgeflip.com'
-        request.session.set_test_cookie()
-        utils.set_visit(request, 1)
-        self.middleware.process_response(request, HttpResponse())
-
-        self.assertEqual(events.count(), 1)
-        self.assertTrue(request.session.test_cookie_worked())
-        self.assertNotIn('testcookie_referers', request.session)
-
-    def test_second_visit_cookies_failed(self):
-        events = relational.Event.objects.filter(event_type='cookies_enabled')
-        self.assertFalse(events.exists())
-
-        request = self.get_request()
-        request.META['HTTP_REFERER'] = 'test.edgeflip.com'
-        utils.set_visit(request, 1)
-        self.middleware.process_response(request, HttpResponse())
-
-        self.assertFalse(events.exists())
-        self.assertTrue(request.session.test_cookie_worked())
-
-    def test_no_test_cookie_on_ajax(self):
-        events = relational.Event.objects.filter(event_type='cookies_enabled')
-        self.assertEqual(events.count(), 0)
-
-        request = self.get_request()
-        request.META['HTTP_REFERER'] = 'test.edgeflip.com'
-        request.META['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
-        request.session.set_test_cookie()
-        utils.set_visit(request, 1)
-        self.middleware.process_response(request, HttpResponse())
-
-        self.assertEqual(events.count(), 1)
-        self.assertFalse(request.session.test_cookie_worked())
+        self.middleware.process_request(request)
+        self.assertNotIn('sessionverified', request.session)
         self.assertNotIn('testcookie', request.session)
 
-    @override_settings(SESSION_COOKIE_VERIFICATION_DELETE=False)
-    def test_persistent_result(self):
-        events = relational.Event.objects.filter(event_type='cookies_enabled')
-        self.assertEqual(events.count(), 0)
+        self.middleware.process_response(request, HttpResponse())
+        self.assertNotIn('sessionverified', request.session)
+        self.assertEqual(request.session.get('testcookie'), 'worked')
+
+    def test_second_visit_cookies_work(self):
+        self.assertEqual(self.events.count(), 0)
 
         request = self.get_request()
-        request.META['HTTP_REFERER'] = 'test.edgeflip.com'
+        request.META['HTTP_REFERER'] = 'https://test.edgeflip.com/'
         request.session.set_test_cookie()
         utils.set_visit(request, 1)
-        response = HttpResponse()
-        self.middleware.process_response(request, response)
 
-        self.assertEqual(events.count(), 1)
-        self.assertTrue(request.session.test_cookie_worked())
-        self.assertEqual(request.session['testcookie_referers'], ['test.edgeflip.com'])
+        self.middleware.process_request(request)
+        self.assertTrue(request.session.get('sessionverified'))
+        self.assertNotIn('testcookie', request.session)
 
-        self.middleware.process_response(request, response)
-        self.assertEqual(events.count(), 1) # referrer already recorded
-        self.assertTrue(request.session.test_cookie_worked())
+        self.middleware.process_response(request, HttpResponse())
+        self.assertEqual(self.events.count(), 1)
+        self.assertTrue(request.session.get('sessionverified'))
+        self.assertEqual(request.session.get('testcookie'), 'worked')
 
-    @override_settings(SESSION_COOKIE_VERIFICATION_DELETE=False)
-    def test_persistent_result_ajax(self):
-        events = relational.Event.objects.filter(event_type='cookies_enabled')
-        self.assertEqual(events.count(), 0)
+    def test_second_visit_cookies_failed(self):
+        self.assertFalse(self.events.exists())
 
         request = self.get_request()
-        request.META['HTTP_REFERER'] = 'test.edgeflip.com'
+        request.META['HTTP_REFERER'] = 'https://test.edgeflip.com/'
+        utils.set_visit(request, 1)
+
+        self.middleware.process_request(request)
+        self.assertNotIn('testcookie', request.session)
+        self.assertNotIn('sessionverified', request.session)
+
+        self.middleware.process_response(request, HttpResponse())
+        self.assertFalse(self.events.exists())
+        self.assertEqual(request.session.get('testcookie'), 'worked')
+        self.assertNotIn('sessionverified', request.session)
+
+    def test_no_test_cookie_on_ajax(self):
+        self.assertEqual(self.events.count(), 0)
+
+        request = self.get_request()
+        request.META['HTTP_REFERER'] = 'https://test.edgeflip.com/'
         request.META['HTTP_X_REQUESTED_WITH'] = 'XMLHttpRequest'
         request.session.set_test_cookie()
         utils.set_visit(request, 1)
-        response = HttpResponse()
-        self.middleware.process_response(request, response)
 
-        self.assertEqual(events.count(), 1)
-        self.assertTrue(request.session.test_cookie_worked()) # no clean-up
-        self.assertEqual(request.session['testcookie_referers'], ['test.edgeflip.com'])
+        self.middleware.process_request(request)
+        self.assertNotIn('testcookie', request.session)
+        self.assertTrue(request.session.get('sessionverified'))
 
-        self.middleware.process_response(request, response)
-        self.assertEqual(events.count(), 1) # referrer already recorded
-        self.assertTrue(request.session.test_cookie_worked()) # no clean-up
+        self.middleware.process_response(request, HttpResponse())
+        self.assertEqual(self.events.count(), 1)
+        self.assertNotIn('testcookie', request.session)
+        self.assertTrue(request.session.get('sessionverified'))
 
 
 class TestP3PMiddleware(BaseMiddlewareTestCase):
