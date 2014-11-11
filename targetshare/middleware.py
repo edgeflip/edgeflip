@@ -24,49 +24,57 @@ class VisitorMiddleware(object):
 
 class CookieVerificationMiddleware(object):
 
-    COOKIE_REFERERS_NAME = 'testcookie_referers'
+    SESSION_VERIFICATION_NAME = 'sessionverified'
+
+    def process_request(self, request):
+        try:
+            session = request.session
+        except AttributeError:
+            return None
+
+        if session.test_cookie_worked():
+            # We set a cookie-testing session value on a previous request,
+            # and the user agent has proven it can hold onto session cookies.
+
+            # Clean up to avoid interference with future tests
+            session.delete_test_cookie()
+
+            # Let request handlers know the test passed
+            if getattr(settings, 'STORE_SESSION_COOKIE_VERIFICATION', True):
+                session[self.SESSION_VERIFICATION_NAME] = True
+
+            # Make a note to record an event on response
+            request._session_verification_event = True
+
+        return None
 
     def process_response(self, request, response):
         try:
             session = request.session
         except AttributeError:
-            # Response generated before SessionMiddleware.process_request ran; bail:
             return response
 
-        if session.test_cookie_worked():
-            # We set a cookie-testing session value in a previous response,
-            # and the user agent has proven it can hold onto session cookies.
-            cleanup = getattr(settings, 'SESSION_COOKIE_VERIFICATION_DELETE', True)
-
-            if cleanup:
-                session.delete_test_cookie()
-
+        try:
+            del request._session_verification_event
+        except AttributeError:
+            pass
+        else:
+            # We made a note to record an event for the successful test;
+            # by now the visit *must* have been set, if it's going to be:
             visit = getattr(request, 'visit', None)
-            referer = request.META.get('HTTP_REFERER', '')[:1028]
-
-            # If we're not cleaning up the test, rather than lock database rows
-            # on every response, we'll first check a (non-isolated and inexact!)
-            # record of referrers:
-            recorded = session.get(self.COOKIE_REFERERS_NAME, [])
-
-            if visit and settings.SESSION_COOKIE_DOMAIN in referer and (
-                cleanup or referer not in recorded
-            ):
+            if visit:
                 # We have no uniqueness constraint to defend against duplicate events
                 # created by competing threads, so lock get() via select_for_update
                 with transaction.atomic():
                     relational.Event.objects.select_for_update().get_or_create(
                         visit=visit,
                         event_type='cookies_enabled',
-                        content=referer,
+                        content=request.META.get('HTTP_REFERER', '')[:1028],
                     )
 
-                if not cleanup:
-                    recorded.append(referer)
-                    session[self.COOKIE_REFERERS_NAME] = recorded
-
+        # Initiate the next test
+        # (but don't bother unless it's a new "page" request)
         if not request.is_ajax():
-            # Don't bother unless it's a new "page" request
             session.set_test_cookie()
 
         return response
@@ -75,13 +83,16 @@ class CookieVerificationMiddleware(object):
 class P3PMiddleware(object):
 
     def process_response(self, request, response):
-        ''' IE10 is a meanie, and remains the only browser to respect P3P
-        (http://www.w3.org/P3P/). Without a P3P setting, our cookies will be
-        rejected by IE10, and then a lot of our functionality breaks down.
+        """Insert into the response a fake P3P privacy policy header.
 
-        For now, we have a dummy string in there that IE10 will amazingly
-        accept as valid. However, long term we need to handle this via:
-            https://trello.com/c/pTyZi1Rh
-        '''
+        IE10 is a meanie, and remains the only browser to respect P3P
+        (http://www.w3.org/P3P/). Without a P3P setting, our cookies would be
+        rejected by IE10, and then a lot of our functionality would break down.
+
+        For now, we have a dummy string in there that IE10 will (amazingly)
+        accept as valid. However, long term we may need to handle this
+        (via: https://trello.com/c/pTyZi1Rh).
+
+        """
         response['P3P'] = 'CP="This is not a privacy policy!"'
         return response

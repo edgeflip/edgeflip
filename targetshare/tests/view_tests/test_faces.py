@@ -94,7 +94,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(response.data['reason'], "Identifying friends.")
 
         session = self.client.session
-        self.assertEqual(set(session.keys()), {'testcookie', self.task_key})
+        self.assertEqual(set(session.keys()), {'sessionverified', self.task_key})
         self.assertEqual(session[self.task_key], self.task_ids)
 
     def test_px4_wait(self, celery_mock):
@@ -109,7 +109,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(response.data['reason'], "Identifying friends.")
 
         session = self.client.session
-        self.assertEqual(set(session.keys()), {'testcookie', self.task_key})
+        self.assertEqual(set(session.keys()), {'sessionverified', self.task_key})
         self.assertEqual(session[self.task_key], self.task_ids)
 
     def test_px3_fail(self, celery_mock):
@@ -219,9 +219,10 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(response.data['reason'], "Cookies are required. Please try again.")
 
         # We didn't do anything:
-        self.assertEqual(self.client.session.keys(), ['testcookie'])
         self.assertFalse(targeting.exists())
         self.assertFalse(celery_mock.current_app.AsyncResult.called)
+        # ... except start a new test:
+        self.assertEqual(self.client.session.keys(), ['testcookie'])
 
         # But if they can hold the session this time...
         response = self.make_post(self.params)

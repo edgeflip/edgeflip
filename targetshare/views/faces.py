@@ -153,7 +153,7 @@ def faces(request):
     content = data['content']
     client = campaign.client
 
-    if not request.session.test_cookie_worked():
+    if not request.session.get('sessionverified', False):
         # Avoid spamming the workers with an agent who can't hold onto its session
         if data['last_call']:
             LOG.fatal("User agent failed cookie test. (Will return error to user.)",
