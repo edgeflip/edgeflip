@@ -9,6 +9,11 @@ from reporting.query import metric_where_fragment
 from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse, cached_report
 
 
+def readable_tz(row, indices):
+    for index in indices:
+        row[index] = row[index].strftime('%Y-%m-%dT%H:%M:%S %Z')
+    return row
+
 @auth_client_required
 @require_GET
 def campaign_hourly(request, client_pk, campaign_pk):
@@ -34,7 +39,7 @@ def campaign_hourly(request, client_pk, campaign_pk):
             query,
             (campaign_pk,)
         )
-        data = [isoformat_row(row, [0]) for row in data]
+        data = [readable_tz(row, [0]) for row in data]
         data.insert(0, [col.name for col in cursor.description])
         return data
 
