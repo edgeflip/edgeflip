@@ -26,7 +26,6 @@ define(
                 'click *[data-js="addFilterBtn"]': 'showAddFilter',
                 'click *[data-js="addFallbackBtn"]': 'addFallbackLayer',
                 'click *[data-js="removeLayerBtn"]': 'removeLayer',
-                'dblclick *[data-js="filter"]': 'moveFilter',
                 'click *[data-js="nextStep"]': 'prepareFormFieldValues',
                 'click *[data-js="prevStep"]': 'goBack'
             },
@@ -133,9 +132,18 @@ define(
                two existing filters, on the front, it is one filter for display with two associated
                filters hiding for the backend */
             filterReceived: function( event, ui ) {
+                var dataFilterId = ui.item.attr('data-filter-id');
+                var dataFilterSelector = '[data-filter-id="' + dataFilterId + '"]';
                 var dataLink = ui.item.attr('data-link');
-                if( dataLink ) {
-                    ui.sender.find('[data-link="' + dataLink + '"]').appendTo( $(event.target) );
+                var dataLinkSelector = '[data-link="' + dataLink + '"]';
+                // enforce filter uniqueness within a given audience
+                if(
+                    $(event.target).find(dataFilterSelector).length > 1 &&
+                    ( !dataLink || $(event.target).find(dataLinkSelector).length > 1)
+                ) {
+                    ui.item.appendTo(ui.sender);
+                } else {
+                    ui.sender.find(dataLinkSelector).appendTo( $(event.target) );
                 }
             },
 
@@ -150,23 +158,6 @@ define(
                 } ).disableSelection();
 
                 return this;
-            },
-
-            /* handles double click on a filter */
-            moveFilter: function(e) {
-
-                var dblClickedFilter = $(e.currentTarget);
-                var dataLink = dblClickedFilter.attr('data-link');
-                var target, source;
-                if( dblClickedFilter.closest( this.templateData.availableFilters ).length ) {
-                    target = this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]');
-                    source = this.templateData.availableFilters;
-                } else {
-                    source = this.templateData.enabledFiltersContainer.children().last().find('*[data-js="filterContainer"]');
-                    target = this.templateData.availableFilters;
-                }
-                dblClickedFilter.appendTo(target);
-                source.find('[data-link="' + dataLink + '"]').appendTo(target);
             },
 
             removeLayer: function(event) {
