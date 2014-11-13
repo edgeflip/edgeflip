@@ -175,7 +175,7 @@ class TestShorten(TestCase):
 
     @urandom_patch
     def test_read_db(self, _mock):
-        models.ShortenedUrl.objects.create(slug='TEST-SLUG', url=URL)
+        models.ShortenedUrl.objects.create(slug='testIslug', url=URL)
         shorts = models.ShortenedUrl.objects.all()
         self.assertEqual(shorts.count(), 1)
 
@@ -185,17 +185,17 @@ class TestShorten(TestCase):
         with patch('django.core.cache.cache', cache):
             out = utils.shorten(URL, event_type='generic_redirect')
 
-        self.assertEqual(out, "/r/TEST-SLUG/")
+        self.assertEqual(out, "/r/testIslug/")
         self.assertEqual(shorts.count(), 1)
 
         self.assertEqual(len(cache), 1)
 
         slug = cache['shorturl|generic_redirect|||cc06be0890c05085b3fbeec2bea1ad9d']
-        self.assertEqual(slug, 'TEST-SLUG')
+        self.assertEqual(slug, 'testIslug')
 
     @urandom_patch
     def test_read_db_event_type(self, _mock):
-        models.ShortenedUrl.objects.create(event_type='initial_redirect', slug='TEST-SLUG', url=URL)
+        models.ShortenedUrl.objects.create(event_type='initial_redirect', slug='testIslug', url=URL)
         shorts = models.ShortenedUrl.objects.all()
         self.assertEqual(shorts.count(), 1)
 
@@ -205,13 +205,13 @@ class TestShorten(TestCase):
         with patch('django.core.cache.cache', cache):
             out = utils.shorten(URL)
 
-        self.assertEqual(out, "/r/TEST-SLUG/")
+        self.assertEqual(out, "/r/testIslug/")
         self.assertEqual(shorts.count(), 1)
 
         self.assertEqual(len(cache), 1)
 
         slug = cache['shorturl|initial_redirect|||cc06be0890c05085b3fbeec2bea1ad9d']
-        self.assertEqual(slug, 'TEST-SLUG')
+        self.assertEqual(slug, 'testIslug')
 
     @urandom_patch
     def test_read_db_campaign(self, _mock):
@@ -220,7 +220,7 @@ class TestShorten(TestCase):
 
         campaign.shortenedurls.create(
             event_type='initial_redirect',
-            slug='TEST-SLUG',
+            slug='testIslug',
             url=URL,
         )
         shorts = models.ShortenedUrl.objects.all()
@@ -232,13 +232,13 @@ class TestShorten(TestCase):
         with patch('django.core.cache.cache', cache):
             out = utils.shorten(URL, campaign=1)
 
-        self.assertEqual(out, "/r/TEST-SLUG/")
+        self.assertEqual(out, "/r/testIslug/")
         self.assertEqual(shorts.count(), 1)
 
         self.assertEqual(len(cache), 1)
 
         slug = cache['shorturl|initial_redirect||1|cc06be0890c05085b3fbeec2bea1ad9d']
-        self.assertEqual(slug, 'TEST-SLUG')
+        self.assertEqual(slug, 'testIslug')
 
     @urandom_patch
     def test_read_db_prefix(self, _mock):
@@ -283,3 +283,34 @@ class TestShorten(TestCase):
 
         slug = cache['shorturl|initial_redirect|test||cc06be0890c05085b3fbeec2bea1ad9d']
         self.assertEqual(slug, 'test-slug')
+
+    @urandom_patch
+    def test_read_db_ignore_prefix(self, _mock):
+        # This one is older:
+        recently = models.ShortenedUrl.objects.create(
+            event_type='initial_redirect',
+            slug='testIslug',
+            url=URL,
+        )
+        recently.created = datetime.now() - timedelta(hours=12)
+        recently.save()
+
+        # This one is newer but has a prefix:
+        models.ShortenedUrl.objects.create(event_type='initial_redirect', slug='test-slug', url=URL)
+
+        shorts = models.ShortenedUrl.objects.all()
+        self.assertEqual(shorts.count(), 2)
+
+        cache = DictCache()
+        self.assertEqual(len(cache), 0)
+
+        with patch('django.core.cache.cache', cache):
+            out = utils.shorten(URL)
+
+        self.assertEqual(out, "/r/testIslug/")
+        self.assertEqual(shorts.count(), 2)
+
+        self.assertEqual(len(cache), 1)
+
+        slug = cache['shorturl|initial_redirect|||cc06be0890c05085b3fbeec2bea1ad9d']
+        self.assertEqual(slug, 'testIslug')

@@ -89,8 +89,12 @@ def shorten(long_url, prefix='', campaign=None, event_type='initial_redirect',
             url=long_url,
             campaign_id=campaign_id or None,
             event_type=event_type,
-            slug__startswith=(prefix_slug and prefix_slug + '-'),
         )
+        if prefix_slug:
+            existing = existing.filter(slug__startswith=prefix_slug + '-')
+        else:
+            existing = existing.exclude(slug__contains='-')
+
         with transaction.atomic():
             try:
                 slug = existing.select_for_update().values_list('slug', flat=True).latest('created')
