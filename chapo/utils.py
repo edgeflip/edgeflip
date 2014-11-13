@@ -64,41 +64,59 @@ def shorten(long_url, prefix='', campaign=None, event_type='initial_redirect',
     (defaulting to 100), which may be configured via `max_attempts`; (pass 0 to try
     indefinitely).
 
-    This helper uses any cache configured as the default, to avoid unnecessary
-    database inserts and redundant mappings. The default cache expiration is 0
-    seconds (never). This default may be changed by setting `CHAPO_CACHE_TIMEOUT`
-    in your Django settings file, or by passing the `cache_timeout` argument;
-    (the latter overrides the former).
+    To avoid unnecessary database inserts and redundant mappings, before
+    attempting to create a new shortened URL, this helper checks any cache
+    configured as the default; and then, the database is checked for existing
+    mappings.
+
+    The default cache expiration is 0 seconds (never). This default may be
+    changed by setting `CHAPO_CACHE_TIMEOUT` in your Django settings file, or
+    by passing the `cache_timeout` argument; (the latter overrides the former).
 
     """
     campaign_id = getattr(campaign, 'pk', campaign)
+    prefix_slug = str(slugify(unicode(prefix))) if prefix else ''
     cache_key = 'shorturl|{event_type}|{prefix}|{campaign_id}|{url}'.format(
         event_type=event_type,
-        prefix=str(slugify(unicode(prefix))) if prefix else '',
+        prefix=prefix_slug,
         campaign_id=campaign_id or '',
         url=uuid.uuid5(uuid.NAMESPACE_URL, long_url.encode('utf-8')).hex,
     )
     slug = django.core.cache.cache.get(cache_key)
 
     if slug is None:
-        for count in itertools.count(1):
-            slug = ShortenedUrl.make_slug(prefix)
+        existing = ShortenedUrl.objects.filter(
+            url=long_url,
+            campaign_id=campaign_id or None,
+            event_type=event_type,
+        )
+        if prefix_slug:
+            existing = existing.filter(slug__startswith=prefix_slug + '-')
+        else:
+            existing = existing.exclude(slug__contains='-')
+
+        with transaction.atomic():
             try:
-                with transaction.atomic():
-                    ShortenedUrl.objects.create(
-                        slug=slug,
-                        campaign_id=campaign_id or None,
-                        event_type=event_type,
-                        url=long_url,
-                    )
-            except IntegrityError:
-                # slug was not unique, try again?
-                if count == max_attempts:
-                    raise
-            else:
-                if count > 1:
-                    LOG.warning("shorten required %s attempts", count)
-                break # done!
+                slug = existing.select_for_update().values_list('slug', flat=True).latest('created')
+            except ShortenedUrl.DoesNotExist:
+                for count in itertools.count(1):
+                    slug = ShortenedUrl.make_slug(prefix)
+                    try:
+                        with transaction.atomic():
+                            ShortenedUrl.objects.create(
+                                slug=slug,
+                                campaign_id=campaign_id or None,
+                                event_type=event_type,
+                                url=long_url,
+                            )
+                    except IntegrityError:
+                        # slug was not unique, try again?
+                        if count == max_attempts:
+                            raise
+                    else:
+                        if count > 1:
+                            LOG.warning("shorten required %s attempts", count)
+                        break # done!
 
         if cache_timeout is None:
             cache_timeout = getattr(settings, 'CHAPO_CACHE_TIMEOUT', 0)
