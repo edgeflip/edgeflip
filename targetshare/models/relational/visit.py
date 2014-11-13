@@ -17,6 +17,7 @@ class Visit(models.Model):
     class Meta(object):
         app_label = 'targetshare'
         db_table = 'visits'
+        get_latest_by = 'created'
         unique_together = ('session_id', 'app_id')
 
     def __unicode__(self):
