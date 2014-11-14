@@ -3,7 +3,7 @@ from .metrics import Metrics
 
 
 class Campaignhourly(Metrics):
-    campaign = models.ForeignKey('Campaign', null=True, db_constraint=False)
+    campaign = models.ForeignKey('Campaign', null=True)
     hour = models.DateTimeField()
 
     class Meta(object):
