@@ -56,7 +56,7 @@ edgeflip.dashboard = (function (edgeflip, $) {
         window.response = response;
 
         $('#timestamp i').text(
-            "Last data found at " + new Date(response.lastupdated).toString()
+            "Last data found at " + new Date(response.lastupdated).toLocaleString('en-US', { timeZoneName: 'short'})
         );
 
         var table = d3.select('#sumtable');
