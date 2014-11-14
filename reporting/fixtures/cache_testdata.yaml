@@ -2,11 +2,11 @@
     pk: null
     fields: {client_id: 1, name: 'Test', codename: 'test', create_dt: !!timestamp '2013-07-15 11:38:28'}
 -   model: reporting.campaign
-    pk: null
+    pk: 1
     fields: {campaign_id: 1, client_id: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
          is_deleted: false, name: Catchall Campaign}
 -   model: reporting.campaign
-    pk: null
+    pk: 2
     fields: {campaign_id: 2, client_id: 1, create_dt: !!timestamp '2013-07-15 11:38:28', delete_dt: null,
          is_deleted: false, name: Specific Campaign}
 -   model: reporting.campaignrollups
@@ -17,10 +17,10 @@
     fields: {client_id: 1, visits: 4, authorized_visits: 4, uniq_users_authorized: 1, auth_fails: 4, visits_shown_faces: 3, visits_with_share_clicks: 3, visits_with_shares: 2, total_shares: 4, clickbacks: 2}
 -   model: reporting.campaignhourly
     pk: null
-    fields: {campaign_id: 2, hour: !!timestamp '2013-12-01 06:00:00', visits: 2, authorized_visits: 2, uniq_users_authorized: 1, auth_fails: 1, visits_shown_faces: 1, visits_with_share_clicks: 1, visits_with_shares: 1, total_shares: 2, clickbacks: 1}
+    fields: {campaign: 2, hour: !!timestamp '2013-12-01 06:00:00', visits: 2, authorized_visits: 2, uniq_users_authorized: 1, auth_fails: 1, visits_shown_faces: 1, visits_with_share_clicks: 1, visits_with_shares: 1, total_shares: 2, clickbacks: 1}
 -   model: reporting.campaignhourly
     pk: null
-    fields: {campaign_id: 2, hour: !!timestamp '2013-12-01 07:00:00', visits: 2, authorized_visits: 2, uniq_users_authorized: 1, auth_fails: 3, visits_shown_faces: 2, visits_with_share_clicks: 1, visits_with_shares: 1, total_shares: 2, clickbacks: 1}
+    fields: {campaign: 2, hour: !!timestamp '2013-12-01 07:00:00', visits: 2, authorized_visits: 2, uniq_users_authorized: 1, auth_fails: 3, visits_shown_faces: 2, visits_with_share_clicks: 1, visits_with_shares: 1, total_shares: 2, clickbacks: 1}
 -   model: reporting.campchain
     pk: null
     fields: {root_id: 2, parent_id: 2, child_id: 1}

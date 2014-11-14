@@ -1,5 +1,7 @@
 from django.db import connections
+from django.db.models import Max
 from django.views.decorators.http import require_GET
+from reporting.models import Campaignhourly
 from reporting.query import metric_where_fragment
 from reporting.utils import run_safe_dict_query, JsonResponse, cached_report
 from targetadmin.utils import auth_client_required
@@ -53,6 +55,11 @@ def client_summary(request, client_pk):
             (client.client_id,)
         )
 
+    def retrieve_client_lastdata():
+        return Campaignhourly.objects \
+            .filter(campaign__client_id=client.client_id) \
+            .aggregate(max_hour=Max('hour'))['max_hour']
+
     data = cached_report(
         'campaignrollups',
         client.client_id,
@@ -65,4 +72,14 @@ def client_summary(request, client_pk):
         retrieve_client_rollups
     )
 
-    return JsonResponse({'data': data, 'rollups': rollup_data})
+    last_updated = cached_report(
+        'clientlastdata',
+        client.client_id,
+        retrieve_client_lastdata
+    )
+
+    return JsonResponse({
+        'data': data,
+        'rollups': rollup_data,
+        'lastupdated': last_updated
+    })
