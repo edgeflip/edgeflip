@@ -412,7 +412,7 @@ JSURLS_PROFILES = {
 }
 
 # reporting settings
-REPORTING_CACHE_TIMEOUT = (60 * 60 * 4) # 4 hours
+REPORTING_CACHE_TIMEOUT = (60 * 15) # 15 minutes
 
 # chapo settings #
 CHAPO_CACHE_TIMEOUT = 30 * (60 * 60 * 24) # 30 days
