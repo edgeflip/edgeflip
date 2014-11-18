@@ -13,7 +13,6 @@ from targetshare.models import relational
 from targetshare.views.utils import encodeDES, JsonHttpResponse
 
 from targetadmin import forms, utils
-from targetadmin.views import base
 
 
 LOG_RVN = logging.getLogger('crow')
@@ -33,10 +32,11 @@ Your friend,
 The Campaign Wizard
 """
 
-CAMPAIGN_CREATION_THANK_YOU_MESSAGE = """\
-Your campaign has been saved. Edgeflip is validating the campaign \
-and will notify you when it has been deployed and ready for you to use.\
-"""
+CAMPAIGN_CREATION_THANK_YOU_MESSAGE = (
+    "Your campaign has been saved. "
+    "Edgeflip is validating the campaign and "
+    "will notify you when it has been deployed and ready for you to use."
+)
 
 
 def render_campaign_creation_message(request, campaign, content):
@@ -63,75 +63,6 @@ def render_campaign_creation_message(request, campaign, content):
         ),
         campaign_url=initial_url,
     )
-
-
-class CampaignListView(base.ClientRelationListView):
-    model = relational.Campaign
-    object_string = 'Campaign'
-    detail_url_name = 'targetadmin:campaign-detail'
-    create_url_name = 'targetadmin:campaign-new'
-
-
-campaign_list = CampaignListView.as_view()
-
-
-class CampaignDetailView(base.ClientRelationDetailView):
-    model = relational.Campaign
-    object_string = 'Campaign'
-    edit_url_name = 'targetadmin:campaign-edit'
-    template_name = 'targetadmin/campaign_detail.html'
-
-    def get_context_data(self, **kwargs):
-        context = super(CampaignDetailView, self).get_context_data(**kwargs)
-        context.update({
-            'properties': self.object.campaignproperties.for_datetime(datetime=None).get(),
-            'choice_set': self.object.campaignchoicesets.for_datetime(datetime=None).get(),
-        })
-        return context
-
-
-campaign_detail = CampaignDetailView.as_view()
-
-
-@utils.auth_client_required
-def campaign_create(request, client_pk):
-    client = get_object_or_404(relational.Client, pk=client_pk)
-    clone_pk = request.GET.get('clone_pk')
-    if clone_pk:
-        clone = get_object_or_404(relational.Campaign, pk=clone_pk, client=client)
-        clone_props = clone.campaignproperties.get()
-        campaign_choice_set = clone.campaign_choice_set()
-        initial = {
-            'faces_url': clone_props.client_faces_url,
-            'thanks_url': clone_props.client_thanks_url,
-            'error_url': clone_props.client_error_url,
-            'fallback_campaign': clone_props.fallback_campaign,
-            'fallback_content': clone_props.fallback_content,
-            'cascading_fallback': clone_props.fallback_is_cascading,
-            'min_friends_to_show': clone_props.min_friends,
-            'global_filter': clone.global_filter(),
-            'button_style': clone.button_style(),
-            'choice_set': campaign_choice_set and campaign_choice_set.choice_set,
-            'allow_generic': campaign_choice_set.allow_generic if campaign_choice_set else False,
-            'generic_url_slug': campaign_choice_set and campaign_choice_set.generic_url_slug,
-            'generic_fb_object': clone.generic_fb_object(),
-            'fb_object': clone.fb_object(),
-        }
-    else:
-        initial = {'min_friends_to_show': 1}
-
-    if request.method == 'POST':
-        form = forms.CampaignForm(client=client, data=request.POST)
-        if form.is_valid():
-            campaign = form.save()
-            return redirect('targetadmin:campaign-detail', client.pk, campaign.pk)
-    else:
-        form = forms.CampaignForm(client=client, initial=initial)
-
-    return render(request, 'targetadmin/campaign_edit.html', {
-        'client': client,
-        'form': form
-    })
 
 
 @utils.auth_client_required
