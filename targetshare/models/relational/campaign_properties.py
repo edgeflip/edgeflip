@@ -25,6 +25,7 @@ class CampaignProperties(models.Model):
                                  related_name='campaignproperties')
     client_content = models.ForeignKey('ClientContent',
                                        db_column='content_id',
+                                       null=True,
                                        related_name='campaignproperties',
                                        help_text="Default client content to pair with the campaign")
     client_faces_url = models.CharField(max_length=2096)
