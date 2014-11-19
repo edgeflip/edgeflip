@@ -567,7 +567,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertStatusCode(response, 302)
         campaign = new_client.campaigns.exclude(rootcampaign_properties=None).get()
         content = new_client.clientcontent.get()
-        self.assertNotEqual(content, content0)
+        self.assertEqual(content, content0)
         self.assertTrue(props.get().fallback_campaign)
         encoded = encodeDES('{}/{}'.format(campaign.pk, content.pk))
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
