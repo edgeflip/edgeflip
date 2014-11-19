@@ -201,7 +201,7 @@
       fallback_is_cascading: null
       min_friends: 1
       start_dt: '2013-07-15 11:38:28'
-      root_campaign: 4
+      root_campaign: 5
       client_content: 4
     model: targetshare.campaignproperties
     pk: 4
