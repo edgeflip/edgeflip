@@ -9,7 +9,7 @@ from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
-from django.views.decorators import require_GET, require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 from targetshare.models import relational
 from targetshare.views.utils import encodeDES, JsonHttpResponse
@@ -211,11 +211,9 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     # Empty fallback filter
     # Need to make sure they didn't want a filterless campaign,
     # which would make the empty fallback irrelevant.
-    if (campaign_form.cleaned_data['include_empty_fallback'] and root_filter.filterfeatures.exists()):
+    if campaign_form.cleaned_data['include_empty_fallback'] and root_filter.filterfeatures.exists():
         # Find an empty choiceset filter group
-        empty_choices = client.choicesets.filter(
-            choicesetfilters__filter__filterfeatures=None,
-        )
+        empty_choices = client.choicesets.filter(choicesetfilters__filter__filterfeatures=None)
         if empty_choices.exists():
             empty_cs = empty_choices[0]
         else:
@@ -236,17 +234,11 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     # Page Styles
     page_style_sets = []
     for page in relational.Page.objects.all():
-        client_styles = page.pagestyles.filter(
-            starred=True,
-            client=client,
-        )
+        client_styles = page.pagestyles.filter(starred=True, client=client)
         if client_styles:
             page_style_sets.append(client_styles)
         else:
-            default_styles = page.pagestyles.filter(
-                starred=True,
-                client=None,
-            )
+            default_styles = page.pagestyles.filter(starred=True, client=None)
             page_style_sets.append(default_styles)
 
     # FB Object
@@ -264,6 +256,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     # Client Content
     content_old = campaign and campaign_properties.client_content
     if content_old and content_old.url == campaign_form.cleaned_data['content_url']:
+        # Original is OK
         content = content_old
     else:
         with transaction.atomic():

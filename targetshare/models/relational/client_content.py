@@ -13,7 +13,7 @@ class ClientContent(models.Model):
     delete_dt = models.DateTimeField(null=True, blank=True)
 
     def __unicode__(self):
-        return u'%s' % self.name
+        return u'{}'.format(self.name or self.url)
 
     class Meta(object):
         app_label = 'targetshare'
