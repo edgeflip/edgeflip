@@ -5,6 +5,7 @@ import re
 
 from django.conf import settings
 from django.core.mail import send_mail
+from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
 from django.db import transaction
 from django.http import HttpResponseBadRequest
@@ -361,106 +362,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
         recipient_list=settings.ADMIN_NOTIFICATION_LIST,
         fail_silently=True,
     )
-    response = redirect('targetadmin:campaign-wizard-finish',
-                        client.pk, last_camp.pk)
-    # FIXME
-    response['Location'] += "?content={}".format(content.pk)
-    return response
-
-
-@utils.auth_client_required
-@require_GET
-def campaign_summary(request, client_pk, campaign_pk):
-    return render(
-        request,
-        'targetadmin/campaign_summary_page.html',
-        get_campaign_summary_data(request, client_pk, campaign_pk)
-    )
-
-
-@utils.auth_client_required
-@require_GET
-def campaign_wizard_finish(request, client_pk, campaign_pk):
-    content_pk = request.GET.get('content', '')
-    if content_pk.isdigit():
-        summary_data = get_campaign_summary_data(request, client_pk, campaign_pk, content_pk)
-        summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
-        return render(
-            request,
-            'targetadmin/campaign_summary_page.html',
-            summary_data
-        )
-
-    return HttpResponseBadRequest("Client content is required.") # FIXME
-
-
-def guess_content(client, root_campaign):
-    # FIXME
-    return relational.ClientContent.objects.filter(
-        name='{} {}'.format(client.name, root_campaign.name[:-2])
-    )[0]
-
-
-@require_GET
-def get_campaign_summary_data(request, client_pk, campaign_pk, content_pk=None):
-    client = get_object_or_404(relational.Client, pk=client_pk)
-    root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
-
-    if content_pk:
-        content = get_object_or_404(client.clientcontent, pk=content_pk)
-    else:
-        content = guess_content(client, root_campaign)
-
-    filters = []
-    for campaign in root_campaign.iterchain():
-        filters.append([
-            list(choice_set_filter.filter.filterfeatures.values(
-                'feature', 'operator', 'value', 'feature_type__code',
-            ).iterator())
-            for choice_set_filter in campaign.choice_set().choicesetfilters.all()
-        ])
-
-    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set
-    root_properties = root_campaign.campaignproperties.values(
-        'client_faces_url',
-        'client_thanks_url',
-        'client_error_url',
-        'status',
-    ).get()
-
-    base_values = {
-        'campaign_id': campaign_pk,
-        'client': client,
-        'content_url': content.url,
-        'campaign_name': re.sub(r' 1$', '', root_campaign.name),
-        'root_campaign': root_campaign,
-        'campaign_properties': json.dumps(root_properties),
-        'fb_obj_attributes': json.dumps(fb_obj_attributes.values(
-            'msg1_post',
-            'msg1_pre',
-            'msg2_post',
-            'msg2_pre',
-            'og_description',
-            'og_image',
-            'og_title',
-            'og_type',
-            'org_name',
-            'sharing_prompt',
-            'sharing_sub_header',
-        ).get()),
-        'filters': json.dumps(filters),
-    }
-
-    if (
-        request.user.is_superuser or
-        root_properties['status'] == relational.CampaignProperties.Status.PUBLISHED
-    ):
-        sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
-        base_values['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain,
-                                                              client.domain,
-                                                              sharing_urls['initial_url'])
-
-    return base_values
+    return redirect('targetadmin:campaign-wizard-finish', client.pk, last_camp.pk)
 
 
 def clean_up_campaign(campaign):
@@ -502,6 +404,70 @@ def clean_up_campaign(campaign):
 
 @utils.auth_client_required
 @require_GET
+def campaign_summary(request, client_pk, campaign_pk, wizard=False):
+    client = get_object_or_404(relational.Client, pk=client_pk)
+    root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign_properties = root_campaign.campaignproperties.get()
+    content = campaign_properties.client_content
+
+    filters = []
+    for campaign in root_campaign.iterchain():
+        filters.append([
+            list(choice_set_filter.filter.filterfeatures.values(
+                'feature', 'operator', 'value', 'feature_type__code',
+            ).iterator())
+            for choice_set_filter in campaign.choice_set().choicesetfilters.all()
+        ])
+
+    fb_obj_attributes = root_campaign.fb_object().fbobjectattribute_set.values(
+        'msg1_post',
+        'msg1_pre',
+        'msg2_post',
+        'msg2_pre',
+        'og_description',
+        'og_image',
+        'og_title',
+        'og_type',
+        'org_name',
+        'sharing_prompt',
+        'sharing_sub_header',
+    ).get()
+
+    (serialized_properties,) = serialize('python', (campaign_properties,), fields=(
+        'client_faces_url',
+        'client_thanks_url',
+        'client_error_url',
+        'status',
+    ))
+
+    summary_data = {
+        'campaign_id': campaign_pk,
+        'client': client,
+        'content_url': content.url,
+        'campaign_name': re.sub(r' 1$', '', root_campaign.name),
+        'root_campaign': root_campaign,
+        'campaign_properties': json.dumps(serialized_properties),
+        'fb_obj_attributes': json.dumps(fb_obj_attributes),
+        'filters': json.dumps(filters),
+    }
+
+    if (
+        request.user.is_superuser or
+        campaign_properties.status == campaign_properties.Status.PUBLISHED
+    ):
+        sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
+        summary_data['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain,
+                                                               client.domain,
+                                                               sharing_urls['initial_url'])
+
+    if wizard:
+        summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
+
+    return render(request, 'targetadmin/campaign_summary_page.html', summary_data)
+
+
+@utils.auth_client_required
+@require_GET
 def available_filters(request, client_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     filter_features = relational.FilterFeature.objects.filter(
@@ -519,7 +485,7 @@ def campaign_data(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
     campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
-    content = guess_content(client, campaign)
+    content = campaign_properties.client_content
 
     campaign_filters = []
     for campaign0 in campaign.iterchain():

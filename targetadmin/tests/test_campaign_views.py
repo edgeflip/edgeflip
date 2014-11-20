@@ -76,13 +76,13 @@ class TestCampaignWizard(TestAdminBase):
         )
         self.assertStatusCode(response, 302)
         camp = new_client.campaigns.latest('pk')
+        self.assertRedirects(response,
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]))
+
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, "{}?content={}".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
-            content.pk
-        ))
+        self.assertEqual(content.url, 'http://www.content.com')
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertTrue(new_client.filters.exists())
@@ -158,10 +158,9 @@ class TestCampaignWizard(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, "{}?content={}".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
-            content.pk
-        ))
+        self.assertRedirects(response,
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk])
+        )
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertTrue(new_client.filters.exists())
@@ -232,10 +231,9 @@ class TestCampaignWizard(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, "{}?content={}".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
-            content.pk
-        ))
+        self.assertRedirects(response,
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk])
+        )
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertTrue(new_client.filters.exists())
@@ -293,15 +291,15 @@ class TestCampaignWizard(TestAdminBase):
             }
         )
         self.assertStatusCode(response, 302)
-
         camp = new_client.campaigns.latest('pk')
+        self.assertRedirects(response,
+            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk])
+        )
+
         content = new_client.clientcontent.latest('pk')
         cs = camp.choice_set()
-        self.assertRedirects(response, "{}?content={}".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
-            content.pk
-        ))
 
+        self.assertEqual(content.url, 'http://www.content.com')
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertEqual(new_client.campaigns.count(), 2)
@@ -362,10 +360,9 @@ class TestCampaignWizard(TestAdminBase):
         content = new_client.clientcontent.latest('pk')
         cs = camp.campaignchoicesets.get().choice_set
         fb_attr = camp.campaignfbobjects.get().fb_object.fbobjectattribute_set.get()
-        self.assertRedirects(response, "{}?content={}".format(
+        self.assertRedirects(response,
             reverse('targetadmin:campaign-wizard-finish', args=[new_client.pk, camp.pk]),
-            content.pk
-        ))
+        )
         self.assertIn('Root', cs.name)
         self.assertIn('Root', cs.choicesetfilters.get().filter.name)
         self.assertTrue(new_client.filters.exists())
@@ -490,19 +487,9 @@ class TestCampaignWizard(TestAdminBase):
                          page_style)
 
     def test_campaign_wizard_finish(self):
-        response = self.client.get("{}?content=1".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
+        response = self.client.get(
+            reverse('targetadmin:campaign-wizard-finish', args=[1, 1]))
         self.assertStatusCode(response, 200)
-
-    def test_campaign_wizard_finish_missing_content(self):
-        response = self.client.get("{}?content=106".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
-        self.assertStatusCode(response, 404)
-
-    def test_campaign_wizard_finish_bad_content(self):
-        response = self.client.get("{}?content=1/logout".format(
-            reverse('targetadmin:campaign-wizard-finish', args=[1, 1])))
-        self.assertStatusCode(response, 400)
 
     def test_edit_campaign_wizard(self):
         new_client = relational.Client.objects.create(
@@ -594,20 +581,12 @@ class TestCampaignData(TestAdminBase):
         csf0 = csf[0]
         csf.exclude(pk=csf0.pk).delete()
 
-        # Ensure campaigns have well-named content:
-        # FIXME: due to legacy campaigns and content-guessing
-        for campaign in (self.campaign_nofallback, self.campaign_wfallback):
-            campaign.client.clientcontent.create(
-                name="{} {}".format(campaign.client.name, campaign.name[:-2]),
-                url='http://www.disney.com/',
-            )
-
     def test_campaign_data_content_url(self):
         response = self.client.get(reverse('targetadmin:campaign-data',
                                            args=[self.test_client.pk, self.campaign_nofallback.pk]))
         self.assertStatusCode(response, 200)
         data = json.loads(response.content)
-        self.assertEqual(data['content_url'], 'http://www.disney.com/')
+        self.assertEqual(data['content_url'], 'http://local.edgeflip.com:8080/mocks/guncontrol')
 
     def test_campaign_data_no_empty_fallback0(self):
         campaign = self.campaign_nofallback

@@ -2,37 +2,45 @@ from django.conf.urls import patterns, url
 from django.views.generic import TemplateView
 
 # Client URLS
-urlpatterns = patterns('targetadmin.views',
-    url(r'^$', 'client_views.client_list_view', name='client-list'),
-    url(r'^client/(?P<client_pk>\d+)/$', 'client_views.client_detail_view', name='client-detail'),
+urlpatterns = patterns('targetadmin.views.client_views',
+    url(r'^$', 'client_list_view', name='client-list'),
+    url(r'^client/(?P<client_pk>\d+)/$', 'client_detail_view', name='client-detail'),
 )
 
-urlpatterns += patterns('targetadmin.views',
-    # Campaign URLs
-    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/summary/$', 'campaign_views.campaign_summary',
+# Campaign URLs
+urlpatterns += patterns('targetadmin.views.campaign_views',
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/summary/$',
+        'campaign_summary',
         name='campaign-summary'),
-    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$', 'campaign_views.campaign_wizard',
+    url(r'^client/(?P<client_pk>\d+)/campaign/wizard/$',
+        'campaign_wizard',
         name='campaign-wizard'),
-    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/wizard/$', 'campaign_views.campaign_wizard',
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/wizard/$',
+        'campaign_wizard',
         name='campaign-wizard-edit'),
     url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/wizard/finish/$',
-        'campaign_views.campaign_wizard_finish',
-        name='campaign-wizard-finish'),
-    url(r'^campaign/how-it-works/$', TemplateView.as_view(template_name='targetadmin/how_it_works.html'),
-        name='how-it-works'),
-    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/data.json$', 'campaign_views.campaign_data',
+        'campaign_summary',
+        {'wizard': True},
+        'campaign-wizard-finish'),
+    url(r'^client/(?P<client_pk>\d+)/campaign/(?P<campaign_pk>\d+)/data.json$',
+        'campaign_data',
         name='campaign-data'),
-    url(r'^client/(?P<client_pk>\d+)/filters.json$', 'campaign_views.available_filters',
+    url(r'^client/(?P<client_pk>\d+)/filters.json$',
+        'available_filters',
         name='available-filters'),
+    url(r'^campaign/how-it-works/$',
+        TemplateView.as_view(template_name='targetadmin/how_it_works.html'),
+        name='how-it-works'),
 )
 
-urlpatterns += patterns('targetadmin.views',
-    # Snippet URLs
-    url(r'^client/(?P<client_pk>\d+)/snippets/$', 'snippets.snippets',
+# Snippet URLs
+urlpatterns += patterns('targetadmin.views.snippets',
+    url(r'^client/(?P<client_pk>\d+)/snippets/$',
+        'snippets',
         name='snippets'),
     url(r'^client/(?P<client_pk>\d+)/snippets/data.json$',
-        'snippets.snippet_update',
-        name='snippet-update')
+        'snippet_update',
+        name='snippet-update'),
 )
 
 urlpatterns += patterns('',

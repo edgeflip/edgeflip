@@ -164,12 +164,6 @@ def get_isolation_level():
     return isolation_level
 
 
-# FIXME: This doesn't appear to work in production
-def set_isolation_level(value):
-    with closing(connection.cursor()) as cursor:
-        cursor.execute('SET SESSION TRANSACTION ISOLATION LEVEL {}'.format(value))
-
-
 class Command(BaseCommand):
 
     args = '[PATH]'
@@ -244,9 +238,10 @@ class Command(BaseCommand):
 
         isolation_level = get_isolation_level()
         if isolation_level != 'READ-COMMITTED':
-            self.perr("target not intended for use with {}, "
-                      "setting level READ-COMMITTED".format(isolation_level))
-            set_isolation_level('READ COMMITTED')
+            raise CommandError(
+                "target intended for use with isolation level READ-COMMITTED, not {}"
+                .format(isolation_level)
+            )
 
         # Stream tokens thru parallelized background tasks to generate ranked friend networks
         # args => tokens => [debugged tokens] => [sliced tokens] => tasks
