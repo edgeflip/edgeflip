@@ -23,8 +23,12 @@ def snippets(request, client_pk):
     try:
         first_content = client.clientcontent.get(pk=request.GET.get('content_pk', ''))
     except (relational.ClientContent.DoesNotExist, ValueError):
+        client_contents = client.clientcontent.all()
+        if first_campaign:
+            client_contents = client_contents.filter(campaignproperties__campaign=first_campaign)
+
         try:
-            first_content = client.clientcontent.all()[0]
+            first_content = client_contents[0]
         except IndexError:
             first_content = None
 
@@ -55,7 +59,15 @@ def snippet_update(request, client_pk):
 
     if snippet_form.is_valid():
         campaign = snippet_form.cleaned_data['campaign']
-        content = snippet_form.cleaned_data['content']
-        return JsonHttpResponse(utils.build_sharing_urls(request.get_host(), campaign, content))
+        if request.GET.get('changed') == 'campaign':
+            content = client.clientcontent.get(campaignproperties__campaign=campaign)
+        else:
+            content = snippet_form.cleaned_data['content']
+        data = utils.build_sharing_urls(request.get_host(), campaign, content)
+        data.update(
+            campaign=campaign.campaign_id,
+            content=content.content_id,
+        )
+        return JsonHttpResponse(data)
 
     return JsonHttpResponse(snippet_form.errors, status=400)

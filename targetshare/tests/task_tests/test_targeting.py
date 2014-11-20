@@ -43,7 +43,7 @@ class TestProximityRankThree(TargetingTestCase):
         self.client = models.Client.objects.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
-        self.properties = self.campaign.campaignproperties.create()
+        self.properties = self.campaign.campaignproperties.create(client_content=self.content)
 
         # ...and default (no-op) filtering:
         self.default_filter = self.client.filters.create()
@@ -211,7 +211,7 @@ class Px4TargetingTestCase(TargetingTestCase):
         self.client = models.Client.objects.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
-        self.properties = self.campaign.campaignproperties.create()
+        self.properties = self.campaign.campaignproperties.create(client_content=self.content)
 
         # ...and default (no-op) filtering:
         self.default_filter = models.relational.Filter.objects.get(name='edgeflip default')
@@ -508,7 +508,7 @@ class TestPx4OnlyFilterTargeting(TargetingTestCase):
         self.client = models.Client.objects.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
-        self.properties = self.campaign.campaignproperties.create()
+        self.properties = self.campaign.campaignproperties.create(client_content=self.content)
 
         # ...and default (no-op) filtering:
         self.default_filter = self.client.filters.create()

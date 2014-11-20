@@ -6,11 +6,18 @@
     <script src="{{ STATIC_URL }}js/router.js" async></script>
 
     <script type='text/javascript'>
-        function doUpdate() {
-            var cmpg = $('#id_campaign').val(),
-                cnt = $('#id_content').val();
+        function doUpdate () {
+            var endpoint = "{% url 'targetadmin:snippet-update' client.pk %}",
+                cmpgControl = $('#id_campaign'),
+                cntControl = $('#id_content'),
+                cmpg = cmpgControl.val(),
+                cnt = cntControl.val();
 
-            $.getJSON("{% url 'targetadmin:snippet-update' client.pk %}", {campaign: cmpg, content: cnt}, function(data) {
+            $.getJSON(endpoint, {campaign: cmpg, content: cnt, changed: this.name})
+            .done(function (data) {
+                cmpgControl.val(data.campaign);
+                cntControl.val(data.content);
+
                 $('.campaign-pk').html(cmpg);
                 $('.content-pk').html(cnt);
                 $('.cmpgslug').html(data.slug);
@@ -23,7 +30,10 @@
                         url = edgeflip.router.reverse(name, data.slug);
                     $this.html(url);
                 });
-            }).fail(function(jqXHR, textStatus, errorThrown) {alert('Ruh-Roh! ' + errorThrown);});
+            })
+            .fail(function (jqXHR, textStatus, errorThrown) {
+                alert('Ruh-Roh! ' + errorThrown);
+            });
         }
     </script>
 {% endblock %}

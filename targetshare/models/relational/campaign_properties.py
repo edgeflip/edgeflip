@@ -23,26 +23,26 @@ class CampaignProperties(models.Model):
     campaign_property_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign', null=True,
                                  related_name='campaignproperties')
+    client_content = models.ForeignKey('ClientContent',
+                                       db_column='content_id',
+                                       null=True,
+                                       related_name='campaignproperties',
+                                       help_text="Default client content to pair with the campaign")
     client_faces_url = models.CharField(max_length=2096)
     client_thanks_url = models.CharField(max_length=2096)
     client_error_url = models.CharField(max_length=2096)
-    fallback_campaign = models.ForeignKey(
-        'Campaign',
-        related_name='fallbackcampaign_properties',
-        null=True
-    )
-    fallback_content = models.ForeignKey('ClientContent', null=True)
+    fallback_campaign = models.ForeignKey('Campaign', null=True,
+                                          related_name='fallbackcampaign_properties')
+    fallback_content = models.ForeignKey('ClientContent', null=True,
+                                         related_name='fallbackcampaign_properties')
     fallback_is_cascading = models.NullBooleanField()
+    root_campaign = models.ForeignKey('Campaign', null=True,
+                                      related_name='rootcampaign_properties')
     min_friends = models.IntegerField(default=1)
     num_faces = models.PositiveIntegerField(default=10)
+    status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.CHOICES)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
-    root_campaign = models.ForeignKey(
-        'Campaign',
-        related_name='rootcampaign_properties',
-        null=True,
-    )
-    status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.CHOICES)
 
     objects = manager.TransitoryObjectManager.make()
 

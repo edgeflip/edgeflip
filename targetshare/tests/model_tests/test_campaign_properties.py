@@ -1,4 +1,4 @@
-from targetshare.models.relational import Campaign
+from targetshare.models.relational import Campaign, ClientContent
 from mock import patch
 
 from .. import EdgeFlipTestCase
@@ -8,7 +8,9 @@ class TestCampaignProperties(EdgeFlipTestCase):
 
     def _create_campaign(self, campaign_name, fallback_campaign_obj=None):
         campaign = Campaign.objects.create(name=campaign_name)
-        campaign.campaignproperties.create(fallback_campaign=fallback_campaign_obj)
+        content = ClientContent.objects.create()
+        campaign.campaignproperties.create(fallback_campaign=fallback_campaign_obj,
+                                           client_content=content)
         return campaign
 
     def test_parent(self):

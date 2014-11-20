@@ -18,7 +18,7 @@ class TestSnippetViews(TestAdminBase):
         super(TestSnippetViews, self).setUp()
         self.content = self.test_client.clientcontent.create(name='Test Content')
         self.campaign = self.test_client.campaigns.create(name='Test Campaign')
-        self.campaign.campaignproperties.create()
+        self.campaign.campaignproperties.create(client_content=self.content)
         self.url = reverse('targetadmin:snippets', args=[self.test_client.pk])
 
     def test_snippets(self):
