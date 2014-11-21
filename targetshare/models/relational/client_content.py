@@ -1,6 +1,6 @@
 from django.db import models
 
-from core.models.manager import Manager
+from core.db.models import Manager
 
 
 class ClientContent(models.Model):

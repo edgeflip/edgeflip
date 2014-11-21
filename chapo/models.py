@@ -7,7 +7,7 @@ import sys
 from django.db import models
 from django.utils.text import slugify
 
-from core.models import base
+from core.db.models import BaseModel
 
 
 MIN_SLUG = 8
@@ -71,7 +71,7 @@ def make_slug(length=MAX_SLUG, alphabet=string.letters):
     return int2str(number, alphabet, length)
 
 
-class ShortenedUrl(base.BaseModel):
+class ShortenedUrl(BaseModel):
     """A record for an arbitrary, short alias (slug) for an arbitrary URL.
 
     The `slug` defaults to the result of `make_slug`. Only `url` is required.
@@ -83,7 +83,7 @@ class ShortenedUrl(base.BaseModel):
     slug = models.SlugField(primary_key=True, default=make_slug)
     url = models.URLField(max_length=2048)
 
-    class Meta(base.BaseModel.Meta):
+    class Meta(BaseModel.Meta):
         db_table = 'shortened_urls'
 
     @staticmethod
