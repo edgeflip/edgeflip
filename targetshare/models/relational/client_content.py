@@ -1,5 +1,7 @@
 from django.db import models
 
+from core.models.manager import Manager
+
 
 class ClientContent(models.Model):
 
@@ -11,6 +13,8 @@ class ClientContent(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True, blank=True)
+
+    objects = Manager()
 
     def __unicode__(self):
         return u'{}'.format(self.name or self.url)

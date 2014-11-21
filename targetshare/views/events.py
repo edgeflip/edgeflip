@@ -67,39 +67,34 @@ def record_event(request):
     # Create event(s) according to record type #
 
     if event_type in SINGULAR_EVENTS:
-        with transaction.atomic():
-            # We have no uniqueness constraint to defend against duplicate
-            # events created by competing threads, so lock get() via
-            # select_for_update:
-            relational.Event.objects.select_for_update().get_or_create(
-                event_type=event_type,
-                visit=request.visit,
-                defaults={
-                    'campaign_id': campaign_id,
-                    'client_content_id': content_id,
-                    'content': content,
-                    'activity_id': action_id,
-                },
-            )
+        request.visit.events.first_or_create(
+            event_type=event_type,
+            defaults={
+                'campaign_id': campaign_id,
+                'client_content_id': content_id,
+                'content': content,
+                'activity_id': action_id,
+            }
+        )
     elif event_type in UPDATED_EVENTS:
         # This is (currently) just the 'heartbeat' event
         with transaction.atomic():
-            (event, created) = relational.Event.objects.select_for_update().get_or_create(
+            (event, created) = relational.Event.objects.select_for_update().first_or_create(
                 event_type=event_type,
                 visit=request.visit,
                 defaults={
                     'campaign_id': campaign_id,
                     'client_content_id': content_id,
-                    'content': 1,
-                },
+                    'content': '1',
+                }
             )
-        if not created:
-            if campaign_id and not event.campaign_id:
-                event.campaign_id = campaign_id
-            if content_id and not event.client_content_id:
-                event.client_content_id = content_id
-            event.content = F('content') + 1
-            event.save()
+            if not created:
+                if campaign_id and not event.campaign_id:
+                    event.campaign_id = campaign_id
+                if content_id and not event.client_content_id:
+                    event.client_content_id = content_id
+                event.content = F('content') + 1
+                event.save()
     elif friends:
         db.bulk_create.delay([
             relational.Event(
