@@ -54,7 +54,7 @@ def cached_report(prefix, identifier, value_generator, cache_timeout=None):
             cache_timeout = getattr(
                 settings,
                 'REPORTING_CACHE_TIMEOUT',
-                60 * 60 * 4
+                60 * 15
             )
         cache.cache.set(cache_key, data, cache_timeout)
     return data
