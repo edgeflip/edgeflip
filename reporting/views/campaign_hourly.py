@@ -2,8 +2,8 @@ import csv
 from datetime import datetime
 from django.db import connections
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.http import require_GET
-import pytz
 from targetadmin.utils import auth_client_required
 from targetshare.models import Client
 from reporting.query import metric_where_fragment
@@ -32,7 +32,8 @@ def campaign_hourly(request, client_pk, campaign_pk):
     def retrieve_campaign_hourly_csv():
         def csv_tz(row, indices):
             for index in indices:
-                row[index] = row[index].replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S %Z')
+                aware_ts = row[index] if timezone.is_aware(row[index]) else timezone.make_aware(row[index], timezone.utc)
+                row[index] = aware_ts.strftime('%Y-%m-%dT%H:%M:%S %Z')
             return row
 
         data = run_safe_row_query(
