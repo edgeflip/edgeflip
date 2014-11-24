@@ -3,16 +3,12 @@ from datetime import datetime
 from django.db import connections
 from django.http import HttpResponse
 from django.views.decorators.http import require_GET
+import pytz
 from targetadmin.utils import auth_client_required
 from targetshare.models import Client
 from reporting.query import metric_where_fragment
 from reporting.utils import isoformat_dict, isoformat_row, run_safe_dict_query, run_safe_row_query, JsonResponse, cached_report
 
-
-def readable_tz(row, indices):
-    for index in indices:
-        row[index] = row[index].strftime('%Y-%m-%dT%H:%M:%S %Z')
-    return row
 
 @auth_client_required
 @require_GET
@@ -34,12 +30,17 @@ def campaign_hourly(request, client_pk, campaign_pk):
     response_format = request.GET.get('format', '')
 
     def retrieve_campaign_hourly_csv():
+        def csv_tz(row, indices):
+            for index in indices:
+                row[index] = row[index].replace(tzinfo=pytz.UTC).strftime('%Y-%m-%dT%H:%M:%S %Z')
+            return row
+
         data = run_safe_row_query(
             cursor,
             query,
             (campaign_pk,)
         )
-        data = [readable_tz(row, [0]) for row in data]
+        data = [csv_tz(row, [0]) for row in data]
         data.insert(0, [col.name for col in cursor.description])
         return data
 
