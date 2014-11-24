@@ -1,7 +1,4 @@
 from django.conf import settings
-from django.db import transaction
-
-from targetshare.models import relational
 
 
 class VisitorMiddleware(object):
@@ -63,14 +60,10 @@ class CookieVerificationMiddleware(object):
             # by now the visit *must* have been set, if it's going to be:
             visit = getattr(request, 'visit', None)
             if visit:
-                # We have no uniqueness constraint to defend against duplicate events
-                # created by competing threads, so lock get() via select_for_update
-                with transaction.atomic():
-                    relational.Event.objects.select_for_update().get_or_create(
-                        visit=visit,
-                        event_type='cookies_enabled',
-                        content=request.META.get('HTTP_REFERER', '')[:1028],
-                    )
+                visit.events.first_or_create(
+                    event_type='cookies_enabled',
+                    content=request.META.get('HTTP_REFERER', '')[:1028],
+                )
 
         # Initiate the next test
         # (but don't bother unless it's a new "page" request)

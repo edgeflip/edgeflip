@@ -7,7 +7,6 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
-from django.db import transaction
 from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
@@ -260,15 +259,9 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
         # Original is OK
         content = content_old
     else:
-        with transaction.atomic():
-            try:
-                content = client.clientcontent.select_for_update().filter(
-                    url=campaign_form.cleaned_data['content_url'],
-                )[0]
-            except IndexError:
-                content = client.clientcontent.create(
-                    url=campaign_form.cleaned_data['content_url'],
-                )
+        (content, _created) = client.clientcontent.first_or_create(
+            url=campaign_form.cleaned_data['content_url'],
+        )
 
     campaign_chain = tuple(campaign.iterchain()) if campaign else []
     campaigns = []
