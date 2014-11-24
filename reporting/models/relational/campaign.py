@@ -3,7 +3,7 @@ from django.db import models
 
 class Campaign(models.Model):
 
-    campaign_id = models.IntegerField()
+    campaign_id = models.IntegerField(primary_key=True)
     client_id = models.IntegerField()
     name = models.CharField(max_length=256, blank=True)
     description = models.TextField(blank=True)
