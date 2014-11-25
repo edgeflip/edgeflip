@@ -127,23 +127,63 @@ define(
                 return this;
             },
 
-            /* Called when a filter is moved from one layer to another, or back to the available
-               filters container.  This is a hack to handle age filters.  On the back end it is
-               two existing filters, on the front, it is one filter for display with two associated
-               filters hiding for the backend */
-            filterReceived: function( event, ui ) {
-                var dataFilterId = ui.item.attr('data-filter-id');
-                var dataFilterSelector = '[data-filter-id="' + dataFilterId + '"]';
-                var dataLink = ui.item.attr('data-link');
-                var dataLinkSelector = '[data-link="' + dataLink + '"]';
-                // enforce filter uniqueness within a given audience
-                if(
-                    $(event.target).find(dataFilterSelector).length > 1 &&
-                    ( !dataLink || $(event.target).find(dataLinkSelector).length > 1)
-                ) {
-                    ui.item.appendTo(ui.sender);
-                } else {
-                    ui.sender.find(dataLinkSelector).appendTo( $(event.target) );
+            filterReceived: function (event, ui) {
+                /* Called when a filter label is moved in between layers and between layers and
+                 * the available filters "well".
+                 *
+                 * This contains a hack to handle age filters. On the backend it is two filters;
+                 * on the frontend, it is one filter for display with two associated filters
+                 * hiding for the backend.
+                 *
+                 * Generally, this is overly complex, because (our config of) jQuery drag/drop
+                 * doesn't do everything we want in the first place, (*and* requires additional
+                 * work for age filters).
+                 * */
+                var dataFilter = ui.item.attr('data-filter-id'),
+                    dataFilterSelector = dataFilter && '[data-filter-id="' + dataFilter + '"]',
+                    dataLink = ui.item.attr('data-link'),
+                    dataLinkSelector = dataLink && '[data-link="' + dataLink + '"]';
+                var target = $(event.target),
+                    targetFilters = target.find(dataFilterSelector),
+                    targetLinks = target.find(dataLinkSelector),
+                    senderLinks = ui.sender.find(dataLinkSelector);
+                var senderIsWell = ui.sender.attr('data-js') === 'availableFilters';
+
+                /* Enforce filter uniqueness within a given audience */
+                if (dataLink) {
+                    /* Have to handle linked data items specially;
+                     * label has already been moved, (but hidden elements have not)
+                     * */
+                    if (targetLinks.length <= 1) {
+                        // OK, let's finish putting 'em in there
+                        if (senderIsWell) {
+                            // Make it a copy rather than a move
+                            ui.item.clone(true).appendTo(ui.sender);
+                            senderLinks = senderLinks.clone(true);
+                        }
+                        senderLinks.appendTo(target);
+                    } else {
+                        // Handle dupes
+                        if (senderIsWell) {
+                            // Send back the label
+                            ui.item.appendTo(ui.sender);
+                        } else {
+                            targetLinks.not(ui.item).remove(); // remove existing
+                            senderLinks.appendTo(target); // finish move
+                        }
+                    }
+                } else if (targetFilters.length > 1) {
+                    // Handle dupes
+                    if (senderIsWell) {
+                        // Send it back:
+                        ui.item.appendTo(ui.sender);
+                    } else {
+                        // Remove duplicate:
+                        targetFilters.not(ui.item).remove();
+                    }
+                } else if (senderIsWell) {
+                    // All good, but let's keep a copy in the well:
+                    ui.item.clone(true).appendTo(ui.sender);
                 }
             },
 
