@@ -227,6 +227,7 @@ class TestLockHelper(TestCase):
         with self.assertRaises(ZeroDivisionError):
             divider(1, 0)
 
-        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("FlippinDatabase:divider", 3))
-        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:divider",))
+        name = "FlippinDatabase:{}:divider".format(divider.__module__)
+        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", (name, 3))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", (name,))
         self.assertEqual(cursor.execute.call_count, 2)

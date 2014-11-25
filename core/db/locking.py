@@ -12,7 +12,7 @@ def lock(*args, **kws):
         if len(args) == 1 and 'nickname' not in kws and 'fullname' not in kws:
             # No name specified, use callable's
             # TODO: Use full module path?
-            kws['nickname'] = decorated.__name__
+            kws['nickname'] = "{0.__module__}:{0.__name__}".format(decorated)
         return AdvisoryLock(*args[1:], **kws)(decorated)
 
     # Args configure decorator / context manager object
