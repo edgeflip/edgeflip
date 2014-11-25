@@ -224,8 +224,6 @@ define(
                         var atts = filter.attributes,
                             selector = '*[data-filter-id="set_number=' + atts.feature + '.' + atts.operator + '.' + atts.value + '"]',
                             fromAvailable = this.templateData.availableFilters.find(selector),
-                            dataFilterId = fromAvailable.attr('data-filter-id'),
-                            dataFilterSelector = '[data-filter-id="' + dataFilterId + '"]';
                             target = this.templateData.enabledFiltersContainer.children().last().find('[data-js=filterContainer]');
                         fromAvailable.clone(true).appendTo(target);
                     }, this);
