@@ -223,14 +223,9 @@ define(
                     _.each(filter_collection.models, function(filter) {
                         var atts = filter.attributes,
                             selector = '*[data-filter-id="set_number=' + atts.feature + '.' + atts.operator + '.' + atts.value + '"]',
-                            fromAvailable = this.templateData.availableFilters.find(selector);
-
-                        if (fromAvailable.length) {
-                            fromAvailable.dblclick();
-                        } else {
-                            this.templateData.enabledFiltersContainer
-                              .find(selector).clone(true).first().appendTo(this.templateData.availableFilters).dblclick();
-                        }
+                            fromAvailable = this.templateData.availableFilters.find(selector),
+                            target = this.templateData.enabledFiltersContainer.children().last().find('[data-js=filterContainer]');
+                        fromAvailable.clone(true).appendTo(target);
                     }, this);
 
                     if(nextIndex < campaignFilters.length && campaignFilters[nextIndex].length !== 0) {
