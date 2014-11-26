@@ -227,7 +227,85 @@ class TestLockHelper(TestCase):
         with self.assertRaises(ZeroDivisionError):
             divider(1, 0)
 
-        name = "FlippinDatabase:{}:divider".format(divider.__module__)
+        name = "FlippinDatabase:core.tests.test_locking:divider"
+        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", (name, 3))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", (name,))
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    @patch_connections
+    def test_named_method_decorator(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,))
+
+        class Objectified(object):
+
+            @classmethod
+            @locking.lock('pudding')
+            def races(cls, a, b):
+                return a / b
+
+        with self.assertRaises(ZeroDivisionError):
+            Objectified.races(1, 0)
+
+        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("FlippinDatabase:pudding", 3))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
+        self.assertEqual(cursor.execute.call_count, 2)
+
+
+class TestLockMethodHelper(TestCase):
+
+    @patch_connections
+    def test_instance_decorator(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,), using='thisdb')
+
+        class Objectified(object):
+
+            @locking.lockingmethod(using='thisdb')
+            def races(self, a, b):
+                return a / b
+
+        obj = Objectified()
+        with self.assertRaises(ZeroDivisionError):
+            obj.races(1, 0)
+
+        name = "AnotherDatabase:core.tests.test_locking:Objectified.races"
+        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", (name, 3))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", (name,))
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    @patch_connections
+    def test_class_decorator(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,), using='thisdb')
+
+        class Objectified(object):
+
+            @classmethod
+            @locking.lockingmethod(using='thisdb')
+            def races(cls, a, b):
+                return a / b
+
+        with self.assertRaises(ZeroDivisionError):
+            Objectified.races(1, 0)
+
+        name = "AnotherDatabase:core.tests.test_locking:Objectified.races"
+        cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", (name, 3))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", (name,))
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    @patch_connections
+    def test_bare_decorator(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,))
+
+        class Objectified(object):
+
+            @classmethod
+            @locking.lockingmethod
+            def races(cls, a, b):
+                return a / b
+
+        with self.assertRaises(ZeroDivisionError):
+            Objectified.races(1, 0)
+
+        name = "FlippinDatabase:core.tests.test_locking:Objectified.races"
         cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", (name, 3))
         cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", (name,))
         self.assertEqual(cursor.execute.call_count, 2)
