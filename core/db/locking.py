@@ -89,7 +89,7 @@ def lockingmethod(*args, **kws):
             except AttributeError:
                 if not args and 'nickname' not in kws and 'fullname' not in kws:
                     # No name specified, use method's path
-                    cls = obj if inspect.isclass(obj) else type(obj) # classmethod
+                    cls = obj if inspect.isclass(obj) else type(obj) # check invoked as classmethod
                     kws['nickname'] = ("{cls.__module__}:{cls.__name__}.{func.__name__}"
                                        .format(cls=cls, func=func))
                 func_lock = func.lock = AdvisoryLock(*args, **kws)
@@ -106,6 +106,50 @@ def lockingmethod(*args, **kws):
     return decorator
 
 lock.method = lockingmethod
+
+
+class slockingmethod(object):
+
+    def __init__(self, *args, **kws):
+        if args and callable(args[0]):
+            # Use as decorator: @lockingmethod
+            (func, args) = (args[0], args[1:])
+        else:
+            func = None
+
+        self.args = args
+        self.kws = kws
+        self.decorated = func
+
+    def __call__(self, func):
+        if self.decorated is not None:
+            raise TypeError("decoration may not be repeated")
+        elif not callable(func):
+            raise TypeError("only callable objects may be decorated")
+        self.decorated = func
+        return self
+
+    def __get__(self, instance, cls=None):
+        if instance is None:
+            binder = base = cls
+        else:
+            binder = instance
+            base = type(instance) if cls is None else cls
+
+        if not self.args and 'nickname' not in self.kws and 'fullname' not in self.kws:
+            # No name specified, use method's path
+            nickname = ("{cls.__module__}:{cls.__name__}.{func.__name__}"
+                        .format(cls=base, func=self.decorated))
+            lock = AdvisoryLock(nickname, **self.kws)
+        else:
+            lock = AdvisoryLock(*self.args, **self.kws)
+
+        @functools.wraps(self.decorated)
+        def locked(*args, **kws):
+            with lock:
+                return self.decorated(binder, *args, **kws)
+
+        return locked
 
 
 class LockError(DatabaseError):
