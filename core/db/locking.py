@@ -1,5 +1,6 @@
 import functools
 import inspect
+import threading
 
 from django.conf import settings
 from django.db import connections, DatabaseError, DEFAULT_DB_ALIAS
@@ -38,8 +39,8 @@ def lock(*args, **kws):
     generated nickname will *only* reflect the module path and the function
     name; as such, the nickname may not reflect the decorated function's full
     import signature, (assuming it has one). This may not be a problem for your
-    application. To help with the common case of decorating a class or object
-    method, see `lock.method` (a.k.a. `lockingmethod`).
+    application; however, to help with the common case of decorating a class or
+    instance method, see `lock.method` (a.k.a. `lockingmethod`).
 
     """
     if args and callable(args[0]):
@@ -64,8 +65,8 @@ def lockingmethod(*args, **kws):
     reflect the function's signature.
 
     The below decorations are equivalent, such that both methods `races` and
-    `races0` will lock with the same name, which includes the name of the class
-    to which they are bound.
+    `races0`, (defined in the module at path `my.module.path`), will lock with
+    the same name, which includes the name of the class to which they are bound.
 
         class Objectified(object):
 
@@ -77,8 +78,8 @@ def lockingmethod(*args, **kws):
             def races0(self, arg0):
                 ...
 
-    An alias for the `lockingmethod` decorator exists on the `lock` function:
-    `lock.method`.
+    An alias for the `lockingmethod` decorator is defined on the `lock`
+    function: `lock.method`.
 
     """
     def decorator(func):
@@ -124,6 +125,15 @@ class ReleaseFailure(LockError):
     pass
 
 
+class LockContext(threading.local):
+    """Thread-local sentinel to keep track of whether the thread is in the
+    middle of a managed context.
+
+    """
+    def __init__(self):
+        self.managed = False
+
+
 class AdvisoryLock(object):
     """Combined context manager and decorator for reliable, high-level acquisition
     and release of advisory database locks.
@@ -166,6 +176,15 @@ class AdvisoryLock(object):
     In the above example, the full lock name sent to the database will be
     exactly "blog.lock0".
 
+    Because MySQL only allows one active advisory lock per connection, nested
+    locks -- through the context manager or the decorator interface -- are
+    disallowed, (and raise an exception). (This may be circumvented through
+    the lower-level interface, in which case the database will silently release
+    any active lock upon request of a new one; however, this is not recommended.
+    See below.) Note that nesting of the same lock through these higher-level
+    interfaces is also disallowed, as the inner context would prematurely
+    release the outer context's lock.
+
     Use of AdvisoryLock objects outside of managed contexts and decorated
     functions is not, generally, recommended; however, lower-level locking
     methods are also supplied: `acquire` and `release`.
@@ -184,6 +203,8 @@ class AdvisoryLock(object):
 
     """
     DEFAULT_TIMEOUT = 3
+
+    context = LockContext()
 
     def __init__(self, nickname=None, fullname=None, using=None, timeout=None):
         if nickname is None and fullname is None:
@@ -242,10 +263,15 @@ class AdvisoryLock(object):
         return wrapped
 
     def __enter__(self):
+        if self.context.managed:
+            raise self.LockError("AdvisoryLock-managed contexts may not be nested")
+
         self.acquire()
+        self.context.managed = True
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.context.managed = False
         self.release()
 
     def _get_cursor(self):
@@ -294,10 +320,6 @@ class AdvisoryLock(object):
 
         """
         return self._execute("SELECT IS_USED_LOCK(%s)", self.fullname)
-
-    # TODO: warn if GET_LOCK while another one not yet released? any easy way to detect in
-    # python? or need store thread-local (assuming forced release is by
-    # connection)?
 
 AdvisoryLock.LockError = LockError
 

@@ -177,6 +177,32 @@ class TestAdvisoryLockContextManager(TestCase):
         cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
         self.assertEqual(cursor.execute.call_count, 2)
 
+    def test_nesting_disallowed(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,), (1,), (1,)) # more than we need, for failure case
+
+        with locking.AdvisoryLock('pudding'):
+            cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("FlippinDatabase:pudding", 3))
+            with self.assertRaises(locking.LockError) as context:
+                with locking.AdvisoryLock('cake'):
+                    pass
+
+        self.assertEqual(context.exception.args, ("AdvisoryLock-managed contexts may not be nested",))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
+        self.assertEqual(cursor.execute.call_count, 2)
+
+    def test_nesting_same_disallowed(self, connections_mock):
+        cursor = connections_mock.set_results((1,), (1,), (1,), (1,)) # more than we need, for failure case
+
+        with locking.AdvisoryLock('pudding'):
+            cursor.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("FlippinDatabase:pudding", 3))
+            with self.assertRaises(locking.LockError) as context:
+                with locking.AdvisoryLock('pudding'):
+                    pass
+
+        self.assertEqual(context.exception.args, ("AdvisoryLock-managed contexts may not be nested",))
+        cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
+        self.assertEqual(cursor.execute.call_count, 2)
+
 
 @patch_connections
 class TestAdvisoryLockDecorator(TestCase):
