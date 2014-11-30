@@ -131,7 +131,7 @@ class LockContext(threading.local):
 
     """
     def __init__(self):
-        self.managed = False
+        self.managed = set()
 
 
 class AdvisoryLock(object):
@@ -263,15 +263,15 @@ class AdvisoryLock(object):
         return wrapped
 
     def __enter__(self):
-        if self.context.managed:
+        if self.using in self.context.managed:
             raise self.LockError("AdvisoryLock-managed contexts may not be nested")
 
         self.acquire()
-        self.context.managed = True
+        self.context.managed.add(self.using)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        self.context.managed = False
+        self.context.managed.discard(self.using)
         self.release()
 
     def _get_cursor(self):

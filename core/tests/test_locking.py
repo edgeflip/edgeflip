@@ -203,6 +203,20 @@ class TestAdvisoryLockContextManager(TestCase):
         cursor.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
         self.assertEqual(cursor.execute.call_count, 2)
 
+    def test_nesting_multidb_allowed(self, connections_mock):
+        cursor_default = connections_mock.set_results((1,), (1,), using='default')
+        cursor_alt = connections_mock.set_results((1,), (1,), using='thisdb')
+
+        with locking.AdvisoryLock('pudding'):
+            cursor_default.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("FlippinDatabase:pudding", 3))
+            with locking.AdvisoryLock('cake', using='thisdb'):
+                cursor_alt.execute.assert_any_call("SELECT GET_LOCK(%s, %s)", ("AnotherDatabase:cake", 3))
+
+        cursor_default.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("FlippinDatabase:pudding",))
+        cursor_alt.execute.assert_any_call("SELECT RELEASE_LOCK(%s)", ("AnotherDatabase:cake",))
+        self.assertEqual(cursor_default.execute.call_count, 2)
+        self.assertEqual(cursor_alt.execute.call_count, 2)
+
 
 @patch_connections
 class TestAdvisoryLockDecorator(TestCase):
