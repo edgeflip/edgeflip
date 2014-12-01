@@ -256,7 +256,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
 
     # Client Content
     content_old = campaign and campaign_properties.client_content
-    new_url = utils.fix_redirect_url(campaign_form.cleaned_data['content_url'], 'https')
+    new_url = utils.fix_redirect_url(campaign_form.cleaned_data['content_url'], 'http')
     if content_old and content_old.url == new_url:
         # Original is OK
         content = content_old
