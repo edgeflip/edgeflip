@@ -104,6 +104,10 @@ define(
                 this.companionModel.set( 'currentEl', currentInputEl );
                 this.companionModel.set( 'currentField', currentInputEl.attr('name') );
                 this.scrollToCurrentField();
+                var currentField = this.fields[ this.companionModel.get('currentField') ];
+                if( currentField.prefill && currentInputEl.val() == '' ) {
+                    currentInputEl.val(currentField.prefill);
+                }
 
                 return this;
             },
@@ -111,8 +115,13 @@ define(
             /* when a field loses focus hide the popover, update our model */
             fieldBlurred: function() {
                 this.templateData.popoverEl.popover('hide');
+                var oldField = this.fields[ this.companionModel.get('currentField') ];
+                var oldInputEl = this.companionModel.get('currentEl');
                 this.companionModel.set( 'currentField', null );
                 this.companionModel.set( 'currentEl', null );
+                if( oldField.prefill && oldInputEl.val() == oldField.prefill ) {
+                    oldInputEl.val('');
+                }
             },
 
             /* update our model with the dimensions of the div that is our

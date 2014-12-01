@@ -64,7 +64,8 @@ define(
                 'og_image': {
                     hoverText: 'Your image will go here.',
                     imageCoords: { x: 641, y: 417 },
-                    placement: 'right'
+                    placement: 'right',
+                    prefill: 'https://'
                 },
                 'og_description': {
                     hoverText: 'Your description will go here.',
@@ -73,7 +74,8 @@ define(
                 },
                 'content_url': {
                     hoverText: 'Where should we send people who click on the Facebook post?',
-                    placement: 'bottom'
+                    placement: 'bottom',
+                    prefill: 'http://'
                 }
             },
             
