@@ -1,4 +1,4 @@
-from core.models import base
+from core.db.models import base
 
 
 class BaseModel(base.BaseModel):
