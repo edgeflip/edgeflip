@@ -3,6 +3,8 @@ from django import forms
 from targetshare import classifier
 from targetshare.models import relational
 
+from targetadmin.utils import fix_image_url, fix_redirect_url
+
 
 class ClientForm(forms.ModelForm):
 
@@ -323,6 +325,15 @@ class CampaignWizardForm(forms.Form):
         required=False
     )
 
+    def clean_content_url(self):
+        return fix_redirect_url(self.cleaned_data['content_url'], 'http')
+
+    def clean_error_url(self):
+        return fix_redirect_url(self.cleaned_data['error_url'], 'http')
+
+    def clean_thanks_url(self):
+        return fix_redirect_url(self.cleaned_data['thanks_url'], 'http')
+
 
 class FBObjectWizardForm(forms.ModelForm):
 
@@ -358,6 +369,10 @@ class FBObjectWizardForm(forms.ModelForm):
         required=False,
         widget=forms.Textarea
     )
+
+    def clean_og_image(self):
+        og_image = self.cleaned_data['og_image']
+        return fix_image_url(og_image)
 
     class Meta:
         model = relational.FBObjectAttribute

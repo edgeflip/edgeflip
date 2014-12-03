@@ -1,9 +1,9 @@
 from targetadmin import utils
 
-from targetshare.tests import EdgeFlipTestCase
+from django.utils.unittest import TestCase
 
 
-class TestUtils(EdgeFlipTestCase):
+class TestUtils(TestCase):
 
     def test_fix_redirect_url(self):
         for (test_input, expected_output) in (

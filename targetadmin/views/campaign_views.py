@@ -242,7 +242,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
             page_style_sets.append(default_styles)
 
     # FB Object
-    fb_obj_form.instance.og_image = utils.fix_image_url(fb_obj_form.instance.og_image)
     if campaign:
         # Unlike with ChoiceSets etc., we update the existing FBObjectAttribute
         fb_obj = campaign.fb_object()
@@ -256,15 +255,13 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
 
     # Client Content
     content_old = campaign and campaign_properties.client_content
-    new_url = utils.fix_redirect_url(campaign_form.cleaned_data['content_url'], 'http')
+    new_url = campaign_form.cleaned_data['content_url']
+
     if content_old and content_old.url == new_url:
         # Original is OK
         content = content_old
     else:
         (content, _created) = client.clientcontent.first_or_create(url=new_url)
-
-    for url_key in ('thanks_url', 'error_url'):
-        campaign_form.cleaned_data[url_key] = utils.fix_redirect_url(campaign_form.cleaned_data[url_key], 'http')
 
     campaign_chain = tuple(campaign.iterchain()) if campaign else []
     campaigns = []
