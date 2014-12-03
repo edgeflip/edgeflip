@@ -51,9 +51,9 @@ class QuerySet(BaseQuerySet):
 
         Instead, we can wrap the offending code in an AdvisoryLock:
 
-            events = author.blogevent_set.filter(event_type='joined')
-            with events.lock():
-                if not events.exists():
+            join_events = author.blogevent_set.filter(event_type='joined')
+            with join_events.lock():
+                if not join_events.exists():
                     author.blogevent_set.create(event_type='joined')
 
         Now, before initiating the block, competing threads must acquire an
@@ -63,8 +63,8 @@ class QuerySet(BaseQuerySet):
         The wrapped QuerySet is returned to contexts managed by QuerySetLock,
         allowing us to streamline the above:
 
-            with author.blogevent_set.filter(event_type='joined').lock() as events:
-                if not events.exists():
+            with author.blogevent_set.filter(event_type='joined').lock() as join_events:
+                if not join_events.exists():
                     author.blogevent_set.create(event_type='joined')
 
         Note that the situation described above is not helped by
