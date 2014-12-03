@@ -255,13 +255,13 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
 
     # Client Content
     content_old = campaign and campaign_properties.client_content
-    if content_old and content_old.url == campaign_form.cleaned_data['content_url']:
+    new_url = campaign_form.cleaned_data['content_url']
+
+    if content_old and content_old.url == new_url:
         # Original is OK
         content = content_old
     else:
-        (content, _created) = client.clientcontent.first_or_create(
-            url=campaign_form.cleaned_data['content_url'],
-        )
+        (content, _created) = client.clientcontent.first_or_create(url=new_url)
 
     campaign_chain = tuple(campaign.iterchain()) if campaign else []
     campaigns = []

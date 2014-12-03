@@ -55,11 +55,13 @@ define(
                 },
                 'thanks_url': {
                     hoverText: "Where should we send your supporters once they've shared with their friends?",
-                    placement: 'bottom'
+                    placement: 'bottom',
+                    prefill: 'http://'
                 },
                 'error_url': {
                     hoverText: 'Where should we send your supporters in case something goes wrong?',
-                    placement: 'bottom'
+                    placement: 'bottom',
+                    prefill: 'http://'
                 },
                 'faces_url': {
                     hoverText: 'Leave this blank unless you plan to host the Friend Suggestion Page on your site.',

@@ -35,6 +35,7 @@ define(
                 _.extend( this, options ); 
 
                 this.on('shown', this.postRender, this);
+                this.on('enterPressed', this.removeAbandonedPrefill, this);
                 this.on('enterPressed', this.validateInputs, this);
                 this.model.on('change:name', this.updateName, this );
 
@@ -104,6 +105,10 @@ define(
                 this.companionModel.set( 'currentEl', currentInputEl );
                 this.companionModel.set( 'currentField', currentInputEl.attr('name') );
                 this.scrollToCurrentField();
+                var currentField = this.fields[ this.companionModel.get('currentField') ];
+                if( currentField.prefill && currentInputEl.val() == '' ) {
+                    currentInputEl.val(currentField.prefill);
+                }
 
                 return this;
             },
@@ -111,8 +116,17 @@ define(
             /* when a field loses focus hide the popover, update our model */
             fieldBlurred: function() {
                 this.templateData.popoverEl.popover('hide');
+                this.removeAbandonedPrefill();
                 this.companionModel.set( 'currentField', null );
                 this.companionModel.set( 'currentEl', null );
+            },
+
+            removeAbandonedPrefill: function() {
+                var oldField = this.fields[ this.companionModel.get('currentField') ];
+                var oldInputEl = this.companionModel.get('currentEl');
+                if( oldField.prefill && oldInputEl.val() == oldField.prefill ) {
+                    oldInputEl.val('');
+                }
             },
 
             /* update our model with the dimensions of the div that is our

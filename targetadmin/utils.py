@@ -65,6 +65,28 @@ def fb_oauth_url(client, redirect_uri):
     ])
 
 
+def fix_url(url, default_protocol, good_prefixes):
+    if not any(url.startswith(p) for p in good_prefixes):
+        url = "{protocol}://{url}".format(protocol=default_protocol, url=url)
+    return url
+
+
+def fix_image_url(url):
+    return fix_url(
+        url,
+        'https',
+        ('//', 'https://', 'http://'),
+    )
+
+
+def fix_redirect_url(url, default_protocol):
+    return fix_url(
+        url,
+        default_protocol,
+        ('http://', 'https://'),
+    )
+
+
 def build_sharing_urls(incoming_host, campaign, content, incoming_secure=INCOMING_SECURE):
     client = campaign.client
     slug = utils.encodeDES('{}/{}'.format(campaign.pk, content.pk))
