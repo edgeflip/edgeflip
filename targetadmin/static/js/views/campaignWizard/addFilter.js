@@ -25,7 +25,8 @@ define(
                 'click a[data-js="locationTypeOption"]': 'locationTypeSelected',
                 'click button[data-js="addLocationBtn"]': 'addLocationToFilter',
                 'click span[data-js="removeLocationBtn"]': 'removeProposedLocation',
-                'blur input[data-type="state"]': 'stateBlurHandler',
+                'change input[data-type="state"]': 'checkStateInput',
+                'input input[data-type="state"]': 'checkStateInput',
             },
 
             model: new ( Backbone.Model.extend( { state: undefined } ) )(),
@@ -195,11 +196,14 @@ define(
                 this.model.set( 'value', $(e.currentTarget).data('value') );
             },
 
-            stateBlurHandler: function(e) {
+            checkStateInput: function(e) {
                 var inputEl = this.templateData.locationInput.filter(':visible');
-                if( $.inArray( inputEl.val(), usStates.values ) == -1 ) {
-                    inputEl.val("");
+                if( $.inArray( inputEl.val(), usStates.values ) != -1 ) {
+                    this.templateData.addLocationBtn.prop("disabled", false);
+                } else {
+                    this.templateData.addLocationBtn.prop("disabled", true);
                 }
+
             },
 
             /* Show either state, or city location input */
@@ -217,6 +221,11 @@ define(
                     .filter('*[data-type="' + locationType + '"]')
                         .removeClass('hide').fadeIn();
 
+                if( locationType == 'state' ) {
+                    this.templateData.addLocationBtn.prop("disabled", true);
+                } else {
+                    this.templateData.addLocationBtn.prop("disabled", false);
+                }
                 this.templateData.addLocationBtn.text( 'Add ' + clickedEl.text() + ' to filter');
             },
 
