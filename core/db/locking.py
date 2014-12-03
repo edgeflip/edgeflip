@@ -9,10 +9,11 @@ from django.db import connections, DatabaseError, DEFAULT_DB_ALIAS
 def lock(*args, **kws):
     """Convenience alias for AdvisoryLock and lock nicknaming helper.
 
-    `lock` may be invoked as a friendly alias for AdvisoryLock or as a bare
-    decorator.
+    `lock` may be invoked as a friendly alias for the AdvisoryLock constructor
+    or as a bare decorator.
 
-    When decorating a function, an appropriate nickname is generated from the
+    When decorating a function "bare" (without arguments), an appropriate lock
+    "nickname" (the name excluding configured prefixes) is generated from the
     function's module path and name. The below examples are equivalent:
 
         @lock
@@ -57,15 +58,15 @@ def lock(*args, **kws):
 
 
 def lockingmethod(*args, **kws):
-    """Factory for appropriately-nicknamed AdvisoryLock method decorators.
+    """Decorator factory for appropriately naming methods' AdvisoryLocks.
 
     Unlike `lock`, `lockingmethod` constructs its AdvisoryLock lazily, and
     assumes the decorated function will be invoked as a class or instance
-    method. As such, its automatically-generated nicknames may more accurately
+    method. As such, its automatically-generated nickname may more accurately
     reflect the function's signature.
 
     The below decorations are equivalent, such that both methods `races` and
-    `races0`, (defined in the module at path `my.module.path`), will lock with
+    `races0`, (defined in a module at path `my.module.path`), will lock with
     the same name, which includes the name of the class to which they are bound.
 
         class Objectified(object):
@@ -126,8 +127,8 @@ class ReleaseFailure(LockError):
 
 
 class LockContext(threading.local):
-    """Thread-local sentinel to keep track of whether the thread is in the
-    middle of a managed context.
+    """Thread-local namespace to keep track of database connections with active,
+    managed locks.
 
     """
     def __init__(self):
