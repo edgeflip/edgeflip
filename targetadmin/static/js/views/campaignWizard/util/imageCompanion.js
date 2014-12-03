@@ -15,7 +15,8 @@ define(
       'extendBackbone',
       'windowUtil',
       'views/campaignWizard/util/base',
-      'css!styles/campaignWizard/imageCompanion'
+      'css!styles/campaignWizard/imageCompanion',
+      'selectRange'
     ], function( $, _, Backbone, windowUtil, BaseView ) {
     
         /* Notice this inherits functionality from a base view */ 
@@ -26,7 +27,8 @@ define(
             /* when an input is focused or loses focus, I want to know! */
             events: {
                 'focus input,textarea': 'fieldFocused',
-                'blur input,textarea': 'fieldBlurred'
+                'blur input,textarea': 'fieldBlurred',
+                'keyup [data-js=formInput]': 'fieldKeyUp'
             },
 
             /* listen for 'shown' event on myself to call postRender */
@@ -43,7 +45,6 @@ define(
 
                 return this;
             },
-
 
             /* adds template to DOM */
             render: function() {
@@ -97,6 +98,28 @@ define(
                     );
                 }, this );
             },
+
+            fieldKeyUp: function (event) {
+                /* Handle key-up event on form inputs.
+                 */
+                var key = event.key, // future spec
+                    keyCode = (event.keyCode || event.which),
+                    target = event.currentTarget,
+                    $target,
+                    value,
+                    currentField;
+
+                if (key === "Tab" || keyCode === 9) {
+                    $target = $(target),
+                        value = $target.val(),
+                        currentField = this.fields[this.companionModel.get('currentField')];
+
+                    if (currentField.prefill && currentField.prefill === value) {
+                        // Move cursor to end of prefill
+                        $target.selectRange(value.length);
+                    }
+                }
+            },
            
             /* when a field is focused update our model, scroll so that
                it is in the center of the page */ 
@@ -109,7 +132,6 @@ define(
                 if( currentField.prefill && currentInputEl.val() == '' ) {
                     currentInputEl.val(currentField.prefill);
                 }
-
                 return this;
             },
 
