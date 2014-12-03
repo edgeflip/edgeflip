@@ -1,29 +1,43 @@
+import datetime
 import functools
 import hashlib
 import numbers
 
+from django.db.models.sql.where import WhereNode
+
 
 DEFAULT_ENCODING = 'utf-8'
 
+SEQUENCES = (tuple, list)
 SORTABLES = (set, frozenset)
-ITERABLES = (tuple, list)
-CONTAINERS = SORTABLES + ITERABLES
+CONTAINERS = SORTABLES + SEQUENCES
 
 
 # Utilities to serialize the opaque sql.Query to standard Python #
 
-def structreplace(value, **replacements):
-    """Reconstruct the given object with specified types replaced.
+def structreplace(value, replacements):
+    """Reconstruct the given composite object with specified types replaced.
 
-        >>> structreplace([100, 'hi'], int=long, str=lambda s: s.decode('utf-8'))
-        [100L, u'hi']
+    In looking up objects' constructors in the `replacements` dictionary,
+    inheritance is *not* considered -- the type specified must be the object's
+    class.
+
+        >>> structreplace([100, 'hi', False], {int: long, str: lambda s: s.decode('utf-8')})
+        [100L, u'hi', False]
+
+    In the above example, though `bool` is a subclass of `int`, the boolean
+    `False` was untouched.
 
     """
+    if isinstance(value, type):
+        # value is a class, not an instance; don't worry about it:
+        return value
+
     cls = type(value)
-    replacement = replacements.get(cls.__name__, cls)
+    replacement = replacements.get(cls, cls)
 
     if isinstance(value, CONTAINERS):
-        value = (structreplace(element, **replacements) for element in value)
+        value = (structreplace(element, replacements) for element in value)
 
     return replacement(value)
 
@@ -33,18 +47,23 @@ def _serialize_tables(query):
     return aliased or frozenset([query.model._meta.db_table])
 
 
-def _serialize_conditions(conditions):
-    return frozenset(
-        (constraint.alias, constraint.col, operator, annotation, param)
-        for (constraint, operator, annotation, param) in conditions
-    )
+def _serialize_condition(condition):
+    (constraint, operator, annotation, param) = condition
+
+    if isinstance(param, CONTAINERS):
+        param = frozenset(param) if operator == 'in' else tuple(param)
+
+    return (constraint.alias, constraint.col, operator, annotation, param)
 
 
 def _serialize_where(where):
     return (
         where.negated, # NOT ... ?
         where.connector, # AND/OR ?
-        _serialize_conditions(where.children),
+        frozenset(
+            _serialize_where(child) if isinstance(child, WhereNode) else _serialize_condition(child)
+            for child in where.children
+        ),
     ) if where.children else ()
 
 
@@ -58,11 +77,17 @@ def serialize_query(query, standardize=True, encoding=DEFAULT_ENCODING):
     """
     # serialize: FROM, WHERE
     # not supporting: SELECT, GROUP BY, HAVING
-    # TODO: LIMIT+ORDER_BY?
+    # TODO: LIMIT+ORDER_BY? (wortwhile and meaningful?)
     serialization = (_serialize_tables(query), _serialize_where(query.where))
     if standardize:
+        # TODO: handle other types? (use fields to encode?)
         decode = functools.partial(unicode, encoding=encoding)
-        return structreplace(serialization, int=long, str=decode)
+        return structreplace(serialization, {
+            int: long,
+            str: decode,
+            datetime.date: unicode,
+            datetime.datetime: unicode,
+        })
     return serialization
 
 
@@ -78,9 +103,9 @@ def walkstruct(value):
     yield value
 
     if isinstance(value, SORTABLES):
-        value = sorted(value)
+        value = sorted(value) # will now get picked up as a sequence
 
-    if isinstance(value, ITERABLES):
+    if isinstance(value, SEQUENCES):
         for element in value:
             for result in walkstruct(element):
                 yield result
@@ -88,8 +113,8 @@ def walkstruct(value):
 
 class md5ObjectHash(object):
     """md5 hash constructor, modeled after hashlib.md5, but which, in addition
-    to str, accepts: set, frozenset, list, tuple, built-in string and numeric
-    types.
+    to str, accepts: set, frozenset, list, tuple, and all built-in string and
+    numeric types.
 
     unicode is encoded as utf-8, unless `encoding` is specified.
 
