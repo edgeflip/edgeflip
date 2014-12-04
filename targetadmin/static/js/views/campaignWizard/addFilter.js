@@ -24,7 +24,9 @@ define(
                 'click a[data-js="filterTypeOption"]': 'filterValueSelected',
                 'click a[data-js="locationTypeOption"]': 'locationTypeSelected',
                 'click button[data-js="addLocationBtn"]': 'addLocationToFilter',
-                'click span[data-js="removeLocationBtn"]': 'removeProposedLocation'
+                'click span[data-js="removeLocationBtn"]': 'removeProposedLocation',
+                'change input[data-type="state"]': 'checkStateInput',
+                'input input[data-type="state"]': 'checkStateInput'
             },
 
             model: new ( Backbone.Model.extend( { state: undefined } ) )(),
@@ -194,21 +196,29 @@ define(
                 this.model.set( 'value', $(e.currentTarget).data('value') );
             },
 
+            checkStateInput: function(e) {
+                var inputEl = this.templateData.locationInput.filter(':visible');
+                var invalid = $.inArray( inputEl.val(), usStates.values ) === -1;
+                this.templateData.addLocationBtn.prop("disabled", invalid);
+            },
+
             /* Show either state, or city location input */
             locationTypeSelected: function(e) {
 
                 var clickedEl = $(e.currentTarget);
 
-                this.model.set('locationType', clickedEl.data('value'));
+                var locationType = clickedEl.data('value');
+                this.model.set('locationType', locationType);
 
                 this.updateDropdownLabel(e);
 
                 this.templateData.locationInput
                     .addClass('hide')
-                    .filter('*[data-type="' + clickedEl.data('value') + '"]')
+                    .filter('*[data-type="' + locationType + '"]')
                         .removeClass('hide').fadeIn();
 
-                this.templateData.addLocationBtn.text( 'Add ' + clickedEl.text() );
+                this.templateData.addLocationBtn.prop("disabled", locationType == 'state');
+                this.templateData.addLocationBtn.text( 'Add ' + clickedEl.text() + ' to filter');
             },
 
             /* location added, put it in box, to await others joining */
@@ -220,6 +230,8 @@ define(
                 if( value && this.templateData.locationContainer.find('li[data-value="' + value + '"]').length === 0 ) {
                     this.enableConfirmButton();
                     this.templateData.locationContainer.append( singleLocationHTML( { value: value } ) );
+
+                    inputEl.val("");
 
                     if( this.templateData.locationContainer.hasClass('hide') ) {
                         this.templateData.locationContainer.removeClass('hide').fadeIn();
