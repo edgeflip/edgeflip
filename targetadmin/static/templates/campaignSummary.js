@@ -82,6 +82,18 @@ function program15(depth0,data) {
   return buffer;
   }
 
+function program17(depth0,data) {
+  
+  
+  return " ";
+  }
+
+function program19(depth0,data) {
+  
+  
+  return "                    <button data-js=\"editButton\" type=\"button\" class=\"btn btn-default editBtn\">Edit</button>                ";
+  }
+
   buffer += "<section class=\"col-sm-10 campaign-summary\"><div class=\"row divided\"><div class=\"col-sm-9\"><h1 class=\"heading\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</h1></div></div><div class=\"row\">        ";
@@ -128,7 +140,10 @@ function program15(depth0,data) {
     + "</a></div></div>        ";
   stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.sharing_url), {hash:{},inverse:self.noop,fn:self.program(15, program15, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "        <div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn\">Home</button></div></div></section>";
+  buffer += "        <div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn\">Home</button><span class=campaign-actions>                ";
+  stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.isPublished), {hash:{},inverse:self.program(19, program19, data),fn:self.program(17, program17, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "                <button data-js=\"cloneButton\" type=\"button\" class=\"btn btn-default cloneBtn\" aria-label=\"Clone\">Clone</button></span></div></div></section>";
   return buffer;
   })
 

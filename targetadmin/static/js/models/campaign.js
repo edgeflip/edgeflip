@@ -62,6 +62,7 @@ define([
             if (attrs.campaign_properties) {
                 attrs.thanks_url = attrs.campaign_properties.fields.client_thanks_url;
                 attrs.error_url = attrs.campaign_properties.fields.client_error_url;
+                attrs.isPublished = attrs.campaign_properties.fields.status === 'published';
             }
 
             if (attrs.fb_obj_attributes) {

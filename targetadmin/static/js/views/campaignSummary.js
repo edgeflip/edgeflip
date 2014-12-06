@@ -20,23 +20,17 @@ define(
             },
 
             initialize: function( options ) {
-
-                _.extend( this, options );
-
-                this.model.set( 'state', 'mainView' );
+                _.extend(this, options);
+                this.model.set('state', 'mainView');
 
                 /* creates campaign, see model for attributes */
-                this.campaign = new campaign(
-                    options,
-                    { parse: true }
-                );
+                this.campaign = new campaign(options, {parse: true});
 
                 return this.render();
             },
 
             /* render out that campaign */
             render: function() {
-
                 this.slurpHtml( {
                     template: template( { campaign: this.campaign.toJSON() } ),
                     insertion: { $el: this.$el.appendTo(this.parentEl) } } );

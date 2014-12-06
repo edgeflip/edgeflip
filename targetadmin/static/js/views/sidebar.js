@@ -49,15 +49,19 @@ define(
 
             /* style 'selected' button, show selected content */
             renderState: function() {
-                if( this.templateData.contentBtn && this.model.get('state') ) {
+                var view;
+
+                if (this.templateData.contentBtn && this.model.get('state')) {
                     this.templateData.contentBtn
                         .removeClass('selected')
                         .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
 
-                    if( this.model.previous('state' ) ) { 
-                        this.views[ this.model.previous('state') ].$el.fadeOut();
+                    if (this.model.previous('state')) { 
+                        this.views[this.model.previous('state')].$el.fadeOut();
                     }
-                    this.views[ this.model.get('state') ].$el.fadeIn();
+
+                    view = this.views[this.model.get('state')];
+                    view.$el.fadeIn(200, view.onView && view.onView.bind(view));
                 }
             },
 
