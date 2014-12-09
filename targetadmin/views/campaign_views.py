@@ -71,14 +71,14 @@ def render_campaign_creation_message(request, campaign, content):
 @require_POST
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+    editing = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
 
-    if campaign:
-        campaign_properties = campaign.campaignproperties.get()
+    if editing:
+        campaign_properties = editing.campaignproperties.get()
         if campaign_properties.status != relational.CampaignProperties.Status.DRAFT:
             return HttpResponseBadRequest("Only campaigns in draft mode can be modified")
 
-        fb_attr_inst = campaign.fb_object().fbobjectattribute_set.get()
+        fb_attr_inst = editing.fb_object().fbobjectattribute_set.get()
     else:
         fb_attr_inst = relational.FBObjectAttribute(og_action='support', og_type='cause')
 
@@ -242,9 +242,9 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
             page_style_sets.append(default_styles)
 
     # FB Object
-    if campaign:
+    if editing:
         # Unlike with ChoiceSets etc., we update the existing FBObjectAttribute
-        fb_obj = campaign.fb_object()
+        fb_obj = editing.fb_object()
         fb_obj_form.save()
     else:
         # Create fb object for new campaign
@@ -254,7 +254,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
         fb_attr.save()
 
     # Client Content
-    content_old = campaign and campaign_properties.client_content
+    content_old = editing and campaign_properties.client_content
     new_url = campaign_form.cleaned_data['content_url']
 
     if content_old and content_old.url == new_url:
@@ -263,7 +263,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     else:
         (content, _created) = client.clientcontent.first_or_create(url=new_url)
 
-    campaign_chain = tuple(campaign.iterchain()) if campaign else []
+    campaign_chain = tuple(editing.iterchain()) if editing else []
     campaigns = []
     last_camp = None
 
