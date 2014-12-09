@@ -22,6 +22,7 @@ LOG_RVN = logging.getLogger('crow')
 
 CAMPAIGN_CREATION_NOTIFICATION_MESSAGE = """\
 Client Name: {client.name}
+User Name: {username}
 Campaign Name: {campaign.name}
 
 Campaign Summary URL: {summary_url}
@@ -51,6 +52,7 @@ def render_campaign_creation_message(request, campaign, content):
     )
 
     return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
+        username=request.user.username,
         campaign=campaign,
         client=campaign.client,
         summary_url=request.build_absolute_uri(
@@ -349,7 +351,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
         discarded_fallback.delete()
 
     send_mail(
-        subject="{} created a new campaign".format(client.name),
+        subject="{} {} campaign".format(client.name, "edited a" if editing else "created a new"),
         message=render_campaign_creation_message(request, last_camp, content),
         from_email=settings.ADMIN_FROM_ADDRESS,
         recipient_list=settings.ADMIN_NOTIFICATION_LIST,
