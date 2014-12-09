@@ -7,7 +7,7 @@ define(
       'templates/sidebar',
       'css!styles/sidebar'
     ],
-    function( $, _, Backbone, template ) {
+    function ( $, _, Backbone, template ) {
 
         /* This module always returns the same instance of sidebar
            useful for accessing in other scopes */
@@ -26,42 +26,40 @@ define(
 
             /* see templates/targetadmin/client_home.html for example
                invocation, could certainly be cleaner */
-            setup: function( options ) {
-
-                _.extend( this, options );
-
-                this.model.on( "change:state", this.renderState, this );
-
+            setup: function (options) {
+                _.extend(this, options);
+                this.model.on("change:state", this.renderState, this);
                 return this;
             },
 
             /* creates DOM structure based on the model passed into this.setup */
-            render: function() {
-
-                this.slurpHtml( {
-                    template: template( this.model.toJSON() ),
-                    insertion: { $el: this.$el.prependTo(this.parentEl) } } );
-
+            render: function () {
+                this.slurpHtml({
+                    template: template(this.model.toJSON()),
+                    insertion: {$el: this.$el.prependTo(this.parentEl)}
+                });
                 this.renderState();
-
                 return this;
             },
 
             /* style 'selected' button, show selected content */
-            renderState: function() {
-                var view;
+            renderState: function () {
+                var currentState = this.model.get('state'),
+                    previousState = this.model.previous('state'),
+                    contentBtn = this.templateData.contentBtn,
+                    currentView;
 
-                if (this.templateData.contentBtn && this.model.get('state')) {
-                    this.templateData.contentBtn
-                        .removeClass('selected')
-                        .filter("li[data-nav='" + this.model.get('state') + "']").addClass('selected');
+                if (contentBtn && currentState) {
+                    contentBtn.removeClass('selected')
+                        .filter("li[data-nav='" + currentState + "']")
+                        .addClass('selected');
 
-                    if (this.model.previous('state')) { 
-                        this.views[this.model.previous('state')].$el.fadeOut();
+                    if (previousState) { 
+                        this.views[previousState].$el.fadeOut();
                     }
 
-                    view = this.views[this.model.get('state')];
-                    view.$el.fadeIn(200, view.onView && view.onView.bind(view));
+                    currentView = this.views[currentState];
+                    currentView.trigger('sidebarSelected', (previousState || null));
                 }
             },
 
@@ -69,25 +67,22 @@ define(
                 has been clicked, update the state, and let the associated
                 content know that its top level nav has been clicked by
                 triggering an event */
-            contentItemClicked: function(e) {
-                this.model.set( "state", $(e.currentTarget).data('nav') );
-                if( this.views[ this.model.get('state') ] ) {
-                    this.views[ this.model.get('state') ].trigger('sidebarBtnClicked');
-                }
+            contentItemClicked: function (event) {
+                this.model.set("state", $(event.currentTarget).data('nav'));
             },
 
-            campaignListClicked: function() {
+            campaignListClicked: function () {
                 window.location = this.campaignListURL;
             },
 
             /* hacky, should be associated with nav structure
                ( perhaps with button type ), reports nav item has been clicked, redirect */
-            reportsClicked: function() {
+            reportsClicked: function () {
                 window.location = this.reportingDashboardURL;
             },
 
             /* hacky, help nav item has been clicked, open mail */
-            helpClicked: function() {
+            helpClicked: function () {
                 window.open("mailto:help@edgeflip.com");
             }
         } ) )();

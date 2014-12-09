@@ -8,18 +8,18 @@ define(
       'templates/campaignSummary',
       'css!styles/campaignSummary'
     ],
-    function( $, _, Backbone, campaign, template ) {
+    function ($, _, Backbone, campaign, template) {
 
-        return Backbone.View.extend( {
+        return Backbone.View.extend({
             /* model for view's state */
-            model: new Backbone.Model( { } ),
+            model: new Backbone.Model({}),
 
             /* see sidebar.js for not bloated DOM suggestion */
             events: {
-                'click button[data-js="homeBtn"]': 'goHome',
+                'click [data-js=homeBtn],[data-js=editBtn],[data-js=cloneBtn]': 'goHome',
             },
 
-            initialize: function( options ) {
+            initialize: function (options) {
                 _.extend(this, options);
                 this.model.set('state', 'mainView');
 
@@ -30,18 +30,26 @@ define(
             },
 
             /* render out that campaign */
-            render: function() {
-                this.slurpHtml( {
-                    template: template( { campaign: this.campaign.toJSON() } ),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
-
+            render: function () {
+                this.slurpHtml({
+                    template: template({ campaign: this.campaign.toJSON()}),
+                    insertion: {$el: this.$el.appendTo(this.parentEl)}
+                });
                 return this;
             },
 
-            goHome: function() {
-                window.location = this.campaign_list_url;
-            },
+            goHome: function (event) {
+                var hash = '',
+                    btnData = $(event.currentTarget).attr('data-js'),
+                    actionMatch = btnData && btnData.match(/^(.+)Btn$/),
+                    action = actionMatch && actionMatch[1];
 
-        } );
+                if (action == 'edit' || action == 'clone') {
+                    hash = '#campaign.' + this.pk + '.' + action;
+                }
+
+                window.location = this.campaign_list_url + hash;
+            }
+        });
     }
 );

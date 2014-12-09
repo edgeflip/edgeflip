@@ -36,7 +36,7 @@ define(
             initialize: function (options) {
                 _.extend(this, options);
                 this.model.set('state', 'mainView');
-                this.on('sidebarBtnClicked', this.resume, this);
+                this.on('sidebarSelected', this.resume, this);
 
                 /* creates collection of campaigns, see model for attributes */
                 this.campaigns = new campaignCollection(this.campaigns, {parse: true});
@@ -53,22 +53,6 @@ define(
                     insertion: {$el: this.$el.appendTo(this.parentEl)}
                 });
                 return this;
-            },
-
-            onView: function () {
-                /* Initialization to perform upon selection from the sidebar.
-                 */
-                var hashMatch = window.location.hash.match(/^#?campaign\.(\d+)\.(clone|edit)$/),
-                    campaignId,
-                    action;
-
-                window.location.hash = '';
-
-                if (hashMatch) {
-                    campaignId = parseInt(hashMatch[1]),
-                        action = hashMatch[2];
-                    this.$el.fadeOut(200, this.showCampaignWizard.bind(this, campaignId, action));
-                }
             },
 
             handleNewCampaign: function () {
@@ -133,12 +117,15 @@ define(
                 });
 
                 /* for back btn hack */
-                window.onhashchange = function () {
-                    if (window.location.hash.length === 0) {
-                        // we're back at the beginning
+                window.onhashchange = function (event) {
+                    var oldURL = event.oldURL,
+                        inWizard = oldURL && oldURL.search(/#campaign\.(?:\d+\.)?wizard/) > -1;
+
+                    if (inWizard && window.location.hash.length === 0) {
+                        // we've backed out of the wizard
+                        window.onhashchange = null;
                         $('#theModal').modal('hide');
                         self.hideCampaignWizard();
-                        window.onhashchange = null;
                     } else {
                         self.campaignWizard.reflectLocation();
                     }
@@ -158,13 +145,39 @@ define(
                                                          this.clientId, campaignId);
                 window.location = summaryUrl;
             },
-           
-            resume: function () {
-                if (this.model.get('state') === 'mainView') return;
-                this[this.model.get('state')].$el.fadeOut();
-                this.model.set('state', 'mainView');
-                miniHeader.$el.show();
-                this.$el.fadeIn();
+
+            resume: function (sidebarPrevious) {
+                var hashMatch = window.location.hash.match(/^#?campaign\.(\d+)\.(clone|edit)$/),
+                    campaignId,
+                    action,
+                    departingState;
+
+                window.location.hash = '';
+
+                if (hashMatch) {
+                    // Request for campaign wizard subview
+                    campaignId = parseInt(hashMatch[1]),
+                        action = hashMatch[2];
+
+                    this.showCampaignWizard(campaignId, action);
+
+                } else {
+                    departingState = this.model.get('state');
+
+                    if (departingState === 'mainView') {
+                        if (sidebarPrevious !== undefined) {
+                            // Selection from sidebar; display container:
+                            this.$el.fadeIn(200);
+                        }
+                        return;
+                    }
+
+                    // Resuming from subview
+                    this[departingState].$el.fadeOut();
+                    this.model.set('state', 'mainView');
+                    miniHeader.$el.show();
+                    this.$el.fadeIn();
+                }
             }
         });
     }
