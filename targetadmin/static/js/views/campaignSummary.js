@@ -39,14 +39,10 @@ define(
             },
 
             goHome: function (event) {
-                var hash = '',
-                    btnData = $(event.currentTarget).attr('data-js'),
-                    actionMatch = btnData && btnData.match(/^(.+)Btn$/),
-                    action = actionMatch && actionMatch[1];
-
-                if (action == 'edit' || action == 'clone') {
-                    hash = '#campaign.' + this.pk + '.' + action;
-                }
+                var btnData = $(event.currentTarget).attr('data-js'),
+                    actionMatch = btnData && btnData.match(/^(edit|clone)Btn$/),
+                    action = actionMatch && actionMatch[1],
+                    hash = action ? '#campaign.' + this.pk + '.' + action : '';
 
                 window.location = this.campaign_list_url + hash;
             }
