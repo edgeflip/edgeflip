@@ -37,18 +37,34 @@ class ClientListView(ListView):
 
 
 class ClientDetailView(DetailView):
-    template_name = 'targetadmin/client_home.html'
+
     model = relational.Client
     pk_url_kwarg = 'client_pk'
+    template_name = 'targetadmin/client_home.html'
+
+    @staticmethod
+    def _stream_campaign_data(client):
+        for values in (
+            client.campaigns
+            .exclude(rootcampaign_properties=None)
+            .exclude(campaignproperties__status='inactive')
+            .order_by('-create_dt')
+            .values('pk', 'name', 'create_dt', 'campaignproperties__status')
+            .iterator()
+        ):
+            status = values.pop('campaignproperties__status')
+            values['campaign_properties'] = {'status': status}
+            yield values
 
     def get_context_data(self, **kwargs):
         context = super(ClientDetailView, self).get_context_data(**kwargs)
-        root_campaigns = context['client'].campaigns\
-            .exclude(rootcampaign_properties=None).exclude(campaignproperties__status='inactive')\
-            .order_by( '-create_dt' )\
-            .values('pk', 'name', 'create_dt', 'campaignproperties__status' )
-        context['campaigns'] = json.dumps(list(root_campaigns), cls=DjangoJSONEncoder)
+
+        client = context['client']
+        context['campaigns'] = json.dumps(list(self._stream_campaign_data(client)),
+                                          cls=DjangoJSONEncoder)
+
         return context
+
 
 class ClientFormView(CRUDView):
     template_name = 'targetadmin/client_edit.html'

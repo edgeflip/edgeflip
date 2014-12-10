@@ -8,37 +8,38 @@ define(
       'templates/modal',
       'css!styles/modal'
     ],
-    function( $, _, Backbone, template ) {
+    function ($, _, Backbone, template) {
 
         /* Singleton pattern, every define([ 'views/modal'[) will return this object */
-        return new ( Backbone.View.extend( {
+        return new (Backbone.View.extend({
           
-            /* confirm button clicked calls triggerConfirmed method */ 
             events: {
-                'click button[data-js="confirmBtn"]': 'triggerConfirmed'
+                /* confirm button clicked calls triggerConfirmed method */ 
+                'click button[data-js="confirmBtn"]': 'triggerConfirmed',
+                'keyup [data-js=formInput]': 'fieldKeyUp'
             },
 
-            initialize: function() {
+            initialize: function () {
                 var self = this;
 
-                this.render();
+                self.render();
 
-                this.templateData.modalContainer.on('confirm_bad', function() {
+                self.templateData.modalContainer.on('confirm_bad', function () {
                     self.templateData.confirmBtn.prop("disabled", true);
                 });
-
-                this.templateData.modalContainer.on('confirm_ok', function() {
+                self.templateData.modalContainer.on('confirm_ok', function () {
                     self.templateData.confirmBtn.prop("disabled", false);
                 });
 
-                return this;
+                return self;
             },
 
-            /* places template in DOM */
-            render: function() {
-                this.slurpHtml( {
+            render: function () {
+                /* places template in DOM */
+                this.slurpHtml({
                     template: template(),
-                    insertion: { $el: this.$el.appendTo($('body')) } } );
+                    insertion: {$el: this.$el.appendTo($('body'))}
+                });
                 return this;
             },
 
@@ -57,7 +58,7 @@ define(
                 if (options.longContent) {
                     this.templateData.modalContainer
                         .addClass('long-content')
-                        .on('hidden.bs.modal', function() {
+                        .on('hidden.bs.modal', function () {
                             self.templateData.modalContainer
                                 .off('hidden.bs.modal')
                                 .removeClass('long-content');
@@ -75,11 +76,27 @@ define(
                 return this;
             },
 
+            reset: function () {
+                this.off('confirmed');
+                this.templateData.modalContainer.modal('hide');
+            },
+
+            fieldKeyUp: function (event) {
+                /* Handle key-up event on form inputs.
+                 */
+                var key = event.key, // future spec
+                    keyCode = (event.keyCode || event.which);
+
+                if (key === "Enter" || keyCode === 13) {
+                    this.triggerConfirmed();
+                }
+            },
+
             /* fires event letting everyone know the 'confirm button was clicked */
-            triggerConfirmed: function() {
+            triggerConfirmed: function () {
                 this.trigger('confirmed');
             }
 
-        } ) )();
+        }))();
     }
 );

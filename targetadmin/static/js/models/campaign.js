@@ -54,14 +54,18 @@ define([
         },
         parse: function(attrs, options) {
             if (attrs.name && attrs.name.endsWith(" 1")) {
-                attrs.name = attrs.name.substr(0, attrs.name.length-2);
+                attrs.name = attrs.name.substr(0, attrs.name.length - 2);
             }
-            attrs.create_dt = new Date(attrs.create_dt).toDateString();
-            attrs.isPublished = attrs.campaignproperties__status === 'published';
+
+            if (attrs.create_dt) {
+                attrs.create_dt = new Date(attrs.create_dt).toDateString();
+            }
 
             if (attrs.campaign_properties) {
-                attrs.thanks_url = attrs.campaign_properties.fields.client_thanks_url;
-                attrs.error_url = attrs.campaign_properties.fields.client_error_url;
+                attrs.thanks_url = attrs.campaign_properties.client_thanks_url;
+                attrs.error_url = attrs.campaign_properties.client_error_url;
+                attrs.isPublished = attrs.campaign_properties.status === 'published';
+                attrs.isDraft = attrs.campaign_properties.status === 'draft';
             }
 
             if (attrs.fb_obj_attributes) {

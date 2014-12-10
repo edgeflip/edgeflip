@@ -22,12 +22,13 @@
                     {{#if stats}}
                     {{/if}}
                     </div>
-                    <div class="col-sm-3">
+                    <div class="col-sm-3 pull-right text-right campaign-actions">
                         {{#if isPublished}}
-                            <div class="published pull-right">Published</div>
+                            <span class="published">Published</span>
                         {{else}}
-                            <button data-js="editButton" type="button" class="btn btn-default pull-right editBtn">Edit</button>
+                            <button data-js="editButton" type="button" class="btn btn-default editBtn">Edit</button>
                         {{/if}}
+                        <button data-js="cloneButton" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>
                         <!--Use this when there are more options
                         <div class="btn-group pull-right">
                             <button type="button" class="btn btn-default">Action</button>

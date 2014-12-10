@@ -23,8 +23,9 @@ define(
 
             /* see sidebar.js for not bloated DOM suggestion */
             events: {
-                'click button[data-js="createCampaignBtn"]': 'showNewCampaign',
-                'click button[data-js="editButton"]': 'showEditableCampaign',
+                'click button[data-js="createCampaignBtn"]': 'handleNewCampaign',
+                'click button[data-js="editButton"]': 'handleEditCampaign',
+                'click button[data-js="cloneButton"]': 'handleCloneCampaign',
                 'click div[data-js="campaignName"]': 'navToCampaignSummary'
             },
 
@@ -32,62 +33,73 @@ define(
                (options.campaigns).  A better 
                approach would be to make this an ajax call done by
                a CampaignCollection module that defines a url attribute */
-            initialize: function( options ) {
-
-                _.extend( this, options );
-
+            initialize: function (options) {
+                _.extend(this, options);
                 this.model.set('state', 'mainView');
-                this.on('sidebarBtnClicked', this.resume, this);
+                this.on('sidebarSelected', this.resume, this);
 
                 /* creates collection of campaigns, see model for attributes */
                 this.campaigns = new campaignCollection(this.campaigns, {parse: true});
 
-                window.location.hash = ''; // for back btn hack
-                return this.render();
-            },
-
-            /* render out those campaigns */
-            render: function() {
-
-                this.slurpHtml( {
-                    template: template( { campaigns: this.campaigns.toJSON() } ),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
-
-                this.postRender();
-
+                this.render();
                 return this;
             },
 
-            /* currently, the user may only edit a campaign that is in 'draft' mode
-               when more options are available, it may be best to use bootstrap's
-               dropdown feature (commented out in the template)
-               to allow for multiple actions to be taken on a button */
-            postRender: function() {
-                //will be useful when more options are needed
-                //$('.dropdown-toggle').dropdown();
+            render: function() {
+                /* Render view HTML.
+                 */
+                this.slurpHtml({
+                    template: template( { campaigns: this.campaigns.toJSON() } ),
+                    insertion: {$el: this.$el.appendTo(this.parentEl)}
+                });
+                return this;
             },
 
-            showNewCampaign: function() {
+            handleNewCampaign: function () {
                 /* create campaign button clicked */
                 this.$el.fadeOut(400, this.showCampaignWizard.bind(this));
             },
 
-            showEditableCampaign: function(e) {
-                /* edit campaign button clicked */
-                var campaignId = $(e.currentTarget).closest('*[data-js="campaignRow"]').data('id');
-                this.$el.fadeOut(400, this.showCampaignWizard.bind(this, campaignId));
+            handleEditCampaign: function (event) {
+                /* edit campaign button clicked
+                 */
+                this._handleWizardForCampaign(event, 'edit');
             },
 
-            /* right now, we just destroy the current campaign wizard object
-               if it already exists and create a new one, this is sloppy */
-            showCampaignWizard: function(id) {
-                var self = this;
+            handleCloneCampaign: function (event) {
+                /* clone campaign button clicked
+                 */
+                this._handleWizardForCampaign(event, 'clone');
+            },
+
+            _handleWizardForCampaign: function (event, action) {
+                var row = $(event.currentTarget).closest('[data-js=campaignRow]'),
+                    campaignId = row.data('id');
+
+                this.$el.fadeOut(400, this.showCampaignWizard.bind(this, campaignId, action));
+            },
+
+            showCampaignWizard: function(id, action) {
+                var self = this,
+                    cloneId;
+
+                if (action) {
+                    if (action === 'clone') {
+                        cloneId = id, id = null;
+                    } else if (action !== 'edit') {
+                        throw "unrecognized campaign action: " + action;
+                    }
+                } else if (id) {
+                    throw "missing parameter: 'action'";
+                }
 
                 miniHeader.$el.hide();
                 this.model.set('state', 'campaignWizard');
 
-                // TODO: fix laziness
                 if(this.campaignWizard) {
+                    /* right now, we just destroy the current campaign wizard object
+                     * if it already exists and create a new one, this is sloppy
+                     */
                     this.campaignWizard.remove();
                 }
 
@@ -95,6 +107,7 @@ define(
                    an ajax call instead of passed through a bunch of views */ 
                 this.campaignWizard = new CampaignWizard({
                     id: id,
+                    cloneId: cloneId,
                     howItWorksURL: this.howItWorksURL,
                     facebookPostImage: this.facebookPostImage,
                     facesExampleURL: this.facesExampleURL,
@@ -104,12 +117,15 @@ define(
                 });
 
                 /* for back btn hack */
-                window.onhashchange = function () {
-                    if (window.location.hash.length === 0) {
-                        // we're back at the beginning
+                window.onhashchange = function (event) {
+                    var oldURL = event.oldURL,
+                        inWizard = oldURL && oldURL.search(/#campaign\.(?:\d+\.)?wizard/) > -1;
+
+                    if (inWizard && window.location.hash.length === 0) {
+                        // we've backed out of the wizard
+                        window.onhashchange = null;
                         $('#theModal').modal('hide');
                         self.hideCampaignWizard();
-                        window.onhashchange = null;
                     } else {
                         self.campaignWizard.reflectLocation();
                     }
@@ -129,13 +145,39 @@ define(
                                                          this.clientId, campaignId);
                 window.location = summaryUrl;
             },
-           
-            resume: function () {
-                if (this.model.get('state') === 'mainView') return;
-                this[this.model.get('state')].$el.fadeOut();
-                this.model.set('state', 'mainView');
-                miniHeader.$el.show();
-                this.$el.fadeIn();
+
+            resume: function (sidebarPrevious) {
+                var hashMatch = window.location.hash.match(/^#?campaign\.(\d+)\.(clone|edit)$/),
+                    campaignId,
+                    action,
+                    departingState;
+
+                window.location.hash = '';
+
+                if (hashMatch) {
+                    // Request for campaign wizard subview
+                    campaignId = parseInt(hashMatch[1]),
+                        action = hashMatch[2];
+
+                    this.showCampaignWizard(campaignId, action);
+
+                } else {
+                    departingState = this.model.get('state');
+
+                    if (departingState === 'mainView') {
+                        if (sidebarPrevious !== undefined) {
+                            // Selection from sidebar; display container:
+                            this.$el.fadeIn(200);
+                        }
+                        return;
+                    }
+
+                    // Resuming from subview
+                    this[departingState].$el.fadeOut();
+                    this.model.set('state', 'mainView');
+                    miniHeader.$el.show();
+                    this.$el.fadeIn();
+                }
             }
         });
     }

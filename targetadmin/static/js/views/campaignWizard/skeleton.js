@@ -12,9 +12,9 @@ define(
       'templates/campaignWizard/skeleton',
       'css!styles/campaignWizard/skeleton'
     ],
-    function( $, _, Backbone, modal, Intro, Filters, Faces, FbObj, template ) {
+    function ($, _, Backbone, modal, Intro, Filters, Faces, FbObj, template) {
 
-        return Backbone.View.extend( {
+        return Backbone.View.extend({
             
             events: {
                 "keyup input": "keyUp"
@@ -24,49 +24,61 @@ define(
                make an ajax request to get the data.  A more backbone approach
                would be to create a campaign model, and have that do the work.
                If no id, just render. */               
-            initialize: function( options ) {
+            initialize: function (options) {
+                var effectiveId;
 
-                _.extend( this, options ); 
-                
-                this.model = new Backbone.Model( { clientId: this.clientId } );
+                _.extend(this, options);
+                this.model = new Backbone.Model({clientId: this.clientId});
+
+                effectiveId = this.id || this.cloneId;
+                if (effectiveId) {
+                    this.getCampaignData(effectiveId);
+                    this.on('receivedCampaignData', this.render, this);
+                } else {
+                    this.render();
+                }
 
                 if (this.id) {
                     this.formAction = edgeflip.router.reverse('targetadmin:campaign-wizard-edit',
                                                               this.clientId, this.id);
-                    this.getCampaignData();
-                    this.on('receivedCampaignData', this.render, this);
                 } else {
                     this.formAction = this.createFormAction;
-                    this.render();
                 }
 
                 return this;
             },
 
 
-            /* Insert wizard scaffold, then insert sub views, initialize model's "state"
-               ( associated with a sub view ), so we know what view to render */
-            render: function() {
-
-                this.slurpHtml( {
+            render: function () {
+                /* Insert wizard scaffold, then insert sub views, initialize model's "state"
+                 * (associated with a sub view), so we know what view to render
+                 */
+                this.slurpHtml({
                     template: template(this),
-                    insertion: { $el: this.$el.appendTo(this.parentEl) } } );
-
+                    insertion: {$el: this.$el.appendTo(this.parentEl)}
+                });
                 this.renderSubViews();
                 
-                this.model.on( 'change:state', this.reflectState, this );
-                this.model.set( { state: 'intro' } );
+                this.model.on('change:state', this.reflectState, this);
+                this.model.set({state: 'intro'});
 
-                this.off( 'receivedCampaignData', this.render );
+                this.off('receivedCampaignData', this.render);
                 return this;
             },
 
-            /* This function creates the sub views, adds handlers to their back/next events.
-               subViewOpts is sloppy, each subview, or sub mode should make
-               an ajax request to get the data it needs rather than frontloading
-               everything in client_home. */
-            renderSubViews: function() {
+            navDeferred: function (state) {
+                return (function () {
+                    this.model.set('state', state);
+                }).bind(this);
+            },
 
+            renderSubViews: function () {
+                /* This function creates the sub views, adds handlers to their back/next events.
+                 *
+                 * subViewOpts is sloppy, each subview, or sub mode should make
+                 * an ajax request to get the data it needs rather than frontloading
+                 * everything in client_home.
+                 */
                 var subViewOpts = {
                     model: this.model,
                     campaignModel: this.campaignModel,
@@ -75,7 +87,9 @@ define(
                     fbObjExampleURL: this.facebookPostImage,
                     howItWorksURL: this.howItWorksURL,
                     parentEl: this.templateData.container,
-                    hide: true
+                    hide: true,
+                    isEdit: Boolean(this.id),
+                    isClone: Boolean(this.cloneId)
                 };
 
                 this.subViews = {
@@ -96,12 +110,6 @@ define(
                 };
 
                 return this;
-            },
-
-            navDeferred: function (state) {
-                return (function () {
-                    this.model.set('state', state);
-                }).bind(this);
             },
 
             setStateLocation: function () {
@@ -125,14 +133,16 @@ define(
                 }
             },
 
-            reflectState: function() {
+            reflectState: function () {
                 /* When the model's "state" attribute changes, this function fires,
                  * hiding the old and showing the new
-                 * */
-                // Don't let modals stay open across subviews:
-                modal.templateData.modalContainer.modal('hide');
+                 */
+                var previousUI;
 
-                var previousUI = this.subViews[this.model.previous('state')];
+                // Don't let the modal singleton stay open or otherwise share state across subviews:
+                modal.reset();
+
+                previousUI = this.subViews[this.model.previous('state')];
                 if (previousUI) {
                     previousUI.$el.fadeOut(400, this.showCurrentState.bind(this));
                 } else {
@@ -142,47 +152,47 @@ define(
                 this.setStateLocation();
             },
 
-            showCurrentState: function() {
+            showCurrentState: function () {
                 $('html,body').scrollTop(0);
-                this.subViews[ this.model.get('state') ].$el.fadeIn( 400, this.triggerShown.bind(this) );
+                this.subViews[this.model.get('state')].$el.fadeIn(400, this.triggerShown.bind(this));
             },
 
-            /* used by the image companion views ( faces, fbObj ) -- triggers an event on
+            /* used by the image companion views (faces, fbObj) -- triggers an event on
                the sub view when it is shown */
-            triggerShown: function() {
-                this.subViews[ this.model.get('state') ].trigger('shown');
+            triggerShown: function () {
+                this.subViews[this.model.get('state')].trigger('shown');
             },
 
             /* called when the intro sub view triggers 'nextStep', sets the campaign, updates model */
-            handleIntroNextStep: function() {
-                this.templateData.name.val( this.subViews.intro.templateData.formInput.val() );
+            handleIntroNextStep: function () {
+                this.templateData.name.val(this.subViews.intro.templateData.formInput.val());
                 this.model.set('state','filters');
             },
 
             /* posts form to server to make or edit a campaign.  I think it best that this be done
                via ajax eventually */
-            postForm: function() {
+            postForm: function () {
                 this.templateData.form.submit();
             },
 
-            getCampaignData: function() {
+            getCampaignData: function (id) {
                 var dataUrl = edgeflip.router.reverse('targetadmin:campaign-data',
-                                                      this.clientId, this.id);
+                                                      this.clientId, id);
                 $.ajax({url: dataUrl, success: this.handleCampaignData.bind(this)});
             },
 
             /* takes campaign-data response and sets it on the campaignModel */
-            handleCampaignData: function(response) {
+            handleCampaignData: function (response) {
                 this.campaignModel = new Backbone.Model(response);
                 this.trigger('receivedCampaignData');
             },
 
-            keyUp: function(e) {
-                if(e.which === 13) {
+            keyUp: function (event) {
+                if (event.which === 13) {
                     this.subViews[this.model.get('state')].trigger('enterPressed');
                 }
             }
 
-        } );
+        });
     }
 );
