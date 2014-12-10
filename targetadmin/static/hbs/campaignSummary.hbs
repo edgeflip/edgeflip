@@ -72,7 +72,7 @@
         <div class="group">
             <button data-js="homeBtn" type="button" class="btn">Home</button>
             <span class=campaign-actions>
-                {{#if campaign.isPublished}} {{else}}
+                {{#if campaign.isDraft}}
                     <button data-js="editBtn" type="button" class="btn btn-default editBtn">Edit</button>
                 {{/if}}
                 <button data-js="cloneBtn" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>

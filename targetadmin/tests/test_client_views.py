@@ -1,3 +1,5 @@
+import json
+
 from django.core.urlresolvers import reverse
 
 from . import TestAdminBase
@@ -21,7 +23,18 @@ class TestClientViews(TestAdminBase):
 
     def test_client_detail(self):
         """ Test client detail view """
-        response = self.client.get(reverse(
-            'targetadmin:client-detail', args=[self.test_client.pk]))
+        response = self.client.get(reverse('targetadmin:client-detail',
+                                           args=[self.test_client.pk]))
         self.assertStatusCode(response, 200)
-        self.assertEqual(response.context['client'].name, 'mockclient')
+
+        client = response.context['client']
+        self.assertEqual(client.name, 'mockclient')
+
+        campaigns = json.loads(response.context['campaigns'])
+        self.assertTrue(campaigns)
+        self.assertEqual(campaigns[0], {
+            'pk': 1,
+            'name': 'Gun Control',
+            'create_dt': '2013-07-15T16:38:28Z',
+            'campaign_properties': {'status': 'draft'},
+        })

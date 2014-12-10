@@ -436,12 +436,13 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
     ))
 
     summary_data = {
-        'campaign_id': campaign_pk,
+        'campaign_id': root_campaign.pk,
+        'create_dt': root_campaign.create_dt.isoformat(),
         'client': client,
         'content_url': content.url,
         'campaign_name': re.sub(r' 1$', '', root_campaign.name),
         'root_campaign': root_campaign,
-        'campaign_properties': json.dumps(serialized_properties),
+        'campaign_properties': json.dumps(serialized_properties['fields']),
         'fb_obj_attributes': json.dumps(fb_obj_attributes),
         'filters': json.dumps(filters),
     }

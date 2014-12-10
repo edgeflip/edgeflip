@@ -617,3 +617,23 @@ class TestCampaignData(TestAdminBase):
         self.assertStatusCode(response, 200)
         data = json.loads(response.content)
         self.assertTrue(data['include_empty_fallback'])
+
+
+class TestCampaignSummary(TestAdminBase):
+
+    fixtures = ['admin_test_data']
+
+    def test_campaign_data(self):
+        response = self.client.get(reverse('targetadmin:campaign-summary',
+                                           args=[self.test_client.pk, 1]))
+        self.assertStatusCode(response, 200)
+
+        context = response.context
+        self.assertEqual(context['campaign_id'], 1)
+        self.assertEqual(context['create_dt'], '2013-07-15T16:38:28+00:00')
+        self.assertEqual(json.loads(context['campaign_properties']), {
+            'status': 'draft',
+            'client_faces_url': 'http://local.edgeflip.com:8080/mocks/guncontrol_share',
+            'client_thanks_url': 'https://donate.demandaction.org/act/donate',
+            'client_error_url': 'https://donate.demandaction.org/act/donate',
+        })
