@@ -12,8 +12,18 @@ from unidecode import unidecode
 
 
 class cached_class_property(object):
-    """Descriptor implementing a class-level property, which replaces itself
-    with the static value returned by the method it wraps.
+    """Descriptor decorator implementing a class-level property, which replaces
+    itself with the static value returned by the method it wraps.
+
+    NOTE: Because this descriptor may replace itself, it does not strictly
+    support inheritance. It may be applied without side-effects to the getter
+    methods of:
+
+        * classes which do not participate in inheritance
+        * abstract classes, (wherein the getter will only be called on children,
+        never parents)
+        * parent classes which intentionally share this state with their
+        children
 
     """
     def __init__(self, func):
