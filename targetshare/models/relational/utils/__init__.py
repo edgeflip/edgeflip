@@ -1,5 +1,7 @@
 import enum
 
+from django.utils.functional import cached_property
+
 
 class OrderedStrEnum(str, enum.Enum):
     """Ordered Enum supporting rich comparison with instances of basestring.
@@ -51,7 +53,7 @@ class OrderedStrEnum(str, enum.Enum):
 
         return ordinal
 
-    @property
+    @cached_property
     def ordinal(self):
         return self._ordinal(self)
 
