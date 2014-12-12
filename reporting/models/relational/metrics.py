@@ -3,10 +3,8 @@ class Metrics(models.Model):
 
     initial_redirects = models.PositiveIntegerField(default=0)
     visits = models.PositiveIntegerField(default=0)
-    clicks = models.PositiveIntegerField(default=0)
     authorized_visits = models.PositiveIntegerField(default=0)
     uniq_users_authorized = models.PositiveIntegerField(default=0)
-    auth_fails = models.PositiveIntegerField(default=0)
     failed_visits = models.PositiveIntegerField(default=0)
     visits_generated_faces = models.PositiveIntegerField(default=0)
     users_generated_faces = models.PositiveIntegerField(default=0)
