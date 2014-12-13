@@ -3,7 +3,7 @@ define(['vendor/handlebars'], function(Handlebars) {
 return Handlebars.template(function (Handlebars,depth0,helpers,partials,data) {
   this.compilerInfo = [4,'>= 1.0.0'];
 helpers = this.merge(helpers, Handlebars.helpers); data = data || {};
-  var buffer = "", stack1, functionType="function", escapeExpression=this.escapeExpression, self=this;
+  var buffer = "", stack1, self=this, functionType="function", escapeExpression=this.escapeExpression;
 
 function program1(depth0,data) {
   
@@ -46,6 +46,15 @@ function program4(depth0,data) {
   }
 
 function program6(depth0,data) {
+  
+  var buffer = "", stack1;
+  buffer += " ";
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.isDraft), {hash:{},inverse:self.noop,fn:self.program(7, program7, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += " ";
+  return buffer;
+  }
+function program7(depth0,data) {
   
   
   return "                            <button data-js=\"editButton\" type=\"button\" class=\"btn btn-default editBtn\">Edit</button>                        ";

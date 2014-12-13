@@ -25,9 +25,9 @@
                     <div class="col-sm-3 pull-right text-right campaign-actions">
                         {{#if isPublished}}
                             <span class="published">Published</span>
-                        {{else}}
+                        {{else}} {{#if isDraft}}
                             <button data-js="editButton" type="button" class="btn btn-default editBtn">Edit</button>
-                        {{/if}}
+                        {{/if}} {{/if}}
                         <button data-js="cloneButton" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>
                         <!--Use this when there are more options
                         <div class="btn-group pull-right">
