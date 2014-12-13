@@ -16,6 +16,7 @@ from targetshare.views import utils
 FB_OAUTH_URL = 'https://www.facebook.com/dialog/oauth'
 
 INCOMING_SECURE = settings.ENV != 'development'
+INCOMING_PROTOCOL = 'https:' if INCOMING_SECURE else 'http:'
 
 
 def superuser_required(view):

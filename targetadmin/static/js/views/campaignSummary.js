@@ -17,6 +17,7 @@ define(
             /* see sidebar.js for not bloated DOM suggestion */
             events: {
                 'click [data-js=homeBtn],[data-js=editBtn],[data-js=cloneBtn]': 'goHome',
+                'click [data-js=previewBtn]': 'openPreview'
             },
 
             initialize: function (options) {
@@ -32,7 +33,7 @@ define(
             /* render out that campaign */
             render: function () {
                 this.slurpHtml({
-                    template: template({ campaign: this.campaign.toJSON()}),
+                    template: template({campaign: this.campaign.toJSON()}),
                     insertion: {$el: this.$el.appendTo(this.parentEl)}
                 });
                 return this;
@@ -45,6 +46,10 @@ define(
                     hash = action ? '#campaign.' + this.pk + '.' + action : '';
 
                 window.location = this.campaign_list_url + hash;
+            },
+
+            openPreview: function (event) {
+                window.open(this.sharing_url);
             }
         });
     }

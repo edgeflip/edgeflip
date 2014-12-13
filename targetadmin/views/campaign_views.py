@@ -447,14 +447,12 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
         'filters': json.dumps(filters),
     }
 
-    if (
-        request.user.is_superuser or
-        campaign_properties.status == campaign_properties.Status.PUBLISHED
-    ):
+    if campaign_properties.status < campaign_properties.Status.INACTIVE:
         sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
-        summary_data['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain,
-                                                               client.domain,
-                                                               sharing_urls['initial_url'])
+        summary_data['sharing_url'] = '{}//{}.{}{}'.format(utils.INCOMING_PROTOCOL,
+                                                           client.subdomain,
+                                                           client.domain,
+                                                           sharing_urls['initial_url'])
 
     if wizard:
         summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
