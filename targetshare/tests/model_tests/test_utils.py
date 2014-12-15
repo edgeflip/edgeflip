@@ -1,6 +1,6 @@
 from nose import tools
 
-from targetshare.models.relational.utils.enumstatus import OrderedStrEnum
+from targetshare.models.relational.utils.enumstatus import AbstractStatus, OrderedStrEnum
 
 
 try:
@@ -9,6 +9,8 @@ except NameError:
     # In Python 3, unicode no longer exists; (it's just str)
     unicode = None
 
+
+# OrderedStrEnum tests #
 
 BlogPostStatus = None
 
@@ -102,3 +104,33 @@ def test_enum_aliases():
     yield (tools.eq_, RedundantStatus.draft.ordinal, RedundantStatus.unpublished.ordinal)
     yield (tools.eq_, RedundantStatus.draft, RedundantStatus.unpublished)
     yield (tools.assert_less, RedundantStatus.unpublished, RedundantStatus.archived)
+
+
+# AbstractStatus tests #
+
+class TestAbstractStatus(object):
+
+    @classmethod
+    def setup_class(cls):
+        class BlogPostStatus(AbstractStatus):
+
+            draft = 'draft'
+            published = 'published'
+            archived = 'archived'
+
+            __order__ = 'draft, published, archived'
+
+        cls.BlogPostStatus = BlogPostStatus
+
+    def test_choices(self):
+        tools.eq_(self.BlogPostStatus.choices, (
+            ('draft', 'Draft'),
+            ('published', 'Published'),
+            ('archived', 'Archived'),
+        ))
+
+    def test_unicode(self):
+        tools.eq_(unicode(self.BlogPostStatus.published), u'published')
+
+    def test_str(self):
+        tools.eq_(str(self.BlogPostStatus.published), 'published')
