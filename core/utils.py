@@ -4,6 +4,11 @@ from django import http
 from django.conf import settings
 
 
+# TODO: move this all down to core.utils.test_mode
+
+# TODO: add core.utils.campaignstatus helper for use in faces view -- if
+# forbidden response, could just return that, e.g. return (is_preview, response)
+
 class TestMode(object):
 
     @classmethod
