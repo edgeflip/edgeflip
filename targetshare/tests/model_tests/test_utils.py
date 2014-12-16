@@ -1,6 +1,6 @@
 from nose import tools
 
-from targetshare.models.relational.utils.enumstatus import OrderedStrEnum
+from targetshare.models.relational.utils.enumstatus import AbstractStatus, OrderedStrEnum
 
 
 try:
@@ -9,6 +9,8 @@ except NameError:
     # In Python 3, unicode no longer exists; (it's just str)
     unicode = None
 
+
+# OrderedStrEnum tests #
 
 BlogPostStatus = None
 
@@ -102,3 +104,64 @@ def test_enum_aliases():
     yield (tools.eq_, RedundantStatus.draft.ordinal, RedundantStatus.unpublished.ordinal)
     yield (tools.eq_, RedundantStatus.draft, RedundantStatus.unpublished)
     yield (tools.assert_less, RedundantStatus.unpublished, RedundantStatus.archived)
+
+
+def test_inheritance_ordinals():
+    """Cached property (behind __member_ordinals__) is inherited but its data is not"""
+    # Subclassing non-empty (i.e. concrete) enum is already disallowed;
+    # but, rather than disallow access to the concrete property on abstract
+    # classes, instead mimic other enum properties, which just return their
+    # empty results, and ensure that the getter works correctly.
+    class SpinOrderedQuarks(OrderedStrEnum):
+
+        UP = 'u'
+        DOWN = 'd'
+        CHARM = 'c'
+        STRANGE = 's'
+        TOP = 't'
+        BOTTOM = 'b'
+
+    # Test base first to challenge cache inheritance
+    base_ordinals = OrderedStrEnum.__member_ordinals__
+    tools.eq_(base_ordinals, {})
+
+    quark_ordinals = SpinOrderedQuarks.__member_ordinals__
+    tools.assert_true(quark_ordinals)
+    tools.assert_is_instance(quark_ordinals, dict)
+    tools.assert_not_equal(quark_ordinals, base_ordinals)
+
+
+# AbstractStatus tests #
+
+class TestAbstractStatus(object):
+
+    @classmethod
+    def setup_class(cls):
+        class BlogPostStatus(AbstractStatus):
+
+            draft = 'draft'
+            published = 'published'
+            archived = 'archived'
+
+            __order__ = 'draft, published, archived'
+
+        cls.BlogPostStatus = BlogPostStatus
+
+    @tools.raises(NotImplementedError)
+    def test_abstract_choices(self):
+        # choices ain't no magic method, no need to conform to enum properties'
+        # pattern; invocation is considered a mistake.
+        AbstractStatus.choices
+
+    def test_choices(self):
+        tools.eq_(self.BlogPostStatus.choices, (
+            ('draft', 'Draft'),
+            ('published', 'Published'),
+            ('archived', 'Archived'),
+        ))
+
+    def test_unicode(self):
+        tools.eq_(unicode(self.BlogPostStatus.published), u'published')
+
+    def test_str(self):
+        tools.eq_(str(self.BlogPostStatus.published), 'published')

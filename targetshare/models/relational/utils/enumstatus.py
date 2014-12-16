@@ -59,8 +59,8 @@ class cachedclassproperty(object):
             cls = type(instance)
 
         try:
-            return getattr(cls, self.cache_name)
-        except AttributeError:
+            return vars(cls)[self.cache_name]
+        except KeyError:
             result = self.func(cls)
             setattr(cls, self.cache_name, result)
             return result
