@@ -1,28 +1,14 @@
-import logging
-
-from django import http
+from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
+from core.utils.draftmode import DraftMode
 from targetshare.models.relational import Event
 from targetshare.tasks.db import delayed_save
 from targetshare.views.utils import set_visit
 
 from chapo.models import ShortenedUrl
 
-
-LOG = logging.getLogger('crow')
-
-FORBIDDEN_NOTICE = """
-    <!DOCTYPE html>
-    <html>
-    <body>
-        <h1>Page under construction</h1>
-        <p>Perhaps you'd like to log in first?</p>
-        <p>Otherwise, check back in a bit!</p>
-    </body>
-    </html>
-"""
 
 REDIRECTION_NOTICE = """
     <!DOCTYPE html>
@@ -62,35 +48,9 @@ def main(request, slug):
             )
         )
 
-        campaign_status = campaign.campaignproperties.only('status').get()
-        if campaign_status.status == campaign_status.Status.DRAFT:
-            # Campaign is as yet unpublished
-
-            if not request.user.is_superuser and not request.user.groups.filter(client=campaign.client).exists():
-                # User is unauthenticated or unauthorized; boot 'em:
-                LOG.warning("Received unauthorized request for draft campaign (%s)",
-                            campaign.campaign_id, extra={'request': request})
-                delayed_save.delay(
-                    Event(
-                        visit_id=request.visit.visit_id,
-                        event_type='preview_denied', # TODO: do a first-or-create later
-                        campaign_id=campaign.campaign_id,
-                        content=request.user.username,
-                    )
-                )
-                content = FORBIDDEN_NOTICE if request.method == 'GET' else ''
-                return http.HttpResponseForbidden(content)
-
-            # User is an authenticated member of the campaign client's auth group;
-            # just note that we'll be giving them a preview:
-            delayed_save.delay(
-                Event(
-                    visit_id=request.visit.visit_id,
-                    event_type='client_preview', # TODO: do a first-or-create later
-                    campaign_id=campaign.campaign_id,
-                    content=request.user.username,
-                )
-            )
+        draft_mode = DraftMode.handle_request(request, campaign)
+        if not draft_mode.is_allowed:
+            return draft_mode.make_response(friendly=True)
 
     content = REDIRECTION_NOTICE.format(shortened) if request.method == 'GET' else ''
-    return http.HttpResponsePermanentRedirect(shortened.url, content)
+    return HttpResponsePermanentRedirect(shortened.url, content)

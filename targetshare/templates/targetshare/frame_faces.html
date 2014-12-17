@@ -22,6 +22,30 @@
         body {
             background-color: transparent;
         }
+
+        .draft-preview {
+            background-color: yellowgreen;
+            border-radius: 4px;
+        }
+        .draft-preview p {
+            color: black;
+            margin: 0;
+            padding: 5px 25px 10px;
+            text-align: center;
+            font-size: xx-large;
+            letter-spacing: 1px;
+        }
+        .draft-preview .close-button {
+            font-family: sans-serif;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            cursor: pointer;
+            padding: 3px;
+        }
+        .draft-preview .close-button:hover {
+            font-weight: bold;
+        }
     </style>
     <!-- Document-specific style -->
 {% endblock %}
@@ -75,11 +99,24 @@
 
         $(function () {edgeflip.faces.user.connect()});
 
+        {% if draft_preview %}
+        $(function () {
+            $('.draft-preview .close-button').click(function () {
+                $(this).parent().hide();
+            });
+        });
+        {% endif %}
     </script>
     <!-- edgeflip javascript -->
 {% endblock %}
 
 {% block body %}
+    {% if draft_preview %}
+    <div class="draft-preview">
+        <p>This is a <strong>preview</strong> of your unpublished campaign. It is only visible to members of your organization.</p>
+        <div class="close-button">x</div>
+    </div>
+    {% endif %}
     <div class="progress_container" style="display: table; position: relative; margin: 0px auto;">
 
         {% block progress_box %}
