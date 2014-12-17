@@ -66,7 +66,7 @@ def main(request, slug):
         if campaign_status.status == campaign_status.Status.DRAFT:
             # Campaign is as yet unpublished
 
-            if not request.user.groups.filter(client=campaign.client).exists():
+            if not request.user.is_superuser and not request.user.groups.filter(client=campaign.client).exists():
                 # User is unauthenticated or unauthorized; boot 'em:
                 LOG.warning("Received unauthorized request for draft campaign (%s)",
                             campaign.campaign_id, extra={'request': request})
