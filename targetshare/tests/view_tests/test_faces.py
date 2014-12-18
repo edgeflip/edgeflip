@@ -536,6 +536,18 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         self.assertNotIn(self.oauth_task_id, session)
         self.assertNotIn(self.faces_task_key, session)
 
+    def test_failed_none(self, celery_mock):
+        task = celery_mock.current_app.AsyncResult.return_value
+        task.ready.return_value = True
+        task.successful.return_value = True
+        task.result = None
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 200)
+        self.assertEqual(len(task.method_calls), 2)
+        session = self.client.session
+        self.assertNotIn(self.oauth_task_id, session)
+        self.assertNotIn(self.faces_task_key, session)
+
     @patch('targetshare.views.faces.request_targeting')
     def test_already_started(self, targeting_mock, celery_mock):
         task = celery_mock.current_app.AsyncResult.return_value

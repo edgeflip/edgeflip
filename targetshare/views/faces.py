@@ -89,8 +89,8 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         task_oauth = celery.current_app.AsyncResult(task_id_oauth)
         if task_oauth.ready():
             del request.session[OAUTH_TASK_KEY] # no need to do this again
-            if task_oauth.successful():
-                token = task_oauth.result
+            token = task_oauth.result if task_oauth.successful() else None
+            if token:
                 faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign_id,
                                                          content_id=content_id,
                                                          fbid=token.fbid)
