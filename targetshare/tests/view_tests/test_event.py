@@ -9,7 +9,6 @@ from targetshare import models
 from .. import EdgeFlipViewTestCase
 
 
-@patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
 class TestEventViews(EdgeFlipViewTestCase):
 
     fixtures = ['test_data']

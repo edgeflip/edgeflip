@@ -443,6 +443,9 @@ TEST_MODE_SECRET = 'sunwahduck'
 VISITOR_COOKIE_NAME = 'visitorid'
 VISITOR_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
+WEB.setdefault('edgeflip_subdomain', 'app')
+WEB.setdefault('edgeflip_domain', 'edgeflip.com')
+
 # feedcrawler settings
 FEED_BUCKET_PREFIX = 'user_feeds_'
 FEED_MAX_BUCKETS = 5

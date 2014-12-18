@@ -8,7 +8,6 @@ from targetshare import models
 from .. import EdgeFlipViewTestCase
 
 
-@patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
 class TestFBObjectsViews(EdgeFlipViewTestCase):
 
     fixtures = ['test_data']
