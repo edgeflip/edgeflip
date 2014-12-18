@@ -13,7 +13,11 @@ FORBIDDEN_TEMPLATE = """
         <h1>Page under construction</h1>
 
         {% if friendly %}
-        <p>Perhaps you'd like to log in first?</p>
+        <p>
+            Perhaps you'd like to
+            <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">log in</a>
+            first?
+        </p>
         <p>Otherwise, check back in a bit!</p>
         {% endif %}
     </body>
@@ -44,7 +48,7 @@ class DraftMode(object):
                     campaign=campaign,
                     content=request.user.username,
                 )
-                return cls(request, is_draft=True, is_allowed=False)
+                return cls(request, campaign, is_draft=True, is_allowed=False)
 
             # User is an authenticated member of the campaign client's auth group;
             # just note that we'll be giving them a preview:
@@ -53,13 +57,14 @@ class DraftMode(object):
                 campaign=campaign,
                 content=request.user.username,
             )
-            return cls(request, is_draft=True, is_allowed=True)
+            return cls(request, campaign, is_draft=True, is_allowed=True)
 
         # Campaign is published
-        return cls(request, is_draft=False, is_allowed=True)
+        return cls(request, campaign, is_draft=False, is_allowed=True)
 
-    def __init__(self, request, is_draft, is_allowed):
+    def __init__(self, request, campaign, is_draft, is_allowed):
         self.request = request
+        self.campaign = campaign
         self.is_draft = is_draft
         self.is_allowed = is_allowed
 
@@ -74,7 +79,11 @@ class DraftMode(object):
         if self.request.method == 'HEAD':
             content = ''
         else:
-            context = Context({'friendly': friendly})
+            context = Context({
+                'friendly': friendly,
+                'client': self.campaign.client,
+                'campaign': self.campaign,
+            })
             content = Template(FORBIDDEN_TEMPLATE).render(context)
 
         return HttpResponseForbidden(content)
