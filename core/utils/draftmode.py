@@ -1,28 +1,10 @@
 import logging
 
 from django.http import HttpResponseForbidden
-from django.template import Context, Template
+from django.shortcuts import render
 
 
 LOG = logging.getLogger('crow')
-
-FORBIDDEN_TEMPLATE = """
-    <!DOCTYPE html>
-    <html>
-    <body>
-        <h1>Page under construction</h1>
-
-        {% if friendly %}
-        <p>
-            Perhaps you'd like to
-            <a href="{% url 'targetadmin:campaign-summary' client.pk campaign.pk %}">log in</a>
-            first?
-        </p>
-        <p>Otherwise, check back in a bit!</p>
-        {% endif %}
-    </body>
-    </html>
-"""
 
 
 class DraftMode(object):
@@ -77,13 +59,10 @@ class DraftMode(object):
             return None
 
         if self.request.method == 'HEAD':
-            content = ''
-        else:
-            context = Context({
-                'friendly': friendly,
-                'client': self.campaign.client,
-                'campaign': self.campaign,
-            })
-            content = Template(FORBIDDEN_TEMPLATE).render(context)
+            return HttpResponseForbidden()
 
-        return HttpResponseForbidden(content)
+        return render(self.request, 'core/draft-forbidden.html', {
+            'friendly': friendly,
+            'client': self.campaign.client,
+            'campaign': self.campaign,
+        }, status=403)

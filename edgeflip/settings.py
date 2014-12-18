@@ -424,6 +424,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 # targetshare settings #
+INCOMING_REQUEST_SECURE = REQUEST_SECURE = ENV != 'development'
+INCOMING_REQUEST_SCHEME = REQUEST_SCHEME = 'https:' if REQUEST_SECURE else 'http:'
+
 CLIENT_FBOBJECT = {
     'retrieval_cache_timeout': (3600 * 23), # 23 hours
     'campaign_max_age': (3600 * 24), # 24 hours
@@ -453,6 +456,7 @@ FEED_BUCKET_NAMES = [
 
 # targetadmin settings
 ADMIN_FROM_ADDRESS = 'admin@edgeflip.com'
+ADMIN_REQUEST_SCHEME = REQUEST_SCHEME
 
 # Test settings #
 SOUTH_TESTS_MIGRATE = False

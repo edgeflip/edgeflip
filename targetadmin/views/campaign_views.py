@@ -46,7 +46,7 @@ def render_campaign_creation_message(request, campaign, content):
     hostname = request.get_host()
     sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
     initial_url = "{scheme}//{host}{path}".format(
-        scheme=('https:' if utils.INCOMING_SECURE else 'http:'),
+        scheme=settings.INCOMING_REQUEST_SCHEME,
         host=hostname,
         path=sharing_urls['initial_url'],
     )
@@ -449,7 +449,7 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
 
     if campaign_properties.status < campaign_properties.Status.INACTIVE:
         sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
-        summary_data['sharing_url'] = '{}//{}.{}{}'.format(utils.INCOMING_PROTOCOL,
+        summary_data['sharing_url'] = '{}//{}.{}{}'.format(settings.INCOMING_REQUEST_SCHEME,
                                                            client.subdomain,
                                                            client.domain,
                                                            sharing_urls['initial_url'])
