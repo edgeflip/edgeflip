@@ -4,6 +4,7 @@ import logging
 import re
 
 from django.conf import settings
+from django.db.models import F
 from django.core.mail import send_mail
 from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
@@ -395,6 +396,25 @@ def clean_up_campaign(campaign):
         campaign_ranking_key0.delete()
         if not ranking_key0.campaignrankingkeys.exists():
             ranking_key0.delete()
+
+
+@utils.auth_client_required
+@require_POST
+def publish_campaign(request, client_pk, campaign_pk):
+    campaign = get_object_or_404(relational.Campaign,
+                                 client_id=client_pk,
+                                 campaign_id=campaign_pk,
+                                 # disavow knowledge of fallback campaigns
+                                 campaignproperties__root_campaign_id=F('campaign_id'))
+
+    if campaign.status() != relational.CampaignProperties.Status.DRAFT:
+        return HttpResponseBadRequest("Only campaigns in draft mode can be published")
+
+    relational.CampaignProperties.objects.filter(root_campaign=campaign).update(
+        status=relational.CampaignProperties.Status.PUBLISHED,
+    )
+
+    return redirect('targetadmin:campaign-summary', client_pk, campaign_pk)
 
 
 @utils.auth_client_required
