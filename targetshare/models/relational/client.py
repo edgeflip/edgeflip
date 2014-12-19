@@ -35,6 +35,10 @@ class Client(models.Model):
     def __unicode__(self):
         return u'%s' % self.name
 
+    @property
+    def hostname(self):
+        return u"{client.subdomain}.{client.domain}".format(client=self)
+
     def save(self, *args, **kws):
         # Ensure domain:
         if bool(self.domain) is not bool(self.subdomain):

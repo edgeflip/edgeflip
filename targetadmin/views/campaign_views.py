@@ -43,7 +43,8 @@ CAMPAIGN_CREATION_THANK_YOU_MESSAGE = (
 
 
 def render_campaign_creation_message(request, campaign, content):
-    hostname = request.get_host()
+    client = campaign.client
+    hostname = client.hostname
     sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
     initial_url = "{scheme}//{host}{path}".format(
         scheme=settings.INCOMING_REQUEST_SCHEME,
@@ -54,7 +55,7 @@ def render_campaign_creation_message(request, campaign, content):
     return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
         username=request.user.username,
         campaign=campaign,
-        client=campaign.client,
+        client=client,
         summary_url=request.build_absolute_uri(
             reverse('targetadmin:campaign-summary', args=[campaign.client.pk, campaign.pk])
         ),
@@ -447,11 +448,11 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
     }
 
     if campaign_properties.status < campaign_properties.Status.INACTIVE:
-        sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
-        summary_data['sharing_url'] = '{}//{}.{}{}'.format(settings.INCOMING_REQUEST_SCHEME,
-                                                           client.subdomain,
-                                                           client.domain,
-                                                           sharing_urls['initial_url'])
+        incoming_host = client.hostname
+        sharing_urls = utils.build_sharing_urls(incoming_host, root_campaign, content)
+        summary_data['sharing_url'] = '{}//{}{}'.format(settings.INCOMING_REQUEST_SCHEME,
+                                                        incoming_host,
+                                                        sharing_urls['initial_url'])
 
     if wizard:
         summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE
