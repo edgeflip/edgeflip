@@ -71,10 +71,6 @@ class RedirectCampaignTestCase(TestCase):
 
 class TestRedirectCampaign(RedirectCampaignTestCase):
 
-    def setUp(self):
-        super(TestRedirectCampaign, self).setUp()
-        self.campaign.campaignproperties.update(status=relational.CampaignProperties.Status.PUBLISHED) # FIXME: make global?
-
     def test_redirect_event(self):
         """el chapo records an event"""
         response = self.client.get(self.path)
@@ -144,15 +140,12 @@ class TestDraftCampaign(RedirectCampaignTestCase):
 
     def setUp(self):
         super(TestDraftCampaign, self).setUp()
+        self.campaign.campaignproperties.update(
+            status=relational.CampaignProperties.Status.DRAFT,
+        )
+
         self.user = User.objects.create_user('mockuser', password='1234')
         self.group = self.user.groups.create(name='mockgroup')
-
-        # Client is a jerk. Set session cookie so we get an actual SessionStore:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
-        session = self.client.session
-        session.save()
-        # Set *true* session key:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
     def test_not_authenticated(self):
         response = self.client.get(self.path)
