@@ -54,3 +54,6 @@ def test_mode(view):
                                                 'and Token ("token")')
         return view(request, *args, **kws)
     return wrapped
+
+
+__test__ = False # go away nose
