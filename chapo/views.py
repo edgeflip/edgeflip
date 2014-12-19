@@ -2,7 +2,7 @@ from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import get_object_or_404
 from django.views.decorators.http import require_http_methods
 
-from core.utils.draftmode import DraftMode
+from core.utils.campaignstatus import CampaignStatusHandler
 from targetshare.models.relational import Event
 from targetshare.tasks.db import delayed_save
 from targetshare.views.utils import set_visit
@@ -48,9 +48,9 @@ def main(request, slug):
             )
         )
 
-        draft_mode = DraftMode.handle_request(request, campaign)
-        if not draft_mode.is_allowed:
-            return draft_mode.make_response(friendly=True)
+        campaign_status = CampaignStatusHandler.handle_request(request, campaign)
+        if not campaign_status.is_allowed:
+            return campaign_status.make_response(friendly=True)
 
     content = REDIRECTION_NOTICE.format(shortened) if request.method == 'GET' else ''
     return HttpResponsePermanentRedirect(shortened.url, content)
