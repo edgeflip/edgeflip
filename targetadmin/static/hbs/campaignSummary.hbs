@@ -81,6 +81,9 @@
                     <button data-js="editBtn" type="button" class="btn btn-default editBtn">Edit</button>
                 {{/if}}
                 <button data-js="cloneBtn" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>
+                {{#if campaign.isDraft}}
+                    <button data-js="publishBtn" type="button" class="btn btn-default publishBtn space-left">Publish</button>
+                {{/if}}
             </span>
         </div>
     </div>

@@ -106,6 +106,12 @@ function program19(depth0,data) {
   return "                    <button data-js=\"previewBtn\" type=\"button\" class=\"btn btn-default previewBtn\">Preview</button>                    ";
   }
 
+function program21(depth0,data) {
+  
+  
+  return "                    <button data-js=\"publishBtn\" type=\"button\" class=\"btn btn-default publishBtn space-left\">Publish</button>                ";
+  }
+
   buffer += "<section class=\"col-sm-10 campaign-summary\"><div class=\"row divided\"><div class=\"col-sm-9\"><h1 class=\"heading\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
     + "</h1></div></div><div class=\"row\">        ";
@@ -155,7 +161,10 @@ function program19(depth0,data) {
   buffer += "        </div><div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn\">Home</button><span class=campaign-actions>                ";
   stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.isDraft), {hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
-  buffer += "                <button data-js=\"cloneBtn\" type=\"button\" class=\"btn btn-default cloneBtn\" aria-label=\"Clone\">Clone</button></span></div></div></section>";
+  buffer += "                <button data-js=\"cloneBtn\" type=\"button\" class=\"btn btn-default cloneBtn\" aria-label=\"Clone\">Clone</button>                ";
+  stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.isDraft), {hash:{},inverse:self.noop,fn:self.program(21, program21, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "            </span></div></div></section>";
   return buffer;
   })
 

@@ -65,7 +65,7 @@ define(
                         });
                 }
 
-                this.templateData.modalTitle.text(options.title);
+                this.templateData.modalTitle.html(options.title);
                 this.templateData.modalHeader.toggleClass('show-border', !!options.title);
                 this.templateData.modalBody.html(options.body);
                 this.templateData.confirmBtn.text(options.confirmText);
@@ -79,6 +79,7 @@ define(
             reset: function () {
                 this.off('confirmed');
                 this.templateData.modalContainer.modal('hide');
+                return this;
             },
 
             fieldKeyUp: function (event) {

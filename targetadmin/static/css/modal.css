@@ -26,6 +26,9 @@
 #theModal .modal-body {
   padding: 5px 40px 20px 40px;
 }
+#theModal .modal-body p {
+  margin-top: 10px;
+}
 #theModal .modal-footer {
   border-top: none;
   margin-top: 0px;
