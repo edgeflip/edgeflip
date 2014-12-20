@@ -66,7 +66,7 @@ define(
                         "<p>Are you sure you're ready to publish this campaign?</p>"
                     ),
                     confirmText: 'Yes, publish it!',
-                    showCloseBtn: true,
+                    showCloseBtn: true
                 }).on('confirmed', this.performPublish, this)
                 .templateData.modalContainer.modal();
             },
