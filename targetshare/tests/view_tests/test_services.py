@@ -10,7 +10,6 @@ from targetshare.views.utils import encodeDES
 from .. import EdgeFlipViewTestCase, patch_facebook
 
 
-@patch.dict('django.conf.settings.WEB', mock_subdomain='testserver')
 class TestServicesViews(EdgeFlipViewTestCase):
 
     fixtures = ['test_data']

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Page under construction</h1>
+
+    {% if friendly %}
+    {% url 'targetadmin:campaign-summary' client.pk campaign.pk as admin_path %}
+    <p>
+        Perhaps you'd like to
+        <a href="{{ settings.ADMIN_REQUEST_SCHEME }}//{{ settings.ADMIN.domain }}{{ admin_path }}">log in</a>
+        first?
+    </p>
+    <p>Otherwise, check back in a bit!</p>
+    {% endif %}
+</body>
+</html>

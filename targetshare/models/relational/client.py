@@ -35,10 +35,22 @@ class Client(models.Model):
     def __unicode__(self):
         return u'%s' % self.name
 
+    @property
+    def hostname(self):
+        return u"{client.subdomain}.{client.domain}".format(client=self)
+
     def save(self, *args, **kws):
+        # Ensure domain:
+        if bool(self.domain) is not bool(self.subdomain):
+            raise ValueError("Cannot populate only domain or only subdomain")
+        elif not self.domain:
+            self.subdomain = settings.WEB.edgeflip_subdomain
+            self.domain = settings.WEB.edgeflip_domain
+
         # Ensure codename is set:
         if not self.codename:
             self.codename = text.slugify(self.name.decode(settings.DEFAULT_CHARSET))
+
         return super(Client, self).save(*args, **kws)
 
     # FIXME: Kill me once the client admin tool is more proper

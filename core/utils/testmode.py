@@ -31,6 +31,7 @@ class TestMode(object):
 
     def __nonzero__(self):
         return self.mode
+    __bool__ = __nonzero__
 
 
 def test_mode(view):
@@ -53,3 +54,6 @@ def test_mode(view):
                                                 'and Token ("token")')
         return view(request, *args, **kws)
     return wrapped
+
+
+__test__ = False # go away nose

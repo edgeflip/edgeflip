@@ -14,6 +14,7 @@ from django.core import cache
 from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
+from django.utils.importlib import import_module
 from mock import Mock, patch
 
 from targetshare import models
@@ -111,6 +112,33 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             client=self.test_client, name='Unit Tests')
         self.test_filter = models.ChoiceSetFilter.objects.create(
             filter_id=2, url_slug='all', choice_set=self.test_cs)
+
+    def get_session(self):
+        """Retrieve the test client's session in a consistent manner.
+
+        Unlike the test client's "session" property, if no session has yet been
+        defined, an appropriate, empty session store is returned.
+
+        Note that an empty session is not yet tied to the test client nor
+        persisted to its backend. See: `set_session()`.
+
+        """
+        engine = import_module(settings.SESSION_ENGINE)
+        cookie = self.client.cookies.get(settings.SESSION_COOKIE_NAME)
+        return engine.SessionStore(cookie and cookie.value)
+
+    def set_session(self, session):
+        """Attach the given session store to the test client.
+
+        Note that this is not necessary for sessions retrieved from the client;
+        rather, it is intended to help with new sessions, such as those
+        returned by `get_session()`.
+
+        """
+        if not session.session_key:
+            session.save()
+
+        self.client.cookies[settings.SESSION_COOKIE_NAME] = session.session_key
 
     def get_outgoing_url(self, redirect_url, campaign_id=None):
         if campaign_id:

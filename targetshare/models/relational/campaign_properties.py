@@ -4,21 +4,20 @@ from django.core.exceptions import ImproperlyConfigured
 from django.db import models
 
 from . import manager
+from .utils import AbstractStatus
 
 LOG = logging.getLogger('crow')
 
 
 class CampaignProperties(models.Model):
 
-    class Status(object):
+    class Status(AbstractStatus):
+
         DRAFT = 'draft'
         PUBLISHED = 'published'
         INACTIVE = 'inactive'
-        CHOICES = (
-            (DRAFT, 'Draft'),
-            (PUBLISHED, 'Published'),
-            (INACTIVE, 'Inactive')
-        )
+
+        __order__ = 'DRAFT PUBLISHED INACTIVE' # py2 only
 
     campaign_property_id = models.AutoField(primary_key=True)
     campaign = models.ForeignKey('Campaign', null=True,
@@ -40,7 +39,7 @@ class CampaignProperties(models.Model):
                                       related_name='rootcampaign_properties')
     min_friends = models.IntegerField(default=1)
     num_faces = models.PositiveIntegerField(default=10)
-    status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.CHOICES)
+    status = models.CharField(max_length=32, default=Status.DRAFT, choices=Status.choices)
     start_dt = models.DateTimeField(auto_now_add=True)
     end_dt = models.DateTimeField(null=True)
 

@@ -3,6 +3,7 @@ import json
 import os.path
 
 from django.conf import settings
+from django.contrib.auth import models as auth
 from django.core.urlresolvers import reverse
 from django.utils import timezone
 from mock import patch, Mock
@@ -24,16 +25,9 @@ class TestFaces(EdgeFlipViewTestCase):
         super(TestFaces, self).setUp()
         self.url = reverse('faces')
 
-        # Finesse the test client session #
-
-        # Client is a jerk. Set session cookie so we get an actual SessionStore:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
-        self.session = self.client.session
+        self.session = self.get_session()
         self.session.set_test_cookie() # usually set by frame_faces
-        self.session.save()
-
-        # Set *true* session key:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+        self.set_session(self.session)
 
     def make_post(self, data=()):
         response = self.client.post(self.url, data, HTTP_X_REQUESTED_WITH='XMLHttpRequest')
@@ -424,6 +418,30 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         self.assertIsNone(test_mode.fbid)
         self.assertIsNone(test_mode.token)
 
+    def test_draft_mode(self):
+        campaign = models.Campaign.objects.get(campaign_id=1)
+        campaign.campaignproperties.update(
+            status=models.CampaignProperties.Status.DRAFT,
+        )
+
+        user = auth.User.objects.create_user('mockuser', password='1234')
+        group = user.groups.create(name='mockgroup')
+        campaign.client.auth_groups.add(group)
+
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        self.assertStatusCode(response, 200)
+        self.assertTrue(response.context['draft_preview'])
+
+    def test_draft_mode_denied(self):
+        models.CampaignProperties.objects.filter(campaign_id=1).update(
+            status=models.CampaignProperties.Status.DRAFT,
+        )
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        self.assertStatusCode(response, 403)
+
     def test_canvas(self):
         ''' Tests views.canvas '''
         response = self.client.get(reverse('canvas'))
@@ -504,16 +522,9 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         super(TestFrameFacesEagerTargeting, self).setUp()
         self.url = reverse('frame-faces', args=[1, 1])
 
-        # Finesse the test client session #
-
-        # Client is a jerk. Set session cookie so we get an actual SessionStore:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = 'fake'
-        self.session = self.client.session
+        self.session = self.get_session()
         self.session['oauth_task'] = self.oauth_task_id
-        self.session.save()
-
-        # Set *true* session key:
-        self.client.cookies[settings.SESSION_COOKIE_NAME] = self.session.session_key
+        self.set_session(self.session)
 
     def test_pending(self, celery_mock):
         task = celery_mock.current_app.AsyncResult.return_value

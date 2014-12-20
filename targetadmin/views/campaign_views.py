@@ -43,10 +43,11 @@ CAMPAIGN_CREATION_THANK_YOU_MESSAGE = (
 
 
 def render_campaign_creation_message(request, campaign, content):
-    hostname = request.get_host()
+    client = campaign.client
+    hostname = client.hostname
     sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
     initial_url = "{scheme}//{host}{path}".format(
-        scheme=('https:' if utils.INCOMING_SECURE else 'http:'),
+        scheme=settings.INCOMING_REQUEST_SCHEME,
         host=hostname,
         path=sharing_urls['initial_url'],
     )
@@ -54,7 +55,7 @@ def render_campaign_creation_message(request, campaign, content):
     return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
         username=request.user.username,
         campaign=campaign,
-        client=campaign.client,
+        client=client,
         summary_url=request.build_absolute_uri(
             reverse('targetadmin:campaign-summary', args=[campaign.client.pk, campaign.pk])
         ),
@@ -258,7 +259,6 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     # Client Content
     content_old = editing and campaign_properties.client_content
     new_url = campaign_form.cleaned_data['content_url']
-
     if content_old and content_old.url == new_url:
         # Original is OK
         content = content_old
@@ -447,14 +447,12 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
         'filters': json.dumps(filters),
     }
 
-    if (
-        request.user.is_superuser or
-        campaign_properties.status == campaign_properties.Status.PUBLISHED
-    ):
-        sharing_urls = utils.build_sharing_urls(request.get_host(), root_campaign, content)
-        summary_data['sharing_url'] = 'https://{}.{}{}'.format(client.subdomain,
-                                                               client.domain,
-                                                               sharing_urls['initial_url'])
+    if campaign_properties.status < campaign_properties.Status.INACTIVE:
+        incoming_host = client.hostname
+        sharing_urls = utils.build_sharing_urls(incoming_host, root_campaign, content)
+        summary_data['sharing_url'] = '{}//{}{}'.format(settings.INCOMING_REQUEST_SCHEME,
+                                                        incoming_host,
+                                                        sharing_urls['initial_url'])
 
     if wizard:
         summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE

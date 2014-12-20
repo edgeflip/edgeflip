@@ -15,8 +15,6 @@ from targetshare.views import utils
 
 FB_OAUTH_URL = 'https://www.facebook.com/dialog/oauth'
 
-INCOMING_SECURE = settings.ENV != 'development'
-
 
 def superuser_required(view):
     def check_superuser(user):
@@ -87,7 +85,7 @@ def fix_redirect_url(url, default_protocol):
     )
 
 
-def build_sharing_urls(incoming_host, campaign, content, incoming_secure=INCOMING_SECURE):
+def build_sharing_urls(incoming_host, campaign, content, incoming_secure=settings.INCOMING_REQUEST_SECURE):
     client = campaign.client
     slug = utils.encodeDES('{}/{}'.format(campaign.pk, content.pk))
     incoming_url = utils.incoming_redirect(incoming_secure, incoming_host, campaign.pk, content.pk)
