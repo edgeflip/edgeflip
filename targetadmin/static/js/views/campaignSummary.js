@@ -59,10 +59,13 @@ define(
                 modal.reset().update({
                     title: 'Publish <span class="sml-caps">' + this.campaign.get('name') + '</span>?',
                     body: (
-                        "<p>Publishing your campaign makes it visible to your supporters. " +
-                            "We'll provide you with a public URL, for you to disseminate far and wide.</p>" +
-                        "<p>However, to provide you with the most accurate reporting, " +
-                            "once you've published a campaign, you may no longer edit it.</p>" +
+                        "<p>Just a minute! Have you previewed your campaign, " +
+                            "and tested the URLs you provided? " +
+                            "Once your campaign is published, it can't be edited again.</p>" +
+
+                        "<p>When you're ready to publish your campaign, " +
+                            "we'll provide you with a public URL to share with your supporters.</p>" +
+
                         "<p>Are you sure you're ready to publish this campaign?</p>"
                     ),
                     confirmText: 'Yes, publish it!',
