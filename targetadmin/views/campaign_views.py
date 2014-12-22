@@ -398,23 +398,40 @@ def clean_up_campaign(campaign):
             ranking_key0.delete()
 
 
-@utils.auth_client_required
-@require_POST
-def publish_campaign(request, client_pk, campaign_pk):
+def advance_campaign_status(client_pk, campaign_pk, status):
     campaign = get_object_or_404(relational.Campaign,
                                  client_id=client_pk,
                                  campaign_id=campaign_pk,
                                  # disavow knowledge of fallback campaigns
                                  campaignproperties__root_campaign_id=F('campaign_id'))
 
-    if campaign.status() != relational.CampaignProperties.Status.DRAFT:
-        return HttpResponseBadRequest("Only campaigns in draft mode can be published")
+    previous_state = status.previous
+    if campaign.status() != previous_state:
+        return HttpResponseBadRequest("Only campaigns in {} mode can be published".format(previous_state))
 
-    relational.CampaignProperties.objects.filter(root_campaign=campaign).update(
-        status=relational.CampaignProperties.Status.PUBLISHED,
-    )
+    relational.CampaignProperties.objects.filter(root_campaign=campaign).update(status=status)
 
     return redirect('targetadmin:campaign-summary', client_pk, campaign_pk)
+
+
+@utils.auth_client_required
+@require_POST
+def publish_campaign(request, client_pk, campaign_pk):
+    return advance_campaign_status(
+        client_pk,
+        campaign_pk,
+        relational.CampaignProperties.Status.PUBLISHED,
+    )
+
+
+@utils.superuser_required
+@require_POST
+def archive_campaign(request, client_pk, campaign_pk):
+    return advance_campaign_status(
+        client_pk,
+        campaign_pk,
+        relational.CampaignProperties.Status.INACTIVE,
+    )
 
 
 @utils.auth_client_required
