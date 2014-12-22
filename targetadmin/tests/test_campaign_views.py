@@ -637,3 +637,44 @@ class TestCampaignSummary(TestAdminBase):
             'client_thanks_url': 'https://donate.demandaction.org/act/donate',
             'client_error_url': 'https://donate.demandaction.org/act/donate',
         })
+
+
+class TestPublishCampaign(TestAdminBase):
+
+    fixtures = ['admin_test_data']
+
+    def setUp(self):
+        super(TestPublishCampaign, self).setUp()
+        self.campaign = relational.Campaign.objects.get(pk=1)
+        self.url = reverse('targetadmin:publish-campaign',
+                           args=[self.test_client.pk, self.campaign.pk])
+
+        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.DRAFT)
+
+    def test_publish_campaign(self):
+        response = self.client.post(self.url)
+        summary_url = reverse('targetadmin:campaign-summary',
+                              args=[self.test_client.pk, self.campaign.pk])
+        self.assertRedirects(response, summary_url)
+        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.PUBLISHED)
+
+    def test_publish_get_disallowed(self):
+        response = self.client.get(self.url)
+        self.assertStatusCode(response, 405)
+        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.DRAFT)
+
+    def test_publish_fallback_disallowed(self):
+        fallback = self.test_client.campaigns.get(pk=4)
+        url = reverse('targetadmin:publish-campaign',
+                      args=[self.test_client.pk, fallback.pk])
+        response = self.client.post(url)
+        self.assertStatusCode(response, 404)
+        self.assertEqual(fallback.status(), relational.CampaignProperties.Status.DRAFT)
+
+    def test_publish_published_disallowed(self):
+        self.campaign.campaignproperties.update(
+            status=relational.CampaignProperties.Status.INACTIVE
+        )
+        response = self.client.post(self.url)
+        self.assertStatusCode(response, 400)
+        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.INACTIVE)

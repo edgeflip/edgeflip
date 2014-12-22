@@ -21,6 +21,10 @@ class Campaign(models.Model):
 
     # Helpers assuming a basic configuration #
 
+    def status(self):
+        status_only_props = self.campaignproperties.only('status').get()
+        return status_only_props.status
+
     def iterfallbacks(self):
         campaign = self
         while True:

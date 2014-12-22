@@ -72,15 +72,19 @@
         </div>
 
         <div class="group">
-            <button data-js="homeBtn" type="button" class="btn">Home</button>
+            <button data-js="homeBtn" type="button" class="btn homeBtn">Home</button>
             <span class=campaign-actions>
+                <button data-js="cloneBtn" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>
+
                 {{#if campaign.isDraft}}
+                    <button data-js="editBtn" type="button" class="btn btn-default editBtn">Edit</button>
+
                     {{#if campaign.sharing_url}}
                     <button data-js="previewBtn" type="button" class="btn btn-default previewBtn">Preview</button>
                     {{/if}}
-                    <button data-js="editBtn" type="button" class="btn btn-default editBtn">Edit</button>
+
+                    <button data-js="publishBtn" type="button" class="btn btn-default publishBtn">Publish</button>
                 {{/if}}
-                <button data-js="cloneBtn" type="button" class="btn btn-default cloneBtn" aria-label="Clone">Clone</button>
             </span>
         </div>
     </div>

@@ -13,6 +13,7 @@
         var campaignListURL = "{% url 'targetadmin:client-detail' client.pk %}";
         var campaignSummary = new CampaignSummary({
             pk: {{ campaign_id }},
+            clientId: {{ client.pk }},
             create_dt: "{{ create_dt }}",
             name: "{{ root_campaign|safe|escapejs }}",
             campaign_list_url: campaignListURL,
