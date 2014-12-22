@@ -6,18 +6,6 @@
   margin-right: 25px;
   margin-top: 25px;
 }
-.campaign-summary .campaign-actions {
-  margin-left: 15px;
-}
-.campaign-summary .campaign-actions .btn-default {
-  color: black;
-}
-.campaign-summary .campaign-actions .btn-default:hover {
-  color: black;
-}
-.campaign-summary .campaign-actions .space-left {
-  margin-left: 15px;
-}
 .campaign-summary .group {
   margin-left: 15px;
   margin-right: 10px;
@@ -28,4 +16,16 @@
 .campaign-summary .group .name {
   color: black;
   font-weight: 700;
+}
+.campaign-summary .group .homeBtn {
+  margin-right: 13px;
+}
+.campaign-summary .group .campaign-actions .btn {
+  margin-right: 10px;
+}
+.campaign-summary .group .campaign-actions .btn-default {
+  color: black;
+}
+.campaign-summary .group .campaign-actions .btn-default:hover {
+  color: black;
 }
