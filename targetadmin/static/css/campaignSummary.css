@@ -29,3 +29,21 @@
 .campaign-summary .group .campaign-actions .btn-default:hover {
   color: black;
 }
+.campaign-summary h1 .label {
+  font-size: 18px;
+  font-weight: normal;
+  letter-spacing: 0.5px;
+  margin-left: 5px;
+  vertical-align: 60%;
+}
+.campaign-summary h1 .label-draft {
+  background-color: #999;
+}
+.campaign-summary h1 .label-published {
+  background-color: #2C4C6C;
+}
+.campaign-summary h1 .label-archived {
+  background-color: #e4e4e4;
+  border: solid #adacac 1px;
+  color: #747474;
+}

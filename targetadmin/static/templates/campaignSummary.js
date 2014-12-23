@@ -106,9 +106,28 @@ function program19(depth0,data) {
   return "                    <button data-js=\"previewBtn\" type=\"button\" class=\"btn btn-default previewBtn\">Preview</button>                    ";
   }
 
+function program21(depth0,data) {
+  
+  var buffer = "", stack1;
+  buffer += "		";
+  stack1 = helpers['if'].call(depth0, (depth0 && depth0.canArchive), {hash:{},inverse:self.noop,fn:self.program(22, program22, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "                ";
+  return buffer;
+  }
+function program22(depth0,data) {
+  
+  
+  return "                    <button data-js=\"archiveBtn\" type=\"button\" class=\"btn btn-default archiveBtn\">Archive</button>                ";
+  }
+
   buffer += "<section class=\"col-sm-10 campaign-summary\"><div class=\"row divided\"><div class=\"col-sm-9\"><h1 class=\"heading\">"
     + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.name)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
-    + "</h1></div></div><div class=\"row\">        ";
+    + " <span class=\"label label-"
+    + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.status)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
+    + "\">"
+    + escapeExpression(((stack1 = ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.status)),typeof stack1 === functionType ? stack1.apply(depth0) : stack1))
+    + "</span></h1></div></div><div class=\"row\">        ";
   stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.message), {hash:{},inverse:self.noop,fn:self.program(1, program1, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "        <div class=\"group\"><div class=\"name\">Campaign Name</div><div class=\"value\">"
@@ -154,6 +173,9 @@ function program19(depth0,data) {
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "        </div><div class=\"group\"><button data-js=\"homeBtn\" type=\"button\" class=\"btn homeBtn\">Home</button><span class=campaign-actions><button data-js=\"cloneBtn\" type=\"button\" class=\"btn btn-default cloneBtn\" aria-label=\"Clone\">Clone</button>                ";
   stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.isDraft), {hash:{},inverse:self.noop,fn:self.program(18, program18, data),data:data});
+  if(stack1 || stack1 === 0) { buffer += stack1; }
+  buffer += "                ";
+  stack1 = helpers['if'].call(depth0, ((stack1 = (depth0 && depth0.campaign)),stack1 == null || stack1 === false ? stack1 : stack1.isPublished), {hash:{},inverse:self.noop,fn:self.program(21, program21, data),data:data});
   if(stack1 || stack1 === 0) { buffer += stack1; }
   buffer += "            </span></div></div></section>";
   return buffer;

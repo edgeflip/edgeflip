@@ -19,7 +19,8 @@ define(
             events: {
                 'click [data-js=homeBtn],[data-js=editBtn],[data-js=cloneBtn]': 'goHome',
                 'click [data-js=previewBtn]': 'openPreview',
-                'click [data-js=publishBtn]': 'openPublish'
+                'click [data-js=publishBtn]': 'confirmPublish',
+                'click [data-js=archiveBtn]': 'confirmArchive'
             },
 
             initialize: function (options) {
@@ -28,6 +29,7 @@ define(
 
                 /* creates campaign, see model for attributes */
                 this.campaign = new campaign(options, {parse: true});
+                this.archiveUrl = null;
                 this.publishUrl = null;
 
                 return this.render();
@@ -36,7 +38,10 @@ define(
             /* render out that campaign */
             render: function () {
                 this.slurpHtml({
-                    template: template({campaign: this.campaign.toJSON()}),
+                    template: template({
+                        campaign: this.campaign.toJSON(),
+                        canArchive: this.canArchive
+                    }),
                     insertion: {$el: this.$el.appendTo(this.parentEl)}
                 });
                 return this;
@@ -55,7 +60,14 @@ define(
                 window.open(this.sharing_url);
             },
 
-            openPublish: function (event) {
+            postUrl: function (url) {
+                var $form = $('<form method="post" action="' + url + '">' +
+                              this.token + '</form>');
+                this.$el.append($form);
+                $form.submit();
+            },
+
+            confirmPublish: function (event) {
                 modal.reset().update({
                     title: 'Publish <span class="sml-caps">' + this.campaign.get('name') + '</span>?',
                     body: (
@@ -72,8 +84,6 @@ define(
             },
 
             performPublish: function () {
-                var $form;
-
                 /* Disable submission button to prevent multiple calls */
                 modal.templateData.modalContainer.trigger('confirm_bad');
 
@@ -84,10 +94,33 @@ define(
                                                               this.campaign.get('pk'));
                 }
 
-                $form = $('<form method="post" action="' + this.publishUrl + '">' +
-                          this.token + '</form>');
-                this.$el.append($form);
-                $form.submit();
+                this.postUrl(this.publishUrl);
+            },
+
+            confirmArchive: function (event) {
+                modal.reset().update({
+                    title: 'Archive <span class="sml-caps">' + this.campaign.get('name') + '</span>?',
+                    body: (
+                        "<p>[Superusers only] Are you sure you want to archive this campaign? " +
+                        "Archiving disables access to the campaign outside of this page!</p>"
+                    ),
+                    confirmText: 'Yes, archive it!',
+                    showCloseBtn: true
+                }).on('confirmed', this.performArchive, this)
+                .templateData.modalContainer.modal();
+            },
+
+            performArchive: function () {
+                modal.templateData.modalContainer.trigger('confirm_bad');
+
+                /* Reverse URL path lazily */
+                if (this.archiveUrl === null) {
+                    this.archiveUrl = edgeflip.router.reverse('targetadmin:archive-campaign',
+                                                              this.clientId,
+                                                              this.campaign.get('pk'));
+                }
+
+                this.postUrl(this.archiveUrl);
             }
         });
     }

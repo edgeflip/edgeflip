@@ -1,7 +1,7 @@
 <section class="col-sm-10 campaign-summary">
     <div class="row divided">
         <div class="col-sm-9">
-            <h1 class="heading">{{ campaign.name }}</h1>
+            <h1 class="heading">{{ campaign.name }} <span class="label label-{{ campaign.status }}">{{ campaign.status }}</span></h1>
         </div>
     </div>
     <div class="row">
@@ -84,6 +84,11 @@
                     {{/if}}
 
                     <button data-js="publishBtn" type="button" class="btn btn-default publishBtn">Publish</button>
+                {{/if}}
+                {{#if campaign.isPublished}}
+		{{#if canArchive }}
+                    <button data-js="archiveBtn" type="button" class="btn btn-default archiveBtn">Archive</button>
+                {{/if}}
                 {{/if}}
             </span>
         </div>
