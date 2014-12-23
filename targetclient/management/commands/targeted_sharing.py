@@ -1,4 +1,5 @@
 from targetshare.integration import facebook
+from targetshare.models import dynamo, datastructs
 from targetshare import utils
 from django.utils import timezone
 from django.core.management.base import NoArgsCommand
@@ -8,6 +9,7 @@ from urlparse import urlparse
 from cStringIO import StringIO
 import datetime
 import unicodecsv
+import itertools
 import logging
 from concurrent.futures import ThreadPoolExecutor
 import time
@@ -17,6 +19,7 @@ LOG = logging.getLogger(__name__)
 TOKEN = ''
 
 USERID = 10102136605223030
+#USERID = 751
 
 DB_TEXT_LEN = 4096
 POSTS_TABLE = 'posts'
@@ -35,8 +38,8 @@ EDGES = 'edges'
 LOCALES = 'locales'
 ENTITIES = (POSTS, LINKS, LIKES, USERS, EDGES, LOCALES)
 
-STREAM_DAYS = 360
-STREAM_CHUNK_SIZE = 30
+STREAM_DAYS = 120
+STREAM_CHUNK_SIZE = 10
 THREAD_COUNT = 6
 STREAM_READ_TIMEOUT_IN = 5
 STREAM_READ_SLEEP_IN = 5
@@ -447,6 +450,44 @@ def cb(sess, resp):
             posts.append(post)
     resp.data = posts
 
+class StreamAggregate(defaultdict):
+    """Stream data aggregator"""
+    UserInteractions = namedtuple('UserInteractions', ('posts', 'types', 'names'))
+
+    def __init__(self, stream):
+        super(StreamAggregate, self).__init__(
+            lambda: self.UserInteractions(
+                posts=defaultdict(lambda: defaultdict(list)),
+                types=defaultdict(list),
+                names=defaultdict(str),
+            )
+        )
+        for post in stream:
+            for interaction in post.interactions:
+                # Collect user interactions
+                user_interactions = self[interaction.user_id]
+                # indexed by user ID & interaction type:
+                user_interactions.types[interaction.type].append(interaction)
+                # and by user ID, post ID and interaction type:
+                user_interactions.posts[post.post_id][interaction.type].append(interaction)
+
+    def ranking(self):
+        """Reduce the aggregate to a mapping of friends and their normalized
+        rankings.
+
+        """
+        friend_total = defaultdict(int)
+        for user_id, user_interactions in self.iteritems():
+            for interactions in user_interactions.types.itervalues():
+                for interaction in interactions:
+                    friend_total[user_id] += interaction.weight
+
+        ranked_friends = sorted(friend_total,
+                                key=lambda user_id: friend_total[user_id],
+                                reverse=True)
+        return {fbid: position for (position, fbid) in enumerate(ranked_friends)}
+
+
 Post = namedtuple('Post', ('post_id', 'message', 'interactions'))
 Interaction = namedtuple('Interaction', ('user_id', 'type', 'weight'))
 
@@ -455,10 +496,6 @@ def read():
     token = TOKEN
     num_days = STREAM_DAYS
     chunk_size = STREAM_CHUNK_SIZE
-    thread_count = THREAD_COUNT
-    loop_timeout = STREAM_READ_TIMEOUT_IN
-    loop_sleep = STREAM_READ_SLEEP_IN
-    timer = utils.Timer()
     chunk_inputs = []
     #chunk_inputs = Queue.Queue() # fill with (time0, time1) pairs
     chunk_outputs = [] # list of stream obects holding results
@@ -491,10 +528,57 @@ def read():
         ))
     for future in futures:
         chunk_outputs.append(future.result())
-    for chunk_output in chunk_outputs:
-        print chunk_output.data
 
-    print timer
+    total_stream = [item for sublist in chunk_outputs for item in sublist.data]
+    friend_streamrank = StreamAggregate(total_stream)
+
+    network = datastructs.UserNetwork()
+    for fbid, user_aggregate in friend_streamrank.iteritems():
+        user_interactions = user_aggregate.types
+        incoming = dynamo.IncomingEdge(
+            fbid_target=USERID,
+            fbid_source=fbid,
+            post_likes=len(user_interactions['post_likes']),
+            post_comms=len(user_interactions['post_comms']),
+            stat_likes=len(user_interactions['stat_likes']),
+            stat_comms=len(user_interactions['stat_comms']),
+            wall_posts=len(user_interactions['wall_posts']),
+            wall_comms=len(user_interactions['wall_comms']),
+            tags=len(user_interactions['tags']),
+        )
+        print incoming
+        prim = dynamo.User(fbid=USERID)
+        user = dynamo.User(fbid=fbid)
+
+        interactions = {
+            dynamo.PostInteractions(
+                user=user,
+                postid=post_id,
+                post_likes=len(post_interactions['post_likes']),
+                post_comms=len(post_interactions['post_comms']),
+                stat_likes=len(post_interactions['stat_likes']),
+                stat_comms=len(post_interactions['stat_comms']),
+                wall_posts=len(post_interactions['wall_posts']),
+                wall_comms=len(post_interactions['wall_comms']),
+                tags=len(post_interactions['tags']),
+            )
+            for (post_id, post_interactions) in user_aggregate.posts.iteritems()
+        }
+
+        network.append(
+            network.Edge(
+                primary=prim,
+                secondary=user,
+                incoming=incoming,
+                interactions=interactions,
+            )
+        )
+
+    edges_ranked = network.ranked(
+        require_incoming=True,
+        require_outgoing=False,
+    )
+    print edges_ranked
 
 
 class Command(NoArgsCommand):
