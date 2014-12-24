@@ -79,7 +79,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     if editing:
         campaign_properties = editing.campaignproperties.get()
         if campaign_properties.status != campaign_properties.Status.DRAFT:
-            return HttpResponseBadRequest("Only campaigns in draft mode can be modified")
+            return HttpResponseBadRequest("Only draft campaigns can be modified")
 
         fb_attr_inst = editing.fb_object().fbobjectattribute_set.get()
     else:
@@ -411,8 +411,12 @@ def advance_campaign_status(client_pk, campaign_pk, status):
 
     previous_state = status.previous
     if campaign.status() != previous_state:
-        return HttpResponseBadRequest("Only campaigns in {} mode can be published"
-                                      .format(previous_state))
+        if previous_state is None:
+            message = "Cannot advance campaign to mode: {}".format(status)
+        else:
+            message = "Only {} campaigns can be advanced to {}".format(previous_state, status)
+
+        return HttpResponseBadRequest(message)
 
     campaign.rootcampaign_properties.update(status=status)
 
