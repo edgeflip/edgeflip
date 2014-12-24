@@ -4,7 +4,6 @@ import logging
 import re
 
 from django.conf import settings
-from django.db.models import F
 from django.core.mail import send_mail
 from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
@@ -75,11 +74,11 @@ def render_campaign_creation_message(request, campaign, content):
 @require_POST
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    editing = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+    editing = campaign_pk and get_object_or_404(client.campaigns.root(), pk=campaign_pk)
 
     if editing:
         campaign_properties = editing.campaignproperties.get()
-        if campaign_properties.status != relational.CampaignProperties.Status.DRAFT:
+        if campaign_properties.status != campaign_properties.Status.DRAFT:
             return HttpResponseBadRequest("Only campaigns in draft mode can be modified")
 
         fb_attr_inst = editing.fb_object().fbobjectattribute_set.get()
@@ -399,17 +398,16 @@ def clean_up_campaign(campaign):
 
 
 def advance_campaign_status(client_pk, campaign_pk, status):
-    campaign = get_object_or_404(relational.Campaign,
+    campaign = get_object_or_404(relational.Campaign.rootcampaigns,
                                  client_id=client_pk,
-                                 campaign_id=campaign_pk,
-                                 # disavow knowledge of fallback campaigns
-                                 campaignproperties__root_campaign_id=F('campaign_id'))
+                                 campaign_id=campaign_pk)
 
     previous_state = status.previous
     if campaign.status() != previous_state:
-        return HttpResponseBadRequest("Only campaigns in {} mode can be published".format(previous_state))
+        return HttpResponseBadRequest("Only campaigns in {} mode can be published"
+                                      .format(previous_state))
 
-    relational.CampaignProperties.objects.filter(root_campaign=campaign).update(status=status)
+    campaign.rootcampaign_properties.update(status=status)
 
     return redirect('targetadmin:campaign-summary', client_pk, campaign_pk)
 
@@ -438,7 +436,7 @@ def archive_campaign(request, client_pk, campaign_pk):
 @require_GET
 def campaign_summary(request, client_pk, campaign_pk, wizard=False):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    root_campaign = get_object_or_404(client.campaigns.root(), pk=campaign_pk)
     campaign_properties = root_campaign.campaignproperties.get()
     content = campaign_properties.client_content
 
@@ -514,7 +512,7 @@ def available_filters(request, client_pk):
 @require_GET
 def campaign_data(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign = get_object_or_404(client.campaigns.root(), pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
     content = campaign_properties.client_content
 
