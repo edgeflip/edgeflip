@@ -13,6 +13,9 @@ from targetshare.views.utils import encodeDES
 from . import TestAdminBase
 
 
+Status = relational.CampaignProperties.Status
+
+
 class TestCampaignWizard(TestAdminBase):
 
     fixtures = ['admin_test_data']
@@ -650,19 +653,19 @@ class TestPublishCampaign(TestAdminBase):
         self.url = reverse('targetadmin:publish-campaign',
                            args=[self.test_client.pk, self.campaign.pk])
 
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.DRAFT)
+        self.assertEqual(self.campaign.status(), Status.DRAFT)
 
     def test_publish_campaign(self):
         response = self.client.post(self.url)
         summary_url = reverse('targetadmin:campaign-summary',
                               args=[self.test_client.pk, self.campaign.pk])
         self.assertRedirects(response, summary_url)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.PUBLISHED)
+        self.assertEqual(self.campaign.status(), Status.PUBLISHED)
 
     def test_publish_get_disallowed(self):
         response = self.client.get(self.url)
         self.assertStatusCode(response, 405)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.DRAFT)
+        self.assertEqual(self.campaign.status(), Status.DRAFT)
 
     def test_publish_fallback_disallowed(self):
         fallback = self.test_client.campaigns.get(pk=4)
@@ -670,15 +673,15 @@ class TestPublishCampaign(TestAdminBase):
                       args=[self.test_client.pk, fallback.pk])
         response = self.client.post(url)
         self.assertStatusCode(response, 404)
-        self.assertEqual(fallback.status(), relational.CampaignProperties.Status.DRAFT)
+        self.assertEqual(fallback.status(), Status.DRAFT)
 
     def test_publish_published_disallowed(self):
         self.campaign.campaignproperties.update(
-            status=relational.CampaignProperties.Status.INACTIVE
+            status=Status.INACTIVE
         )
         response = self.client.post(self.url)
         self.assertStatusCode(response, 400)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.INACTIVE)
+        self.assertEqual(self.campaign.status(), Status.INACTIVE)
 
 
 class TestArchiveCampaign(TestAdminBase):
@@ -691,33 +694,31 @@ class TestArchiveCampaign(TestAdminBase):
         self.url = reverse('targetadmin:archive-campaign',
                            args=[self.test_client.pk, self.campaign.pk])
 
-        relational.CampaignProperties.objects.filter(root_campaign=self.campaign).update(
-            status=relational.CampaignProperties.Status.PUBLISHED,
-        )
+        self.campaign.rootcampaign_properties.update(status=Status.PUBLISHED)
 
     def test_archive_campaign(self):
         response = self.client.post(self.url)
         summary_url = reverse('targetadmin:campaign-summary',
                               args=[self.test_client.pk, self.campaign.pk])
         self.assertRedirects(response, summary_url)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.INACTIVE)
+        self.assertEqual(self.campaign.status(), Status.INACTIVE)
 
     def test_archive_get_disallowed(self):
         response = self.client.get(self.url)
         self.assertStatusCode(response, 405)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.PUBLISHED)
+        self.assertEqual(self.campaign.status(), Status.PUBLISHED)
 
     def test_archive_fallback_disallowed(self):
         fallback = self.test_client.campaigns.get(pk=4)
-        fallback.campaignproperties.update(status=relational.CampaignProperties.Status.PUBLISHED)
+        fallback.campaignproperties.update(status=Status.PUBLISHED)
         url = reverse('targetadmin:archive-campaign',
                       args=[self.test_client.pk, fallback.pk])
         response = self.client.post(url)
         self.assertStatusCode(response, 404)
-        self.assertEqual(fallback.status(), relational.CampaignProperties.Status.PUBLISHED)
+        self.assertEqual(fallback.status(), Status.PUBLISHED)
 
     def test_superuser_required(self):
         User.objects.filter(username='tester').update(is_superuser=False)
         response = self.client.post(self.url)
         self.assertStatusCode(response, 403)
-        self.assertEqual(self.campaign.status(), relational.CampaignProperties.Status.PUBLISHED)
+        self.assertEqual(self.campaign.status(), Status.PUBLISHED)
