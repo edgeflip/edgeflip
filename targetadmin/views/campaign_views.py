@@ -398,6 +398,13 @@ def clean_up_campaign(campaign):
 
 
 def advance_campaign_status(client_pk, campaign_pk, status):
+    """Advance a Campaign and its fallbacks to the given Status and return an
+    HttpResponse.
+
+    If the requested Status does not immediately follow the Campaign's current
+    Status, an HttpResponseBadRequest is returned.
+
+    """
     campaign = get_object_or_404(relational.Campaign.rootcampaigns,
                                  client_id=client_pk,
                                  campaign_id=campaign_pk)
