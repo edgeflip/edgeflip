@@ -29,6 +29,13 @@ define(
 
                 _.extend(this, options);
                 this.model = new Backbone.Model({clientId: this.clientId});
+                if (this.id) {
+                    this.formAction = edgeflip.router.reverse('targetadmin:campaign-wizard-edit',
+                                                              this.clientId, this.id);
+                } else {
+                    this.formAction = edgeflip.router.reverse('targetadmin:campaign-wizard',
+                                                              this.clientId);
+                }
 
                 effectiveId = this.id || this.cloneId;
                 if (effectiveId) {
@@ -36,13 +43,6 @@ define(
                     this.on('receivedCampaignData', this.render, this);
                 } else {
                     this.render();
-                }
-
-                if (this.id) {
-                    this.formAction = edgeflip.router.reverse('targetadmin:campaign-wizard-edit',
-                                                              this.clientId, this.id);
-                } else {
-                    this.formAction = this.createFormAction;
                 }
 
                 return this;

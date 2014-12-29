@@ -22,8 +22,7 @@
                 facesExampleURL: "{{ STATIC_URL }}img/faces-example.png",
                 clientId: {{ client.pk }},
                 token: "{% csrf_token %}",
-                howItWorksURL: "{% url 'targetadmin:how-it-works' %}",
-                wizardCreate: "{% url 'targetadmin:campaign-wizard' client.pk %}"
+                howItWorksURL: "{% url 'targetadmin:how-it-works' %}"
             });
 
         /* let the sidebar show it when its ready */
