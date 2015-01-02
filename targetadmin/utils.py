@@ -55,14 +55,6 @@ def auth_client_required(view):
         return verify_client_auth_relation
 
 
-def fb_oauth_url(client, redirect_uri):
-    return FB_OAUTH_URL + '?' + urllib.urlencode([
-        ('client_id', client.fb_app_id),
-        ('scope', settings.FB_PERMS),
-        ('redirect_uri', redirect_uri),
-    ])
-
-
 def fix_url(url, default_protocol, good_prefixes):
     if not any(url.startswith(p) for p in good_prefixes):
         url = "{protocol}://{url}".format(protocol=default_protocol, url=url)
@@ -83,6 +75,15 @@ def fix_redirect_url(url, default_protocol):
         default_protocol,
         ('http://', 'https://'),
     )
+
+
+def fb_oauth_url(client, redirect_uri):
+    app_permissions = client.fb_app_permissions.values_list('code', flat=True)
+    return FB_OAUTH_URL + '?' + urllib.urlencode([
+        ('client_id', client.fb_app_id),
+        ('scope', ','.join(app_permissions.iterator())),
+        ('redirect_uri', redirect_uri),
+    ])
 
 
 def build_sharing_urls(incoming_host, campaign, content, incoming_secure=settings.INCOMING_REQUEST_SECURE):

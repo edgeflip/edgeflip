@@ -76,7 +76,7 @@
 
         function doOAuthLogin() {
             recordEvent('button_click', '');
-            window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_PERMS }}&redirect_uri=" + encodeURIComponent(gotoURL);
+            window.top.location = "https://www.facebook.com/dialog/oauth?client_id={{ content.client.fb_app_id }}&scope={{ settings.FB_DEFAULT_PERMS }}&redirect_uri=" + encodeURIComponent(gotoURL);
         }
 
         // Called upon clicking the "share" button
@@ -113,7 +113,7 @@
                     // alert("Rocco, sit on the other side. You block the rearview mirror. "+JSON.stringify(response));
                     alert("Please login to facebook and authorize the app to share with your friends.");
                 }
-            }, {scope:'{{ settings.FB_PERMS }}'});
+            }, {scope:'{{ settings.FB_DEFAULT_PERMS}}'});
 
         }
 
