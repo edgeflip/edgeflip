@@ -432,14 +432,13 @@ CLIENT_FBOBJECT = {
     'campaign_max_age': (3600 * 24), # 24 hours
 }
 PAGE_STYLE_CACHE_TIMEOUT = 60 * 30 # 30 minutes
-FB_PERMS_LIST = [
+FB_DEFAULT_PERMS = ','.join([
     'read_stream', 'user_photos', 'friends_photos',
     'email', 'user_birthday', 'friends_birthday',
     'user_about_me', 'user_location',
     'friends_location', 'user_likes', 'friends_likes',
     'user_interests', 'friends_interests'
-]
-FB_PERMS = ','.join(FB_PERMS_LIST)
+])
 FB_REALTIME_TOKEN = 'thebiglebowski'
 MAX_FALLBACK_COUNT = 5
 TEST_MODE_SECRET = 'sunwahduck'

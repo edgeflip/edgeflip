@@ -33,6 +33,7 @@ from .faces_style_meta import FacesStyleMeta
 from .fb_object_attribute import FBObjectAttribute
 from .fb_object_meta import FBObjectMeta
 from .fb_object import FBObject
+from .fb_permission import FBPermission
 from .feature import RankingFeatureType, FilterFeatureType, FilterFeature, RankingKeyFeature
 from .filter_meta import FilterMeta
 from .filter import Filter
