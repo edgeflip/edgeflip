@@ -427,8 +427,15 @@ class EdgeAggregate(object):
             self.inPostComms = aggregator(edge.incoming.post_comms for edge in edges)
             self.inStatLikes = aggregator(edge.incoming.stat_likes for edge in edges)
             self.inStatComms = aggregator(edge.incoming.stat_comms for edge in edges)
+            self.inStatTags = aggregator(edge.incoming.stat_tags for edge in edges)
             self.inWallPosts = aggregator(edge.incoming.wall_posts for edge in edges)
             self.inWallComms = aggregator(edge.incoming.wall_comms for edge in edges)
+            self.inPhotoLikes = aggregator(edge.incoming.photo_likes for edge in edges)
+            self.inPhotoComms = aggregator(edge.incoming.photo_comms for edge in edges)
+            self.inPhotoTags = aggregator(edge.incoming.photo_tags for edge in edges)
+            self.inUploadLikes = aggregator(edge.incoming.uplo_likes for edge in edges)
+            self.inUploadComms = aggregator(edge.incoming.uplo_comms for edge in edges)
+            self.inUploadTags = aggregator(edge.incoming.uplo_tags for edge in edges)
             self.inTags = aggregator(edge.incoming.tags for edge in edges)
 
         if require_outgoing:
@@ -463,8 +470,15 @@ class EdgeAggregate(object):
                 (edge.incoming.post_comms, self.inPostComms, 1.0),
                 (edge.incoming.stat_likes, self.inStatLikes, 2.0),
                 (edge.incoming.stat_comms, self.inStatComms, 1.0),
+                (edge.incoming.stat_tags, self.inStatTags, 1.0),
                 (edge.incoming.wall_posts, self.inWallPosts, 1.0),        # guessed weight
                 (edge.incoming.wall_comms, self.inWallComms, 1.0),        # guessed weight
+                (edge.incoming.photo_likes, self.inPhotoLikes, 1.0),
+                (edge.incoming.photo_comms, self.inPhotoComms, 1.0),
+                (edge.incoming.photo_tags, self.inPhotoTags, 1.0),
+                (edge.incoming.uplo_likes, self.inUploadLikes, 1.0),
+                (edge.incoming.uplo_comms, self.inUploadComms, 1.0),
+                (edge.incoming.uplo_tags, self.inUploadTags, 1.0),
                 (edge.incoming.tags, self.inTags, 1.0)
             ])
 
