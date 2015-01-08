@@ -9,7 +9,7 @@ define(
     [ 
       'polyfill',
       'vendor/bootstrap.min',
-      'font!typekit,id:ixj6alt',
+      //'font!typekit,id:ixj6alt', // font.js broken
       'css!styles/vendor/bootstrap.min',
       'css!styles/vendor/bootstrap-theme.min',
       'css!styles/vendor/jquery-ui.css',

@@ -12,7 +12,7 @@ require.config( {
         templates: '../templates',
         jquery: 'vendor/jquery',
 
-        font: 'vendor/font',
+        //font: 'vendor/font', // font.js broken
         propertyParser : 'vendor/propertyParser'
     },
 

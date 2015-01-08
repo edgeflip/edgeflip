@@ -20,6 +20,10 @@
     {% endcomment %}
     <script src="{{ STATIC_URL }}js/vendor/require.js"></script>
     <script src="{{ STATIC_URL }}js/main.js"></script>
+
+    {# Webfont loader (font.js) broken, and this is recommended for Typekit: #}
+    <script type="text/javascript" src="//use.typekit.net/ixj6alt.js"></script>
+    <script type="text/javascript">try{Typekit.load();}catch(e){}</script>
   </head>
 
     {% comment %}
