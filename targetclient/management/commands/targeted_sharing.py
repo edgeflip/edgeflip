@@ -29,7 +29,7 @@ LOCALES = 'locales'
 ENTITIES = (POSTS, LINKS, LIKES, USERS, EDGES, LOCALES)
 
 STREAM_DAYS = 365
-STREAM_CHUNK_SIZE = 25
+STREAM_CHUNK_SIZE = 31
 THREAD_COUNT = 6
 STREAM_READ_TIMEOUT_IN = 5
 STREAM_READ_SLEEP_IN = 5
@@ -37,11 +37,12 @@ BAD_CHUNK_THRESH = 1
 
 STATUS_AUTHED = True
 PHOTOS_AUTHED = True
+VIDEOS_AUTHED = True
 
 RANK_WEIGHTS = {
     'photo_tags': 4,
     'photo_likes': 1,
-    'photo_comms': 4,
+    'photo_comms': 3,
     'photos_target': 2,
     'uplo_tags': 4,
     'uplo_likes': 2,
@@ -53,7 +54,10 @@ RANK_WEIGHTS = {
 
 names = {}
 
-def cb(sess, resp):
+def cb(sess, resp, endpoint):
+    print sess
+    print resp
+    print endpoint
     d = resp.json()
     posts = []
     if 'data' in d:
@@ -108,7 +112,12 @@ class StreamAggregate(defaultdict):
                 names=defaultdict(str),
             )
         )
+        seen_posts = set()
         for post in stream:
+            if post.post_id in seen_posts:
+                print "skipping", post.post_id
+                continue
+            seen_posts.add(post.post_id)
             for interaction in post.interactions:
                 # Collect user interactions
                 user_interactions = self[interaction.user_id]
@@ -170,18 +179,34 @@ def read():
         if STATUS_AUTHED:
             futures.append(session.get(
                 'https://graph.facebook.com/v2.2/{}/statuses/'.format(user_id),
-                background_callback=cb,
+                background_callback=lambda sess, resp: cb(sess, resp, 'statuses'),
+                params=payload,
+            ))
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/links/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'links'),
                 params=payload,
             ))
         if PHOTOS_AUTHED:
             futures.append(session.get(
                 'https://graph.facebook.com/v2.2/{}/photos/'.format(user_id),
-                background_callback=cb,
+                background_callback=lambda sess, resp: cb(sess, resp, 'photos_of_me'),
                 params=payload,
             ))
             futures.append(session.get(
                 'https://graph.facebook.com/v2.2/{}/photos/uploaded/'.format(user_id),
-                background_callback=cb,
+                background_callback=lambda sess, resp: cb(sess, resp, 'photos_i_uploaded'),
+                params=payload,
+            ))
+        if VIDEOS_AUTHED:
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/videos/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'videos_of_me'),
+                params=payload,
+            ))
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/videos/uploaded/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'videos_i_uploaded'),
                 params=payload,
             ))
 
