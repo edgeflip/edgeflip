@@ -59,7 +59,9 @@ define(
                     }
 
                     currentView = this.views[currentState];
-                    currentView.trigger('sidebarSelected', (previousState || null));
+                    if (currentView) {
+                        currentView.trigger('sidebarSelected', (previousState || null));
+                    }
                 }
             },
 
