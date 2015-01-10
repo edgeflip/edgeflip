@@ -1,14 +1,20 @@
-from targetshare.integration import facebook
 from targetshare.models import dynamo, datastructs
 from django.core.management.base import NoArgsCommand
 from collections import defaultdict, namedtuple
+import json
 import logging
 from concurrent.futures import ThreadPoolExecutor
+from django.conf import settings
+from contextlib import closing
 import time
 from requests_futures.sessions import FuturesSession
+import threading
+import urllib2
+import urllib
+import urlparse
 LOG = logging.getLogger(__name__)
 
-TOKEN = ''
+TOKEN = 'CAACEdEose0cBALSRwBLPGCznKR9fF18YIv7m0vkPlZAizSir5OVyrek5G3Dwwu5nm1rjwpyJY7WzPewxzJJerqL8dimfVhzbBVDebwO8RigaHaOYOXKLevg8mSjwKWZAoZBExw0WsOTMCKCSMTnfzwTgPSDZAK9VHKZBuQImSeijNeyA7IlHayZBwsiRv6SgLbPlJbol0n7uM4WGvAUXV9wfEiXXekXVMZD'
 USERID = 10102136605223030
 
 DB_TEXT_LEN = 4096
@@ -35,8 +41,8 @@ STREAM_READ_TIMEOUT_IN = 5
 STREAM_READ_SLEEP_IN = 5
 BAD_CHUNK_THRESH = 1
 
-STATUS_AUTHED = True
-PHOTOS_AUTHED = True
+STATUS_AUTHED = False
+PHOTOS_AUTHED = False
 VIDEOS_AUTHED = True
 
 RANK_WEIGHTS = {
@@ -58,7 +64,9 @@ def cb(sess, resp, endpoint):
     print sess
     print resp
     print endpoint
-    d = resp.json()
+    resp.data = process_posts(resp.json())
+
+def process_posts(d):
     posts = []
     if 'data' in d:
         for post_json in d['data']:
@@ -83,7 +91,10 @@ def cb(sess, resp, endpoint):
                 names[user['id']] = user['name']
             if 'tags' in post_json and 'data' in post_json['tags']:
                 for user in post_json['tags']['data']:
+                    if 'id' not in user:
+                        continue
                     action_type = post_type + '_tags'
+                    #print user
                     post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
                     names[user['id']] = user['name']
             if 'likes' in post_json and 'data' in post_json['likes']:
@@ -98,7 +109,70 @@ def cb(sess, resp, endpoint):
                     post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
                     names[user['id']] = user['name']
             posts.append(post)
-    resp.data = posts
+    return posts
+
+
+class StreamReaderThread(threading.Thread):
+    """Read a chunk of a user's Stream in a thread"""
+    def __init__(self, name, user_id, token, results, min_posts, endpoint):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.user_id = user_id
+        self.token = token
+        self.results = results
+        self.min_posts = min_posts
+        self.endpoint = endpoint
+
+    def run(self):
+        payload = {
+            'access_token': self.token,
+            'method': 'GET',
+            'format': 'json',
+            'suppress_http_code': 1,
+        }
+        url = 'https://graph.facebook.com/v2.2/{}/{}/'.format(self.user_id, self.endpoint)
+        timeout = 5
+        data = []
+        print "getting data"
+        while url and len(data) < self.min_posts:
+            paginated_data = urlload(
+                url, payload, timeout=timeout)
+            url = None
+            if paginated_data.get('data'):
+                data.extend(paginated_data['data'])
+                url = paginated_data.get('paging', {}).get('next')
+        print "got data"
+        self.results = data
+
+
+def run_thread_paginate():
+    min_posts = 100
+    user_id = USERID
+    token = TOKEN
+    endpoints = []
+    if STATUS_AUTHED:
+        endpoints.append('statuses')
+        endpoints.append('links')
+    if PHOTOS_AUTHED:
+        endpoints.append('photos')
+        endpoints.append('photos/uploaded')
+    if VIDEOS_AUTHED:
+        endpoints.append('videos')
+        #endpoints.append('videos/uploaded')
+    threads = []
+    chunk_outputs = []
+    for endpoint in endpoints:
+        thread = StreamReaderThread(
+            "%s-%s" % (user_id, endpoint),
+            user_id,
+            token,
+            chunk_outputs,
+            min_posts,
+            endpoint,
+        )
+        thread.setDaemon(True)
+        thread.start()
+        threads.append(thread)
 
 class StreamAggregate(defaultdict):
     """Stream data aggregator"""
@@ -146,7 +220,68 @@ class StreamAggregate(defaultdict):
 Post = namedtuple('Post', ('post_id', 'message', 'interactions'))
 Interaction = namedtuple('Interaction', ('user_id', 'type', 'weight'))
 
-def read():
+def run_offsetpartitioned():
+    user_id = USERID
+    token = TOKEN
+    num_posts = 100
+    chunk_size = 20
+    chunk_inputs = []
+    chunk_outputs = [] # list of stream obects holding results
+
+    # load the queue
+    for offset in xrange(0, num_posts, chunk_size):
+        chunk_inputs.append((offset, chunk_size))
+
+    session = FuturesSession(executor=ThreadPoolExecutor(max_workers=THREAD_COUNT))
+    futures = []
+    for offset, limit in chunk_inputs:
+        payload = {
+            'access_token': token,
+            'method': 'GET',
+            'format': 'json',
+            'suppress_http_code': 1,
+            'offset': offset,
+            'limit': limit,
+        }
+        if STATUS_AUTHED:
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/statuses/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'statuses'),
+                params=payload,
+            ))
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/links/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'links'),
+                params=payload,
+            ))
+        if PHOTOS_AUTHED:
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/photos/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'photos_of_me'),
+                params=payload,
+            ))
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/photos/uploaded/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'photos_i_uploaded'),
+                params=payload,
+            ))
+        if VIDEOS_AUTHED:
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/videos/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'videos_of_me'),
+                params=payload,
+            ))
+            futures.append(session.get(
+                'https://graph.facebook.com/v2.2/{}/videos/uploaded/'.format(user_id),
+                background_callback=lambda sess, resp: cb(sess, resp, 'videos_i_uploaded'),
+                params=payload,
+            ))
+    for future in futures:
+        chunk_outputs.append(future.result())
+
+    process(chunk_outputs)
+
+def run_timepartitioned():
     user_id = USERID
     token = TOKEN
     num_days = STREAM_DAYS
@@ -213,6 +348,9 @@ def read():
     for future in futures:
         chunk_outputs.append(future.result())
 
+    process(chunk_outputs)
+
+def process(chunk_outputs):
     total_stream = [item for sublist in chunk_outputs for item in sublist.data]
     friend_streamrank = StreamAggregate(total_stream)
 
@@ -269,9 +407,24 @@ def read():
     for e in edges_ranked:
         print e.secondary, names[unicode(e.secondary.fbid)], e.px4_score, len(e.interactions)
 
+def urlload(url, query=(), timeout=None):
+    """Load data from the given Facebook URL."""
+    parsed_url = urlparse.urlparse(url)
+    print "parsed url", parsed_url
+    query_params = urlparse.parse_qsl(parsed_url.query)
+    print "query params", query_params
+    query_params.extend(getattr(query, 'items', lambda: query)())
+    print "query params", query_params
+    url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
+    print "new url", url
+
+    with closing(urllib2.urlopen(
+            url, timeout=(timeout or settings.FACEBOOK.api_timeout))
+    ) as response:
+        return json.load(response)
 
 class Command(NoArgsCommand):
     help = "Test"
 
     def handle_noargs(self, *args, **options):
-        read()
+        run_thread_paginate()
