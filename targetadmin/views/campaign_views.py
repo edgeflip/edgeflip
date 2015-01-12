@@ -4,7 +4,6 @@ import logging
 import re
 
 from django.conf import settings
-from django.db.models import F
 from django.core.mail import send_mail
 from django.core.serializers import serialize
 from django.core.urlresolvers import reverse
@@ -75,12 +74,12 @@ def render_campaign_creation_message(request, campaign, content):
 @require_POST
 def campaign_wizard(request, client_pk, campaign_pk=None):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    editing = campaign_pk and get_object_or_404(client.campaigns, pk=campaign_pk)
+    editing = campaign_pk and get_object_or_404(client.campaigns.root(), pk=campaign_pk)
 
     if editing:
         campaign_properties = editing.campaignproperties.get()
-        if campaign_properties.status != relational.CampaignProperties.Status.DRAFT:
-            return HttpResponseBadRequest("Only campaigns in draft mode can be modified")
+        if campaign_properties.status != campaign_properties.Status.DRAFT:
+            return HttpResponseBadRequest("Only draft campaigns can be modified")
 
         fb_attr_inst = editing.fb_object().fbobjectattribute_set.get()
     else:
@@ -398,30 +397,57 @@ def clean_up_campaign(campaign):
             ranking_key0.delete()
 
 
+def advance_campaign_status(client_pk, campaign_pk, status):
+    """Advance a Campaign and its fallbacks to the given Status and return an
+    HttpResponse.
+
+    If the requested Status does not immediately follow the Campaign's current
+    Status, an HttpResponseBadRequest is returned.
+
+    """
+    campaign = get_object_or_404(relational.Campaign.rootcampaigns,
+                                 client_id=client_pk,
+                                 campaign_id=campaign_pk)
+
+    previous_state = status.previous
+    if campaign.status() != previous_state:
+        if previous_state is None:
+            message = "Cannot advance campaign to mode: {}".format(status)
+        else:
+            message = "Only {} campaigns can be advanced to {}".format(previous_state, status)
+
+        return HttpResponseBadRequest(message)
+
+    campaign.rootcampaign_properties.update(status=status)
+
+    return redirect('targetadmin:campaign-summary', client_pk, campaign_pk)
+
+
 @utils.auth_client_required
 @require_POST
 def publish_campaign(request, client_pk, campaign_pk):
-    campaign = get_object_or_404(relational.Campaign,
-                                 client_id=client_pk,
-                                 campaign_id=campaign_pk,
-                                 # disavow knowledge of fallback campaigns
-                                 campaignproperties__root_campaign_id=F('campaign_id'))
-
-    if campaign.status() != relational.CampaignProperties.Status.DRAFT:
-        return HttpResponseBadRequest("Only campaigns in draft mode can be published")
-
-    relational.CampaignProperties.objects.filter(root_campaign=campaign).update(
-        status=relational.CampaignProperties.Status.PUBLISHED,
+    return advance_campaign_status(
+        client_pk,
+        campaign_pk,
+        relational.CampaignProperties.Status.PUBLISHED,
     )
 
-    return redirect('targetadmin:campaign-summary', client_pk, campaign_pk)
+
+@utils.superuser_required
+@require_POST
+def archive_campaign(request, client_pk, campaign_pk):
+    return advance_campaign_status(
+        client_pk,
+        campaign_pk,
+        relational.CampaignProperties.Status.INACTIVE,
+    )
 
 
 @utils.auth_client_required
 @require_GET
 def campaign_summary(request, client_pk, campaign_pk, wizard=False):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    root_campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    root_campaign = get_object_or_404(client.campaigns.root(), pk=campaign_pk)
     campaign_properties = root_campaign.campaignproperties.get()
     content = campaign_properties.client_content
 
@@ -497,7 +523,7 @@ def available_filters(request, client_pk):
 @require_GET
 def campaign_data(request, client_pk, campaign_pk):
     client = get_object_or_404(relational.Client, pk=client_pk)
-    campaign = get_object_or_404(client.campaigns, pk=campaign_pk)
+    campaign = get_object_or_404(client.campaigns.root(), pk=campaign_pk)
     campaign_properties = campaign.campaignproperties.get()
     content = campaign_properties.client_content
 

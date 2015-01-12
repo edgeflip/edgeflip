@@ -132,10 +132,40 @@ class OrderedStrEnum(unicode, enum.Enum):
         except KeyError:
             raise ValueError(other)
 
+    @classonlymethod
+    def get_member(cls, ordinal):
+        """Retrieve the enum member at the given integer position."""
+        name = cls._member_names_[ordinal]
+        return cls[name]
+
     @property
     def ordinal(self):
         """The ordered enumeration member's ordinal value."""
         return self._member_ordinals[self]
+
+    @property
+    def next(self):
+        """The enum member following this one.
+
+        Returns None if this member is last in the order.
+
+        """
+        try:
+            return self.__class__.get_member(self.ordinal + 1)
+        except IndexError:
+            return None
+
+    @property
+    def previous(self):
+        """The enum member preceding this one.
+
+        Returns None if this member is first in the order.
+
+        """
+        ordinal = self.ordinal
+        if ordinal == 0:
+            return None
+        return self.__class__.get_member(ordinal - 1)
 
     def __ge__(self, other):
         return self.ordinal >= self.__class__.get_ordinal(other)

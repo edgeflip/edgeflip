@@ -90,6 +90,26 @@ def test_bad_comparisons():
         yield (try_bad_comparison, bad_value, exc_class)
 
 
+def test_next():
+    """next returns the following enum member"""
+    members = tuple(BlogPostStatus)
+
+    for (number, member) in enumerate(members[:-1], 1):
+        yield (tools.eq_, member.next, members[number])
+
+    yield (tools.assert_is_none, members[-1].next)
+
+
+def test_previous():
+    """previous returns the preceding enum member"""
+    members = tuple(BlogPostStatus)
+
+    for (number, member) in enumerate(members[1:]):
+        yield (tools.eq_, member.previous, members[number])
+
+    yield (tools.assert_is_none, members[0].previous)
+
+
 def test_enum_aliases():
     """Enums are free to define look-up aliases without affecting ordinals"""
     class RedundantStatus(OrderedStrEnum):

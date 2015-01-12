@@ -1,5 +1,43 @@
-from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
+from django.db import models
+from django.db.models.query import QuerySet
+
+
+class CampaignQuerySetBase(QuerySet):
+
+    def _rootonly(self):
+        return self.filter(campaignproperties__root_campaign_id=models.F('campaign_id'))
+
+
+class CampaignQuerySet(CampaignQuerySetBase):
+
+    def root(self):
+        return self._rootonly()
+
+
+class CampaignManager(models.Manager):
+    """Campaign object manager
+
+    Contributes the campaign-specific method `root()`, which filters the
+    QuerySet to root campaigns, and returns a QuerySet which also provides this
+    method.
+
+    """
+    def get_queryset(self):
+        return CampaignQuerySet(self.model, using=self._db)
+
+    def root(self):
+        return self.get_queryset().root()
+
+
+class RootCampaignManager(models.Manager):
+    """Alternative campaign object manager whose view is restricted to root
+    campaigns.
+
+    """
+    def get_queryset(self):
+        campaigns = CampaignQuerySetBase(self.model, using=self._db)
+        return campaigns._rootonly()
 
 
 class Campaign(models.Model):
@@ -11,6 +49,9 @@ class Campaign(models.Model):
     is_deleted = models.BooleanField(default=False)
     create_dt = models.DateTimeField(auto_now_add=True)
     delete_dt = models.DateTimeField(null=True, blank=True)
+
+    objects = CampaignManager()
+    rootcampaigns = RootCampaignManager()
 
     class Meta(object):
         app_label = 'targetshare'
