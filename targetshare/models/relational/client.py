@@ -13,12 +13,17 @@ class Client(models.Model):
     fb_app_permissions = models.ManyToManyField('targetshare.FBPermission', blank=True)
     domain = models.CharField(max_length=256, blank=True)
     subdomain = models.CharField(max_length=256, blank=True)
+    campaign_inactive_url = models.CharField(
+        max_length=2096,
+        help_text="Default URL to which to redirect visitors "
+                  "once a campaign has been archived.",
+    )
     source_parameter = models.CharField(
-        "Query string key, if any, with which Edgeflip identifies itself "
-        "on links outgoing to client",
         blank=True,
         default='rs',
         max_length=15,
+        help_text="Query string key, if any, with which Edgeflip identifies itself "
+                  "on links outgoing to client",
     )
     auth_groups = models.ManyToManyField('auth.Group', blank=True)
     create_dt = models.DateTimeField(auto_now_add=True)

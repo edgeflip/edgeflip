@@ -31,6 +31,9 @@ class CampaignProperties(models.Model):
     client_faces_url = models.CharField(max_length=2096)
     client_thanks_url = models.CharField(max_length=2096)
     client_error_url = models.CharField(max_length=2096)
+    inactive_url = models.CharField(max_length=2096, blank=True,
+                                    help_text="URL to which to redirect visitors "
+                                              "once this campaign has been archived.")
     fallback_campaign = models.ForeignKey('Campaign', null=True,
                                           related_name='fallbackcampaign_properties')
     fallback_content = models.ForeignKey('ClientContent', null=True,
