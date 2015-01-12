@@ -102,7 +102,7 @@ class Command(NoArgsCommand):
         # Determine tokens to process #
         if client_codenames:
             client_users = relational.UserClient.objects.filter(client__codename__in=client_codenames)
-            user_keys = client_users.values_list('fbid', 'client___fb_app_id').distinct()
+            user_keys = client_users.values_list('fbid', 'client__fb_app_id').distinct()
             tokens = dynamo.Token.items.batch_get(
                 # FIXME: boto requires re-scan & doesn't batch keys
                 tuple({'fbid': fbid, 'appid': int(appid)}
@@ -175,7 +175,7 @@ class Command(NoArgsCommand):
         return (count, update_count, retries)
 
     def try_token(self, token):
-        user_clients = relational.UserClient.objects.filter(fbid=token.fbid, client___fb_app_id=token.appid)
+        user_clients = relational.UserClient.objects.filter(fbid=token.fbid, client__fb_app_id=token.appid)
         client_codenames = user_clients.values_list('client__codename', flat=True)
         app_stats = self.stats.get_many(client_codenames.iterator())
 

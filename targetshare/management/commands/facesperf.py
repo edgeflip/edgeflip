@@ -71,7 +71,7 @@ class Command(BaseCommand):
                 limit = 100
 
             if options['random']:
-                app_users = relational.UserClient.objects.filter(client___fb_app_id=fb_app_id)
+                app_users = relational.UserClient.objects.filter(client__fb_app_id=fb_app_id)
                 random_fbids = app_users.values_list('fbid', flat=True).distinct().order_by('?')
                 # A lot of these might be no good when debugged, so get 10x
                 # TODO: Use scan and filter by expires?
