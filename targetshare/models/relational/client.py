@@ -8,7 +8,7 @@ class Client(models.Model):
     client_id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=255, unique=True, blank=True)
     codename = models.SlugField(unique=True, blank=True, editable=False)
-    fb_app_id = models.CharField('FB App ID', max_length=256, blank=True)
+    fb_app_id = models.BigIntegerField('FB App ID', null=True, blank=True)
     fb_app_name = models.CharField('FB App Namespace', max_length=256, blank=True)
     fb_app_permissions = models.ManyToManyField('targetshare.FBPermission', blank=True)
     domain = models.CharField(max_length=256, blank=True)

@@ -105,7 +105,7 @@ class Command(NoArgsCommand):
             user_keys = client_users.values_list('fbid', 'client__fb_app_id').distinct()
             tokens = dynamo.Token.items.batch_get(
                 # FIXME: boto requires re-scan & doesn't batch keys
-                tuple({'fbid': fbid, 'appid': int(appid)}
+                tuple({'fbid': fbid, 'appid': appid}
                       for (fbid, appid) in user_keys.iterator())
             )
         else:
