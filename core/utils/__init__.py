@@ -21,7 +21,7 @@ def urlredirect(to, *args, **kws):
     else:
         redirect_class = http.HttpResponseRedirect
 
-    querymap = kws.pop('query', ())
+    querymap = kws.pop('querymap', ())
 
     path = resolve_url(to, *args, **kws)
     if querymap:
