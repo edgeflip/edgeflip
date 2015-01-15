@@ -17,20 +17,17 @@ class Status(utils.AbstractStatus):
 
     __order__ = 'DRAFT PUBLISHED INACTIVE' # py2 only
 
-    def _is(self, status):
-        return self.value == status
-
     @property
     def isdraft(self):
-        return self._is('draft')
+        return self.value == 'draft'
 
     @property
     def ispublished(self):
-        return self._is('published')
+        return self.value == 'published'
 
     @property
     def isinactive(self):
-        return self._is('inactive')
+        return self.value == 'inactive'
 
 
 class CampaignProperties(models.Model):
