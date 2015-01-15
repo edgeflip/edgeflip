@@ -14,7 +14,7 @@ from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_exempt
 from faraday.structs import LazyList
 
-from core.utils.campaignstatus import CampaignStatusHandler
+from core.utils import campaignstatus
 
 from targetshare import forms
 from targetshare.integration import facebook
@@ -66,9 +66,10 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         LOG.warning("Received request for non-root campaign", extra={'request': request})
         raise http.Http404
 
-    campaign_status = CampaignStatusHandler.handle_request(request, campaign, campaign_properties)
-    if not campaign_status.is_allowed:
-        return campaign_status.make_response()
+    try:
+        campaign_status = campaignstatus.handle_request(request, campaign, campaign_properties)
+    except campaignstatus.DisallowedError as exc:
+        return exc.make_error_response()
 
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
@@ -141,7 +142,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
         'properties': properties,
         'campaign_css': page_styles,
         'canvas': canvas,
-        'draft_preview': campaign_status.is_draft,
+        'draft_preview': campaign_status.isdraft,
         # Debug mode currently on for all methods of targeted sharing
         # However will likely just reflect the canvas var in the future
         'debug_mode': True,
