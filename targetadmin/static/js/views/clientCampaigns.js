@@ -49,7 +49,7 @@ define(
                 /* Render view HTML.
                  */
                 this.slurpHtml({
-                    template: template( { campaigns: this.campaigns.toJSON() } ),
+                    template: template({ campaigns: this.campaigns.toJSON()}),
                     insertion: {$el: this.$el.appendTo(this.parentEl)}
                 });
                 return this;

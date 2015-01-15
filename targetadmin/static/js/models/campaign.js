@@ -64,8 +64,21 @@ define([
             if (attrs.campaign_properties) {
                 attrs.thanks_url = attrs.campaign_properties.client_thanks_url;
                 attrs.error_url = attrs.campaign_properties.client_error_url;
-                attrs.isPublished = attrs.campaign_properties.status === 'published';
-                attrs.isDraft = attrs.campaign_properties.status === 'draft';
+
+                switch (attrs.campaign_properties.status) {
+                    case 'draft':
+                        attrs.status = 'draft';
+                        break;
+                    case 'published':
+                        attrs.status = 'published';
+                        break;
+                    case 'inactive':
+                        attrs.status = 'archived';
+                        break;
+                }
+                attrs.isDraft = attrs.status === 'draft';
+                attrs.isPublished = attrs.status === 'published';
+                attrs.isArchived = attrs.status === 'archived';
             }
 
             if (attrs.fb_obj_attributes) {

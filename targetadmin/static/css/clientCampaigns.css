@@ -27,3 +27,6 @@
   cursor: pointer;
   text-decoration: underline;
 }
+.client-campaigns .campaign-row .status {
+  text-transform: capitalize;
+}
