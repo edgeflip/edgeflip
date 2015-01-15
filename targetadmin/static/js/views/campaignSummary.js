@@ -85,7 +85,7 @@ define(
 
             performPublish: function () {
                 /* Disable submission button to prevent multiple calls */
-                modal.templateData.modalContainer.trigger('confirm_bad');
+                modal.templateData.modalContainer.trigger('disable_confirm');
 
                 /* Reverse URL path lazily */
                 if (this.publishUrl === null) {
@@ -111,7 +111,7 @@ define(
             },
 
             performArchive: function () {
-                modal.templateData.modalContainer.trigger('confirm_bad');
+                modal.templateData.modalContainer.trigger('disable_confirm');
 
                 /* Reverse URL path lazily */
                 if (this.archiveUrl === null) {

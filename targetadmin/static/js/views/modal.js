@@ -24,10 +24,10 @@ define(
 
                 self.render();
 
-                self.templateData.modalContainer.on('confirm_bad', function () {
+                self.templateData.modalContainer.on('disable_confirm', function () {
                     self.templateData.confirmBtn.prop("disabled", true);
                 });
-                self.templateData.modalContainer.on('confirm_ok', function () {
+                self.templateData.modalContainer.on('enable_confirm', function () {
                     self.templateData.confirmBtn.prop("disabled", false);
                 });
 
@@ -71,7 +71,7 @@ define(
                 this.templateData.confirmBtn.text(options.confirmText);
                 this.templateData.closeBtn.toggleClass('hide', !options.showCloseBtn);
 
-                this.templateData.modalContainer.trigger('confirm_ok');
+                this.templateData.modalContainer.trigger('enable_confirm');
 
                 return this;
             },
