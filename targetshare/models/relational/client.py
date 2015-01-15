@@ -20,6 +20,7 @@ class Client(models.Model):
         db_column='fb_app_id',
         blank=True
     )
+    fb_app_permissions = models.ManyToManyField('targetshare.FBPermission', blank=True)
     domain = models.CharField(max_length=256, blank=True)
     subdomain = models.CharField(max_length=256, blank=True)
     source_parameter = models.CharField(

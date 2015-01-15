@@ -1,5 +1,8 @@
 import enum
 
+import django.core.exceptions
+import django.db.models
+
 from targetshare.utils import classonlymethod
 
 
@@ -195,6 +198,11 @@ class AbstractStatus(OrderedStrEnum):
                            default=Status.DRAFT,
                            choices=Status.choices)
 
+    Also defines the class method `modelfield`, which constructs a `StatusField`
+    for this Enum:
+
+        status = Status.modelfield(default=Status.DRAFT)
+
     """
     @cachedclassproperty
     def choices(cls):
@@ -205,6 +213,61 @@ class AbstractStatus(OrderedStrEnum):
 
         return tuple((member.value, member.title()) for member in cls)
 
+    @classonlymethod
+    def modelfield(cls, *args, **kws):
+        return StatusField(cls, *args, **kws)
+
     # Members mix in unicode; necessary only to overwrite the enum default:
     def __str__(self):
         return self.value
+
+
+class StatusField(django.db.models.CharField):
+    """Django ORM CharField intended for use with a concrete descendent of
+    AbstractStatus.
+
+    Ensures that:
+
+        * while statuses are strings and stored as such in the database, in the
+        model field they are always represented by the appropriate Enum member
+        * field instantiation arguments `choices` and `max_length` are given
+        defaults appropriate to the Enum
+        * South migrations are unaffected, and made to see only a CharField
+        (with a built-in str default, if any)
+
+    """
+    __metaclass__ = django.db.models.SubfieldBase
+
+    def __init__(self, statusenum, *args, **kwargs):
+        # Autofill "choices":
+        if 'choices' not in kwargs:
+            kwargs['choices'] = statusenum.choices
+
+        # Autofill "max_length":
+        if 'max_length' not in kwargs:
+            kwargs['max_length'] = max(len(value) for value in statusenum)
+
+        super(StatusField, self).__init__(*args, **kwargs)
+
+        self.statusenum = statusenum
+
+    def to_python(self, value):
+        # Force enum instance for consistency and error-catching
+        if isinstance(value, self.statusenum) or value is None:
+            return value
+
+        try:
+            return self.statusenum(value)
+        except ValueError as exc:
+            raise django.core.exceptions.ValidationError(exc)
+
+    def south_field_triple(self):
+        # Make South think this is just a CharField -- this field only
+        # customizes Python; (and, migrations can handle themselves).
+        from south.modelsinspector import introspector
+
+        (args, kws) = introspector(self)
+        if isinstance(self.default, self.statusenum):
+            kws['default'] = repr(self.default.value)
+
+        return ('django.db.models.fields.CharField', args, kws)

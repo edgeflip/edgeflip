@@ -7,7 +7,7 @@ from django.shortcuts import render
 LOG = logging.getLogger('crow')
 
 
-class DraftMode(object):
+class CampaignStatusHandler(object):
 
     @classmethod
     def handle_request(cls, request, campaign, properties=None):
@@ -45,24 +45,20 @@ class DraftMode(object):
         return cls(request, campaign, is_draft=False, is_allowed=True)
 
     def __init__(self, request, campaign, is_draft, is_allowed):
-        self.request = request
-        self.campaign = campaign
+        self._request = request
+        self._campaign = campaign
         self.is_draft = is_draft
         self.is_allowed = is_allowed
-
-    def __nonzero__(self):
-        return self.is_draft
-    __bool__ = __nonzero__
 
     def make_response(self, friendly=False):
         if self.is_allowed:
             return None
 
-        if self.request.method == 'HEAD':
+        if self._request.method == 'HEAD':
             return HttpResponseForbidden()
 
-        return render(self.request, 'core/draft-forbidden.html', {
+        return render(self._request, 'core/draft-forbidden.html', {
             'friendly': friendly,
-            'client': self.campaign.client,
-            'campaign': self.campaign,
+            'client': self._campaign.client,
+            'campaign': self._campaign,
         }, status=403)

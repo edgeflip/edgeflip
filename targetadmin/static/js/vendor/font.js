@@ -35,6 +35,7 @@ define(['propertyParser'], function (propertyParser) {
                     onLoad(false);
                 };
                 req([(document.location.protocol === 'https:'? 'https' : 'http') +'://ajax.googleapis.com/ajax/libs/webfont/1/webfont.js'], function(){
+                    // FIXME: this isn't working
                     WebFont.load(data);
                 });
             }

@@ -113,7 +113,6 @@ define(
                     facesExampleURL: this.facesExampleURL,
                     clientId: this.clientId,
                     token: this.token,
-                    createFormAction: this.wizardCreate
                 });
 
                 /* for back btn hack */
