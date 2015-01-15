@@ -121,6 +121,8 @@ class InactiveCampaign(DisallowedError):
 
     @classmethod
     def handle_request(cls, request, campaign, properties):
+        LOG.warning("Received request for inactive campaign (%s)",
+                    campaign.campaign_id, extra={'request': request})
         request.visit.events.create(
             event_type='inactive_campaign',
             campaign=campaign,
