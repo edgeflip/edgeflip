@@ -23,7 +23,7 @@ class TestCampaignWizard(TestAdminBase):
     def test_create_campaign_wizard(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_id=1
+            fb_app_id=1,
         )
         new_filter = relational.Filter.objects.create(
             name='new filter', client=new_client
@@ -122,8 +122,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_create_campaign_wizard_generate_faces_url(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         relational.Filter.objects.update(client=new_client)
         self.assertEqual(new_client.filters.count(), 6)
@@ -196,8 +196,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_create_campaign_wizard_new_filter_feature(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
@@ -268,8 +268,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_create_campaign_wizard_topics_feature(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         response = self.client.post(
             reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
@@ -330,8 +330,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_create_campaign_wizard_no_filtering(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
@@ -393,8 +393,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_campaign_wizard_no_empty_fallback(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         relational.Filter.objects.update(client=new_client)
         self.assertFalse(new_client.campaigns.exists())
@@ -430,8 +430,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_campaign_wizard_existing_styles(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         frame_faces = relational.Page.objects.get(code='frame_faces')
         page_style = new_client.pagestyles.create(
@@ -498,8 +498,8 @@ class TestCampaignWizard(TestAdminBase):
     def test_edit_campaign_wizard(self):
         new_client = relational.Client.objects.create(
             name='Test Client',
-            _fb_app_name='testing',
-            _fb_app_id=1
+            fb_app_name='testing',
+            fb_app_id=1,
         )
         self.assertFalse(new_client.campaigns.exists())
         response = self.client.post(

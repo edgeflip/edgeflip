@@ -1,8 +1,8 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <h1>Page under construction</h1>
+{% extends "core/campaignstatus/base.html" %}
 
+{% block heading %}Page under construction{% endblock %}
+
+{% block content %}
     {% if friendly %}
     {% url 'targetadmin:campaign-summary' client.pk campaign.pk as admin_path %}
     <p>
@@ -12,5 +12,4 @@
     </p>
     <p>Otherwise, check back in a bit!</p>
     {% endif %}
-</body>
-</html>
+{% endblock %}

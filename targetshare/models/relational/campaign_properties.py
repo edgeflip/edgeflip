@@ -17,6 +17,18 @@ class Status(utils.AbstractStatus):
 
     __order__ = 'DRAFT PUBLISHED INACTIVE' # py2 only
 
+    @property
+    def isdraft(self):
+        return self.value == 'draft'
+
+    @property
+    def ispublished(self):
+        return self.value == 'published'
+
+    @property
+    def isinactive(self):
+        return self.value == 'inactive'
+
 
 class CampaignProperties(models.Model):
 
@@ -31,6 +43,9 @@ class CampaignProperties(models.Model):
     client_faces_url = models.CharField(max_length=2096)
     client_thanks_url = models.CharField(max_length=2096)
     client_error_url = models.CharField(max_length=2096)
+    inactive_url = models.CharField(max_length=2096, blank=True,
+                                    help_text="URL to which to redirect visitors "
+                                              "once this campaign has been archived.")
     fallback_campaign = models.ForeignKey('Campaign', null=True,
                                           related_name='fallbackcampaign_properties')
     fallback_content = models.ForeignKey('ClientContent', null=True,

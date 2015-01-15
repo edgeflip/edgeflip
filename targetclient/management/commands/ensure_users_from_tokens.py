@@ -32,7 +32,7 @@ class Command(NoArgsCommand):
                     self.stderr.write('Token check request failed for {} with error {}'.format(token, e))
 
             clients = None
-            client_queryset = Client.objects.filter(_fb_app_id=token.appid).all()
+            client_queryset = Client.objects.filter(fb_app_id=token.appid)
             if client_queryset.count() == 1:
                 clients = client_queryset
             else:

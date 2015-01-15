@@ -37,8 +37,8 @@
     fields:
         create_dt: !!timestamp '2013-07-15 11:38:28'
         domain: 'edgeflip.com:8080'
-        _fb_app_id: '471727162864364'
-        _fb_app_name: sharing-social-good
+        fb_app_id: '471727162864364'
+        fb_app_name: sharing-social-good
         name: reportingclient
         codename: reportingclient
         subdomain: testserver
@@ -48,8 +48,8 @@
     fields:
         create_dt: !!timestamp '2013-07-15 11:38:28'
         domain: 'edgeflip.com:8080'
-        _fb_app_id: '471727162864363'
-        _fb_app_name: sharing-social-good2
+        fb_app_id: '471727162864363'
+        fb_app_name: sharing-social-good2
         name: secretclient
         codename: secretclient
         subdomain: testserver

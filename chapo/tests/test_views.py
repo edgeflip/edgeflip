@@ -263,3 +263,477 @@ class TestDraftCampaign(RedirectCampaignTestCase):
             'friend_fbid': None,
             'activity_id': None,
         })
+
+
+class TestInactiveCampaign(RedirectCampaignTestCase):
+
+    def setUp(self):
+        super(TestInactiveCampaign, self).setUp()
+        self.campaign.campaignproperties.update(
+            status=relational.CampaignProperties.Status.INACTIVE,
+        )
+
+        self.user = User.objects.create_user('mockuser', password='1234')
+        self.group = self.user.groups.create(name='mockgroup')
+
+        self.inactive_url = 'http://localhost/phooey'
+        outgoing_path = reverse('outgoing', args=[self.campaign.client.fb_app_id,
+                                                  self.inactive_url])
+        self.outgoing_path = "{}?campaignid={}".format(outgoing_path, self.campaign.campaign_id)
+        self.outgoing_url = "http://testserver" + self.outgoing_path
+        self.final_url = self.inactive_url + "?rs=ef1"
+
+    def test_not_authenticated(self):
+        response = self.client.get(self.path)
+        self.assertContains(response, "Page removed", status_code=410)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_not_authorized(self):
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        response = self.client.get(self.path)
+        self.assertContains(response, "Page removed", status_code=410)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_not_authenticated_campaign_redirect(self):
+        self.campaign.campaignproperties.update(inactive_url=self.inactive_url)
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.outgoing_url)
+
+        response = self.client.get(response['Location'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.final_url)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 5)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[3], {
+            'event_type': 'outgoing_redirect',
+            'campaign_id': 1,
+            'content': self.final_url,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[4], {
+            'event_type': 'cookies_enabled',
+            'campaign_id': None,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_not_authorized_campaign_redirect(self):
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        self.campaign.campaignproperties.update(inactive_url=self.inactive_url)
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.outgoing_url)
+
+        response = self.client.get(response['Location'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.final_url)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 5)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[3], {
+            'event_type': 'outgoing_redirect',
+            'campaign_id': 1,
+            'content': self.final_url,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[4], {
+            'event_type': 'cookies_enabled',
+            'campaign_id': None,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_not_authenticated_client_redirect(self):
+        self.campaign.client.campaign_inactive_url = self.inactive_url
+        self.campaign.client.save()
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.outgoing_url)
+
+        response = self.client.get(response['Location'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.final_url)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 5)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[3], {
+            'event_type': 'outgoing_redirect',
+            'campaign_id': 1,
+            'content': self.final_url,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[4], {
+            'event_type': 'cookies_enabled',
+            'campaign_id': None,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_not_authorized_client_redirect(self):
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        self.campaign.client.campaign_inactive_url = self.inactive_url
+        self.campaign.client.save()
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.outgoing_url)
+
+        response = self.client.get(response['Location'])
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response['Location'], self.final_url)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 5)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[3], {
+            'event_type': 'outgoing_redirect',
+            'campaign_id': 1,
+            'content': self.final_url,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[4], {
+            'event_type': 'cookies_enabled',
+            'campaign_id': None,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_authorized(self):
+        self.campaign.client.auth_groups.add(self.group)
+
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Page removed", response.content)
+        self.assertIn("This campaign has been archived and may no longer be accessed", response.content)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_authorized_campaign_redirect(self):
+        self.campaign.client.auth_groups.add(self.group)
+
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        self.campaign.campaignproperties.update(inactive_url=self.inactive_url)
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Page removed", response.content)
+        self.assertIn("This campaign has been archived and may no longer be accessed", response.content)
+        self.assertIn(self.outgoing_path, response.content)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+
+    def test_authorized_client_redirect(self):
+        self.campaign.client.auth_groups.add(self.group)
+
+        logged_in = self.client.login(username='mockuser', password='1234')
+        self.assertTrue(logged_in)
+
+        self.campaign.client.campaign_inactive_url = self.inactive_url
+        self.campaign.client.save()
+
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("Page removed", response.content)
+        self.assertIn("This campaign has been archived and may no longer be accessed", response.content)
+        self.assertIn(self.outgoing_path, response.content)
+
+        visit = self.visits.get()
+        events = visit.events.order_by('event_datetime', 'pk').values(
+            'event_type', 'campaign_id', 'client_content',
+            'content', 'friend_fbid', 'activity_id'
+        )
+
+        self.assertEqual(len(events), 3)
+        self.assertEqual(events[0], {
+            'event_type': 'session_start',
+            'campaign_id': 1,
+            'content': '',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[1], {
+            'event_type': 'initial_redirect',
+            'campaign_id': 1,
+            'content': self.short.slug,
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
+        self.assertEqual(events[2], {
+            'event_type': 'inactive_campaign',
+            'campaign_id': 1,
+            'content': 'mockuser',
+            'client_content': None,
+            'friend_fbid': None,
+            'activity_id': None,
+        })
