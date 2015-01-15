@@ -442,6 +442,29 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         response = self.client.get(reverse('frame-faces', args=[1, 1]))
         self.assertStatusCode(response, 403)
 
+    def test_inactive_campaign(self):
+        campaign = models.Campaign.objects.get(campaign_id=1)
+        campaign.campaignproperties.update(
+            status=models.CampaignProperties.Status.INACTIVE,
+        )
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        self.assertContains(response, "Page removed", status_code=410)
+
+    def test_inactive_campaign_redirect(self):
+        campaign = models.Campaign.objects.get(campaign_id=1)
+        campaign.campaignproperties.update(
+            status=models.CampaignProperties.Status.INACTIVE,
+        )
+        client = campaign.client
+        client.campaign_inactive_url = 'http://clienthost/'
+        client.save()
+        outgoing_url = "{}?campaignid={}".format(
+            reverse('outgoing', args=[client.fb_app_id, client.campaign_inactive_url]),
+            campaign.campaign_id,
+        )
+        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        self.assertRedirects(response, outgoing_url, target_status_code=302)
+
     def test_canvas(self):
         ''' Tests views.canvas '''
         response = self.client.get(reverse('canvas'))

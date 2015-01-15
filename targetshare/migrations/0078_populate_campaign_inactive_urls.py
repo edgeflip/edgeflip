@@ -14,7 +14,6 @@ INACTIVE_URLS = (
     ('hampton', 'http://www.hamptoncreekfoods.com/'),
     ('national-center-for-transgender-equalit', 'http://www.transequality.org/'),
     ('wnyc', 'http://www.wnyc.org/'),
-    # TODO: if left blank, won't redirect
 )
 
 

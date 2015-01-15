@@ -1,0 +1,13 @@
+{% extends "core/campaignstatus/base.html" %}
+
+{% block heading %}Page removed{% endblock %}
+
+{% block content %}
+<p>This campaign has been archived and may no longer be accessed.</p>
+
+{% if redirect_url %}
+<p>You are logged into the Edgeflip admin. Regular visitors, who are not logged into the admin, do not see this page &ndash; they are automatically redirected.</p>
+<p><a href="{{ redirect_url }}">Click here</a> to follow that redirect.</p>
+{% endif %}
+
+{% endblock %}

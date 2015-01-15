@@ -1,10 +1,10 @@
 import abc
 import logging
 
-from django.http import HttpResponseForbidden
+from django import http
 from django.shortcuts import render
 
-from core.utils import classregistry
+from core.utils import classregistry, urlreverse
 
 from targetshare.models.relational import CampaignProperties
 
@@ -34,7 +34,7 @@ class StatusHandler(object):
 
     @classmethod
     @abc.abstractmethod
-    def handle_request(cls, request, campaign):
+    def handle_request(cls, request, campaign, properties):
         """Determine the validity of the given request for the given campaign.
 
         Concerete StatusHandlers handling statuses which are always allowed need not define this
@@ -55,10 +55,11 @@ class DisallowedError(StatusHandler, Exception):
     `make_error_response`.
 
     """
-    def __init__(self, message, request, campaign):
+    def __init__(self, message, request, campaign, properties):
         super(DisallowedError, self).__init__(message)
         self.request = request
         self.campaign = campaign
+        self.properties = properties
 
     @abc.abstractmethod
     def make_error_response(self, friendly=False):
@@ -79,7 +80,7 @@ class UnauthorizedPreview(DisallowedError):
     status = CampaignProperties.Status.DRAFT
 
     @classmethod
-    def handle_request(cls, request, campaign):
+    def handle_request(cls, request, campaign, properties):
         if (
             request.user.is_superuser or
             request.user.groups.filter(client=campaign.client).exists()
@@ -101,24 +102,65 @@ class UnauthorizedPreview(DisallowedError):
             campaign=campaign,
             content=request.user.username,
         )
-        raise cls("Draft preview denied for unauthorized user", request, campaign)
+        raise cls("Draft preview denied for unauthorized user", request, campaign, properties)
 
     def make_error_response(self, friendly=False):
         if self.request.method == 'HEAD':
-            return HttpResponseForbidden()
+            return http.HttpResponseForbidden()
 
-        return render(self.request, 'core/draft-forbidden.html', {
+        return render(self.request, 'core/campaignstatus/draft-forbidden.html', {
             'friendly': friendly,
             'client': self.campaign.client,
             'campaign': self.campaign,
         }, status=403)
 
 
+class InactiveCampaign(DisallowedError):
+
+    status = CampaignProperties.Status.INACTIVE
+
+    @classmethod
+    def handle_request(cls, request, campaign, properties):
+        request.visit.events.create(
+            event_type='inactive_campaign',
+            campaign=campaign,
+            content=request.user.username,
+        )
+        raise cls("Campaign is no longer active", request, campaign, properties)
+
+    def make_error_response(self, friendly=False):
+        inactive_url = self.properties.inactive_url or self.campaign.client.campaign_inactive_url
+        if inactive_url:
+            redirect_url = urlreverse('outgoing',
+                args=[self.campaign.client.fb_app_id, inactive_url],
+                querymap=[
+                    ('campaignid', self.campaign.campaign_id),
+                ]
+            )
+        else:
+            redirect_url = None
+
+        if (
+            self.request.user.is_superuser or
+            self.request.user.groups.filter(client=self.campaign.client).exists()
+        ):
+            return render(self.request, 'core/campaignstatus/inactive-campaign.html', {
+                'friendly': friendly,
+                'redirect_url': redirect_url,
+            })
+
+        if redirect_url:
+            return http.HttpResponseRedirect(redirect_url)
+
+        message = "" if self.request.method == 'HEAD' else "Page removed"
+        return http.HttpResponseGone(message)
+
+
 def handle_request(request, campaign, properties=None):
     if properties is None:
-        properties = campaign.campaignproperties.only('status').get()
+        properties = campaign.campaignproperties.get()
 
     status = properties.status
     handler = StatusHandler.select(status)
-    handler.handle_request(request, campaign)
+    handler.handle_request(request, campaign, properties)
     return status
