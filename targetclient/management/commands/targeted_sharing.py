@@ -8,14 +8,15 @@ from django.conf import settings
 from contextlib import closing
 import time
 from requests_futures.sessions import FuturesSession
-import threading
-import urllib2
 import urllib
+import urllib2
+import threading
 import urlparse
 LOG = logging.getLogger(__name__)
 
-TOKEN = 'CAACEdEose0cBALSRwBLPGCznKR9fF18YIv7m0vkPlZAizSir5OVyrek5G3Dwwu5nm1rjwpyJY7WzPewxzJJerqL8dimfVhzbBVDebwO8RigaHaOYOXKLevg8mSjwKWZAoZBExw0WsOTMCKCSMTnfzwTgPSDZAK9VHKZBuQImSeijNeyA7IlHayZBwsiRv6SgLbPlJbol0n7uM4WGvAUXV9wfEiXXekXVMZD'
+TOKEN = 'CAACEdEose0cBAG1j7ZCo2JUSMgRCZAxpzSQpSZBM7JXKFXo1KpyYsQDKApV33kxy7W3weSgxOJKuuFYVXNcTUZCtRsVZCCaxPYGEQd6d29GL863FqMEYdZBcvW5RSN08ME8ZCv3ZBjWvYKJJaByxMyvrqdrCU80xhl435OX1rJcGHpIVhBFZAZCfj4Ao7gNroeq2kdYDws9dVrnKtbQLdrfPtZCY1NW4kCEqhMZD'
 USERID = 10102136605223030
+#USERID = 2904423
 
 DB_TEXT_LEN = 4096
 POSTS_TABLE = 'posts'
@@ -40,9 +41,10 @@ THREAD_COUNT = 6
 STREAM_READ_TIMEOUT_IN = 5
 STREAM_READ_SLEEP_IN = 5
 BAD_CHUNK_THRESH = 1
+NUM_POSTS = 100
 
-STATUS_AUTHED = False
-PHOTOS_AUTHED = False
+STATUS_AUTHED = True
+PHOTOS_AUTHED = True
 VIDEOS_AUTHED = True
 
 RANK_WEIGHTS = {
@@ -61,9 +63,9 @@ RANK_WEIGHTS = {
 names = {}
 
 def cb(sess, resp, endpoint):
-    print sess
-    print resp
-    print endpoint
+    #print sess
+    #print resp
+    #print endpoint
     resp.data = process_posts(resp.json())
 
 def process_posts(d):
@@ -94,7 +96,6 @@ def process_posts(d):
                     if 'id' not in user:
                         continue
                     action_type = post_type + '_tags'
-                    #print user
                     post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
                     names[user['id']] = user['name']
             if 'likes' in post_json and 'data' in post_json['likes']:
@@ -111,6 +112,9 @@ def process_posts(d):
             posts.append(post)
     return posts
 
+
+
+FBResult = namedtuple("FBResult", "data")
 
 class StreamReaderThread(threading.Thread):
     """Read a chunk of a user's Stream in a thread"""
@@ -133,20 +137,18 @@ class StreamReaderThread(threading.Thread):
         url = 'https://graph.facebook.com/v2.2/{}/{}/'.format(self.user_id, self.endpoint)
         timeout = 5
         data = []
-        print "getting data"
         while url and len(data) < self.min_posts:
             paginated_data = urlload(
                 url, payload, timeout=timeout)
             url = None
             if paginated_data.get('data'):
-                data.extend(paginated_data['data'])
+                data.extend(process_posts(paginated_data))
                 url = paginated_data.get('paging', {}).get('next')
-        print "got data"
-        self.results = data
+        self.results.append(FBResult(data))
 
 
 def run_thread_paginate():
-    min_posts = 100
+    min_posts = NUM_POSTS
     user_id = USERID
     token = TOKEN
     endpoints = []
@@ -158,7 +160,7 @@ def run_thread_paginate():
         endpoints.append('photos/uploaded')
     if VIDEOS_AUTHED:
         endpoints.append('videos')
-        #endpoints.append('videos/uploaded')
+        endpoints.append('videos/uploaded')
     threads = []
     chunk_outputs = []
     for endpoint in endpoints:
@@ -173,6 +175,14 @@ def run_thread_paginate():
         thread.setDaemon(True)
         thread.start()
         threads.append(thread)
+    time_stop = time.time() + 20
+    while time.time() < time_stop:
+        if any(thread.isAlive() for thread in threads):
+            time.sleep(1)
+        else:
+            break
+
+    process(chunk_outputs)
 
 class StreamAggregate(defaultdict):
     """Stream data aggregator"""
@@ -188,8 +198,9 @@ class StreamAggregate(defaultdict):
         )
         seen_posts = set()
         for post in stream:
+            #print post
             if post.post_id in seen_posts:
-                print "skipping", post.post_id
+                #print "skipping", post.post_id
                 continue
             seen_posts.add(post.post_id)
             for interaction in post.interactions:
@@ -223,7 +234,7 @@ Interaction = namedtuple('Interaction', ('user_id', 'type', 'weight'))
 def run_offsetpartitioned():
     user_id = USERID
     token = TOKEN
-    num_posts = 100
+    num_posts = NUM_POSTS
     chunk_size = 20
     chunk_inputs = []
     chunk_outputs = [] # list of stream obects holding results
@@ -286,6 +297,7 @@ def run_timepartitioned():
     token = TOKEN
     num_days = STREAM_DAYS
     chunk_size = STREAM_CHUNK_SIZE
+    min_posts = NUM_POSTS
     chunk_inputs = []
     #chunk_inputs = Queue.Queue() # fill with (time0, time1) pairs
     chunk_outputs = [] # list of stream obects holding results
@@ -357,7 +369,7 @@ def process(chunk_outputs):
     network = datastructs.UserNetwork()
     for fbid, user_aggregate in friend_streamrank.iteritems():
         user_interactions = user_aggregate.types
-        print fbid, names[fbid], user_interactions
+        #print fbid, names[fbid], user_interactions
         incoming = dynamo.IncomingEdge(
             fbid_target=USERID,
             fbid_source=fbid,
@@ -404,19 +416,15 @@ def process(chunk_outputs):
         require_incoming=True,
         require_outgoing=False,
     )
-    for e in edges_ranked:
+    for e in edges_ranked[:10]:
         print e.secondary, names[unicode(e.secondary.fbid)], e.px4_score, len(e.interactions)
 
 def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""
     parsed_url = urlparse.urlparse(url)
-    print "parsed url", parsed_url
     query_params = urlparse.parse_qsl(parsed_url.query)
-    print "query params", query_params
     query_params.extend(getattr(query, 'items', lambda: query)())
-    print "query params", query_params
     url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
-    print "new url", url
 
     with closing(urllib2.urlopen(
             url, timeout=(timeout or settings.FACEBOOK.api_timeout))
@@ -427,4 +435,20 @@ class Command(NoArgsCommand):
     help = "Test"
 
     def handle_noargs(self, *args, **options):
+        print "threads?"
+        start = time.time()
         run_thread_paginate()
+        end = time.time()
+        print "ran in", end - start
+
+        print "offset?"
+        start = time.time()
+        run_offsetpartitioned()
+        end = time.time()
+        print "ran in", end - start
+
+        print "time?"
+        start = time.time()
+        run_timepartitioned()
+        end = time.time()
+        print "ran in", end - start
