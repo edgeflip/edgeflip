@@ -13,7 +13,6 @@ import urllib2
 import urlparse
 LOG = logging.getLogger(__name__)
 
-TOKEN = 'CAACEdEose0cBAG1j7ZCo2JUSMgRCZAxpzSQpSZBM7JXKFXo1KpyYsQDKApV33kxy7W3weSgxOJKuuFYVXNcTUZCtRsVZCCaxPYGEQd6d29GL863FqMEYdZBcvW5RSN08ME8ZCv3ZBjWvYKJJaByxMyvrqdrCU80xhl435OX1rJcGHpIVhBFZAZCfj4Ao7gNroeq2kdYDws9dVrnKtbQLdrfPtZCY1NW4kCEqhMZD'
 USERID = 10102136605223030
 
 STREAM_DAYS = 365
@@ -45,22 +44,9 @@ RANK_WEIGHTS = {
 names = {}
 
 
-def get_friend_edges(asid, token):
-    # TODO: find permissions saved in dynamo, or go out to the facebook
-    # /user_id/permissions edge?
-    permissions = set(['public_profile', 'user_friends', 'email', 'user_activities', 'user_birthday', 'user_location', 'user_interests', 'user_likes', 'user_photos', 'user_relationships', 'user_status', 'user_videos'])
-
-    return run_offsetpartitioned(
-        asid,
-        token,
-        STATUS_PERM in permissions,
-        PHOTOS_PERM in permissions,
-        VIDEOS_PERM in permissions,
-    )
-
-
 def cb(sess, resp, endpoint, user_id):
     resp.data = process_posts(resp.json(), endpoint, user_id)
+
 
 def process_posts(response_data, endpoint, user_id):
     stream = Stream(user_id)
@@ -82,25 +68,41 @@ def process_posts(response_data, endpoint, user_id):
             if 'from' in post_json and post_type == 'photo':
                 user = post_json['from']
                 action_type = 'photos_target'
-                post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
+                post.interactions.append(Stream.Interaction(
+                    user['id'],
+                    action_type,
+                    RANK_WEIGHTS[action_type])
+                )
                 names[user['id']] = user['name']
             if 'tags' in post_json and 'data' in post_json['tags']:
                 for user in post_json['tags']['data']:
                     if 'id' not in user:
                         continue
                     action_type = post_type + '_tags'
-                    post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
+                    post.interactions.append(Stream.Interaction(
+                        user['id'],
+                        action_type,
+                        RANK_WEIGHTS[action_type])
+                    )
                     names[user['id']] = user['name']
             if 'likes' in post_json and 'data' in post_json['likes']:
                 for user in post_json['likes']['data']:
                     action_type = post_type + '_likes'
-                    post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
+                    post.interactions.append(Stream.Interaction(
+                        user['id'],
+                        action_type,
+                        RANK_WEIGHTS[action_type])
+                    )
                     names[user['id']] = user['name']
             if 'comments' in post_json and 'data' in post_json['comments']:
                 for comment in post_json['comments']['data']:
                     user = comment['from']
                     action_type = post_type + '_comms'
-                    post.interactions.append(Interaction(user['id'], action_type, RANK_WEIGHTS[action_type]))
+                    post.interactions.append(Stream.Interaction(
+                        user['id'],
+                        action_type,
+                        RANK_WEIGHTS[action_type])
+                    )
                     names[user['id']] = user['name']
             stream.append(post)
     return stream
@@ -108,7 +110,10 @@ def process_posts(response_data, endpoint, user_id):
 
 class StreamAggregate(defaultdict):
     """Stream data aggregator"""
-    UserInteractions = namedtuple('UserInteractions', ('posts', 'types', 'names'))
+    UserInteractions = namedtuple(
+        'UserInteractions',
+        ('posts', 'types', 'names')
+    )
 
     def __init__(self, stream):
         super(StreamAggregate, self).__init__(
@@ -120,9 +125,7 @@ class StreamAggregate(defaultdict):
         )
         seen_posts = set()
         for post in stream:
-            #print post
             if post.post_id in seen_posts:
-                #print "skipping", post.post_id
                 continue
             seen_posts.add(post.post_id)
             for interaction in post.interactions:
@@ -131,7 +134,8 @@ class StreamAggregate(defaultdict):
                 # indexed by user ID & interaction type:
                 user_interactions.types[interaction.type].append(interaction)
                 # and by user ID, post ID and interaction type:
-                user_interactions.posts[post.post_id][interaction.type].append(interaction)
+                user_interactions.posts[post.post_id][interaction.type].\
+                    append(interaction)
 
     def ranking(self):
         """Reduce the aggregate to a mapping of friends and their normalized
@@ -147,7 +151,7 @@ class StreamAggregate(defaultdict):
         ranked_friends = sorted(friend_total,
                                 key=lambda user_id: friend_total[user_id],
                                 reverse=True)
-        return {fbid: position for (position, fbid) in enumerate(ranked_friends)}
+        return {fbid: pos for (pos, fbid) in enumerate(ranked_friends)}
 
 
 def partition(pred, iterable):
@@ -156,10 +160,11 @@ def partition(pred, iterable):
     t1, t2 = tee(iterable)
     return filterfalse(pred, t1), filter(pred, t2)
 
+
 def queue_job(session, user_id, endpoint, payload):
     return session.get(
         'https://graph.facebook.com/v2.2/{}/{}'.format(user_id, endpoint),
-        background_callback=lambda sess, resp: cb(sess, resp, endpoint, user_id),
+        background_callback=lambda ses, res: cb(ses, res, endpoint, user_id),
         params=payload,
     )
 
@@ -169,6 +174,7 @@ class Stream(list):
 
     Post = namedtuple('Post', ('post_id', 'message', 'interactions'))
     Interaction = namedtuple('Interaction', ('user_id', 'type', 'weight'))
+
     def __init__(self, user, iterable=()):
         super(Stream, self).__init__(iterable)
         self.user = user
@@ -191,6 +197,7 @@ class Stream(list):
         return "{}({!r}, {!r})".format(self.__class__.__name__,
                                        self.user.fbid,
                                        data)
+
     def aggregate(self):
         return self.StreamAggregate(self)
 
@@ -210,7 +217,9 @@ class Stream(list):
         for offset in xrange(0, num_posts, chunk_size):
             chunk_inputs.append((offset, chunk_size))
 
-        session = FuturesSession(executor=ThreadPoolExecutor(max_workers=THREAD_COUNT))
+        session = FuturesSession(
+            executor=ThreadPoolExecutor(max_workers=THREAD_COUNT)
+        )
         unfinished = []
         for offset, limit in chunk_inputs:
             payload = {
@@ -240,9 +249,10 @@ class Stream(list):
                 stream += done_future.result()
             time.sleep(1)
 
-        process(stream)
+        return stream
 
-def process(stream):
+
+def get_friend_edges(stream):
     friend_streamrank = StreamAggregate(stream)
 
     network = datastructs.UserNetwork()
@@ -290,13 +300,20 @@ def process(stream):
             )
         )
 
-    edges_ranked = network.ranked(
-        require_incoming=True,
-        require_outgoing=False,
+    return network
+
+
+def get_user(uid, token):
+    """Retrieve primary user data from Facebook.
+
+    Returns a User.
+
+    """
+    return dynamo.User(
+        asid=uid,
+        #TODO: get other data from appropriate endpoints
     )
-    return edges_ranked
-    for e in edges_ranked[:10]:
-        print e.secondary, names[unicode(e.secondary.fbid)], e.px4_score, len(e.interactions)
+
 
 def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""

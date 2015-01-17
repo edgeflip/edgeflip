@@ -698,3 +698,18 @@ def px4_rank(filtering_result):
         ranked=edges_ranked,
         filtered=filtered.reranked(edges_ranked),
     )
+
+
+@shared_task(default_retry_delay=1, max_retries=3, bind=True)
+def proximity_rank_neo(self, token, **filtering_args):
+    edges_unranked = None
+    if edges_unranked is None:
+        # We didn't use DDB or didn't like its results; retrieve from Facebook:
+        user = facebook.neo_client.get_user(token.fbid, token.token)
+        stream = facebook.neo_client.Stream.read(user, token.token)
+        edges_unranked = stream.get_friend_edges(token.token)
+
+    return edges_unranked.ranked(
+        require_incoming=True,
+        require_outgoing=False,
+    )
