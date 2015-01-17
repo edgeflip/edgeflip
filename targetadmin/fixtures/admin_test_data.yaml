@@ -13,13 +13,37 @@
         username: tester
     model: auth.user
     pk: 1
+
+-   model: targetshare.fbapp
+    pk: 471727162864364
+    fields:
+        name: sharing-social-good
+        secret: "dd219471fd9a27a13fd3c3fe123048db"
+        api: '1.0'
+        permissions:
+            - email
+            - friends_birthday
+            - friends_interests
+            - friends_likes
+            - friends_location
+            - friends_photos
+            - read_stream
+            - user_about_me
+            - user_birthday
+            - user_interests
+            - user_likes
+            - user_location
+            - user_photos
+        created: !!timestamp '2013-07-15 11:38:28'
+        updated: !!timestamp '2013-07-15 11:38:28' 
+
+
 -   model: targetshare.client
     pk: 1
     fields:
         create_dt: !!timestamp '2013-07-15 11:38:28'
         domain: 'edgeflip.com:8080'
-        fb_app_id: '471727162864364'
-        fb_app_name: sharing-social-good
+        fb_app: 471727162864364
         name: mockclient
         codename: mockclient
         subdomain: testserver

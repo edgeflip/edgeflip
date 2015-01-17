@@ -358,7 +358,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         self.assertEqual(
             response.context['fb_params'],
             {
-                'fb_app_name': client.fb_app_name,
+                'fb_app_name': client.fb_app.name,
                 'fb_app_id': client.fb_app_id
             }
         )

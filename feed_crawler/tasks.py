@@ -50,8 +50,9 @@ def crawl_user(fbid, retry_delay=0):
             return # This, and any remaining, invalid
 
         # Confirm token expiration (and validity)
+        secret = models.FBApp.objects.values_list('secret', flat=True).get(appid=token.appid)
         try:
-            debug_result = facebook.client.debug_token(token.appid, token.token)
+            debug_result = facebook.client.debug_token(token.appid, secret, token.token)
             debug_data = debug_result['data']
             token_valid = debug_data['is_valid']
             token_expires = debug_data['expires_at']

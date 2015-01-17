@@ -30,6 +30,7 @@ from .face_exclusion import FaceExclusion
 from .faces_style import FacesStyle
 from .faces_style_files import FacesStyleFiles
 from .faces_style_meta import FacesStyleMeta
+from .fb_app import FBApp
 from .fb_object_attribute import FBObjectAttribute
 from .fb_object_meta import FBObjectMeta
 from .fb_object import FBObject

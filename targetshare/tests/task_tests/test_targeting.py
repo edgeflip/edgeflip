@@ -40,7 +40,8 @@ class TestProximityRankThree(TargetingTestCase):
         super(TestProximityRankThree, self).setUp()
 
         # Set up new campaign:
-        self.client = models.Client.objects.create()
+        app = models.FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        self.client = app.clients.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
         self.properties = self.campaign.campaignproperties.create(client_content=self.content)
@@ -208,7 +209,8 @@ class Px4TargetingTestCase(TargetingTestCase):
         super(Px4TargetingTestCase, self).setUp()
 
         # Set up new campaign:
-        self.client = models.Client.objects.create()
+        app = models.FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        self.client = app.clients.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
         self.properties = self.campaign.campaignproperties.create(client_content=self.content)
@@ -505,7 +507,8 @@ class TestPx4OnlyFilterTargeting(TargetingTestCase):
         super(TestPx4OnlyFilterTargeting, self).setUp()
 
         # Set up new campaign:
-        self.client = models.Client.objects.create()
+        app = models.FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        self.client = app.clients.create()
         self.campaign = self.client.campaigns.create()
         self.content = self.client.clientcontent.create()
         self.properties = self.campaign.campaignproperties.create(client_content=self.content)

@@ -30,7 +30,7 @@ class Command(BaseCommand):
 
     def __init__(self):
         super(Command, self).__init__()
-        self.uri = self.campaign = self.client_content = self.verbosity = self.timeout = None
+        self._secrets = self.uri = self.campaign = self.client_content = self.verbosity = self.timeout = None
 
     def pout(self, msg, verbosity=0):
         if self.verbosity >= verbosity:
@@ -90,6 +90,7 @@ class Command(BaseCommand):
         tokens = tokens.iterable
 
         if debug:
+            self._secrets = dict(relational.FBApp.objects.values_list('appid', 'secret').iterator())
             tokens = self.debug_tokens(tokens, limit)
 
         # Do one thread per primary for now:
@@ -142,7 +143,8 @@ class Command(BaseCommand):
                 # Term sentinel; we're done.
                 break
 
-            result = facebook.client.debug_token(token.appid, token.token)
+            secret = self._secrets[token.appid]
+            result = facebook.client.debug_token(token.appid, secret, token.token)
             data = result['data']
             if data['is_valid'] and data['expires_at'] > time.time():
                 results.append(token)

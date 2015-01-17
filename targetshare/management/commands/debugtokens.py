@@ -17,6 +17,8 @@ EPOCH_ZERO = epoch.to_datetime(0)
 
 PHI = 0.5 + 0.5 * math.sqrt(5.0)
 
+_SECRETS = {} # cache
+
 
 def is_fibonacci(n):
     a = PHI * n
@@ -192,8 +194,14 @@ class Command(NoArgsCommand):
             app_stats.increment_expired()
             return False
 
+        try:
+            secret = _SECRETS[token.appid]
+        except KeyError:
+            secret = relational.FBApp.objects.values_list('secret', flat=True).get(appid=token.appid)
+            _SECRETS[token.appid] = secret
+
         # Confirm token expiration (and validity)
-        debug_result = facebook.client.debug_token(token.appid, token.token)
+        debug_result = facebook.client.debug_token(token.appid, secret, token.token)
         debug_data = debug_result['data']
         token_valid = debug_data['is_valid']
         token_expires = debug_data['expires_at']

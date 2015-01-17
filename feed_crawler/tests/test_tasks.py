@@ -30,6 +30,7 @@ class TestFeedCrawlerTasks(EdgeFlipTestCase):
         expires = timezone.datetime(2020, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
         self.token = models.dynamo.Token.items.create(
             fbid=self.fbid, appid=1, token='1', expires=expires)
+        models.FBApp.objects.create(appid=1, name='social-good', secret='sekret')
 
         self.facebook_patch = patch(
             'targetshare.integration.facebook.client.urllib2.urlopen',

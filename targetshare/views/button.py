@@ -30,7 +30,7 @@ def button(request, campaign_id, content_id):
         'content': content,
         'campaign_css': page_styles,
         'fb_params': {
-            'fb_app_name': client.fb_app_name,
+            'fb_app_name': client.fb_app.name,
             'fb_app_id': client.fb_app_id
         },
     })

@@ -77,10 +77,10 @@ def fix_redirect_url(url, default_protocol):
     )
 
 
-def fb_oauth_url(client, redirect_uri):
-    app_permissions = client.fb_app_permissions.values_list('code', flat=True)
+def fb_oauth_url(fb_app, redirect_uri):
+    app_permissions = fb_app.permissions.values_list('code', flat=True)
     return FB_OAUTH_URL + '?' + urllib.urlencode([
-        ('client_id', client.fb_app_id),
+        ('client_id', fb_app.appid),
         ('scope', ','.join(app_permissions.iterator())),
         ('redirect_uri', redirect_uri),
     ])
@@ -90,7 +90,7 @@ def build_sharing_urls(incoming_host, campaign, content, incoming_secure=setting
     client = campaign.client
     slug = utils.encodeDES('{}/{}'.format(campaign.pk, content.pk))
     incoming_url = utils.incoming_redirect(incoming_secure, incoming_host, campaign.pk, content.pk)
-    oauth_url = fb_oauth_url(client, incoming_url)
+    oauth_url = fb_oauth_url(client.fb_app, incoming_url)
     shortened_url = chapo.utils.shorten(oauth_url, prefix=client.codename, campaign=campaign)
     return {
         'slug': slug,

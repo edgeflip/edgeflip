@@ -195,6 +195,7 @@ OAUTH_EXCEPTION_TYPES = {
     'OAuthBaseException',
 }
 
+
 def decode_date(date):
     if date:
         try:
@@ -208,6 +209,7 @@ def decode_date(date):
 
 class OAuthException(IOError):
     pass
+
 
 def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""
@@ -290,13 +292,13 @@ def _urlload_thread(url, query=(), results=None):
     return len(data)
 
 
-def extend_token(fbid, appid, token):
+def extend_token(fbid, appid, secret, token):
     """Exchange a short-lived FB user token for an extended token."""
     url = 'https://graph.facebook.com/oauth/access_token?' + urllib.urlencode({
         'grant_type': 'fb_exchange_token',
         'fb_exchange_token': token,
         'client_id': appid,
-        'client_secret': settings.FACEBOOK.secrets[str(appid)],
+        'client_secret': secret,
     })
     request = urllib2.urlopen(url, timeout=settings.FACEBOOK.api_timeout)
     with closing(request) as response:
@@ -500,13 +502,13 @@ def _get_friend_edges_simple(user, token):
     return network
 
 
-def get_oauth_token(fb_app_id, code, redirect_uri):
+def get_oauth_token(appid, secret, code, redirect_uri):
     response = requests.get(
         'https://graph.facebook.com/oauth/access_token',
         params={
-            'client_id': fb_app_id,
+            'client_id': appid,
             'redirect_uri': redirect_uri,
-            'client_secret': settings.FACEBOOK.secrets[str(fb_app_id)],
+            'client_secret': secret,
             'code': code
         }
     )
@@ -514,8 +516,7 @@ def get_oauth_token(fb_app_id, code, redirect_uri):
     return dict(urlparse.parse_qsl(response.content))
 
 
-def debug_token(appid, token):
-    secret = settings.FACEBOOK.secrets[str(appid)]
+def debug_token(appid, secret, token):
     return urlload('https://graph.facebook.com/debug_token', {
         'access_token': "{}|{}".format(appid, secret),
         'input_token': token,

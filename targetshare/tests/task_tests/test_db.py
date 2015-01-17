@@ -10,12 +10,18 @@ class TestDatabaseTasks(EdgeFlipTestCase):
 
     def test_delayed_bulk_create(self):
         """Task bulk_create calls objects.bulk_create with objects passed"""
+        fb_app = models.relational.FBApp.objects.create(
+            appid=1,
+            name='Share!',
+            secret='sekret',
+        )
         clients = [
             models.relational.Client(
-                name="Client {}".format(count),
-                codename='client-{}'.format(count)
+                name="Client {}".format(client_count),
+                codename='client-{}'.format(client_count),
+                fb_app=fb_app,
             )
-            for count in xrange(1, 11)
+            for client_count in xrange(1, 11)
         ]
         client_count = models.relational.Client.objects.count()
         db.bulk_create(clients)
@@ -23,7 +29,12 @@ class TestDatabaseTasks(EdgeFlipTestCase):
 
     def test_delayed_obj_save(self):
         """Task delayed_save calls the save method of the object passed"""
-        client = models.relational.Client(name="testy")
+        fb_app = models.relational.FBApp.objects.create(
+            appid=1,
+            name='Share!',
+            secret='sekret',
+        )
+        client = models.relational.Client(name="testy", fb_app=fb_app)
         matching_clients = models.relational.Client.objects.filter(name="testy")
         assert not matching_clients.exists()
         db.delayed_save(client)
