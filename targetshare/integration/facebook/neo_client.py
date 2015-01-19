@@ -13,8 +13,6 @@ import urllib2
 import urlparse
 LOG = logging.getLogger(__name__)
 
-USERID = 10102136605223030
-
 STREAM_DAYS = 365
 STREAM_CHUNK_SIZE = 31
 THREAD_COUNT = 6
@@ -29,10 +27,10 @@ PHOTOS_PERM = 'user_photos'
 VIDEOS_PERM = 'user_videos'
 
 RANK_WEIGHTS = {
-    'photo_tags': 4,
-    'photo_likes': 1,
-    'photo_comms': 3,
-    'photos_target': 2,
+    'media_tags': 4,
+    'media_likes': 1,
+    'media_comms': 3,
+    'media_targets': 2,
     'uplo_tags': 4,
     'uplo_likes': 2,
     'uplo_comms': 4,
@@ -44,12 +42,33 @@ RANK_WEIGHTS = {
 names = {}
 
 
-def cb(sess, resp, endpoint, user_id):
-    resp.data = process_posts(resp.json(), endpoint, user_id)
+def process_statuses(session, response, user_id):
+    response.data = process_posts(response, 'stat', user_id)
 
 
-def process_posts(response_data, endpoint, user_id):
+def process_photos(session, response, user_id):
+    response.data = process_posts(response, 'media', user_id)
+
+
+def process_videos(session, response, user_id):
+    response.data = process_posts(response, 'media', user_id)
+
+
+def process_photo_uploads(session, response, user_id):
+    response.data = process_posts(response, 'uplo', user_id)
+
+
+def process_video_uploads(session, response, user_id):
+    response.data = process_posts(response, 'uplo', user_id)
+
+
+def process_links(session, response, user_id):
+    response.data = process_posts(response, 'post', user_id)
+
+
+def process_posts(response, post_type, user_id):
     stream = Stream(user_id)
+    response_data = response.json()
     if 'data' in response_data:
         for post_json in response_data['data']:
             post = Stream.Post(
@@ -58,16 +77,9 @@ def process_posts(response_data, endpoint, user_id):
                 interactions=[]
             )
 
-            if endpoint == 'photos':
-                post_type = 'photo'
-            elif endpoint == 'photos/uploaded':
-                post_type = 'uplo'
-            else:
-                post_type = 'stat'
-
-            if 'from' in post_json and post_type == 'photo':
+            if 'from' in post_json and post_type == 'media':
                 user = post_json['from']
-                action_type = 'photos_target'
+                action_type = 'media_target'
                 post.interactions.append(Stream.Interaction(
                     user['id'],
                     action_type,
@@ -161,10 +173,10 @@ def partition(pred, iterable):
     return filterfalse(pred, t1), filter(pred, t2)
 
 
-def queue_job(session, user_id, endpoint, payload):
+def queue_job(session, user_id, endpoint, callback, payload):
     return session.get(
         'https://graph.facebook.com/v2.2/{}/{}'.format(user_id, endpoint),
-        background_callback=lambda ses, res: cb(ses, res, endpoint, user_id),
+        background_callback=lambda ses, res: callback(ses, res, user_id),
         params=payload,
     )
 
@@ -231,14 +243,50 @@ class Stream(list):
                 'limit': limit,
             }
             if status_authed:
-                unfinished.append(queue_job(session, user_id, 'statuses', payload))
-                unfinished.append(queue_job(session, user_id, 'links', payload))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'statuses',
+                    process_statuses,
+                    payload
+                ))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'links',
+                    process_links,
+                    payload
+                ))
             if photos_authed:
-                unfinished.append(queue_job(session, user_id, 'photos', payload))
-                unfinished.append(queue_job(session, user_id, 'photos/uploaded', payload))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'photos',
+                    process_photos,
+                    payload
+                ))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'photos/uploaded',
+                    process_photo_uploads,
+                    payload
+                ))
             if videos_authed:
-                unfinished.append(queue_job(session, user_id, 'videos', payload))
-                unfinished.append(queue_job(session, user_id, 'videos/uploaded', payload))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'videos',
+                    process_videos,
+                    payload
+                ))
+                unfinished.append(queue_job(
+                    session,
+                    user_id,
+                    'videos/uploaded',
+                    process_video_uploads,
+                    payload
+                ))
         start = time.time()
         last_call = start + MAX_TIME_TO_WAIT
         stream = cls(user)
@@ -252,55 +300,55 @@ class Stream(list):
         return stream
 
 
-def get_friend_edges(stream):
-    friend_streamrank = StreamAggregate(stream)
+    def get_friend_edges(self):
+        friend_streamrank = StreamAggregate(stream)
 
-    network = datastructs.UserNetwork()
-    for fbid, user_aggregate in friend_streamrank.iteritems():
-        user_interactions = user_aggregate.types
-        incoming = dynamo.IncomingEdge(
-            fbid_target=USERID,
-            fbid_source=fbid,
-            stat_likes=len(user_interactions['stat_likes']),
-            stat_comms=len(user_interactions['stat_comms']),
-            stat_tags=len(user_interactions['stat_tags']),
-            photo_tags=len(user_interactions['photo_tags']),
-            photo_likes=len(user_interactions['photo_likes']),
-            photo_comms=len(user_interactions['photo_comms']),
-            photos_target=len(user_interactions['photos_target']),
-            uplo_likes=len(user_interactions['uplo_likes']),
-            uplo_comms=len(user_interactions['uplo_comms']),
-        )
-        prim = dynamo.User(fbid=USERID)
-        user = dynamo.User(fbid=fbid)
-
-        interactions = {
-            dynamo.PostInteractions(
-                user=user,
-                postid=post_id,
-                stat_likes=len(post_interactions['stat_likes']),
-                stat_comms=len(post_interactions['stat_comms']),
-                stat_tags=len(post_interactions['stat_tags']),
-                photo_tags=len(post_interactions['photo_tags']),
-                photo_likes=len(post_interactions['photo_likes']),
-                photo_comms=len(post_interactions['photo_comms']),
-                photos_target=len(post_interactions['photos_target']),
-                uplo_likes=len(post_interactions['uplo_likes']),
-                uplo_comms=len(post_interactions['uplo_comms']),
+        network = datastructs.UserNetwork()
+        for fbid, user_aggregate in friend_streamrank.iteritems():
+            user_interactions = user_aggregate.types
+            incoming = dynamo.IncomingEdge(
+                fbid_target=self.user_id,
+                fbid_source=fbid,
+                stat_likes=len(user_interactions['stat_likes']),
+                stat_comms=len(user_interactions['stat_comms']),
+                stat_tags=len(user_interactions['stat_tags']),
+                photo_tags=len(user_interactions['photo_tags']),
+                photo_likes=len(user_interactions['photo_likes']),
+                photo_comms=len(user_interactions['photo_comms']),
+                photos_target=len(user_interactions['photos_target']),
+                uplo_likes=len(user_interactions['uplo_likes']),
+                uplo_comms=len(user_interactions['uplo_comms']),
             )
-            for (post_id, post_interactions) in user_aggregate.posts.iteritems()
-        }
+            prim = dynamo.User(fbid=USERID)
+            user = dynamo.User(fbid=fbid)
 
-        network.append(
-            network.Edge(
-                primary=prim,
-                secondary=user,
-                incoming=incoming,
-                interactions=interactions,
+            interactions = {
+                dynamo.PostInteractions(
+                    user=user,
+                    postid=post_id,
+                    stat_likes=len(post_interactions['stat_likes']),
+                    stat_comms=len(post_interactions['stat_comms']),
+                    stat_tags=len(post_interactions['stat_tags']),
+                    photo_tags=len(post_interactions['photo_tags']),
+                    photo_likes=len(post_interactions['photo_likes']),
+                    photo_comms=len(post_interactions['photo_comms']),
+                    photos_target=len(post_interactions['photos_target']),
+                    uplo_likes=len(post_interactions['uplo_likes']),
+                    uplo_comms=len(post_interactions['uplo_comms']),
+                )
+                for (post_id, post_interactions) in user_aggregate.posts.iteritems()
+            }
+
+            network.append(
+                network.Edge(
+                    primary=prim,
+                    secondary=user,
+                    incoming=incoming,
+                    interactions=interactions,
+                )
             )
-        )
 
-    return network
+        return network
 
 
 def get_user(uid, token):
