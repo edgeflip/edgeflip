@@ -15,6 +15,7 @@ from django.db.models import Q
 
 from targetshare import utils
 from targetshare.integration import facebook
+from targetshare.integration.facebook import neo_client
 from targetshare.models import datastructs, dynamo, relational
 from targetshare.tasks import db
 
@@ -701,13 +702,12 @@ def px4_rank(filtering_result):
 
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
-def proximity_rank_neo(self, token, **filtering_args):
+def proximity_rank_neo(self, user_id, token, **filtering_args):
     edges_unranked = None
     if edges_unranked is None:
         # We didn't use DDB or didn't like its results; retrieve from Facebook:
-        user = facebook.neo_client.get_user(token.fbid, token.token)
-        stream = facebook.neo_client.Stream.read(user, token.token)
-        edges_unranked = stream.get_friend_edges(token.token)
+        stream = neo_client.Stream.read(user_id, token)
+        edges_unranked = stream.get_friend_edges()
 
     return edges_unranked.ranked(
         require_incoming=True,

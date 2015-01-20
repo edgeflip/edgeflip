@@ -28,6 +28,7 @@ class User(Item):
     birthday = ItemField(data_type=DATETIME)
     fname = ItemField()
     lname = ItemField()
+    fullname = ItemField()
     email = ItemField()
     gender = ItemField()
     city = ItemField()
