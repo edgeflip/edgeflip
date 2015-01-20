@@ -197,6 +197,11 @@ class TestExtendToken(EdgeFlipTestCase):
 
     @urllib2_patch
     def test_extension(self, _urllib_mock):
+        models.relational.FBApp.objects.create(
+            appid=471727162864364,
+            name='Share!',
+            secret='sekret',
+        )
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
         self.assertEqual(tokens.query_count(), 0)
 

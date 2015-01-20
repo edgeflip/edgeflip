@@ -3,6 +3,7 @@ import json
 import mock
 from django.core.urlresolvers import reverse
 
+from targetshare import models
 from targetshare.tests import EdgeFlipTestCase, patch_facebook, patch_token
 
 
@@ -23,6 +24,11 @@ class TestDataView(EdgeFlipTestCase):
 
     def setUp(self):
         super(TestDataView, self).setUp()
+        models.FBApp.objects.create(
+            appid=471727162864364,
+            name='share!',
+            secret='sekret',
+        )
         self.url = reverse('gimmick:map-data')
         self.params = {
             'fbid': 1111111, # returned by patch

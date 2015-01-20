@@ -137,7 +137,6 @@ class TestEnsureUsersFromTokens(EdgeFlipTestCase):
         self.visited_token = Token(fbid=self.visited_fbid, appid=self.appid, token='1', expires=self.the_past)
         self.visited_token.save()
 
-    @patch.dict('django.conf.settings.FACEBOOK.secrets', {'10101': '10101'})
     def test_ensure_user_client(self):
         new_expires_ts = time.time()
         new_expires_obj = timezone.make_aware(datetime.datetime.utcfromtimestamp(new_expires_ts), timezone.utc)

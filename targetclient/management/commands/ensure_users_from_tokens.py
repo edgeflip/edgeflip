@@ -1,11 +1,8 @@
-from datetime import datetime
-import json
-
 from django.core.management.base import NoArgsCommand
 from django.utils import timezone
 
 from targetshare.integration import facebook
-from targetshare.models import dynamo, Client
+from targetshare.models import dynamo, Client, FBApp
 
 
 class Command(NoArgsCommand):
@@ -16,12 +13,13 @@ class Command(NoArgsCommand):
         self.crawl()
 
     def crawl(self):
+        secrets = dict(FBApp.objects.values_list('appid', 'secret').iterator())
         for token in dynamo.Token.items.scan():
             self.stdout.write('Checking {}'.format(token))
             if token.expires > timezone.now():
                 try:
                     debug_response = facebook.client.debug_token(
-                        token.appid, token.token
+                        token.appid, secrets[token.appid], token.token
                     )
                     old_expires = token.expires
                     token.expires = debug_response['data']['expires_at']

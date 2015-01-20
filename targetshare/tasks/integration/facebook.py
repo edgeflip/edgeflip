@@ -16,10 +16,11 @@ LOG = logging.getLogger('crow')
 
 @shared_task(default_retry_delay=300, max_retries=9, ignore_result=True)
 def extend_token(fbid, appid, token_value):
-    now = time.time()
+    secret = relational.FBApp.objects.values_list('secret', flat=True).get(appid=appid)
 
+    now = time.time()
     try:
-        extension = facebook.client.extend_token(fbid, appid, token_value)
+        extension = facebook.client.extend_token(fbid, appid, secret, token_value)
         access_token = extension['access_token']
         expires_in = int(extension['expires'])
     except (KeyError, IOError, ValueError) as exc:
@@ -86,10 +87,10 @@ def record_auth(fbid, visit_id, campaign_id=None, content_id=None):
 @shared_task(default_retry_delay=300, max_retries=2)
 def store_oauth_token(client_id, code, redirect_uri,
                       visit_id=None, campaign_id=None, content_id=None):
-    client = relational.Client.objects.get(client_id=client_id)
+    fb_app = relational.FBApp.objects.get(clients__client_id=client_id)
 
     try:
-        token_data = facebook.client.get_oauth_token(client.fb_app_id, code, redirect_uri)
+        token_data = facebook.client.get_oauth_token(fb_app.appid, fb_app.secret, code, redirect_uri)
         token_value = token_data['access_token']
     except (KeyError, IOError, RuntimeError) as exc:
         # IOError should cover all networking errors, but depending on the
@@ -110,7 +111,7 @@ def store_oauth_token(client_id, code, redirect_uri,
             store_oauth_token.retry(exc=exc)
 
     try:
-        debug_data = facebook.client.debug_token(client.fb_app_id, token_value)
+        debug_data = facebook.client.debug_token(fb_app.appid, fb_app.secret, token_value)
 
         if not debug_data['data']['is_valid']:
             LOG.fatal("OAuth token invalid")
@@ -123,12 +124,12 @@ def store_oauth_token(client_id, code, redirect_uri,
 
     token = datastructs.ShortToken(
         fbid=token_fbid,
-        appid=client.fb_app_id,
+        appid=fb_app.appid,
         token=token_value,
     )
 
     extend_token.delay(*token)
-    db.get_or_create.delay(relational.UserClient, client_id=client.pk, fbid=token.fbid)
+    db.get_or_create.delay(relational.UserClient, client_id=client_id, fbid=token.fbid)
 
     if visit_id:
         record_auth.delay(token.fbid, visit_id, campaign_id, content_id)

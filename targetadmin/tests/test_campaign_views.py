@@ -21,10 +21,12 @@ class TestCampaignWizard(TestAdminBase):
     fixtures = ['admin_test_data']
 
     def test_create_campaign_wizard(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         new_filter = relational.Filter.objects.create(
             name='new filter', client=new_client
         )
@@ -120,11 +122,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_generate_faces_url(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         relational.Filter.objects.update(client=new_client)
         self.assertEqual(new_client.filters.count(), 6)
         self.assertEqual(
@@ -186,7 +189,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
-                new_client.fb_app_name,
+                new_client.fb_app.name,
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
@@ -194,11 +197,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_new_filter_feature(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
@@ -258,7 +262,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
-                new_client.fb_app_name,
+                new_client.fb_app.name,
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
@@ -266,11 +270,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertIn(camp.name, notification.body)
 
     def test_create_campaign_wizard_topics_feature(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         response = self.client.post(
             reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
                 # Campaign Details
@@ -328,11 +333,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual({key.reverse for key in key_features}, {True})
 
     def test_create_campaign_wizard_no_filtering(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         self.assertFalse(new_client.filters.exists())
         self.assertFalse(new_client.fbobjects.exists())
         self.assertFalse(new_client.choicesets.exists())
@@ -383,7 +389,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
-                new_client.fb_app_name,
+                new_client.fb_app.name,
                 encodeDES('{}/{}'.format(camp.pk, content.pk))
             )
         )
@@ -391,11 +397,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertIn(camp.name, notification.body)
 
     def test_campaign_wizard_no_empty_fallback(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         relational.Filter.objects.update(client=new_client)
         self.assertFalse(new_client.campaigns.exists())
         response = self.client.post(
@@ -428,11 +435,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(fb_attr.og_type, 'cause')
 
     def test_campaign_wizard_existing_styles(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         frame_faces = relational.Page.objects.get(code='frame_faces')
         page_style = new_client.pagestyles.create(
             page=frame_faces, name='testing',
@@ -496,11 +504,12 @@ class TestCampaignWizard(TestAdminBase):
         self.assertStatusCode(response, 200)
 
     def test_edit_campaign_wizard(self):
-        new_client = relational.Client.objects.create(
-            name='Test Client',
-            fb_app_name='testing',
-            fb_app_id=1,
+        app = relational.FBApp.objects.create(
+            appid=1,
+            name='testing',
+            secret='sekret',
         )
+        new_client = app.clients.create(name='Test Client')
         self.assertFalse(new_client.campaigns.exists())
         response = self.client.post(
             reverse('targetadmin:campaign-wizard', args=[new_client.pk]), {
@@ -530,7 +539,7 @@ class TestCampaignWizard(TestAdminBase):
         props = campaign.campaignproperties.all()
         encoded = encodeDES('{}/{}'.format(campaign.pk, content0.pk))
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
-                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app_name, encoded))
+                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
         self.assertIsNone(props.get().fallback_campaign)
 
         response = self.client.post(
@@ -562,7 +571,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertTrue(props.get().fallback_campaign)
         encoded = encodeDES('{}/{}'.format(campaign.pk, content.pk))
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
-                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app_name, encoded))
+                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
 
 
 class TestCampaignData(TestAdminBase):

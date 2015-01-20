@@ -322,7 +322,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
     faces_url = campaign_form.cleaned_data['faces_url']
     if not faces_url:
         slug = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
-        faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app_name, slug)
+        faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app.name, slug)
 
     for campaign in campaigns:
         properties = campaign.campaignproperties.get()

@@ -134,7 +134,7 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
 
     return render(request, 'targetshare/frame_faces.html', {
         'fb_params': {
-            'fb_app_name': client.fb_app_name,
+            'fb_app_name': client.fb_app.name,
             'fb_app_id': client.fb_app_id,
         },
         'campaign': campaign,
@@ -304,7 +304,7 @@ def faces(request):
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
-        'fb_app_name': client.fb_app_name,
+        'fb_app_name': client.fb_app.name,
         'fb_app_id': client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,
@@ -481,7 +481,7 @@ def faces_email_friends(request, notification_uuid):
         'fb_action_type': fb_attrs.og_action,
         'fb_object_type': fb_attrs.og_type,
         'fb_object_url': fb_object_url,
-        'fb_app_name': client.fb_app_name,
+        'fb_app_name': client.fb_app.name,
         'fb_app_id': client.fb_app_id,
         'fb_object_title': fb_attrs.og_title,
         'fb_object_image': fb_attrs.og_image,

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from django.test import TestCase
 from mock import patch
 
-from targetshare.models.relational import Client
+from targetshare.models.relational import FBApp
 
 from chapo import models, utils
 from chapo.tests import urandom_patch, BYTES, BYTES2
@@ -135,7 +135,8 @@ class TestShorten(TestCase):
            {'shorturl|initial_redirect||1|cc06be0890c05085b3fbeec2bea1ad9d': 'jSgnUTqptPrV'})
     def test_cache_campaign(self, _urandom_mock):
         """shorten checks cache for existing ShortenedUrl slug and respects Campaign"""
-        client = Client.objects.create(codename='testerson')
+        app = FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        client = app.clients.create(codename='testerson')
         campaign = client.campaigns.create(campaign_id=1)
 
         shorts = models.ShortenedUrl.objects.all()
@@ -147,7 +148,8 @@ class TestShorten(TestCase):
     @urandom_patch
     def test_cache_set(self, _urandom_mock):
         """shorten populates cache with ShortenedUrl slug"""
-        client = Client.objects.create(codename='testerson')
+        app = FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        client = app.clients.create(codename='testerson')
         campaign = client.campaigns.create(campaign_id=1)
 
         shorts = models.ShortenedUrl.objects.values('campaign_id', 'event_type', 'slug', 'url')
@@ -215,7 +217,8 @@ class TestShorten(TestCase):
 
     @urandom_patch
     def test_read_db_campaign(self, _mock):
-        client = Client.objects.create(codename='testerson')
+        app = FBApp.objects.create(appid=1, name='Share!', secret='sekret')
+        client = app.clients.create(codename='testerson')
         campaign = client.campaigns.create(campaign_id=1)
 
         campaign.shortenedurls.create(

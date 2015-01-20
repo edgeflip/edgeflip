@@ -22,8 +22,33 @@
         updated_at: "2014-01-12 11:02:01"
         created_at: "2013-05-12 11:02:01"
         deleted_at: "2014-01-12 11:02:01"
+
+-   model: targetshare.fbapp
+    pk: 10101
+    fields:
+        name: sharing-social-good
+        secret: "dd219471fd9a27a13fd3c3fe123048db"
+        api: '1.0'
+        permissions:
+            - email
+            - friends_birthday
+            - friends_interests
+            - friends_likes
+            - friends_location
+            - friends_photos
+            - read_stream
+            - user_about_me
+            - user_birthday
+            - user_interests
+            - user_likes
+            - user_location
+            - user_photos
+        created: !!timestamp '2013-07-15 11:38:28'
+        updated: !!timestamp '2013-07-15 11:38:28' 
+
+
 -   model: targetshare.client
     pk: 1
     fields:
-        fb_app_id: 10101
+        fb_app: 10101
         create_dt: "2014-02-02 00:00:00"

@@ -21,6 +21,9 @@ from targetshare.models import dynamo, relational
 from targetshare.tasks import targeting
 
 
+SECRETS = {} # populated on start
+
+
 def _do_debug(queue, results):
     """Thread worker that debugs enqueued tokens with Facebook and appends validated
     tokens to the results list.
@@ -33,7 +36,7 @@ def _do_debug(queue, results):
             # Term sentinel; we're done.
             break
 
-        result = facebook.client.debug_token(token.appid, token.token)
+        result = facebook.client.debug_token(token.appid, SECRETS[token.appid], token.token)
         data = result['data']
         if data['is_valid'] and data['expires_at'] > time.time():
             results.append(token)
@@ -54,6 +57,9 @@ def debug_tokens(tokens, max_threads, look_ahead=0):
 
     if max_threads < 1:
         raise ValueError("max_threads must be >= 1")
+
+    if not SECRETS:
+        SECRETS.update(relational.FBApp.objects.values_list('appid', 'secret').iterator())
 
     # Seed queue and initialize threads
     thread_count = 0
