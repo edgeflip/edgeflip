@@ -37,6 +37,21 @@ RANK_WEIGHTS = {
     'post_comms': 4,
 }
 
+DEFAULT_REQUESTED_PERMISSIONS = set([
+    'public_profile',
+    'user_friends',
+    'email',
+    'user_activities',
+    'user_birthday',
+    'user_location',
+    'user_interests',
+    'user_likes',
+    'user_photos',
+    'user_relationships',
+    'user_status',
+    'user_videos'
+])
+
 
 def process_statuses(session, response, user_id):
     response.data = process_posts(response, 'stat', user_id)
@@ -205,9 +220,8 @@ class Stream(list):
         return StreamAggregate(self)
 
     @classmethod
-    def read(cls, user_id, token):
-        # TODO: get this from the token, unless we will save it somewhere else
-        permissions = set(['public_profile', 'user_friends', 'email', 'user_activities', 'user_birthday', 'user_location', 'user_interests', 'user_likes', 'user_photos', 'user_relationships', 'user_status', 'user_videos'])
+    def read(cls, user_id, token, permissions):
+        permissions = permissions or DEFAULT_REQUESTED_PERMISSIONS
 
         status_authed = STATUS_PERM in permissions
         photos_authed = PHOTOS_PERM in permissions
