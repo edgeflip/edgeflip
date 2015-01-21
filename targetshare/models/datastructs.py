@@ -231,16 +231,10 @@ class UserNetwork(list):
             user = edge.secondary
             user.topics = user.get_topics(edge.interactions, topics_catalog)
 
-    def scored(self, require_incoming=False, require_outgoing=False):
+    def scored(self):
         """Construct a new UserNetwork with scored Edges."""
-        edges_max = EdgeAggregate(self,
-                                  aggregator=max,
-                                  require_incoming=require_incoming,
-                                  require_outgoing=require_outgoing)
-        if require_incoming:
-            mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
-        else:
-            mapper = lambda edge: edge._replace(px3_score=edges_max.score(edge))
+        edges_max = EdgeAggregate(self, aggregator=max)
+        mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
 
         return self._clone(mapper(edge) for edge in self)
 
@@ -250,7 +244,7 @@ class UserNetwork(list):
 
     def ranked(self, require_incoming=False, require_outgoing=False):
         """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
-        network = self.scored(require_incoming, require_outgoing)
+        network = self.scored()
         network.rank()
         return network
 
@@ -390,11 +384,31 @@ class EdgeAggregate(object):
 
     inPostLikes = None
     inPostComms = None
-    inStatLikes = None
-    inStatComms = None
     inWallPosts = None
     inWallComms = None
     inTags = None
+
+    inPhotoTags = None
+    inPhotoLikes = None
+    inPhotoComms = None
+    inPhotoTarget = None
+    inVideoTags = None
+    inVideoLikes = None
+    inVideoComms = None
+    inVideoTarget = None
+    inPhotoUploadTags = None
+    inPhotoUploadLikes = None
+    inPhotoUploadComms = None
+    inVideoUploadTags = None
+    inVideoUploadLikes = None
+    inVideoUploadComms = None
+    inStatTags = None
+    inStatLikes = None
+    inStatComms = None
+    inLinkTags = None
+    inLinkLikes = None
+    inLinkComms = None
+    inPlaceTags = None
 
     outPostLikes = None
     outPostComms = None
@@ -407,7 +421,7 @@ class EdgeAggregate(object):
     outPhotoOther = None
     outMutuals = None
 
-    def __init__(self, edges, aggregator=max, require_incoming=True, require_outgoing=True):
+    def __init__(self, edges, aggregator=max):
         """Apply the aggregator to the given Edges to initialize instance data.
 
             edges: sequence of Edges from a primary to all friends
@@ -417,38 +431,28 @@ class EdgeAggregate(object):
         if len(edges) == 0:
             return
 
-        # these are defined even if require_incoming is False, even though they are stored in incoming
-        self.inPhotoTarget = aggregator(edge.incoming.photos_target for edge in edges)
-        self.inPhotoOther = aggregator(edge.incoming.photos_other for edge in edges)
-        self.inMutuals = aggregator(edge.incoming.mut_friends for edge in edges)
+        self.inPhotoTags = aggregator(edge.incoming.photo_tags for edge in edges)
+        self.inPhotoLikes = aggregator(edge.incoming.photo_likes for edge in edges)
+        self.inPhotoComms = aggregator(edge.incoming.photo_comms for edge in edges)
+        self.inPhotosTarget = aggregator(edge.incoming.photos_target for edge in edges)
+        self.inVideoTags = aggregator(edge.incoming.video_tags for edge in edges)
+        self.inVideoLikes = aggregator(edge.incoming.video_likes for edge in edges)
+        self.inVideoComms = aggregator(edge.incoming.video_comms for edge in edges)
+        self.inVideosTarget = aggregator(edge.incoming.videos_target for edge in edges)
+        self.inPhotoUploadTags = aggregator(edge.incoming.photo_upload_tags for edge in edges)
+        self.inPhotoUploadLikes = aggregator(edge.incoming.photo_upload_likes for edge in edges)
+        self.inPhotoUploadComms = aggregator(edge.incoming.photo_upload_comms for edge in edges)
+        self.inVideoUploadTags = aggregator(edge.incoming.video_upload_tags for edge in edges)
+        self.inVideoUploadLikes = aggregator(edge.incoming.video_upload_likes for edge in edges)
+        self.inVideoUploadComms = aggregator(edge.incoming.video_upload_comms for edge in edges)
+        self.inStatTags = aggregator(edge.incoming.stat_tags for edge in edges)
+        self.inStatLikes = aggregator(edge.incoming.stat_likes for edge in edges)
+        self.inStatComms = aggregator(edge.incoming.stat_comms for edge in edges)
+        self.inLinkTags = aggregator(edge.incoming.link_tags for edge in edges)
+        self.inLinkLikes = aggregator(edge.incoming.link_likes for edge in edges)
+        self.inLinkComms = aggregator(edge.incoming.link_comms for edge in edges)
+        self.inPlaceTags = aggregator(edge.incoming.place_tags for edge in edges)
 
-        if require_incoming:
-            self.inPostLikes = aggregator(edge.incoming.post_likes for edge in edges)
-            self.inPostComms = aggregator(edge.incoming.post_comms for edge in edges)
-            self.inStatLikes = aggregator(edge.incoming.stat_likes for edge in edges)
-            self.inStatComms = aggregator(edge.incoming.stat_comms for edge in edges)
-            self.inStatTags = aggregator(edge.incoming.stat_tags for edge in edges)
-            self.inWallPosts = aggregator(edge.incoming.wall_posts for edge in edges)
-            self.inWallComms = aggregator(edge.incoming.wall_comms for edge in edges)
-            self.inPhotoLikes = aggregator(edge.incoming.photo_likes for edge in edges)
-            self.inPhotoComms = aggregator(edge.incoming.photo_comms for edge in edges)
-            self.inPhotoTags = aggregator(edge.incoming.photo_tags for edge in edges)
-            self.inUploadLikes = aggregator(edge.incoming.uplo_likes for edge in edges)
-            self.inUploadComms = aggregator(edge.incoming.uplo_comms for edge in edges)
-            self.inUploadTags = aggregator(edge.incoming.uplo_tags for edge in edges)
-            self.inTags = aggregator(edge.incoming.tags for edge in edges)
-
-        if require_outgoing:
-            self.outPostLikes = aggregator(edge.outgoing.post_likes for edge in edges)
-            self.outPostComms = aggregator(edge.outgoing.post_comms for edge in edges)
-            self.outStatLikes = aggregator(edge.outgoing.stat_likes for edge in edges)
-            self.outStatComms = aggregator(edge.outgoing.stat_comms for edge in edges)
-            self.outWallPosts = aggregator(edge.outgoing.wall_posts for edge in edges)
-            self.outWallComms = aggregator(edge.outgoing.wall_comms for edge in edges)
-            self.outTags = aggregator(edge.outgoing.tags for edge in edges)
-            self.outPhotoTarget = aggregator(edge.outgoing.photos_target for edge in edges)
-            self.outPhotoOther = aggregator(edge.outgoing.photos_other for edge in edges)
-            self.outMutuals = aggregator(edge.outgoing.mut_friends for edge in edges)
 
     def score(self, edge):
         """proximity-scoring function
@@ -460,43 +464,28 @@ class EdgeAggregate(object):
         countMaxWeightTups = []
         if edge.incoming is not None:
             countMaxWeightTups.extend([
-                # px3
-                (edge.incoming.mut_friends, self.inMutuals, 0.5),
-                (edge.incoming.photos_target, self.inPhotoTarget, 2.0),
-                (edge.incoming.photos_other, self.inPhotoOther, 1.0),
-
                 # px4
-                (edge.incoming.post_likes, self.inPostLikes, 1.0),
-                (edge.incoming.post_comms, self.inPostComms, 1.0),
-                (edge.incoming.stat_likes, self.inStatLikes, 2.0),
-                (edge.incoming.stat_comms, self.inStatComms, 1.0),
-                (edge.incoming.stat_tags, self.inStatTags, 1.0),
-                (edge.incoming.wall_posts, self.inWallPosts, 1.0),        # guessed weight
-                (edge.incoming.wall_comms, self.inWallComms, 1.0),        # guessed weight
+                (edge.incoming.photo_tags, self.inPhotoTags, 1.0),
                 (edge.incoming.photo_likes, self.inPhotoLikes, 1.0),
                 (edge.incoming.photo_comms, self.inPhotoComms, 1.0),
-                (edge.incoming.photo_tags, self.inPhotoTags, 1.0),
-                (edge.incoming.uplo_likes, self.inUploadLikes, 1.0),
-                (edge.incoming.uplo_comms, self.inUploadComms, 1.0),
-                (edge.incoming.uplo_tags, self.inUploadTags, 1.0),
-                (edge.incoming.tags, self.inTags, 1.0)
-            ])
-
-        if edge.outgoing is not None:
-            countMaxWeightTups.extend([
-                # px3
-                (edge.outgoing.mut_friends, self.outMutuals, 0.5),
-                (edge.outgoing.photos_target, self.outPhotoTarget, 1.0),
-                (edge.outgoing.photos_other, self.outPhotoOther, 1.0),
-
-                # px5
-                (edge.outgoing.post_likes, self.outPostLikes, 2.0),
-                (edge.outgoing.post_comms, self.outPostComms, 3.0),
-                (edge.outgoing.stat_likes, self.outStatLikes, 2.0),
-                (edge.outgoing.stat_comms, self.outStatComms, 16.0),
-                (edge.outgoing.wall_posts, self.outWallPosts, 2.0),    # guessed weight
-                (edge.outgoing.wall_comms, self.outWallComms, 3.0),    # guessed weight
-                (edge.outgoing.tags, self.outTags, 1.0)
+                (edge.incoming.photos_target, self.inPhotosTarget, 1.0),
+                (edge.incoming.video_tags, self.inVideoTags, 1.0),
+                (edge.incoming.video_likes, self.inVideoLikes, 1.0),
+                (edge.incoming.video_comms, self.inVideoComms, 1.0),
+                (edge.incoming.videos_target, self.inVideosTarget, 1.0),
+                (edge.incoming.photo_upload_tags, self.inPhotoUploadTags, 2.0),
+                (edge.incoming.photo_upload_likes, self.inPhotoUploadLikes, 1.0),
+                (edge.incoming.photo_upload_comms, self.inPhotoUploadComms, 1.0),
+                (edge.incoming.video_upload_tags, self.inVideoUploadTags, 2.0),
+                (edge.incoming.video_upload_likes, self.inVideoUploadLikes, 1.0),
+                (edge.incoming.video_upload_comms, self.inVideoUploadComms, 1.0),
+                (edge.incoming.stat_tags, self.inStatTags, 2.0),
+                (edge.incoming.stat_likes, self.inStatLikes, 1.0),
+                (edge.incoming.stat_comms, self.inStatComms, 1.0),
+                (edge.incoming.link_tags, self.inLinkTags, 1.0),
+                (edge.incoming.link_likes, self.inLinkLikes, 1.0),
+                (edge.incoming.link_comms, self.inLinkComms, 1.0),
+                (edge.incoming.place_tags, self.inPlaceTags, 1.0),
             ])
 
         pxTotal = 0.0

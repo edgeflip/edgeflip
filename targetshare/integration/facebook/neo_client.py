@@ -22,19 +22,27 @@ PHOTOS_PERM = 'user_photos'
 VIDEOS_PERM = 'user_videos'
 
 RANK_WEIGHTS = {
-    'media_tags': 4,
-    'media_likes': 1,
-    'media_comms': 3,
-    'media_target': 2,
-    'uplo_tags': 4,
-    'uplo_likes': 2,
-    'uplo_comms': 4,
+    'photo_tags': 4,
+    'photo_likes': 1,
+    'photo_comms': 3,
+    'photos_target': 2,
+    'video_tags': 4,
+    'video_likes': 1,
+    'video_comms': 3,
+    'videos_target': 2,
+    'photo_upload_tags': 4,
+    'photo_upload_likes': 2,
+    'photo_upload_comms': 4,
+    'video_upload_tags': 4,
+    'video_upload_likes': 2,
+    'video_upload_comms': 4,
     'stat_tags': 4,
     'stat_likes': 2,
     'stat_comms': 4,
-    'post_tags': 4,
-    'post_likes': 2,
-    'post_comms': 4,
+    'link_tags': 4,
+    'link_likes': 2,
+    'link_comms': 4,
+    'place_tags': 4,
 }
 
 DEFAULT_REQUESTED_PERMISSIONS = set([
@@ -58,23 +66,23 @@ def process_statuses(session, response, user_id):
 
 
 def process_photos(session, response, user_id):
-    response.data = process_posts(response, 'media', user_id)
+    response.data = process_posts(response, 'photo', user_id)
 
 
 def process_videos(session, response, user_id):
-    response.data = process_posts(response, 'media', user_id)
+    response.data = process_posts(response, 'video', user_id)
 
 
 def process_photo_uploads(session, response, user_id):
-    response.data = process_posts(response, 'uplo', user_id)
+    response.data = process_posts(response, 'photo_upload', user_id)
 
 
 def process_video_uploads(session, response, user_id):
-    response.data = process_posts(response, 'uplo', user_id)
+    response.data = process_posts(response, 'video_upload', user_id)
 
 
 def process_links(session, response, user_id):
-    response.data = process_posts(response, 'post', user_id)
+    response.data = process_posts(response, 'link', user_id)
 
 
 def process_posts(response, post_type, user_id):
@@ -88,9 +96,12 @@ def process_posts(response, post_type, user_id):
                 interactions=[]
             )
 
-            if 'from' in post_json and post_type == 'media':
+            if (
+                'from' in post_json and
+                (post_type == 'photo' or post_type == 'video')
+            ):
                 user = post_json['from']
-                action_type = 'media_target'
+                action_type = '{}s_target'.format(post_type)
                 post.interactions.append(Stream.Interaction(
                     user['id'],
                     user['name'],
@@ -108,6 +119,13 @@ def process_posts(response, post_type, user_id):
                         action_type,
                         RANK_WEIGHTS[action_type])
                     )
+                    if 'place' in post_json:
+                        post.interactions.append(Stream.Interaction(
+                            user['id'],
+                            user['name'],
+                            'place_tags',
+                            RANK_WEIGHTS['place_tags']
+                        ))
             if 'likes' in post_json and 'data' in post_json['likes']:
                 for user in post_json['likes']['data']:
                     action_type = post_type + '_likes'
@@ -162,23 +180,6 @@ class StreamAggregate(defaultdict):
                 if interaction.user_id not in user_interactions.names:
                     user_interactions.names[interaction.user_id] = interaction.name
 
-    def ranking(self):
-        """Reduce the aggregate to a mapping of friends and their normalized
-        rankings.
-
-        """
-        friend_total = defaultdict(int)
-        for user_id, user_interactions in self.iteritems():
-            for interactions in user_interactions.types.itervalues():
-                for interaction in interactions:
-                    friend_total[user_id] += interaction.weight
-
-        ranked_friends = sorted(friend_total,
-                                key=lambda user_id: friend_total[user_id],
-                                reverse=True)
-        return {fbid: pos for (pos, fbid) in enumerate(ranked_friends)}
-
-
 def queue_job(session, user_id, endpoint, callback, payload):
     return session.get(
         'https://graph.facebook.com/v2.2/{}/{}'.format(user_id, endpoint),
@@ -220,7 +221,7 @@ class Stream(list):
         return StreamAggregate(self)
 
     @classmethod
-    def read(cls, user_id, token, permissions):
+    def read(cls, user_id, token, permissions=None):
         permissions = permissions or DEFAULT_REQUESTED_PERMISSIONS
 
         status_authed = STATUS_PERM in permissions
@@ -328,15 +329,27 @@ class Stream(list):
             incoming = dynamo.IncomingEdge(
                 fbid_target=self.user_id,
                 fbid_source=fbid,
-                stat_likes=len(user_interactions['stat_likes']),
-                stat_comms=len(user_interactions['stat_comms']),
-                stat_tags=len(user_interactions['stat_tags']),
                 photo_tags=len(user_interactions['photo_tags']),
                 photo_likes=len(user_interactions['photo_likes']),
                 photo_comms=len(user_interactions['photo_comms']),
                 photos_target=len(user_interactions['photos_target']),
-                uplo_likes=len(user_interactions['uplo_likes']),
-                uplo_comms=len(user_interactions['uplo_comms']),
+                video_tags=len(user_interactions['video_tags']),
+                video_likes=len(user_interactions['video_likes']),
+                video_comms=len(user_interactions['video_comms']),
+                videos_target=len(user_interactions['videos_target']),
+                photo_upload_tags=len(user_interactions['photo_upload_tags']),
+                photo_upload_likes=len(user_interactions['photo_upload_likes']),
+                photo_upload_comms=len(user_interactions['photo_upload_comms']),
+                video_upload_tags=len(user_interactions['video_upload_tags']),
+                video_upload_likes=len(user_interactions['video_upload_likes']),
+                video_upload_comms=len(user_interactions['video_upload_comms']),
+                stat_tags=len(user_interactions['stat_tags']),
+                stat_likes=len(user_interactions['stat_likes']),
+                stat_comms=len(user_interactions['stat_comms']),
+                link_tags=len(user_interactions['link_tags']),
+                link_likes=len(user_interactions['link_likes']),
+                link_comms=len(user_interactions['link_comms']),
+                place_tags=len(user_interactions['place_tags']),
             )
             prim = dynamo.User(fbid=self.user_id)
             user = dynamo.User(fbid=fbid, fullname=user_aggregate.names[fbid])
@@ -345,15 +358,27 @@ class Stream(list):
                 dynamo.PostInteractions(
                     user=user,
                     postid=post_id,
-                    stat_likes=len(post_interactions['stat_likes']),
-                    stat_comms=len(post_interactions['stat_comms']),
-                    stat_tags=len(post_interactions['stat_tags']),
                     photo_tags=len(post_interactions['photo_tags']),
                     photo_likes=len(post_interactions['photo_likes']),
                     photo_comms=len(post_interactions['photo_comms']),
                     photos_target=len(post_interactions['photos_target']),
-                    uplo_likes=len(post_interactions['uplo_likes']),
-                    uplo_comms=len(post_interactions['uplo_comms']),
+                    video_tags=len(post_interactions['video_tags']),
+                    video_likes=len(post_interactions['video_likes']),
+                    video_comms=len(post_interactions['video_comms']),
+                    videos_target=len(post_interactions['videos_target']),
+                    photo_upload_tags=len(post_interactions['photo_upload_tags']),
+                    photo_upload_likes=len(post_interactions['photo_upload_likes']),
+                    photo_upload_comms=len(post_interactions['photo_upload_comms']),
+                    video_upload_tags=len(post_interactions['video_upload_tags']),
+                    video_upload_likes=len(post_interactions['video_upload_likes']),
+                    video_upload_comms=len(post_interactions['video_upload_comms']),
+                    stat_tags=len(post_interactions['stat_tags']),
+                    stat_likes=len(post_interactions['stat_likes']),
+                    stat_comms=len(post_interactions['stat_comms']),
+                    link_tags=len(post_interactions['link_tags']),
+                    link_likes=len(post_interactions['link_likes']),
+                    link_comms=len(post_interactions['link_comms']),
+                    place_tags=len(post_interactions['place_tags']),
                 )
                 for (post_id, post_interactions) in user_aggregate.posts.iteritems()
             }
