@@ -21,30 +21,6 @@ STATUS_PERM = 'user_status'
 PHOTOS_PERM = 'user_photos'
 VIDEOS_PERM = 'user_videos'
 
-RANK_WEIGHTS = {
-    'photo_tags': 4,
-    'photo_likes': 1,
-    'photo_comms': 3,
-    'photos_target': 2,
-    'video_tags': 4,
-    'video_likes': 1,
-    'video_comms': 3,
-    'videos_target': 2,
-    'photo_upload_tags': 4,
-    'photo_upload_likes': 2,
-    'photo_upload_comms': 4,
-    'video_upload_tags': 4,
-    'video_upload_likes': 2,
-    'video_upload_comms': 4,
-    'stat_tags': 4,
-    'stat_likes': 2,
-    'stat_comms': 4,
-    'link_tags': 4,
-    'link_likes': 2,
-    'link_comms': 4,
-    'place_tags': 4,
-}
-
 DEFAULT_REQUESTED_PERMISSIONS = set([
     'public_profile',
     'user_friends',
@@ -105,9 +81,8 @@ def process_posts(response, post_type, user_id):
                 post.interactions.append(Stream.Interaction(
                     user['id'],
                     user['name'],
-                    action_type,
-                    RANK_WEIGHTS[action_type])
-                )
+                    action_type
+                ))
             if 'tags' in post_json and 'data' in post_json['tags']:
                 for user in post_json['tags']['data']:
                     if 'id' not in user:
@@ -116,15 +91,13 @@ def process_posts(response, post_type, user_id):
                     post.interactions.append(Stream.Interaction(
                         user['id'],
                         user['name'],
-                        action_type,
-                        RANK_WEIGHTS[action_type])
-                    )
+                        action_type
+                    ))
                     if 'place' in post_json:
                         post.interactions.append(Stream.Interaction(
                             user['id'],
                             user['name'],
                             'place_tags',
-                            RANK_WEIGHTS['place_tags']
                         ))
             if 'likes' in post_json and 'data' in post_json['likes']:
                 for user in post_json['likes']['data']:
@@ -132,9 +105,8 @@ def process_posts(response, post_type, user_id):
                     post.interactions.append(Stream.Interaction(
                         user['id'],
                         user['name'],
-                        action_type,
-                        RANK_WEIGHTS[action_type])
-                    )
+                        action_type
+                    ))
             if 'comments' in post_json and 'data' in post_json['comments']:
                 for comment in post_json['comments']['data']:
                     user = comment['from']
@@ -142,9 +114,8 @@ def process_posts(response, post_type, user_id):
                     post.interactions.append(Stream.Interaction(
                         user['id'],
                         user['name'],
-                        action_type,
-                        RANK_WEIGHTS[action_type])
-                    )
+                        action_type
+                    ))
             stream.append(post)
     return stream
 
@@ -192,7 +163,7 @@ class Stream(list):
     REPR_OUTPUT_SIZE = 5
 
     Post = namedtuple('Post', ('post_id', 'message', 'interactions'))
-    Interaction = namedtuple('Interaction', ('user_id', 'name', 'type', 'weight'))
+    Interaction = namedtuple('Interaction', ('user_id', 'name', 'type'))
 
     def __init__(self, user_id, iterable=()):
         super(Stream, self).__init__(iterable)
