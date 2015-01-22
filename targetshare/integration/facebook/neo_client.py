@@ -292,6 +292,29 @@ class Stream(list):
         friend_streamrank = self.aggregate()
 
         network = datastructs.UserNetwork()
+        interaction_types = set([
+            'photo_tags',
+            'photo_likes',
+            'photo_comms',
+            'photos_target',
+            'video_tags',
+            'video_likes',
+            'video_comms',
+            'videos_target',
+            'photo_upload_tags',
+            'photo_upload_likes',
+            'photo_upload_comms',
+            'video_upload_tags',
+            'video_upload_likes',
+            'video_upload_comms',
+            'stat_tags',
+            'stat_likes',
+            'stat_comms',
+            'link_tags',
+            'link_likes',
+            'link_comms',
+            'place_tags',
+        ])
         for fbid, user_aggregate in friend_streamrank.iteritems():
             # TODO: figure out if we want to do this here, or filter it out later
             if str(fbid) == str(self.user_id):
@@ -300,27 +323,7 @@ class Stream(list):
             incoming = dynamo.IncomingEdge(
                 fbid_target=self.user_id,
                 fbid_source=fbid,
-                photo_tags=len(user_interactions['photo_tags']),
-                photo_likes=len(user_interactions['photo_likes']),
-                photo_comms=len(user_interactions['photo_comms']),
-                photos_target=len(user_interactions['photos_target']),
-                video_tags=len(user_interactions['video_tags']),
-                video_likes=len(user_interactions['video_likes']),
-                video_comms=len(user_interactions['video_comms']),
-                videos_target=len(user_interactions['videos_target']),
-                photo_upload_tags=len(user_interactions['photo_upload_tags']),
-                photo_upload_likes=len(user_interactions['photo_upload_likes']),
-                photo_upload_comms=len(user_interactions['photo_upload_comms']),
-                video_upload_tags=len(user_interactions['video_upload_tags']),
-                video_upload_likes=len(user_interactions['video_upload_likes']),
-                video_upload_comms=len(user_interactions['video_upload_comms']),
-                stat_tags=len(user_interactions['stat_tags']),
-                stat_likes=len(user_interactions['stat_likes']),
-                stat_comms=len(user_interactions['stat_comms']),
-                link_tags=len(user_interactions['link_tags']),
-                link_likes=len(user_interactions['link_likes']),
-                link_comms=len(user_interactions['link_comms']),
-                place_tags=len(user_interactions['place_tags']),
+                **{typ: len(user_interactions[typ]) for typ in interaction_types}
             )
             prim = dynamo.User(fbid=self.user_id)
             user = dynamo.User(fbid=fbid, fullname=user_aggregate.names[fbid])
@@ -329,27 +332,7 @@ class Stream(list):
                 dynamo.PostInteractions(
                     user=user,
                     postid=post_id,
-                    photo_tags=len(post_interactions['photo_tags']),
-                    photo_likes=len(post_interactions['photo_likes']),
-                    photo_comms=len(post_interactions['photo_comms']),
-                    photos_target=len(post_interactions['photos_target']),
-                    video_tags=len(post_interactions['video_tags']),
-                    video_likes=len(post_interactions['video_likes']),
-                    video_comms=len(post_interactions['video_comms']),
-                    videos_target=len(post_interactions['videos_target']),
-                    photo_upload_tags=len(post_interactions['photo_upload_tags']),
-                    photo_upload_likes=len(post_interactions['photo_upload_likes']),
-                    photo_upload_comms=len(post_interactions['photo_upload_comms']),
-                    video_upload_tags=len(post_interactions['video_upload_tags']),
-                    video_upload_likes=len(post_interactions['video_upload_likes']),
-                    video_upload_comms=len(post_interactions['video_upload_comms']),
-                    stat_tags=len(post_interactions['stat_tags']),
-                    stat_likes=len(post_interactions['stat_likes']),
-                    stat_comms=len(post_interactions['stat_comms']),
-                    link_tags=len(post_interactions['link_tags']),
-                    link_likes=len(post_interactions['link_likes']),
-                    link_comms=len(post_interactions['link_comms']),
-                    place_tags=len(post_interactions['place_tags']),
+                    **{typ: len(post_interactions[typ]) for typ in interaction_types}
                 )
                 for (post_id, post_interactions) in user_aggregate.posts.iteritems()
             }
