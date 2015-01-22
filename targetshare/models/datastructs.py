@@ -1,3 +1,4 @@
+from abc import ABCMeta, abstractmethod
 import collections
 import logging
 import itertools
@@ -54,8 +55,13 @@ class Edge(_EdgeBase):
 
 
 class UserNetwork(list):
+    __metaclass__ = ABCMeta
 
     Edge = Edge
+
+    @abstractmethod
+    def scored(self):
+        pass
 
     @classonlymethod
     def get_friend_edges(cls, primary,
@@ -231,12 +237,6 @@ class UserNetwork(list):
             user = edge.secondary
             user.topics = user.get_topics(edge.interactions, topics_catalog)
 
-    def scored(self):
-        """Construct a new UserNetwork with scored Edges."""
-        edges_max = EdgeAggregate(self, aggregator=max)
-        mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
-
-        return self._clone(mapper(edge) for edge in self)
 
     def rank(self):
         """Sort the UserNetwork by its Edges' scores."""
@@ -384,6 +384,123 @@ class EdgeAggregate(object):
 
     inPostLikes = None
     inPostComms = None
+    inStatLikes = None
+    inStatComms = None
+    inWallPosts = None
+    inWallComms = None
+    inTags = None
+
+    outPostLikes = None
+    outPostComms = None
+    outStatLikes = None
+    outStatComms = None
+    outWallPosts = None
+    outWallComms = None
+    outTags = None
+    outPhotoTarget = None
+    outPhotoOther = None
+    outMutuals = None
+
+    def __init__(self, edges, aggregator=max, require_incoming=True, require_outgoing=True):
+        """Apply the aggregator to the given Edges to initialize instance data.
+
+            edges: sequence of Edges from a primary to all friends
+            aggregator: a function over properties of Edges (default: max)
+
+        """
+        if len(edges) == 0:
+            return
+
+        # these are defined even if require_incoming is False, even though they are stored in incoming
+        self.inPhotoTarget = aggregator(edge.incoming.photos_target for edge in edges)
+        self.inPhotoOther = aggregator(edge.incoming.photos_other for edge in edges)
+        self.inMutuals = aggregator(edge.incoming.mut_friends for edge in edges)
+
+        if require_incoming:
+            self.inPostLikes = aggregator(edge.incoming.post_likes for edge in edges)
+            self.inPostComms = aggregator(edge.incoming.post_comms for edge in edges)
+            self.inStatLikes = aggregator(edge.incoming.stat_likes for edge in edges)
+            self.inStatComms = aggregator(edge.incoming.stat_comms for edge in edges)
+            self.inWallPosts = aggregator(edge.incoming.wall_posts for edge in edges)
+            self.inWallComms = aggregator(edge.incoming.wall_comms for edge in edges)
+            self.inTags = aggregator(edge.incoming.tags for edge in edges)
+
+        if require_outgoing:
+            self.outPostLikes = aggregator(edge.outgoing.post_likes for edge in edges)
+            self.outPostComms = aggregator(edge.outgoing.post_comms for edge in edges)
+            self.outStatLikes = aggregator(edge.outgoing.stat_likes for edge in edges)
+            self.outStatComms = aggregator(edge.outgoing.stat_comms for edge in edges)
+            self.outWallPosts = aggregator(edge.outgoing.wall_posts for edge in edges)
+            self.outWallComms = aggregator(edge.outgoing.wall_comms for edge in edges)
+            self.outTags = aggregator(edge.outgoing.tags for edge in edges)
+            self.outPhotoTarget = aggregator(edge.outgoing.photos_target for edge in edges)
+            self.outPhotoOther = aggregator(edge.outgoing.photos_other for edge in edges)
+            self.outMutuals = aggregator(edge.outgoing.mut_friends for edge in edges)
+
+    def score(self, edge):
+        """proximity-scoring function
+
+        edge: a single datastructs.Edge
+        rtype: score, float
+
+        """
+        countMaxWeightTups = []
+        if edge.incoming is not None:
+            countMaxWeightTups.extend([
+                # px3
+                (edge.incoming.mut_friends, self.inMutuals, 0.5),
+                (edge.incoming.photos_target, self.inPhotoTarget, 2.0),
+                (edge.incoming.photos_other, self.inPhotoOther, 1.0),
+
+                # px4
+                (edge.incoming.post_likes, self.inPostLikes, 1.0),
+                (edge.incoming.post_comms, self.inPostComms, 1.0),
+                (edge.incoming.stat_likes, self.inStatLikes, 2.0),
+                (edge.incoming.stat_comms, self.inStatComms, 1.0),
+                (edge.incoming.wall_posts, self.inWallPosts, 1.0),        # guessed weight
+                (edge.incoming.wall_comms, self.inWallComms, 1.0),        # guessed weight
+                (edge.incoming.tags, self.inTags, 1.0)
+            ])
+
+        if edge.outgoing is not None:
+            countMaxWeightTups.extend([
+                # px3
+                (edge.outgoing.mut_friends, self.outMutuals, 0.5),
+                (edge.outgoing.photos_target, self.outPhotoTarget, 1.0),
+                (edge.outgoing.photos_other, self.outPhotoOther, 1.0),
+
+                # px5
+                (edge.outgoing.post_likes, self.outPostLikes, 2.0),
+                (edge.outgoing.post_comms, self.outPostComms, 3.0),
+                (edge.outgoing.stat_likes, self.outStatLikes, 2.0),
+                (edge.outgoing.stat_comms, self.outStatComms, 16.0),
+                (edge.outgoing.wall_posts, self.outWallPosts, 2.0),    # guessed weight
+                (edge.outgoing.wall_comms, self.outWallComms, 3.0),    # guessed weight
+                (edge.outgoing.tags, self.outTags, 1.0)
+            ])
+
+        pxTotal = 0.0
+        weightTotal = 0.0
+        for count, countMax, weight in countMaxWeightTups:
+            if countMax:
+                # counts pass thru model & become Decimal; cast to divisible types:
+                pxTotal += float(count) / int(countMax) * weight
+                weightTotal += weight
+        try:
+            return pxTotal / weightTotal
+        except ZeroDivisionError:
+            return 0
+
+
+class NeoEdgeAggregate(object):
+    """Edge aggregation, scoring and ranking."""
+
+    inPhotoTarget = None
+    inPhotoOther = None
+    inMutuals = None
+
+    inPostLikes = None
+    inPostComms = None
     inWallPosts = None
     inWallComms = None
     inTags = None
@@ -499,3 +616,27 @@ class EdgeAggregate(object):
             return pxTotal / weightTotal
         except ZeroDivisionError:
             return 0
+
+
+class UserNetworkV1(UserNetwork):
+
+    def scored(self, require_incoming=False, require_outgoing=False):
+        """Construct a new UserNetwork with scored Edges."""
+        edges_max = EdgeAggregate(self,
+                                  aggregator=max,
+                                  require_incoming=require_incoming,
+                                  require_outgoing=require_outgoing)
+        if require_incoming:
+            mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
+        else:
+            mapper = lambda edge: edge._replace(px3_score=edges_max.score(edge))
+
+        return self._clone(mapper(edge) for edge in self)
+
+
+class UserNetworkV2(UserNetwork):
+
+    def scored(self, require_incoming=False, require_outgoing=False):
+        edges_max = NeoEdgeAggregate(self, aggregator=max)
+        mapper = lambda edge: edge._replace(px4_score=edges_max.score(edge))
+        return self._clone(mapper(edge) for edge in self)
