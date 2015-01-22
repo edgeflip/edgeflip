@@ -366,7 +366,7 @@ def process(chunk_outputs):
     total_stream = [item for sublist in chunk_outputs for item in sublist.data]
     friend_streamrank = StreamAggregate(total_stream)
 
-    network = datastructs.UserNetwork()
+    network = datastructs.UserNetworkV2()
     for fbid, user_aggregate in friend_streamrank.iteritems():
         user_interactions = user_aggregate.types
         #print fbid, names[fbid], user_interactions

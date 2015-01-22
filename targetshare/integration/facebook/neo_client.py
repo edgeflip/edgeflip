@@ -21,6 +21,8 @@ STATUS_PERM = 'user_status'
 PHOTOS_PERM = 'user_photos'
 VIDEOS_PERM = 'user_videos'
 
+USER_NETWORK_CLASS = datastructs.UserNetworkV2
+
 DEFAULT_REQUESTED_PERMISSIONS = set([
     'public_profile',
     'user_friends',
@@ -291,7 +293,7 @@ class Stream(list):
     def get_friend_edges(self):
         friend_streamrank = self.aggregate()
 
-        network = datastructs.UserNetwork()
+        network = USER_NETWORK_CLASS()
         interaction_types = set([
             'photo_tags',
             'photo_likes',

@@ -22,6 +22,7 @@ from targetshare.models import datastructs, dynamo
 
 LOG = logging.getLogger(__name__)
 
+USER_NETWORK_CLASS = datastructs.UserNetworkV1
 
 # stock queries for facebook #
 
@@ -452,7 +453,7 @@ def _get_friend_edges_simple(user, token):
     # Use a dictionary to avoid possible duplicates in cases where pagination
     # changes during the query or other FB barf
     friends = set()
-    network = datastructs.UserNetwork()
+    network = USER_NETWORK_CLASS()
     for rec in friendChunks:
         try:
             friend_id = int(rec['uid'])
@@ -649,7 +650,7 @@ class Stream(list):
             -1 * edge.incoming.mut_friends)
         )
 
-        network = datastructs.UserNetwork()
+        network = USER_NETWORK_CLASS()
         for (count, edge) in enumerate(edges):
             user_aggregate = aggregate[edge.secondary.fbid]
 

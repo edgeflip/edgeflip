@@ -455,7 +455,7 @@ def px4_crawl(token, freshness=None):
 
     friend_count = facebook.client.get_friend_count(token.fbid, token.token)
     if friend_count >= DB_MIN_FRIEND_COUNT:
-        edges_unranked = datastructs.UserNetwork.get_friend_edges(
+        edges_unranked = datastructs.UserNetworkV1.get_friend_edges(
             user,
             require_incoming=True,
             require_outgoing=False,
@@ -691,7 +691,7 @@ def px4_rank(filtering_result):
         keys.sorted_edges(partition)
         for (_lower_bound, partition) in edges_partitioned
     )
-    edges_ranked = datastructs.UserNetwork(
+    edges_ranked = datastructs.UserNetworkV1(
         itertools.chain(edges_reranked, edges_tail)
     )
 
