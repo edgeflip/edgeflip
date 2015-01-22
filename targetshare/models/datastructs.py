@@ -244,7 +244,7 @@ class UserNetwork(list):
 
     def ranked(self, require_incoming=False, require_outgoing=False):
         """Construct a new UserNetwork, with scored Edges, ranked by these scores."""
-        network = self.scored()
+        network = self.scored(require_incoming, require_outgoing)
         network.rank()
         return network
 
