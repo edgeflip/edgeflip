@@ -286,6 +286,7 @@ CELERY_QUEUES = (
     # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('proximity', routing_key='proximity.crawl', queue_arguments=QUEUE_ARGS),
     Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
@@ -322,6 +323,10 @@ CELERY_ROUTES = {
     'targetshare.tasks.targeting.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
+    },
+    'targetshare.tasks.targeting.proximity_rank_neo': {
+        'queue': 'proximity',
+        'routing_key': 'proximity.crawl',
     },
     'targetshare.tasks.integration.facebook.store_oauth_token': {
         'queue': 'oauth_token',
