@@ -25,9 +25,9 @@ class IncomingEdge(Item):
     wall_posts = ItemField(data_type=NUMBER)
     wall_comms = ItemField(data_type=NUMBER)
     tags = ItemField(data_type=NUMBER)
-    mut_friends = ItemField(data_type=NUMBER)
     photos_target = ItemField(data_type=NUMBER)
     photos_other = ItemField(data_type=NUMBER)
+    mut_friends = ItemField(data_type=NUMBER)
 
     link_comms = ItemField(data_type=NUMBER)
     link_likes = ItemField(data_type=NUMBER)
