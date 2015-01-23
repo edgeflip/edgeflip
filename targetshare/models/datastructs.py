@@ -4,6 +4,7 @@ import logging
 import itertools
 import operator
 
+from django.conf import settings
 from django.utils import timezone
 
 from targetshare.models import dynamo
@@ -11,6 +12,30 @@ from targetshare.utils import classonlymethod
 
 
 LOG = logging.getLogger(__name__)
+
+INTERACTION_TYPES = set([
+    'photo_tags',
+    'photo_likes',
+    'photo_comms',
+    'photos_target',
+    'video_tags',
+    'video_likes',
+    'video_comms',
+    'videos_target',
+    'photo_upload_tags',
+    'photo_upload_likes',
+    'photo_upload_comms',
+    'video_upload_tags',
+    'video_upload_likes',
+    'video_upload_comms',
+    'stat_tags',
+    'stat_likes',
+    'stat_comms',
+    'link_tags',
+    'link_likes',
+    'link_comms',
+    'place_tags',
+])
 
 
 # Token class for newly-received tokens, before extension and db-persistence:
@@ -495,48 +520,9 @@ class EdgeAggregate(object):
 class NeoEdgeAggregate(object):
     """Edge aggregation, scoring and ranking."""
 
-    inPhotoTarget = None
-    inPhotoOther = None
-    inMutuals = None
-
-    inPostLikes = None
-    inPostComms = None
-    inWallPosts = None
-    inWallComms = None
-    inTags = None
-
-    inPhotoTags = None
-    inPhotoLikes = None
-    inPhotoComms = None
-    inPhotoTarget = None
-    inVideoTags = None
-    inVideoLikes = None
-    inVideoComms = None
-    inVideoTarget = None
-    inPhotoUploadTags = None
-    inPhotoUploadLikes = None
-    inPhotoUploadComms = None
-    inVideoUploadTags = None
-    inVideoUploadLikes = None
-    inVideoUploadComms = None
-    inStatTags = None
-    inStatLikes = None
-    inStatComms = None
-    inLinkTags = None
-    inLinkLikes = None
-    inLinkComms = None
-    inPlaceTags = None
-
-    outPostLikes = None
-    outPostComms = None
-    outStatLikes = None
-    outStatComms = None
-    outWallPosts = None
-    outWallComms = None
-    outTags = None
-    outPhotoTarget = None
-    outPhotoOther = None
-    outMutuals = None
+    aggregates = {}
+    weights = None
+    interaction_types = None
 
     def __init__(self, edges, aggregator=max):
         """Apply the aggregator to the given Edges to initialize instance data.
@@ -548,70 +534,32 @@ class NeoEdgeAggregate(object):
         if len(edges) == 0:
             return
 
-        self.inPhotoTags = aggregator(edge.incoming.photo_tags for edge in edges)
-        self.inPhotoLikes = aggregator(edge.incoming.photo_likes for edge in edges)
-        self.inPhotoComms = aggregator(edge.incoming.photo_comms for edge in edges)
-        self.inPhotosTarget = aggregator(edge.incoming.photos_target for edge in edges)
-        self.inVideoTags = aggregator(edge.incoming.video_tags for edge in edges)
-        self.inVideoLikes = aggregator(edge.incoming.video_likes for edge in edges)
-        self.inVideoComms = aggregator(edge.incoming.video_comms for edge in edges)
-        self.inVideosTarget = aggregator(edge.incoming.videos_target for edge in edges)
-        self.inPhotoUploadTags = aggregator(edge.incoming.photo_upload_tags for edge in edges)
-        self.inPhotoUploadLikes = aggregator(edge.incoming.photo_upload_likes for edge in edges)
-        self.inPhotoUploadComms = aggregator(edge.incoming.photo_upload_comms for edge in edges)
-        self.inVideoUploadTags = aggregator(edge.incoming.video_upload_tags for edge in edges)
-        self.inVideoUploadLikes = aggregator(edge.incoming.video_upload_likes for edge in edges)
-        self.inVideoUploadComms = aggregator(edge.incoming.video_upload_comms for edge in edges)
-        self.inStatTags = aggregator(edge.incoming.stat_tags for edge in edges)
-        self.inStatLikes = aggregator(edge.incoming.stat_likes for edge in edges)
-        self.inStatComms = aggregator(edge.incoming.stat_comms for edge in edges)
-        self.inLinkTags = aggregator(edge.incoming.link_tags for edge in edges)
-        self.inLinkLikes = aggregator(edge.incoming.link_likes for edge in edges)
-        self.inLinkComms = aggregator(edge.incoming.link_comms for edge in edges)
-        self.inPlaceTags = aggregator(edge.incoming.place_tags for edge in edges)
+        if not settings.PROXIMITY:
+            self.interaction_types = INTERACTION_TYPES
+            self.weights = { typ: 1 for typ in self.interaction_types }
+        else:
+            self.interaction_types = set(settings.PROXIMITY.keys())
+            self.weights = settings.PROXIMITY
 
+        for interaction_type in self.interaction_types:
+            self.aggregates[interaction_type] = aggregator(getattr(edge.incoming, interaction_type) for edge in edges)
 
     def score(self, edge):
         """proximity-scoring function
 
         edge: a single datastructs.Edge
-        rtype: score, float
 
         """
-        countMaxWeightTups = []
-        if edge.incoming is not None:
-            countMaxWeightTups.extend([
-                # px4
-                (edge.incoming.photo_tags, self.inPhotoTags, 1.0),
-                (edge.incoming.photo_likes, self.inPhotoLikes, 1.0),
-                (edge.incoming.photo_comms, self.inPhotoComms, 1.0),
-                (edge.incoming.photos_target, self.inPhotosTarget, 1.0),
-                (edge.incoming.video_tags, self.inVideoTags, 1.0),
-                (edge.incoming.video_likes, self.inVideoLikes, 1.0),
-                (edge.incoming.video_comms, self.inVideoComms, 1.0),
-                (edge.incoming.videos_target, self.inVideosTarget, 1.0),
-                (edge.incoming.photo_upload_tags, self.inPhotoUploadTags, 2.0),
-                (edge.incoming.photo_upload_likes, self.inPhotoUploadLikes, 1.0),
-                (edge.incoming.photo_upload_comms, self.inPhotoUploadComms, 1.0),
-                (edge.incoming.video_upload_tags, self.inVideoUploadTags, 2.0),
-                (edge.incoming.video_upload_likes, self.inVideoUploadLikes, 1.0),
-                (edge.incoming.video_upload_comms, self.inVideoUploadComms, 1.0),
-                (edge.incoming.stat_tags, self.inStatTags, 2.0),
-                (edge.incoming.stat_likes, self.inStatLikes, 1.0),
-                (edge.incoming.stat_comms, self.inStatComms, 1.0),
-                (edge.incoming.link_tags, self.inLinkTags, 1.0),
-                (edge.incoming.link_likes, self.inLinkLikes, 1.0),
-                (edge.incoming.link_comms, self.inLinkComms, 1.0),
-                (edge.incoming.place_tags, self.inPlaceTags, 1.0),
-            ])
-
         pxTotal = 0.0
         weightTotal = 0.0
-        for count, countMax, weight in countMaxWeightTups:
-            if countMax:
-                # counts pass thru model & become Decimal; cast to divisible types:
-                pxTotal += float(count) / int(countMax) * weight
-                weightTotal += weight
+        if edge.incoming is not None:
+            for interaction_type in self.interaction_types:
+                aggregate_value = self.aggregates[interaction_type]
+                weight = self.weights[interaction_type]
+                count = getattr(edge.incoming, interaction_type)
+                if aggregate_value:
+                    pxTotal += float(count) / int(aggregate_value) * weight
+                    weightTotal += weight
         try:
             return pxTotal / weightTotal
         except ZeroDivisionError:

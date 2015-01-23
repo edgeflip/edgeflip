@@ -38,7 +38,6 @@ DEFAULT_REQUESTED_PERMISSIONS = set([
     'user_videos'
 ])
 
-
 def process_statuses(session, response, user_id):
     response.data = process_posts(response, 'stat', user_id)
 
@@ -293,30 +292,8 @@ class Stream(list):
     def get_friend_edges(self):
         friend_streamrank = self.aggregate()
 
+        interaction_types = datastructs.INTERACTION_TYPES
         network = USER_NETWORK_CLASS()
-        interaction_types = set([
-            'photo_tags',
-            'photo_likes',
-            'photo_comms',
-            'photos_target',
-            'video_tags',
-            'video_likes',
-            'video_comms',
-            'videos_target',
-            'photo_upload_tags',
-            'photo_upload_likes',
-            'photo_upload_comms',
-            'video_upload_tags',
-            'video_upload_likes',
-            'video_upload_comms',
-            'stat_tags',
-            'stat_likes',
-            'stat_comms',
-            'link_tags',
-            'link_likes',
-            'link_comms',
-            'place_tags',
-        ])
         for fbid, user_aggregate in friend_streamrank.iteritems():
             # TODO: figure out if we want to do this here, or filter it out later
             if str(fbid) == str(self.user_id):
