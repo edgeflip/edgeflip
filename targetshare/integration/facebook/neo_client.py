@@ -1,15 +1,9 @@
 from targetshare.models import dynamo, datastructs
 from requests.adapters import HTTPAdapter
 from collections import defaultdict, namedtuple
-import json
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError
-from django.conf import settings
-from contextlib import closing
 from requests_futures.sessions import FuturesSession
-import urllib
-import urllib2
-import urlparse
 LOG = logging.getLogger(__name__)
 
 THREAD_COUNT = 6
@@ -328,14 +322,3 @@ class Stream(list):
         return network
 
 
-def urlload(url, query=(), timeout=None):
-    """Load data from the given Facebook URL."""
-    parsed_url = urlparse.urlparse(url)
-    query_params = urlparse.parse_qsl(parsed_url.query)
-    query_params.extend(getattr(query, 'items', lambda: query)())
-    url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
-
-    with closing(urllib2.urlopen(
-        url, timeout=(timeout or settings.FACEBOOK.api_timeout))
-    ) as response:
-        return json.load(response)
