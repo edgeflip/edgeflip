@@ -115,7 +115,6 @@ def get_recording_args(filtering_args):
 
 # Tasks #
 
-# TODO: add queue to infra
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
 def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
     record = partial(record_visit_event, visit_id=visit_id,

@@ -172,7 +172,7 @@ def frame_faces(request, api, campaign_id, content_id, canvas=False):
             'fb_app_id': client.fb_app_id,
         },
         'api': api,
-        'default_scope': ','.join(default_permissions),
+        'default_scope': ','.join(default_permissions.iterator()),
         'campaign': campaign,
         'content': content,
         'properties': properties,
