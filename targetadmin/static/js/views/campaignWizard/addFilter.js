@@ -173,11 +173,11 @@ define(
             },
 
             disableConfirmButton: function() {
-                modal.templateData.modalContainer.trigger('confirm_bad');
+                modal.templateData.modalContainer.trigger('disable_confirm');
             },
 
             enableConfirmButton: function() {
-                modal.templateData.modalContainer.trigger('confirm_ok');
+                modal.templateData.modalContainer.trigger('enable_confirm');
             },
 
             /* After a dropdown value has been selected, updated the text shown */

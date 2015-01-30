@@ -47,7 +47,6 @@ class ClientDetailView(DetailView):
         for values in (
             client.campaigns
             .exclude(rootcampaign_properties=None)
-            .exclude(campaignproperties__status='inactive')
             .order_by('-create_dt')
             .values('pk', 'name', 'create_dt', 'campaignproperties__status')
             .iterator()
