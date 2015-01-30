@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
 
+from core.utils.sharingurls import build_urls
 from targetshare.models import relational
 from targetshare.views.utils import JsonHttpResponse
 
@@ -39,7 +40,7 @@ def snippets(request, client_pk):
                 'content': first_content,
             }),
         }
-        context.update(utils.build_sharing_urls(request.get_host(), first_campaign, first_content))
+        context.update(build_urls(request.get_host(), first_campaign, first_content))
     else:
         context = {'snippet_form': forms.SnippetForm(client=client)}
 
@@ -63,7 +64,7 @@ def snippet_update(request, client_pk):
             content = client.clientcontent.get(campaignproperties__campaign=campaign)
         else:
             content = snippet_form.cleaned_data['content']
-        data = utils.build_sharing_urls(request.get_host(), campaign, content)
+        data = build_urls(request.get_host(), campaign, content)
         data.update(
             campaign=campaign.campaign_id,
             content=content.content_id,

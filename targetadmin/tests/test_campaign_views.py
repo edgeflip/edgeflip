@@ -6,9 +6,11 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.urlresolvers import reverse
+from django.test.utils import override_settings
+
+from core.utils import encryptedslug
 
 from targetshare.models import relational
-from targetshare.views.utils import encodeDES
 
 from . import TestAdminBase
 
@@ -16,6 +18,7 @@ from . import TestAdminBase
 Status = relational.CampaignProperties.Status
 
 
+@override_settings(ENV='testing') # not "development"
 class TestCampaignWizard(TestAdminBase):
 
     fixtures = ['admin_test_data']
@@ -190,7 +193,7 @@ class TestCampaignWizard(TestAdminBase):
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
                 new_client.fb_app.name,
-                encodeDES('{}/{}'.format(camp.pk, content.pk))
+                encryptedslug.make_slug(camp, content)
             )
         )
         (notification,) = mail.outbox
@@ -263,7 +266,7 @@ class TestCampaignWizard(TestAdminBase):
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
                 new_client.fb_app.name,
-                encodeDES('{}/{}'.format(camp.pk, content.pk))
+                encryptedslug.make_slug(camp, content)
             )
         )
         (notification,) = mail.outbox
@@ -390,7 +393,7 @@ class TestCampaignWizard(TestAdminBase):
             camp.campaignproperties.get().client_faces_url,
             'https://apps.facebook.com/{}/{}/'.format(
                 new_client.fb_app.name,
-                encodeDES('{}/{}'.format(camp.pk, content.pk))
+                encryptedslug.make_slug(camp, content)
             )
         )
         (notification,) = mail.outbox
@@ -537,7 +540,7 @@ class TestCampaignWizard(TestAdminBase):
         campaign = new_client.campaigns.get()
         content0 = new_client.clientcontent.get()
         props = campaign.campaignproperties.all()
-        encoded = encodeDES('{}/{}'.format(campaign.pk, content0.pk))
+        encoded = encryptedslug.make_slug(campaign, content0)
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
                          'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
         self.assertIsNone(props.get().fallback_campaign)
@@ -569,7 +572,7 @@ class TestCampaignWizard(TestAdminBase):
         content = new_client.clientcontent.get()
         self.assertEqual(content, content0)
         self.assertTrue(props.get().fallback_campaign)
-        encoded = encodeDES('{}/{}'.format(campaign.pk, content.pk))
+        encoded = encryptedslug.make_slug(campaign, content)
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
                          'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
 

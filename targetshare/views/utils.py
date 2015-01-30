@@ -1,16 +1,15 @@
-import base64
+import abc
 import functools
 import json
 import logging
-import urllib
 import urlparse
 
 import django.core.cache
-from Crypto.Cipher import DES
 from django import http
-from django.core.urlresolvers import reverse
 from django.conf import settings
 from django.shortcuts import _get_queryset
+
+from core.utils import encryptedslug
 
 from targetshare import models, utils
 from targetshare.tasks import db
@@ -19,54 +18,15 @@ from targetshare.tasks import db
 LOG = logging.getLogger(__name__)
 
 
-PADDING = ' '
-BLOCK_SIZE = 8
-
-
-def pad(s):
-    return s + (BLOCK_SIZE - len(s) % BLOCK_SIZE) * PADDING
-
-
-# DES appears to be limited to 8-character secret, so truncate if too long
-SECRET = pad(settings.CRYPTO.des_secret)[:8]
-CIPHER = DES.new(SECRET)
-
-
-def encodeDES(message, quote=True):
-    """Encrypt a message with DES cipher, returning a URL-safe, quoted string"""
-    message = str(message)
-    encrypted = CIPHER.encrypt(pad(message))
-    b64encoded = base64.urlsafe_b64encode(encrypted)
-    if quote:
-        return urllib.quote(b64encoded)
-    return b64encoded
-
-
-def decodeDES(encoded):
-    """Decrypt a message with DES cipher, assuming a URL-safe, quoted string"""
-    encoded = str(encoded)
-    unquoted = urllib.unquote(encoded)
-    b64decoded = base64.urlsafe_b64decode(unquoted)
-    message = CIPHER.decrypt(b64decoded).rstrip(PADDING)
-    return message
-
-
-def faces_url(client_faces_url, campaign_id, content_id, *multi, **extra):
+def faces_url(client_faces_url, campaign, content, *multi, **extra):
     """Construct the complete faces frame URL for the given campaign's base URL."""
     url = urlparse.urlparse(client_faces_url)
     query = http.QueryDict(url.query, mutable=True)
-    slug = encodeDES('{}/{}'.format(campaign_id, content_id), quote=False)
+    slug = encryptedslug.make_slug(campaign, content)
     extra.update(efcmpgslug=slug)
     query.update(*multi, **extra)
     full_url = url._replace(query=query.urlencode())
     return full_url.geturl()
-
-
-def incoming_redirect(is_secure, host, campaign_id, content_id):
-    protocol = 'https://' if is_secure else 'http://'
-    slug = encodeDES('%s/%s' % (campaign_id, content_id), quote=False)
-    path = urllib.unquote(reverse('incoming-encoded', args=(slug,)))
-    return protocol + host + path
 
 
 class JsonHttpResponse(http.HttpResponse):
@@ -219,7 +179,7 @@ def get_object_or_none(klass, **kws):
         return None
 
 
-def _get(dicts, anykeys=(), default=None):
+def sget(dicts, anykeys=(), default=None):
     """Find any of the given keys in any of the given dicts.
 
     Returns the value of the first key found in the first dict in which
@@ -235,8 +195,21 @@ def _get(dicts, anykeys=(), default=None):
     return default
 
 
-def require_visit(view=None, **defaults):
-    """Decorator manufacturing a view wrapper, which requires a Visit for the request.
+class ViewDecorator(object):
+
+    __metaclass__ = abc.ABCMeta
+
+    def __init__(self, view):
+        functools.update_wrapper(self, view)
+        self._view = view
+
+    @abc.abstractmethod
+    def __call__(self, request, *args, **kws):
+        raise NotImplementedError
+
+
+class require_visit(ViewDecorator):
+    """View-wrapping decorator which requires generation of a Visit for the request.
 
     The Visit is added to the request at attribute "visit"::
 
@@ -253,89 +226,78 @@ def require_visit(view=None, **defaults):
     new Visit's "session start" Event.
 
     """
-    def decorator(view):
-        @functools.wraps(view)
-        def wrapped_view(request, *args, **kws):
-            # Gather info from path and query string;
-            # search both the view kws (path params) and REQUEST
-            # (query params) for any fitting aliases:
-            app_id = _get(
-                (kws, request.REQUEST),
-                ('app_id', 'appid'),
-                defaults.get('appid')
-            )
-            campaign_id = _get(
-                (kws, request.REQUEST),
-                ('campaign_id', 'campaign', 'campaignid'),
-                defaults.get('campaign_id')
-            )
-            content_id = _get(
-                (kws, request.REQUEST),
-                ('content_id', 'content', 'contentid'),
-                defaults.get('content_id')
-            )
-            fb_object_id = kws.get('fb_object_id')
-            fbid = request.REQUEST.get('fbid') or request.REQUEST.get('userid') or None
+    @classmethod
+    def configured(cls, **defaults):
+        return functools.partial(cls, defaults=defaults)
 
-            # Determine client, and campaign & client content if available
-            client = campaign = client_content = None
+    def __init__(self, view, defaults=None):
+        super(require_visit, self).__init__(view)
+        self.defaults = {} if defaults is None else defaults
 
-            if campaign_id:
-                campaign = get_object_or_none(models.Campaign, campaign_id=campaign_id)
-                client = campaign and campaign.client
-            if content_id:
-                client_content = get_object_or_none(models.ClientContent, content_id=content_id)
-                client = client_content.client if (client_content and not client) else client
-            if fb_object_id and client is None:
-                client = get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
+    def __call__(self, request, *args, **kws):
+        # Gather info from path and query string;
+        # search both the view kws (path params) and REQUEST
+        # (query params) for any fitting aliases:
+        datasources = (kws, request.REQUEST, self.defaults)
+        app_id = sget(datasources, ('app_id', 'appid'))
+        campaign_id = sget(datasources, ('campaign_id', 'campaign', 'campaignid'))
+        content_id = sget(datasources, ('content_id', 'content', 'contentid'))
+        fbid = sget((request.REQUEST,), ('fbid', 'userid'))
+        fb_object_id = kws.get('fb_object_id')
 
-            if not app_id:
-                if client is None:
-                    return http.HttpResponseBadRequest("The application could not be determined")
-                else:
-                    app_id = client.fb_app_id
+        # Determine client, and campaign & client content if available
+        client = campaign = client_content = None
+        if campaign_id:
+            campaign = get_object_or_none(models.Campaign, campaign_id=campaign_id)
+            client = campaign and campaign.client
+        if content_id:
+            client_content = get_object_or_none(models.ClientContent, content_id=content_id)
+            client = client_content.client if (client_content and not client) else client
+        if fb_object_id and client is None:
+            client = get_object_or_none(models.Client, fbobjects__fb_object_id=fb_object_id)
 
-            # Initialize Visit and add to request
-            set_visit(request, app_id, fbid, {
-                'campaign': campaign,
-                'client_content': client_content,
-            })
-            return view(request, *args, **kws)
+        if not app_id:
+            if client is None:
+                return http.HttpResponseBadRequest("The application could not be determined")
+            else:
+                app_id = client.fb_app_id
 
-        return wrapped_view
-
-    if view is None:
-        return decorator
-    return decorator(view)
+        # Initialize Visit and add to request
+        set_visit(request, app_id, fbid, {
+            'campaign': campaign,
+            'client_content': client_content,
+        })
+        return self._view(request, *args, **kws)
 
 
-def encoded_endpoint(view):
+class encoded_endpoint(ViewDecorator):
     """Decorator manufacturing an endpoint for the given view which additionally
-    accepts a slug encoding the campaign and content IDs.
+    accepts a slug encoding the api and campaign and content IDs.
 
     """
-    @functools.wraps(view)
-    def wrapped_view(request, campaign_id=None, content_id=None,
-                     campaign_slug=None, **kws):
-        # TODO: Disallow non-campaign_slug route (i.e. with campaign_id+content_id)
-        # TODO: except in _test_mode.
-        if not campaign_id or not content_id:
-            if campaign_slug:
-                try:
-                    decoded = decodeDES(campaign_slug)
-                    campaign_id, content_id = (int(part) for part in decoded.split('/') if part)
-                except (ValueError, TypeError):
-                    LOG.exception('Failed to decrypt: %r', campaign_slug)
-                    return http.HttpResponseNotFound()
+    def __call__(self,
+                 request,
+                 api=None, campaign_id=None, content_id=None,
+                 encrypted_slug=None,
+                 **kws):
+        if not encrypted_slug and not (api and campaign_id and content_id):
+            raise TypeError(
+                "{}() requires keyword argument 'encrypted_slug' or arguments "
+                "'api', 'campaign_id' and 'content_id'".format(self.__name__)
+            )
+
+        try:
+            if encrypted_slug:
+                params = encryptedslug.get_params(encrypted_slug)
             else:
-                raise TypeError(
-                    "{}() requires keyword argument 'campaign_slug' or arguments "
-                    "'campaign_id' and 'content_id'".format(view.__name__)
-                )
+                params = encryptedslug.clean_params(api, campaign_id, content_id)
+        except (ValueError, TypeError):
+            LOG.exception('Failed to parse encoded endpoint params')
+            raise http.Http404
+        else:
+            (api, campaign_id, content_id) = params
 
-        return view(request, campaign_id=campaign_id, content_id=content_id, **kws)
-
-    return wrapped_view
+        return self._view(request, api=api, campaign_id=campaign_id, content_id=content_id, **kws)
 
 
 def assign_page_styles(visit, page_code, campaign, content=None):

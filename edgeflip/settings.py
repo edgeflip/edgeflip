@@ -286,6 +286,7 @@ CELERY_QUEUES = (
     # User Facing Queues
     Queue('px3', routing_key='px3.crawl', queue_arguments=QUEUE_ARGS),
     Queue('px4', routing_key='px4.crawl', queue_arguments=QUEUE_ARGS),
+    Queue('targeting', routing_key='targeting', queue_arguments=QUEUE_ARGS),
     Queue('oauth_token', routing_key='oauth.token', queue_arguments=QUEUE_ARGS),
     # Background Queues
     Queue('bulk_create', routing_key='bulk.create', queue_arguments=QUEUE_ARGS),
@@ -322,6 +323,10 @@ CELERY_ROUTES = {
     'targetshare.tasks.targeting.proximity_rank_four': {
         'queue': 'px4',
         'routing_key': 'px4.crawl'
+    },
+    'targetshare.tasks.targeting.targeted_network': {
+        'queue': 'targeting',
+        'routing_key': 'targeting'
     },
     'targetshare.tasks.integration.facebook.store_oauth_token': {
         'queue': 'oauth_token',
@@ -422,6 +427,8 @@ SESSION_COOKIE_AGE = 60 * 60 * 12 # 12 hours
 SESSION_COOKIE_DOMAIN = '.edgeflip.com'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
+
+CSRF_COOKIE_DOMAIN = SESSION_COOKIE_DOMAIN
 
 # targetshare settings #
 INCOMING_REQUEST_SECURE = REQUEST_SECURE = ENV != 'development'
@@ -530,6 +537,7 @@ LOGGING = {
         'django.request': {
             'level': 'ERROR',
             'handlers': ['mail_admins'],
+            'propagate': True,
         },
         'boto': {
             'level': 'WARNING',

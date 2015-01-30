@@ -15,7 +15,7 @@ class TestButtonViews(EdgeFlipViewTestCase):
         ''' Tests views.button without style recs '''
         assert not models.Assignment.objects.exists()
 
-        response = self.client.get(reverse('button', args=[1, 1]))
+        response = self.client.get(reverse('button-default', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertEqual(response.context['fb_params'],
             {'fb_app_name': 'sharing-social-good',
@@ -48,7 +48,7 @@ class TestButtonViews(EdgeFlipViewTestCase):
             )
 
         self.assertFalse(models.Assignment.objects.exists())
-        response = self.client.get(reverse('button', args=[1, 1]))
+        response = self.client.get(reverse('button-default', args=[1, 1]))
 
         self.assertContains(response, '//AWESOMEDOMAIN/AWESOME-', count=1)
 

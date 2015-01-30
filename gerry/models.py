@@ -10,6 +10,8 @@ from faraday import (
 )
 from unidecode import unidecode
 
+from core.utils import names
+
 
 class cached_class_property(object):
     """Descriptor decorator implementing a class-level property, which replaces
@@ -84,8 +86,7 @@ def normalize(feature, value):
 
 normalize.name_suffix_pttrn = re.compile(
     # Separator(s) followed by one of these common suffixes:
-    r'[, ]+'
-    r'(I{1,3}|IV|VI{,3}|IX|JR\.?|SR\.?|2ND|3RD|LPN?|RN|LCSW|M\.?D\.?|Ph\.?D\.?|J\.?D\.?)$',
+    r'[, ]+{}$'.format(names.NAME_SUFFIX_PATTERNS),
     # Ignore capitalization:
     re.I
 )

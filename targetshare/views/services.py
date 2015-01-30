@@ -76,7 +76,7 @@ def outgoing(request, app_id, url):
 @require_GET
 @utils.encoded_endpoint
 @utils.require_visit
-def incoming(request, campaign_id, content_id):
+def incoming(request, api, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     properties = campaign.campaignproperties.get()
 
@@ -142,7 +142,7 @@ def incoming(request, campaign_id, content_id):
 
     # Record event and redirect to the campaign faces URL
     # (with inheritance of incoming query string)
-    url = utils.faces_url(properties.client_faces_url, campaign_id, content_id, redirect_query)
+    url = utils.faces_url(properties.client_faces_url, campaign, content_id, redirect_query)
     db.delayed_save.delay(
         models.relational.Event(
             visit_id=request.visit.visit_id,

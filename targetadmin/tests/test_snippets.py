@@ -4,7 +4,8 @@ import urlparse
 from django.core.urlresolvers import resolve, reverse
 
 from chapo.models import ShortenedUrl
-from targetshare.views import utils
+from core.utils import encryptedslug
+from core.utils.sharingurls import incoming_redirect
 from targetshare.models import relational
 
 from . import TestAdminBase
@@ -65,7 +66,7 @@ class TestSnippetViews(TestAdminBase):
         data = json.loads(response.content)
         self.assertEqual(
             data['slug'],
-            utils.encodeDES('%s/%s' % (self.campaign.pk, self.content.pk))
+            encryptedslug.make_slug(self.campaign, self.content)
         )
         oauth_url = data['fb_oauth_url']
         parsed = urlparse.urlparse(oauth_url)
@@ -73,8 +74,7 @@ class TestSnippetViews(TestAdminBase):
         redirect_uri = query['redirect_uri'][0]
         self.assertEqual(
             redirect_uri,
-            utils.incoming_redirect(False, 'testserver',
-                                    self.campaign.pk, self.content.pk)
+            incoming_redirect(False, 'testserver', self.campaign, self.content)
         )
         self.assertEqual(shorts.get(), oauth_url)
 

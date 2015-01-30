@@ -5,6 +5,8 @@ import operator
 
 from django.utils import timezone
 
+from core.utils import names
+
 from targetshare.models import dynamo
 from targetshare.utils import classonlymethod
 
@@ -16,12 +18,38 @@ LOG = logging.getLogger(__name__)
 ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token'))
 
 
-_EdgeBase = collections.namedtuple('EdgeBase',
-    ['primary', 'secondary', 'incoming', 'outgoing', 'interactions',
-     'px3_score', 'px4_score'])
+# Simple User class for taggable friends:
+_TaggableFriendSpec = collections.namedtuple('TaggableFriend', ('id', 'name', 'picture'))
 
 
-class Edge(_EdgeBase):
+class TaggableFriend(_TaggableFriendSpec):
+
+    __slots__ = ()
+
+    fbid = None
+
+    @property
+    def uid(self):
+        return self[0]
+
+    def names(self):
+        return names.parse_names(self[1])
+
+    @property
+    def fname(self):
+        return self.names()[0]
+
+    @property
+    def lname(self):
+        return self.names()[1]
+
+
+_EdgeSpec = collections.namedtuple('Edge',
+    ('primary', 'secondary', 'incoming', 'outgoing', 'interactions',
+     'px3_score', 'px4_score', 'px_score'))
+
+
+class Edge(_EdgeSpec):
     """Relationship between a network's primary user and a secondary user.
 
     Arguments:
@@ -30,27 +58,49 @@ class Edge(_EdgeBase):
         incoming: IncomingEdge (primary to secondary relationship)
         outgoing: OutgoingEdge (secondary to primary relationship) (optional)
         interactions: sequence of PostInteractions (made by secondary) (optional)
-        score: proximity score (optional)
+        px3_score: proximity "rank 3" score (optional, see below)
+        px4_score: proximity "rank 4" score (optional, see below)
+        px_score: unranked proximity score (optional, see below)
+
+    An Edge may be defined with a `px_score`, or a `px3_score` and `px4_score`; but,
+    `px_score` is not compatible with `px*_score` values. The property `score`
+    returns either `px_score`, `px4_score` or `px3_score`, if defined, (in that order).
 
     """
     __slots__ = () # No need for object __dict__ or stored attributes
 
     # Set outgoing, interactions and score defaults:
     def __new__(cls, primary, secondary, incoming, outgoing=None,
-                interactions=(), px3_score=None, px4_score=None):
+                interactions=(), px3_score=None, px4_score=None, px_score=None):
+        if px_score is not None and not (px3_score is None and px4_score is None):
+            raise TypeError("Unranked score incompatible with ranked")
         return super(Edge, cls).__new__(cls, primary, secondary, incoming,
-                                        outgoing, interactions, px3_score, px4_score)
+                                        outgoing, interactions, px3_score, px4_score, px_score)
 
-    def __repr__(self):
-        return '{}({})'.format(
-            self.__class__.__name__,
-            ', '.join('{}={!r}'.format(key, value)
-                    for key, value in itertools.izip(self._fields, self))
-        )
+    def get_rank_score(self, rank):
+        if rank is None:
+            return self.px_score
+        return getattr(self, 'px{}_score'.format(rank))
+
+    def get_score(self):
+        if self.px_score is None:
+            if self.px4_score is None:
+                if self.px3_score is None:
+                    raise LookupError("no score")
+                return (3, self.px3_score)
+            else:
+                return (4, self.px4_score)
+        else:
+            return (None, self.px_score)
 
     @property
     def score(self):
-        return self.px3_score if self.px4_score is None else self.px4_score
+        try:
+            (_rank, score) = self.get_score()
+        except LookupError:
+            return None
+        else:
+            return score
 
 
 class UserNetwork(list):
@@ -323,62 +373,73 @@ class TieredEdges(tuple):
         """
         return type(self)(itertools.chain(self, other))
 
-    def _reranked(self, ranking):
-        """Generate a stream of the collection's tiers with edges reranked and
-        populated from the given ranking.
+    def _reranked(self, ranking, oldrank):
+        """Generate a stream of the collection's tiers with edges repopulated
+        from the given ranking.
+
+        The scores of the old ranking are preserved on the new edges.
 
         """
+        score_name = 'px{}_score'.format(oldrank)
+
         for tier in self:
-            edge_map = {edge.secondary.fbid: edge.px3_score for edge in tier['edges']}
+            old_scores = {edge.secondary.fbid: getattr(edge, score_name) for edge in tier['edges']}
+
             reranked = []
             for edge in ranking:
                 try:
-                    px3_score = edge_map.pop(edge.secondary.fbid)
+                    old_score = old_scores.pop(edge.secondary.fbid)
                 except KeyError:
                     pass
                 else:
-                    reranked.append(edge._replace(px3_score=px3_score))
+                    reranked.append(edge._replace(**{score_name: old_score}))
 
-            if edge_map:
-                # the new ranking was missing some edges. Note it in
-                # the logs, then iterate through the original order and
-                # append the remaining edges to the end of the list
+            if old_scores:
+                # The new ranking was missing some edges.
+                # Note it in the logs, then iterate through the original order
+                # and append the remaining edges to the end of the list:
                 LOG.warn("Edges missing (%d) from new edge rankings for user %s",
-                         len(edge_map), tier['edges'][0].primary.fbid)
+                         len(old_scores), tier['edges'][0].primary.fbid)
                 for edge in tier['edges']:
                     try:
-                        px3_score = edge_map.pop(edge.secondary.fbid)
+                        old_score = old_scores.pop(edge.secondary.fbid)
                     except KeyError:
                         pass
                     else:
-                        reranked.append(edge._replace(px3_score=px3_score))
+                        reranked.append(edge._replace(**{score_name: old_score}))
 
-            tier = tier.copy()
-            tier['edges'] = reranked
-            yield tier
+            yield dict(tier, edges=reranked)
 
-    def reranked(self, ranking):
-        """Return a new collection of these tiers, with each tier's edges reranked
+    def reranked(self, ranking, oldrank=3):
+        """Return a copy of the sequence of tiered edges, with each tier's edges reranked
         according to the given ranking.
 
         For instance, if the tiers were generated using px3 scores but px4 has now become
-        available, we can maintain the tiers while providing a better order within them.
+        available, we can maintain the tiers while providing a better order within them:
+
+            filtered_results = filtered_results.reranked(px4_ranked, 3)
 
         """
-        return type(self)(self._reranked(ranking))
+        return type(self)(self._reranked(ranking, oldrank))
 
-    def _rescored(self, edges):
-        edge_scores = {edge.secondary.fbid: edge.px3_score for edge in edges}
+    def _rescored(self, edges, rank):
+        score_name = 'px{}_score'.format(rank)
+        edge_scores = {edge.secondary.fbid: getattr(edge, score_name) for edge in edges}
         for tier in self:
-            tier = tier.copy()
-            tier['edges'] = [
-                edge._replace(px3_score=edge_scores.get(edge.secondary.fbid, edge.px3_score))
-                for edge in tier['edges']
-            ]
-            yield tier
+            rescored_edges = []
+            for edge in tier['edges']:
+                score = edge_scores.get(edge.secondary.fbid, getattr(edge, score_name))
+                rescored_edges.append(
+                    edge._replace(**{score_name: score})
+                )
+            yield dict(tier, edges=rescored_edges)
 
-    def rescored(self, edges):
-        return type(self)(self._rescored(edges))
+    def rescored(self, edges, rank):
+        """Return a copy of the tiered edges, writing to the edges the rank-
+        specific scores of the given iterable of edges.
+
+        """
+        return type(self)(self._rescored(edges, rank))
 
 
 class EdgeAggregate(object):

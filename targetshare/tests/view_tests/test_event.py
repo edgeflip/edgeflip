@@ -39,7 +39,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         assert models.Event.objects.filter(
             visit__visitor__fbid=1, friend_fbid=3, event_type='shown'
         ).exists()
-        self.assertEqual(int(response.context['fbid']), 3)
+        self.assertEqual(int(response.context['uid']), 3)
         self.assertEqual(response.context['firstname'], 'Suppress')
 
     def test_record_event_forbidden(self):

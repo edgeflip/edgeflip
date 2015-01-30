@@ -4,8 +4,9 @@ import urllib
 from django.core.urlresolvers import reverse
 from mock import Mock, patch
 
+from core.utils import encryptedslug
+
 from targetshare import models
-from targetshare.views.utils import encodeDES
 
 from .. import EdgeFlipViewTestCase, patch_facebook
 
@@ -36,6 +37,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_health_check_faces(self):
         ''' Test Faces health-check view '''
         response = self.client.get(reverse('faces-health-check'), {
+            'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
             'num_face': 9,
@@ -49,6 +51,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_health_check_faces_bad_request(self):
         ''' Test Faces health-check view with bad request '''
         response = self.client.get(reverse('faces-health-check'), {
+            'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
             'campaign': 1,
@@ -64,6 +67,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
         px3_mock.delay.return_value = Mock(status='FAILURE', id='1-1')
         px4_mock.delay.return_value = Mock(status='FAILURE', id='1-2')
         response = self.client.get(reverse('faces-health-check'), {
+            'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
             'num_face': 9,
@@ -154,9 +158,9 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     @patch('targetshare.views.services.store_oauth_token')
     def test_incoming_url_redirect(self, task_mock):
+        campaign = models.Campaign.objects.get(pk=1)
         response = self.client.get(
-            reverse('incoming-encoded', args=[
-                encodeDES('1/1')])
+            reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
         )
         self.assertStatusCode(response, 302)
         self.assertTrue(
@@ -164,8 +168,9 @@ class TestServicesViews(EdgeFlipViewTestCase):
         )
         self.assertEqual(
             response['Location'],
-            'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=t0AGY7FMXjM%3D'
+            'http://local.edgeflip.com:8080/mocks/guncontrol_share?efcmpgslug=uV8JNec7DxI'
         )
+        self.assertEqual(encryptedslug.get_params('uV8JNec7DxI'), (1, 1, 1))
         self.assertFalse(task_mock.delay.called)
 
     def test_incoming_url_redirect_fb_auth_declined(self):
@@ -174,13 +179,14 @@ class TestServicesViews(EdgeFlipViewTestCase):
         self.assertFalse(auth_fails.exists())
         self.assertFalse(redirects.exists())
 
+        campaign = models.Campaign.objects.get(pk=1)
         response = self.client.get(
-            reverse('incoming-encoded', args=[encodeDES('1/1')]),
+            reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)]),
             {'error': 'access_denied', 'error_reason': 'user_denied'}
         )
         self.assertStatusCode(response, 302)
 
-        campaign_props = models.CampaignProperties.objects.get(campaign__pk=1)
+        campaign_props = campaign.campaignproperties.get()
         outgoing_path = reverse('outgoing', args=[
             campaign_props.campaign.client.fb_app_id,
             campaign_props.client_error_url]
@@ -213,9 +219,8 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_incoming_url_fb_auth_permitted(self, task_mock):
         async_result = task_mock.delay.return_value
         async_result.id = async_result.task_id = 'OAUTH_TOKEN_TASK-1'
-        path = urllib.unquote(
-            reverse('incoming-encoded', args=[encodeDES('1/1', quote=False)])
-        )
+        campaign = models.Campaign.objects.get(pk=1)
+        path = reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
         self.assertNotIn('code=', response['Location'])

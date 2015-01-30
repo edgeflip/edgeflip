@@ -11,8 +11,9 @@ from django.http import HttpResponseBadRequest
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from core.utils import sharingurls
 from targetshare.models import relational
-from targetshare.views.utils import encodeDES, JsonHttpResponse
+from targetshare.views.utils import JsonHttpResponse
 
 from targetadmin import forms, utils
 
@@ -45,11 +46,10 @@ CAMPAIGN_CREATION_THANK_YOU_MESSAGE = (
 def render_campaign_creation_message(request, campaign, content):
     client = campaign.client
     hostname = client.hostname
-    sharing_urls = utils.build_sharing_urls(hostname, campaign, content)
     initial_url = "{scheme}//{host}{path}".format(
         scheme=settings.INCOMING_REQUEST_SCHEME,
         host=hostname,
-        path=sharing_urls['initial_url'],
+        path=sharingurls.initial_url(hostname, campaign, content),
     )
 
     return CAMPAIGN_CREATION_NOTIFICATION_MESSAGE.format(
@@ -321,8 +321,7 @@ def campaign_wizard(request, client_pk, campaign_pk=None):
 
     faces_url = campaign_form.cleaned_data['faces_url']
     if not faces_url:
-        slug = encodeDES('{}/{}'.format(last_camp.pk, content.pk))
-        faces_url = 'https://apps.facebook.com/{}/{}/'.format(client.fb_app.name, slug)
+        faces_url = sharingurls.client_faces_url(last_camp, content)
 
     for campaign in campaigns:
         properties = campaign.campaignproperties.get()
@@ -495,10 +494,11 @@ def campaign_summary(request, client_pk, campaign_pk, wizard=False):
 
     if campaign_properties.status < campaign_properties.Status.INACTIVE:
         incoming_host = client.hostname
-        sharing_urls = utils.build_sharing_urls(incoming_host, root_campaign, content)
-        summary_data['sharing_url'] = '{}//{}{}'.format(settings.INCOMING_REQUEST_SCHEME,
-                                                        incoming_host,
-                                                        sharing_urls['initial_url'])
+        summary_data['sharing_url'] = '{}//{}{}'.format(
+            settings.INCOMING_REQUEST_SCHEME,
+            incoming_host,
+            sharingurls.initial_url(incoming_host, root_campaign, content),
+        )
 
     if wizard:
         summary_data['message'] = CAMPAIGN_CREATION_THANK_YOU_MESSAGE

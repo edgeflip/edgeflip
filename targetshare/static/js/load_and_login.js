@@ -10,6 +10,7 @@ edgeflip.faces = (function (edgeflip, $) {
         self.test_mode = options.test_mode;
         self.thanksURL = options.thanksURL;
         self.errorURL = options.errorURL;
+        self.api = options.api;
         self.campaignid = options.campaignid;
         self.contentid = options.contentid;
         self.num_face = options.num_face || 9;
@@ -22,6 +23,7 @@ edgeflip.faces = (function (edgeflip, $) {
         } else {
             self.user = new edgeflip.User(
                 edgeflip.FB_APP_ID, {
+                    loginScope: options.loginScope,
                     onConnect: self.poll,
                     onAuthFailure: authFailure
                 }
@@ -69,6 +71,7 @@ edgeflip.faces = (function (edgeflip, $) {
                 fbid: self.test_mode ? self.test_fbid : fbid,
                 token: self.test_mode ? self.test_token : accessToken,
                 num_face: self.num_face,
+                api: self.api,
                 campaign: self.campaignid,
                 content: self.contentid,
                 last_call: last_call,
@@ -120,32 +123,23 @@ edgeflip.faces = (function (edgeflip, $) {
     return self;
 })(edgeflip, jQuery);
 
+
 function updateProgressBar( percent ) {
+    if ($('#spinner').css('background-image') != 'none') {
+        return;
+    }
 
-    if( $('#spinner').css('background-image') != 'none' ) { return; }
+    if (percent > 100) {
+        percent = 100;
+    }
 
-    if( percent > 100 ) { percent = 100; }
-
-    /*
-    var bgColor = ( percent < 5 )
-        ? '#f63a0f'
-        : ( percent < 25 )
-            ? '#f27011'
-            : ( percent < 50 )
-                ? '#f2b01e'
-                : ( percent < 75 )
-                    ? '#f2d31b'
-                    : '#86e01e';
-    */
-
-    $('#progress-text span').width( percent + '%' );
+    $('#progress-text span').width(percent + '%');
 };
 
 
-
 function preload(arrayOfImages) {
-/* loads a bunch of images
-*/
+    /* loads a bunch of images
+    */
     $(arrayOfImages).each(function () {
         $('<img />').attr('src', this);
     });
