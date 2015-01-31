@@ -52,7 +52,14 @@ edgeflip.sharing = (function ($, edgeflip) {
         configure: function (options) {
             self.allFriends = options.allFriends;
             self.faceFriends = options.faceFriends;
-            self.suggestedMessages = options.suggestedMessages;
+            self.suggestedMessages = options.suggestedMessages.filter(
+                // Exclude empty message suggestion pairs
+                function (pair) {
+                    return pair.some(function (part) {
+                        return Boolean(part);
+                    });
+                }
+            );
         }
     },
     $editable = $('#message_form_editable');
