@@ -1,11 +1,3 @@
-{% load dataformat %}
-
-edgeflip.FB_APP_ID = '{{ fb_params.fb_app_id }}';
-edgeflip.FB_APP_NAME = '{{ fb_params.fb_app_name }}';
-edgeflip.FB_ACTION_TYPE = '{{ fb_params.fb_action_type }}';
-edgeflip.FB_OBJ_TYPE = '{{ fb_params.fb_object_type }}';
-edgeflip.FB_OBJ_URL = '{{ fb_params.fb_object_url | safe }}';
-
 edgeflip.sharing = (function ($, edgeflip) {
     /* Generic helpers */
 
@@ -57,35 +49,13 @@ edgeflip.sharing = (function ($, edgeflip) {
     /* sharing module definition */
 
     var self = {
-        // All friend data
-        allFriends: {
-            {% for friend in all_friends %}
-                {{ friend.uid | safejson }}: {
-                    name: {{ friend.name | safejson }},
-                    fname: {{ friend.fname | safejson }},
-                    lname: {{ friend.lname | safejson }},
-                    pic: {% if friend.picture %}{{ friend.picture | safejson }}{% else %}undefined{% endif %}
-                }{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        },
-
-        // On deck circle of friends who will get slotted in;
-        // we'll shift them off as we go
-        faceFriends: [
-            {% for friend in face_friends %}
-                {{ friend.uid | safejson }}{% if not forloop.last %},{% endif %}
-            {% endfor %}
-        ].slice({{ num_face }})
-    },
-    suggestedMessages = [],
-    $editable = $('#message_form_editable');
-
-    self.setSuggestedMessages = function () {
-        var index;
-        for (index in arguments) {
-            suggestedMessages.push(arguments[index]);
+        configure: function (options) {
+            self.allFriends = options.allFriends;
+            self.faceFriends = options.faceFriends;
+            self.suggestedMessages = options.suggestedMessages;
         }
-    };
+    },
+    $editable = $('#message_form_editable');
 
     self.recipients = (function ($, sharing) {
         /* recipients submodule definition */
@@ -107,19 +77,13 @@ edgeflip.sharing = (function ($, edgeflip) {
             count: function () {
                 return self.getElements().length;
             },
-            getUids: (function () {
-                var parseNode = function () {
-                    var uid = $(this).data('uid'),
-                        numeric = parseInt(uid);
-                    return numeric ? numeric : uid;
-                };
-                return function () {
-                    /* Return an Array of UIDs of selected friends.
-                    */
-                    var $recipientElements = self.getElements();
-                    return $recipientElements.map(parseNode);
-                };
-            })(),
+            getUids: function () {
+                /* Return an jQuery Array-like object of UIDs of selected friends.
+                */
+                return self.getElements().map(function () {
+                    return $(this).data('uid');
+                });
+            },
             createElement: function (uid) {
                 /* Construct the HTML node to insert into the message box for a selected friend.
                  */
@@ -367,10 +331,10 @@ edgeflip.sharing = (function ($, edgeflip) {
         });
 
         // finally, if there are any recips without a box, add a manual one
-        $.each(self.recipients.getUids(), function (index, uid) {
-            var suggested = $('#friend-' + uid).add('#added-' + uid);
+        self.recipients.getUids().each(function () {
+            var suggested = $('#friend-' + this).add('#added-' + this);
             if (suggested.length === 0) {
-                $('#picked_friends_container').append(self.recipients.createAddedElement(uid))
+                $('#picked_friends_container').append(self.recipients.createAddedElement(this))
             }
         });
     }
@@ -381,13 +345,13 @@ edgeflip.sharing = (function ($, edgeflip) {
         edgeflip.events.record('suggest_message_click');
 
         // grab the pre and post off the front of the queue and stick 'em back on the end
-        var msgPair = suggestedMessages.shift(),
+        var msgPair = self.suggestedMessages.shift(),
             msgPre = msgPair[0],
             msgPost = msgPair[1],
             msgNamesContHtml = self.recipients.createContainerElement(),
             recipsHtml, shareButton, difference;
         
-        suggestedMessages.push(msgPair);
+        self.suggestedMessages.push(msgPair);
 
         // If they don't have anyone checked, using the suggested message adds everyone
         if (self.recipients.count() == 0) {
@@ -639,11 +603,12 @@ edgeflip.sharing = (function ($, edgeflip) {
     }
 
     /* set listeners on load */
-    $(document).ready(function() {
+    $(document)
+    .ready(function() {
         /* Event binding & key handling for editable msg div and manually-selected friends.
          */
-        var msg_length = $editable.text().length,
-            max_msg_length = 1000;
+        var editableLength = $editable.text().length,
+            maxEditableLength = 1000;
 
         // Keys we'll allow even once the message has gotten too long:
         var allowedKeys = [
@@ -673,38 +638,31 @@ edgeflip.sharing = (function ($, edgeflip) {
                 return code == 13 || code == 108;
             };
 
-        $editable.on('paste', function(event) {
-            /* Disable pasting to avoid introducing marked-up text.
+        $editable
+        .on('paste dragover drop', function (event) {
+            /* Disable pasting and drag-and-drop to avoid introducing marked-up text.
              */
             event.preventDefault();
-        });
-
-        $editable.on('dragover drop', function(event) {
-            /* Disable drag-and-drop to avoid introducing marked-up text.
-             */
-            event.preventDefault();
-        });
-
-        $editable.on('keydown', function(event) {
+        })
+        .on('keydown', function (event) {
             /* Prevent enter/return action, and prevent entry of content beyond message
              * length maximum.
              */
-            if (isEnterReturn(event) || (msg_length >= max_msg_length && !isAllowedKey(event))) {
+            if (isEnterReturn(event) || (editableLength >= maxEditableLength && !isAllowedKey(event))) {
                 event.preventDefault();
             } else {
                 helperTextDisappear();
-                msg_length = $editable.text().length; // sets msg_length for keyup
+                editableLength = $editable.text().length; // sets editableLength for keyup
             }
-        });
-
-        $editable.on('keyup', function(event) {
+        })
+        .on('keyup', function (event) {
             /* Enforce maximum message length on edit.
              */
             syncFriendBoxes();
             // Doing this here rather than the keydown because the alert seems
             // to cause trouble with the preventDefault() to avoid the input
-            if (msg_length >= max_msg_length && !isAllowedKey(event) && !isEnterReturn(event)) {
-                alert("Please limit your message to fewer than " + max_msg_length + " characters.");
+            if (editableLength >= maxEditableLength && !isAllowedKey(event) && !isEnterReturn(event)) {
+                alert("Please limit your message to fewer than " + maxEditableLength + " characters.");
             }
         });
 
@@ -715,10 +673,88 @@ edgeflip.sharing = (function ($, edgeflip) {
             self.unselectFriend(uid);
         });
 
+    })
+    .ready(function () {
+        /* Set up the friends faces table and the manual add dropdown
+         */
+        // use 'on()' delegation to affect dynamically-added elements
+
+        $('#friends_table')
+        .on('click', '.friend_box', function () {
+            /* Toggle the recipient state of a friend upon checking or unchecking
+             */
+            var $face = $(this.parentElement),
+                uid = $face.data('uid');
+
+            // Try to deselect (and determine if they were selected)
+            var deselected = self.unselectFriend(uid),
+                alreadySelectedCount;
+
+            if (!deselected) {
+                alreadySelectedCount = self.recipients.count();
+
+                if (alreadySelectedCount === edgeflip.faces.max_face) {
+                    self.alertTooMany();
+                } else {
+                    self.selectFriend(uid);
+                }
+            }
+        })
+        .on('click', '.xout', function () {
+            /* called when someone suppresses a friend (X in faces list)
+             * */
+            var $face = $(this.parentElement),
+                oldUid = $face.data('uid'),
+                newUid = self.faceFriends.shift(),
+                friend = newUid ? self.allFriends[newUid] : {};
+
+            // Remove the friend from the messages
+            self.unselectFriend(oldUid);
+
+            // Hide the suppressed div immediately, because the response to
+            // the ajax call can be a little sluggish
+            $face.hide();
+
+            // Update the friends shown
+            $.ajax({
+                type: 'POST',
+                url: '/suppress/',
+                dataType: 'html',
+                data: {
+                    userid: edgeflip.faces.user.fbid, // edgeflip.User constructed in frame_faces.html
+                    campaignid: edgeflip.faces.campaignid, // campaignid and contentid set in frame_faces.html
+                    contentid: edgeflip.faces.contentid,
+                    appid: edgeflip.FB_APP_ID,
+                    oldid: oldUid,
+                    newid: newUid,
+                    fname: friend.fname,
+                    lname: friend.lname,
+                    pic: friend.pic
+                },
+                error: function () {
+                    // Something went wrong, so just remove the div as though no friend was returned
+                    $face.remove();
+                },
+                success: function (data) {
+                    if (newUid) {
+                        $face.replaceWith(data);
+                    } else {
+                        // We hid it above, but still need to actually remove it if there's
+                        // no new friend coming in (otherwise, a select all will still add this friend)
+                        $face.remove();
+                    }
+                }
+            });
+        });
+
+        // Buttons
+        $('#button_select_all').click(self.selectAll);
+        $('#button_sugg_msg').click(self.useSuggested);
+        $('#button_do_share').click(self.initShare);
     }); // document ready
 
     return self;
 })(jQuery, edgeflip);
 
 // This line makes this file show up properly in the Chrome debugger
-//# sourceURL=faces_and_msg.js
+//# sourceURL=sharing.js
