@@ -15,7 +15,7 @@ LOG = logging.getLogger('crow')
 
 
 @shared_task(default_retry_delay=300, max_retries=9, ignore_result=True)
-def extend_token(fbid, appid, token_value):
+def extend_token(fbid, appid, token_value, api):
     secret = relational.FBApp.objects.values_list('secret', flat=True).get(appid=appid)
 
     now = time.time()
@@ -34,6 +34,7 @@ def extend_token(fbid, appid, token_value):
         appid=appid,
         token=access_token,
         expires=(now + expires_in),
+        api=api,
     )
     token.save(overwrite=True)
 
@@ -85,7 +86,7 @@ def record_auth(fbid, visit_id, campaign_id=None, content_id=None):
 
 
 @shared_task(default_retry_delay=300, max_retries=2)
-def store_oauth_token(client_id, code, redirect_uri,
+def store_oauth_token(client_id, code, redirect_uri, api,
                       visit_id=None, campaign_id=None, content_id=None):
     fb_app = relational.FBApp.objects.get(clients__client_id=client_id)
 
@@ -126,6 +127,7 @@ def store_oauth_token(client_id, code, redirect_uri,
         fbid=token_fbid,
         appid=fb_app.appid,
         token=token_value,
+        api=api,
     )
 
     extend_token.delay(*token)

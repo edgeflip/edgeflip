@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 
 
 # Token class for newly-received tokens, before extension and db-persistence:
-ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token'))
+ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token', 'api'))
 
 
 # Simple User class for taggable friends:

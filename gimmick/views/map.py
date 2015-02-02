@@ -43,6 +43,7 @@ def data(request):
             fbid=info['fbid'],
             appid=FB_APP_ID,
             token=info['token'],
+            api='1.0',
         )
 
         # Extend & store Token:

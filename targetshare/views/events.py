@@ -133,19 +133,21 @@ def record_event(request):
             fbid = int(user_id)
             appid = int(app_id)
             token_string = request.POST['token']
+            api = request.POST['api']
         except (KeyError, ValueError, TypeError):
-            fbid = appid = token_string = None
+            fbid = appid = token_string = api = None
 
-        if not all([fbid, appid, token_string, campaign]):
-            msg = ("Cannot write authorization for fbid %r, appid %r "
+        if not all([fbid, appid, token_string, campaign, api]):
+            msg = ("Cannot write authorization for fbid %r, appid %r, api %r "
                    "and token %r under campaign %r")
-            args = (user_id, app_id, request.POST.get('token'), campaign_id)
+            args = (user_id, app_id, request.POST.get('api'),
+                    request.POST.get('token'), campaign_id)
             LOG.warning(msg, *args, extra={'request': request})
             return http.HttpResponseBadRequest(msg % args)
 
         campaign.client.userclients.get_or_create(fbid=fbid)
         if extend:
-            extend_token.delay(fbid, appid, token_string)
+            extend_token.delay(fbid, appid, token_string, api)
 
     elif event_type == 'shared':
         root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)

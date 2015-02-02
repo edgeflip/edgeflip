@@ -231,6 +231,7 @@ def faces(request):
             fbid=data['fbid'],
             appid=client.fb_app_id,
             token=data['token'],
+            api=data['api'],
         )
 
         # Extend & store Token and record authorized UserClient:

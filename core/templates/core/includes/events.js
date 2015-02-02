@@ -46,6 +46,7 @@ edgeflip.events = (function ($) {
                 contentid: options.contentid || globalOptions.contentid,
                 appid: options.fb_app_id || edgeflip.FB_APP_ID,
                 actionid: options.actionid,
+                api: options.api,
                 token: options.token,
                 friends: options.friends,
                 shareMsg: options.shareMsg,

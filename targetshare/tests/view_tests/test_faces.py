@@ -588,7 +588,7 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         task = celery_mock.current_app.AsyncResult.return_value
         task.ready.return_value = True
         task.successful.return_value = True
-        task.result = models.datastructs.ShortToken(1, 1, 'TOKZ')
+        task.result = models.datastructs.ShortToken(1, 1, 'TOKZ', '1.0')
 
         targeting_mock.return_value = ((3, Mock(id='PX3-2')), (4, Mock(id='PX4-2')))
 
@@ -610,7 +610,7 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         task = celery_mock.current_app.AsyncResult.return_value
         task.ready.return_value = True
         task.successful.return_value = True
-        task.result = token = models.datastructs.ShortToken(1, 1, 'TOKZ')
+        task.result = token = models.datastructs.ShortToken(1, 1, 'TOKZ', '1.0')
 
         targeting_mock.return_value = ((3, Mock(id='PX3-2')), (4, Mock(id='PX4-2')))
 
