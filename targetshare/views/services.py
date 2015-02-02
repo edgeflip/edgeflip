@@ -134,6 +134,7 @@ def incoming(request, api, campaign_id, content_id):
             campaign.client_id,
             code,
             request.build_absolute_uri(redirect_path),
+            api,
             visit_id=request.visit.visit_id,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -197,6 +198,7 @@ def faces_health_check(request):
     content = data['content']
     fbid = data['fbid']
     token = data['token']
+    api = data['api']
     num_face = data['num_face']
     client = campaign.client
 
@@ -204,6 +206,7 @@ def faces_health_check(request):
         fbid=fbid,
         appid=client.fb_app_id,
         token=token,
+        api=api
     )
     px3_task = targeting.proximity_rank_three.delay(
         token=token,

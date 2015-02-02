@@ -15,6 +15,7 @@ edgeflip.User = function (fbAppId, options) {
     this.fbid = null;
     this.token = null;
     this.fbAppId = fbAppId;
+    this.api = options.api;
     this.rootId = options.rootId || 'fb-root';
     this.onConnect = options.onConnect;
     this.onAuthFailure = options.onAuthFailure;
@@ -87,6 +88,7 @@ edgeflip.User.prototype.initAuth = function () {
                 fb_app_id: self.fbAppId,
                 content: '',
                 friends: [],
+                api: self.api,
                 token: self.token
             });
             if (self.onConnect) {
