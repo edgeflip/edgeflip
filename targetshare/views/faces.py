@@ -29,36 +29,62 @@ LOG = logging.getLogger('crow')
 MAX_FACES = 50
 
 
-def request_targeting(visit, token, campaign, client_content, num_faces):
-    """Kick off targeting tasks and record event."""
-    task_px3 = targeting.proximity_rank_three.delay(
-        token=token,
-        visit_id=visit.pk,
-        campaign_id=campaign.pk,
-        content_id=client_content.pk,
-        num_faces=num_faces,
-    )
-    task_px4 = targeting.proximity_rank_four.delay(
-        token=token,
-        visit_id=visit.pk,
-        campaign_id=campaign.pk,
-        content_id=client_content.pk,
-        num_faces=num_faces,
-        px3_task_id=task_px3.id,
-    )
+def request_targeting(visit, token, api, campaign, client_content, num_faces):
+    """Kick off targeting tasks and record event.
+
+    Returns a ranked sequence of as many parallel tasks as targeting uses for the
+    given API version.
+
+    Note that initiated tasks are assumed to be complementary; the lowest-ranked
+    task is required, while higher-ranked tasks are considered refinements.
+    Upon the frontend's "last call", the successfully-generated results of the
+    *last* task in this sequence are used; and, in preceding calls, if the
+    *first* task is found to have failed, the backend will immediately return
+    what it has to the front-end. (See `faces`.)
+
+    """
+    if api >= 2:
+        task = targeting.targeted_network.delay(
+            token=token,
+            visit_id=visit.pk,
+            campaign_id=campaign.pk,
+            content_id=client_content.pk,
+            num_faces=num_faces,
+        )
+        tasks = [(None, task)]
+        content = "task_id: {}".format(task.task_id)
+    else:
+        task_px3 = targeting.proximity_rank_three.delay(
+            token=token,
+            visit_id=visit.pk,
+            campaign_id=campaign.pk,
+            content_id=client_content.pk,
+            num_faces=num_faces,
+        )
+        task_px4 = targeting.proximity_rank_four.delay(
+            token=token,
+            visit_id=visit.pk,
+            campaign_id=campaign.pk,
+            content_id=client_content.pk,
+            num_faces=num_faces,
+            px3_task_id=task_px3.id,
+        )
+        tasks = [(3, task_px3), (4, task_px4)]
+        content = "px3_task_id: {}, px4_task_id: {}".format(task_px3.id, task_px4.id),
+
     visit.events.create(
         event_type='targeting_requested',
         campaign_id=campaign.pk,
         client_content_id=client_content.pk,
-        content="px3_task_id: {}, px4_task_id: {}".format(task_px3.id, task_px4.id),
+        content=content,
     )
-    return (task_px3, task_px4)
+    return tasks
 
 
 @csrf_exempt # FB posts directly to this view
 @utils.encoded_endpoint
 @utils.require_visit
-def frame_faces(request, campaign_id, content_id, canvas=False):
+def frame_faces(request, api, campaign_id, content_id, canvas=False):
     campaign = get_object_or_404(relational.Campaign, campaign_id=campaign_id)
     campaign_properties = campaign.campaignproperties.get()
 
@@ -77,15 +103,17 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
     db.bulk_create.delay([
         relational.Event(
             visit_id=request.visit.pk,
+            event_type='faces_page_load',
             campaign_id=campaign.pk,
             client_content_id=content.pk,
-            event_type='faces_page_load',
+            content=api,
         ),
         relational.Event(
             visit_id=request.visit.pk,
+            event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
             campaign_id=campaign.pk,
             client_content_id=content.pk,
-            event_type=('faces_canvas_load' if canvas else 'faces_iframe_load'),
+            content=api,
         )
     ])
 
@@ -99,19 +127,23 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             del request.session[OAUTH_TASK_KEY] # no need to do this again
             token = task_oauth.result if task_oauth.successful() else None
             if token:
-                faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign_id,
+                faces_tasks_key = FACES_TASKS_KEY.format(api=api,
+                                                         campaign_id=campaign_id,
                                                          content_id=content_id,
                                                          fbid=token.fbid)
                 if faces_tasks_key not in request.session:
                     # Initiate targeting tasks:
-                    (task_px3, task_px4) = request_targeting(
+                    targeting_tasks = request_targeting(
                         visit=request.visit,
                         token=token,
+                        api=api,
                         campaign=campaign,
                         client_content=content,
                         num_faces=campaign_properties.num_faces,
                     )
-                    request.session[faces_tasks_key] = (task_px3.id, task_px4.id)
+                    request.session[faces_tasks_key] = [
+                        (rank, task.id) for (rank, task) in targeting_tasks
+                    ]
 
     page_styles = utils.assign_page_styles(
         request.visit,
@@ -132,11 +164,15 @@ def frame_faces(request, campaign_id, content_id, canvas=False):
             urllib.urlencode({'campaignid': campaign_id}),
         )
 
+    default_permissions = client.fb_app.permissions.values_list('code', flat=True)
+
     return render(request, 'targetshare/frame_faces.html', {
         'fb_params': {
             'fb_app_name': client.fb_app.name,
             'fb_app_id': client.fb_app_id,
         },
+        'api': api,
+        'default_scope': ','.join(default_permissions.iterator()),
         'campaign': campaign,
         'content': content,
         'properties': properties,
@@ -179,21 +215,23 @@ def faces(request):
             'contentid': content.pk,
         }, status=202)
 
-    faces_tasks_key = FACES_TASKS_KEY.format(campaign_id=campaign.pk,
+    faces_tasks_key = FACES_TASKS_KEY.format(api=data['api'],
+                                             campaign_id=campaign.pk,
                                              content_id=content.pk,
                                              fbid=data['fbid'])
-    (task_id_px3, task_id_px4) = request.session.get(faces_tasks_key, (None, None))
+    targeting_task_ids = request.session.get(faces_tasks_key)
 
-    if task_id_px3 and task_id_px4:
+    if targeting_task_ids:
         # Retrieve statuses of active targeting tasks #
-        task_px3 = celery.current_app.AsyncResult(task_id_px3)
-        task_px4 = celery.current_app.AsyncResult(task_id_px4)
+        ranked_tasks = [(rank, celery.current_app.AsyncResult(task_id))
+                        for (rank, task_id) in targeting_task_ids]
     else:
         # First request #
         token = datastructs.ShortToken(
             fbid=data['fbid'],
             appid=client.fb_app_id,
             token=data['token'],
+            api=data['api'],
         )
 
         # Extend & store Token and record authorized UserClient:
@@ -205,17 +243,22 @@ def faces(request):
         )
 
         # Initiate targeting tasks:
-        (task_px3, task_px4) = request_targeting(
+        ranked_tasks = request_targeting(
             visit=request.visit,
             token=token,
+            api=data['api'],
             campaign=campaign,
             client_content=content,
             num_faces=data['num_face'],
         )
-        request.session[faces_tasks_key] = (task_px3.id, task_px4.id)
+        targeting_task_ids = [(rank, task.id) for (rank, task) in ranked_tasks]
+        request.session[faces_tasks_key] = targeting_task_ids
+
+    (targeting_ranks, targeting_tasks) = zip(*ranked_tasks)
 
     # Check status #
-    if not (task_px3.ready() and task_px4.ready()) and not task_px3.failed() and not data['last_call']:
+    (primary_rank, primary_task) = ranked_tasks[0]
+    if not all(task.ready() for task in targeting_tasks) and not primary_task.failed() and not data['last_call']:
         return utils.JsonHttpResponse({
             'status': 'waiting',
             'reason': "Identifying friends.",
@@ -224,37 +267,41 @@ def faces(request):
         }, status=202)
 
     # Select results #
-    (result_px3, result_px4) = (
-        task.result if task.successful() else targeting.empty_filtering_result
-        for task in (task_px3, task_px4)
-    )
-    if result_px4.filtered is None:
-        # px4 filtering didn't happen, so use px3
-        if result_px4.ranked is None or result_px3.filtered is None:
-            # either: px4 ranking didn't happen, as well;
-            # or, it did, but we have no px3 filtering result to rerank,
-            # (in which case we can error out later):
-            targeting_result = result_px3
-        else:
-            # Re-rank px3 edges by px4 ranking:
-            targeting_result = result_px3._replace(
-                ranked=result_px4.ranked,
-                filtered=result_px3.filtered.reranked(result_px4.ranked),
-            )
-    elif result_px3.ranked:
-        targeting_result = result_px4._replace(
-            filtered=result_px4.filtered.rescored(result_px3.ranked),
-        )
-    else:
-        # px4 filtering completed, so use it:
-        targeting_result = result_px4
+    ranked_results = [
+        (rank, task.result if task.successful() else targeting.empty_filtering_result)
+        for (rank, task) in ranked_tasks
+    ]
+    # Choose the filtered results from the highest-ranked results:
+    for (result_rank, targeting_result) in reversed(ranked_results):
+        if targeting_result.filtered:
+            # Let's use this result set;
+            # but, gather ranking data from the others as well.
+            for (complement_rank, complement_result) in ranked_results:
+                if complement_result is not targeting_result and complement_result.ranked:
+                    if complement_rank > result_rank:
+                        # Trust higher-ranked complement's results ranking:
+                        targeting_result = targeting_result._replace(
+                            ranked=complement_result.ranked,
+                            filtered=targeting_result.filtered.reranked(complement_result.ranked,
+                                                                        result_rank),
+                        )
+                    else:
+                        # Our ranking is best;
+                        # just include lower-ranked complement's scores (for reporting):
+                        targeting_result = targeting_result._replace(
+                            filtered=targeting_result.filtered.rescored(complement_result.ranked,
+                                                                        complement_rank),
+                        )
+
+            # We're done
+            break
 
     if not targeting_result.ranked or not targeting_result.filtered:
-        if task_px3.ready():
+        if primary_task.ready():
             return http.HttpResponseServerError('No friends were identified for you.')
         else:
-            LOG.fatal("px3 failed to complete in the time allotted (%s)",
-                      task_px3.task_id, extra={'request': request})
+            LOG.fatal("primary targeting task (px%s) failed to complete in the time allotted (%s)",
+                      primary_rank or 0, primary_task.task_id, extra={'request': request})
             return http.HttpResponse('Response has taken too long, giving up', status=503)
 
     if targeting_result.campaign_id and targeting_result.campaign_id != campaign.pk:
@@ -312,30 +359,33 @@ def faces(request):
     }
 
     # Record generation of suggestions (but only once per set of tasks):
-    num_gen = MAX_FACES
     generated = []
+    gen_count = 0
     for tier in targeting_result.filtered:
-        edges_list = tier['edges'][:num_gen]
-        tier_campaign_id = tier['campaign_id']
-        tier_content_id = tier['content_id']
-        for edge in edges_list:
-            scores = (('N/A' if score is None else score)
-                      for score in (edge.px3_score, edge.px4_score))
+        for edge in itertools.islice(tier['edges'], MAX_FACES - gen_count):
+            ranked_scores = (
+                # ((pretty rank), (pretty score))
+                (('' if rank is None else rank), ('N/A' if score is None else score))
+                for (rank, score) in ((rank, edge.get_rank_score(rank)) for rank in targeting_ranks)
+            )
+            px_content = ', '.join(
+                "px{}_score: {} ({})".format(rank, score, task.task_id)
+                for ((rank, score), task) in zip(ranked_scores, targeting_tasks)
+            )
             generated.append({
                 'visit_id': request.visit.visit_id,
-                'campaign_id': tier_campaign_id,
-                'client_content_id': tier_content_id,
+                'campaign_id': tier['campaign_id'],
+                'client_content_id': tier['content_id'],
                 'friend_fbid': edge.secondary.fbid,
                 'event_type': 'generated',
-                'content': "px3_score: {0} ({px3_id}), px4_score: {1} ({px4_id})"
-                           .format(*scores, px3_id=task_px3.id, px4_id=task_px4.id),
+                'content': "{} : {}".format(px_content, edge.secondary.name),
                 'defaults': {
                     'event_datetime': timezone.now(),
                 },
             })
 
-        num_gen -= len(edges_list)
-        if num_gen <= 0:
+        gen_count = len(generated)
+        if gen_count >= MAX_FACES:
             break
 
     db.get_or_create.delay(relational.Event, *generated)
@@ -353,18 +403,26 @@ def faces(request):
 
     # Determine faces that can be shown (and record these):
     (face_friends, show_faces, shown) = ([], [], [])
+    mapped_task_ids = dict(targeting_task_ids)
     eligible_edges = (edge for edge in targeting_result.filtered.iteredges()
-                      if edge.secondary.fbid not in all_exclusions)
+                      if edge.secondary.fbid is None or edge.secondary.fbid not in all_exclusions)
     for (edge_index, edge) in enumerate(itertools.islice(eligible_edges, MAX_FACES)):
         face_friends.append(edge.secondary)
 
         if edge_index < data['num_face']:
             show_faces.append(edge.secondary)
 
-            if edge.px4_score is None:
-                shown_content = "px3_score: {} ({})".format(edge.px3_score, task_px3.id)
-            else:
-                shown_content = "px4_score: {} ({})".format(edge.px4_score, task_px4.id)
+            try:
+                (score_rank, score) = edge.get_score()
+            except LookupError:
+                score = 'N/A'
+                score_rank = primary_rank
+
+            px_content = "px{}_score: {} ({})".format(
+                '' if score_rank is None else score_rank,
+                score,
+                mapped_task_ids[score_rank],
+            )
 
             shown.append(
                 relational.Event(
@@ -372,7 +430,7 @@ def faces(request):
                     campaign_id=campaign.campaign_id,
                     client_content_id=content.content_id,
                     friend_fbid=edge.secondary.fbid,
-                    content=shown_content,
+                    content="{} : {}".format(px_content, edge.secondary.name),
                     event_type='shown',
                 )
             )
@@ -549,8 +607,3 @@ def faces_email_friends(request, notification_uuid):
 @csrf_exempt
 def canvas(request):
     return render(request, 'targetshare/canvas.html')
-
-
-@csrf_exempt
-def canvas_faces(request, **kws):
-    return frame_faces(request, canvas=True, **kws)

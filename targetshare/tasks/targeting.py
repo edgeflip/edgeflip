@@ -4,6 +4,7 @@ import itertools
 import logging
 from collections import namedtuple
 from datetime import timedelta
+from functools import partial
 
 import celery
 import sentinels
@@ -113,6 +114,42 @@ def get_recording_args(filtering_args):
 
 
 # Tasks #
+
+@shared_task(default_retry_delay=1, max_retries=3, bind=True)
+def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
+    record = partial(record_visit_event, visit_id=visit_id,
+                     campaign_id=campaign_id, content_id=content_id)
+
+    record('targeting_started')
+    try:
+        user = facebook.client2.get_user(token.token)
+        network = facebook.client2.get_friend_edges(user, token.token)
+    except IOError as exc:
+        if self.request.retries == self.max_retries:
+            record('targeting_failed')
+        self.retry(exc=exc)
+
+    record('targeting_completed')
+    # TODO: kick off object-persistence tasks?
+
+    px_ranked = network # TODO: make these ranked
+
+    # FIXME: for now, no filter-ranking; just put ranking into a single tier:
+    filter_ranked = datastructs.TieredEdges(
+        edges=network,
+        campaign_id=campaign_id,
+        content_id=content_id,
+    )
+
+    return FilteringResult(
+        ranked=px_ranked,
+        filtered=filter_ranked,
+        cs_filter_id=None,
+        choice_set_slug=None,
+        campaign_id=campaign_id,
+        content_id=content_id,
+    )
+
 
 @shared_task(default_retry_delay=1, max_retries=3, bind=True)
 def proximity_rank_three(self, token, **filtering_args):

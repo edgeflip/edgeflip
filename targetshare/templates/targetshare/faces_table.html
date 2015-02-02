@@ -1,26 +1,60 @@
+{% load dataformat facebook %}
 <!-- DOC snippet returned by faces enpoint
 
 this is the message div and the faces themselves
  -->
+<script src="{{ STATIC_URL }}js/sharing.js"></script>
 <script src="{{ STATIC_URL }}js/manual_add.js"></script>
-<script>{% include 'targetshare/faces_and_msg.js' %}</script>
 
-
+{# Javascript library configuration via template context #}
 <script>
+    edgeflip.FB_APP_ID = '{{ fb_params.fb_app_id }}';
+    edgeflip.FB_APP_NAME = '{{ fb_params.fb_app_name }}';
+    edgeflip.FB_ACTION_TYPE = '{{ fb_params.fb_action_type }}';
+    edgeflip.FB_OBJ_TYPE = '{{ fb_params.fb_object_type }}';
+    edgeflip.FB_OBJ_URL = '{{ fb_params.fb_object_url | safe }}';
 
-    if ({{ face_friends | length }} === 0) {
-        // Should never, ever get here unless something went very wrong in Flask land
-        // Even so, let's be sure to send the user somewhere reasonable rather than 
-        // land them on a page with nothing to do...
+    edgeflip.sharing.configure({
+        // All friend data
+        allFriends: {
+            {% for friend in all_friends %}
+                {{ friend.uid | safejson }}: {
+                    name: {{ friend.name | safejson }},
+                    fname: {{ friend.fname | safejson }},
+                    lname: {{ friend.lname | safejson }},
+                    pic: {% if friend.picture %}{{ friend.picture | safejson }}{% else %}undefined{% endif %}
+                }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        },
+
+        // On-deck circle of friends who will get slotted in;
+        // (we'll shift them off as we go)
+        faceFriends: [
+            {% for friend in face_friends %}
+                {{ friend.uid | safejson }}{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ].slice({{ num_face }}),
+
+        suggestedMessages: [
+            ['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}'],
+            ['{{ msg_params.msg2_pre }}', '{{ msg_params.msg2_post }}']
+        ]
+    });
+
+    if (edgeflip.sharing.faceFriends.length === 0) {
+        // Shouldn't get here unless something went very wrong in backend;
+        // nonetheless, let's be sure to send the user somewhere reasonable
+        // rather than a page with nothing to do
         alert("Sorry. An error was encountered while communicating with Facebook.");
         outgoingRedirect(edgeflip.faces.errorURL);
+    } else {
+        setDropdown($.map(edgeflip.sharing.allFriends, function (friend, uid) {
+            return {
+                label: friend.name,
+                value: {uid: uid, pic: friend.pic}
+            };
+        }));
     }
-
-    // suggested messages
-    var suggested_messages = [];
-    suggested_messages.push(['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}']);
-    suggested_messages.push(['{{ msg_params.msg2_pre }}', '{{ msg_params.msg2_post }}']);
-
 </script>
 
 <div id="faces_form_container">
@@ -33,17 +67,17 @@ this is the message div and the faces themselves
         <div class="text_instructions">Step 1. Click on the friends you want to share with:</div>
     {% endblock faces_prompt %}
 
-    <div id="button_select_all" class="button_small button_active" onClick="selectAll();">Select All</div><div class="clearfix"></div>
+    <div id="button_select_all" class="button_small button_active">Select All</div><div class="clearfix"></div>
     
     {% spaceless %}
     <ol id="friends_table" class='clearfix {% if num_face|divisibleby:"3" %}by3{% elif num_face|divisibleby:"5" %}by5{% endif %}'>
         {% for face_friend in show_faces %}
-                <li class="friend_wrapper" style="position: relative" id="wrapper-{{ face_friend.fbid }}">
-                    <div class="xout" onClick="doReplace({{ face_friend.fbid }});">x</div>
-                    <div id="friend-{{ face_friend.fbid }}" class="friend_box friend_box_unselected" onClick="toggleFriend({{ face_friend.fbid }});">
+            <li class="friend_wrapper" style="position: relative" id="wrapper-{{ face_friend.uid }}" data-uid="{{ face_friend.uid }}">
+                    <div class="xout">x</div>
+                    <div id="friend-{{ face_friend.uid }}" class="friend_box friend_box_unselected">
                         <div class="checkmark">&nbsp;</div>
                         <div class="friend_pic">
-                            <img src="https://graph.facebook.com/{{ face_friend.fbid }}/picture" border=0 />
+                            <img src="{{ face_friend | profilepic }}" border=0 />
                         </div>
                         <div class="friend_txt">
                             <div class="friend_name dojoxEllipsis">{{ face_friend.fname }}</div>
@@ -71,7 +105,7 @@ this is the message div and the faces themselves
         <div class="text_instructions" style="margin-bottom: 10px;">Step 2. Write a message to post on Facebook:</div>
     {% endblock msg_prompt %}
 
-    <div id="button_sugg_msg" class="button_small button_inactive" onClick="useSuggested(suggested_messages);">Suggest a Message</div><div class="clearfix"></div>
+    <div id="button_sugg_msg" class="button_small button_inactive">Suggest a Message</div><div class="clearfix"></div>
 
     <div id="message_container">
         <div id="message_form">
@@ -100,7 +134,7 @@ this is the message div and the faces themselves
 
     {% block button %}
         <div id="button_share_container">
-            <div id="button_do_share" class="button_big button_inactive" onclick="doShare();">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
+            <div id="button_do_share" class="button_big button_inactive">{{ msg_params.sharing_button|default:"Show Your Support" }}</div>
         </div>
     {% endblock button %}
 

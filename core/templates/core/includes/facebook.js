@@ -15,9 +15,11 @@ edgeflip.User = function (fbAppId, options) {
     this.fbid = null;
     this.token = null;
     this.fbAppId = fbAppId;
+    this.api = options.api;
     this.rootId = options.rootId || 'fb-root';
     this.onConnect = options.onConnect;
     this.onAuthFailure = options.onAuthFailure;
+    this.loginScope = options.loginScope || 'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests';
 };
 
 edgeflip.User.prototype.connect = function () {
@@ -86,6 +88,7 @@ edgeflip.User.prototype.initAuth = function () {
                 fb_app_id: self.fbAppId,
                 content: '',
                 friends: [],
+                api: self.api,
                 token: self.token
             });
             if (self.onConnect) {
@@ -107,5 +110,5 @@ edgeflip.User.prototype.login = function () {
         if (response.status !== 'connected' && self.onAuthFailure) {
             self.onAuthFailure();
         }
-    }, {scope:'read_stream,user_photos,friends_photos,email,user_birthday,friends_birthday,user_about_me,user_location,friends_location,user_likes,friends_likes,user_interests,friends_interests'});
+    }, {scope: self.loginScope});
 };

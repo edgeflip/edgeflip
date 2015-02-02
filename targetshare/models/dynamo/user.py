@@ -37,6 +37,7 @@ class User(Item):
     # Extended fields
     activities = ItemField(data_type=STRING_SET)
     affiliations = ItemField(data_type=JSON)
+    bio = ItemField()
     books = ItemField(data_type=STRING_SET)
     devices = ItemField(data_type=JSON)
     friend_request_count = ItemField(data_type=NUMBER)
@@ -79,6 +80,10 @@ class User(Item):
     @property
     def name(self):
         return u' '.join(part for part in (self.fname, self.lname) if part)
+
+    @property
+    def uid(self):
+        return self.fbid
 
     @property
     def full_location(self):

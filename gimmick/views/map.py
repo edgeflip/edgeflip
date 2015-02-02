@@ -1,6 +1,4 @@
 import collections
-import functools
-
 import celery
 from django import http
 from django import forms
@@ -17,7 +15,7 @@ from targetshare.views import utils
 
 FB_APP_ID = 471727162864364
 
-require_visit = functools.partial(utils.require_visit, appid=FB_APP_ID)
+require_visit = utils.require_visit.configured(appid=FB_APP_ID)
 
 
 class DataForm(forms.Form):
@@ -45,6 +43,7 @@ def data(request):
             fbid=info['fbid'],
             appid=FB_APP_ID,
             token=info['token'],
+            api='1.0',
         )
 
         # Extend & store Token:

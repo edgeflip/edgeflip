@@ -29,7 +29,7 @@ class TargetingTestCase(EdgeFlipTestCase):
 
     def setUp(self):
         super(TargetingTestCase, self).setUp()
-        self.token = models.datastructs.ShortToken(fbid=1, appid='1', token='1Z')
+        self.token = models.datastructs.ShortToken(fbid=1, appid='1', token='1Z', api='1.0')
 
 
 ## PX3-only tests ##

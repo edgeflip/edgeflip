@@ -10,6 +10,7 @@ l = fab.local
 CELERY_QUEUES = (
     'px3',
     'px4',
+    'targeting',
     'oauth_token',
     'extend_token',
     'record_auth',

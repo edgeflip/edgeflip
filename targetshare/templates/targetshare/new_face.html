@@ -1,11 +1,11 @@
-<!-- DOC: jinja macro for a face widget -->
+{% load facebook %}
 {% spaceless %}
-<li class="friend_wrapper" style="position: relative" id="wrapper-{{fbid}}">
-    <div class="xout" onClick="doReplace({{fbid}});">x</div>
-    <div id="friend-{{fbid}}" class="friend_box friend_box_unselected" onClick="toggleFriend({{fbid}});">
+<li class="friend_wrapper" style="position: relative" id="wrapper-{{uid}}" data-uid="{{uid}}">
+    <div class="xout">x</div>
+    <div id="friend-{{uid}}" class="friend_box friend_box_unselected">
         <div class="checkmark">&nbsp;</div>
         <div class="friend_pic">
-            <img src="https://graph.facebook.com/{{fbid}}/picture" border=0 />
+            <img src="{% flexipic uid picture %}" border=0 />
         </div>
         <div class="friend_txt">
             <div class="friend_name dojoxEllipsis">{{firstname}}</div>

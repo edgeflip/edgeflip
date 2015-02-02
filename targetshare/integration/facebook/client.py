@@ -14,10 +14,11 @@ from math import ceil
 import requests
 
 from django.conf import settings
-from django.utils import timezone
 
 from targetshare import utils
 from targetshare.models import datastructs, dynamo
+
+from .utils import decode_date, OAuthException
 
 
 LOG = logging.getLogger(__name__)
@@ -190,26 +191,6 @@ PX3_EXTENDED_FIELDS = {
 
 FULL_PX3_FIELDS = ','.join(PX3_FIELDS | PX3_EXTENDED_FIELDS)
 
-OAUTH_EXCEPTION_TYPES = {
-    'OAuthException',
-    'OAuthBaseException',
-}
-
-
-def decode_date(date):
-    if date:
-        try:
-            month, day, year = map(int, date.split('/'))
-            return timezone.datetime(year, month, day, tzinfo=timezone.utc)
-        except ValueError:
-            return None
-
-    return None
-
-
-class OAuthException(IOError):
-    pass
-
 
 def urlload(url, query=(), timeout=None):
     """Load data from the given Facebook URL."""
@@ -233,20 +214,8 @@ def urlload(url, query=(), timeout=None):
         else:
             if original_msg:
                 LOG.warning("Returned error message was: %s", original_msg)
-                if is_oauth_exception(original_msg):
-                    raise OAuthException(original_msg)
+                OAuthException.raise_for_response(original_msg)
         raise exc_type, exc_value, trace
-
-
-def is_oauth_exception(msg):
-    try:
-        response = json.loads(msg)
-        return (
-            response['error']['type'] in OAUTH_EXCEPTION_TYPES and
-            'Application request limit reached' not in response['error']['message']
-        )
-    except (KeyError, ValueError):
-        return False
 
 
 def exhaust_pagination(url, retry_limit=3, sleep_duration=5, timeout=120):

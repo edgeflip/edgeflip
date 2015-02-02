@@ -3,8 +3,8 @@ import datetime
 from django.conf import settings
 from django.contrib.sessions.models import Session
 from django.http import QueryDict
-from django.test import RequestFactory
-from django.utils import timezone, unittest
+from django.test import RequestFactory, TestCase
+from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from django.utils.importlib import import_module
 
@@ -197,40 +197,45 @@ class TestVisitor(RequestTestCase):
         self.assertEqual(visitor1.fbid, 321)
 
 
-class TestFacesUrl(unittest.TestCase):
+class TestFacesUrl(TestCase):
+
+    def setUp(self):
+        fb_app = models.FBApp.objects.create(appid=1, name='social-good', secret='sekret')
+        client = fb_app.clients.create(name='Klient')
+        self.campaign = client.campaigns.create(campaign_id=1)
 
     def test_basic_url(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share', 1, 1),
-            'http://www.demandaction.org/SandovalSB221Share?efcmpgslug=t0AGY7FMXjM%3D'
+            faces_url('http://www.demandaction.org/SandovalSB221Share', self.campaign, 1),
+            'http://www.demandaction.org/SandovalSB221Share?efcmpgslug=N9_DHXOFmaI'
         )
 
     def test_url_with_query(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', 1, 1),
-            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=t0AGY7FMXjM%3D'
+            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', self.campaign, 1),
+            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=N9_DHXOFmaI'
         )
 
     def test_basic_url_with_extra(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share', 1, 1, cake='good'),
-            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=t0AGY7FMXjM%3D'
+            faces_url('http://www.demandaction.org/SandovalSB221Share', self.campaign, 1, cake='good'),
+            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=N9_DHXOFmaI'
         )
 
     def test_url_with_extra_query(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', 1, 1, cookies='great'),
-            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=t0AGY7FMXjM%3D&cookies=great'
+            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', self.campaign, 1, cookies='great'),
+            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=N9_DHXOFmaI&cookies=great'
         )
 
     def test_url_with_multivalue_extra(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', 1, 1, MultiValueDict({'churros': ['delicious', 'convenient']}), cookies='great'),
-            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=t0AGY7FMXjM%3D&cookies=great&churros=delicious&churros=convenient'
+            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', self.campaign, 1, MultiValueDict({'churros': ['delicious', 'convenient']}), cookies='great'),
+            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=N9_DHXOFmaI&cookies=great&churros=delicious&churros=convenient'
         )
 
     def test_url_with_querydict_extra(self):
         self.assertEqual(
-            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', 1, 1, QueryDict('churros=delicious&churros=convenient'), cookies='great'),
-            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=t0AGY7FMXjM%3D&cookies=great&churros=delicious&churros=convenient'
+            faces_url('http://www.demandaction.org/SandovalSB221Share?cake=good', self.campaign, 1, QueryDict('churros=delicious&churros=convenient'), cookies='great'),
+            'http://www.demandaction.org/SandovalSB221Share?cake=good&efcmpgslug=N9_DHXOFmaI&cookies=great&churros=delicious&churros=convenient'
         )

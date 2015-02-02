@@ -89,6 +89,8 @@
             test_token: '{{ test_mode.token|default:"" }}',
             thanksURL: '{{ properties.client_thanks_url }}',
             errorURL: '{{ properties.client_error_url }}',
+            api: '{{ api }}',
+            loginScope: '{{ default_scope }}',
             campaignid: {{ campaign.pk }},
             contentid: {{ content.pk }},
             num_face: {{ properties.num_faces }}

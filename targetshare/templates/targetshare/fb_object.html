@@ -10,9 +10,9 @@
     <meta property="fb:app_id" content="{{ fb_params.fb_app_id }}" /> 
     <meta property="og:type" content="{{ fb_params.fb_app_name }}:{{ fb_params.fb_object_type }}" /> 
     <meta property="og:title" content="{{ fb_params.fb_object_title }}" /> 
-    <meta property="og:image" content="{{ fb_params.fb_object_image }}" /> 
+    <meta property="og:image" content="{{ fb_params.fb_object_image | safe }}" /> 
     <meta property="og:description" content="{{ fb_params.fb_object_description }}" /> 
-    <meta property="og:url" content="{{ fb_params.fb_object_url }}">
+    <meta property="og:url" content="{{ fb_params.fb_object_url | safe }}">
     <meta property="{{ fb_params.fb_app_name }}:orgname" content="{% if fb_params.fb_org_name %}{{ fb_params.fb_org_name }}{% else %}{{ client.name }}{% endif %}">
 {% endblock %}
 

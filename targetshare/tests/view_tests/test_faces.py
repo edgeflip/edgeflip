@@ -18,8 +18,8 @@ class TestFaces(EdgeFlipViewTestCase):
 
     fixtures = ['test_data']
 
-    task_key = 'faces_tasks_px_1_1_1'
-    task_ids = ['dummypx3taskid', 'dummypx4taskid']
+    task_key = 'faces_tasks_px_1_1_1_1.0'
+    task_ids = [[3, '123'], [4, '1234']]
 
     def setUp(self):
         super(TestFaces, self).setUp()
@@ -69,7 +69,7 @@ class TestFaces(EdgeFlipViewTestCase):
         self.assertEqual(response.data['campaignid'], 1)
         self.assertEqual(response.data['contentid'], 1)
 
-        task_ids = self.client.session['faces_tasks_px_1111111_1_1']
+        task_ids = self.client.session['faces_tasks_px_1111111_1_1_1.0']
         self.assertEqual(len(task_ids), 2)
 
         refreshed_token = models.dynamo.Token.items.lookup(fbid, self.test_client.fb_app_id)
@@ -140,7 +140,8 @@ class TestFaces(EdgeFlipViewTestCase):
         self.session.save()
         response = self.make_post(dict(self.params, last_call=True))
         self.assertContains(response, 'Response has taken too long, giving up', status_code=503)
-        self.assertIn('px3 failed to complete', logger_mock.fatal.call_args[0][0])
+        self.assertIn('primary targeting task (px%s) failed to complete',
+                      logger_mock.fatal.call_args[0][0])
 
     def test_px4_filtering(self, celery_mock):
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
@@ -153,8 +154,8 @@ class TestFaces(EdgeFlipViewTestCase):
         visit = models.Visit.objects.get(session_id=self.session.session_key)
         generated = visit.events.get(event_type='generated')
         shown = visit.events.get(event_type='shown')
-        self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234)')
-        self.assertEqual(shown.content, 'px4_score: 1.5 (1234)')
+        self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234) : Test User')
+        self.assertEqual(shown.content, 'px4_score: 1.5 (1234) : Test User')
 
     def test_complete_crawl(self, celery_mock):
         ''' Test that completes both px3 and px4 crawls '''
@@ -170,8 +171,8 @@ class TestFaces(EdgeFlipViewTestCase):
         visit = models.Visit.objects.get(session_id=self.session.session_key)
         generated = visit.events.get(event_type='generated')
         shown = visit.events.get(event_type='shown')
-        self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234)')
-        self.assertEqual(shown.content, 'px4_score: 1.5 (1234)')
+        self.assertEqual(generated.content, 'px3_score: 1.0 (123), px4_score: 1.5 (1234) : Test User')
+        self.assertEqual(shown.content, 'px4_score: 1.5 (1234) : Test User')
 
     def test_reload(self, celery_mock):
         self.test_edges = [self.test_edge._replace(px3_score=1.0, px4_score=1.5)]
@@ -326,7 +327,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         page_style = campaign_page_style_set.page_style_set.page_styles.get()
 
         self.assertFalse(models.Assignment.objects.exists())
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
 
         url = '//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css'
         self.assertEqual(page_style.url, url)
@@ -339,14 +340,14 @@ class TestFrameFaces(EdgeFlipViewTestCase):
     def test_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
         response = self.client.get(
-            reverse('frame-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+            reverse('frame-faces-encoded', args=['t0AGY7FMXjM%3D'])
         )
         self.assertStatusCode(response, 200)
 
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
         self.assertFalse(models.Event.objects.exists())
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
         client = models.Client.objects.get(campaigns__pk=1)
         campaign = models.Campaign.objects.get(pk=1)
         self.assertStatusCode(response, 200)
@@ -377,13 +378,13 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
         root_campaign_id = root_campaigns.get(campaign_id=6)
         self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
-        response = self.client.get(reverse('frame-faces', args=[6, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[6, 1]))
         self.assertStatusCode(response, 404)
 
     def test_configurable_urls(self):
         success_url = '//disney.com/'
         error_url = 'http://www.google.com/foo/bar'
-        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
             'efsuccessurl': success_url,
             'eferrorurl': error_url,
         })
@@ -395,7 +396,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
                          self.get_outgoing_url(error_url, 1))
 
     def test_test_mode(self):
-        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
             'secret': settings.TEST_MODE_SECRET,
             'fbid': 1234,
             'token': 'boo-urns',
@@ -407,7 +408,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         self.assertEqual(test_mode.token, 'boo-urns')
 
     def test_test_mode_bad_secret(self):
-        response = self.client.get(reverse('frame-faces', args=[1, 1]), {
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
             'secret': settings.TEST_MODE_SECRET[:4] + 'oops',
             'fbid': 1234,
             'token': 'oops',
@@ -431,7 +432,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         logged_in = self.client.login(username='mockuser', password='1234')
         self.assertTrue(logged_in)
 
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertTrue(response.context['draft_preview'])
 
@@ -439,7 +440,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         models.CampaignProperties.objects.filter(campaign_id=1).update(
             status=models.CampaignProperties.Status.DRAFT,
         )
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
         self.assertStatusCode(response, 403)
 
     def test_inactive_campaign(self):
@@ -447,7 +448,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         campaign.campaignproperties.update(
             status=models.CampaignProperties.Status.INACTIVE,
         )
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
         self.assertContains(response, "Page removed", status_code=410)
 
     def test_inactive_campaign_redirect(self):
@@ -462,7 +463,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
             reverse('outgoing', args=[client.fb_app_id, client.campaign_inactive_url]),
             campaign.campaign_id,
         )
-        response = self.client.get(reverse('frame-faces', args=[1, 1]))
+        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
         self.assertRedirects(response, outgoing_url, target_status_code=302)
 
     def test_canvas(self):
@@ -474,7 +475,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         ''' Testing the views.frame_faces_encoded method '''
         self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
-            reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+            reverse('canvas-faces-encoded', args=['t0AGY7FMXjM%3D'])
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.get(event_type='session_start')
@@ -483,7 +484,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
 
     def test_canvas_encoded_noslash(self):
         """Encoded canvas endpoint responds with 200 without trailing slash."""
-        url = reverse('canvas-faces-encoded', args=['uJ3QkxA4XIk%3D'])
+        url = reverse('canvas-faces-encoded', args=['t0AGY7FMXjM%3D'])
         response = self.client.get(url.rstrip('/'))
         self.assertStatusCode(response, 200)
 
@@ -502,7 +503,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
             birthday=timezone.datetime(1984, 1, 1, tzinfo=timezone.utc),
         )
         prim_user.save()
-        for x in range(0, 7):
+        for x in range(1, 8):
             user = models.User(
                 fbid=x,
                 fname='Test_%s' % x,
@@ -515,7 +516,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
             )
             user.save()
             event_type = 'shown'
-            if x > 2:
+            if x > 3:
                 event_type = 'generated'
             models.NotificationEvent.objects.create(
                 campaign_id=1, client_content_id=1, friend_fbid=x,
@@ -539,11 +540,11 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
 
     oauth_task_id = 'OAUTH_TOKEN_TASK-1'
 
-    faces_task_key = 'faces_tasks_px_1_1_1'
+    faces_task_key = 'faces_tasks_px_1_1_1_1.0'
 
     def setUp(self):
         super(TestFrameFacesEagerTargeting, self).setUp()
-        self.url = reverse('frame-faces', args=[1, 1])
+        self.url = reverse('frame-faces-default', args=[1, 1])
 
         self.session = self.get_session()
         self.session['oauth_task'] = self.oauth_task_id
@@ -587,11 +588,11 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         task = celery_mock.current_app.AsyncResult.return_value
         task.ready.return_value = True
         task.successful.return_value = True
-        task.result = models.datastructs.ShortToken(1, 1, 'TOKZ')
+        task.result = models.datastructs.ShortToken(1, 1, 'TOKZ', '1.0')
 
-        targeting_mock.return_value = (Mock(id='PX3-2'), Mock(id='PX4-2'))
+        targeting_mock.return_value = ((3, Mock(id='PX3-2')), (4, Mock(id='PX4-2')))
 
-        self.session[self.faces_task_key] = targeting_task_ids = ['PX3-1', 'PX4-1']
+        self.session[self.faces_task_key] = targeting_task_ids = [[3, 'PX3-1'], [4, 'PX4-1']]
         self.session.save()
 
         response = self.client.get(self.url)
@@ -609,9 +610,9 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
         task = celery_mock.current_app.AsyncResult.return_value
         task.ready.return_value = True
         task.successful.return_value = True
-        task.result = token = models.datastructs.ShortToken(1, 1, 'TOKZ')
+        task.result = token = models.datastructs.ShortToken(1, 1, 'TOKZ', '1.0')
 
-        targeting_mock.return_value = (Mock(id='PX3-2'), Mock(id='PX4-2'))
+        targeting_mock.return_value = ((3, Mock(id='PX3-2')), (4, Mock(id='PX4-2')))
 
         response = self.client.get(self.url)
         self.assertStatusCode(response, 200)
@@ -619,10 +620,11 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
 
         session = self.client.session
         self.assertNotIn(self.oauth_task_id, session)
-        self.assertEqual(session[self.faces_task_key], ['PX3-2', 'PX4-2'])
+        self.assertEqual(session[self.faces_task_key], [[3, 'PX3-2'], [4, 'PX4-2']])
 
         self.assertTrue(targeting_mock.called)
         targeting_mock.assert_called_once_with(
+            api=1,
             token=token,
             visit=models.Visit.objects.get(session_id=session.session_key),
             campaign=models.Campaign.objects.get(pk=1),

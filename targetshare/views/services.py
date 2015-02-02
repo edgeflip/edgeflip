@@ -76,7 +76,7 @@ def outgoing(request, app_id, url):
 @require_GET
 @utils.encoded_endpoint
 @utils.require_visit
-def incoming(request, campaign_id, content_id):
+def incoming(request, api, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     properties = campaign.campaignproperties.get()
 
@@ -134,6 +134,7 @@ def incoming(request, campaign_id, content_id):
             campaign.client_id,
             code,
             request.build_absolute_uri(redirect_path),
+            api,
             visit_id=request.visit.visit_id,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -142,7 +143,7 @@ def incoming(request, campaign_id, content_id):
 
     # Record event and redirect to the campaign faces URL
     # (with inheritance of incoming query string)
-    url = utils.faces_url(properties.client_faces_url, campaign_id, content_id, redirect_query)
+    url = utils.faces_url(properties.client_faces_url, campaign, content_id, redirect_query)
     db.delayed_save.delay(
         models.relational.Event(
             visit_id=request.visit.visit_id,
@@ -197,6 +198,7 @@ def faces_health_check(request):
     content = data['content']
     fbid = data['fbid']
     token = data['token']
+    api = data['api']
     num_face = data['num_face']
     client = campaign.client
 
@@ -204,6 +206,7 @@ def faces_health_check(request):
         fbid=fbid,
         appid=client.fb_app_id,
         token=token,
+        api=api
     )
     px3_task = targeting.proximity_rank_three.delay(
         token=token,

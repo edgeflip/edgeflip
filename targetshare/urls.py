@@ -1,33 +1,59 @@
 from django.conf.urls import patterns, url
 
+from core.utils.encryptedslug import API_DEFAULT
+
+
 urlpatterns = patterns('targetshare.views',
+    # button
     url(
-        r'^button/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        r'^button/(?P<api>[.\d]+)/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
         'button.button', name='button'
     ),
     url(
-        r'^button/(?P<campaign_slug>\S+)/$',
-        'button.button', name='button-encoded'
+        r'^button/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'button.button', {'api': API_DEFAULT}, name='button-default'
     ),
     url(
-        r'^frame_faces/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        r'^button/(?P<encrypted_slug>\S+)/$',
+        'button.button', name='button-encoded'
+    ),
+
+    # frame-faces
+    url(
+        r'^frame_faces/(?P<api>[.\d]+)/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
         'faces.frame_faces', name='frame-faces'
     ),
     url(
-        r'^frame_faces/(?P<campaign_slug>\S+)/$',
+        r'^frame_faces/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'faces.frame_faces', {'api': API_DEFAULT}, name='frame-faces-default'
+    ),
+    url(
+        r'^frame_faces/(?P<encrypted_slug>\S+)/$',
         'faces.frame_faces', name='frame-faces-encoded'
     ),
-    url(r'^canvas/$', 'faces.canvas', name='canvas'),
+
+    # canvas (frame-faces)
+    url(
+        r'^canvas/(?P<api>[.\d]+)/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'faces.frame_faces', {'canvas': True}, name='canvas-faces'
+    ),
     url(
         r'^canvas/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
-        'faces.canvas_faces', name='canvas-faces'
+        'faces.frame_faces', {'api': API_DEFAULT, 'canvas': True}, name='canvas-faces-default'
     ),
     url(
-        # Allow FB to leave off trailing slash without redirection:
-        r'^canvas/(?P<campaign_slug>\S+)/?$',
-        'faces.canvas_faces', name='canvas-faces-encoded'
+        # Allow FB to leave off trailing slash without redirection
+        r'^canvas/(?P<encrypted_slug>\S+)/?$',
+        'faces.frame_faces', {'canvas': True}, name='canvas-faces-encoded'
     ),
+
+    # canvas home
+    url(r'^canvas/$', 'faces.canvas', name='canvas'),
+
+    # faces
     url(r'^faces/$', 'faces.faces', name='faces'),
+
+    # faces-email
     url(
         r'^faces-email/(?P<notification_uuid>\S+)/$',
         'faces.faces_email_friends', name='faces-email'
@@ -36,18 +62,26 @@ urlpatterns = patterns('targetshare.views',
         r'^canvas/faces-email/(?P<notification_uuid>\S+)/$',
         'faces.faces_email_friends', name='canvas-faces-email'
     ),
+
+    # fb-objects
     url(
         r'^objects/(?P<fb_object_id>\d+)/(?P<content_id>\d+)/$',
         'fb_objects.objects', name='objects'
     ),
-    url(r'^suppress/$', 'events.suppress', name='suppress'),
+
+    # incoming
+    url(r'^incoming/(?P<api>[.\d]+)/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'services.incoming', name='incoming'),
+    url(r'^incoming/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
+        'services.incoming', {'api': API_DEFAULT}, name='incoming-default'),
+    url(r'^incoming/(?P<encrypted_slug>\S+)/$',
+        'services.incoming', name='incoming-encoded'),
+
     url(r'^outgoing/(?P<app_id>\d+)/(?P<url>.+)/$', 'services.outgoing',
         name='outgoing'),
-    url(r'^incoming/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
-        'services.incoming', name='incoming'),
-    url(r'^incoming/(?P<campaign_slug>\S+)/$',
-        'services.incoming', name='incoming-encoded'),
+    url(r'^suppress/$', 'events.suppress', name='suppress'),
     url(r'^record_event/$', 'events.record_event', name='record-event'),
+
     url(r'^health_check/$', 'services.health_check', name='health-check'),
     url(r'^health_check/faces/$', 'services.faces_health_check',
         name='faces-health-check'),

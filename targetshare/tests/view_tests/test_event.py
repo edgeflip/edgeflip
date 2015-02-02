@@ -39,7 +39,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         assert models.Event.objects.filter(
             visit__visitor__fbid=1, friend_fbid=3, event_type='shown'
         ).exists()
-        self.assertEqual(int(response.context['fbid']), 3)
+        self.assertEqual(int(response.context['uid']), 3)
         self.assertEqual(response.context['firstname'], 'Suppress')
 
     def test_record_event_forbidden(self):
@@ -174,11 +174,12 @@ class TestEventViews(EdgeFlipViewTestCase):
             'content': 'Testing',
             'eventType': 'authorized',
             'token': 'test-token',
+            'api': '1.0',
             'extend_token': '1'
         })
         self.assertStatusCode(response, 200)
         self.assertEqual(events.count(), 1)
-        task_mock.delay.assert_called_once_with(1111111, self.test_client.fb_app_id, 'test-token')
+        task_mock.delay.assert_called_once_with(1111111, self.test_client.fb_app_id, 'test-token', '1.0')
 
     @patch('targetshare.views.events.extend_token')
     def test_record_event_preauthed(self, task_mock):
@@ -203,6 +204,7 @@ class TestEventViews(EdgeFlipViewTestCase):
             'content': 'Testing',
             'eventType': 'authorized',
             'token': 'test-token',
+            'api': '1.0',
             'extend_token': 'True'
         })
         self.assertStatusCode(response, 200)

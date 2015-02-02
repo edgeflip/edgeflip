@@ -403,7 +403,7 @@ class Migration(SchemaMigration):
         },
         'targetshare.fbapp': {
             'Meta': {'ordering': "('name',)", 'object_name': 'FBApp', 'db_table': "'fb_apps'"},
-            'api': ('django.db.models.fields.DecimalField', [], {'default': "'2.2'", 'max_digits': '4', 'decimal_places': '2'}),
+            'api': ('django.db.models.fields.DecimalField', [], {'default': "'2.2'", 'max_digits': '3', 'decimal_places': '1'}),
             'appid': ('django.db.models.fields.BigIntegerField', [], {'primary_key': 'True'}),
             'created': ('django.db.models.fields.DateTimeField', [], {'auto_now_add': 'True', 'blank': 'True'}),
             'name': ('django.db.models.fields.CharField', [], {'unique': 'True', 'max_length': '255'}),

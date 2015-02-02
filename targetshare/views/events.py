@@ -51,7 +51,13 @@ def record_event(request):
     action_id = request.POST.get('actionid')
     event_type = request.POST.get('eventType')
     extend = request.POST.get('extend_token', False)
-    friends = [int(fid) for fid in request.POST.getlist('friends[]')]
+
+    (friends, friend_fbids) = ([], [])
+    for uid in request.POST.getlist('friends[]'):
+        if uid.isdigit():
+            uid = int(uid)
+            friend_fbids.append(uid)
+        friends.append(uid)
 
     if campaign_id:
         try:
@@ -101,7 +107,7 @@ def record_event(request):
                 visit_id=request.visit.visit_id,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                friend_fbid=friend,
+                friend_fbid=friend if isinstance(friend, int) else None,
                 content=content,
                 activity_id=action_id,
                 event_type=event_type,
@@ -114,7 +120,7 @@ def record_event(request):
                 visit_id=request.visit.visit_id,
                 campaign_id=campaign_id,
                 client_content_id=content_id,
-                content=content,
+                content=content[:1028],
                 activity_id=action_id,
                 event_type=event_type,
             )
@@ -127,19 +133,21 @@ def record_event(request):
             fbid = int(user_id)
             appid = int(app_id)
             token_string = request.POST['token']
+            api = request.POST['api']
         except (KeyError, ValueError, TypeError):
-            fbid = appid = token_string = None
+            fbid = appid = token_string = api = None
 
-        if not all([fbid, appid, token_string, campaign]):
-            msg = ("Cannot write authorization for fbid %r, appid %r "
+        if not all([fbid, appid, token_string, campaign, api]):
+            msg = ("Cannot write authorization for fbid %r, appid %r, api %r "
                    "and token %r under campaign %r")
-            args = (user_id, app_id, request.POST.get('token'), campaign_id)
+            args = (user_id, app_id, request.POST.get('api'),
+                    request.POST.get('token'), campaign_id)
             LOG.warning(msg, *args, extra={'request': request})
             return http.HttpResponseBadRequest(msg % args)
 
         campaign.client.userclients.get_or_create(fbid=fbid)
         if extend:
-            extend_token.delay(fbid, appid, token_string)
+            extend_token.delay(fbid, appid, token_string, api)
 
     elif event_type == 'shared':
         root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
@@ -156,7 +164,7 @@ def record_event(request):
                 'defaults': {
                     'reason': 'shared',
                 }
-            } for friend in friends
+            } for friend in friend_fbids
         ]
         if exclusions:
             db.get_or_create.delay(relational.FaceExclusion, *exclusions)
@@ -166,7 +174,7 @@ def record_event(request):
         faces_exclusions_key = PENDING_EXCLUSIONS_KEY.format(campaign_id=root_campaign.campaign_id,
                                                              content_id=content_id,
                                                              fbid=user_id)
-        request.session[faces_exclusions_key] = friends
+        request.session[faces_exclusions_key] = friend_fbids
 
     # Additional handling #
 
@@ -201,41 +209,44 @@ def suppress(request):
     user_id = request.POST.get('userid')
     campaign_id = request.POST.get('campaignid')
     content_id = request.POST.get('contentid')
-    content = request.POST.get('content')
-    old_id = request.POST.get('oldid')
+    old_id = request.POST.get('oldid', '')
 
     new_id = request.POST.get('newid')
-    fname = request.POST.get('fname')
-    lname = request.POST.get('lname')
+    fname = request.POST.get('fname', '')
+    lname = request.POST.get('lname', '')
+    picture = request.POST.get('pic')
 
     root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
+    content = "suppressed: {} {}".format(fname, lname)
 
     request.visit.events.create(
         campaign_id=campaign_id,
         client_content_id=content_id,
-        friend_fbid=old_id,
+        friend_fbid=old_id if old_id.isdigit() else None,
         content=content,
         event_type='suppressed',
     )
-    root_campaign.faceexclusion_set.get_or_create(
-        fbid=user_id,
-        content_id=content_id,
-        friend_fbid=old_id,
-        defaults={'reason': 'suppressed'},
-    )
+    if old_id.isdigit():
+        root_campaign.faceexclusion_set.get_or_create(
+            fbid=user_id,
+            content_id=content_id,
+            friend_fbid=old_id,
+            defaults={'reason': 'suppressed'},
+        )
 
     if new_id:
         request.visit.events.create(
             campaign_id=campaign_id,
             client_content_id=content_id,
-            friend_fbid=new_id,
+            friend_fbid=new_id if new_id.isdigit() else None,
             content=content,
             event_type='shown',
         )
         return render(request, 'targetshare/new_face.html', {
-            'fbid': new_id,
+            'uid': new_id,
             'firstname': fname,
             'lastname': lname,
+            'picture': picture,
         })
 
     return http.HttpResponse()
