@@ -3,6 +3,16 @@
 
 this is the message div and the faces themselves
  -->
+<script>
+    if ({{ show_faces | yesno:"false,true" }}) {
+        // Shouldn't get here unless something went very wrong in backend;
+        // nonetheless, let's be sure to send the user somewhere reasonable
+        // rather than a page with nothing to do
+        alert("Sorry. An error was encountered while communicating with Facebook.");
+        outgoingRedirect(edgeflip.faces.errorURL);
+    }
+</script>
+
 <script src="{{ STATIC_URL }}js/sharing.js"></script>
 <script src="{{ STATIC_URL }}js/manual_add.js"></script>
 
@@ -33,7 +43,7 @@ this is the message div and the faces themselves
             {% for friend in face_friends %}
                 {{ friend.uid | safejson }}{% if not forloop.last %},{% endif %}
             {% endfor %}
-        ].slice({{ num_face }}),
+        ],
 
         suggestedMessages: [
             ['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}'],
@@ -41,20 +51,12 @@ this is the message div and the faces themselves
         ]
     });
 
-    if (edgeflip.sharing.faceFriends.length === 0) {
-        // Shouldn't get here unless something went very wrong in backend;
-        // nonetheless, let's be sure to send the user somewhere reasonable
-        // rather than a page with nothing to do
-        alert("Sorry. An error was encountered while communicating with Facebook.");
-        outgoingRedirect(edgeflip.faces.errorURL);
-    } else {
-        setDropdown($.map(edgeflip.sharing.allFriends, function (friend, uid) {
-            return {
-                label: friend.name,
-                value: {uid: uid, pic: friend.pic}
-            };
-        }));
-    }
+    setDropdown($.map(edgeflip.sharing.allFriends, function (friend, uid) {
+        return {
+            label: friend.name,
+            value: {uid: uid, pic: friend.pic}
+        };
+    }));
 </script>
 
 <div id="faces_form_container">
