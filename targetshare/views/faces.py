@@ -378,7 +378,7 @@ def faces(request):
                 'client_content_id': tier['content_id'],
                 'friend_fbid': edge.secondary.fbid,
                 'event_type': 'generated',
-                'content': "{} : {}".format(px_content, edge.secondary.name),
+                'content': u"{} : {}".format(px_content, edge.secondary.name),
                 'defaults': {
                     'event_datetime': timezone.now(),
                 },
@@ -407,9 +407,9 @@ def faces(request):
     eligible_edges = (edge for edge in targeting_result.filtered.iteredges()
                       if edge.secondary.fbid is None or edge.secondary.fbid not in all_exclusions)
     for (edge_index, edge) in enumerate(itertools.islice(eligible_edges, MAX_FACES)):
-        face_friends.append(edge.secondary)
-
-        if edge_index < data['num_face']:
+        if edge_index >= data['num_face']:
+            face_friends.append(edge.secondary)
+        else:
             show_faces.append(edge.secondary)
 
             try:
@@ -430,7 +430,7 @@ def faces(request):
                     campaign_id=campaign.campaign_id,
                     client_content_id=content.content_id,
                     friend_fbid=edge.secondary.fbid,
-                    content="{} : {}".format(px_content, edge.secondary.name),
+                    content=u"{} : {}".format(px_content, edge.secondary.name),
                     event_type='shown',
                 )
             )
@@ -491,17 +491,22 @@ def faces_email_friends(request, notification_uuid):
     friend_fbids = notification_user.events.filter(
         event_type__in=('generated', 'shown')
     ).values_list('friend_fbid', flat=True).distinct()
-    face_friends = all_friends = dynamo.User.items.batch_get(
-        keys=LazyList({'fbid': fbid} for fbid in friend_fbids)
+    all_friends = dynamo.User.items.batch_get(
+        keys=LazyList({'fbid': fbid} for fbid in friend_fbids.iterator())
     )
     shown_fbids = set(
         notification_user.events.filter(
             event_type='shown',
-        ).values_list('friend_fbid', flat=True)
+        ).values_list('friend_fbid', flat=True).iterator()
     )
     num_face = len(shown_fbids)
-    show_faces = LazyList(friend for friend in face_friends
-                          if friend.fbid in shown_fbids)
+
+    (face_friends, show_faces) = ([], [])
+    for friend in all_friends:
+        if friend.fbid in shown_fbids:
+            show_faces.append(friend)
+        else:
+            face_friends.append(friend)
 
     db.delayed_save.delay(
         relational.Event(

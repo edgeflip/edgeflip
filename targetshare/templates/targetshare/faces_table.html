@@ -33,7 +33,7 @@ this is the message div and the faces themselves
             {% for friend in face_friends %}
                 {{ friend.uid | safejson }}{% if not forloop.last %},{% endif %}
             {% endfor %}
-        ].slice({{ num_face }}),
+        ],
 
         suggestedMessages: [
             ['{{ msg_params.msg1_pre }}', '{{ msg_params.msg1_post }}'],
@@ -41,7 +41,7 @@ this is the message div and the faces themselves
         ]
     });
 
-    if (edgeflip.sharing.faceFriends.length === 0) {
+    if ({{ show_faces | yesno:"false,true" }}) {
         // Shouldn't get here unless something went very wrong in backend;
         // nonetheless, let's be sure to send the user somewhere reasonable
         // rather than a page with nothing to do
