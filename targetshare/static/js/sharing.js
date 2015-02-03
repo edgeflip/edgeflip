@@ -522,7 +522,7 @@ edgeflip.sharing = (function ($, edgeflip) {
 
             // Get outta here
             edgeflip.events.record('publish_reminder_declined', {
-                complete: outgoingRedirect.bind(undefined, edgeflip.faces.errorURL)
+                complete: edgeflip.util.outgoingRedirect.bind(undefined, edgeflip.faces.errorURL)
             });
         }, {scope: 'publish_actions', return_scopes: true});
     };
@@ -580,7 +580,7 @@ edgeflip.sharing = (function ($, edgeflip) {
                         errorMsg: response.error,
                         complete: function () {
                             alert("Sorry. An error occured sending your message to facebook. Please try again later.");
-                            outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
+                            edgeflip.util.outgoingRedirect(edgeflip.faces.errorURL); // set in frame_faces.html
                         }
                     });
                 } else {
@@ -604,7 +604,7 @@ edgeflip.sharing = (function ($, edgeflip) {
             complete: function () {
                 updateProgressBar(100);
                 // thanksURL set in frame_faces.html
-                setTimeout(outgoingRedirect.bind(undefined, edgeflip.faces.thanksURL), 500);
+                setTimeout(edgeflip.util.outgoingRedirect.bind(undefined, edgeflip.faces.thanksURL), 500);
             }
         });
     }
