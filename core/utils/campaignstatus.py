@@ -131,6 +131,7 @@ class InactiveCampaign(DisallowedError):
         raise cls("Campaign is no longer active", request, campaign, properties)
 
     def make_error_response(self, friendly=False):
+        # Determine appropriate redirect path, if any, through outgoing redirector
         inactive_url = self.properties.inactive_url or self.campaign.client.campaign_inactive_url
         if inactive_url:
             redirect_url = urlreverse('outgoing',
@@ -142,18 +143,20 @@ class InactiveCampaign(DisallowedError):
         else:
             redirect_url = None
 
-        if (
-            self.request.user.is_superuser or
-            self.request.user.groups.filter(client=self.campaign.client).exists()
-        ):
+        authorized = (self.request.user.is_superuser or
+                      self.request.user.groups.filter(client=self.campaign.client).exists())
+        if authorized or (redirect_url and not friendly):
+            # Render template for admin experience OR JavaScript (iframe) redirect
             return render(self.request, 'core/campaignstatus/inactive-campaign.html', {
-                'friendly': friendly,
+                'authorized': authorized,
                 'redirect_url': redirect_url,
             })
 
         if redirect_url:
+            # No need for JavaScript; just redirect
             return http.HttpResponseRedirect(redirect_url)
 
+        # Nowhere to go and nothing to say. It's just gone, man.
         message = "" if self.request.method == 'HEAD' else "Page removed"
         return http.HttpResponseGone(message)
 
