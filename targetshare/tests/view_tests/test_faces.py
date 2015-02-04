@@ -1,6 +1,7 @@
 import datetime
 import json
 import os.path
+import re
 
 from django.conf import settings
 from django.contrib.auth import models as auth
@@ -463,8 +464,15 @@ class TestFrameFaces(EdgeFlipViewTestCase):
             reverse('outgoing', args=[client.fb_app_id, client.campaign_inactive_url]),
             campaign.campaign_id,
         )
+
+        # JavaScript redirect to overcome canvas iframe:
         response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
-        self.assertRedirects(response, outgoing_url, target_status_code=302)
+        self.assertStatusCode(response, 200)
+        self.assertTemplateUsed(response, 'core/campaignstatus/inactive-campaign.html')
+        self.assertFalse(response.context['authorized'])
+        self.assertEqual(response.context['redirect_url'], outgoing_url)
+        snippet = r'''outgoingRedirect\(['"]{}['"]\);\s*</script>'''.format(re.escape(outgoing_url))
+        self.assertRegexpMatches(response.content, snippet)
 
     def test_canvas(self):
         ''' Tests views.canvas '''
