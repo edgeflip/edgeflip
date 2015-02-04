@@ -14,7 +14,7 @@ urlpatterns = patterns('targetshare.views',
         'button.button', {'api': API_DEFAULT}, name='button-default'
     ),
     url(
-        r'^button/(?P<encrypted_slug>\S+)/$',
+        r'^button/(?P<encrypted_slug>[^/\s]+)/$',
         'button.button', name='button-encoded'
     ),
 
@@ -28,7 +28,7 @@ urlpatterns = patterns('targetshare.views',
         'faces.frame_faces', {'api': API_DEFAULT}, name='frame-faces-default'
     ),
     url(
-        r'^frame_faces/(?P<encrypted_slug>\S+)/$',
+        r'^frame_faces/(?P<encrypted_slug>[^/\s]+)/$',
         'faces.frame_faces', name='frame-faces-encoded'
     ),
 
@@ -43,7 +43,7 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(
         # Allow FB to leave off trailing slash without redirection
-        r'^canvas/(?P<encrypted_slug>\S+)/?$',
+        r'^canvas/(?P<encrypted_slug>[^/\s]+)/?$',
         'faces.frame_faces', {'canvas': True}, name='canvas-faces-encoded'
     ),
 
@@ -55,11 +55,11 @@ urlpatterns = patterns('targetshare.views',
 
     # faces-email
     url(
-        r'^faces-email/(?P<notification_uuid>\S+)/$',
+        r'^faces-email/(?P<notification_uuid>[^/\s]+)/$',
         'faces.faces_email_friends', name='faces-email'
     ),
     url(
-        r'^canvas/faces-email/(?P<notification_uuid>\S+)/$',
+        r'^canvas/faces-email/(?P<notification_uuid>[^/\s]+)/$',
         'faces.faces_email_friends', name='canvas-faces-email'
     ),
 
@@ -74,7 +74,7 @@ urlpatterns = patterns('targetshare.views',
         'services.incoming', name='incoming'),
     url(r'^incoming/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
         'services.incoming', {'api': API_DEFAULT}, name='incoming-default'),
-    url(r'^incoming/(?P<encrypted_slug>\S+)/$',
+    url(r'^incoming/(?P<encrypted_slug>[^/\s]+)/$',
         'services.incoming', name='incoming-encoded'),
 
     url(r'^outgoing/(?P<app_id>\d+)/(?P<url>.+)/$', 'services.outgoing',
