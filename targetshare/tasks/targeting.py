@@ -124,6 +124,13 @@ def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
     try:
         user = facebook.client2.get_user(token.token)
         network = facebook.client2.get_friend_edges(user, token.token)
+    except (
+        facebook.utils.OAuthTooManyAppCalls,
+        facebook.utils.OAuthTokenExpired,
+        facebook.utils.OAuthPermissionDenied,
+    ):
+        record('targeting_failed')
+        raise
     except IOError as exc:
         if self.request.retries == self.max_retries:
             record('targeting_failed')

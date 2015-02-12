@@ -35,13 +35,14 @@ class TestFacebookIntegration(unittest.TestCase):
         self.assertEqual(bday, None)
 
     def test_is_oauth_exception(self):
-        for msg in (
-            '{"error": {"message": "(#4) Application request limit reached","type": "OAuthException","code": 4}}',
-            'garbage',
-        ):
-            facebook.utils.OAuthException.raise_for_response(msg)
+        facebook.utils.OAuthException.raise_for_response('garbage')
 
-        with self.assertRaises(facebook.utils.OAuthException):
+        with self.assertRaises(facebook.utils.OAuthTooManyAppCalls):
             facebook.utils.OAuthException.raise_for_response(
                 '{"error": {"message": "Expired token or somesuch","type": "OAuthException","code": 4}}'
+            )
+
+        with self.assertRaises(facebook.utils.OAuthPermissionDenied):
+            facebook.utils.OAuthException.raise_for_response(
+                '{"error": {"message": "Expired token or somesuch","type": "OAuthException","code": 10}}'
             )
