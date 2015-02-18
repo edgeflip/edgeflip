@@ -1,11 +1,13 @@
+import abc
 import collections
 import logging
 import itertools
 import operator
 
+from django.conf import settings
 from django.utils import timezone
 
-from core.utils import names
+from core.utils import datastruct, names
 
 from targetshare.models import dynamo
 from targetshare.utils import classonlymethod
@@ -18,31 +20,369 @@ LOG = logging.getLogger(__name__)
 ShortToken = collections.namedtuple('ShortToken', ('fbid', 'appid', 'token', 'api'))
 
 
-# Simple User class for taggable friends:
-_TaggableFriendSpec = collections.namedtuple('TaggableFriend', ('id', 'name', 'picture'))
+# API 2.2 datastructs #
+
+# Abstract models #
+
+class Friend(datastruct.DataStruct):
+    """Abstract model for all representations of users of Facebook."""
+
+    @abc.abstractproperty
+    def fbid(self):
+        """The persistent user ID returned by Facebook.
+
+        When specified, this is generally a Facebook App-scoped ID.
+
+        Alternatively, this may be None; however, it is still given, for
+        compatibility with (back-end) code wanting only true Facebook IDs.
+
+        """
+        raise NotImplementedError
+
+    @abc.abstractproperty
+    def name(self):
+        """The full user name."""
+        raise NotImplementedError
+
+    @abc.abstractproperty
+    def uid(self):
+        """The unique user ID returned by Facebook.
+
+        This may be a persistent or a temporary ID. It is required for
+        compatibility with (front-end) code handling both persistent users and
+        transient taggable friends.
+
+        """
+        raise NotImplementedError
 
 
-class TaggableFriend(_TaggableFriendSpec):
+class Taggable(datastruct.DataStruct):
+    """Abstract (mix-in) model for Facebook friends who are available to a user
+    for tagging in a post.
 
-    __slots__ = ()
+    """
+    @abc.abstractproperty
+    def id(self):
+        """The temporary ID returned by Facebook for use in the tag."""
+        raise NotImplementedError
 
-    fbid = None
+    @abc.abstractproperty
+    def picture(self):
+        """URL to a picture of the taggable friend."""
+        raise NotImplementedError
 
     @property
     def uid(self):
-        return self[0]
+        return self.id
 
-    def names(self):
-        return names.parse_names(self[1])
+
+# Concrete models #
+
+class User(Friend):
+    """Model of a Facebook user for whom we've received a persistent ID, and
+    about whom we may have additional personal information.
+
+    """
+    fbid = datastruct.IntegerField()
+    fname = datastruct.CharField()
+    lname = datastruct.CharField()
+    name = datastruct.CharField()
+    email = datastruct.CharField()
+    gender = datastruct.CharField()
+
+    def __init__(self, *args, **kws):
+        super(User, self).__init__(*args, **kws)
+        # May receive either full name or split-out fname and lname:
+        try:
+            self.name = u' '.join(part for part in (self.fname, self.lname) if part)
+        except AttributeError:
+            try:
+                (self.fname, self.lname) = names.parse_names(self.name)
+            except AttributeError:
+                raise TypeError("Either 'fname' and 'lname' or 'name' required")
+
+    @property
+    def uid(self):
+        return self.fbid
+
+
+class TaggableUser(Taggable, User):
+    """A User for whom we've also received a tagging ID and picture URL."""
+
+    id = datastruct.CharField()
+    picture = datastruct.CharField()
+
+    @classonlymethod
+    def combine(cls, user, taggable):
+        """Construct a new TaggableUser by combining a given User and a given
+        TaggableFriend.
+
+        """
+        if user.name != taggable.name:
+            raise ValueError("{!r} != {!r}".format(user.name, taggable.name))
+        data = dict(user.__dict__, id=taggable.id, picture=taggable.picture)
+        return cls(**data)
+
+
+class TaggableFriend(Taggable, Friend):
+    """Model of a Facebook user for whom we've only received tagging information."""
+
+    id = datastruct.CharField()
+    name = datastruct.CharField()
+    picture = datastruct.CharField()
+    _names_ = datastruct.InternalField() # cache for parsed-out names
+
+    fbid = None # no persistent ID
+
+    # Parse combined "name" field into first and last on a need-to-know basis #
+
+    @property
+    def _names(self):
+        try:
+            return self._names_
+        except AttributeError:
+            self._names_ = names.parse_names(self.name)
+            return self._names_
 
     @property
     def fname(self):
-        return self.names()[0]
+        return self._names[0]
 
     @property
     def lname(self):
-        return self.names()[1]
+        return self._names[1]
 
+
+class DirectedEdge(datastruct.DataStruct):
+
+    INTERACTIONS = frozenset([
+        'photo_tags',
+        'photo_likes',
+        'photo_comms',
+        'photos_target',
+        'video_tags',
+        'video_likes',
+        'video_comms',
+        'videos_target',
+        'photo_upload_tags',
+        'photo_upload_likes',
+        'photo_upload_comms',
+        'video_upload_tags',
+        'video_upload_likes',
+        'video_upload_comms',
+        'stat_tags',
+        'stat_likes',
+        'stat_comms',
+        'link_tags',
+        'link_likes',
+        'link_comms',
+        'place_tags',
+    ])
+
+    target = datastruct.ReferenceField(Friend)
+    source = datastruct.ReferenceField(Friend)
+    score = datastruct.FloatField()
+
+    # Magically set IntegerFields for each interaction type:
+    locals().update(
+        (interaction, datastruct.IntegerField(default=0))
+        for interaction in INTERACTIONS
+    )
+
+
+class IncomingEdge(DirectedEdge):
+
+    @property
+    def secondary(self):
+        return self.source
+
+    # Quick-and-dirty compatibility with v1.0 interface #
+
+    def get_rank_score(self, rank):
+        if rank is None:
+            return self.score
+        raise NotImplementedError("{} does not support ranked proximity scores"
+                                  .format(self.__class__.__name__))
+
+    def get_score(self):
+        return (None, self.score)
+
+
+_CONFIGURED_PROXIMITY = getattr(settings, 'PROXIMITY', None) or {}
+
+
+class DirectedEdgeAggregate(object):
+
+    weights = {interaction: _CONFIGURED_PROXIMITY.get(interaction, 1)
+               for interaction in DirectedEdge.INTERACTIONS}
+
+    def __init__(self, network, aggregator=max):
+        for interaction in self.weights:
+            population_score = aggregator(getattr(edge, interaction) for edge in network)
+            setattr(self, interaction, population_score)
+
+    def score(self, edge):
+        """proximity-scoring function
+
+        edge: a single datastructs.DirectedEdge
+
+        """
+        score_total = weight_total = 0
+        for (interaction, weight) in self.weights.iteritems():
+            population_score = getattr(self, interaction)
+            if population_score:
+                edge_score = getattr(edge, interaction)
+                score_total += float(edge_score) / population_score * weight
+                weight_total += weight
+
+        try:
+            return score_total / weight_total
+        except ZeroDivisionError:
+            return 0
+
+    def score_all(self, network):
+        for edge in network:
+            edge.score = self.score(edge)
+
+
+class DirectedEdges(list):
+
+    Aggregate = DirectedEdgeAggregate
+    Edge = DirectedEdge
+
+    def __init__(self, user, edges=()):
+        self.user = user
+        super(DirectedEdges, self).__init__(edges)
+
+    def __repr__(self):
+        return "{}({}, {})".format(
+            self.__class__.__name__,
+            self.user,
+            super(DirectedEdges, self).__repr__(),
+        )
+
+    def _clone(self, edges=None):
+        """Handle for copying over attributes."""
+        return type(self)(self.user, (self if edges is None else edges))
+
+    def __getitem__(self, key):
+        result = super(DirectedEdges, self).__getitem__(key)
+        return self._clone(result) if isinstance(key, slice) else result
+
+    def __getslice__(self, start, stop):
+        return self.__getitem__(slice(start, stop))
+
+    def __eq__(self, other):
+        try:
+            user = other.user
+        except AttributeError:
+            return False
+        else:
+            return user == self.user and super(DirectedEdges, self).__eq__(other)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __add__(self, other):
+        return self._clone(itertools.chain(self, other))
+
+    def __mul__(self, count):
+        return self._clone(itertools.chain.from_iterable(itertools.repeat(self, count)))
+
+    __rmul__ = __mul__
+
+    def score(self):
+        """Calculate normalized proximity scores for each edge in the network
+        and set their `score` attribute.
+
+        This operation is in-place.
+
+        """
+        self.Aggregate(self).score_all(self)
+
+    def rank(self):
+        """Sort the network edges, in-place, by their `score`."""
+        self.sort(key=lambda edge: edge.score, reverse=True)
+
+    def score_rank(self):
+        """Score the network edges, and rank them, in-place."""
+        self.score()
+        self.rank()
+
+
+class IncomingEdges(DirectedEdges):
+
+    Edge = IncomingEdge
+
+    def merged(self, *fills):
+        """Return a new, ostensibly-extended network, filled in by any number
+        of iterables of TaggableFriends, removing duplicates between the sets
+        according to Friends' names, and replacing edges of Users with new
+        edges of TaggableUsers.
+
+        If this method fails to completely match any set of Friends under their
+        shared name, only edges wrapping TaggableFriends are returned for that
+        name.
+
+        This method assumes that "fill" Friends are unique, (and that their IDs
+        are unavailable or incompatible for comparison with existing edge Friends).
+
+        `merged` does not maintain any pre-existing edge ordering.
+
+        """
+        return self._clone(self._itermerged(*fills))
+
+    def _itermerged(self, *fills):
+        lookup = collections.defaultdict(list)
+        for users in fills:
+            for user in users:
+                lookup[user.name].append(user)
+
+        nomatch = multimatch = 0
+        edgekey = operator.attrgetter('source.name')
+        for (name, edges_iter) in itertools.groupby(sorted(self, key=edgekey), edgekey):
+            edges = tuple(edges_iter)
+            edge_count = len(edges)
+            matches = lookup[name]
+            match_count = len(matches)
+
+            # Conservative: if we're unsure at all, we fall back entirely
+            # on the default list(s).
+            if match_count == edge_count == 1:
+                # Exact match.
+                del lookup[name]
+                ((edge,), (taggable_friend,)) = (edges, matches)
+                yield edge.clone(source=TaggableUser.combine(edge.source, taggable_friend))
+            elif match_count >= edge_count:
+                # Either:
+                # a) All "fill" users are accounted for in "head"; however, we
+                # can't differentiate between them for the purpose of extending
+                # individual users with their tagging information.
+                # or:
+                # b) There are "fill" users unaccounted for in "head";
+                # rather than risk duplicates, fall back entirely to "fills".
+                multimatch += match_count - edge_count
+                LOG.debug("Multiple friend matches in name-merge (%r): %r", self.user.fbid, name)
+            elif match_count < edge_count:
+                # There are "head" users unaccounted for in "fills".
+                # Some of these might be BAD.
+                nomatch += edge_count - match_count
+                LOG.debug("Unmatched friends in name-merge (%r): %r", self.user.fbid, name)
+
+        fillcount = 0
+        fillusers = itertools.chain.from_iterable(lookup.itervalues())
+        for (fillcount, user) in enumerate(fillusers, 1):
+            yield self.Edge(target=self.user, source=user)
+
+        if nomatch:
+            LOG.debug("No matching friends in name-merge (%r): (%r)", self.user.fbid, nomatch)
+        if multimatch:
+            LOG.debug("Multiple friend matches in name-merge (%r): (%r)", self.user.fbid, multimatch)
+        if fillcount:
+            LOG.debug("Filled in %r users via name-merge (%r)", fillcount, self.user.fbid)
+
+
+# API 1.0 datastructs #
 
 _EdgeSpec = collections.namedtuple('Edge',
     ('primary', 'secondary', 'incoming', 'outgoing', 'interactions',

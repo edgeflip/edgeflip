@@ -64,6 +64,19 @@ edgeflip.sharing = (function ($, edgeflip) {
     },
     $editable = $('#message_form_editable');
 
+    var _lookupFbid = function (uid) {
+        var friend = self.allFriends[uid],
+            fbid = friend.fbid;
+        return fbid ? fbid : uid;
+    };
+    function mapFbids (uids) {
+        /* Map a single UID to an FBID or an array of UIDs to an array of FBIDs.
+         *
+         * If no FBID for a UID can be found, returns the UID.
+         */
+        return Array.isArray(uids) ? uids.map(_lookupFbid) : _lookupFbid(uids);
+    }
+
     self.recipients = (function ($, sharing) {
         /* recipients submodule definition */
         var self = {
@@ -276,7 +289,7 @@ edgeflip.sharing = (function ($, edgeflip) {
             var selection_type = 'selected_friend';
             if (novelIds.length === 1 && document.getElementById('wrapper-' + novelIds[0]) === null) 
                 selection_type = 'manually_selected_friend';
-            edgeflip.events.record(selection_type, {friends: novelIds});
+            edgeflip.events.record(selection_type, {friends: mapFbids(novelIds)});
         }
 
         $("body").trigger('friendsSelected');
@@ -303,7 +316,7 @@ edgeflip.sharing = (function ($, edgeflip) {
                 if (document.getElementById('wrapper-' + fbid) === null)
                     unselection_type = 'manually_unselected_friend';
 
-                edgeflip.events.record(unselection_type, {friends: [fbid]});
+                edgeflip.events.record(unselection_type, {friends: mapFbids([fbid])});
             }
         }
         return isSelected;
@@ -434,7 +447,7 @@ edgeflip.sharing = (function ($, edgeflip) {
             }
         });
 
-        if (fbids.length) {self.selectFriend.apply(this, fbids);}
+        if (fbids.length) {self.selectFriend.apply(undefined, fbids);}
     };
 
     /* Tell the user max_face have already been selected */
@@ -599,7 +612,7 @@ edgeflip.sharing = (function ($, edgeflip) {
         /* records share event on edgeflip servers; redirects user to thank you page */
         edgeflip.events.record('shared', {
             actionid: actionid,
-            friends: recips,
+            friends: mapFbids(recips),
             shareMsg: shareMsg,
             complete: function () {
                 updateProgressBar(100);
@@ -754,10 +767,11 @@ edgeflip.sharing = (function ($, edgeflip) {
             });
         });
 
-        // Buttons
-        $('#button_select_all').click(self.selectAll);
-        $('#button_sugg_msg').click(self.useSuggested);
-        $('#button_do_share').click(self.initShare);
+        // Buttons //
+        // Ensure arguments not interfered with by Event object:
+        $('#button_select_all').click(self.selectAll.bind(undefined, false));
+        $('#button_sugg_msg').click(self.useSuggested.bind(undefined));
+        $('#button_do_share').click(self.initShare.bind(undefined, false));
     }); // document ready
 
     return self;

@@ -123,34 +123,41 @@ def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
     record('targeting_started')
     try:
         user = facebook.client2.get_user(token.token)
-        network = facebook.client2.get_friend_edges(user, token.token)
+        taggable_friends = facebook.client2.get_taggable_friends(token.token)
+        stream = facebook.client2.Stream.read(user, token.token)
     except (
         facebook.utils.OAuthTooManyAppCalls,
         facebook.utils.OAuthTokenExpired,
         facebook.utils.OAuthPermissionDenied,
     ):
-        record('targeting_failed')
+        record('targeting_read_failed')
         raise
     except IOError as exc:
         if self.request.retries == self.max_retries:
-            record('targeting_failed')
+            record('targeting_read_failed')
         self.retry(exc=exc)
 
-    record('targeting_completed')
-    # TODO: kick off object-persistence tasks?
+    record('targeting_read_completed')
 
-    px_ranked = network # TODO: make these ranked
+    # Build network:
+    network = stream.get_friend_edges()
+    taggable_network = network.merged(taggable_friends)
 
-    # FIXME: for now, no filter-ranking; just put ranking into a single tier:
-    filter_ranked = datastructs.TieredEdges(
-        edges=network,
+    # Proximity-rank:
+    taggable_network.score_rank()
+
+    # For now, no filter-ranking; just put ranking into a single tier:
+    filtered = datastructs.TieredEdges(
+        edges=taggable_network,
         campaign_id=campaign_id,
         content_id=content_id,
     )
 
+    record('targeting_completed')
+
     return FilteringResult(
-        ranked=px_ranked,
-        filtered=filter_ranked,
+        ranked=taggable_network,
+        filtered=filtered,
         cs_filter_id=None,
         choice_set_slug=None,
         campaign_id=campaign_id,
@@ -648,7 +655,7 @@ def px4_filter(stream, edges_ranked, campaign_id, content_id, fbid, visit_id, nu
         # contents of primary's posts (currently)
         edges_ranked.precache_topics_feature(post_topics)
 
-    ## px4 filtering ##
+    # px4 filtering #
 
     filtering_result = None
 
