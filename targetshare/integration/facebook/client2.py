@@ -285,7 +285,6 @@ class Stream(list):
                     if exc:
                         # In development, put `done_future.result()` here
                         # to raise exception in main thread.
-                        done_future.result() ##
                         _handle_graph_exception(exc)
             except futures.TimeoutError as exc:
                 LOG.warning(

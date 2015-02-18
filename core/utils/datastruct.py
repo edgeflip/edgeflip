@@ -78,8 +78,8 @@ class CharField(Field):
 
 class ReferenceField(Field):
 
-    def __init__(self, cls):
-        super(ReferenceField, self).__init__()
+    def __init__(self, cls, *args, **kws):
+        super(ReferenceField, self).__init__(*args, **kws)
         self.reference = cls
 
     def clean(self, instance, value):
