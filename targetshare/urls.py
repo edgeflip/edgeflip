@@ -54,7 +54,7 @@ urlpatterns = patterns('targetshare.views',
 
     # canvas home
     url(r'^canvas/$',
-        RedirectView.as_view(url=CANVAS_REDIRECT_URL) if CANVAS_REDIRECT_URL else 'faces.canvas',
+        RedirectView.as_view(url=CANVAS_REDIRECT_URL, permanent=False) if CANVAS_REDIRECT_URL else 'faces.canvas',
         name='canvas'),
 
     # faces
