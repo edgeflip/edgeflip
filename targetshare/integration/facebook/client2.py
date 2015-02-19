@@ -148,6 +148,13 @@ def get_taggable_friends(token):
     ]
 
 
+def get_friend_edges(token):
+    """Read the user's Stream and compute their IncomingEdges."""
+    user = get_user(token)
+    stream = Stream.read(user, token)
+    return stream.get_friend_edges()
+
+
 Post = collections.namedtuple('Post', ('post_id', 'message', 'interactions'))
 Interaction = collections.namedtuple('Interaction', ('user_id', 'name', 'type'))
 
