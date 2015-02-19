@@ -21,6 +21,7 @@ us==0.7
 sh==1.08
 mock==1.0.1
 requests==1.2.3
+requests_futures==0.9.5
 pylibmc==1.2.3
 South==1.0.2
 Django==1.6.8

@@ -29,6 +29,7 @@ this is the message div and the faces themselves
         allFriends: {
             {% for friend in all_friends %}
                 {{ friend.uid | safejson }}: {
+                    fbid: {% if friend.fbid %}"{{ friend.fbid }}"{% else %}null{% endif %},
                     name: {{ friend.name | safejson }},
                     fname: {{ friend.fname | safejson }},
                     lname: {{ friend.lname | safejson }},
