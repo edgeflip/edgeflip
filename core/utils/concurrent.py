@@ -48,7 +48,7 @@ def _parallel(*signatures, **params):
 
     and, via helper `S`:
 
-        parallel(S(myfunc0, arg0, arg1, key0=value0, ...), ...)
+        parallel(S(myfunc0, arg0, key0=value0, ...), ...)
 
     """
     max_workers = params.get('max_workers', len(signatures))
@@ -57,15 +57,12 @@ def _parallel(*signatures, **params):
         raise TypeError("parallel expected at most 2 keyword argument, got {}".format(len(params)))
 
     with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures_signatures = [
-            (executor.submit(func, *args, **kws), Signature(func, args, kws))
-            for (func, args, kws) in _iter_signatures(signatures)
-        ]
-        fs = [future for (future, _signature) in futures_signatures]
-        signatures_lookup = dict(futures_signatures)
+        fs = {executor.submit(func, *args, **kws): (index, Signature(func, args, kws))
+              for (index, (func, args, kws)) in enumerate(_iter_signatures(signatures))}
 
         for future in futures.as_completed(fs, timeout):
-            yield (fs.index(future), signatures_lookup[future], future.result())
+            (index, signature) = fs[future]
+            yield (index, signature, future.result())
 
 
 def parallel_as_completed(*signatures, **kws):
