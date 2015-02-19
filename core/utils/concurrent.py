@@ -2,11 +2,10 @@
 from __future__ import absolute_import
 
 import collections
+import itertools
 import operator
 from concurrent import futures
 
-
-_EMPTY = ((), {})
 
 Signature = collections.namedtuple('Signature', ('func', 'args', 'kws'))
 
@@ -16,23 +15,24 @@ def S(func, *args, **kws):
     return Signature(func, args, kws)
 
 
+EMPTY = S(None)
+
+
 def _iter_signatures(signatures):
     """Regularize call signatures."""
     for signature in signatures:
-        try:
-            (func, args, kws) = signature
-        except ValueError:
-            if 1 <= len(signature) <= 2:
-                yield tuple(signature) + _EMPTY[(len(signature) - 1):]
-            else:
-                raise
-        except TypeError:
-            if callable(signature):
-                yield (signature,) + _EMPTY
-            else:
-                raise
-        else:
+        if isinstance(signature, Signature):
             yield signature
+            continue
+
+        try:
+            withdefaults = itertools.izip_longest(signature, EMPTY)
+        except TypeError:
+            if not callable(signature):
+                raise
+            yield S(signature)
+        else:
+            yield Signature._make((given or default) for (given, default) in withdefaults)
 
 
 def _parallel(*signatures, **params):
