@@ -112,7 +112,18 @@ edgeflip.faces = (function (edgeflip, $) {
                     edgeflip.events.record('faces_page_rendered');
                 }
             },
-            error: function () {
+            error: function (response) {
+                var data;
+
+                if (response.status === 403) {
+                    try {
+                        data = JSON.parse(response.responseText);
+                        if (data.status == 'failed' && data.reason) {
+                            alert(data.reason);
+                        }
+                    } catch (err) {}
+                }
+
                 $('#your-friends-here').show();
                 $('#progress').hide();
                 clearTimeout(self.pollingTimer_);

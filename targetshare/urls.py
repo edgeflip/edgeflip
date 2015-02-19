@@ -1,6 +1,11 @@
 from django.conf.urls import patterns, url
+from django.views.generic.base import RedirectView
 
 from core.utils.encryptedslug import API_DEFAULT
+
+
+# App-review hackery:
+CANVAS_REDIRECT_URL = 'https://app.edgeflip.com/r/22demo-XAiTghmz/'
 
 
 urlpatterns = patterns('targetshare.views',
@@ -48,7 +53,9 @@ urlpatterns = patterns('targetshare.views',
     ),
 
     # canvas home
-    url(r'^canvas/$', 'faces.canvas', name='canvas'),
+    url(r'^canvas/$',
+        RedirectView.as_view(url=CANVAS_REDIRECT_URL) if CANVAS_REDIRECT_URL else 'faces.canvas',
+        name='canvas'),
 
     # faces
     url(r'^faces/$', 'faces.faces', name='faces'),
