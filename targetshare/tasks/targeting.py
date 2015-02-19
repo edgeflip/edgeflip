@@ -14,6 +14,8 @@ from django.conf import settings
 from django.db.models.loading import get_model
 from django.db.models import Q
 
+from core.utils.concurrent import parallel, S
+
 from targetshare import utils
 from targetshare.integration import facebook
 from targetshare.models import datastructs, dynamo, relational
@@ -122,9 +124,10 @@ def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
 
     record('targeting_started')
     try:
-        user = facebook.client2.get_user(token.token)
-        taggable_friends = facebook.client2.get_taggable_friends(token.token)
-        stream = facebook.client2.Stream.read(user, token.token)
+        (taggable_friends, edges) = parallel(
+            S(facebook.client2.get_taggable_friends, token.token),
+            S(facebook.client2.get_friend_edges, token.token),
+        )
     except (
         facebook.utils.OAuthTooManyAppCalls,
         facebook.utils.OAuthTokenExpired,
@@ -139,16 +142,15 @@ def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
 
     record('targeting_read_completed')
 
-    # Build network:
-    network = stream.get_friend_edges()
-    taggable_network = network.merged(taggable_friends)
+    # Fill in network:
+    network = edges.merged(taggable_friends)
 
     # Proximity-rank:
-    taggable_network.score_rank()
+    network.score_rank()
 
     # For now, no filter-ranking; just put ranking into a single tier:
     filtered = datastructs.TieredEdges(
-        edges=taggable_network,
+        edges=network,
         campaign_id=campaign_id,
         content_id=content_id,
     )
@@ -156,7 +158,7 @@ def targeted_network(self, token, visit_id, campaign_id, content_id, num_faces):
     record('targeting_completed')
 
     return FilteringResult(
-        ranked=taggable_network,
+        ranked=network,
         filtered=filtered,
         cs_filter_id=None,
         choice_set_slug=None,
