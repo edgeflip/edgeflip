@@ -22,7 +22,7 @@ API_VERSION = make_version('2.2')
 
 GRAPH_ENDPOINT = 'https://graph.facebook.com/v{}/'.format(API_VERSION)
 
-NUM_POSTS = settings.FACEBOOK.stream.get('num_posts', 100)
+NUM_POSTS = settings.FACEBOOK.stream.get('num_posts_per_endpoint', 100)
 CHUNK_SIZE = settings.FACEBOOK.stream.get('chunk_size', 20)
 MAX_WAIT = settings.FACEBOOK.stream.get('max_wait', 15)
 
