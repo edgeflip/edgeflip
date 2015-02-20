@@ -297,7 +297,18 @@ def faces(request):
             break
 
     if not targeting_result.ranked or not targeting_result.filtered:
-        if primary_task.ready():
+        if (
+            primary_task.failed() and
+            isinstance(primary_task.result, facebook.utils.OAuthPermissionDenied) and
+            primary_task.result.requires_review
+        ):
+            return utils.JsonHttpResponse({
+                'status': 'failed',
+                'reason': "This app has not been approved by Facebook, and is only accessible "
+                          "to admins, developers and the app's test users "
+                          '(such as "Open Graph Test User").',
+            }, status=403)
+        elif primary_task.ready():
             return http.HttpResponseServerError('No friends were identified for you.')
         else:
             LOG.fatal("primary targeting task (px%s) failed to complete in the time allotted (%s)",

@@ -70,3 +70,9 @@ class OAuthTokenExpired(OAuthException):
 class OAuthPermissionDenied(OAuthException):
 
     error_codes = (10,)
+
+    unapproved_snippet = "your use of this endpoint must be reviewed and approved by Facebook"
+
+    @property
+    def requires_review(self):
+        return self.unapproved_snippet in self.message
