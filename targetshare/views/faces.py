@@ -305,8 +305,9 @@ def faces(request):
             return utils.JsonHttpResponse({
                 'status': 'failed',
                 'reason': "This app has not been approved by Facebook, and is only accessible "
-                          "to admins, developers and the app's test users "
-                          '(such as "Open Graph Test User").',
+                          "to admins, developers and the app's test users.\n\n"
+                          "If you are a Facebook App reviewer, please log in as "
+                          '"Open Graph Test User" and try again.',
             }, status=403)
         elif primary_task.ready():
             return http.HttpResponseServerError('No friends were identified for you.')
