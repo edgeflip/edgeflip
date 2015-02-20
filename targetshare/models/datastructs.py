@@ -46,7 +46,7 @@ class Friend(datastruct.DataStruct):
 
     @abc.abstractproperty
     def uid(self):
-        """The unique user ID returned by Facebook.
+        """Any unique user ID returned by Facebook.
 
         This may be a persistent or a temporary ID. It is required for
         compatibility with (front-end) code handling both persistent users and

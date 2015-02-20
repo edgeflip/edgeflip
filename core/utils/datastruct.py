@@ -12,7 +12,7 @@ class Field(object):
     """Model fields are declared in model class definitions, via instances of
     subclasses of Field.
 
-    Fields then control the input and output and object data, for example by
+    Fields then control the input and output of object data, mainly by
     "cleaning" input data -- validating and regularizing it.
 
     """
