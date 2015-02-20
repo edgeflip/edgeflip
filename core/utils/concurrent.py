@@ -23,38 +23,33 @@ def _iter_signatures(signatures):
     for signature in signatures:
         if isinstance(signature, Signature):
             yield signature
-            continue
-
-        try:
-            withdefaults = itertools.izip_longest(signature, EMPTY)
-        except TypeError:
-            if not callable(signature):
-                raise
+        elif callable(signature):
             yield S(signature)
         else:
+            withdefaults = itertools.izip_longest(signature, EMPTY)
             yield Signature._make((given or default) for (given, default) in withdefaults)
 
 
 def _parallel(*signatures, **params):
-    """Quick-and-dirty parallel function execution using the concurrent.futures
+    """Quick-and-dirty parallel function execution using a concurrent.futures
     thread pool.
 
-    Supports the following invocations:
+    The following invocations signatures are supported:
 
         parallel(myfunc0, myfunc1, ...)
         parallel((myfunc0,), (myfunc1,), ...)
         parallel((myfunc0, (arg0, ...)), ...)
         parallel((myfunc0, (arg0, ...), {key0: ...}), ...)
 
-    and, via helper `S`:
+    and, most flexibly via the helper `S`:
 
-        parallel(S(myfunc0, arg0, key0=value0, ...), ...)
+        parallel(S(myfunc0, arg0), S(myfunc1, key1=value1), ...)
 
     """
     max_workers = params.get('max_workers', len(signatures))
     timeout = params.get('timeout')
     if len(params) > 2:
-        raise TypeError("parallel expected at most 2 keyword argument, got {}".format(len(params)))
+        raise TypeError("parallel expected at most 2 keyword arguments, got {}".format(len(params)))
 
     with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         fs = {executor.submit(func, *args, **kws): (index, Signature(func, args, kws))
