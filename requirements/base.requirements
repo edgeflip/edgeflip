@@ -9,8 +9,8 @@ docopt==0.6.1
 docutils==0.10
 newrelic==1.11.0.55
 pycrypto==2.6
--e git+git@github.com:systemadev/pymlconf.git#egg=pymlconf
--e git+git@github.com:edgeflip/civis_matcher.git#egg=civis_matcher-dev
+git+https://github.com/systemadev/pymlconf.git#egg=pymlconf
+git+ssh://git@github.com/edgeflip/civis_matcher.git#egg=civis_matcher-dev
 pythoscope==0.4.3
 snakefood==1.4
 pyOpenSSL==0.13
@@ -30,7 +30,7 @@ raven==3.6.0
 celery==3.1.7
 django-celery==3.1.1
 psycopg2==2.5.1
--e git+git@github.com:edgeflip/faraday.git@0.2.1#egg=Faraday
+git+ssh://git@github.com/edgeflip/faraday.git@0.2.1#egg=Faraday
 rjsmin
 sentinels==0.0.6
 redis==2.10
