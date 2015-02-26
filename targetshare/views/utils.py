@@ -258,9 +258,13 @@ class require_visit(ViewDecorator):
 
         if not app_id:
             if client is None:
+                LOG.warning("Could not determine Facebook application for request", extra={
+                    'request': request,
+                    'stack': True,
+                })
                 return http.HttpResponseBadRequest("The application could not be determined")
-            else:
-                app_id = client.fb_app_id
+
+            app_id = client.fb_app_id
 
         # Initialize Visit and add to request
         set_visit(request, app_id, fbid, {

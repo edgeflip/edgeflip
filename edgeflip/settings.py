@@ -550,13 +550,15 @@ LOGGING = {
 }
 
 if ENV in ('staging', 'production'):
-    LOGGING['root']['level'] = 'INFO'
     LOGGING['handlers']['sentry'] = {
         'level': 'INFO',
         'class': 'raven.contrib.django.raven_compat.handlers.SentryHandler',
         'formatter': 'verbose',
     }
     LOGGING['loggers']['crow'].setdefault('handlers', []).append('sentry')
+
+    LOGGING['root']['level'] = 'INFO'
+    LOGGING['root'].setdefault('handlers', []).append('sentry')
 
 # Faraday settings #
 FARADAY.setdefault('DEBUG', DEBUG)
