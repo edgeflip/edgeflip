@@ -11,5 +11,14 @@
         first?
     </p>
     <p>Otherwise, check back in a bit!</p>
+
+    {% if embedded %}
+    <script>
+        {% include "core/includes/edgeflip.js" %}
+        {% include "core/includes/util.js" %}
+
+        edgeflip.util.wrapEmbeddedLinks();
+    </script>
+    {% endif %}
     {% endif %}
 {% endblock %}

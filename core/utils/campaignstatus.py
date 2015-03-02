@@ -62,7 +62,7 @@ class DisallowedError(StatusHandler, Exception):
         self.properties = properties
 
     @abc.abstractmethod
-    def make_error_response(self, friendly=False):
+    def make_error_response(self, friendly=False, embedded=False):
         raise NotImplementedError
 
 
@@ -104,12 +104,13 @@ class UnauthorizedPreview(DisallowedError):
         )
         raise cls("Draft preview denied for unauthorized user", request, campaign, properties)
 
-    def make_error_response(self, friendly=False):
+    def make_error_response(self, friendly=False, embedded=False):
         if self.request.method == 'HEAD':
             return http.HttpResponseForbidden()
 
         return render(self.request, 'core/campaignstatus/draft-forbidden.html', {
             'friendly': friendly,
+            'embedded': embedded,
             'client': self.campaign.client,
             'campaign': self.campaign,
         }, status=403)
@@ -130,7 +131,7 @@ class InactiveCampaign(DisallowedError):
         )
         raise cls("Campaign is no longer active", request, campaign, properties)
 
-    def make_error_response(self, friendly=False):
+    def make_error_response(self, friendly=False, embedded=False):
         # Determine appropriate redirect path, if any, through outgoing redirector
         inactive_url = self.properties.inactive_url or self.campaign.client.campaign_inactive_url
         if inactive_url:
@@ -145,7 +146,7 @@ class InactiveCampaign(DisallowedError):
 
         authorized = (self.request.user.is_superuser or
                       self.request.user.groups.filter(client=self.campaign.client).exists())
-        if authorized or (redirect_url and not friendly):
+        if authorized or (redirect_url and embedded):
             # Render template for admin experience OR JavaScript (iframe) redirect
             return render(self.request, 'core/campaignstatus/inactive-campaign.html', {
                 'authorized': authorized,

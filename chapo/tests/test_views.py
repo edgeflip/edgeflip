@@ -1,3 +1,5 @@
+import re
+
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
@@ -23,9 +25,9 @@ class TestRedirectService(TestCase):
         self.assertEqual(response.status_code, 405)
 
     def test_put(self):
-        """el chapo does not accept PUTs"""
+        """el chapo does not accept PUTs (without authorization)"""
         response = self.client.put(self.path)
-        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.status_code, 401)
 
     def test_delete(self):
         """el chapo does not accept DELETEs"""
@@ -51,6 +53,23 @@ class TestRedirectService(TestCase):
         self.assertEqual(response.status_code, 301)
         self.assertEqual(response.content, '')
         self.assertEqual(response['Location'], URL)
+
+
+class TestJavaScriptRedirectService(TestCase):
+
+    def setUp(self):
+        self.short = models.ShortenedUrl.objects.create(url=URL)
+        self.path = reverse('chapo:html', args=[self.short.slug])
+
+    def test_get(self):
+        """el chapo returns HTML with a JavaScript redirect"""
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 200)
+
+        template = r'''<script.+outgoingRedirect\(['"]{URL}['"]\);.*</script>'''
+        snippet = template.format(URL=re.escape(URL))
+        regexp = re.compile(snippet, re.DOTALL)
+        self.assertRegexpMatches(response.content, regexp)
 
 
 class RedirectCampaignTestCase(TestCase):
