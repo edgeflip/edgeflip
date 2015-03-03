@@ -15,6 +15,7 @@ from django.views.decorators.csrf import csrf_exempt
 from faraday.structs import LazyList
 
 from core.utils import campaignstatus
+from core.utils.http import JsonHttpResponse
 
 from targetshare import forms
 from targetshare.integration import facebook
@@ -95,7 +96,7 @@ def frame_faces(request, api, campaign_id, content_id, canvas=False):
     try:
         campaign_status = campaignstatus.handle_request(request, campaign, campaign_properties)
     except campaignstatus.DisallowedError as exc:
-        return exc.make_error_response()
+        return exc.make_error_response(embedded=True)
 
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
@@ -191,7 +192,7 @@ def frame_faces(request, api, campaign_id, content_id, canvas=False):
 def faces(request):
     faces_form = forms.FacesForm(request.POST)
     if not faces_form.is_valid():
-        return utils.JsonHttpResponse(faces_form.errors, status=400)
+        return JsonHttpResponse(faces_form.errors, status=400)
 
     data = faces_form.cleaned_data
     campaign = root_campaign = data['campaign']
@@ -208,7 +209,7 @@ def faces(request):
         # Agent failed test, but give it another shot
         LOG.warning("Suspicious session missing cookie test", extra={'request': request})
         request.session.set_test_cookie()
-        return utils.JsonHttpResponse({
+        return JsonHttpResponse({
             'status': 'waiting',
             'reason': "Cookies are required. Please try again.",
             'campaignid': campaign.pk,
@@ -259,7 +260,7 @@ def faces(request):
     # Check status #
     (primary_rank, primary_task) = ranked_tasks[0]
     if not all(task.ready() for task in targeting_tasks) and not primary_task.failed() and not data['last_call']:
-        return utils.JsonHttpResponse({
+        return JsonHttpResponse({
             'status': 'waiting',
             'reason': "Identifying friends.",
             'campaignid': campaign.pk,
@@ -302,7 +303,7 @@ def faces(request):
             isinstance(primary_task.result, facebook.utils.OAuthPermissionDenied) and
             primary_task.result.requires_review
         ):
-            return utils.JsonHttpResponse({
+            return JsonHttpResponse({
                 'status': 'failed',
                 'reason': "This app has not been approved by Facebook, and is only accessible "
                           "to admins, developers and the app's test users.\n\n"
@@ -471,7 +472,7 @@ def faces(request):
         'num_face': data['num_face'],
     }, context_instance=RequestContext(request))
 
-    return utils.JsonHttpResponse({
+    return JsonHttpResponse({
         'status': 'success',
         'campaignid': campaign.pk,
         'contentid': content.pk,

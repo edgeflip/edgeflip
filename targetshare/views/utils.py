@@ -1,6 +1,4 @@
-import abc
 import functools
-import json
 import logging
 import urlparse
 
@@ -10,6 +8,7 @@ from django.conf import settings
 from django.shortcuts import _get_queryset
 
 from core.utils import encryptedslug
+from core.utils.decorators import ViewDecorator
 
 from targetshare import models, utils
 from targetshare.tasks import db
@@ -27,16 +26,6 @@ def faces_url(client_faces_url, campaign, content, *multi, **extra):
     query.update(*multi, **extra)
     full_url = url._replace(query=query.urlencode())
     return full_url.geturl()
-
-
-class JsonHttpResponse(http.HttpResponse):
-    """HttpResponse which JSON-encodes its content and whose Content-Type defaults
-    to "application/json".
-
-    """
-    def __init__(self, content=None, content_type='application/json', *args, **kws):
-        super(JsonHttpResponse, self).__init__(
-            content=json.dumps(content), content_type=content_type, *args, **kws)
 
 
 def get_client_ip(request):
@@ -193,19 +182,6 @@ def sget(dicts, anykeys=(), default=None):
             except KeyError:
                 pass
     return default
-
-
-class ViewDecorator(object):
-
-    __metaclass__ = abc.ABCMeta
-
-    def __init__(self, view):
-        functools.update_wrapper(self, view)
-        self._view = view
-
-    @abc.abstractmethod
-    def __call__(self, request, *args, **kws):
-        raise NotImplementedError
 
 
 class require_visit(ViewDecorator):
