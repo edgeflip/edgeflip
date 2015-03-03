@@ -81,4 +81,4 @@ def html(request, slug):
     except campaignstatus.DisallowedError as exc:
         return exc.make_error_response(friendly=True, embedded=True)
 
-    return render(request, 'chapo/redirect.html', {'shortened': shortened})
+    return render(request, 'chapo/redirect.html', {'url': shortened.url})

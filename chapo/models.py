@@ -1,8 +1,11 @@
 import base64
 import binascii
+import hashlib
+import hmac
 import os
 import string
 import sys
+import uuid
 
 from django.db import models
 from django.utils.text import slugify
@@ -77,9 +80,11 @@ class ShortenedUrl(BaseModel):
     The `slug` defaults to the result of `make_slug`. Only `url` is required.
 
     """
-    campaign = models.ForeignKey('targetshare.Campaign', null=True, related_name='shortenedurls')
+    campaign = models.ForeignKey('targetshare.Campaign',
+                                 null=True, blank=True,
+                                 related_name='shortenedurls')
     description = models.TextField(blank=True, default='')
-    event_type = models.SlugField(default='generic_redirect')
+    event_type = models.SlugField(blank=True, default='generic_redirect')
     slug = models.SlugField(primary_key=True, default=make_slug)
     url = models.URLField(max_length=2048)
 
@@ -106,3 +111,50 @@ class ShortenedUrl(BaseModel):
 
     def __unicode__(self):
         return u"{0.slug} => {0.url}".format(self)
+
+
+# TODO: copy, (then move), below to magnus!
+
+class EFApp(BaseModel):
+
+    name = models.SlugField(primary_key=True, max_length=30, db_column='ef_app_name')
+
+    class Meta(BaseModel.Meta):
+        db_table = 'ef_apps'
+
+
+class EFApiUser(BaseModel):
+
+    name = models.SlugField(primary_key=True, max_length=30, db_column='ef_api_user_name')
+
+    class Meta(BaseModel.Meta):
+        db_table = 'ef_api_users'
+
+
+def generate_api_key():
+    unique = uuid.uuid4()
+    code = hmac.new(unique.bytes, digestmod=hashlib.sha1)
+    return code.hexdigest()
+
+
+class EFApiKey(BaseModel):
+
+    key = models.SlugField(primary_key=True,
+                           default=generate_api_key,
+                           max_length=40,
+                           db_column='ef_api_key')
+
+    ef_api_user = models.ForeignKey('EFApiUser',
+                                    db_column='ef_api_user_name',
+                                    related_name='efapikeys')
+
+    ef_app = models.ForeignKey('EFApp',
+                               db_column='ef_app_name',
+                               related_name='efapikeys')
+
+    generate_key = staticmethod(generate_api_key)
+
+    class Meta(BaseModel.Meta):
+        db_table = 'ef_api_keys'
+
+# DEFERRED: ApiPermissions (off of EFApiUser or EFApiKey?)

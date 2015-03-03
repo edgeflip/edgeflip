@@ -1,4 +1,7 @@
+import json
 import re
+import urllib
+import urlparse
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -12,6 +15,8 @@ from chapo import models
 
 URL = "http://www.reddit.com/r/food/"
 
+
+# User views #
 
 class TestRedirectService(TestCase):
 
@@ -71,6 +76,8 @@ class TestJavaScriptRedirectService(TestCase):
         regexp = re.compile(snippet, re.DOTALL)
         self.assertRegexpMatches(response.content, regexp)
 
+
+# ...with campaigns #
 
 class RedirectCampaignTestCase(TestCase):
 
@@ -755,4 +762,307 @@ class TestInactiveCampaign(RedirectCampaignTestCase):
             'client_content': None,
             'friend_fbid': None,
             'activity_id': None,
+        })
+
+
+# API views #
+
+class APITestCase(TestCase):
+
+    @staticmethod
+    def generate_authorization():
+        (app, _created) = models.EFApp.objects.get_or_create(name='chapo')
+        user = models.EFApiUser.objects.create(name='test-client')
+        key = user.efapikeys.create(ef_app=app)
+        return 'apikey {0.name}:{1.key}'.format(user, key)
+
+
+class TestAPIDumpSlugJson(APITestCase):
+
+    def setUp(self):
+        self.short = models.ShortenedUrl.objects.create(url=URL)
+        self.path = reverse('chapo:dump-slug', args=[self.short.slug, 'json'])
+
+    def test_head(self):
+        key_header = self.generate_authorization()
+        response = self.client.head(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 405)
+
+    def test_post(self):
+        key_header = self.generate_authorization()
+        response = self.client.post(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 405)
+
+    def test_put(self):
+        key_header = self.generate_authorization()
+        response = self.client.put(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 405)
+
+    def test_delete(self):
+        key_header = self.generate_authorization()
+        response = self.client.delete(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 405)
+
+    def test_get_unauthorized(self):
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 401)
+
+    def test_get_missing(self):
+        self.short.delete()
+        key_header = self.generate_authorization()
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 404)
+
+    def test_get(self):
+        key_header = self.generate_authorization()
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/json')
+
+        data = json.loads(response.content)
+        self.assertTrue(data.pop('created'))
+        self.assertTrue(data.pop('updated'))
+        self.assertEqual(data, {
+            'campaign': None,
+            'description': '',
+            'event_type': 'generic_redirect',
+            'slug': self.short.slug,
+            'url': URL,
+        })
+
+
+class TestAPIDumpSlugUrlencoded(APITestCase):
+
+    def setUp(self):
+        self.short = models.ShortenedUrl.objects.create(url=URL)
+        self.path = reverse('chapo:dump-slug', args=[self.short.slug, 'urlenc'])
+
+    def test_get(self):
+        key_header = self.generate_authorization()
+        response = self.client.get(self.path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response['Content-Type'], 'application/x-www-form-urlencoded')
+
+        data = urlparse.parse_qs(response.content, keep_blank_values=True)
+        self.assertTrue(data.pop('created'))
+        self.assertTrue(data.pop('updated'))
+        self.assertEqual(data, {
+            'campaign': [''],
+            'description': [''],
+            'event_type': ['generic_redirect'],
+            'slug': [self.short.slug],
+            'url': [URL],
+        })
+
+
+class TestAPIDumpSlugBadType(APITestCase):
+
+    def test_get(self):
+        short = models.ShortenedUrl.objects.create(url=URL)
+        path = reverse('chapo:dump-slug', args=[short.slug, 'pdf'])
+        key_header = self.generate_authorization()
+        response = self.client.get(path, HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 404)
+
+
+class TestAPIPut(APITestCase):
+
+    def setUp(self):
+        self.slug = 'pudding-snacks'
+        self.path = reverse('chapo:main', args=[self.slug])
+
+    def test_unauthorized(self):
+        response = self.client.put(self.path, '')
+        self.assertContains(response, "Unauthorized", status_code=401)
+
+    def test_bad_type(self):
+        key_header = self.generate_authorization()
+        response = self.client.put(self.path,
+                                   '<short><url>http://www.edgeflip.com/</url></short>',
+                                   content_type='xml',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertContains(response, "Unknown Content-Type", status_code=415)
+
+    def test_bad_json(self):
+        key_header = self.generate_authorization()
+        response = self.client.put(self.path, 'description=TESTING',
+                                   content_type='application/json',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 400)
+
+    def test_missing_value(self):
+        key_header = self.generate_authorization()
+        data = json.dumps({'description': "A test redirect"})
+        response = self.client.put(self.path, data,
+                                   content_type='application/json',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response['Content-Type'], 'application/json')
+        errors = json.loads(response.content)
+        self.assertEqual(errors, {'url': ['This field is required.']})
+
+    def test_create_json(self):
+        key_header = self.generate_authorization()
+        data = json.dumps({'description': "A test redirect", 'url': URL})
+        response = self.client.put(self.path, data,
+                                   content_type='application/json',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response['Location'], 'http://testserver' + self.path)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        self.assertTrue(short.pop('created'))
+        self.assertTrue(short.pop('updated'))
+        self.assertEqual(short, {
+            'slug': self.slug,
+            'url': URL,
+            'event_type': u'generic_redirect',
+            'campaign_id': None,
+            'description': u'A test redirect',
+        })
+
+    def test_update_json(self):
+        short = models.ShortenedUrl.objects.create(slug=self.slug, url=URL)
+        key_header = self.generate_authorization()
+        data = json.dumps({
+            'description': "A test redirect",
+            'event_type': '',
+        })
+        response = self.client.put(self.path, data,
+                                   content_type='application/json',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 204)
+        self.assertEqual(response['Location'], 'http://testserver' + self.path)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        self.assertTrue(short.pop('created'))
+        self.assertTrue(short.pop('updated'))
+        self.assertEqual(short, {
+            'slug': self.slug,
+            'url': URL,
+            'event_type': '',
+            'campaign_id': None,
+            'description': 'A test redirect',
+        })
+
+    def test_create_urlenc(self):
+        key_header = self.generate_authorization()
+        data = urllib.urlencode([('description', "A test redirect"), ('url', URL)])
+        response = self.client.put(self.path, data,
+                                   content_type='application/x-www-form-urlencoded',
+                                   HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response['Location'], 'http://testserver' + self.path)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        self.assertTrue(short.pop('created'))
+        self.assertTrue(short.pop('updated'))
+        self.assertEqual(short, {
+            'slug': self.slug,
+            'url': URL,
+            'event_type': u'generic_redirect',
+            'campaign_id': None,
+            'description': u'A test redirect',
+        })
+
+
+class TestAPIPost(APITestCase):
+
+    def setUp(self):
+        self.path = reverse('chapo:shorten-url')
+
+    def test_unauthorized(self):
+        response = self.client.post(self.path, '', content_type='xml')
+        self.assertContains(response, "Unauthorized", status_code=401)
+
+    def test_bad_type(self):
+        key_header = self.generate_authorization()
+        response = self.client.post(self.path,
+                                    '<short><url>http://www.edgeflip.com/</url></short>',
+                                    content_type='xml',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertContains(response, "Unknown Content-Type", status_code=415)
+
+    def test_bad_json(self):
+        key_header = self.generate_authorization()
+        response = self.client.post(self.path, 'description=TESTING',
+                                    content_type='application/json',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 400)
+
+    def test_missing_value_json(self):
+        key_header = self.generate_authorization()
+        data = json.dumps({'description': "A test redirect"})
+        response = self.client.post(self.path, data,
+                                    content_type='application/json',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response['Content-Type'], 'application/json')
+        errors = json.loads(response.content)
+        self.assertEqual(errors, {'url': ['This field is required.']})
+
+    def test_create_json(self):
+        key_header = self.generate_authorization()
+        data = json.dumps({'description': "A test redirect", 'url': URL})
+        response = self.client.post(self.path, data,
+                                    content_type='application/json',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        slug = short['slug']
+        self.assertTrue(slug)
+
+        self.assertEqual(response['Location'],
+                         'http://testserver' + reverse('chapo:main', args=[slug]))
+
+        self.assertTrue(short.pop('created'))
+        self.assertTrue(short.pop('updated'))
+        self.assertEqual(short, {
+            'slug': slug,
+            'url': URL,
+            'event_type': u'generic_redirect',
+            'campaign_id': None,
+            'description': u'A test redirect',
+        })
+
+    def test_missing_value_urlenc(self):
+        key_header = self.generate_authorization()
+        data = urllib.urlencode([('description', "A test redirect")])
+        response = self.client.post(self.path, data,
+                                    content_type='application/x-www-form-urlencoded',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 400)
+        self.assertEquals(response['Content-Type'], 'application/x-www-form-urlencoded')
+        errors = urlparse.parse_qs(response.content)
+        self.assertEqual(errors, {'url': ['This field is required.']})
+
+    def test_create_urlenc(self):
+        key_header = self.generate_authorization()
+        data = urllib.urlencode([('description', "A test redirect"), ('url', URL)])
+        response = self.client.post(self.path, data,
+                                    content_type='application/x-www-form-urlencoded',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        slug = short['slug']
+        self.assertTrue(slug)
+
+        self.assertEqual(response['Location'],
+                         'http://testserver' + reverse('chapo:main', args=[slug]))
+
+        self.assertTrue(short.pop('created'))
+        self.assertTrue(short.pop('updated'))
+        self.assertEqual(short, {
+            'slug': slug,
+            'url': URL,
+            'event_type': u'generic_redirect',
+            'campaign_id': None,
+            'description': u'A test redirect',
         })
