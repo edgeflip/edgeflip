@@ -1,5 +1,6 @@
 from django.conf.urls import patterns, url
-from django.shortcuts import redirect
+from django.core.urlresolvers import reverse
+from django.http import HttpResponsePermanentRedirect
 from django.views.decorators.csrf import csrf_exempt
 
 from chapo.views import user, api
@@ -24,13 +25,15 @@ def main_slashless(request, slug):
     if request.method == 'PUT':
         return api.upsert_slug(request, slug)
     else:
-        return redirect('chapo:main', slug, permanent=True)
+        canon_path = reverse('chapo:main', args=[slug],
+                             current_app=request.resolver_match.namespace)
+        return HttpResponsePermanentRedirect(canon_path)
 
 
 urlpatterns = patterns('',
     # Handle users *and* API PUT
     url(r'^(?P<slug>[-\w]+)/$', main, name='main'), # ends in slash
-    url(r'^(?P<slug>[-\w]+)$', main_slashless, name='upsert-slug'), # ends without slash
+    url(r'^(?P<slug>[-\w]+)$', main_slashless, name='main-slashless'), # ends without slash
 )
 
 urlpatterns += patterns('chapo.views.user',

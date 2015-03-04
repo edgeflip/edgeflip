@@ -35,7 +35,7 @@ urlpatterns = patterns('targetshare.views',
         'button.button', {'api': API_DEFAULT}, name='button-default'
     ),
     url(
-        r'^button/(?P<encrypted_slug>[^/\s]+)/$',
+        r'^button/(?P<encrypted_slug>[^/\s]{2,})/$',
         'button.button', name='button-encoded'
     ),
 
@@ -49,7 +49,7 @@ urlpatterns = patterns('targetshare.views',
         'faces.frame_faces', {'api': API_DEFAULT}, name='frame-faces-default'
     ),
     url(
-        r'^frame_faces/(?P<encrypted_slug>[^/\s]+)/$',
+        r'^frame_faces/(?P<encrypted_slug>[^/\s]{2,})/$',
         'faces.frame_faces', name='frame-faces-encoded'
     ),
 
@@ -64,7 +64,7 @@ urlpatterns = patterns('targetshare.views',
     ),
     url(
         # Allow FB to leave off trailing slash without redirection
-        r'^canvas/(?P<encrypted_slug>[^/\s]+)/?$',
+        r'^canvas/(?P<encrypted_slug>[^/\s]{2,})/?$',
         'faces.frame_faces', {'canvas': True}, name='canvas-faces-encoded'
     ),
 
@@ -98,7 +98,7 @@ urlpatterns = patterns('targetshare.views',
         'services.incoming', name='incoming'),
     url(r'^incoming/(?P<campaign_id>\d+)/(?P<content_id>\d+)/$',
         'services.incoming', {'api': API_DEFAULT}, name='incoming-default'),
-    url(r'^incoming/(?P<encrypted_slug>[^/\s]+)/$',
+    url(r'^incoming/(?P<encrypted_slug>[^/\s]{2,})/$',
         'services.incoming', name='incoming-encoded'),
 
     url(r'^outgoing/(?P<app_id>\d+)/(?P<url>.+)/$', 'services.outgoing',
