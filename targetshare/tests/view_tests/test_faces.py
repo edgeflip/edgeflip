@@ -477,8 +477,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
     def test_canvas(self):
         ''' Tests views.canvas '''
         response = self.client.get(reverse('canvas'))
-        # self.assertStatusCode(response, 200)
-        self.assertStatusCode(response, 302)
+        self.assertStatusCode(response, 200)
 
     def test_canvas_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
