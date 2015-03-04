@@ -6,6 +6,8 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods, require_POST
 
+from core.utils.http import JsonHttpResponse
+
 from targetshare.tasks.integration.facebook import extend_token
 from targetshare import models
 # from targetshare.tasks import db
@@ -29,7 +31,7 @@ class DataForm(forms.Form):
 def data(request):
     form = DataForm(request.POST)
     if not form.is_valid():
-        return utils.JsonHttpResponse(form.errors, status=400)
+        return JsonHttpResponse(form.errors, status=400)
 
     info = form.cleaned_data
     task_key = 'map_px3_task_id_{}'.format(info['fbid'])
@@ -63,7 +65,7 @@ def data(request):
 
     # Check status #
     if not px3_task.ready():
-        return utils.JsonHttpResponse({'status': 'waiting'})
+        return JsonHttpResponse({'status': 'waiting'})
 
     # Check result #
     px3_edges = px3_task.result if px3_task.successful() else None
@@ -71,7 +73,7 @@ def data(request):
         return http.HttpResponseServerError('No friends were identified for you.')
 
     # TODO: log event?
-    return utils.JsonHttpResponse({
+    return JsonHttpResponse({
         'status': 'success',
         'scores': state_scores(px3_edges).items(),
     })

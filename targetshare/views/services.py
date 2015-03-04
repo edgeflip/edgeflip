@@ -8,6 +8,8 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
 from django.core.urlresolvers import reverse
 
+from core.utils.http import JsonHttpResponse
+
 from targetshare import forms, models
 from targetshare.integration import facebook
 from targetshare.tasks import db
@@ -178,7 +180,7 @@ def health_check(request):
     except Exception:
         dynamo_up = False
 
-    return utils.JsonHttpResponse({
+    return JsonHttpResponse({
         'database': database_up,
         'dynamo': dynamo_up,
         'facebook': facebook_up,
@@ -191,7 +193,7 @@ def faces_health_check(request):
     request.visit.save()
     form = forms.FacesForm(request.GET)
     if not form.is_valid():
-        return utils.JsonHttpResponse(form.errors, status=400)
+        return JsonHttpResponse(form.errors, status=400)
 
     data = form.cleaned_data
     campaign = data['campaign']
@@ -231,7 +233,7 @@ def faces_health_check(request):
         px4_result = px4_task.result
         if px3_result and px4_result:
             if px3_task.status == 'SUCCESS' and px4_task.status == 'SUCCESS':
-                return utils.JsonHttpResponse({
+                return JsonHttpResponse({
                     'status': 'SUCCESS',
                     'id': ids,
                 })
@@ -240,7 +242,7 @@ def faces_health_check(request):
         else:
             time.sleep(1)
 
-    return utils.JsonHttpResponse({
+    return JsonHttpResponse({
         'status': 'FAILURE',
         'px3_status': px3_task.status,
         'px4_status': px4_task.status,

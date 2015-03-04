@@ -8,6 +8,3 @@ class BaseModel(models.Model):
 
     class Meta(object):
         abstract = True
-
-    def __str__(self):
-        return unicode(self).encode('utf8')

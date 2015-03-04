@@ -20,5 +20,26 @@ edgeflip.util = {
             redirectUrl = origin + url;
         }
         top.location = redirectUrl;
+    },
+    wrapEmbeddedLinks: function (links, attrib) {
+        /* Treat all anchor HREFs as "outgoing redirects" which must engage the top frame.
+        */
+        if (links === undefined) {
+            links = document.getElementsByTagName('a');
+        }
+        if (attrib === undefined) {
+            attrib = 'href';
+        }
+
+        var index, link,
+            redirector = function (event) {
+                event.preventDefault();
+                edgeflip.util.outgoingRedirect(this[attrib]);
+            };
+
+        for (index = 0; index < links.length; index++) {
+            link = links[index];
+            link.addEventListener('click', redirector);
+        }
     }
 };

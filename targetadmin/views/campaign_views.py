@@ -12,8 +12,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
 from core.utils import sharingurls
+from core.utils.http import JsonHttpResponse
 from targetshare.models import relational
-from targetshare.views.utils import JsonHttpResponse
 
 from targetadmin import forms, utils
 
