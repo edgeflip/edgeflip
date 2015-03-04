@@ -1,11 +1,27 @@
 from django.conf.urls import patterns, url
-from django.views.generic.base import RedirectView
+from django.views.decorators.csrf import csrf_exempt
+from django.views.generic.base import TemplateView
 
 from core.utils.encryptedslug import API_DEFAULT
 
 
 # App-review hackery:
-CANVAS_REDIRECT_URL = 'https://app.edgeflip.com/r/22demo-XAiTghmz/'
+class CanvasRedirect(TemplateView):
+
+    template_name = 'chapo/redirect.html'
+    url = None
+
+    def get_context_data(self, **kwargs):
+        context = super(CanvasRedirect, self).get_context_data(**kwargs)
+        context['url'] = self.url
+        return context
+
+    def post(self, request, *args, **kwargs):
+        return self.get(request, *args, **kwargs)
+
+canvas_redirect = csrf_exempt(
+    CanvasRedirect.as_view(url='https://app.edgeflip.com/r/22demo-XAiTghmz/')
+)
 
 
 urlpatterns = patterns('targetshare.views',
@@ -54,7 +70,8 @@ urlpatterns = patterns('targetshare.views',
 
     # canvas home
     url(r'^canvas/$',
-        RedirectView.as_view(url=CANVAS_REDIRECT_URL, permanent=False) if CANVAS_REDIRECT_URL else 'faces.canvas',
+        canvas_redirect,
+        # 'faces.canvas',
         name='canvas'),
 
     # faces
