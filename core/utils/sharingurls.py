@@ -1,3 +1,5 @@
+import logging
+import re
 import urllib
 
 from django.conf import settings
@@ -8,6 +10,8 @@ from core.utils import encryptedslug
 
 
 FB_OAUTH_URL = 'https://www.facebook.com/dialog/oauth'
+
+LOG = logging.getLogger(__name__)
 
 
 def fb_oauth_url(fb_app, redirect_uri):
@@ -24,7 +28,7 @@ def incoming_redirect(is_secure, host, campaign=None, content=None, slug=None):
         if campaign is None or content is None:
             raise TypeError("Either slug or campaign and content required")
         slug = encryptedslug.make_slug(campaign, content)
-    path = reverse('incoming-encoded', args=(slug,))
+    path = reverse('targetshare:incoming-encoded', args=(slug,))
     protocol = 'https://' if is_secure else 'http://'
     return protocol + host + path
 
@@ -32,12 +36,19 @@ def incoming_redirect(is_secure, host, campaign=None, content=None, slug=None):
 def client_faces_url(campaign, content):
     slug = encryptedslug.make_slug(campaign, content)
     if settings.ENV == 'development':
-        endpoint = 'http://local.edgeflip.com:8080'
-        path = reverse('frame-faces-encoded', args=(slug,))
+        netloc = 'http://local.edgeflip.com:8080'
+        path = reverse('targetshare:frame-faces-encoded', args=(slug,))
     else:
-        endpoint = 'https://apps.facebook.com'
-        path = '/{}/{}/'.format(campaign.client.fb_app.name, slug)
-    return endpoint + path
+        netloc = 'https://apps.facebook.com'
+        true_path = reverse('targetshare-canvas:frame-faces-encoded', args=(slug,))
+        # Remove the true path base from FB vanity URL path:
+        (rel_path, subs) = re.subn(r'^/canvas/', '', true_path, 1)
+        if subs != 1:
+            LOG.error("Failed to trim Facebook canvas base path (/canvas/) "
+                      "from true request path (%s)", true_path,
+                      extra={'stack': True})
+        path = '/{}/{}'.format(campaign.client.fb_app.name, rel_path)
+    return netloc + path
 
 
 def build_urls(incoming_host, campaign, content, incoming_secure=settings.INCOMING_REQUEST_SECURE):
