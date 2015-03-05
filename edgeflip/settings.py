@@ -542,6 +542,9 @@ LOGGING = {
         'boto': {
             'level': 'WARNING',
         },
+        'newrelic': {
+            'level': 'ERROR',
+        },
         # Another black bird, because 'raven' is blacklisted by sentry:
         'crow': {
             'level': 'DEBUG',
