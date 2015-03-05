@@ -3,7 +3,6 @@ import urllib
 from datetime import datetime, timedelta
 
 import mock
-from freezegun import freeze_time
 from faraday.utils import epoch
 
 from targetshare import models
@@ -26,10 +25,10 @@ EXTEND_TOKEN_MOCK = urllib.urlencode([
 ])
 
 
-@freeze_time('2013-01-01')
 class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     fixtures = ('test_data',)
+    frozen_time = '2013-01-01'
 
     requests_patch = mock.patch('requests.get', **{'return_value.content': 'access_token=TOKZ'})
 
@@ -40,7 +39,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_store_auth(self, urllib_mock, requests_mock):
+    def test_store_auth(self, _urllib_mock, _requests_mock):
         user_clients = models.UserClient.objects.filter(fbid=100, client_id=1)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
         self.assertEqual(user_clients.count(), 0)
@@ -59,7 +58,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
     @mock.patch('urllib2.urlopen', **{'return_value.read.return_value': json.dumps({
         'data': {'is_valid': False}
     })})
-    def test_invalid_token(self, urllib_mock, requests_mock):
+    def test_invalid_token(self, _urllib_mock, _requests_mock):
         user_clients = models.UserClient.objects.filter(fbid=100, client_id=1)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
         facebook.store_oauth_token(1, 'PIEZ', 'http://testserver/incoming/SLUGZ/', '1.0')
@@ -68,7 +67,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_record_auth(self, urllib_mock, requests_mock):
+    def test_record_auth(self, _urllib_mock, _requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
@@ -92,7 +91,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_record_auth_meta(self, urllib_mock, requests_mock):
+    def test_record_auth_meta(self, _urllib_mock, _requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
@@ -118,7 +117,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_visitor_switch(self, urllib_mock, requests_mock):
+    def test_visitor_switch(self, _urllib_mock, _requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
@@ -142,7 +141,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_visitor_match(self, urllib_mock, requests_mock):
+    def test_visitor_match(self, _urllib_mock, _requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)
@@ -166,7 +165,7 @@ class TestStoreOpenAuthToken(EdgeFlipTestCase):
 
     @requests_patch
     @urllib2_patch
-    def test_existing_visitor(self, urllib_mock, requests_mock):
+    def test_existing_visitor(self, _urllib_mock, _requests_mock):
         client = models.Client.objects.get(pk=1)
         user_clients = client.userclients.filter(fbid=100)
         tokens = models.Token.items.filter(fbid__eq=100, appid__eq=471727162864364)

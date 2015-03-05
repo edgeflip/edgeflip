@@ -2,17 +2,16 @@ from datetime import datetime
 from decimal import Decimal
 
 import mock
-from freezegun import freeze_time
 
 from targetshare import models
 
 from .. import EdgeFlipTestCase
 
 
-@freeze_time('2013-01-01')
 class TestFilters(EdgeFlipTestCase):
 
     fixtures = ['test_data']
+    frozen_time = '2013-01-01'
     expressions = models.FilterFeature.Expression
     operators = models.FilterFeature.Operator
 

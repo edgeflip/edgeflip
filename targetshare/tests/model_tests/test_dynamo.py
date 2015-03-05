@@ -57,8 +57,12 @@ class TestDynamo(EdgeFlipTestCase):
         self.assertEqual(sum(1 for user in users), 2)
 
 
-@freeze_time('2013-01-01')
-class DynamoUserTestCase(EdgeFlipTestCase):
+class DynamoTestCase(EdgeFlipTestCase):
+
+    frozen_time = '2013-01-01'
+
+
+class DynamoUserTestCase(DynamoTestCase):
 
     updated = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc) + datetime.timedelta(days=-1)
 
@@ -212,8 +216,7 @@ class DynamoUserTestCase(EdgeFlipTestCase):
             self.assertDictEqual(dict(user), data)
 
 
-@freeze_time('2013-01-01')
-class DynamoTokenTestCase(EdgeFlipTestCase):
+class DynamoTokenTestCase(DynamoTestCase):
 
     expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
 
@@ -282,8 +285,7 @@ class DynamoTokenTestCase(EdgeFlipTestCase):
             self.assertDictEqual(token, data)
 
 
-@freeze_time('2013-01-01')
-class DynamoEdgeTestCase(EdgeFlipTestCase):
+class DynamoEdgeTestCase(DynamoTestCase):
 
     expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
 
@@ -451,8 +453,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
     def test_fetch_incoming_edges_newer_than(self):
         """Test fetching incoming edges with newer than date"""
         # save everything with "old" date
-        with freeze_time('2013-01-01'):
-            self.save_edges(self.edges().values())
+        self.save_edges(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
@@ -486,8 +487,7 @@ class DynamoEdgeTestCase(EdgeFlipTestCase):
     def test_fetch_outgoing_edges_newer_than(self):
         """Test fetching outgoing edges newer than date"""
         # save everything with "old" date
-        with freeze_time('2013-01-01'):
-            self.save_edges(self.edges().values())
+        self.save_edges(self.edges().values())
 
         # save edge (100, 200) with a newer date
         with freeze_time('2013-01-06'):
