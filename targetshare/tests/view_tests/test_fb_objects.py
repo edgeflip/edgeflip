@@ -16,7 +16,7 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         ''' Test hitting the views.object endpoint as the FB crawler '''
         assert not models.Event.objects.exists()
         response = self.client.get(
-            reverse('objects', args=[1, 1]),
+            reverse('targetshare:objects', args=[1, 1]),
             HTTP_USER_AGENT='facebookexternalhit'
         )
         self.assertStatusCode(response, 200)
@@ -32,14 +32,14 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         '''
         self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
-            reverse('objects', args=[1, 1]),
+            reverse('targetshare:objects', args=[1, 1]),
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
         self.assertTrue(models.Event.objects.filter(activity_id=1).exists())
         self.assertTrue(response.context['fb_params'])
         self.assertEqual(response.context['fb_params']['fb_object_url'],
-                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+                         'https://testserver/share/objects/1/1/?campaign_id=1&cssslug=')
         redirect_url = '{}?fb_action_ids=1'.format(
             models.ClientContent.objects.get(pk=1).url)
         self.assertEqual(
@@ -62,12 +62,12 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         fb_object.campaignfbobjects.exclude(pk=campaign_fb_object.pk).delete()
 
         response = self.client.get(
-            reverse('objects', args=[1, 1]),
+            reverse('targetshare:objects', args=[1, 1]),
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
         self.assertEqual(response.context['fb_params']['fb_object_url'],
-                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+                         'https://testserver/share/objects/1/1/?campaign_id=1&cssslug=')
         self.assertEqual(
             response.context['redirect_url'],
             self.get_outgoing_url('http://www.google.com/?fb_action_ids=1', 1)
@@ -81,7 +81,7 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
             source_url='http://www.google.com/',
         )
         response = self.client.get(
-            reverse('objects', args=[1, 1]),
+            reverse('targetshare:objects', args=[1, 1]),
             data={'fb_action_ids': 1, 'campaign_id': 1}
         )
         self.assertStatusCode(response, 200)
@@ -89,7 +89,7 @@ class TestFBObjectsViews(EdgeFlipViewTestCase):
         self.assertRegexpMatches(log_mock.exception.mock_calls[0][1][0],
                                  re.compile('ambiguous fbobject source', re.I))
         self.assertEqual(response.context['fb_params']['fb_object_url'],
-                         'https://testserver/objects/1/1/?campaign_id=1&cssslug=')
+                         'https://testserver/share/objects/1/1/?campaign_id=1&cssslug=')
         self.assertGreater(fb_object.campaignfbobjects.count(), 1)
         self.assertEqual(
             response.context['redirect_url'],

@@ -36,7 +36,7 @@ edgeflip.events = (function ($) {
 
         $.ajax({
             type: 'POST',
-            url: "{% url 'record-event' %}",
+            url: "{% url 'targetshare:record-event' %}",
             dataType: 'html',
             data: {
                 eventType: eventType,

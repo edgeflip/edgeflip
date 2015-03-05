@@ -55,14 +55,14 @@ def objects(request, fb_object_id, content_id):
         redirect_url = parsed_url._replace(query=urllib.urlencode(query_params)).geturl()
 
     full_redirect_path = "{}?{}".format(
-        reverse('outgoing', args=[client.fb_app_id, redirect_url]),
+        reverse('targetshare:outgoing', args=[client.fb_app_id, redirect_url]),
         urllib.urlencode({'campaignid': campaign_id}),
     )
 
     # Build FBObject parameters for document:
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
-        reverse('objects', kwargs={
+        reverse('targetshare:objects', kwargs={
             'fb_object_id': fb_object_id,
             'content_id': content_id,
         }),

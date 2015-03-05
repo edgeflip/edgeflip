@@ -401,7 +401,7 @@ JSURLS_JS_NAMESPACE = 'edgeflip.router'
 JSURLS_PROFILES = {
     'admin': {
         'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-admin.js'),
-        'URL_NAMESPACES': ('targetadmin',),
+        'URL_NAMESPACES': ('targetadmin', 'targetshare'),
     },
     'gimmick': {
         'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-map.js'),
@@ -412,7 +412,8 @@ JSURLS_PROFILES = {
         'URL_NAMESPACES': ('reporting',),
     },
     'sharing': {
-        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router.js'),
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-sharing.js'),
+        'URL_NAMESPACES': ('targetshare',),
     },
 }
 

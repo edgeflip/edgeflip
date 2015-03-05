@@ -4,16 +4,24 @@ from django.contrib import admin
 
 from jsurls.urls import jspatterns
 
+import targetshare.urls
+
 
 admin.autodiscover()
 
 urlpatterns = patterns('',
-    # targetshare
-    url(r'', include('targetshare.urls')),
-
     # chapo
     url(r'^r/', include('chapo.urls', namespace='chapo', app_name='chapo')),
     url(r'^canvas/r/', include('chapo.urls', namespace='chapo-embedded', app_name='chapo')),
+
+    # targetshare
+    url(r'^share/', include(targetshare.urls.urlpatterns,
+                            namespace='targetshare', app_name='targetshare')),
+    url(r'^canvas/share/', include(targetshare.urls.canvaspatterns,
+                                   namespace='targetshare-canvas', app_name='targetshare')),
+    url(r'^canvas/', include(targetshare.urls.canvaspatterns_root,
+                             namespace='targetshare-canvas-root', app_name='targetshare')),
+    url(r'^', include(targetshare.urls.legacypatterns)),
 
     # etc.
     url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
@@ -30,7 +38,7 @@ if settings.ENV in ('development', 'staging'):
 
 if settings.ENV == 'development':
     urlpatterns += (
-        jspatterns('js/router.js', profile='sharing') +
+        jspatterns('js/router-sharing.js', profile='sharing') +
         jspatterns('js/router-admin.js', profile='admin') +
         jspatterns('js/router-map.js', profile='gimmick') +
         jspatterns('js/router-reports.js', profile='reporting')

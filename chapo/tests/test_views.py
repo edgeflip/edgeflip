@@ -303,8 +303,8 @@ class TestInactiveCampaign(RedirectCampaignTestCase):
         self.group = self.user.groups.create(name='mockgroup')
 
         self.inactive_url = 'http://localhost/phooey'
-        outgoing_path = reverse('outgoing', args=[self.campaign.client.fb_app_id,
-                                                  self.inactive_url])
+        outgoing_path = reverse('targetshare:outgoing', args=[self.campaign.client.fb_app_id,
+                                                              self.inactive_url])
         self.outgoing_path = "{}?campaignid={}".format(outgoing_path, self.campaign.campaign_id)
         self.outgoing_url = "http://testserver" + self.outgoing_path
         self.final_url = self.inactive_url + "?rs=ef1"
