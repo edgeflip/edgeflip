@@ -8,11 +8,17 @@ from jsurls.urls import jspatterns
 admin.autodiscover()
 
 urlpatterns = patterns('',
+    # targetshare
     url(r'', include('targetshare.urls')),
+
+    # chapo
+    url(r'^r/', include('chapo.urls', namespace='chapo', app_name='chapo')),
+    url(r'^canvas/r/', include('chapo.urls', namespace='chapo-embedded', app_name='chapo')),
+
+    # etc.
     url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
     url(r'^subscriptions/', include('feed_crawler.urls', namespace='feed-crawler')),
     url(r'^reporting/', include('reporting.urls', namespace='reporting')),
-    url(r'^r/', include('chapo.urls', namespace='chapo')),
 )
 
 if settings.ENV in ('development', 'staging'):

@@ -1066,3 +1066,40 @@ class TestAPIPost(APITestCase):
             'campaign_id': None,
             'description': u'A test redirect',
         })
+
+
+class TestUrlNamespace(APITestCase):
+
+    def test_api_post_namespace_preserved(self):
+        """API responses respect installation into a custom URL namespace"""
+        path = reverse('chapo-embedded:shorten-url')
+        key_header = self.generate_authorization()
+        data = urllib.urlencode([('description', "A test redirect"), ('url', URL)])
+        response = self.client.post(path, data,
+                                    content_type='application/x-www-form-urlencoded',
+                                    HTTP_AUTHORIZATION=key_header)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.content, '')
+
+        short = models.ShortenedUrl.objects.values().get()
+        slug = short['slug']
+        self.assertTrue(slug)
+
+        result_location = response['Location']
+        self.assertIn('/canvas/', path)
+        self.assertIn('/canvas/', result_location)
+        self.assertEqual(
+            result_location,
+            'http://testserver' + reverse('chapo-embedded:main', args=[slug])
+        )
+
+    def test_user_get_slashless_namespace_preserved(self):
+        """User redirects to canonical (/$) path respect custom URL namespace"""
+        short = models.ShortenedUrl.objects.create(url=URL)
+        path0 = reverse('chapo-embedded:main-slashless', args=[short.slug])
+        path1 = reverse('chapo-embedded:main', args=[short.slug])
+        self.assertNotRegexpMatches(path0, r'/$')
+        self.assertRegexpMatches(path1, r'/$')
+        response = self.client.get(path0)
+        self.assertEqual(response.status_code, 301)
+        self.assertEqual(response['Location'], 'http://testserver' + path1)

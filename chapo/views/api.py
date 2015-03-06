@@ -161,7 +161,9 @@ def _shorten(request, slug=None):
     if form.is_valid():
         result = form.save()
         response = HttpResponse(status=(201 if shortened is None else 204))
-        response['Location'] = reverse('chapo:main', args=[result.slug])
+        response['Location'] = reverse('chapo:main',
+                                       args=[result.slug],
+                                       current_app=request.resolver_match.namespace)
         return response
 
     if content_type == ContentTypes.JSON:
