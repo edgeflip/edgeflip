@@ -218,7 +218,10 @@ class DirectedEdgeAggregate(object):
 
     def __init__(self, network, aggregator=max):
         for interaction in self.weights:
-            population_score = aggregator(getattr(edge, interaction) for edge in network)
+            if network:
+                population_score = aggregator(getattr(edge, interaction) for edge in network)
+            else:
+                population_score = 0
             setattr(self, interaction, population_score)
 
     def score(self, edge):
