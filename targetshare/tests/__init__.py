@@ -15,6 +15,7 @@ from django.core.urlresolvers import reverse
 from django.test import TestCase
 from django.utils import timezone
 from django.utils.importlib import import_module
+from freezegun import freeze_time
 from mock import Mock, patch
 
 from targetshare import models
@@ -46,6 +47,8 @@ class EdgeFlipTestMixIn(object):
         ),
     )
 
+    frozen_time = None
+
     @classmethod
     def setUpClass(cls):
         for patch_ in cls.global_patches:
@@ -67,8 +70,13 @@ class EdgeFlipTestMixIn(object):
     def setUp(self):
         super(EdgeFlipTestMixIn, self).setUp()
         faraday.db.build()
+        if self.frozen_time:
+            self.time_freeze = freeze_time(self.frozen_time)
+            self.time_freeze.start()
 
     def tearDown(self):
+        if self.frozen_time:
+            self.time_freeze.stop()
         faraday.db.destroy()
         super(EdgeFlipTestMixIn, self).tearDown()
 

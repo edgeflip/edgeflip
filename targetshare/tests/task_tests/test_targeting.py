@@ -2,7 +2,6 @@ import random
 import types
 
 from django.utils import timezone
-from freezegun import freeze_time
 from mock import patch
 
 from targetshare import models
@@ -32,7 +31,7 @@ class TargetingTestCase(EdgeFlipTestCase):
         self.token = models.datastructs.ShortToken(fbid=1, appid='1', token='1Z', api='1.0')
 
 
-## PX3-only tests ##
+# PX3-only tests #
 
 class TestProximityRankThree(TargetingTestCase):
 
@@ -119,20 +118,22 @@ class TestProximityRankThree(TargetingTestCase):
         )
 
 
-@freeze_time('2013-01-01')
 class TestFiltering(TargetingTestCase):
 
     fixtures = ['test_data']
+    frozen_time = '2013-1-1'
 
     @patch_facebook
     def test_perform_filtering(self):
         ''' Runs the filtering celery task '''
         visitor = models.relational.Visitor.objects.create()
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
+
         ranked_edges = targeting.px3_crawl(self.token)
         # Ensure at least one edge passes filter:
         # (NOTE: May have to fiddle with campaign properties as well.)
         ranked_edges[0].secondary.state = 'Illinois'
+
         (
             edges_ranked,
             edges_filtered,
@@ -148,6 +149,7 @@ class TestFiltering(TargetingTestCase):
             visit_id=visit.pk,
             num_faces=1,
         )
+
         self.assertTrue(edges_ranked)
         self.assertEqual({type(edge) for edge in edges_ranked},
                          {models.datastructs.Edge})
@@ -185,7 +187,14 @@ class TestFiltering(TargetingTestCase):
         visit = visitor.visits.create(session_id='123', app_id=123, ip='127.0.0.1')
 
         ranked_edges = [test_edge2, test_edge1]
-        edges_ranked, edges_filtered, filter_id, cs_slug, campaign_id, content_id = targeting.perform_filtering(
+        (
+            edges_ranked,
+            edges_filtered,
+            filter_id,
+            cs_slug,
+            campaign_id,
+            content_id,
+        ) = targeting.perform_filtering(
             ranked_edges,
             campaign_id=5,
             content_id=1,
@@ -199,7 +208,7 @@ class TestFiltering(TargetingTestCase):
         self.assertEquals(edges_filtered[1]['campaign_id'], 6)
 
 
-## PX4 tests ##
+# PX4 tests #
 
 class Px4TargetingTestCase(TargetingTestCase):
 

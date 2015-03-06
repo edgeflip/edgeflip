@@ -3,7 +3,6 @@ from django.utils import timezone
 import json
 import time
 
-from freezegun import freeze_time
 from mock import patch
 
 from targetshare.models.dynamo import Token
@@ -14,10 +13,10 @@ from targetclient.models import OFAToken
 from targetclient.management.commands import ensure_users_from_tokens, synctokens
 
 
-@freeze_time('2014-02-14')
 class TestSyncTokens(EdgeFlipTestCase):
 
     fixtures = ['targetclient_test_data']
+    frozen_time = '2014-02-14'
 
     def setUp(self):
         super(TestSyncTokens, self).setUp()
@@ -118,10 +117,10 @@ class TestSyncTokens(EdgeFlipTestCase):
         self.assertEqual(token.fbid, 2)
 
 
-@freeze_time('2014-03-17')
 class TestEnsureUsersFromTokens(EdgeFlipTestCase):
 
     fixtures = ['test_client_data']
+    frozen_time = '2014-03-17'
 
     def setUp(self):
         super(TestEnsureUsersFromTokens, self).setUp()
