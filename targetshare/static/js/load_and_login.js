@@ -66,8 +66,8 @@ edgeflip.faces = (function (edgeflip, $) {
 
         $.ajax({
             type: 'POST',
-            url: '/faces/',
             dataType: 'json',
+            url: edgeflip.router.reverse('targetshare:faces'),
             data: {
                 fbid: self.test_mode ? self.test_fbid : fbid,
                 token: self.test_mode ? self.test_token : accessToken,

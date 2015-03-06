@@ -6,7 +6,7 @@ import urlparse
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.core.urlresolvers import reverse
-from django.test import TestCase
+from django.test import Client, TestCase
 
 from targetshare.models import relational
 
@@ -66,15 +66,23 @@ class TestJavaScriptRedirectService(TestCase):
         self.short = models.ShortenedUrl.objects.create(url=URL)
         self.path = reverse('chapo:html', args=[self.short.slug])
 
-    def test_get(self):
-        """el chapo returns HTML with a JavaScript redirect"""
-        response = self.client.get(self.path)
-        self.assertEqual(response.status_code, 200)
-
+    def try_page(self, response):
         template = r'''<script.+outgoingRedirect\(['"]{URL}['"]\);.*</script>'''
         snippet = template.format(URL=re.escape(URL))
         regexp = re.compile(snippet, re.DOTALL)
         self.assertRegexpMatches(response.content, regexp)
+
+    def test_get(self):
+        """el chapo returns HTML with a JavaScript redirect"""
+        response = self.client.get(self.path)
+        self.assertEqual(response.status_code, 200)
+        self.try_page(response)
+
+    def test_post_no_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(self.path)
+        self.assertEqual(response.status_code, 200)
+        self.try_page(response)
 
 
 # ...with campaigns #
@@ -303,8 +311,8 @@ class TestInactiveCampaign(RedirectCampaignTestCase):
         self.group = self.user.groups.create(name='mockgroup')
 
         self.inactive_url = 'http://localhost/phooey'
-        outgoing_path = reverse('outgoing', args=[self.campaign.client.fb_app_id,
-                                                  self.inactive_url])
+        outgoing_path = reverse('targetshare:outgoing', args=[self.campaign.client.fb_app_id,
+                                                              self.inactive_url])
         self.outgoing_path = "{}?campaignid={}".format(outgoing_path, self.campaign.campaign_id)
         self.outgoing_url = "http://testserver" + self.outgoing_path
         self.final_url = self.inactive_url + "?rs=ef1"

@@ -191,7 +191,7 @@ class TestCampaignWizard(TestAdminBase):
 
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
-            'https://apps.facebook.com/{}/{}/'.format(
+            'https://apps.facebook.com/{}/share/{}'.format(
                 new_client.fb_app.name,
                 encryptedslug.make_slug(camp, content)
             )
@@ -264,7 +264,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(fb_attr.og_type, 'cause')
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
-            'https://apps.facebook.com/{}/{}/'.format(
+            'https://apps.facebook.com/{}/share/{}'.format(
                 new_client.fb_app.name,
                 encryptedslug.make_slug(camp, content)
             )
@@ -391,7 +391,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertEqual(fb_attr.og_type, 'cause')
         self.assertEqual(
             camp.campaignproperties.get().client_faces_url,
-            'https://apps.facebook.com/{}/{}/'.format(
+            'https://apps.facebook.com/{}/share/{}'.format(
                 new_client.fb_app.name,
                 encryptedslug.make_slug(camp, content)
             )
@@ -542,7 +542,7 @@ class TestCampaignWizard(TestAdminBase):
         props = campaign.campaignproperties.all()
         encoded = encryptedslug.make_slug(campaign, content0)
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
-                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
+                         'https://apps.facebook.com/{}/share/{}'.format(new_client.fb_app.name, encoded))
         self.assertIsNone(props.get().fallback_campaign)
 
         response = self.client.post(
@@ -574,7 +574,7 @@ class TestCampaignWizard(TestAdminBase):
         self.assertTrue(props.get().fallback_campaign)
         encoded = encryptedslug.make_slug(campaign, content)
         self.assertEqual(props.values_list('client_faces_url', flat=True).get(),
-                         'https://apps.facebook.com/{}/{}/'.format(new_client.fb_app.name, encoded))
+                         'https://apps.facebook.com/{}/share/{}'.format(new_client.fb_app.name, encoded))
 
 
 class TestCampaignData(TestAdminBase):

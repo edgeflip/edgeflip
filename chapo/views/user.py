@@ -1,6 +1,7 @@
 """Views providing public methods to visiting users."""
 from django.http import HttpResponsePermanentRedirect
 from django.shortcuts import render, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
 from core.utils import campaignstatus
@@ -66,6 +67,7 @@ def main(request, slug): # routed via urls.main()
     return HttpResponsePermanentRedirect(shortened.url, content)
 
 
+@csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def html(request, slug):
     """Return an "OK" (code 200) response with HTML-embedded JavaScript,

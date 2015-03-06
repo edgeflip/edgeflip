@@ -20,7 +20,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_health_check(self, fb_mock):
         ''' Tests views.health_check '''
         fb_mock.urlload.return_value = {'id': 6963}
-        response = self.client.get(reverse('health-check'))
+        response = self.client.get(reverse('targetshare:health-check'))
         self.assertStatusCode(response, 200)
         self.assertEqual(json.loads(response.content), {
             'database': True,
@@ -30,14 +30,14 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_health_check_elb(self):
         ''' Test health-check view from Amazon ELB perspective '''
-        response = self.client.get(reverse('health-check'), {'elb': True})
+        response = self.client.get(reverse('targetshare:health-check'), {'elb': True})
         self.assertStatusCode(response, 200)
         self.assertEqual(response.content, "It's Alive!")
 
     @patch_facebook(min_friends=1, max_friends=25)
     def test_health_check_faces(self):
         ''' Test Faces health-check view '''
-        response = self.client.get(reverse('faces-health-check'), {
+        response = self.client.get(reverse('targetshare:faces-health-check'), {
             'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
@@ -51,7 +51,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_health_check_faces_bad_request(self):
         ''' Test Faces health-check view with bad request '''
-        response = self.client.get(reverse('faces-health-check'), {
+        response = self.client.get(reverse('targetshare:faces-health-check'), {
             'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
@@ -67,7 +67,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_health_check_faces_failure(self, px3_mock, px4_mock):
         px3_mock.delay.return_value = Mock(status='FAILURE', id='1-1')
         px4_mock.delay.return_value = Mock(status='FAILURE', id='1-2')
-        response = self.client.get(reverse('faces-health-check'), {
+        response = self.client.get(reverse('targetshare:faces-health-check'), {
             'api': '1.0',
             'fbid': 1,
             'token': 'token_str',
@@ -83,7 +83,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_outgoing_url(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], url)
@@ -97,21 +97,21 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_outgoing_url_bad_source(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id,
                                                url])
         response = self.client.get(redirector, {'source': 'true!!1!'})
         self.assertContains(response, 'Invalid "source" flag', status_code=400)
 
     def test_outgoing_url_bad_campaign(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id,
                                                url])
         response = self.client.get(redirector, {'source': '1', 'campaignid': 'two'})
         self.assertContains(response, 'Invalid campaign identifier', status_code=400)
 
     def test_outgoing_url_missing_campaign(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id,
                                                url])
         self.assertFalse(models.Campaign.objects.filter(pk=9999).exists())
         response = self.client.get(redirector, {'source': '1', 'campaignid': '9999'})
@@ -119,7 +119,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_outgoing_url_missing_protocol(self):
         url = 'www.badeggs.com'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id,
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id,
                                                url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
@@ -127,21 +127,21 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
     def test_outgoing_url_implicit_protocol(self):
         url = '//www.badeggs.com'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], "http:{}".format(url))
 
     def test_outgoing_url_only_path(self):
         url = '/weird'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id, url])
         response = self.client.get(redirector)
         self.assertStatusCode(response, 302)
         self.assertEqual(response['Location'], "http://testserver{}".format(url))
 
     def test_outgoing_url_source(self):
         url = 'http://www.google.com/path?query=string&string=query'
-        redirector = reverse('outgoing', args=[self.test_client.fb_app_id, url])
+        redirector = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id, url])
         campaign = models.Campaign.objects.all()[0]
         final_url = url + '&rs=ef{}'.format(campaign.pk)
 
@@ -161,7 +161,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
     def test_incoming_url_redirect(self, task_mock):
         campaign = models.Campaign.objects.get(pk=1)
         response = self.client.get(
-            reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
+            reverse('targetshare:incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
         )
         self.assertStatusCode(response, 302)
         self.assertTrue(
@@ -182,13 +182,13 @@ class TestServicesViews(EdgeFlipViewTestCase):
 
         campaign = models.Campaign.objects.get(pk=1)
         response = self.client.get(
-            reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)]),
+            reverse('targetshare:incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)]),
             {'error': 'access_denied', 'error_reason': 'user_denied'}
         )
         self.assertStatusCode(response, 302)
 
         campaign_props = campaign.campaignproperties.get()
-        outgoing_path = reverse('outgoing', args=[
+        outgoing_path = reverse('targetshare:outgoing', args=[
             campaign_props.campaign.client.fb_app_id,
             campaign_props.client_error_url]
         )
@@ -221,7 +221,7 @@ class TestServicesViews(EdgeFlipViewTestCase):
         async_result = task_mock.delay.return_value
         async_result.id = async_result.task_id = 'OAUTH_TOKEN_TASK-1'
         campaign = models.Campaign.objects.get(pk=1)
-        path = reverse('incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
+        path = reverse('targetshare:incoming-encoded', args=[encryptedslug.make_slug(campaign, 1)])
         response = self.client.get(path, {'code': 'PIEZ'})
         self.assertStatusCode(response, 302)
         self.assertNotIn('code=', response['Location'])

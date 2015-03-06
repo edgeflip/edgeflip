@@ -52,7 +52,7 @@ class Command(BaseCommand):
         if client != self.client_content.client:
             raise CommandError("Mismatched campaign and client content")
 
-        self.uri = server + reverse('faces')
+        self.uri = server + reverse('targetshare:faces')
         if not self.uri.startswith('http'):
             self.uri = 'https://' + self.uri
 

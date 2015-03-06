@@ -89,7 +89,7 @@ def incoming(request, api, campaign_id, content_id):
         # OAuth denial
         # Record auth fail and redirect to error URL:
         url = "{}?{}".format(
-            reverse('outgoing', args=[
+            reverse('targetshare:outgoing', args=[
                 campaign.client.fb_app_id,
                 properties.client_error_url
             ]),

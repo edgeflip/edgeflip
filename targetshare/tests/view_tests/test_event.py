@@ -17,7 +17,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         ''' Test suppressing a user that was recommended '''
         assert not models.Event.objects.exists()
         response = self.client.post(
-            reverse('suppress'), {
+            reverse('targetshare:suppress'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -47,7 +47,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         sent, otherwise it returns a 403
         '''
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -77,7 +77,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         self.assertFalse(message.exists())
 
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -99,7 +99,7 @@ class TestEventViews(EdgeFlipViewTestCase):
     def test_record_event_button_click(self):
         ''' Test views.record_event with shared event_type '''
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -118,7 +118,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         button_load events
         '''
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -136,7 +136,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         )
         # Now round 2, shouldn't produce a new event
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -165,7 +165,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         events = models.Event.objects.filter(event_type='authorized')
         self.assertEqual(events.count(), 0)
 
-        response = self.client.post(reverse('record-event'), {
+        response = self.client.post(reverse('targetshare:record-event'), {
             'token': 'test-token',
             'userid': 1111111,
             'appid': self.test_client.fb_app_id,
@@ -184,7 +184,7 @@ class TestEventViews(EdgeFlipViewTestCase):
     @patch('targetshare.views.events.extend_token')
     def test_record_event_preauthed(self, task_mock):
         # Make bad request to init visit
-        response = self.client.post(reverse('record-event'), {
+        response = self.client.post(reverse('targetshare:record-event'), {
             'eventType': 'no-events-here',
             'appid': self.test_client.fb_app_id,
         })
@@ -196,7 +196,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         auths = models.Event.objects.filter(event_type='authorized')
         self.assertEqual(auths.count(), 1)
 
-        response = self.client.post(reverse('record-event'), {
+        response = self.client.post(reverse('targetshare:record-event'), {
             'userid': 1111111,
             'appid': self.test_client.fb_app_id,
             'campaignid': 1,
@@ -214,7 +214,7 @@ class TestEventViews(EdgeFlipViewTestCase):
     def test_record_event_heartbeat(self):
         ''' Testing the record_event view with a heartbeat event '''
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -232,7 +232,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         self.assertEqual(event.client_content_id, 1)
 
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -252,7 +252,7 @@ class TestEventViews(EdgeFlipViewTestCase):
     def test_update_event_heartbeat_meta(self):
         """heartbeat metadata updated but not overwritten"""
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'content': 'Testing',
@@ -268,7 +268,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         self.assertIsNone(event.client_content_id)
 
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 1,
@@ -286,7 +286,7 @@ class TestEventViews(EdgeFlipViewTestCase):
         self.assertEqual(event.client_content_id, 1)
 
         response = self.client.post(
-            reverse('record-event'), {
+            reverse('targetshare:record-event'), {
                 'userid': 1,
                 'appid': self.test_client.fb_app_id,
                 'campaignid': 2,

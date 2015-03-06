@@ -75,7 +75,7 @@ def build_table(uuid, edges, num_face, url=None, client=None):
     that we send to clients. This table will later be embedded in an
     email that is sent to primaries, thus all the inline styles
     '''
-    faces_path = reverse('faces-email', args=[uuid])
+    faces_path = reverse('targetshare:faces-email', args=[uuid])
     if not url:
         faces_url = 'http://{}.{}{}'.format(
             client.subdomain,

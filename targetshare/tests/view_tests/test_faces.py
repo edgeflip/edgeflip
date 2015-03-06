@@ -24,7 +24,7 @@ class TestFaces(EdgeFlipViewTestCase):
 
     def setUp(self):
         super(TestFaces, self).setUp()
-        self.url = reverse('faces')
+        self.url = reverse('targetshare:faces')
 
         self.session = self.get_session()
         self.session.set_test_cookie() # usually set by frame_faces
@@ -328,7 +328,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         page_style = campaign_page_style_set.page_style_set.page_styles.get()
 
         self.assertFalse(models.Assignment.objects.exists())
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
 
         url = '//assets-edgeflip.s3.amazonaws.com/s/c/edgeflip-base-0.css'
         self.assertEqual(page_style.url, url)
@@ -341,14 +341,14 @@ class TestFrameFaces(EdgeFlipViewTestCase):
     def test_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
         response = self.client.get(
-            reverse('frame-faces-encoded', args=['t0AGY7FMXjM%3D'])
+            reverse('targetshare:frame-faces-encoded', args=['t0AGY7FMXjM%3D'])
         )
         self.assertStatusCode(response, 200)
 
     def test_frame_faces(self):
         ''' Testing views.frame_faces '''
         self.assertFalse(models.Event.objects.exists())
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
         client = models.Client.objects.get(campaigns__pk=1)
         campaign = models.Campaign.objects.get(pk=1)
         self.assertStatusCode(response, 200)
@@ -379,13 +379,13 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         root_campaigns = models.CampaignProperties.objects.values_list('root_campaign', flat=True)
         root_campaign_id = root_campaigns.get(campaign_id=6)
         self.assertEqual(root_campaign_id, 5) # 6 is fallback of 5
-        response = self.client.get(reverse('frame-faces-default', args=[6, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[6, 1]))
         self.assertStatusCode(response, 404)
 
     def test_configurable_urls(self):
         success_url = '//disney.com/'
         error_url = 'http://www.google.com/foo/bar'
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]), {
             'efsuccessurl': success_url,
             'eferrorurl': error_url,
         })
@@ -397,7 +397,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
                          self.get_outgoing_url(error_url, 1))
 
     def test_test_mode(self):
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]), {
             'secret': settings.TEST_MODE_SECRET,
             'fbid': 1234,
             'token': 'boo-urns',
@@ -409,7 +409,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         self.assertEqual(test_mode.token, 'boo-urns')
 
     def test_test_mode_bad_secret(self):
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]), {
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]), {
             'secret': settings.TEST_MODE_SECRET[:4] + 'oops',
             'fbid': 1234,
             'token': 'oops',
@@ -433,7 +433,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         logged_in = self.client.login(username='mockuser', password='1234')
         self.assertTrue(logged_in)
 
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertTrue(response.context['draft_preview'])
 
@@ -441,7 +441,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         models.CampaignProperties.objects.filter(campaign_id=1).update(
             status=models.CampaignProperties.Status.DRAFT,
         )
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
         self.assertStatusCode(response, 403)
 
     def test_inactive_campaign(self):
@@ -449,7 +449,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         campaign.campaignproperties.update(
             status=models.CampaignProperties.Status.INACTIVE,
         )
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
         self.assertContains(response, "Page removed", status_code=410)
 
     def test_inactive_campaign_redirect(self):
@@ -461,12 +461,12 @@ class TestFrameFaces(EdgeFlipViewTestCase):
         client.campaign_inactive_url = 'http://clienthost/'
         client.save()
         outgoing_url = "{}?campaignid={}".format(
-            reverse('outgoing', args=[client.fb_app_id, client.campaign_inactive_url]),
+            reverse('targetshare:outgoing', args=[client.fb_app_id, client.campaign_inactive_url]),
             campaign.campaign_id,
         )
 
         # JavaScript redirect to overcome canvas iframe:
-        response = self.client.get(reverse('frame-faces-default', args=[1, 1]))
+        response = self.client.get(reverse('targetshare:frame-faces-default', args=[1, 1]))
         self.assertStatusCode(response, 200)
         self.assertTemplateUsed(response, 'core/campaignstatus/inactive-campaign.html')
         self.assertFalse(response.context['authorized'])
@@ -476,14 +476,14 @@ class TestFrameFaces(EdgeFlipViewTestCase):
 
     def test_canvas(self):
         ''' Tests views.canvas '''
-        response = self.client.get(reverse('canvas'))
+        response = self.client.get(reverse('targetshare-canvas-root:canvas'))
         self.assertStatusCode(response, 200)
 
     def test_canvas_encoded(self):
         ''' Testing the views.frame_faces_encoded method '''
         self.assertFalse(models.Event.objects.exists())
         response = self.client.get(
-            reverse('canvas-faces-encoded', args=['t0AGY7FMXjM%3D'])
+            reverse('targetshare-canvas:frame-faces-encoded', args=['t0AGY7FMXjM%3D'])
         )
         self.assertStatusCode(response, 200)
         assert models.Event.objects.get(event_type='session_start')
@@ -492,7 +492,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
 
     def test_canvas_encoded_noslash(self):
         """Encoded canvas endpoint responds with 200 without trailing slash."""
-        url = reverse('canvas-faces-encoded', args=['t0AGY7FMXjM%3D'])
+        url = reverse('targetshare-canvas:frame-faces-encoded', args=['t0AGY7FMXjM%3D'])
         response = self.client.get(url.rstrip('/'))
         self.assertStatusCode(response, 200)
 
@@ -531,7 +531,7 @@ class TestFrameFaces(EdgeFlipViewTestCase):
                 event_type=event_type, notification_user=notification_user
             )
 
-        response = self.client.get(reverse('faces-email', args=[notification_user.uuid]))
+        response = self.client.get(reverse('targetshare:faces-email', args=[notification_user.uuid]))
         self.assertStatusCode(response, 200)
         self.assertEqual(len(response.context['show_faces']), 3)
         self.assertEqual(len(response.context['all_friends']), 7)
@@ -552,7 +552,7 @@ class TestFrameFacesEagerTargeting(EdgeFlipViewTestCase):
 
     def setUp(self):
         super(TestFrameFacesEagerTargeting, self).setUp()
-        self.url = reverse('frame-faces-default', args=[1, 1])
+        self.url = reverse('targetshare:frame-faces-default', args=[1, 1])
 
         self.session = self.get_session()
         self.session['oauth_task'] = self.oauth_task_id

@@ -738,7 +738,7 @@ edgeflip.sharing = (function ($, edgeflip) {
             // Update the friends shown
             $.ajax({
                 type: 'POST',
-                url: '/suppress/',
+                url: edgeflip.router.reverse('targetshare:suppress'),
                 dataType: 'html',
                 data: {
                     userid: edgeflip.faces.user.fbid, // edgeflip.User constructed in frame_faces.html

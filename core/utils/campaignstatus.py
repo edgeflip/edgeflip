@@ -135,7 +135,7 @@ class InactiveCampaign(DisallowedError):
         # Determine appropriate redirect path, if any, through outgoing redirector
         inactive_url = self.properties.inactive_url or self.campaign.client.campaign_inactive_url
         if inactive_url:
-            redirect_url = urlreverse('outgoing',
+            redirect_url = urlreverse('targetshare:outgoing',
                 args=[self.campaign.client.fb_app_id, inactive_url],
                 querymap=[
                     ('campaignid', self.campaign.campaign_id),

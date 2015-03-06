@@ -154,8 +154,8 @@ class EdgeFlipViewTestCase(EdgeFlipTestCase):
             qs = '?' + urllib.urlencode({'campaignid': campaign_id})
         else:
             qs = ''
-        url = reverse('outgoing', args=[self.test_client.fb_app_id,
-                                        redirect_url])
+        url = reverse('targetshare:outgoing', args=[self.test_client.fb_app_id,
+                                                    redirect_url])
         return url + qs
 
     def patch_targeting(self, celery_mock,

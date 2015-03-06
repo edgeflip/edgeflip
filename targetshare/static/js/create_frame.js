@@ -30,13 +30,14 @@
     });
 
     // Complete URL path from window URL parameters
+    efFrameURL += '/share';
     if (urlparams['efcmpgslug']) {
-        efFrameURL += '/frame_faces/' + urlparams['efcmpgslug'];
+        efFrameURL += '/frame/' + urlparams['efcmpgslug'];
     }
     else if (urlparams['efuuid']) {
         efFrameURL += '/faces-email/' + urlparams['efuuid'];
     } else {
-        efFrameURL += '/frame_faces/' + urlparams['efcmpg'] + '/' + urlparams['efcnt'];
+        efFrameURL += '/frame/' + urlparams['efcmpg'] + '/' + urlparams['efcnt'];
     }
 
     // Carry certain URL parameters through

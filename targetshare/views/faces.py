@@ -1,4 +1,5 @@
 import logging
+import re
 import urllib
 import itertools
 
@@ -85,7 +86,7 @@ def request_targeting(visit, token, api, campaign, client_content, num_faces):
 @csrf_exempt # FB posts directly to this view
 @utils.encoded_endpoint
 @utils.require_visit
-def frame_faces(request, api, campaign_id, content_id, canvas=False):
+def frame_faces(request, api, campaign_id, content_id):
     campaign = get_object_or_404(relational.Campaign, campaign_id=campaign_id)
     campaign_properties = campaign.campaignproperties.get()
 
@@ -100,6 +101,7 @@ def frame_faces(request, api, campaign_id, content_id, canvas=False):
 
     client = campaign.client
     content = get_object_or_404(client.clientcontent, content_id=content_id)
+    canvas = bool(re.search(r'\bcanvas\b', request.resolver_match.namespace))
 
     db.bulk_create.delay([
         relational.Event(
@@ -161,7 +163,7 @@ def frame_faces(request, api, campaign_id, content_id, canvas=False):
     ]:
         value = request.REQUEST.get(override_key) or properties[field]
         properties[field] = "{}?{}".format(
-            reverse('outgoing', args=[client.fb_app_id, value]),
+            reverse('targetshare:outgoing', args=[client.fb_app_id, value]),
             urllib.urlencode({'campaignid': campaign_id}),
         )
 
@@ -351,7 +353,7 @@ def faces(request):
     fb_attrs = fb_object.fbobjectattribute_set.for_datetime().get()
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
-        reverse('objects', kwargs={
+        reverse('targetshare:objects', kwargs={
             'fb_object_id': fb_object.pk,
             'content_id': content.pk,
         }),
@@ -544,7 +546,7 @@ def faces_email_friends(request, notification_uuid):
     fb_attrs = fb_object.fbobjectattribute_set.get()
     fb_object_url = 'https://%s%s?%s' % (
         request.get_host(),
-        reverse('objects', kwargs={
+        reverse('targetshare:objects', kwargs={
             'fb_object_id': fb_object.pk,
             'content_id': content.pk,
         }),
