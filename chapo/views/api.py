@@ -1,9 +1,11 @@
 """Views providing protected API methods to authorized consumers."""
 import enum
 import json
+import re
 import urllib
 
 from django import forms
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.http import Http404, HttpResponse, QueryDict
 from django.shortcuts import get_object_or_404
@@ -13,6 +15,13 @@ from core.utils.http import DjangoJsonHttpResponse
 from core.utils.decorators import ViewDecorator
 
 from chapo.models import ShortenedUrl, EFApiKey
+
+
+embedded_url_tag = getattr(settings, 'CHAPO_EMBEDDED_URL_TAG', None)
+if embedded_url_tag:
+    EMBEDDED_TAG_PATTERN = re.compile(r'\b{}\b'.format(embedded_url_tag))
+else:
+    EMBEDDED_TAG_PATTERN = re.compile(r'(?!)') # match nothing
 
 
 class require_api_key(ViewDecorator):
@@ -161,7 +170,11 @@ def _shorten(request, slug=None):
     if form.is_valid():
         result = form.save()
         response = HttpResponse(status=(201 if shortened is None else 204))
-        response['Location'] = reverse('chapo:main',
+        if EMBEDDED_TAG_PATTERN.search(request.resolver_match.namespace):
+            route_name = 'chapo:html'
+        else:
+            route_name = 'chapo:main'
+        response['Location'] = reverse(route_name,
                                        args=[result.slug],
                                        current_app=request.resolver_match.namespace)
         return response

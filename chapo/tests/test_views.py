@@ -1078,8 +1078,8 @@ class TestAPIPost(APITestCase):
 
 class TestUrlNamespace(APITestCase):
 
-    def test_api_post_namespace_preserved(self):
-        """API responses respect installation into a custom URL namespace"""
+    def test_api_post_namespace_preserved_html(self):
+        """API responses respect installation into an "embedded" URL namespace"""
         path = reverse('chapo-embedded:shorten-url')
         key_header = self.generate_authorization()
         data = urllib.urlencode([('description', "A test redirect"), ('url', URL)])
@@ -1098,7 +1098,7 @@ class TestUrlNamespace(APITestCase):
         self.assertIn('/canvas/', result_location)
         self.assertEqual(
             result_location,
-            'http://testserver' + reverse('chapo-embedded:main', args=[slug])
+            'http://testserver' + reverse('chapo-embedded:html', args=[slug])
         )
 
     def test_user_get_slashless_namespace_preserved(self):
