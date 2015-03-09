@@ -47,18 +47,21 @@ class Permissions(str, enum.Enum):
     USER_VIDEOS = 'user_videos'
 
 
-def _handle_graph_response(response, callback=None, session=None, raise_for_status=False, alert_next=False):
+def _handle_graph_response(response, callback=None, session=None,
+                           raise_for_status=False, follow_pagination=True):
     if raise_for_status:
         response.raise_for_status()
 
     payload = response.json()
     keys = tuple(payload)
     if 'paging' in keys or keys == ('data',):
-        # TODO: handle paging
-        next_ = payload.get('paging', {}).get('next')
-        if alert_next and next_:
-            LOG.error("Will not traverse pagination: %r", next_)
         data = payload['data']
+        next_ = payload.get('paging', {}).get('next')
+        if next_:
+            if follow_pagination:
+                data.extend(_get_graph(next_))
+            else:
+                LOG.error("Will not traverse pagination: %r", next_)
     else:
         data = payload
 
@@ -93,17 +96,20 @@ def _handle_graph_exception(exc):
         raise
 
 
-def get_graph(token, *path, **fields):
-    request_path = GRAPH_ENDPOINT + '/'.join(str(part) for part in path)
-    request_params = dict(fields, access_token=token, format='json')
-
+def _get_graph(request_path, request_params=None):
     try:
         response = requests.get(request_path, params=request_params)
         response.raise_for_status()
     except (IOError, RuntimeError) as exc:
         _handle_graph_exception(exc)
 
-    return _handle_graph_response(response, alert_next=True)
+    return _handle_graph_response(response)
+
+
+def get_graph(token, *path, **fields):
+    request_path = GRAPH_ENDPOINT + '/'.join(str(part) for part in path)
+    request_params = dict(fields, access_token=token, format='json')
+    return _get_graph(request_path, request_params)
 
 
 def get_graph_future(session, token, *path, **kws):
@@ -113,7 +119,8 @@ def get_graph_future(session, token, *path, **kws):
     request_params = dict(kws, access_token=token, format='json')
 
     def background_callback(session, response):
-        _handle_graph_response(response, callback, session, raise_for_status=True)
+        _handle_graph_response(response, callback, session,
+                               raise_for_status=True, follow_pagination=False)
 
     return session.get(request_path,
                        params=request_params,

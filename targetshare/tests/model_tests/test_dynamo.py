@@ -57,13 +57,9 @@ class TestDynamo(EdgeFlipTestCase):
         self.assertEqual(sum(1 for user in users), 2)
 
 
-class DynamoTestCase(EdgeFlipTestCase):
+class DynamoUserTestCase(EdgeFlipTestCase):
 
     frozen_time = '2013-01-01'
-
-
-class DynamoUserTestCase(DynamoTestCase):
-
     updated = datetime.datetime(2013, 1, 1, tzinfo=timezone.utc) + datetime.timedelta(days=-1)
 
     def users(self):
@@ -216,8 +212,9 @@ class DynamoUserTestCase(DynamoTestCase):
             self.assertDictEqual(dict(user), data)
 
 
-class DynamoTokenTestCase(DynamoTestCase):
+class DynamoTokenTestCase(EdgeFlipTestCase):
 
+    frozen_time = '2013-01-01'
     expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
 
     def tokens(self):
@@ -285,10 +282,10 @@ class DynamoTokenTestCase(DynamoTestCase):
             self.assertDictEqual(token, data)
 
 
-class DynamoEdgeTestCase(DynamoTestCase):
+class DynamoEdgeTestCase(EdgeFlipTestCase):
 
     expiry = datetime.datetime(2014, 01, 01, tzinfo=timezone.utc)
-
+    frozen_time = '2013-01-01'
     maxDiff = 1000
 
     def edges(self):
