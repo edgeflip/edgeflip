@@ -48,7 +48,7 @@ class Permissions(str, enum.Enum):
 
 
 def _handle_graph_response(response, callback=None, session=None,
-                           raise_for_status=False, follow_pagination=True):
+                           raise_for_status=False, follow_pagination=True, alert_next=True):
     if raise_for_status:
         response.raise_for_status()
 
@@ -60,8 +60,8 @@ def _handle_graph_response(response, callback=None, session=None,
         if next_:
             if follow_pagination:
                 data.extend(_get_graph(next_))
-            else:
-                LOG.error("Will not traverse pagination: %r", next_)
+            elif alert_next:
+                LOG.info("Will not traverse pagination: %r", next_)
     else:
         data = payload
 
@@ -120,7 +120,7 @@ def get_graph_future(session, token, *path, **kws):
 
     def background_callback(session, response):
         _handle_graph_response(response, callback, session,
-                               raise_for_status=True, follow_pagination=False)
+                               raise_for_status=True, follow_pagination=False, alert_next=False)
 
     return session.get(request_path,
                        params=request_params,
