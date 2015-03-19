@@ -217,13 +217,11 @@ def suppress(request):
     picture = request.POST.get('pic')
 
     root_campaign = relational.Campaign.objects.get(rootcampaign_properties__campaign=campaign_id)
-    content = "suppressed: {} {}".format(fname, lname)
 
     request.visit.events.create(
         campaign_id=campaign_id,
         client_content_id=content_id,
         friend_fbid=old_id if old_id.isdigit() else None,
-        content=content,
         event_type='suppressed',
     )
     if old_id.isdigit():
@@ -239,7 +237,7 @@ def suppress(request):
             campaign_id=campaign_id,
             client_content_id=content_id,
             friend_fbid=new_id if new_id.isdigit() else None,
-            content=content,
+            content=u"{} {}".format(fname, lname),
             event_type='shown',
         )
         return render(request, 'targetshare/new_face.html', {
