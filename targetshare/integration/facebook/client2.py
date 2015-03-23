@@ -96,14 +96,18 @@ def _handle_graph_exception(exc):
         raise
 
 
-def _get_graph(request_path, request_params=None):
+def _request_graph(method, path, params=None, data=None):
     try:
-        response = requests.get(request_path, params=request_params)
+        response = requests.request(method, path, data=data, params=params)
         response.raise_for_status()
     except (IOError, RuntimeError) as exc:
         _handle_graph_exception(exc)
 
-    return _handle_graph_response(response)
+    return response
+
+
+def _get_graph(path, params=None):
+    return _handle_graph_response(_request_graph('get', path, params))
 
 
 def get_graph(token, *path, **fields):
@@ -125,6 +129,22 @@ def get_graph_future(session, token, *path, **kws):
     return session.get(request_path,
                        params=request_params,
                        background_callback=background_callback)
+
+
+def post_graph(token, *path, **kws):
+    request_path = GRAPH_ENDPOINT + '/'.join(str(part) for part in path)
+    request_params = dict(kws.get('params', ()), access_token=token, format='json')
+    request_data = kws.get('data')
+    response = _request_graph('post', request_path, params=request_params, data=request_data)
+    return response.json()
+
+
+def post_notification(app_token, fbid, href, template, ref=None):
+    request_params = {'href': href, 'template': template}
+    if ref is not None:
+        request_params['ref'] = ref
+    payload = post_graph(app_token, fbid, 'notifications', params=request_params)
+    return payload['success']
 
 
 def get_user(token):
