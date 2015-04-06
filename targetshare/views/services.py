@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.decorators.http import require_GET
 from django.core.urlresolvers import reverse
 
+from core.utils import oauth
 from core.utils.http import JsonHttpResponse
 
 from targetshare import forms, models
@@ -82,10 +83,9 @@ def incoming(request, api, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     properties = campaign.campaignproperties.get()
 
-    if (
-        request.GET.get('error') == 'access_denied' and
-        request.GET.get('error_reason') == 'user_denied'
-    ):
+    try:
+        signature = oauth.handle_incoming(request)
+    except oauth.AccessDenied:
         # OAuth denial
         # Record auth fail and redirect to error URL:
         url = "{}?{}".format(
@@ -113,30 +113,12 @@ def incoming(request, api, campaign_id, content_id):
         ])
         return redirect(url)
 
-    # Remove FB junk from query:
-    redirect_query = request.GET.copy()
-    for key in ('code', 'error', 'error_reason', 'error_description'):
-        try:
-            del redirect_query[key]
-        except KeyError:
-            pass
-
-    code = request.GET.get('code')
-    if code:
-        # OAuth permission
-        # Enqueue task to retrieve token & fbid and record auth, and continue
-
-        # Rebuild OAuth redirect uri from request, (without FB junk):
-        if redirect_query:
-            redirect_path = "{}?{}".format(request.path, redirect_query)
-        else:
-            redirect_path = request.path
-
+    if signature.is_valid():
         token_task = store_oauth_token.delay(
-            campaign.client_id,
-            code,
-            request.build_absolute_uri(redirect_path),
+            signature.code,
+            signature.redirect_uri,
             api,
+            client_id=campaign.client_id,
             visit_id=request.visit.visit_id,
             campaign_id=campaign_id,
             content_id=content_id,
@@ -145,7 +127,10 @@ def incoming(request, api, campaign_id, content_id):
 
     # Record event and redirect to the campaign faces URL
     # (with inheritance of incoming query string)
-    url = utils.faces_url(properties.client_faces_url, campaign, content_id, redirect_query)
+    url = utils.faces_url(properties.client_faces_url,
+                          campaign,
+                          content_id,
+                          signature.redirect_query)
     db.delayed_save.delay(
         models.relational.Event(
             visit_id=request.visit.visit_id,
