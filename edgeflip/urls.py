@@ -4,6 +4,7 @@ from django.contrib import admin
 
 from jsurls.urls import jspatterns
 
+import gimmick.urls
 import targetshare.urls
 
 
@@ -23,6 +24,12 @@ urlpatterns = patterns('',
                              namespace='targetshare-canvas-root', app_name='targetshare')),
     url(r'^', include(targetshare.urls.legacypatterns)),
 
+    # gimmick
+    url(r'^canvas/devices/', include(gimmick.urls.canvaspatterns,
+                                     namespace='gimmick-canvas', app_name='gimmick')),
+    url(r'^canvas/', include(gimmick.urls.canvaspatterns_root,
+                             namespace='gimmick-canvas-root', app_name='gimmick')),
+
     # etc.
     url(r'^admin/', include('targetadmin.urls', namespace='targetadmin')),
     url(r'^subscriptions/', include('feed_crawler.urls', namespace='feed-crawler')),
@@ -31,7 +38,7 @@ urlpatterns = patterns('',
 
 if settings.ENV in ('development', 'staging'):
     urlpatterns += patterns('',
-        url(r'^devices/', include('gimmick.urls', namespace='gimmick')),
+        url(r'^devices/', include('gimmick.urls', namespace='gimmick', app_name='gimmick')),
         url(r'^mocks/', include('targetmock.urls')),
         url(r'^simpleadmin/', include(admin.site.urls)),
     )

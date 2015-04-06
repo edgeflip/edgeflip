@@ -12,4 +12,11 @@ class ViewDecorator(object):
 
     @abc.abstractmethod
     def __call__(self, request, *args, **kws):
-        raise NotImplementedError
+        return self._view(request, *args, **kws)
+
+
+class ConfiguredViewDecorator(ViewDecorator):
+
+    @classmethod
+    def configured(cls, **kws):
+        return functools.partial(cls, **kws)
