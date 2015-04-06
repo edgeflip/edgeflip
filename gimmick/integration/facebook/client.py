@@ -191,7 +191,7 @@ class Stream(list):
                                        self.user,
                                        data)
     def score(self):
-        return 0.2
+        raise NotImplementedError
 
 
 MAYBE_ENVIRONMENTAL_CATEGORIES = set([
@@ -260,7 +260,6 @@ class LikeStream(Stream):
                 if page.category in MAYBE_ENVIRONMENTAL_CATEGORIES:
                     data = get_graph(token, page.page_id, fields="category_list")
                     if any(cat['name'] in DEFINITELY_ENVIRONMENTAL_SUBCATEGORIES for cat in data.get('category_list', [])):
-                        print "Page", page, "is environmental"
                         self.append(page)
 
         return callback
