@@ -120,10 +120,10 @@ canvaspatterns = SHARED_PATTERNS + FRAME_FACES
 # Patterns that *must* install at the canvas *root* (e.g. the canvas home page)
 canvaspatterns_root = patterns('targetshare.views',
     # canvas home
-    url(r'^$',
-        CANVAS_REDIRECT,
-        # 'faces.canvas',
-        name='canvas'),
+    # url(r'^$',
+    #     CANVAS_REDIRECT,
+    #     # 'faces.canvas',
+    #     name='canvas'),
 
     # LEGACY canvas frame-faces
     # TODO: REMOVE. These could conflict with other apps.

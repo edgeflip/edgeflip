@@ -86,9 +86,14 @@ def record_auth(fbid, visit_id, campaign_id=None, content_id=None):
 
 
 @shared_task(default_retry_delay=300, max_retries=2)
-def store_oauth_token(client_id, code, redirect_uri, api,
+def store_oauth_token(code, redirect_uri, api, app_id=None, client_id=None,
                       visit_id=None, campaign_id=None, content_id=None):
-    fb_app = relational.FBApp.objects.get(clients__client_id=client_id)
+    if app_id:
+        fb_app = relational.FBApp.objects.get(appid=app_id)
+    elif client_id:
+        fb_app = relational.FBApp.objects.get(clients__client_id=client_id)
+    else:
+        raise TypeError("store_oauth_token: either 'app_id' or 'client_id' required")
 
     try:
         token_data = facebook.client.get_oauth_token(fb_app.appid, fb_app.secret, code, redirect_uri)
@@ -131,7 +136,8 @@ def store_oauth_token(client_id, code, redirect_uri, api,
     )
 
     extend_token.delay(*token)
-    db.get_or_create.delay(relational.UserClient, client_id=client_id, fbid=token.fbid)
+    if client_id:
+        db.get_or_create.delay(relational.UserClient, client_id=client_id, fbid=token.fbid)
 
     if visit_id:
         record_auth.delay(token.fbid, visit_id, campaign_id, content_id)

@@ -84,7 +84,7 @@ class SimpleWeights(dict):
 
         for (topic, phrase, weight, skip) in cls._read(handle):
             weight = float(weight) if weight else None
-            skip = bool(int(skip))
+            skip = bool(int(skip)) if skip else False
             phrase_weight = cls.PhraseWeight(phrase, weight, skip)
             phrase_list = self.setdefault(topic, [])
             if skip:
