@@ -1,29 +1,90 @@
-<!DOCTYPE html>
-<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
-<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
-<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
-<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <title></title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta name="description" content="">
-        <meta name="author" content="">
-        <!-- Edgeflip JavaScript includes -->
-        <script type='text/javascript'>
-            {% include "core/includes/edgeflip.js" %}
-            {% include "core/includes/util.js" %}
-        </script>
-        <!-- End Edgeflip JavaScript includes -->
-    </head>
-    <body>
-        <a href="{{ initial_url }}" role="button">Rank Me on Facebook</a>
+{% extends "gimmick/base.html" %}
 
-        <!-- Edgeflip Engage LP JavaScript -->
-        <script type='text/javascript'>
-            edgeflip.util.wrapEmbeddedLinks();
-        </script>
-        <!-- End Edgeflip Engage LP JavaScript -->
-    </body>
-</html>
+{% block subtitle %}Intro{% endblock %}
+
+{% block css-includes %}
+    <link href="{{ STATIC_URL }}css/engage.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/simple-line-icons.css" rel="stylesheet">
+{% endblock %}
+
+{% block js-includes %}
+<!-- Edgeflip JavaScript includes -->
+<script type="text/javascript">
+    {% include "core/includes/edgeflip.js" %}
+    {% include "core/includes/util.js" %}
+</script>
+<!-- End Edgeflip JavaScript includes -->
+{% endblock %}
+
+{% block body %}
+<div class="container container-main">
+    <div class=row>
+        <div class="col-2 text-center">
+            <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
+        </div>
+        <div class="col-10">
+            <h1 class=title>SociallyEngaged</h1>
+            <h5 class="subtitle caps">The Environmentalism Ranking Engine</h5>
+        </div>
+    </div>
+
+    <div class="container container-callout text-callout">
+        <div class=row>
+            <div class="col-9">
+                <p>See how your friends rank</p>
+            </div>
+            <div class="col-3 text-right">
+                <span class=icon-users></span>
+            </div>
+        </div>
+
+        <div class=row>
+            <div class="col-9">
+                <p>See how you rank in your community</p>
+            </div>
+            <div class="col-3 text-right">
+                <span class=icon-pin></span>
+            </div>
+        </div>
+
+        <div class=row>
+            <div class="col-9">
+                <p>See your greenest posts</p>
+            </div>
+            <div class="col-3 text-right">
+                <span class=icon-list></span>
+            </div>
+        </div>
+    </div>
+
+    <div class=container>
+        <p>
+            <small>
+                <em>
+                    SociallyEngaged ranks you based on the pages you've liked on Facebook,
+                    the posts in your news feed, your location, and your age.
+                </em>
+            </small>
+        </p>
+
+        <p class=disclaimer>We'll never share without your permission.</p>
+    </div>
+
+    <div class="container container-callout text-center">
+        <div class=row>
+            <a href="{{ initial_url }}" class="btn btn-submit text-callout" role="button">
+                <img src="{{ STATIC_URL }}img/FB-f-Logo__blue_50.png" alt="Facebook">
+                <span class=btn-text>Rank Me on Facebook</span>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body-script %}
+<!-- Edgeflip Engage LP JavaScript -->
+<script type="text/javascript">
+    edgeflip.util.wrapEmbeddedLinks();
+</script>
+<!-- End Edgeflip Engage LP JavaScript -->
+{% endblock %}
