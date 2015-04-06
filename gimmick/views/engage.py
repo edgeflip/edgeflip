@@ -50,7 +50,7 @@ def intro(request, appid, signed):
         redirect_path = reverse('gimmick:engage')
         redirect_uri = request.build_absolute_uri(redirect_path)
 
-    return render(request, 'gimmick/landing.html', {
+    return render(request, 'gimmick/intro.html', {
         # TODO: initial redirector?
         'initial_url': fb_oauth_url(fb_app, redirect_uri),
     })
