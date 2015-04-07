@@ -7,7 +7,6 @@ import logging
 
 @shared_task
 def post_score(token):
-    logging.info("in post score")
     post_stream = client.PostStream.read(token.fbid, token.token)
     post_score = post_stream.score()
 
@@ -22,11 +21,8 @@ def like_score(token):
 
 @shared_task
 def misc_info(token):
-    logging.info("in misc info")
     user = client.get_user(token.token)
-    logging.info(user)
     friends = client.get_friends(token.token)
-    logging.info(friends)
 
     return user, friends, token.fbid
 
@@ -51,6 +47,7 @@ def compute_rankings(scoring_info):
     user_record.save()
     ranking_data = {
         'greenest_posts': post_stream[:3],
+        'greenest_likes': like_stream[:3],
         'suggested_pages': [
             (8492293163, 'Environmental Defense Fund', 'https://www.facebook.com/EnvDefenseFund'),
             (15687409793, 'World Wildlife Fund', 'https://www.facebook.com/worldwildlifefund'),
