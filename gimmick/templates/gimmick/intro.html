@@ -12,65 +12,7 @@
 {% endblock %}
 
 {% block body %}
-<div class="container-md container-panel-main">
-    <div class=row>
-        <div class="col-2 text-center">
-            <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
-        </div>
-        <div class="col-10">
-            <h1 class=title>SociallyEngaged</h1>
-            <h5 class="subtitle caps">The Environmentalism Ranking Engine</h5>
-        </div>
-    </div>
-
-    <div class="container-md container-callout text-callout">
-        <div class=row>
-            <div class="col-9">
-                <p>See how your friends rank</p>
-            </div>
-            <div class="col-3 text-right">
-                <span class=icon-users></span>
-            </div>
-        </div>
-
-        <div class=row>
-            <div class="col-9">
-                <p>See how you rank in your community</p>
-            </div>
-            <div class="col-3 text-right">
-                <span class=icon-pin></span>
-            </div>
-        </div>
-
-        <div class=row>
-            <div class="col-9">
-                <p>See your greenest posts</p>
-            </div>
-            <div class="col-3 text-right">
-                <span class=icon-list></span>
-            </div>
-        </div>
-    </div>
-
-    <div class=container-md>
-        <p>
-            <small>
-                <em>
-                    SociallyEngaged ranks you based on the pages you've liked on Facebook,
-                    the posts in your news feed, your location, and your age.
-                </em>
-            </small>
-        </p>
-
-        <p class=disclaimer>We'll never share without your permission.</p>
-    </div>
-
-    <div class="container-md container-callout text-center">
-        <div class=row>
-            {% include "gimmick/includes/fb_button.html" with btn_text="Rank Me on Facebook" btn_url=initial_url %}
-        </div>
-    </div>
-</div>
+    {% include "gimmick/includes/panel-intro.html" with btn_url=initial_url %}
 {% endblock %}
 
 {% block body-script %}

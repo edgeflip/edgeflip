@@ -2,8 +2,24 @@
 
 {% block subtitle %}Your Ranking{% endblock %}
 
+{% block js-includes %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<!-- Edgeflip JavaScript includes -->
+<script type='text/javascript'>
+    {% include "core/includes/edgeflip.js" %}
+</script>
+<!-- End Edgeflip JavaScript includes -->
+<script src="{{ STATIC_URL }}js/router-devices.js"></script>
+<script src="{{ STATIC_URL }}js/engage.js"></script>
+<!-- Edgeflip JavaScript resources -->
+{% endblock %}
+
 {% block body %}
-<div class=container-fluid>
+<div class="switch on">
+    {% include "gimmick/includes/panel-interstitial.html" %}
+</div>
+
+<div class="container-fluid switch">
     <div class="header row">
         <div class=container-lg>
             <div class=row>
@@ -96,6 +112,14 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
-<p>{{task_id}}</p>
+{% block body-script %}
+<!-- Edgeflip Engage Main JavaScript -->
+<script type="text/javascript">
+    edgeflip.engage.init({
+        taskId: "{{task_id}}"
+    });
+</script>
+<!-- End Edgeflip Engage Main JavaScript -->
 {% endblock %}
