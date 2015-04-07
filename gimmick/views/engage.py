@@ -9,7 +9,7 @@ from django.views.decorators.http import require_GET, require_http_methods
 
 from core.utils import oauth, signed
 from core.utils.version import make_version
-from core.utils.http import JsonHttpResponse
+from core.utils.http import DjangoJsonHttpResponse, JsonHttpResponse
 from core.utils.sharingurls import fb_oauth_url
 from targetshare.models.relational import FBApp
 from targetshare.tasks.integration.facebook import store_oauth_token
@@ -17,7 +17,7 @@ from targetshare.tasks.integration.facebook import store_oauth_token
 
 API_VERSION = make_version('2.3')
 
-DEFAULT_APPID = 1234 # FIXME
+DEFAULT_APPID = 555738104565910
 
 EMBEDDED_NS_PATTERN = re.compile(r'\bcanvas\b')
 EMBEDDED_PATH_TOKEN = '/canvas/'
@@ -50,7 +50,7 @@ def intro(request, appid, signed):
         redirect_path = reverse('gimmick:engage')
         redirect_uri = request.build_absolute_uri(redirect_path)
 
-    return render(request, 'gimmick/landing.html', {
+    return render(request, 'gimmick/intro.html', {
         # TODO: initial redirector?
         'initial_url': fb_oauth_url(fb_app, redirect_uri),
     })
@@ -112,7 +112,7 @@ def data(request, task_id):
         return http.HttpResponseServerError()
 
     # TODO: events?
-    return JsonHttpResponse({
+    return DjangoJsonHttpResponse({
         'status': 'success',
         'something': result, # TODO
     })

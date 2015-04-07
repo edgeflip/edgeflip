@@ -8,7 +8,7 @@ class AccessSignature(object):
         self.redirect_query = redirect_query
 
     def is_valid(self):
-        for slot in self.__slots__:
+        for slot in ('code', 'redirect_uri'):
             if not getattr(self, slot, None):
                 return False
         return True
