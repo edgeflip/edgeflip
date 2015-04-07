@@ -13,6 +13,7 @@ from core.utils.http import DjangoJsonHttpResponse, JsonHttpResponse
 from core.utils.sharingurls import fb_oauth_url
 from targetshare.models.relational import FBApp
 from targetshare.tasks.integration.facebook import store_oauth_token
+from gimmick.tasks import like_score, post_score, misc_info, compute_rankings
 
 
 API_VERSION = make_version('2.3')
@@ -89,7 +90,11 @@ def main(request, appid, signed):
                 api=API_VERSION,
                 app_id=appid,
             )
-            # TODO ... |
+            |
+            celery.chord(
+                [post_score.s(), like_score.s(), misc_info.s()],
+                compute_rankings.s()
+            )
         )
         task = chain.delay()
         task_id = request.session[session_key] = task.id

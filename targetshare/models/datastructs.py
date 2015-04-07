@@ -89,6 +89,9 @@ class User(Friend):
     name = datastruct.CharField()
     email = datastruct.CharField()
     gender = datastruct.CharField()
+    city = datastruct.CharField()
+    state = datastruct.CharField()
+    birthday = datastruct.CharField()
 
     def __init__(self, *args, **kws):
         super(User, self).__init__(*args, **kws)
