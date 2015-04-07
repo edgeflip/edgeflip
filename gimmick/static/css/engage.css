@@ -1,3 +1,5 @@
+/* Global */
+
 * {
     box-sizing: border-box;
 }
@@ -6,21 +8,20 @@ body {
     background-color: #ccc;
     color: white;
     font-family: Montserrat, sans-serif;
+    margin: 0;
 }
 
-.container {
+.container-lg, .container-md {
     margin-left: auto;
     margin-right: auto;
-    width: 350px;
 }
-.container-main {
-    margin-top: 50px;
-    width: 475px;
 
-    background-color: #87C440;
-    border: white 1px solid;
-    border-radius: 50px;
-    padding: 30px;
+.container-lg {
+    width: 800px;
+}
+
+.container-md {
+    width: 350px;
 }
 
 .row {
@@ -29,6 +30,19 @@ body {
     margin-left: -15px;
     margin-right: -15px; 
     width: 100%;
+}
+
+.row:before,
+.row:after {
+  content: " ";
+  display: table;
+}
+.row:after {
+  clear: both;
+}
+
+.container-fluid .row {
+    margin-left: 0;
 }
 
 .col-1, .col-2, .col-3, .col-4, .col-5, .col-6, .col-7, .col-8, .col-9, .col-10, .col-11, .col-12 {
@@ -93,10 +107,29 @@ body {
     text-align: right;
 }
 
+.simple-list {
+    padding-left: inherit;
+}
+
+dl.callout {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+dl.callout dt, dl.callout dd {
+    line-height: 1.2;
+}
+dl.callout dt {
+    font-size: 40px;
+    margin-top: 0.5em;
+}
+dl.callout dd {
+    font-size: 15px;
+    margin-left: 0;
+}
+
 .logo-bug {
     width: 55px;
 }
-
 .title {
     font-size: 39px;
     letter-spacing: 0.4px;
@@ -108,7 +141,19 @@ body {
     margin-top: 0;
 }
 
-.container-main > .row [class^=col-] {
+/* Intro */
+
+.container-widget-main {
+    margin-top: 50px;
+    width: 475px;
+
+    background-color: #87C440;
+    border: white 1px solid;
+    border-radius: 50px;
+    padding: 30px;
+}
+
+.container-widget-main > .row [class^=col-] {
     padding-right: 0;
 }
 
@@ -148,3 +193,25 @@ body {
 .btn-submit .btn-text {
     border-left: white 1px solid;
 }
+
+/* Main */
+
+.widget {
+    background-color: #87C440;
+    border: white 1px solid;
+    border-radius: 40px;
+    padding: 10px 20px;
+}
+.col-4.widget-middle {
+    margin: 0 2%;
+    width: 29%
+}
+
+.header, .footer, .content {
+    padding: 1em 0 0.5em;
+}
+
+.header, .footer {
+    background-color: #4785AB;
+}
+

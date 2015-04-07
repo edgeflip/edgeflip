@@ -1,1 +1,70 @@
-{{task_id}}
+{% extends "gimmick/base.html" %}
+
+{% block subtitle %}Your Ranking{% endblock %}
+
+{% block body %}
+<div class=container-fluid>
+    <div class="header row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-1">
+                    <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
+                </div>
+                <div class="col-11">
+                    <h1 class=title>Your Environmental Rank</h1>
+                    <h5 class=subtitle>Based on your likes, posts, and interactions on Facebook.</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-4 widget">
+                    <h3><span data-icon="&#xe077;"></span> Your Rank</h3>
+                    <dl class=callout>
+                        <dt>#3</dt>
+                        <dd>Among your friends</dd>
+                        <dt>#514</dt>
+                        <dd>In Chicago, IL</dd>
+                        <dt>#1,213</dt>
+                        <dd>Among 33 year-olds</dd>
+                    </dl>
+                </div>
+                <div class="col-4 widget widget-middle">
+                    <h3><span data-icon="&#xe001;"></span> Your Top Friends</h3>
+                    <ol class=simple-list>
+                        <li>Joe Bloe</li>
+                        <li>Andrew Countertop</li>
+                        <li>Nancy Glass</li>
+                        <li>Anthony Bean</li>
+                    </ol>
+                </div>
+                <div class="col-4 widget">
+                    <h3><span data-icon="&#xe028;"></span> Your Greenest Posts</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-4">
+                    <h3>Share your score to see where your friends rank!</h3>
+                    <a>Share your score!</a>
+                </div>
+                <div class="col-4">
+                    <h3>Boost your ranking by following EDF!</h3>
+                </div>
+                <div class="col-4">
+                    <h3>Take action</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<p>{{task_id}}</p>
+{% endblock %}

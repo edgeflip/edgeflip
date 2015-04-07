@@ -2,11 +2,6 @@
 
 {% block subtitle %}Intro{% endblock %}
 
-{% block css-includes %}
-    <link href="{{ STATIC_URL }}css/engage.css" rel="stylesheet">
-    <link href="{{ STATIC_URL }}css/simple-line-icons.css" rel="stylesheet">
-{% endblock %}
-
 {% block js-includes %}
 <!-- Edgeflip JavaScript includes -->
 <script type="text/javascript">
@@ -17,7 +12,7 @@
 {% endblock %}
 
 {% block body %}
-<div class="container container-main">
+<div class="container-md container-widget-main">
     <div class=row>
         <div class="col-2 text-center">
             <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
@@ -28,7 +23,7 @@
         </div>
     </div>
 
-    <div class="container container-callout text-callout">
+    <div class="container-md container-callout text-callout">
         <div class=row>
             <div class="col-9">
                 <p>See how your friends rank</p>
@@ -57,7 +52,7 @@
         </div>
     </div>
 
-    <div class=container>
+    <div class=container-md>
         <p>
             <small>
                 <em>
@@ -70,7 +65,7 @@
         <p class=disclaimer>We'll never share without your permission.</p>
     </div>
 
-    <div class="container container-callout text-center">
+    <div class="container-md container-callout text-center">
         <div class=row>
             <a href="{{ initial_url }}" class="btn btn-submit text-callout" role="button">
                 <img src="{{ STATIC_URL }}img/FB-f-Logo__blue_50.png" alt="Facebook">
