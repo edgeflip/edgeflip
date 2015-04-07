@@ -31,6 +31,7 @@ def compute_rankings(scoring_info):
     post_score, post_stream = scoring_info[0]
     like_score, like_stream = scoring_info[1]
     user, friends, fbid = scoring_info[2]
+    logging.info(friends)
 
     score = like_score + post_score
     user_record = SociallyEngagedUser(
@@ -46,8 +47,15 @@ def compute_rankings(scoring_info):
     )
     user_record.save()
     ranking_data = {
-        'greenest_posts': post_stream[:3],
-        'greenest_likes': like_stream[:3],
+        'greenest_posts': [{
+            'message': post.message,
+            'post_id': post.post_id,
+            'score': post.score,
+        } for post in post_stream[:3]],
+        'greenest_likes': [{
+            'name': like.name,
+            'page_id': like.page_id,
+        } for like in like_stream[:3]],
         'suggested_pages': [
             (8492293163, 'Environmental Defense Fund', 'https://www.facebook.com/EnvDefenseFund'),
             (15687409793, 'World Wildlife Fund', 'https://www.facebook.com/worldwildlifefund'),
@@ -56,15 +64,30 @@ def compute_rankings(scoring_info):
     }
     friends_data = {}
     friends_data['top'] = []
+    friend_ids = [friend['id'] for friend in friends]
+    logging.info(friend_ids)
     # friends rank
     friends_using_app = SociallyEngagedUser.objects.filter(
-        fbid__in=[friend['id'] for friend in friends],
-    ).order_by('score')
+        fbid__in=[friend['id'] for friend in friends] + [fbid],
+    ).order_by('-score')
     for i, friend in enumerate(friends_using_app):
-        if friend.fbid == fbid:
+        if str(friend.fbid) == str(fbid):
             friends_data['rank'] = i+1
-        if i < 5:
-            friends_data['top'].append((i+1, friend.fbid, friend.first_name, friend.last_name))
+            friends_data['top'].append({
+                'rank': i+1,
+                'fbid': friend.fbid,
+                'first_name': 'You',
+                'last_name': '',
+            })
+        elif i < 5:
+            friends_data['top'].append({
+                'rank': i+1,
+                'fbid': friend.fbid,
+                'first_name': friend.first_name,
+                'last_name': friend.last_name
+            })
+    if 'rank' not in friends_data:
+        friends_data['rank'] = 1
 
     ranking_data['friends'] = friends_data
 
@@ -74,7 +97,6 @@ def compute_rankings(scoring_info):
         'user_city': user.city,
         'user_state': user.state,
         'rank': city_queryset.filter(score__gt=score).count() + 1,
-        'total': city_queryset.count()
     }
 
     # age_rank
@@ -90,7 +112,6 @@ def compute_rankings(scoring_info):
     ranking_data['age'] = {
         'user_age': age,
         'rank': age_queryset.filter(score__gt=score).count() + 1,
-        'total': age_queryset.count()
     }
 
     return ranking_data

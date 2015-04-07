@@ -15,6 +15,7 @@ from targetshare.models.relational import FBApp
 from targetshare.tasks.integration.facebook import store_oauth_token
 from gimmick.tasks import like_score, post_score, misc_info, compute_rankings
 
+import logging
 
 API_VERSION = make_version('2.3')
 
@@ -91,10 +92,9 @@ def main(request, appid, signed):
                 app_id=appid,
             )
             |
-            celery.chord(
-                [post_score.s(), like_score.s(), misc_info.s()],
-                compute_rankings.s()
-            )
+            celery.group(post_score.s(), like_score.s(), misc_info.s())
+            |
+            compute_rankings.s()
         )
         task = chain.delay()
         task_id = request.session[session_key] = task.id
@@ -106,6 +106,7 @@ def main(request, appid, signed):
 
 @require_GET
 def data(request, task_id):
+    logging.info(task_id)
     task = celery.current_app.AsyncResult(task_id)
 
     if not task.ready():
@@ -119,6 +120,5 @@ def data(request, task_id):
     # TODO: events?
     return DjangoJsonHttpResponse({
         'status': 'success',
-        'scores': [0, 1, 2],
-        'token': result, # TODO
+        'results': result,
     })
