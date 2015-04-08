@@ -40,7 +40,7 @@ edgeflip.map = (function (edgeflip, $) {
         }
 
         if (self.dataURL === null) {
-            self.dataURL = edgeflip.router.reverse('gimmick:map-data');
+            self.dataURL = edgeflip.router.reverse('gimmick-demo:map-data');
         }
 
         self.user = new edgeflip.User(
