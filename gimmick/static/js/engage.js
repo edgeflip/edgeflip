@@ -49,7 +49,7 @@ edgeflip.engage = (function (edgeflip, $) {
                 self.results = data.results;
                 elapsed = new Date() - self.start,
                 remaining = elapsed < 1500 ? 1500 - elapsed : 0;
-                setTimeout(self.displayScores, remaining);
+                setTimeout(self.displayResults, remaining);
                 break;
             default:
                 throw "Bad status: " + data.status;
@@ -63,7 +63,7 @@ edgeflip.engage = (function (edgeflip, $) {
     self.poll = function () {
         /* Poll the JSON data endpoint.
          *
-         * On success, store the data and display the scores via displayScores().
+         * On success, store the data and display the scores via displayResults().
          */
         $.ajax({
             type: 'GET',
@@ -74,7 +74,7 @@ edgeflip.engage = (function (edgeflip, $) {
         });
     };
 
-    self.displayScores = function () {
+    self.displayResults = function () {
         var on = $('.switch.on'),
             off = $('.switch').not(on);
 
@@ -85,34 +85,34 @@ edgeflip.engage = (function (edgeflip, $) {
             });
         });
 
-        $('#city_rank').text(self.results.city.rank);
-        $('#user_city').text(self.results.city.user_city);
-        $('#user_state').text(self.results.city.user_state);
-        $('#age_rank').text(self.results.age.rank);
-        $('#user_age').text(self.results.age.user_age);
-        $('#friend_rank').text(self.results.friends.rank);
-        var friends = self.results.friends.top;
-        for (var i in friends) {
-            var friend = friends[i];
-            $('#friend_list ol').append('<li>' + friend.first_name + ' ' + friend.last_name + '</li>');
+        $('#city-rank').text(self.results.city.rank);
+        $('#user-city').text(self.results.city.user_city);
+        $('#user-state').text(self.results.city.user_state);
+        $('#age-rank').text(self.results.age.rank);
+        $('#user-age').text(self.results.age.user_age);
+        $('#friend-rank').text(self.results.friends.rank);
+
+        self.results.friends.top.forEach(function (friend) {
+            var name = friend.first_name + ' ' + friend.last_name;
+            $('#friend-list').append('<li>' + name + '</li>');
+        });
+
+        if (self.results.greenest_likes.length === 0) {
+            $('#like-list').append('No green likes.');
+        } else {
+            self.results.greenest_likes.forEach(function (page) {
+                // Available: like.name, like.page_id
+                $('#like-list').append('<li>' + like.name + '</li>');
+            });
         }
-        var likes = self.results.greenest_likes;
-        if (likes.length == 0) {
-            $('#like_list ul').append('No green likes, sad face');
-        }
-        for (var i in likes) {
-            var like = likes[i];
-            // available: like.name, like.page_id
-            $('#like_list ul').append('<li>' + like.name + '</li>');
-        }
-        var posts = self.results.greenest_posts;
-        if (posts.length == 0) {
-            $('#post_list ul').append('No green posts, sad face');
-        }
-        for (var i in posts) {
-            var post = posts[i];
-            // available: post.message, post.post_id, post.score
-            $('#post_list ul').append('<li>' + post.message + ' Green Score of ' + post.score + '</li>');
+
+        if (self.results.greenest_posts.length == 0) {
+            $('#post-list').append('No green posts.');
+        } else {
+            self.results.greenest_posts.forEach(function (post) {
+                // Available: post.message, post.post_id, post.score
+                $('#post-list').append('<li>' + post.message + ' Green Score of ' + post.score + '</li>');
+            });
         }
     };
 
