@@ -1,9 +1,11 @@
 """Facebook API v2 client"""
 # FIXME: Forked from targetshare.integration.facebook.client2
 # FIXME: In the future, we may want to merge these.
+import abc
 import collections
 import datetime
 import enum
+import functools
 import logging
 import sys
 import time
@@ -194,6 +196,8 @@ def post_notification(app_token, fbid, href, template, ref=None):
 
 class Stream(list):
 
+    __metaclass__ = abc.ABCMeta
+
     REPR_OUTPUT_SIZE = 5
 
     @classmethod
@@ -203,7 +207,9 @@ class Stream(list):
 
         # Populate Stream.Posts in separate worker threads
         with futures.ThreadPoolExecutor(max_workers=THREAD_COUNT) as executor:
-            futures_iter = stream._generate_populators(executor, token, permissions)
+            session = requests_futures.sessions.FuturesSession(executor=executor)
+            session.mount(GRAPH_ENDPOINT, requests.adapters.HTTPAdapter(max_retries=MAX_RETRIES))
+            futures_iter = stream.generate_populators(session, token, permissions)
 
             try:
                 for done_future in futures.as_completed(tuple(futures_iter), MAX_WAIT):
@@ -243,9 +249,11 @@ class Stream(list):
                                        self.user,
                                        data)
 
-    def _generate_populators(self, executor, token, permissions):
+    @abc.abstractmethod
+    def generate_populators(self, session, token, permissions):
         raise NotImplementedError
 
+    @abc.abstractmethod
     def score(self):
         raise NotImplementedError
 
@@ -443,91 +451,116 @@ DEFINITELY_ENVIRONMENTAL_SUBCATEGORIES = {
 Page = collections.namedtuple('Page', ('page_id', 'name', 'category'))
 
 
-class LikeStream(Stream):
-    permission = Permissions.USER_LIKES
-    endpoint = 'likes'
+class PaginatedStream(Stream):
+
+    make_callback = handle_response = targets = None
+
+    def generate_callbacks(self, token, permissions):
+        if self.targets is None or (self.make_callback is None and
+                                    self.handle_response is None):
+            raise NotImplementedError
+
+        for (endpoint, permission) in self.targets:
+            if permission in permissions:
+                if self.make_callback is None:
+                    callback = self.handle_response
+                else:
+                    callback = self.make_callback(endpoint, token)
+
+                yield (endpoint, callback)
+
+
+class OffsetPaginatedStream(PaginatedStream):
+
+    def generate_populators(self, session, token, permissions):
+        callbacks = tuple(self.generate_callbacks(token, permissions))
+
+        for offset in xrange(0, NUM_PAGES, PAGE_CHUNK_SIZE):
+            for (endpoint, callback) in callbacks:
+                yield get_graph_future(session, token, 'me', endpoint,
+                                       limit=PAGE_CHUNK_SIZE,
+                                       offset=offset,
+                                       callback=callback)
+
+
+class TimePaginatedStream(PaginatedStream):
+
+    def generate_populators(self, session, token, permissions):
+        callbacks = tuple(self.generate_callbacks(token, permissions))
+        today = datetime.datetime.today()
+        chunk_size = datetime.timedelta(days=DAY_CHUNK_SIZE)
+
+        for days_back in xrange(0, DAYS_BACK, DAY_CHUNK_SIZE):
+            end = today - datetime.timedelta(days=days_back)
+            start = end - chunk_size
+
+            for (endpoint, callback) in callbacks:
+                yield get_graph_future(session, token, 'me', endpoint,
+                                       since=time.mktime(start.timetuple()),
+                                       until=time.mktime(end.timetuple()),
+                                       follow_pagination=True,
+                                       callback=callback)
+
+
+class EnvironmentLikeStream(OffsetPaginatedStream):
+
+    targets = (
+        ('likes', Permissions.USER_LIKES),
+    )
 
     @staticmethod
     def xread(data):
         """Iteratively construct stream from a structured Facebook API response."""
         for datum in data:
-            page = Page(
+            yield Page(
                 page_id=datum['id'],
                 name=datum.get('name', ''),
                 category=datum.get('category', ''),
             )
-            yield page
 
-    def _generate_populators(self, executor, token, permissions):
-        session = requests_futures.sessions.FuturesSession(executor=executor)
-        session.mount(GRAPH_ENDPOINT, requests.adapters.HTTPAdapter(max_retries=MAX_RETRIES))
-
-        for offset in xrange(0, NUM_PAGES, PAGE_CHUNK_SIZE):
-            if self.permission in permissions:
-                yield get_graph_future(session, token, 'me', self.endpoint,
-                                       limit=PAGE_CHUNK_SIZE,
-                                       offset=offset,
-                                       callback=self._callback(token))
-
-    def _callback(self, token):
-        def callback(data, response, session):
-            pages = self.xread(data)
-            for page in pages:
-                if page.page_id in KNOWN_ENVIRONMENTAL_PAGES:
+    def _callback(self, token, data, _response, _session):
+        for page in self.xread(data):
+            if page.page_id in KNOWN_ENVIRONMENTAL_PAGES:
+                self.append(page)
+            elif page.category in MAYBE_ENVIRONMENTAL_CATEGORIES:
+                subdata = get_graph(token, page.page_id, fields="category_list")
+                categories = subdata.get('category_list', [])
+                if any(category['name'] in DEFINITELY_ENVIRONMENTAL_SUBCATEGORIES
+                        for category in categories):
                     self.append(page)
-                else:
-                    if page.category in MAYBE_ENVIRONMENTAL_CATEGORIES:
-                        data = get_graph(token, page.page_id, fields="category_list")
-                        if any(cat['name'] in DEFINITELY_ENVIRONMENTAL_SUBCATEGORIES for cat in data.get('category_list', [])):
-                            self.append(page)
 
-        return callback
+    def make_callback(self, _endpoint, token):
+        return functools.partial(self._callback, token)
 
     def score(self):
-        return 0.2*len(self)
+        return 0.2 * len(self)
 
 
 Post = collections.namedtuple('Post', ('post_id', 'message', 'score'))
 
 
-class PostStream(Stream):
-    permission = Permissions.USER_POSTS
-    endpoint = 'feed'
+class EnvironmentPostStream(TimePaginatedStream):
+
+    targets = (
+        ('feed', Permissions.USER_POSTS),
+    )
 
     @staticmethod
     def xread(data):
         for datum in data:
-            post = Post(
+            yield Post(
                 post_id=datum['id'],
                 message=datum.get('message', ''),
                 score=0,
             )
 
-            yield post
-
-    def _generate_populators(self, executor, token, permissions):
-        session = requests_futures.sessions.FuturesSession(executor=executor)
-        session.mount(GRAPH_ENDPOINT, requests.adapters.HTTPAdapter(max_retries=MAX_RETRIES))
-
-        for days_back in xrange(0, DAYS_BACK, DAY_CHUNK_SIZE):
-            if self.permission in permissions:
-                end_time = time.mktime((datetime.datetime.today() - datetime.timedelta(days=days_back)).timetuple())
-                start_time = time.mktime((datetime.datetime.today() - datetime.timedelta(days=days_back+DAY_CHUNK_SIZE)).timetuple())
-                yield get_graph_future(session, token, 'me', self.endpoint,
-                                       since=start_time,
-                                       until=end_time,
-                                       follow_pagination=True,
-                                       callback=self._handle_response)
-
-    def _handle_response(self, data, _response, _session):
+    def handle_response(self, data, _response, _session):
         for post in self.xread(data):
             if post.message:
-                topics = classifier.classify(
-                    post.message,
-                    'Environment',
-                )
-                if topics.get('Environment', 0) > 0:
-                    self.append(post._replace(score=topics['Environment']))
+                topics = classifier.classify(post.message, 'Environment')
+                score = topics.get('Environment', 0)
+                if score > 0:
+                    self.append(post._replace(score=score))
 
     def score(self):
         return sum(post.score for post in self)

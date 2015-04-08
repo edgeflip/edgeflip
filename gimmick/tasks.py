@@ -7,14 +7,14 @@ import logging
 
 @shared_task
 def post_score(token):
-    post_stream = client.PostStream.read(token.fbid, token.token)
+    post_stream = client.EnvironmentPostStream.read(token.fbid, token.token)
     post_score = post_stream.score()
 
     return post_score, post_stream
 
 @shared_task
 def like_score(token):
-    like_stream = client.LikeStream.read(token.fbid, token.token)
+    like_stream = client.EnvironmentLikeStream.read(token.fbid, token.token)
     like_score = like_stream.score()
 
     return like_score, like_stream
