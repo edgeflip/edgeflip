@@ -93,8 +93,13 @@ edgeflip.engage = (function (edgeflip, $) {
         $('#friend-rank').text(self.results.friends.rank);
 
         self.results.friends.top.forEach(function (friend) {
-            var name = friend.first_name + ' ' + friend.last_name;
-            $('#friend-list').append('<li>' + name + '</li>');
+            var name = friend.first_name + ' ' + friend.last_name,
+                img = $('<img>', {
+                    'class': 'profile-picture',
+                    'src': 'https://graph.facebook.com/' + friend.fbid + '/picture'
+                });
+
+            $('<li></li>').append(img, name).appendTo($('#friend-list'));
         });
 
         if (self.results.greenest_likes.length === 0) {

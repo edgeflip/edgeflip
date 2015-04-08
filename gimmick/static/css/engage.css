@@ -305,3 +305,11 @@ dl.callout dd {
 .green-like {
     margin: 10px;
 }
+
+#friend-list li {
+    margin: 0 0 0.3em;
+}
+.profile-picture {
+    padding: 0 0.7em 0 0.4em;
+    vertical-align: text-top;
+}
