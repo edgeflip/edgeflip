@@ -1,8 +1,14 @@
 """Data modeling library producing memory-light objects."""
 import abc
 import collections
+import datetime
 
 from core.utils.descriptors import cachedclassproperty
+
+try:
+    import dateutil.parser
+except ImportError:
+    dateutil = None
 
 
 NOTSET = object()
@@ -21,8 +27,9 @@ class Field(object):
     # SlotFields.__new__ sets reference to slot member_descriptor,
     # which controls low-level data management.
 
-    def __init__(self, default=NOTSET):
+    def __init__(self, default=NOTSET, null=False):
         self.default = default
+        self.null = null
         self.member = None
 
     def __get__(self, instance, owner, use_default=True):
@@ -37,7 +44,11 @@ class Field(object):
             return self.default
 
     def __set__(self, instance, value):
-        clean = self.clean(instance, value)
+        if value is None and self.null:
+            clean = value
+        else:
+            clean = self.clean(instance, value)
+
         self.member.__set__(instance, clean)
 
     # Subclasses of Field define their method of validating and regularizing
@@ -74,6 +85,25 @@ class CharField(Field):
             return value.decode('utf8')
         else:
             return unicode(value)
+
+
+class DateField(Field):
+
+    def clean(self, instance, value):
+        if isinstance(value, datetime.datetime):
+            return value.date()
+        elif isinstance(value, datetime.date):
+            return value
+        elif isinstance(value, (int, long)):
+            return datetime.date.fromtimestamp(value)
+        elif isinstance(value, basestring):
+            if dateutil is None:
+                raise TypeError("Cannot parse date string (dateutil required): "
+                                "{!r}".format(value))
+            return dateutil.parser.parse(value).date()
+
+        raise TypeError("Cannot clean object of type {!r} (expected date): {!r}"
+                        .format(type(value), value))
 
 
 class ReferenceField(Field):
