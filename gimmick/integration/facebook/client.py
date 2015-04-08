@@ -16,7 +16,7 @@ from django.conf import settings
 
 from core.utils.version import make_version
 
-from targetshare import utils
+from targetshare.integration.facebook import utils
 from targetshare import classifier
 from targetshare.models import datastructs
 
@@ -135,18 +135,16 @@ def get_graph_future(session, token, *path, **kws):
 
 def get_user(token):
     data = get_graph(token, 'me')
+    city, state = data.get('location', {}).get('name', '').split(',')
     return datastructs.User(
         fbid=data['id'],
         fname=data['first_name'],
         lname=data['last_name'],
         email=data.get('email'),
         gender=data.get('gender'),
-        # TODO?:
-        # birthday=utils.decode_date(data.get('birthday')),
-        # bio=data.get('bio', '')[:150],
-        # city=location.get('city'),
-        # state=location.get('state'),
-        # country=location.get('country'),
+        birthday=data.get('birthday'),
+        city=city.strip(),
+        state=state.strip(),
     )
 
 
@@ -175,6 +173,10 @@ def post_notification(app_token, fbid, href, template, ref=None):
         request_params['ref'] = ref
     payload = post_graph(app_token, fbid, 'notifications', params=request_params)
     return payload['success']
+
+
+def get_friends(access_token):
+    return get_graph(access_token, 'me', 'friends')
 
 
 class Stream(list):

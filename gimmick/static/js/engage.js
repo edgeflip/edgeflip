@@ -46,7 +46,7 @@ edgeflip.engage = (function (edgeflip, $) {
                 setTimeout(self.poll, 500);
                 break;
             case 'success':
-                self.scores = data.scores;
+                self.results = data.results;
                 elapsed = new Date() - self.start,
                 remaining = elapsed < 1500 ? 1500 - elapsed : 0;
                 //self.totalScore = totalScore(self.scores);
@@ -87,7 +87,35 @@ edgeflip.engage = (function (edgeflip, $) {
             });
         });
 
-        console.log(self.scores) // TODO
+        $('#city_rank').text(self.results.city.rank);
+        $('#user_city').text(self.results.city.user_city);
+        $('#user_state').text(self.results.city.user_state);
+        $('#age_rank').text(self.results.age.rank);
+        $('#user_age').text(self.results.age.user_age);
+        $('#friend_rank').text(self.results.friends.rank);
+        var friends = self.results.friends.top;
+        for (var i in friends) {
+            var friend = friends[i];
+            $('#friend_list ol').append('<li>' + friend.first_name + ' ' + friend.last_name + '</li>');
+        }
+        var likes = self.results.greenest_likes;
+        if (likes.length == 0) {
+            $('#like_list ul').append('No green likes, sad face');
+        }
+        for (var i in likes) {
+            var like = likes[i];
+            // available: like.name, like.page_id
+            $('#like_list ul').append('<li>' + like.name + '</li>');
+        }
+        var posts = self.results.greenest_posts;
+        if (posts.length == 0) {
+            $('#post_list ul').append('No green posts, sad face');
+        }
+        for (var i in posts) {
+            var post = posts[i];
+            // available: post.message, post.post_id, post.score
+            $('#post_list ul').append('<li>' + post.message + ' Green Score of ' + post.score + '</li>');
+        }
     };
 
     return self;

@@ -51,6 +51,7 @@ from .proximity_model_meta import ProximityModelMeta
 from .proximity_model import ProximityModel
 from .ranking_key import RankingKey
 from .share_message import ShareMessage
+from .socially_engaged_user import SociallyEngagedUser
 from .user_client import UserClient
 from .visit import Visit
 from .visitor import Visitor
