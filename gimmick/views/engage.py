@@ -9,6 +9,7 @@ from core.utils import oauth, signed
 from core.utils.version import make_version
 from core.utils.http import JsonHttpResponse
 from core.utils.sharingurls import fb_oauth_url
+from targetshare.models.datastructs import ShortToken
 from targetshare.models.relational import FBApp
 from targetshare.tasks.integration.facebook import store_oauth_token
 
@@ -78,17 +79,30 @@ def main(request, appid, signed):
     try:
         task_id = request.session[session_key]
     except KeyError:
-        chain = (
-            store_oauth_token.s(
-                signature.code,
-                signature.redirect_uri,
-                api=API_VERSION,
-                app_id=appid,
-            ) |
-            celery.group(tasks.score_posts.s(), tasks.score_likes.s(), tasks.read_network.s()) |
-            tasks.compute_rankings.s() # celery won't give us a collected group ID,
-                                       # so post-process in a chord callback
+        oauth_token_job = store_oauth_token.s(
+            signature.code,
+            signature.redirect_uri,
+            api=API_VERSION,
+            app_id=appid,
         )
+        scoring_job = celery.group(tasks.score_posts.s(),
+                                   tasks.score_likes.s(),
+                                   tasks.read_network.s())
+
+        if signed and 'oauth_token' in signed and 'user_id' in signed:
+            oauth_token_job.apply_async()
+            token = ShortToken(
+                fbid=int(signed['user_id']),
+                appid=appid,
+                token=signed['oauth_token'],
+                api=API_VERSION,
+            )
+            chain_start = scoring_job.clone((token,))
+        else:
+            chain_start = oauth_token_job | scoring_job
+
+        # celery won't give us a collected group ID, so post-process in a chord callback
+        chain = chain_start | tasks.compute_rankings.s()
         task = chain.apply_async()
         task_id = request.session[session_key] = task.id
 
