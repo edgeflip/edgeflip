@@ -9,6 +9,7 @@ from gimmick.models import EngagedUser
 
 
 LOG = get_task_logger(__name__)
+MAX_TEXT_LEN = 80
 
 
 @shared_task
@@ -71,9 +72,10 @@ def compute_rankings(results):
     data = {
         'greenest_posts': [
             {
-                'message': post.message,
+                'message': post.message if len(post.message) < MAX_TEXT_LEN else post.message[:MAX_TEXT_LEN] + '...',
                 'post_id': post.post_id,
                 'score': post.score,
+                'picture': post.picture,
             } for post in post_stream[:3]
         ],
         'greenest_likes': [

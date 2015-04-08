@@ -306,6 +306,40 @@ dl.callout dd {
     margin: 10px;
 }
 
+#post-list {
+    background-color: #F9FAFA;
+}
+
+#post-list th {
+    background-color: #F9FAFA;
+    color: black;
+    text-align: left;
+}
+
+#post-list td {
+    color: #3B5998;
+    margin: 0px;
+}
+
+#post-list tr:nth-child(odd) td {background: #F9FAFA}
+#post-list tr:nth-child(even) td {background: #FFF}
+
+#post-list td, th {
+    font-size: 11px;
+    font-family: Arial, sans-serif;
+}
+
+#post-list td.post-score, th.post-score {
+    min-width: 7em;
+    text-align: center;
+}
+
+#post-list img {
+    max-width: 30px;
+    float: left;
+    margin-right: 5px;
+}
+
 #friend-list li {
     margin: 0 0 0.3em;
 }

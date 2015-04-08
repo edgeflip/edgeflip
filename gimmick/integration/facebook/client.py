@@ -537,7 +537,7 @@ class EnvironmentLikeStream(OffsetPaginatedStream):
         return 0.2 * len(self)
 
 
-Post = collections.namedtuple('Post', ('post_id', 'message', 'score'))
+Post = collections.namedtuple('Post', ('post_id', 'message', 'score', 'picture'))
 
 
 class EnvironmentPostStream(TimePaginatedStream):
@@ -553,6 +553,7 @@ class EnvironmentPostStream(TimePaginatedStream):
                 post_id=datum['id'],
                 message=datum.get('message', ''),
                 score=0,
+                picture=datum.get('picture', None),
             )
 
     def handle_response(self, data, _response, _session):
