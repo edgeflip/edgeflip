@@ -114,7 +114,7 @@
                 <div class="col-4">
                     <h3>Take action.</h3>
                     <p class="text-center">
-                        <a href="http://support.edf.org/site/PageServer?pagename=cut_pollution_from_oil_and_gas_industry">
+                        <a href="http://support.edf.org/site/PageServer?pagename=cut_pollution_from_oil_and_gas_industry" rel=external>
                             <img src="{{ STATIC_URL }}img/Methane80Times_250.jpg" title="Cut Pollution from the Oil & Gas Industry" alt="Cut Pollution from the Oil & Gas Industry">
                         </a>
                     </p>
@@ -130,6 +130,12 @@
 <script type="text/javascript">
     edgeflip.engage.init({
         taskId: "{{task_id}}"
+    });
+
+    // Anchors with rel="external" open their href in a new window.
+    $('a[rel=external]').click(function (event) {
+        event.preventDefault();
+        window.open(this.href);
     });
 </script>
 <!-- End Edgeflip Engage Main JavaScript -->
