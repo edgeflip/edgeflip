@@ -228,5 +228,5 @@ class TestServicesViews(EdgeFlipViewTestCase):
         session = self.client.session
         self.assertEqual(session['oauth_task'], 'OAUTH_TOKEN_TASK-1')
         visit_id = models.Visit.objects.only('visit_id').get(session_id=session.session_key).visit_id
-        task_mock.delay.assert_called_once_with(1, 'PIEZ', 'http://testserver' + path, Decimal('1.0'),
-                                                visit_id=visit_id, campaign_id=1, content_id=1)
+        task_mock.delay.assert_called_once_with('PIEZ', 'http://testserver' + path, Decimal('1.0'),
+                                                client_id=1, visit_id=visit_id, campaign_id=1, content_id=1)
