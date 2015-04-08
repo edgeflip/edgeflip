@@ -300,4 +300,7 @@ dl.callout dd {
 .footer .boost-logo {
     float: left;
     width: 40%;
+
+.green-like {
+    margin: 10px;
 }
