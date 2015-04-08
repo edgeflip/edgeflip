@@ -105,14 +105,14 @@ def compute_rankings(results):
             data['friends']['rank'] = rank
             data['friends']['top'].append({
                 'rank': rank,
-                'fbid': friend.fbid,
+                'fbid': str(friend.fbid),
                 'first_name': 'You',
                 'last_name': '',
             })
         elif rank <= 5:
             data['friends']['top'].append({
                 'rank': rank,
-                'fbid': friend.fbid,
+                'fbid': str(friend.fbid),
                 'first_name': friend.first_name,
                 'last_name': friend.last_name,
             })

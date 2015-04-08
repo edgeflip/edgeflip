@@ -310,6 +310,7 @@ dl.callout dd {
     margin: 0 0 0.3em;
 }
 .profile-picture {
+    max-width: 70px;
     padding: 0 0.7em 0 0.4em;
     vertical-align: text-top;
 }
