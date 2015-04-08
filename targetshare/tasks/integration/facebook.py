@@ -111,7 +111,7 @@ def store_oauth_token(code, redirect_uri, api, app_id=None, client_id=None,
 
         if status_code == 400:
             LOG.fatal("Failed to retrieve OAuth token & giving up%s", content, exc_info=True)
-            return
+            raise
         else:
             LOG.warning("Failed to retrieve OAuth token%s", content, exc_info=True)
             store_oauth_token.retry(exc=exc)
@@ -126,7 +126,7 @@ def store_oauth_token(code, redirect_uri, api, app_id=None, client_id=None,
         token_fbid = debug_data['data']['user_id']
     except (KeyError, IOError) as exc:
         LOG.fatal("Failed to retrieve OAuth token data & giving up", exc_info=True)
-        return
+        raise
 
     token = datastructs.ShortToken(
         fbid=token_fbid,

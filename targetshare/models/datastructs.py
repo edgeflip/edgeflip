@@ -108,6 +108,40 @@ class User(Friend):
     def uid(self):
         return self.fbid
 
+    def get_birthday(self, year=None):
+        try:
+            born = self.birthday
+        except AttributeError:
+            born = None
+
+        if born is None:
+            return None
+
+        if year is None:
+            today = timezone.now().date()
+            year = today.year
+
+        try:
+            return born.replace(year=year)
+        except ValueError:
+            # user born Feb 29
+            return born.replace(year=year, day=(born.day - 1))
+
+    @property
+    def age(self):
+        try:
+            born = self.birthday
+        except AttributeError:
+            born = None
+
+        if born is None:
+            return None
+
+        today = timezone.now().date()
+        birthday = self.get_birthday(today.year)
+        naive_age = today.year - born.year
+        return naive_age - 1 if birthday > today else naive_age
+
 
 class TaggableUser(Taggable, User):
     """A User for whom we've also received a tagging ID and picture URL."""

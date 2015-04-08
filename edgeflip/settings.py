@@ -278,6 +278,7 @@ QUEUE_ARGS = {'x-ha-policy': 'all'}
 BROKER_URL = 'amqp://{user}:{pass}@{host}:5672/{vhost}'.format(**RABBITMQ)
 BROKER_HEARTBEAT = 0
 BROKER_POOL_LIMIT = 0 # ELB makes pooling problematic
+CELERY_CHORD_PROPAGATES = True
 CELERYD_PREFETCH_MULTIPLIER = 1
 CELERYD_MAX_TASKS_PER_CHILD = 50
 CELERY_RESULT_BACKEND = 'redis://{host}:6379'.format(**REDIS_RESULT_BACKEND)

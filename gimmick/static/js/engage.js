@@ -49,8 +49,6 @@ edgeflip.engage = (function (edgeflip, $) {
                 self.results = data.results;
                 elapsed = new Date() - self.start,
                 remaining = elapsed < 1500 ? 1500 - elapsed : 0;
-                //self.totalScore = totalScore(self.scores);
-                //self.scores.unshift(self.header);
                 setTimeout(self.displayScores, remaining);
                 break;
             default:
