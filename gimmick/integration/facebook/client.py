@@ -1,7 +1,6 @@
-"""
-New v2 client created for SociallyEngaged app approval.
-In the future, we may merge this with targetshare or something else entirely
-"""
+"""Facebook API v2 client"""
+# FIXME: Forked from targetshare.integration.facebook.client2
+# FIXME: In the future, we may want to merge these.
 import collections
 import datetime
 import enum
@@ -16,9 +15,10 @@ from django.conf import settings
 
 from core.utils.version import make_version
 
-from targetshare.integration.facebook import utils
 from targetshare import classifier
+from targetshare.integration.facebook import utils
 from targetshare.models import datastructs
+
 
 LOG = logging.getLogger(__name__)
 
@@ -28,10 +28,11 @@ GRAPH_ENDPOINT = 'https://graph.facebook.com/v{}/'.format(API_VERSION)
 
 DAY_CHUNK_SIZE = settings.FACEBOOK.stream.get('day_chunk_size', 30)
 DAYS_BACK = settings.FACEBOOK.stream.get('days_back', 180)
+
 PAGE_CHUNK_SIZE = settings.FACEBOOK.stream.get('page_chunk_size', 20)
 NUM_PAGES = settings.FACEBOOK.stream.get('num_pages', 100)
-MAX_WAIT = settings.FACEBOOK.stream.get('max_wait', 15)
 
+MAX_WAIT = settings.FACEBOOK.stream.get('max_wait', 15)
 MAX_RETRIES = 3
 THREAD_COUNT = 6
 
@@ -135,7 +136,13 @@ def get_graph_future(session, token, *path, **kws):
 
 def get_user(token):
     data = get_graph(token, 'me')
-    city, state = data.get('location', {}).get('name', '').split(',')
+
+    location_name = data.get('location', {}).get('name', '')
+    try:
+        (city, state) = (part.strip() for part in location_name.split(','))
+    except ValueError:
+        city = state = None
+
     return datastructs.User(
         fbid=data['id'],
         fname=data['first_name'],
@@ -143,9 +150,19 @@ def get_user(token):
         email=data.get('email'),
         gender=data.get('gender'),
         birthday=data.get('birthday'),
-        city=city.strip(),
-        state=state.strip(),
+        city=city,
+        state=state,
     )
+
+
+def get_friends(token):
+    return [
+        datastructs.User(
+            fbid=data['id'],
+            name=data['name'],
+        )
+        for data in get_graph(token, 'me', 'friends')
+    ]
 
 
 def get_taggable_friends(token):
@@ -173,10 +190,6 @@ def post_notification(app_token, fbid, href, template, ref=None):
         request_params['ref'] = ref
     payload = post_graph(app_token, fbid, 'notifications', params=request_params)
     return payload['success']
-
-
-def get_friends(access_token):
-    return get_graph(access_token, 'me', 'friends')
 
 
 class Stream(list):
@@ -229,7 +242,6 @@ class Stream(list):
         return "{}({!r}, {!r})".format(self.__class__.__name__,
                                        self.user,
                                        data)
-
 
     def _generate_populators(self, executor, token, permissions):
         raise NotImplementedError
@@ -430,6 +442,7 @@ DEFINITELY_ENVIRONMENTAL_SUBCATEGORIES = {
 
 Page = collections.namedtuple('Page', ('page_id', 'name', 'category'))
 
+
 class LikeStream(Stream):
     permission = Permissions.USER_LIKES
     endpoint = 'likes'
@@ -476,10 +489,10 @@ class LikeStream(Stream):
 
 Post = collections.namedtuple('Post', ('post_id', 'message', 'score'))
 
+
 class PostStream(Stream):
     permission = Permissions.USER_POSTS
     endpoint = 'feed'
-
 
     @staticmethod
     def xread(data):
@@ -515,7 +528,6 @@ class PostStream(Stream):
                 )
                 if topics.get('Environment', 0) > 0:
                     self.append(post._replace(score=topics['Environment']))
-
 
     def score(self):
         return sum(post.score for post in self)
