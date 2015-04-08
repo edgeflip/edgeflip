@@ -287,3 +287,9 @@ dl.callout dd {
 .footer .text-center {
     margin-left: -40px;
 }
+.footer .boost-name {
+    margin-top: 50px;
+}
+.footer .boost-logo {
+    float: left;
+}
