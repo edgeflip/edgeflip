@@ -14,10 +14,12 @@ from core.utils import crypto, decorators
 
 LOG = logging.getLogger(__name__)
 
+FB_ORIGIN = r'^https?://apps\.facebook\.com$'
+
 
 class fb_signed(decorators.ConfiguredViewDecorator):
 
-    def __init__(self, view, origin=r'^facebook\.com$', default_appid=None):
+    def __init__(self, view, origin=FB_ORIGIN, default_appid=None):
         super(fb_signed, self).__init__(view)
         self._origin = re.compile(origin, re.I)
         self._default_appid = default_appid
@@ -41,9 +43,10 @@ class fb_signed(decorators.ConfiguredViewDecorator):
         signed = request.POST.get('signed_request', '')
         if self._origin.search(origin):
             try:
-                (signature, payload) = (
+                (_raw_signature, payload) = parts = str(signed).split('.')
+                (signature, decoded_payload) = (
                     base64.urlsafe_b64decode(crypto.repad(part))
-                    for part in signed.split('.')
+                    for part in parts
                 )
             except ValueError:
                 pass
@@ -51,7 +54,7 @@ class fb_signed(decorators.ConfiguredViewDecorator):
                 for (appid, secret) in FBApp.objects.values_list('appid', 'secret').iterator():
                     expected_signature = hmac.new(str(secret), payload, hashlib.sha256).digest()
                     if expected_signature == signature:
-                        return (appid, json.loads(payload))
+                        return (appid, json.loads(decoded_payload))
 
                 raise NoMatchingAppSecret(origin, signed)
 
