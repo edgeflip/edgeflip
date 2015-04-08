@@ -101,8 +101,7 @@ edgeflip.engage = (function (edgeflip, $) {
             $('#like-list').append('No green likes.');
         } else {
             self.results.greenest_likes.forEach(function (page) {
-                // Available: like.name, like.page_id
-                $('#like-list').append('<li>' + like.name + '</li>');
+                $('#like-list').append('<li>' + page.name + '</li>');
             });
         }
 
