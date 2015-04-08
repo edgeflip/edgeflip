@@ -34,4 +34,5 @@ git+ssh://git@github.com/edgeflip/faraday.git@0.2.1#egg=Faraday
 rjsmin
 sentinels==0.0.6
 redis==2.10
+python-dateutil==2.2
 enum34==1.0.4
