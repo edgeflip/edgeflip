@@ -1,3 +1,15 @@
+import re
+
+
+EMBEDDED_NS_PATTERN = re.compile(r'\bcanvas\b')
+EMBEDDED_PATH_TOKEN = '/canvas/'
+
+
+def get_embedded_path(fb_app, path):
+    (_base_path, rel_path) = path.rsplit(EMBEDDED_PATH_TOKEN, 1)
+    return 'https://apps.facebook.com/{}/{}'.format(fb_app.name, rel_path)
+
+
 class AccessSignature(object):
 
     __slots__ = ('code', 'redirect_uri', 'redirect_query')
@@ -18,7 +30,7 @@ class AccessDenied(Exception):
     pass
 
 
-def handle_incoming(request):
+def handle_incoming(request, fb_app):
     (error, error_reason) = (request.GET.get('error'),
                              request.GET.get('error_reason'))
     if error == 'access_denied' and error_reason == 'user_denied':
@@ -42,6 +54,12 @@ def handle_incoming(request):
         else:
             redirect_path = request.path
 
-        return AccessSignature(code, request.build_absolute_uri(redirect_path), redirect_query)
+        namespace = request.resolver_match.namespace
+        if namespace and EMBEDDED_NS_PATTERN.search(namespace):
+            redirect_uri = get_embedded_path(fb_app, redirect_path)
+        else:
+            redirect_uri = request.build_absolute_uri(redirect_path)
+
+        return AccessSignature(code, redirect_uri, redirect_query)
 
     return AccessSignature(code, None, redirect_query)

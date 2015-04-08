@@ -82,15 +82,16 @@ def outgoing(request, app_id, url):
 def incoming(request, api, campaign_id, content_id):
     campaign = get_object_or_404(models.Campaign, pk=campaign_id)
     properties = campaign.campaignproperties.get()
+    fb_app = campaign.client.fb_app
 
     try:
-        signature = oauth.handle_incoming(request)
+        signature = oauth.handle_incoming(request, fb_app)
     except oauth.AccessDenied:
         # OAuth denial
         # Record auth fail and redirect to error URL:
         url = "{}?{}".format(
             reverse('targetshare:outgoing', args=[
-                campaign.client.fb_app_id,
+                fb_app.appid,
                 properties.client_error_url
             ]),
             urllib.urlencode({'campaignid': campaign_id}),

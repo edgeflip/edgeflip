@@ -1,5 +1,3 @@
-import re
-
 import celery
 from django import http
 from django.core.urlresolvers import reverse
@@ -21,14 +19,6 @@ API_VERSION = make_version('2.3')
 
 DEFAULT_APPID = 555738104565910
 
-EMBEDDED_NS_PATTERN = re.compile(r'\bcanvas\b')
-EMBEDDED_PATH_TOKEN = '/canvas/'
-
-
-def get_embedded_path(fb_app, path):
-    (_base_path, rel_path) = path.rsplit(EMBEDDED_PATH_TOKEN, 1)
-    return 'https://apps.facebook.com/{}/{}'.format(fb_app.name, rel_path)
-
 
 fb_signed = signed.fb_signed.configured(default_appid=DEFAULT_APPID)
 
@@ -40,13 +30,13 @@ def intro(request, appid, signed):
     fb_app = FBApp.objects.get(appid=appid)
     namespace = request.resolver_match.namespace
 
-    if namespace and EMBEDDED_NS_PATTERN.search(namespace):
+    if namespace and oauth.EMBEDDED_NS_PATTERN.search(namespace):
         # Request received from Facebook canvas --
         # main app should be served from canvas as well.
 
         # Remove the true path base from FB vanity URL path:
         true_path = reverse('gimmick-canvas:engage')
-        redirect_uri = get_embedded_path(fb_app, true_path)
+        redirect_uri = oauth.get_embedded_path(fb_app, true_path)
     else:
         # Unembedded.
         redirect_path = reverse('gimmick:engage')
@@ -62,8 +52,10 @@ def intro(request, appid, signed):
 @csrf_exempt
 @require_http_methods(['GET', 'POST'])
 def main(request, appid, signed):
+    fb_app = FBApp.objects.get(appid=appid)
+
     try:
-        signature = oauth.handle_incoming(request)
+        signature = oauth.handle_incoming(request, fb_app)
     except oauth.AccessDenied:
         signature = oauth.AccessSignature()
 
@@ -73,9 +65,8 @@ def main(request, appid, signed):
         # TODO: event
         namespace = request.resolver_match.namespace or 'gimmick'
         path = reverse(namespace + ':engage-intro') + "#denied"
-        if EMBEDDED_NS_PATTERN.search(namespace):
-            fb_app = FBApp.objects.get(appid=appid)
-            url = get_embedded_path(fb_app, path)
+        if oauth.EMBEDDED_NS_PATTERN.search(namespace):
+            url = oauth.get_embedded_path(fb_app, path)
             return render(request, 'chapo/redirect.html', {'url': url})
         else:
             return redirect(path)
