@@ -20,7 +20,10 @@ API_VERSION = make_version('2.3')
 DEFAULT_APPID = 555738104565910
 
 
-fb_signed = signed.fb_signed.configured(default_appid=DEFAULT_APPID)
+fb_signed = signed.fb_signed.configured(
+    origin='', # Same-Origin check disabled for Firefox
+    default_appid=DEFAULT_APPID,
+)
 
 
 @fb_signed
