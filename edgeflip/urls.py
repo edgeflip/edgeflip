@@ -25,6 +25,8 @@ urlpatterns = patterns('',
     url(r'^', include(targetshare.urls.legacypatterns)),
 
     # gimmick
+    url(r'^devices/', include(gimmick.urls.urlpatterns,
+                              namespace='gimmick', app_name='gimmick')),
     url(r'^canvas/devices/', include(gimmick.urls.canvaspatterns,
                                      namespace='gimmick-canvas', app_name='gimmick')),
     url(r'^canvas/', include(gimmick.urls.canvaspatterns_root,
@@ -38,7 +40,8 @@ urlpatterns = patterns('',
 
 if settings.ENV in ('development', 'staging'):
     urlpatterns += patterns('',
-        url(r'^devices/', include('gimmick.urls', namespace='gimmick', app_name='gimmick')),
+        url(r'^devices/', include(gimmick.urls.demopatterns,
+                                  namespace='gimmick', app_name='gimmick')),
         url(r'^mocks/', include('targetmock.urls')),
         url(r'^simpleadmin/', include(admin.site.urls)),
     )
