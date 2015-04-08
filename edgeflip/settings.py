@@ -404,7 +404,7 @@ JSURLS_PROFILES = {
         'URL_NAMESPACES': ('targetadmin', 'targetshare'),
     },
     'gimmick': {
-        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-map.js'),
+        'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-devices.js'),
         'URL_NAMESPACES': ('gimmick',),
     },
     'reporting': {

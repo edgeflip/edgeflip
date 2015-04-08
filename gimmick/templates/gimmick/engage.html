@@ -1,1 +1,125 @@
-{{task_id}}
+{% extends "gimmick/base.html" %}
+
+{% block subtitle %}Your Ranking{% endblock %}
+
+{% block js-includes %}
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<!-- Edgeflip JavaScript includes -->
+<script type='text/javascript'>
+    {% include "core/includes/edgeflip.js" %}
+</script>
+<!-- End Edgeflip JavaScript includes -->
+<script src="{{ STATIC_URL }}js/router-devices.js"></script>
+<script src="{{ STATIC_URL }}js/engage.js"></script>
+<!-- Edgeflip JavaScript resources -->
+{% endblock %}
+
+{% block body %}
+<div class="switch on">
+    {% include "gimmick/includes/panel-interstitial.html" %}
+</div>
+
+<div class="container-fluid switch">
+    <div class="header row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-1">
+                    <img src="{{ STATIC_URL }}img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
+                </div>
+                <div class="col-11">
+                    <h1 class=title>Your Environmental Rank</h1>
+                    <h5 class=subtitle>Based on your likes, posts, and interactions on Facebook.</h5>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-4">
+                    <div class=panel>
+                        <div class="panel-heading">
+                            <h2 class=panel-title><span data-icon="&#xe077;"></span> Your Rank</h2>
+                        </div>
+                        <div class="panel-body">
+                            <dl class="callout">
+                                <dt>#3</dt>
+                                <dd>Among your friends</dd>
+                                <dt>#514</dt>
+                                <dd>In Chicago, IL</dd>
+                                <dt>#1,213</dt>
+                                <dd>Among 33 year-olds</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class=panel>
+                        <div class=panel-heading>
+                            <h2 class=panel-title><span data-icon="&#xe001;"></span> Your Top Friends</h2>
+                        </div>
+                        <div class=panel-body>
+                            <ol class=simple-list>
+                                <li>Joe Bloe</li>
+                                <li>Andrew Countertop</li>
+                                <li>Nancy Glass</li>
+                                <li>Anthony Bean</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-4">
+                    <div class=panel>
+                        <div class=panel-heading>
+                            <h2 class=panel-title><span data-icon="&#xe028;"></span> Your Greenest Posts</h2>
+                        </div>
+                        <div class=panel-body>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer row">
+        <div class=container-lg>
+            <div class=row>
+                <div class="col-4">
+                    <h3>Share your score to see where your friends rank!</h3>
+                    <p class="text-center">
+                        {% include "gimmick/includes/fb_button.html" with btn_text="Share your score!" btn_url="#" %}
+                    </p>
+                    <h3 class="brand text-center">
+                        <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
+                        SociallyEngaged
+                    </h3>
+                </div>
+
+                <div class="col-4">
+                    <h3>Boost your ranking by following EDF!</h3>
+                </div>
+
+                <div class="col-4">
+                    <h3>Take action.</h3>
+                    <p class="text-center">
+                        <a href="http://support.edf.org/site/PageServer?pagename=cut_pollution_from_oil_and_gas_industry">
+                            <img src="{{ STATIC_URL }}img/Methane80Times_250.jpg" title="Cut Pollution from the Oil & Gas Industry" alt="Cut Pollution from the Oil & Gas Industry">
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block body-script %}
+<!-- Edgeflip Engage Main JavaScript -->
+<script type="text/javascript">
+    edgeflip.engage.init({
+        taskId: "{{task_id}}"
+    });
+</script>
+<!-- End Edgeflip Engage Main JavaScript -->
+{% endblock %}

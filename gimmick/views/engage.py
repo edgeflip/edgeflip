@@ -114,5 +114,6 @@ def data(request, task_id):
     # TODO: events?
     return DjangoJsonHttpResponse({
         'status': 'success',
-        'something': result, # TODO
+        'scores': [0, 1, 2],
+        'token': result, # TODO
     })
