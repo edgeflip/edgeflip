@@ -11,6 +11,11 @@ body {
     margin: 0;
 }
 
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
 .container-lg, .container-md {
     margin-left: auto;
     margin-right: auto;
@@ -288,8 +293,11 @@ dl.callout dd {
     margin-left: -40px;
 }
 .footer .boost-name {
+    display: table-caption;
     margin-top: 50px;
+    padding-left: 10px;
 }
 .footer .boost-logo {
     float: left;
+    width: 40%;
 }
