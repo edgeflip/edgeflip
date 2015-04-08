@@ -106,7 +106,7 @@ edgeflip.engage = (function (edgeflip, $) {
             $('#like-list').append('No green likes.');
         } else {
             self.results.greenest_likes.forEach(function (page) {
-                $('#like-list').append('<a href="https://facebook.com/' + page.page_id + '"><img src="https://graph.facebook.com/' + page.page_id + '/picture?height=75" class="green-like" /></a>');
+                $('#like-list').append('<a rel=external href="https://facebook.com/' + page.page_id + '"><img src="https://graph.facebook.com/' + page.page_id + '/picture?height=75" class="green-like" /></a>');
             });
         }
 
