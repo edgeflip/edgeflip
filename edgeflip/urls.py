@@ -41,7 +41,7 @@ urlpatterns = patterns('',
 if settings.ENV in ('development', 'staging'):
     urlpatterns += patterns('',
         url(r'^devices/', include(gimmick.urls.demopatterns,
-                                  namespace='gimmick', app_name='gimmick')),
+                                  namespace='gimmick-demo', app_name='gimmick')),
         url(r'^mocks/', include('targetmock.urls')),
         url(r'^simpleadmin/', include(admin.site.urls)),
     )

@@ -10,12 +10,12 @@ from targetshare.tests import EdgeFlipTestCase, patch_facebook, patch_token
 class TestMapView(EdgeFlipTestCase):
 
     def test_get(self):
-        response = self.client.get(reverse('gimmick:map'))
+        response = self.client.get(reverse('gimmick-demo:map'))
         self.assertStatusCode(response, 200)
         self.assertTemplateUsed(response, 'gimmick/map.html')
 
     def test_post(self):
-        response = self.client.post(reverse('gimmick:map'))
+        response = self.client.post(reverse('gimmick-demo:map'))
         self.assertStatusCode(response, 200)
         self.assertTemplateUsed(response, 'gimmick/map.html')
 
@@ -29,7 +29,7 @@ class TestDataView(EdgeFlipTestCase):
             name='share!',
             secret='sekret',
         )
-        self.url = reverse('gimmick:map-data')
+        self.url = reverse('gimmick-demo:map-data')
         self.params = {
             'fbid': 1111111, # returned by patch
             'token': 'test-token',
