@@ -13,12 +13,17 @@
 
 {% block body %}
     {% include "gimmick/includes/panel-intro.html" with btn_url=initial_url %}
+
+    <p class="terms text-center">
+    {% include "gimmick/includes/terms.html" %}
+    </p>
 {% endblock %}
 
 {% block body-script %}
 <!-- Edgeflip Engage LP JavaScript -->
 <script type="text/javascript">
     edgeflip.util.wrapEmbeddedLinks();
+    edgeflip.util.wrapExternalLinks();
 </script>
 <!-- End Edgeflip Engage LP JavaScript -->
 {% endblock %}

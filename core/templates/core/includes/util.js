@@ -23,6 +23,8 @@ edgeflip.util = {
     },
     wrapEmbeddedLinks: function (links, attrib) {
         /* Treat all anchor HREFs as "outgoing redirects" which must engage the top frame.
+         *
+         * Anchors with the attribute "rel=external" are ignored.
         */
         if (links === undefined) {
             links = document.getElementsByTagName('a');
@@ -39,7 +41,24 @@ edgeflip.util = {
 
         for (index = 0; index < links.length; index++) {
             link = links[index];
-            link.addEventListener('click', redirector);
+            if (link.rel !== 'external') {
+                link.addEventListener('click', redirector);
+            }
+        }
+    },
+    wrapExternalLinks: function () {
+        var index, link,
+            links = document.getElementsByTagName('a'),
+            opener = function (event) {
+                window.open(this.href);
+                event.preventDefault();
+            };
+
+        for (index = 0; index < links.length; index++) {
+            link = links[index];
+            if (link.rel === 'external') {
+                link.addEventListener('click', opener);
+            }
         }
     }
 };

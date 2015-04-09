@@ -166,6 +166,10 @@ span.switch.on {
 
 /* Shared */
 
+.terms {
+    font-family: Arial, sans-serif;
+}
+
 .logo-bug {
     width: 55px;
 }
