@@ -121,11 +121,13 @@ edgeflip.engage = (function (edgeflip, $) {
         }
 
         if (self.results.greenest_posts.length == 0) {
-            $('#post-list').append('No green posts.');
+            $('#post-list-container').append('No green posts.');
+            $('#post-list').hide();
         } else {
             self.results.greenest_posts.forEach(function (post) {
+                var img = post.picture ? '<img src="' + post.picture + '">' : '';
                 // Available: post.message, post.post_id, post.score
-                $('#post-list').append('<li>' + post.message + ' Green Score of ' + post.score + '</li>');
+                $('#post-list').append('<tr><td class=post-img>' + img + '</td><td><a href="https://facebook.com/' + post.post_id + '">' + post.message + '</a></td><td class=post-score>' + Math.round(post.score*100) + '</td></tr>');
             });
         }
     };
