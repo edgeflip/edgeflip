@@ -135,9 +135,9 @@ edgeflip.engage = (function (edgeflip, $) {
             var origin = window.location.protocol + '//' + window.location.host;
             FB.ui({
               method: 'share_open_graph',
-              action_type: 'sociallyengaged:get_ranked',
+              action_type: 'sociallyengaged:get',
               action_properties: JSON.stringify({
-                object: origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank)
+                ranking: origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank)
               })
 
             }, function(response){});
