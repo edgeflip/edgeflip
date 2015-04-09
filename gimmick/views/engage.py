@@ -121,6 +121,7 @@ def data(request, task_id):
     # Check result #
     results = task.result if task.successful() else None
     if not results:
+        # TODO: add handling, perhaps to redirect the user through OAuth if it's an OAuth error (reused code)
         return http.HttpResponseServerError()
 
     # TODO: events?
