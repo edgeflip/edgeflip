@@ -147,5 +147,6 @@ def fb_object(request, appid, rank):
         'rank': rank,
         'fb_object_url': request.build_absolute_uri(),
         'fb_img_url': request.build_absolute_uri(settings.STATIC_URL + 'img/bug_white_single.png'),
+        'fb_obj_type': 'ranking',
         'redirect_url': redirect_url,
     })
