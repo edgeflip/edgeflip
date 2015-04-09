@@ -170,7 +170,8 @@
 <!-- Edgeflip Engage Main JavaScript -->
 <script type="text/javascript">
     edgeflip.engage.init({
-        taskId: "{{ task_id }}"
+        taskId: "{{ task_id }}",
+        appId: "{{ fb_app.appid }}"
     });
 
     // Anchors with rel="external" open their href in a new window.
