@@ -10,7 +10,6 @@ from gimmick.models import EngagedUser
 
 
 LOG = get_task_logger(__name__)
-MAX_TEXT_LEN = 80
 
 
 @shared_task
