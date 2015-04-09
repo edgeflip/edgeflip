@@ -143,14 +143,14 @@ def get_user(token):
     try:
         (city, state) = (part.strip() for part in location_name.split(','))
     except ValueError:
-        city = state = None
+        city = state = ''
 
     return datastructs.User(
         fbid=data['id'],
         fname=data['first_name'],
         lname=data['last_name'],
-        email=data.get('email'),
-        gender=data.get('gender'),
+        email=data.get('email', ''),
+        gender=data.get('gender', ''),
         birthday=data.get('birthday'),
         city=city,
         state=state,

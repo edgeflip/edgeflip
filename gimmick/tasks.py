@@ -90,8 +90,10 @@ def compute_rankings(results):
         'city': {
             'user_city': user.city,
             'user_state': user.state,
-            'rank': EngagedUser.objects.filter(city=user.city, state=user.state).filter(
-                score__gt=engaged_user.score
+            'rank': user.city and user.state and EngagedUser.objects.filter(
+                city=user.city,
+                state=user.state,
+                score__gt=engaged_user.score,
             ).count() + 1,
         },
         'friends': {'rank': 1, 'top': []},
@@ -119,13 +121,18 @@ def compute_rankings(results):
 
     # Add age rank
     user_age = user.age
-    today = timezone.now().date()
-    start_date = make_date(today.year - user_age - 1, today.month, today.day)
-    end_date = make_date(today.year - user_age, today.month, today.day)
-    user_peers = EngagedUser.objects.filter(birthday__gt=start_date, birthday__lte=end_date)
+    if user_age:
+        today = timezone.now().date()
+        start_date = make_date(today.year - user_age - 1, today.month, today.day)
+        end_date = make_date(today.year - user_age, today.month, today.day)
+        user_peers = EngagedUser.objects.filter(birthday__gt=start_date, birthday__lte=end_date)
+        age_rank = user_peers.filter(score__gt=engaged_user.score).count() + 1
+    else:
+        age_rank = None
+
     data['age'] = {
         'user_age': user_age,
-        'rank': user_peers.filter(score__gt=engaged_user.score).count() + 1,
+        'rank': age_rank,
     }
 
     return data

@@ -46,10 +46,34 @@
                             <dl class="callout">
                                 <dt>#<span id="friend-rank"></span></dt>
                                 <dd>Among your friends</dd>
-                                <dt>#<span id="city-rank"></span></dt>
-                                <dd>In <span id="user-city"></span>, <span id="user-state"></span></dd>
-                                <dt>#<span id="age-rank"></span></dt>
-                                <dd>Among <span id="user-age"></span> year-olds</dd>
+
+                                <dt class=city-rank>
+                                    <span class="switch on">#</span>
+                                    <span class=switch>?</span>
+                                    <span id="city-rank"></span>
+                                </dt>
+                                <dd class=city-rank>
+                                    <span class="switch on">
+                                        In <span id="user-city"></span>, <span id="user-state"></span>
+                                    </span>
+                                    <span class=switch>
+                                        You haven't shared your location
+                                    </span>
+                                </dd>
+
+                                <dt class=age-rank>
+                                    <span class="switch on">#</span>
+                                    <span class=switch>?</span>
+                                    <span id="age-rank"></span>
+                                </dt>
+                                <dd class=age-rank>
+                                    <span class="switch on">
+                                        Among <span id="user-age"></span> year-olds
+                                    </span>
+                                    <span class=switch>
+                                        You haven't shared your birthday
+                                    </span>
+                                </dd>
                             </dl>
                         </div>
                     </div>
