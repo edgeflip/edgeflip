@@ -81,15 +81,25 @@ edgeflip.engage = (function (edgeflip, $) {
         on.fadeOut(function () {
             off.fadeIn(function () {
                 // Clean up initialization classes
-                on.add(off).toggleClass('on').toggleClass('in');
+                on.add(off).toggleClass('on');
             });
         });
 
-        $('#city-rank').text(self.results.city.rank);
-        $('#user-city').text(self.results.city.user_city);
-        $('#user-state').text(self.results.city.user_state);
-        $('#age-rank').text(self.results.age.rank);
-        $('#user-age').text(self.results.age.user_age);
+        if (self.results.city.user_city) {
+            $('#city-rank').text(self.results.city.rank);
+            $('#user-city').text(self.results.city.user_city);
+            $('#user-state').text(self.results.city.user_state);
+        } else {
+            $('.city-rank').addClass('notice').find('.switch').toggleClass('on');
+        }
+
+        if (self.results.age.user_age) {
+            $('#age-rank').text(self.results.age.rank);
+            $('#user-age').text(self.results.age.user_age);
+        } else {
+            $('.age-rank').addClass('notice').find('.switch').toggleClass('on');
+        }
+
         $('#friend-rank').text(self.results.friends.rank);
 
         self.results.friends.top.forEach(function (friend) {
