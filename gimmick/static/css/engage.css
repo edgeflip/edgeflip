@@ -159,6 +159,9 @@ dl.callout dd {
 .switch.on {
     display: block;
 }
+span.switch.on {
+    display: inline;
+}
 
 
 /* Shared */

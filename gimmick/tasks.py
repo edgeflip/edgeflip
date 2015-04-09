@@ -69,6 +69,8 @@ def compute_rankings(results):
         'score': like_score + post_score,
     })
 
+    post_stream.sort(key=lambda post: -post.score)
+
     data = {
         'greenest_posts': [
             {
