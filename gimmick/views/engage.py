@@ -144,7 +144,7 @@ def fb_object(request, rank):
         'fb_app_name': fb_app_name,
         'fb_app_id': fb_app_id,
         'fb_img_url': request.build_absolute_uri('/static/img/bug_white_single.png'),
-        'fb_action': 'get_ranked',
+        'fb_obj_type': 'ranking',
         'redirect_url': redirect_url,
         'fb_description': "I'm proud to support the environment on Facebook. See how you stack up!",
         'fb_title': "My Environmental Rank: #{}".format(rank)
