@@ -9,17 +9,18 @@
     {% include "core/includes/edgeflip.js" %}
 </script>
 <!-- End Edgeflip JavaScript includes -->
+<!-- Edgeflip JavaScript resources -->
 <script src="{{ STATIC_URL }}js/router-devices.js"></script>
 <script src="{{ STATIC_URL }}js/engage.js"></script>
-<!-- Edgeflip JavaScript resources -->
+<!-- End Edgeflip JavaScript resources -->
 {% endblock %}
 
 {% block body %}
-<!-- Facebook SDK --!>
+<!-- Facebook SDK -->
 <script>
   window.fbAsyncInit = function() {
     FB.init({
-      appId      : '555738104565910',
+      appId      : '{{ fb_app.appid }}',
       xfbml      : true,
       version    : 'v2.3'
     });
@@ -33,7 +34,7 @@
      fjs.parentNode.insertBefore(js, fjs);
    }(document, 'script', 'facebook-jssdk'));
 </script>
-<!-- End Facebook SDK --!>
+<!-- End Facebook SDK -->
 
 <div class="switch on">
     {% include "gimmick/includes/panel-interstitial.html" %}
@@ -173,7 +174,7 @@
 <!-- Edgeflip Engage Main JavaScript -->
 <script type="text/javascript">
     edgeflip.engage.init({
-        taskId: "{{task_id}}"
+        taskId: "{{ task_id }}"
     });
 
     // Anchors with rel="external" open their href in a new window.

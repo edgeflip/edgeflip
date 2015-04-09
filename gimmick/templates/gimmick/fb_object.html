@@ -1,12 +1,12 @@
 <html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US" 
     xmlns:fb="https://www.facebook.com/2008/fbml">
-<head prefix="og: http://ogp.me/ns# {{ fb_app_name }}:
-    http://ogp.me/ns/apps/{{ fb_app_name }}#">
+<head prefix="og: http://ogp.me/ns# {{ fb_app.name }}:
+    http://ogp.me/ns/apps/{{ fb_app.name }}#">
 <title>SociallyEngaged: Environment</title>
-    <meta property="fb:app_id" content="{{ fb_app_id }}" /> 
-    <meta property="og:type" content="{{ fb_app_name }}:{{ fb_action }}" /> 
-    <meta property="og:title" content="{{ fb_title }}" /> 
-    <meta property="og:description" content="{{ fb_description }}" /> 
+    <meta property="fb:app_id" content="{{ fb_app.appid }}" /> 
+    <meta property="og:type" content="{{ fb_app.name }}:get_ranked" /> 
+    <meta property="og:title" content="My Environmental Rank: #{{ rank }}" /> 
+    <meta property="og:description" content="I'm proud to support the environment on Facebook. See how you stack up!" /> 
     <meta property="og:image" content="{{ fb_img_url }}" />
     <meta property="og:url" content="{{ fb_object_url }}">
 

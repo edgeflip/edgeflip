@@ -1,5 +1,6 @@
 import celery
 from django import http
+from django.conf import settings
 from django.core.urlresolvers import reverse
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import csrf_exempt
@@ -107,6 +108,7 @@ def main(request, appid, signed):
         task_id = request.session[session_key] = task.id
 
     return render(request, 'gimmick/engage.html', {
+        'fb_app': fb_app,
         'task_id': task_id,
     })
 
@@ -130,22 +132,20 @@ def data(request, task_id):
     })
 
 
-def fb_object(request, rank):
-    # Build FBObject parameters for document:
-    fb_object_url = request.build_absolute_uri()
-    fb_app_name = 'sociallyengaged'
-    fb_app_id = 555738104565910
-    redirect_url = 'https://%s%s' % (
-        request.get_host(),
-        reverse('gimmick:engage-intro'),
-    )
+def fb_object(request, appid, rank):
+    fb_app = FBApp.objects.get(appid=appid)
+
+    namespace = request.resolver_match.namespace or 'gimmick'
+    path = reverse(namespace + ':engage-intro')
+    if oauth.EMBEDDED_NS_PATTERN.search(namespace):
+        redirect_url = oauth.get_embedded_path(fb_app, path)
+    else:
+        redirect_url = 'https://{}{}'.format(request.get_host(), path)
+
     return render(request, 'gimmick/fb_object.html', {
-        'fb_object_url': fb_object_url,
-        'fb_app_name': fb_app_name,
-        'fb_app_id': fb_app_id,
-        'fb_img_url': request.build_absolute_uri('/static/img/bug_white_single.png'),
-        'fb_action': 'get_ranked',
+        'fb_app': fb_app,
+        'rank': rank,
+        'fb_object_url': request.build_absolute_uri(),
+        'fb_img_url': request.build_absolute_uri(settings.STATIC_URL + 'img/bug_white_single.png'),
         'redirect_url': redirect_url,
-        'fb_description': "I'm proud to support the environment on Facebook. See how you stack up!",
-        'fb_title': "My Environmental Rank: #{}".format(rank)
     })
