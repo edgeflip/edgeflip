@@ -406,7 +406,7 @@ JSURLS_PROFILES = {
     },
     'gimmick': {
         'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-devices.js'),
-        'URL_NAMESPACES': ('gimmick',),
+        'URL_NAMESPACES': ('gimmick', 'gimmick-canvas'),
     },
     'reporting': {
         'INSTALL_PATH': os.path.join(STATIC_ROOT, 'js', 'router-reports.js'),
