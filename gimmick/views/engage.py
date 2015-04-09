@@ -129,6 +129,7 @@ def data(request, task_id):
         'results': results,
     })
 
+
 def fb_object(request, rank):
     # Build FBObject parameters for document:
     fb_object_url = request.build_absolute_uri()
@@ -146,5 +147,5 @@ def fb_object(request, rank):
         'fb_action': 'get_ranked',
         'redirect_url': redirect_url,
         'fb_description': "I'm proud to support the environment on Facebook. See how you stack up!",
-        'fb_title': "My rank: #{}".format(rank)
+        'fb_title': "My Environmental Rank: #{}".format(rank)
     })
