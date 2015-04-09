@@ -144,8 +144,8 @@ edgeflip.engage = (function (edgeflip, $) {
 
             FB.ui({
                 method: 'share_open_graph',
-                action_type: 'sociallyengaged:get_ranked',
-                action_properties: JSON.stringify({object: objectUrl})
+                action_type: 'sociallyengaged:get',
+                action_properties: JSON.stringify({ranking: objectUrl})
             });
         });
     };
