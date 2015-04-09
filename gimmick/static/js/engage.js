@@ -75,13 +75,14 @@ edgeflip.engage = (function (edgeflip, $) {
     };
 
     self.displayResults = function () {
-        var on = $('.switch.on'),
-            off = $('.switch').not(on);
+        var containers = $('.container-main.switch'),
+            containerOn = containers.filter('.on'),
+            containerOff = containers.not(containerOn);
 
-        on.fadeOut(function () {
-            off.fadeIn(function () {
+        containerOn.fadeOut(function () {
+            containerOff.fadeIn(function () {
                 // Clean up initialization classes
-                on.add(off).toggleClass('on');
+                containers.toggleClass('on');
             });
         });
 
@@ -132,15 +133,14 @@ edgeflip.engage = (function (edgeflip, $) {
         }
 
         $('#share-rank').click(function() {
-            var origin = window.location.protocol + '//' + window.location.host;
-            FB.ui({
-              method: 'share_open_graph',
-              action_type: 'sociallyengaged:get_ranked',
-              action_properties: JSON.stringify({
-                object: origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank)
-              })
+            var origin = window.location.protocol + '//' + window.location.host,
+                objectUrl = origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank);
 
-            }, function(response){});
+            FB.ui({
+                method: 'share_open_graph',
+                action_type: 'sociallyengaged:get',
+                action_properties: JSON.stringify({ranking: objectUrl})
+            });
         });
     };
 
