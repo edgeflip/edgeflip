@@ -292,7 +292,7 @@ span.switch.on {
 .footer .brand {
     margin-top: 3em;
 }
-.footer .text-center {
+.footer .text-center .btn {
     margin-left: -40px;
 }
 .footer .boost-name {
