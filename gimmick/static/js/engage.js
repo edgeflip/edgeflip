@@ -118,6 +118,18 @@ edgeflip.engage = (function (edgeflip, $) {
                 $('#post-list').append('<li>' + post.message + ' Green Score of ' + post.score + '</li>');
             });
         }
+
+        $('#share-rank').click(function() {
+            var origin = window.location.protocol + '//' + window.location.host;
+            FB.ui({
+              method: 'share_open_graph',
+              action_type: 'sociallyengaged:get_ranked',
+              action_properties: JSON.stringify({
+                object: origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank)
+              })
+
+            }, function(response){});
+        });
     };
 
     return self;
