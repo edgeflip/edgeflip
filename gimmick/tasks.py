@@ -90,8 +90,10 @@ def compute_rankings(results):
         'city': {
             'user_city': user.city,
             'user_state': user.state,
-            'rank': EngagedUser.objects.filter(city=user.city, state=user.state).filter(
-                score__gt=engaged_user.score
+            'rank': user.city and user.state and EngagedUser.objects.filter(
+                city=user.city,
+                state=user.state,
+                score__gt=engaged_user.score,
             ).count() + 1,
         },
         'friends': {'rank': 1, 'top': []},
