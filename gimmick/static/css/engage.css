@@ -304,6 +304,10 @@ span.switch.on {
     float: left;
     width: 40%;
 }
+.footer .short-header {
+    margin-left: -8%;
+    text-align: center;
+}
 
 .green-like {
     margin: 10px;
