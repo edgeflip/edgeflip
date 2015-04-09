@@ -4,6 +4,7 @@ edgeflip.engage = (function (edgeflip, $) {
         defaults = {
             dataURL: null, // set lazily, optionally
             appId: Required,
+            appName: Required,
             taskId: Required
         };
 
@@ -144,7 +145,7 @@ edgeflip.engage = (function (edgeflip, $) {
 
             FB.ui({
                 method: 'share_open_graph',
-                action_type: 'sociallyengaged:get',
+                action_type: self.appName + ':get',
                 action_properties: JSON.stringify({ranking: objectUrl})
             });
         });
