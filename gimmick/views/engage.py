@@ -13,7 +13,7 @@ from targetshare.models.datastructs import ShortToken
 from targetshare.models.relational import FBApp
 from targetshare.tasks.integration.facebook import store_oauth_token
 
-from gimmick import tasks, models
+from gimmick import tasks
 
 
 API_VERSION = make_version('2.3')
@@ -131,15 +131,10 @@ def data(request, task_id):
 
 def fb_object(request, rank):
     # Build FBObject parameters for document:
-    fb_object_url = 'http://%s%s' % (
-        request.get_host(),
-        reverse('gimmick:engage-fbobject', kwargs={
-            'rank': rank,
-        }),
-    )
+    fb_object_url = request.build_absolute_uri()
     fb_app_name = 'sociallyengaged'
     fb_app_id = 555738104565910
-    redirect_url = 'http://%s%s' % (
+    redirect_url = 'https://%s%s' % (
         request.get_host(),
         reverse('gimmick:engage-intro'),
     )
@@ -147,6 +142,7 @@ def fb_object(request, rank):
         'fb_object_url': fb_object_url,
         'fb_app_name': fb_app_name,
         'fb_app_id': fb_app_id,
+        'fb_img_url': request.build_absolute_uri('/static/img/bug_white_single.png'),
         'fb_action': 'get_ranked',
         'redirect_url': redirect_url,
         'fb_description': "I'm proud to support the environment on Facebook. See how you stack up!",
