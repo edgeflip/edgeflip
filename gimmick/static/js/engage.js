@@ -2,7 +2,9 @@ edgeflip.engage = (function (edgeflip, $) {
     // Attributes (non)-optionally set by user via init():
     var Required = new Object(),
         defaults = {
-            dataURL: null, // set lazily
+            dataURL: null, // set lazily, optionally
+            appId: Required,
+            appName: Required,
             taskId: Required
         };
 
@@ -134,11 +136,16 @@ edgeflip.engage = (function (edgeflip, $) {
 
         $('#share-rank').click(function() {
             var origin = window.location.protocol + '//' + window.location.host,
-                objectUrl = origin + edgeflip.router.reverse('gimmick:engage-fbobject', self.results.friends.rank);
+                inCanvas = window.location.pathname.indexOf('/canvas/') >= 0,
+                namespace = inCanvas ? 'gimmick-canvas' : 'gimmick',
+                objectPath = edgeflip.router.reverse(namespace + ':engage-fbobject',
+                                                     self.appId,
+                                                     self.results.friends.rank),
+                objectUrl = origin + objectPath;
 
             FB.ui({
                 method: 'share_open_graph',
-                action_type: 'sociallyengaged:get',
+                action_type: self.appName + ':get',
                 action_properties: JSON.stringify({ranking: objectUrl})
             });
         });
