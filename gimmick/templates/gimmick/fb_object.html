@@ -1,0 +1,33 @@
+<html xmlns="http://www.w3.org/1999/xhtml" dir="ltr" lang="en-US" 
+    xmlns:fb="https://www.facebook.com/2008/fbml">
+<head prefix="og: http://ogp.me/ns# {{ fb_app_name }}:
+    http://ogp.me/ns/apps/{{ fb_app_name }}#">
+<title>SociallyEngaged: Environment</title>
+    <meta property="fb:app_id" content="{{ fb_app_id }}" /> 
+    <meta property="og:type" content="{{ fb_app_name }}: {{ fb_action }}" /> 
+    <meta property="og:title" content="{{ fb_title }}" /> 
+    <meta property="og:description" content="{{ fb_description }}" /> 
+    <meta property="og:image" content="{{ fb_img_url }}" />
+    <meta property="og:url" content="{{ fb_object_url }}">
+    <meta property="{{ fb_app_name }}:orgname" content="Edgeflip">
+
+    <link href="{{ STATIC_URL }}css/engage.css" rel="stylesheet">
+    <link href="{{ STATIC_URL }}css/simple-line-icons.css" rel="stylesheet">
+
+    <script>
+        window.location = '{{ redirect_url }}';
+    </script>
+    </head>
+    <body>
+<div class="container-md container-panel-main">
+    <div class=row>
+        <div class="col-2 text-center">
+            <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">
+        </div>
+        <div class="col-10">
+            <h1 class=title>SociallyEngaged</h1>
+            <h5 class="subtitle caps">The Environmentalism Ranking Engine</h5>
+            <p>You should be redirected to your content shortly. <a href="{{ redirect_url }}">Click here</a> if you're not redirected immediately.</p>
+        </div>
+    </div>
+</div>

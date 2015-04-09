@@ -15,6 +15,26 @@
 {% endblock %}
 
 {% block body %}
+<!-- Facebook SDK --!>
+<script>
+  window.fbAsyncInit = function() {
+    FB.init({
+      appId      : '555738104565910',
+      xfbml      : true,
+      version    : 'v2.3'
+    });
+  };
+
+  (function(d, s, id){
+     var js, fjs = d.getElementsByTagName(s)[0];
+     if (d.getElementById(id)) {return;}
+     js = d.createElement(s); js.id = id;
+     js.src = "//connect.facebook.net/en_US/sdk.js";
+     fjs.parentNode.insertBefore(js, fjs);
+   }(document, 'script', 'facebook-jssdk'));
+</script>
+<!-- End Facebook SDK --!>
+
 <div class="switch on">
     {% include "gimmick/includes/panel-interstitial.html" %}
 </div>
@@ -115,7 +135,7 @@
                 <div class="col-4">
                     <h3>Share your score to see where your friends rank!</h3>
                     <p class="text-center">
-                        {% include "gimmick/includes/fb_button.html" with btn_text="Share your score!" btn_url="#" %}
+                        {% include "gimmick/includes/fb_button.html" with btn_text="Share your score!" btn_url="#" btn_id="share-rank" %}
                     </p>
                     <h3 class="brand text-center">
                         <img src="{{ STATIC_URL }}/img/bug-white-bars.svg" class="logo-bug" alt="SociallyEngaged">

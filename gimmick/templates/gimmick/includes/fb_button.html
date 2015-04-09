@@ -1,4 +1,4 @@
-<a href="{{ btn_url }}" class="btn btn-submit text-callout" role="button">
+<a href="{{ btn_url }}" class="btn btn-submit text-callout" role="button" {% if btn_id %} id="{{ btn_id }}"{% endif %}>
     <img src="{{ STATIC_URL }}img/FB-f-Logo__blue_50.png" alt="Facebook">
     <span class=btn-text>{{ btn_text|default:"Share on Facebook" }}</span>
 </a>
