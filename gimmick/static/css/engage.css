@@ -308,6 +308,8 @@ dl.callout dd {
 
 #post-list {
     background-color: #F9FAFA;
+    border-radius: 3px;
+    border-color: #F9FAFA;
 }
 
 #post-list th {

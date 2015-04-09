@@ -3,6 +3,7 @@ import datetime
 from celery import shared_task
 from celery.utils.log import get_task_logger
 from django.utils import timezone
+from django.template.defaultfilters import truncatewords
 
 from gimmick.integration.facebook import client
 from gimmick.models import EngagedUser
@@ -72,7 +73,7 @@ def compute_rankings(results):
     data = {
         'greenest_posts': [
             {
-                'message': post.message if len(post.message) < MAX_TEXT_LEN else post.message[:MAX_TEXT_LEN] + '...',
+                'message': truncatewords(post.message, 15),
                 'post_id': post.post_id,
                 'score': post.score,
                 'picture': post.picture,

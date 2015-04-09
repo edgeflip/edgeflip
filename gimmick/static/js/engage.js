@@ -111,7 +111,8 @@ edgeflip.engage = (function (edgeflip, $) {
         }
 
         if (self.results.greenest_posts.length == 0) {
-            $('#post-list').append('No green posts.');
+            $('#post-list-container').append('No green posts.');
+            $('#post-list').hide();
         } else {
             self.results.greenest_posts.forEach(function (post) {
                 var img = post.picture ? '<img src="' + post.picture + '">' : '';
