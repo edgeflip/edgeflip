@@ -93,21 +93,21 @@ edgeflip.engage = (function (edgeflip, $) {
             $('#user-city').text(self.results.city.user_city);
             $('#user-state').text(self.results.city.user_state);
         } else {
-            $('.city-rank').addClass('notice').find('.switch').toggleClass('on');
+            $('.city-rank').find('.switch').toggleClass('on');
         }
 
         if (self.results.age.user_age) {
             $('#age-rank').text(self.results.age.rank);
             $('#user-age').text(self.results.age.user_age);
         } else {
-            $('.age-rank').addClass('notice').find('.switch').toggleClass('on');
+            $('.age-rank').find('.switch').toggleClass('on');
         }
 
-        $('#friend-rank').text(self.results.friends.rank);
-
         if (self.results.friends.top.length === 1) {
-            $('.top-friends').addClass('notice').find('.switch').toggleClass('on');
+            $('.friend-rank').find('.switch').toggleClass('on');
+            $('.top-friends').find('.switch').toggleClass('on');
         } else {
+            $('#friend-rank').text(self.results.friends.rank);
             self.results.friends.top.forEach(function (friend) {
                 var name = friend.first_name + ' ' + friend.last_name,
                     img = $('<img>', {
@@ -139,7 +139,7 @@ edgeflip.engage = (function (edgeflip, $) {
             });
         }
 
-        var share = function() {
+        $('.share-rank').click(function() {
             var origin = window.location.protocol + '//' + window.location.host,
                 inCanvas = window.location.pathname.indexOf('/canvas/') >= 0,
                 namespace = inCanvas ? 'gimmick-canvas' : 'gimmick',
@@ -153,9 +153,7 @@ edgeflip.engage = (function (edgeflip, $) {
                 action_type: self.appName + ':get',
                 action_properties: JSON.stringify({ranking: objectUrl})
             });
-        };
-        $('#share-rank').click(share);
-        $('#invite-friends').click(share);
+        });
     };
 
     return self;

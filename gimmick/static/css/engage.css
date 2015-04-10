@@ -358,7 +358,7 @@ span.switch.on {
     margin: 0 0 0.3em;
 }
 
-#invite-friends {
+.share-rank {
     margin: 2em 0;
 }
 
@@ -368,6 +368,7 @@ span.switch.on {
     vertical-align: text-top;
 }
 
+/* Use these to bring rank values and labels onto the same line:
 dt.notice {
     display: inline-table;
     padding-left: 0.15em;
@@ -376,3 +377,4 @@ dd.notice {
     display: inline-block;
     padding-left: 0.25em;
 }
+*/
