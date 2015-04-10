@@ -296,7 +296,8 @@ span.switch.on {
 .footer .brand {
     margin-top: 3em;
 }
-.footer .text-center .btn {
+.footer .text-center .btn,
+.footer .text-center.brand {
     margin-left: -40px;
 }
 .footer .boost-name {
