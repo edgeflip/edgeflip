@@ -158,12 +158,17 @@ def get_user(token):
 
 
 def get_friends(token):
+    results = get_graph(token, 'me', 'friends')
+    if isinstance(results, dict):
+        # probably means no friends, but try to grab what's there
+        results = results['data']
+
     return [
         datastructs.User(
             fbid=data['id'],
             name=data['name'],
         )
-        for data in get_graph(token, 'me', 'friends')
+        for data in results
     ]
 
 
