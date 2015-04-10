@@ -159,6 +159,7 @@ def get_user(token):
 
 def get_friends(token):
     results = get_graph(token, 'me', 'friends')
+    # TODO: https://github.com/edgeflip/edgeflip/pull/519#issuecomment-91612091
     if isinstance(results, dict):
         # probably means no friends, but try to grab what's there
         results = results['data']
