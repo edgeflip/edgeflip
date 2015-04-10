@@ -357,6 +357,11 @@ span.switch.on {
 #friend-list li {
     margin: 0 0 0.3em;
 }
+
+#invite-friends {
+    margin: 2em 0;
+}
+
 .profile-picture {
     max-width: 70px;
     padding: 0 0.7em 0 0.4em;

@@ -105,15 +105,20 @@ edgeflip.engage = (function (edgeflip, $) {
 
         $('#friend-rank').text(self.results.friends.rank);
 
-        self.results.friends.top.forEach(function (friend) {
-            var name = friend.first_name + ' ' + friend.last_name,
-                img = $('<img>', {
-                    'class': 'profile-picture',
-                    'src': 'https://graph.facebook.com/' + friend.fbid + '/picture'
-                });
+        if (self.results.friends.top.length === 1) {
+            $('.top-friends').addClass('notice').find('.switch').toggleClass('on');
+        } else {
+            self.results.friends.top.forEach(function (friend) {
+                var name = friend.first_name + ' ' + friend.last_name,
+                    img = $('<img>', {
+                        'class': 'profile-picture',
+                        'src': 'https://graph.facebook.com/' + friend.fbid + '/picture'
+                    });
 
-            $('<li></li>').append(img, name).appendTo($('#friend-list'));
-        });
+                $('<li></li>').append(img, name).appendTo($('#friend-list'));
+            });
+        }
+
 
         if (self.results.greenest_likes.length === 0) {
             $('#like-list').append('No green likes.');
@@ -134,7 +139,7 @@ edgeflip.engage = (function (edgeflip, $) {
             });
         }
 
-        $('#share-rank').click(function() {
+        var share = function() {
             var origin = window.location.protocol + '//' + window.location.host,
                 inCanvas = window.location.pathname.indexOf('/canvas/') >= 0,
                 namespace = inCanvas ? 'gimmick-canvas' : 'gimmick',
@@ -148,7 +153,9 @@ edgeflip.engage = (function (edgeflip, $) {
                 action_type: self.appName + ':get',
                 action_properties: JSON.stringify({ranking: objectUrl})
             });
-        });
+        };
+        $('#share-rank').click(share);
+        $('#invite-friends').click(share);
     };
 
     return self;

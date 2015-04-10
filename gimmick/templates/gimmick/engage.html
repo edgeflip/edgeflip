@@ -100,9 +100,17 @@
                         <div class=panel-heading>
                             <h3 class=panel-title><span data-icon="&#xe001;"></span> Your Top Friends</h3>
                         </div>
-                        <div class=panel-body>
-                            <ol id=friend-list class=simple-list>
-                            </ol>
+                        <div class="panel-body top-friends">
+                            <span class="switch on">
+                                <ol id=friend-list class=simple-list>
+                                </ol>
+                            </span>
+                            <span class=switch>
+                                <p class=container-interstitial>Looks like you're the first of your friends to be ranked! Invite your friends to get their ranking so you can see where you stack up.</p>
+                                <p class="text-center container-interstitial">
+                                    {% include "gimmick/includes/fb_button.html" with btn_text="Invite friends!" btn_url="#" btn_id="invite-friends" %}
+                                </p>
+                            </span>
                         </div>
                     </div>
                 </div>
