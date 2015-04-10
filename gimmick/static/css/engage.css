@@ -275,6 +275,7 @@ span.switch.on {
 
 .content .panel {
     background-color: #87C440;
+    min-height: 335px;
 }
 
 .header, .footer {
