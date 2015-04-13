@@ -358,12 +358,18 @@ span.switch.on {
 #friend-list li {
     margin: 0 0 0.3em;
 }
+
+.share-rank {
+    margin: 2em 0;
+}
+
 .profile-picture {
     max-width: 70px;
     padding: 0 0.7em 0 0.4em;
     vertical-align: text-top;
 }
 
+/* Use these to bring rank values and labels onto the same line:
 dt.notice {
     display: inline-table;
     padding-left: 0.15em;
@@ -372,3 +378,4 @@ dd.notice {
     display: inline-block;
     padding-left: 0.25em;
 }
+*/
