@@ -20,7 +20,7 @@ nose-progressive==1.5
 us==0.7
 sh==1.08
 mock==1.0.1
-requests==1.2.3
+requests==2.6.0
 requests_futures==0.9.5
 pylibmc==1.2.3
 South==1.0.2
