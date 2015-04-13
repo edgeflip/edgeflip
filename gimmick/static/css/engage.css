@@ -133,10 +133,6 @@ a {
     text-align: right;
 }
 
-.simple-list {
-    padding-left: inherit;
-}
-
 dl.callout {
     margin-top: 0;
     margin-bottom: 15px;
@@ -355,6 +351,9 @@ span.switch.on {
     margin-right: 5px;
 }
 
+#friend-list {
+    padding-left: 20px;
+}
 #friend-list li {
     margin: 0 0 0.3em;
 }
