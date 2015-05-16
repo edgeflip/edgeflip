@@ -37,7 +37,7 @@ def extend_token(fbid, appid, token_value, api):
         api=api,
     )
     token.save(overwrite=True)
-    #dfsdfsdfsdfdfd
+    # TODO: store token somewhere ETL (forklift) reads it (via magnus or straight-up)
 
 
 @shared_task(ignore_result=True)
